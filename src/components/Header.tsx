@@ -15,7 +15,12 @@ import {
 
 export const Header = () => {
   const { user, signOut } = useAuth();
-  const { data: roleData } = useUserRole();
+  const { data: roleData, isLoading } = useUserRole();
+  
+  // Debug logging
+  console.log('Header - User:', user?.email);
+  console.log('Header - Role Data:', roleData);
+  console.log('Header - Is Loading:', isLoading);
   
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
