@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 const allAudits = [
   {
@@ -65,6 +65,8 @@ const allAudits = [
 ];
 
 const Audits = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -122,7 +124,8 @@ const Audits = () => {
               {allAudits.map((audit) => (
                 <div
                   key={audit.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors gap-3"
+                  onClick={() => navigate(`/audits/${audit.id}`)}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors gap-3 cursor-pointer group"
                 >
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
@@ -159,6 +162,7 @@ const Audits = () => {
                         Pending
                       </Badge>
                     )}
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </div>
               ))}
