@@ -25,6 +25,8 @@ export interface LocationAudit {
   foh_restrooms?: number;
   foh_menu_boards?: number;
   foh_seating?: number;
+  template_id?: string;
+  custom_data?: any;
   overall_score?: number;
   status: 'compliant' | 'non-compliant' | 'pending';
   notes?: string;
@@ -50,6 +52,8 @@ export interface StaffAudit {
   performance_speed?: number;
   performance_accuracy?: number;
   performance_knowledge?: number;
+  template_id?: string;
+  custom_data?: any;
   overall_score?: number;
   status: 'compliant' | 'non-compliant' | 'pending';
   notes?: string;
