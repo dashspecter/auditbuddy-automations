@@ -17,11 +17,6 @@ export const Header = () => {
   const { user, signOut } = useAuth();
   const { data: roleData, isLoading } = useUserRole();
   
-  // Debug logging
-  console.log('Header - User:', user?.email);
-  console.log('Header - Role Data:', roleData);
-  console.log('Header - Is Loading:', isLoading);
-  
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
@@ -44,14 +39,12 @@ export const Header = () => {
             <Link to="/audits" className="hover:text-accent transition-colors">
               Audits
             </Link>
+            <Link to="/admin/templates" className="hover:text-accent transition-colors">
+              Admin
+            </Link>
             <Link to="/reports" className="hover:text-accent transition-colors">
               Reports
             </Link>
-            {roleData?.isAdmin && (
-              <Link to="/admin/templates" className="hover:text-accent transition-colors">
-                Admin
-              </Link>
-            )}
             <Button variant="outline" size="sm" className="border-header-foreground/20 hover:bg-primary/10">
               Export Data
             </Button>
