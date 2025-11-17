@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Eye, FileEdit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
 
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
@@ -43,10 +44,15 @@ interface AuditTemplate extends TemplateBasic {
 const LocationAudit = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const draftId = searchParams.get('draft');
+  
   const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<AuditTemplate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId);
   const [formData, setFormData] = useState({
     location: "",
     auditDate: new Date().toISOString().split('T')[0],
@@ -58,6 +64,9 @@ const LocationAudit = () => {
 
   useEffect(() => {
     loadTemplates();
+    if (draftId) {
+      loadDraft(draftId);
+    }
   }, []);
 
   useEffect(() => {
@@ -65,6 +74,35 @@ const LocationAudit = () => {
       loadTemplateDetails(selectedTemplateId);
     }
   }, [selectedTemplateId]);
+
+  const loadDraft = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('location_audits')
+        .select('*')
+        .eq('id', id)
+        .eq('status', 'draft')
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setSelectedTemplateId(data.template_id || '');
+        setFormData({
+          location: data.location,
+          auditDate: data.audit_date,
+          timeStart: data.time_start || '',
+          timeEnd: data.time_end || '',
+          notes: data.notes || '',
+          customData: (data.custom_data as Record<string, any>) || {},
+        });
+        toast.info('Draft loaded successfully');
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      toast.error('Failed to load draft');
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -250,6 +288,57 @@ const LocationAudit = () => {
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!user) {
+      toast.error('You must be logged in to save a draft');
+      return;
+    }
+
+    if (!selectedTemplateId) {
+      toast.error('Please select a template');
+      return;
+    }
+
+    try {
+      const auditData = {
+        user_id: user.id,
+        location: formData.location,
+        audit_date: formData.auditDate,
+        time_start: formData.timeStart || null,
+        time_end: formData.timeEnd || null,
+        notes: formData.notes || null,
+        template_id: selectedTemplateId,
+        custom_data: formData.customData,
+        status: 'draft',
+      };
+
+      if (currentDraftId) {
+        // Update existing draft
+        const { error } = await supabase
+          .from('location_audits')
+          .update(auditData)
+          .eq('id', currentDraftId);
+
+        if (error) throw error;
+      } else {
+        // Create new draft
+        const { data, error } = await supabase
+          .from('location_audits')
+          .insert(auditData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCurrentDraftId(data.id);
+      }
+
+      toast.success("Draft saved successfully!");
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast.error('Failed to save draft');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -264,21 +353,34 @@ const LocationAudit = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('location_audits')
-        .insert({
-          user_id: user.id,
-          location: formData.location,
-          audit_date: formData.auditDate,
-          time_start: formData.timeStart || null,
-          time_end: formData.timeEnd || null,
-          notes: formData.notes || null,
-          template_id: selectedTemplateId,
-          custom_data: formData.customData,
-          status: 'pending',
-        });
+      const auditData = {
+        user_id: user.id,
+        location: formData.location,
+        audit_date: formData.auditDate,
+        time_start: formData.timeStart || null,
+        time_end: formData.timeEnd || null,
+        notes: formData.notes || null,
+        template_id: selectedTemplateId,
+        custom_data: formData.customData,
+        status: 'pending',
+      };
 
-      if (error) throw error;
+      if (currentDraftId) {
+        // Update existing draft to submitted
+        const { error } = await supabase
+          .from('location_audits')
+          .update(auditData)
+          .eq('id', currentDraftId);
+
+        if (error) throw error;
+      } else {
+        // Create new audit
+        const { error } = await supabase
+          .from('location_audits')
+          .insert(auditData);
+
+        if (error) throw error;
+      }
 
       toast.success("Location audit submitted successfully!");
       navigate("/");
@@ -318,9 +420,29 @@ const LocationAudit = () => {
           Back to Dashboard
         </Button>
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Location Standard Checker</h1>
-          <p className="text-muted-foreground">Complete the location audit form</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Location Standard Checker
+              {currentDraftId && (
+                <span className="ml-3 text-sm font-normal text-muted-foreground">
+                  (Editing Draft)
+                </span>
+              )}
+            </h1>
+            <p className="text-muted-foreground">Complete the location audit form</p>
+          </div>
+          {selectedTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+              className="gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              Preview Template
+            </Button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -438,11 +560,30 @@ const LocationAudit = () => {
               <Save className="h-4 w-4" />
               Submit Audit
             </Button>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={handleSaveDraft}
+              disabled={!selectedTemplateId}
+              className="gap-2"
+            >
+              <FileEdit className="h-4 w-4" />
+              Save as Draft
+            </Button>
             <Button type="button" variant="outline" onClick={() => navigate("/")}>
               Cancel
             </Button>
           </div>
         </form>
+
+        {selectedTemplate && (
+          <TemplatePreviewDialog
+            open={showPreview}
+            onOpenChange={setShowPreview}
+            templateName={selectedTemplate.name}
+            sections={selectedTemplate.sections}
+          />
+        )}
       </main>
     </div>
   );
