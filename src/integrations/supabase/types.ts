@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      location_audits: {
+        Row: {
+          audit_date: string
+          boh_equipment: number | null
+          boh_preparation: number | null
+          boh_storage: number | null
+          boh_temperature: number | null
+          cleaning_equipment: number | null
+          cleaning_floors: number | null
+          cleaning_surfaces: number | null
+          cleaning_waste: number | null
+          compliance_documentation: number | null
+          compliance_licenses: number | null
+          compliance_permits: number | null
+          compliance_signage: number | null
+          created_at: string
+          foh_customer_areas: number | null
+          foh_menu_boards: number | null
+          foh_restrooms: number | null
+          foh_seating: number | null
+          id: string
+          location: string
+          notes: string | null
+          overall_score: number | null
+          status: string | null
+          time_end: string | null
+          time_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audit_date: string
+          boh_equipment?: number | null
+          boh_preparation?: number | null
+          boh_storage?: number | null
+          boh_temperature?: number | null
+          cleaning_equipment?: number | null
+          cleaning_floors?: number | null
+          cleaning_surfaces?: number | null
+          cleaning_waste?: number | null
+          compliance_documentation?: number | null
+          compliance_licenses?: number | null
+          compliance_permits?: number | null
+          compliance_signage?: number | null
+          created_at?: string
+          foh_customer_areas?: number | null
+          foh_menu_boards?: number | null
+          foh_restrooms?: number | null
+          foh_seating?: number | null
+          id?: string
+          location: string
+          notes?: string | null
+          overall_score?: number | null
+          status?: string | null
+          time_end?: string | null
+          time_start?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audit_date?: string
+          boh_equipment?: number | null
+          boh_preparation?: number | null
+          boh_storage?: number | null
+          boh_temperature?: number | null
+          cleaning_equipment?: number | null
+          cleaning_floors?: number | null
+          cleaning_surfaces?: number | null
+          cleaning_waste?: number | null
+          compliance_documentation?: number | null
+          compliance_licenses?: number | null
+          compliance_permits?: number | null
+          compliance_signage?: number | null
+          created_at?: string
+          foh_customer_areas?: number | null
+          foh_menu_boards?: number | null
+          foh_restrooms?: number | null
+          foh_seating?: number | null
+          id?: string
+          location?: string
+          notes?: string | null
+          overall_score?: number | null
+          status?: string | null
+          time_end?: string | null
+          time_start?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -35,6 +125,81 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_audits: {
+        Row: {
+          audit_date: string
+          behavior_customer_service: number | null
+          behavior_professionalism: number | null
+          behavior_teamwork: number | null
+          created_at: string
+          hygiene_hair: number | null
+          hygiene_hands: number | null
+          hygiene_nails: number | null
+          id: string
+          location: string
+          notes: string | null
+          overall_score: number | null
+          performance_accuracy: number | null
+          performance_knowledge: number | null
+          performance_speed: number | null
+          staff_name: string
+          status: string | null
+          uniform_cleanliness: number | null
+          uniform_completeness: number | null
+          uniform_name_tag: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audit_date: string
+          behavior_customer_service?: number | null
+          behavior_professionalism?: number | null
+          behavior_teamwork?: number | null
+          created_at?: string
+          hygiene_hair?: number | null
+          hygiene_hands?: number | null
+          hygiene_nails?: number | null
+          id?: string
+          location: string
+          notes?: string | null
+          overall_score?: number | null
+          performance_accuracy?: number | null
+          performance_knowledge?: number | null
+          performance_speed?: number | null
+          staff_name: string
+          status?: string | null
+          uniform_cleanliness?: number | null
+          uniform_completeness?: number | null
+          uniform_name_tag?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audit_date?: string
+          behavior_customer_service?: number | null
+          behavior_professionalism?: number | null
+          behavior_teamwork?: number | null
+          created_at?: string
+          hygiene_hair?: number | null
+          hygiene_hands?: number | null
+          hygiene_nails?: number | null
+          id?: string
+          location?: string
+          notes?: string | null
+          overall_score?: number | null
+          performance_accuracy?: number | null
+          performance_knowledge?: number | null
+          performance_speed?: number | null
+          staff_name?: string
+          status?: string | null
+          uniform_cleanliness?: number | null
+          uniform_completeness?: number | null
+          uniform_name_tag?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -64,6 +229,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_location_audit_score: {
+        Args: { audit_id: string }
+        Returns: number
+      }
+      calculate_staff_audit_score: {
+        Args: { audit_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
