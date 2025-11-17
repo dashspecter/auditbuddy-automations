@@ -69,6 +69,12 @@ const AdminTemplates = () => {
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="gap-2" asChild>
+                <Link to="/admin/users">
+                  <Settings className="h-4 w-4" />
+                  User Management
+                </Link>
+              </Button>
+              <Button variant="outline" className="gap-2" asChild>
                 <Link to="/admin/template-library">
                   <Copy className="h-4 w-4" />
                   Template Library
