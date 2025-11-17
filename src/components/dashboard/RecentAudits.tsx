@@ -1,22 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle, Clock } from "lucide-react";
-import { useLocationAudits, useStaffAudits } from "@/hooks/useAudits";
+import { useLocationAudits } from "@/hooks/useAudits";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
 export const RecentAudits = () => {
   const { data: locationAudits, isLoading: locationLoading } = useLocationAudits();
-  const { data: staffAudits, isLoading: staffLoading } = useStaffAudits();
 
-  const allAudits = [
-    ...(locationAudits || []).map(audit => ({ ...audit, type: 'location' as const })),
-    ...(staffAudits || []).map(audit => ({ ...audit, type: 'staff' as const })),
-  ]
+  const allAudits = (locationAudits || [])
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 4);
 
-  const isLoading = locationLoading || staffLoading;
+  const isLoading = locationLoading;
 
   return (
     <Card className="p-6">

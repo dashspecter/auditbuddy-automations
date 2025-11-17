@@ -102,23 +102,14 @@ export default function UserManagement() {
 
       if (locationError) throw locationError;
 
-      // Get staff audits count
-      const { data: staffAudits, error: staffError } = await supabase
-        .from('staff_audits')
-        .select('id, created_at', { count: 'exact' })
-        .eq('user_id', selectedUser.id);
-
-      if (staffError) throw staffError;
-
-      // Get last audit date
-      const allAudits = [
-        ...(locationAudits || []),
-        ...(staffAudits || []),
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // Get all audits for last activity
+      const allAudits = [...(locationAudits || [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       return {
         location_audits: locationAudits?.length || 0,
-        staff_audits: staffAudits?.length || 0,
+        staff_audits: 0, // Staff audits removed
         last_audit: allAudits.length > 0 ? allAudits[0].created_at : null,
       };
     },
@@ -334,16 +325,9 @@ export default function UserManagement() {
 
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Staff Audits</span>
-                    <span className="text-2xl font-bold">{activityData.staff_audits}</span>
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Total Audits</span>
                     <span className="text-2xl font-bold">
-                      {activityData.location_audits + activityData.staff_audits}
+                      {activityData.location_audits}
                     </span>
                   </div>
                 </Card>

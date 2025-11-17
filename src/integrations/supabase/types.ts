@@ -263,95 +263,6 @@ export type Database = {
         }
         Relationships: []
       }
-      staff_audits: {
-        Row: {
-          audit_date: string
-          behavior_customer_service: number | null
-          behavior_professionalism: number | null
-          behavior_teamwork: number | null
-          created_at: string
-          custom_data: Json | null
-          hygiene_hair: number | null
-          hygiene_hands: number | null
-          hygiene_nails: number | null
-          id: string
-          location: string
-          notes: string | null
-          overall_score: number | null
-          performance_accuracy: number | null
-          performance_knowledge: number | null
-          performance_speed: number | null
-          staff_name: string
-          status: string | null
-          template_id: string | null
-          uniform_cleanliness: number | null
-          uniform_completeness: number | null
-          uniform_name_tag: number | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          audit_date: string
-          behavior_customer_service?: number | null
-          behavior_professionalism?: number | null
-          behavior_teamwork?: number | null
-          created_at?: string
-          custom_data?: Json | null
-          hygiene_hair?: number | null
-          hygiene_hands?: number | null
-          hygiene_nails?: number | null
-          id?: string
-          location: string
-          notes?: string | null
-          overall_score?: number | null
-          performance_accuracy?: number | null
-          performance_knowledge?: number | null
-          performance_speed?: number | null
-          staff_name: string
-          status?: string | null
-          template_id?: string | null
-          uniform_cleanliness?: number | null
-          uniform_completeness?: number | null
-          uniform_name_tag?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          audit_date?: string
-          behavior_customer_service?: number | null
-          behavior_professionalism?: number | null
-          behavior_teamwork?: number | null
-          created_at?: string
-          custom_data?: Json | null
-          hygiene_hair?: number | null
-          hygiene_hands?: number | null
-          hygiene_nails?: number | null
-          id?: string
-          location?: string
-          notes?: string | null
-          overall_score?: number | null
-          performance_accuracy?: number | null
-          performance_knowledge?: number | null
-          performance_speed?: number | null
-          staff_name?: string
-          status?: string | null
-          template_id?: string | null
-          uniform_cleanliness?: number | null
-          uniform_completeness?: number | null
-          uniform_name_tag?: number | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_audits_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "audit_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           created_at: string
@@ -379,10 +290,6 @@ export type Database = {
     }
     Functions: {
       calculate_location_audit_score: {
-        Args: { audit_id: string }
-        Returns: number
-      }
-      calculate_staff_audit_score: {
         Args: { audit_id: string }
         Returns: number
       }

@@ -118,7 +118,7 @@ const AdminTemplates = () => {
                     <Label htmlFor="type">Template Type *</Label>
                     <Select
                       value={formData.template_type}
-                      onValueChange={(value: 'location' | 'staff') =>
+                      onValueChange={(value: 'location') =>
                         setFormData({ ...formData, template_type: value })
                       }
                     >
@@ -127,7 +127,6 @@ const AdminTemplates = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="location">Location Audit</SelectItem>
-                        <SelectItem value="staff">Staff Audit</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
