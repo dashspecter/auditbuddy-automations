@@ -23,10 +23,9 @@ const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="staff">Staff</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -47,13 +46,6 @@ const Dashboard = () => {
                 description="Active locations"
               />
               <StatsCard
-                title="Staff Audits"
-                value="89"
-                icon={Users}
-                trend="+8%"
-                trendLabel="from last month"
-              />
-              <StatsCard
                 title="Compliance Rate"
                 value="87%"
                 icon={TrendingUp}
@@ -72,10 +64,6 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4" />
                 New Location Audit
               </Button>
-              <Button variant="outline" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Staff Audit
-              </Button>
             </div>
           </TabsContent>
 
@@ -89,15 +77,6 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="staff" className="space-y-6">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Staff Audits</h2>
-              <p className="text-muted-foreground mb-4">
-                View and manage staff compliance audits
-              </p>
-              <Button>View All Staff Audits</Button>
-            </Card>
-          </TabsContent>
         </Tabs>
       </main>
     </div>
