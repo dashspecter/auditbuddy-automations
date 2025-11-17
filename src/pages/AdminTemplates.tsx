@@ -67,14 +67,21 @@ const AdminTemplates = () => {
               <h1 className="text-3xl font-bold text-foreground">Audit Templates</h1>
               <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
             </div>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  New Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" asChild>
+                <Link to="/admin/template-library">
+                  <Copy className="h-4 w-4" />
+                  Template Library
+                </Link>
+              </Button>
+              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Template</DialogTitle>
                   <DialogDescription>
@@ -163,6 +170,7 @@ const AdminTemplates = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           {isLoading ? (
