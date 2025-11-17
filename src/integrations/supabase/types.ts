@@ -14,6 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_type: string
+          id: string
+          is_required: boolean
+          name: string
+          options: Json | null
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_type: string
+          id?: string
+          is_required?: boolean
+          name: string
+          options?: Json | null
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          name?: string
+          options?: Json | null
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_global: boolean
+          location: string | null
+          name: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_global?: boolean
+          location?: string | null
+          name: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_global?: boolean
+          location?: string | null
+          name?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       location_audits: {
         Row: {
           audit_date: string
@@ -30,6 +151,7 @@ export type Database = {
           compliance_permits: number | null
           compliance_signage: number | null
           created_at: string
+          custom_data: Json | null
           foh_customer_areas: number | null
           foh_menu_boards: number | null
           foh_restrooms: number | null
@@ -39,6 +161,7 @@ export type Database = {
           notes: string | null
           overall_score: number | null
           status: string | null
+          template_id: string | null
           time_end: string | null
           time_start: string | null
           updated_at: string
@@ -59,6 +182,7 @@ export type Database = {
           compliance_permits?: number | null
           compliance_signage?: number | null
           created_at?: string
+          custom_data?: Json | null
           foh_customer_areas?: number | null
           foh_menu_boards?: number | null
           foh_restrooms?: number | null
@@ -68,6 +192,7 @@ export type Database = {
           notes?: string | null
           overall_score?: number | null
           status?: string | null
+          template_id?: string | null
           time_end?: string | null
           time_start?: string | null
           updated_at?: string
@@ -88,6 +213,7 @@ export type Database = {
           compliance_permits?: number | null
           compliance_signage?: number | null
           created_at?: string
+          custom_data?: Json | null
           foh_customer_areas?: number | null
           foh_menu_boards?: number | null
           foh_restrooms?: number | null
@@ -97,12 +223,21 @@ export type Database = {
           notes?: string | null
           overall_score?: number | null
           status?: string | null
+          template_id?: string | null
           time_end?: string | null
           time_start?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "location_audits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -135,6 +270,7 @@ export type Database = {
           behavior_professionalism: number | null
           behavior_teamwork: number | null
           created_at: string
+          custom_data: Json | null
           hygiene_hair: number | null
           hygiene_hands: number | null
           hygiene_nails: number | null
@@ -147,6 +283,7 @@ export type Database = {
           performance_speed: number | null
           staff_name: string
           status: string | null
+          template_id: string | null
           uniform_cleanliness: number | null
           uniform_completeness: number | null
           uniform_name_tag: number | null
@@ -159,6 +296,7 @@ export type Database = {
           behavior_professionalism?: number | null
           behavior_teamwork?: number | null
           created_at?: string
+          custom_data?: Json | null
           hygiene_hair?: number | null
           hygiene_hands?: number | null
           hygiene_nails?: number | null
@@ -171,6 +309,7 @@ export type Database = {
           performance_speed?: number | null
           staff_name: string
           status?: string | null
+          template_id?: string | null
           uniform_cleanliness?: number | null
           uniform_completeness?: number | null
           uniform_name_tag?: number | null
@@ -183,6 +322,7 @@ export type Database = {
           behavior_professionalism?: number | null
           behavior_teamwork?: number | null
           created_at?: string
+          custom_data?: Json | null
           hygiene_hair?: number | null
           hygiene_hands?: number | null
           hygiene_nails?: number | null
@@ -195,13 +335,22 @@ export type Database = {
           performance_speed?: number | null
           staff_name?: string
           status?: string | null
+          template_id?: string | null
           uniform_cleanliness?: number | null
           uniform_completeness?: number | null
           uniform_name_tag?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "staff_audits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

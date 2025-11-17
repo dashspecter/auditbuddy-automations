@@ -10,6 +10,8 @@ import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
 import AuditDetail from "./pages/AuditDetail";
 import Reports from "./pages/Reports";
+import AdminTemplates from "./pages/AdminTemplates";
+import TemplateEditor from "./pages/TemplateEditor";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
+            <Route path="/admin/templates" element={<ProtectedRoute><AdminTemplates /></ProtectedRoute>} />
+            <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

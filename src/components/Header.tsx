@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import {
 
 export const Header = () => {
   const { user, signOut } = useAuth();
+  const { data: roleData } = useUserRole();
   
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -40,6 +42,11 @@ export const Header = () => {
             <Link to="/reports" className="hover:text-accent transition-colors">
               Reports
             </Link>
+            {roleData?.isAdmin && (
+              <Link to="/admin/templates" className="hover:text-accent transition-colors">
+                Admin
+              </Link>
+            )}
             <Button variant="outline" size="sm" className="border-header-foreground/20 hover:bg-primary/10">
               Export Data
             </Button>
@@ -60,6 +67,17 @@ export const Header = () => {
                 <DropdownMenuItem className="text-sm text-muted-foreground">
                   {user?.email}
                 </DropdownMenuItem>
+                {roleData?.isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/templates" className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
