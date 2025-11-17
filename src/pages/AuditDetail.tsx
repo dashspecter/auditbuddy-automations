@@ -2,8 +2,10 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar, Download } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { generateAuditPDF } from "@/lib/pdfExport";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data - will be replaced with real database data later
 const auditDetails = {
@@ -43,8 +45,27 @@ const auditDetails = {
 
 const AuditDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
   const auditId = id ? parseInt(id) : null;
   const audit = auditId ? auditDetails[auditId as keyof typeof auditDetails] : null;
+
+  const handleDownloadPDF = () => {
+    if (!audit) return;
+    
+    try {
+      generateAuditPDF(audit);
+      toast({
+        title: "PDF Generated",
+        description: "Your audit report has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (!audit) {
     return (
@@ -185,7 +206,8 @@ const AuditDetail = () => {
                 Back to Audits
               </Button>
             </Link>
-            <Button className="flex-1">
+            <Button className="flex-1 gap-2" onClick={handleDownloadPDF}>
+              <Download className="h-4 w-4" />
               Download Report
             </Button>
           </div>
