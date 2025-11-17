@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentAudits } from "@/components/dashboard/RecentAudits";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
+import { DraftAudits } from "@/components/dashboard/DraftAudits";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -29,6 +30,8 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            <DraftAudits />
+            
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <StatsCard
                 title="Total Audits"
