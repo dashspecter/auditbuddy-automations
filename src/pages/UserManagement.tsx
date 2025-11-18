@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Search, Shield, User, Activity } from "lucide-react";
+import { ArrowLeft, Search, Shield, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -19,13 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { format } from "date-fns";
 
 interface UserProfile {
@@ -53,9 +44,7 @@ interface UserWithRoles extends UserProfile {
 
 export default function UserManagement() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
@@ -231,12 +220,10 @@ export default function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Admin Access</TableHead>
-                <TableHead>Activity</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead>Joined</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
