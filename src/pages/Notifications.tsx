@@ -21,8 +21,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck, HelpCircle, Info, Shield } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Tooltip,
   TooltipContent,
@@ -298,6 +299,21 @@ export default function Notifications() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Permission Summary Banner */}
+                <Alert className="bg-primary/5 border-primary/20">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-sm">
+                    <strong>Your notification permissions:</strong>{" "}
+                    {roleData?.isAdmin ? (
+                      <span>You can send notifications to <strong>all roles</strong> (Checkers, Managers, and Admins).</span>
+                    ) : roleData?.isManager ? (
+                      <span>You can send notifications to <strong>Checkers only</strong>. Contact an administrator to notify Managers or Admins.</span>
+                    ) : (
+                      <span>You can send notifications to <strong>Checkers only</strong>.</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+                
                 {templates.length > 0 && (
                   <div className="space-y-2 pb-4 border-b">
                     <Label htmlFor="template" className="flex items-center gap-2">
@@ -475,7 +491,38 @@ export default function Notifications() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Target Roles *</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>Target Roles *</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <div className="space-y-2">
+                            <p className="font-semibold">Role Hierarchy & Permissions:</p>
+                            <ul className="space-y-1 text-xs">
+                              <li className="flex items-start gap-1">
+                                <span className="font-semibold">Admins:</span>
+                                <span>Can send notifications to all roles (Checkers, Managers, and Admins)</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <span className="font-semibold">Managers:</span>
+                                <span>Can only send notifications to Checkers</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <span className="font-semibold">Checkers:</span>
+                                <span>Can only send notifications to Checkers</span>
+                              </li>
+                            </ul>
+                            <p className="text-xs text-muted-foreground pt-1 border-t">
+                              Select one or more target roles for your notification. Recipients will receive the notification in their notification center.
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox
