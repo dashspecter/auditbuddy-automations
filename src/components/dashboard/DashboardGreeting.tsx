@@ -32,7 +32,8 @@ export const DashboardGreeting = () => {
     return "Good evening";
   };
 
-  const displayName = profile?.full_name || user?.email?.split('@')[0] || "User";
+  const rawName = profile?.full_name || user?.email?.split('@')[0] || "User";
+  const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const lastLogin = profile?.last_login;
 
   return (
