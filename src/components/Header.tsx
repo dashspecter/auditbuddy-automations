@@ -447,14 +447,16 @@ export const Header = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {roleData?.isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    User Management
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {(roleData?.isAdmin || roleData?.isManager) && (
                 <>
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      User Management
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
                       <Megaphone className="mr-2 h-4 w-4" />
