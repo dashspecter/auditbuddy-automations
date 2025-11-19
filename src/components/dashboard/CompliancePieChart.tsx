@@ -12,16 +12,22 @@ const COLORS = {
 export const CompliancePieChart = () => {
   const { data: audits, isLoading } = useLocationAudits();
 
-  const pieData = useMemo(() => {
-    if (!audits || audits.length === 0) return [];
+  const { pieData, averageScore } = useMemo(() => {
+    if (!audits || audits.length === 0) return { pieData: [], averageScore: 0 };
 
+    const totalScore = audits.reduce((sum, audit) => sum + (audit.overall_score || 0), 0);
+    const avgScore = Math.round(totalScore / audits.length);
+    
     const compliant = audits.filter(a => (a.overall_score || 0) >= COMPLIANCE_THRESHOLD).length;
     const nonCompliant = audits.length - compliant;
 
-    return [
-      { name: 'Compliant', value: compliant },
-      { name: 'Non-Compliant', value: nonCompliant },
-    ];
+    return {
+      pieData: [
+        { name: 'Compliant', value: compliant },
+        { name: 'Non-Compliant', value: nonCompliant },
+      ],
+      averageScore: avgScore
+    };
   }, [audits]);
 
 
@@ -47,14 +53,12 @@ export const CompliancePieChart = () => {
     );
   }
 
-  const compliantPercentage = Math.round((pieData[0].value / audits.length) * 100);
-
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Overall Compliance</h3>
       <div className="text-center mb-2">
-        <span className="text-3xl font-bold">{compliantPercentage}%</span>
-        <p className="text-sm text-muted-foreground">Compliance Rate</p>
+        <span className="text-3xl font-bold">{averageScore}%</span>
+        <p className="text-sm text-muted-foreground">Average Compliance Score</p>
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
