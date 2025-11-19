@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -12,10 +12,66 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Header = () => {
   const { user, signOut } = useAuth();
   const { data: roleData, isLoading } = useUserRole();
+  const { toast } = useToast();
+
+  const handleExportData = async () => {
+    try {
+      // Fetch all audits data
+      const { data: audits, error } = await supabase
+        .from('location_audits')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!audits || audits.length === 0) {
+        toast({
+          title: "No data to export",
+          description: "There are no audits to export yet.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert to CSV
+      const headers = Object.keys(audits[0]).join(',');
+      const rows = audits.map(audit => 
+        Object.values(audit).map(val => 
+          typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
+        ).join(',')
+      );
+      const csv = [headers, ...rows].join('\n');
+
+      // Download CSV
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dashspect-audits-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Data exported successfully",
+        description: `Exported ${audits.length} audits to CSV.`,
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -45,7 +101,13 @@ export const Header = () => {
             <Link to="/reports" className="hover:text-accent transition-colors">
               Reports
             </Link>
-            <Button variant="outline" size="sm" className="border-header-foreground/20 hover:bg-primary/10">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-header-foreground/20 hover:bg-primary/10 gap-2"
+              onClick={handleExportData}
+            >
+              <Download className="h-4 w-4" />
               Export Data
             </Button>
             
