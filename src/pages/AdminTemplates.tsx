@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Settings, Copy, Trash2 } from 'lucide-react';
-import { useTemplates } from '@/hooks/useTemplates';
+import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplates';
 import { Link } from 'react-router-dom';
 import { AdminOnly } from '@/components/AdminOnly';
 import {
@@ -16,6 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,7 +37,10 @@ import { toast } from 'sonner';
 const AdminTemplates = () => {
   const { data: templates, isLoading } = useTemplates();
   const createTemplate = useCreateTemplate();
+  const deleteTemplate = useDeleteTemplate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -54,6 +67,25 @@ const AdminTemplates = () => {
     } catch (error) {
       console.error('Error creating template:', error);
       toast.error('Failed to create template');
+    }
+  };
+
+  const handleDeleteClick = (template: { id: string; name: string }) => {
+    setTemplateToDelete(template);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return;
+
+    try {
+      await deleteTemplate.mutateAsync(templateToDelete.id);
+      toast.success('Template deleted successfully');
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Failed to delete template');
     }
   };
 
@@ -218,12 +250,42 @@ const AdminTemplates = () => {
                         Configure
                       </Button>
                     </Link>
+                    {!template.is_global && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handleDeleteClick({ id: template.id, name: template.name })}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </Card>
               ))}
             </div>
           )}
         </div>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Template</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{templateToDelete?.name}"? This action cannot be undone and will remove all sections, fields, and audits associated with this template.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
