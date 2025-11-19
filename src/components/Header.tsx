@@ -96,7 +96,7 @@ export const Header = () => {
               Audits
             </Link>
             <Link to="/admin/templates" className="hover:text-accent transition-colors">
-              Admin
+              Templates
             </Link>
             <Link to="/reports" className="hover:text-accent transition-colors">
               Reports
