@@ -247,12 +247,12 @@ const Reports = () => {
                 <p className="text-muted-foreground">No audit data available</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Location</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Total Audits</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[150px]">Location</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">Total Audits</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Avg Score</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Compliant</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Non-Compliant</th>
