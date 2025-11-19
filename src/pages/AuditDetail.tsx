@@ -56,7 +56,8 @@ const AuditDetail = () => {
             name,
             field_type,
             is_required,
-            display_order
+            display_order,
+            options
           )
         `)
         .eq('template_id', templateId)
@@ -75,7 +76,8 @@ const AuditDetail = () => {
               id: field.id,
               name: field.name,
               field_type: field.field_type,
-              is_required: field.is_required
+              is_required: field.is_required,
+              options: field.options
             }))
         }));
         setTemplateSections(formattedSections);
