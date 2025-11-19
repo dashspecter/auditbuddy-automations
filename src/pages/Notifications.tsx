@@ -545,7 +545,7 @@ export default function Notifications() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="border rounded-lg p-4 flex items-start justify-between gap-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                      className="border rounded-lg p-4 flex items-start justify-between gap-4 cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all group"
                       onClick={() => {
                         setSelectedNotification(notification);
                         setDetailOpen(true);
@@ -553,7 +553,7 @@ export default function Notifications() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">{notification.title}</h3>
+                          <h3 className="font-semibold group-hover:text-primary transition-colors">{notification.title}</h3>
                           <Badge variant="outline">{notification.type}</Badge>
                           {!notification.is_active && (
                             <Badge variant="destructive">Inactive</Badge>
@@ -564,9 +564,10 @@ export default function Notifications() {
                               Scheduled
                             </Badge>
                           )}
+                          <Eye className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {notification.message}
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                          <span dangerouslySetInnerHTML={{ __html: notification.message }} />
                         </p>
                         {notification.location_audits && (
                           <div className="flex items-center gap-1 text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-md mb-2 w-fit">
