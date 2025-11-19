@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,66 +7,78 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-
-const allAudits = [
-  {
-    id: 1,
-    type: "location",
-    location: "LBFC Amzei",
-    checker: "Vlad",
-    date: "2025-10-27",
-    status: "compliant",
-    score: 87,
-  },
-  {
-    id: 2,
-    type: "location",
-    location: "LBFC Mosilor",
-    checker: "Bogdan",
-    date: "2025-10-26",
-    status: "non-compliant",
-    score: 65,
-  },
-  {
-    id: 3,
-    type: "location",
-    location: "LBFC Timpuri Noi",
-    checker: "Serdar",
-    date: "2025-10-26",
-    status: "pending",
-    score: null,
-  },
-  {
-    id: 4,
-    type: "location",
-    location: "LBFC Apaca",
-    checker: "Iulian",
-    date: "2025-10-25",
-    status: "compliant",
-    score: 92,
-  },
-  {
-    id: 5,
-    type: "staff",
-    location: "LBFC Amzei",
-    checker: "Maria",
-    date: "2025-10-27",
-    status: "compliant",
-    score: 95,
-  },
-  {
-    id: 6,
-    type: "staff",
-    location: "LBFC Mosilor",
-    checker: "Ana",
-    date: "2025-10-26",
-    status: "non-compliant",
-    score: 70,
-  },
-];
+import { useLocationAudits } from "@/hooks/useAudits";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 const Audits = () => {
   const navigate = useNavigate();
+  const { data: audits, isLoading } = useLocationAudits();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all-status");
+
+  // Fetch user profiles to get checker names
+  const { data: profiles } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Get checker name by user_id
+  const getCheckerName = (userId: string) => {
+    const profile = profiles?.find(p => p.id === userId);
+    return profile?.full_name || profile?.email?.split('@')[0] || 'Unknown';
+  };
+
+  // Get template type by template_id
+  const { data: templates } = useQuery({
+    queryKey: ['audit_templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_templates')
+        .select('id, template_type');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getTemplateType = (templateId: string | null | undefined) => {
+    if (!templateId) return 'location';
+    const template = templates?.find(t => t.id === templateId);
+    return template?.template_type || 'location';
+  };
+
+  // Filter and search audits
+  const filteredAudits = useMemo(() => {
+    if (!audits) return [];
+
+    return audits.filter(audit => {
+      // Search filter
+      const searchLower = searchQuery.toLowerCase();
+      const checkerName = getCheckerName(audit.user_id).toLowerCase();
+      const matchesSearch = 
+        audit.location.toLowerCase().includes(searchLower) ||
+        checkerName.includes(searchLower);
+
+      if (!matchesSearch) return false;
+
+      // Type filter
+      const auditType = getTemplateType(audit.template_id);
+      if (typeFilter !== "all" && auditType !== typeFilter) return false;
+
+      // Status filter
+      if (statusFilter !== "all-status" && audit.status !== statusFilter) return false;
+
+      return true;
+    });
+  }, [audits, searchQuery, typeFilter, statusFilter, profiles, templates]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,9 +108,11 @@ const Audits = () => {
                 <Input 
                   placeholder="Search by location or checker..." 
                   className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Select defaultValue="all">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full lg:w-[180px]">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
@@ -107,7 +122,7 @@ const Audits = () => {
                   <SelectItem value="staff">Staff</SelectItem>
                 </SelectContent>
               </Select>
-              <Select defaultValue="all-status">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full lg:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -120,30 +135,41 @@ const Audits = () => {
               </Select>
             </div>
 
-            <div className="space-y-3">
-              {allAudits.map((audit) => (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading audits...</p>
+              </div>
+            ) : filteredAudits.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                  {audits?.length === 0 ? "No audits found. Create your first audit!" : "No audits match your filters."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredAudits.map((audit) => (
                 <div
                   key={audit.id}
                   onClick={() => navigate(`/audits/${audit.id}`)}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors gap-3 cursor-pointer group"
                 >
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">{audit.location}</p>
-                      <Badge variant="outline" className="text-xs">
-                        {audit.type}
-                      </Badge>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{audit.location}</p>
+                        <Badge variant="outline" className="text-xs">
+                          {getTemplateType(audit.template_id)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Checked by {getCheckerName(audit.user_id)} • {format(new Date(audit.audit_date), 'yyyy-MM-dd')}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Checked by {audit.checker} • {audit.date}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {audit.score !== null && (
-                      <span className="text-lg font-bold text-foreground">
-                        {audit.score}%
-                      </span>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {audit.overall_score !== null && audit.overall_score !== undefined && (
+                        <span className="text-lg font-bold text-foreground">
+                          {audit.overall_score}%
+                        </span>
+                      )}
                     {audit.status === "compliant" && (
                       <Badge className="bg-success text-success-foreground gap-1">
                         <CheckCircle2 className="h-3 w-3" />
@@ -165,9 +191,10 @@ const Audits = () => {
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
         </div>
       </main>
     </div>
