@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Settings, Copy, Trash2 } from 'lucide-react';
 import { useTemplates } from '@/hooks/useTemplates';
 import { Link } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole';
+import { AdminOnly } from '@/components/AdminOnly';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,6 @@ import { toast } from 'sonner';
 
 const AdminTemplates = () => {
   const { data: templates, isLoading } = useTemplates();
-  const { data: roleData } = useUserRole();
   const createTemplate = useCreateTemplate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,14 +69,14 @@ const AdminTemplates = () => {
               <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
             </div>
             <div className="flex gap-2">
-              {roleData?.isAdmin && (
+              <AdminOnly>
                 <Button variant="outline" className="gap-2" asChild>
                   <Link to="/admin/users">
                     <Settings className="h-4 w-4" />
                     User Management
                   </Link>
                 </Button>
-              )}
+              </AdminOnly>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/admin/template-library">
                   <Copy className="h-4 w-4" />
