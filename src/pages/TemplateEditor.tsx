@@ -203,7 +203,7 @@ const TemplateEditor = () => {
       </main>
 
       <Dialog open={isSectionDialogOpen} onOpenChange={setIsSectionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingSection ? 'Edit Section' : 'Create New Section'}</DialogTitle>
             <DialogDescription>

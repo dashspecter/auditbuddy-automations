@@ -200,27 +200,27 @@ export const SectionScoreBreakdown = ({
                     variant="ghost" 
                     className="w-full p-0 h-auto hover:bg-transparent"
                   >
-                    <div className="flex items-start justify-between gap-4 w-full">
-                      <div className="flex items-center gap-3 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 w-full">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getStatusIcon(section.status)}
-                        <div className="flex-1 text-left">
+                        <div className="flex-1 text-left min-w-0">
                           <h4 className="font-medium text-foreground">{section.name}</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {section.ratingCount} {section.ratingCount === 1 ? 'field' : 'fields'} evaluated
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center gap-3 justify-between sm:justify-end w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
                           <span className={`text-2xl font-bold ${getScoreColor(section.score)}`}>
                             {section.score}%
                           </span>
                           {getStatusBadge(section.status)}
                         </div>
                         {expandedSection === section.name ? (
-                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         ) : (
-                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         )}
                       </div>
                     </div>
