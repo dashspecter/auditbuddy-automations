@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
 import { supabase } from "@/integrations/supabase/client";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const COMPLIANCE_THRESHOLD = 80;
 
@@ -281,9 +282,17 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Auditor</p>
-                  <p className="font-semibold text-foreground">
-                    {audit.profiles?.full_name || audit.profiles?.email || `User ${audit.user_id.substring(0, 8)}`}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <UserAvatar 
+                      avatarUrl={audit.profiles?.avatar_url}
+                      userName={audit.profiles?.full_name}
+                      userEmail={audit.profiles?.email}
+                      size="sm"
+                    />
+                    <p className="font-semibold text-foreground">
+                      {audit.profiles?.full_name || audit.profiles?.email || `User ${audit.user_id.substring(0, 8)}`}
+                    </p>
+                  </div>
                 </div>
               </div>
               

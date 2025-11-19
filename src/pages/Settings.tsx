@@ -10,7 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(6, "Password must be at least 6 characters"),
@@ -31,6 +33,22 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch user profile for avatar
+  const { data: profile, refetch: refetchProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name, email')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +133,22 @@ export default function Settings() {
             </p>
           </div>
 
-          <div className="max-w-2xl">
+          <div className="max-w-2xl space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Avatar</CardTitle>
+                <CardDescription>
+                  Upload a profile picture to personalize your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <AvatarUpload 
+                  currentAvatarUrl={profile?.avatar_url}
+                  onAvatarUpdate={() => refetchProfile()}
+                />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
