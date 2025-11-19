@@ -23,6 +23,12 @@ import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
@@ -481,42 +487,64 @@ export default function Notifications() {
                         Checkers
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="manager"
-                        checked={targetRoles.includes("manager")}
-                        onCheckedChange={() => handleRoleToggle("manager")}
-                        disabled={roleData?.isManager && !roleData?.isAdmin}
-                      />
-                      <Label 
-                        htmlFor="manager" 
-                        className={cn(
-                          roleData?.isManager && !roleData?.isAdmin 
-                            ? "cursor-not-allowed opacity-50" 
-                            : "cursor-pointer"
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="manager"
+                              checked={targetRoles.includes("manager")}
+                              onCheckedChange={() => handleRoleToggle("manager")}
+                              disabled={roleData?.isManager && !roleData?.isAdmin}
+                            />
+                            <Label 
+                              htmlFor="manager" 
+                              className={cn(
+                                roleData?.isManager && !roleData?.isAdmin 
+                                  ? "cursor-not-allowed opacity-50" 
+                                  : "cursor-pointer"
+                              )}
+                            >
+                              Managers
+                            </Label>
+                          </div>
+                        </TooltipTrigger>
+                        {roleData?.isManager && !roleData?.isAdmin && (
+                          <TooltipContent>
+                            <p>Only administrators can send notifications to managers</p>
+                          </TooltipContent>
                         )}
-                      >
-                        Managers
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="admin"
-                        checked={targetRoles.includes("admin")}
-                        onCheckedChange={() => handleRoleToggle("admin")}
-                        disabled={roleData?.isManager && !roleData?.isAdmin}
-                      />
-                      <Label 
-                        htmlFor="admin" 
-                        className={cn(
-                          roleData?.isManager && !roleData?.isAdmin 
-                            ? "cursor-not-allowed opacity-50" 
-                            : "cursor-pointer"
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="admin"
+                              checked={targetRoles.includes("admin")}
+                              onCheckedChange={() => handleRoleToggle("admin")}
+                              disabled={roleData?.isManager && !roleData?.isAdmin}
+                            />
+                            <Label 
+                              htmlFor="admin" 
+                              className={cn(
+                                roleData?.isManager && !roleData?.isAdmin 
+                                  ? "cursor-not-allowed opacity-50" 
+                                  : "cursor-pointer"
+                              )}
+                            >
+                              Admins
+                            </Label>
+                          </div>
+                        </TooltipTrigger>
+                        {roleData?.isManager && !roleData?.isAdmin && (
+                          <TooltipContent>
+                            <p>Only administrators can send notifications to other admins</p>
+                          </TooltipContent>
                         )}
-                      >
-                        Admins
-                      </Label>
-                    </div>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   {roleData?.isManager && !roleData?.isAdmin && (
                     <p className="text-xs text-muted-foreground">
