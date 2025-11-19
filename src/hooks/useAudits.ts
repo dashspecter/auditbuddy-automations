@@ -54,6 +54,8 @@ export const useLocationAudits = () => {
       if (error) throw error;
       return data as LocationAudit[];
     },
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 };
 
@@ -92,6 +94,7 @@ export const useLocationAudit = (id: string) => {
       } as LocationAudit;
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
   });
 };
 
