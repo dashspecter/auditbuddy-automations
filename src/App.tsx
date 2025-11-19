@@ -17,6 +17,7 @@ import TemplateLibrary from "./pages/TemplateLibrary";
 import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import NotificationTemplates from "./pages/NotificationTemplates";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
             <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
             <Route path="/notifications" element={<AdminRoute><Notifications /></AdminRoute>} />
+            <Route path="/notification-templates" element={<AdminRoute><NotificationTemplates /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
