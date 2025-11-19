@@ -357,6 +357,33 @@ const LocationAudit = () => {
     }
 
     try {
+      // Calculate overall score from rating fields
+      let totalRatings = 0;
+      let ratingCount = 0;
+
+      if (selectedTemplate) {
+        selectedTemplate.sections.forEach(section => {
+          section.fields.forEach(field => {
+            if (field.field_type === 'rating') {
+              const value = formData.customData[field.id];
+              if (typeof value === 'number') {
+                totalRatings += value;
+                ratingCount++;
+              }
+            }
+          });
+        });
+      }
+
+      // Calculate percentage (ratings are 1-5, so max is 5)
+      const overallScore = ratingCount > 0 
+        ? Math.round((totalRatings / (ratingCount * 5)) * 100) 
+        : 0;
+
+      // Determine status based on score
+      const COMPLIANCE_THRESHOLD = 80;
+      const status = overallScore >= COMPLIANCE_THRESHOLD ? 'compliant' : 'non-compliant';
+
       const auditData = {
         user_id: user.id,
         location: formData.location,
@@ -366,7 +393,8 @@ const LocationAudit = () => {
         notes: formData.notes || null,
         template_id: selectedTemplateId,
         custom_data: formData.customData,
-        status: 'pending',
+        overall_score: overallScore,
+        status: status,
       };
 
       if (currentDraftId) {
