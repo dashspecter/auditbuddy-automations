@@ -61,9 +61,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: "QSR Audit Platform <onboarding@resend.dev>",
+      from: "Dashspect <onboarding@resend.dev>",
       to: [email],
-      subject: "Reset Your Password - QSR Audit Platform",
+      subject: "Reset Your Password - Dashspect",
       html: `
         <!DOCTYPE html>
         <html>
@@ -81,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
               
               <p style="font-size: 16px; margin-bottom: 20px;">
-                We received a request to reset your password for your QSR Audit Platform account.
+                We received a request to reset your password for your Dashspect account.
               </p>
               
               <p style="font-size: 16px; margin-bottom: 30px;">
@@ -115,12 +115,12 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
                 Best regards,<br>
-                The QSR Audit Platform Team
+                The Dashspect Team
               </p>
             </div>
             
             <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
-              <p>© ${new Date().getFullYear()} QSR Audit Platform. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Dashspect. All rights reserved.</p>
             </div>
           </body>
         </html>
