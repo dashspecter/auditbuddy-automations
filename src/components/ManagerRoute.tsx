@@ -1,12 +1,21 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
-  const { data: roleData, isLoading } = useUserRole();
+  const { data: roleData, isLoading, refetch } = useUserRole();
+  const queryClient = useQueryClient();
 
   console.log('[ManagerRoute] User:', user?.email, 'Loading:', isLoading, 'Role data:', roleData);
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['user_role'] });
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -31,6 +40,10 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
           <p className="text-muted-foreground">
             You don't have permission to access this page.
           </p>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Permissions
+          </Button>
         </div>
       </div>
     );
