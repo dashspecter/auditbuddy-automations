@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useUserRole";
 import { FileText, Clock, User, Target, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { RoleGuard } from "@/components/RoleGuard";
 import {
   Table,
   TableBody,
@@ -29,8 +29,6 @@ interface AuditLog {
 }
 
 export default function NotificationAuditLogs() {
-  const { data: roleData } = useUserRole();
-
   const { data: auditLogs = [], isLoading } = useQuery({
     queryKey: ['notification_audit_logs'],
     queryFn: async () => {
@@ -65,28 +63,11 @@ export default function NotificationAuditLogs() {
     }
   };
 
-  if (!roleData?.isAdmin && !roleData?.isManager) {
-    return (
+  return (
+    <RoleGuard requireManager fallbackMessage="You don't have permission to view notification audit logs.">
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>
-                You don&apos;t have permission to view notification audit logs.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Link to="/notifications">
@@ -178,7 +159,8 @@ export default function NotificationAuditLogs() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

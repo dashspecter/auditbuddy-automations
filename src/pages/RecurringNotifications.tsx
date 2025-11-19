@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { EditRecurringNotificationDialog } from "@/components/EditRecurringNotificationDialog";
 import { NotificationHistoryDialog } from "@/components/NotificationHistoryDialog";
+import { RoleGuard } from "@/components/RoleGuard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,9 +156,10 @@ export default function RecurringNotifications() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
+    <RoleGuard requireManager fallbackMessage="You don't have permission to manage recurring notifications.">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-6">
           <Link to="/notifications">
             <Button variant="ghost" size="icon">
@@ -495,7 +497,8 @@ export default function RecurringNotifications() {
             onOpenChange={(open) => setHistoryDialog({ open, notification: historyDialog.notification })}
           />
         )}
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }

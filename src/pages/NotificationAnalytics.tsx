@@ -2,11 +2,13 @@ import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Eye, Users, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { RoleGuard } from "@/components/RoleGuard";
 
 interface AnalyticsData {
   id: string;
@@ -28,6 +30,7 @@ const COLORS = {
 };
 
 export default function NotificationAnalytics() {
+  const { data: roleData } = useUserRole();
   const { data: analytics = [], isLoading } = useQuery({
     queryKey: ['notification_analytics'],
     queryFn: async () => {
@@ -104,9 +107,10 @@ export default function NotificationAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
+    <RoleGuard requireManager fallbackMessage="You don't have permission to view notification analytics.">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-6">
           <Link to="/notifications">
             <Button variant="ghost" size="icon">
@@ -289,7 +293,8 @@ export default function NotificationAnalytics() {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }
