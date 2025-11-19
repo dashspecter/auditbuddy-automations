@@ -48,7 +48,7 @@ import {
 
 export default function Notifications() {
   const { user } = useAuth();
-  const { data: roleData } = useUserRole();
+  const { data: roleData, isLoading: isLoadingRole } = useUserRole();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
@@ -208,6 +208,14 @@ export default function Notifications() {
     }
     createNotificationMutation.mutate();
   };
+
+  if (isLoadingRole) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (!roleData?.isAdmin && !roleData?.isManager) {
     return (
