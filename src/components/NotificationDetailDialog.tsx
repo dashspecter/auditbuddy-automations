@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock, Users, BellOff } from "lucide-react";
+import { MapPin, Calendar, Clock, Users, BellOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -87,7 +88,7 @@ export const NotificationDetailDialog = ({
           </div>
 
           {/* Linked Audit */}
-          {notification.location_audits && (
+          {notification.audit_id && notification.location_audits && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
@@ -108,6 +109,16 @@ export const NotificationDetailDialog = ({
                 </Button>
               </div>
             </div>
+          )}
+
+          {/* Audit Access Error */}
+          {notification.audit_id && !notification.location_audits && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                The linked audit could not be loaded. You may not have permission to view it, or it may have been deleted.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Metadata */}
