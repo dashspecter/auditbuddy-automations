@@ -17,7 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
@@ -44,6 +45,7 @@ export default function Notifications() {
   const [targetRoles, setTargetRoles] = useState<string[]>(["checker", "manager", "admin"]);
   const [expiresAt, setExpiresAt] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
+  const { templates } = useNotificationTemplates();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
@@ -188,16 +190,26 @@ export default function Notifications() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Megaphone className="h-8 w-8" />
-              Manage Notifications
-            </h1>
-            <p className="text-muted-foreground">
-              Create and manage in-app notifications for users
-            </p>
-          </div>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold flex items-center gap-2">
+                  <Megaphone className="h-8 w-8" />
+                  Manage Notifications
+                </h1>
+                <p className="text-muted-foreground">
+                  Create and manage in-app notifications for users
+                </p>
+              </div>
+              {roleData?.isAdmin && (
+                <Button variant="outline" asChild>
+                  <a href="/notification-templates">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Manage Templates
+                  </a>
+                </Button>
+              )}
+            </div>
 
           <Card>
             <CardHeader>
@@ -209,6 +221,43 @@ export default function Notifications() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {templates.length > 0 && (
+                  <div className="space-y-2 pb-4 border-b">
+                    <Label htmlFor="template" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Use Template (Optional)
+                    </Label>
+                    <Select
+                      onValueChange={(templateId) => {
+                        const template = templates.find(t => t.id === templateId);
+                        if (template) {
+                          setTitle(template.title);
+                          setMessage(template.message);
+                          setType(template.type);
+                          setTargetRoles(template.target_roles);
+                          toast({
+                            title: "Template loaded",
+                            description: `Loaded "${template.name}" template. You can modify it before sending.`,
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="template">
+                        <SelectValue placeholder="Select a template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Select a saved template to quickly populate the form
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
                   <Input
