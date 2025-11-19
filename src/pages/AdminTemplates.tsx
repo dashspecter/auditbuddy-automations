@@ -250,16 +250,14 @@ const AdminTemplates = () => {
                         Configure
                       </Button>
                     </Link>
-                    {!template.is_global && (
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleDeleteClick({ id: template.id, name: template.name })}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => handleDeleteClick({ id: template.id, name: template.name })}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </Card>
               ))}
