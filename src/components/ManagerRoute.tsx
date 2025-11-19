@@ -6,6 +6,8 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const { data: roleData, isLoading } = useUserRole();
 
+  console.log('[ManagerRoute] User:', user?.email, 'Loading:', isLoading, 'Role data:', roleData);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -15,11 +17,13 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
+    console.log('[ManagerRoute] No user, redirecting to auth');
     return <Navigate to="/auth" />;
   }
 
   // Allow both managers and admins
   if (!roleData?.isManager && !roleData?.isAdmin) {
+    console.log('[ManagerRoute] Access denied - not manager or admin');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -32,5 +36,6 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  console.log('[ManagerRoute] Access granted');
   return <>{children}</>;
 };

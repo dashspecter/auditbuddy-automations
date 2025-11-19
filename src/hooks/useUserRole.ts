@@ -10,21 +10,30 @@ export const useUserRole = () => {
     queryFn: async () => {
       if (!user) return null;
 
+      console.log('[useUserRole] Fetching roles for user:', user.id);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useUserRole] Error fetching roles:', error);
+        throw error;
+      }
       
       const roles = data?.map(r => r.role) || [];
-      return {
+      const roleData = {
         isAdmin: roles.includes('admin'),
         isManager: roles.includes('manager'),
         isChecker: roles.includes('checker'),
         roles,
       };
+      
+      console.log('[useUserRole] Role data:', roleData);
+      return roleData;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
