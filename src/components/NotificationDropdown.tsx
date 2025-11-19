@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell, Check, Info, AlertCircle, AlertTriangle, Megaphone, MapPin } from "lucide-react";
 import {
   DropdownMenu,
@@ -13,6 +14,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow, format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
+import type { Notification } from "@/hooks/useNotifications";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -43,10 +46,15 @@ const getNotificationColor = (type: string) => {
 export const NotificationDropdown = () => {
   const { notifications, unreadNotifications, unreadCount, markAsRead, readNotifications } =
     useNotifications();
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
-  const handleMarkAsRead = (notificationId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    markAsRead(notificationId);
+  const handleNotificationClick = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setDetailOpen(true);
+    if (!isRead(notification.id)) {
+      markAsRead(notification.id);
+    }
   };
 
   const isRead = (notificationId: string) =>
@@ -96,7 +104,7 @@ export const NotificationDropdown = () => {
                       "flex flex-col items-start gap-2 p-3 cursor-pointer",
                       !read && "bg-accent/50"
                     )}
-                    onClick={(e) => !read && handleMarkAsRead(notification.id, e)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3 w-full">
                       <div
@@ -143,6 +151,13 @@ export const NotificationDropdown = () => {
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    <NotificationDetailDialog
+      notification={selectedNotification}
+      open={detailOpen}
+      onOpenChange={setDetailOpen}
+    />
+    
     <style>{`
       .prose h1, .prose h2, .prose h3 {
         margin-top: 0.25em;

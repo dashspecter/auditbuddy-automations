@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
+import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,8 @@ export default function Notifications() {
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrencePattern, setRecurrencePattern] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [auditId, setAuditId] = useState<string>("");
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const { templates } = useNotificationTemplates();
   const { data: audits = [] } = useLocationAudits();
 
@@ -542,7 +545,11 @@ export default function Notifications() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="border rounded-lg p-4 flex items-start justify-between gap-4"
+                      className="border rounded-lg p-4 flex items-start justify-between gap-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => {
+                        setSelectedNotification(notification);
+                        setDetailOpen(true);
+                      }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -594,7 +601,11 @@ export default function Notifications() {
                       {roleData?.isAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -623,6 +634,12 @@ export default function Notifications() {
               )}
             </CardContent>
           </Card>
+          
+          <NotificationDetailDialog
+            notification={selectedNotification}
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+          />
         </div>
       </div>
     </div>
