@@ -360,7 +360,7 @@ export const Header = () => {
                   <Download className="h-5 w-5" />
                   <span className="text-base font-medium">Reports</span>
                 </Link>
-                {roleData?.isAdmin && (
+                {(roleData?.isAdmin || roleData?.isManager) && (
                   <Link 
                     to="/admin/users" 
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -411,13 +411,13 @@ export const Header = () => {
                   <p className="text-sm font-medium leading-none">{user?.email}</p>
                   {!isLoading && roleData && (
                     <p className="text-xs leading-none text-muted-foreground">
-                      {roleData.isAdmin ? 'Admin' : 'Checker'}
+                      {roleData.isAdmin ? 'Admin' : roleData.isManager ? 'Manager' : 'Checker'}
                     </p>
                   )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {roleData?.isAdmin && (
+              {(roleData?.isAdmin || roleData?.isManager) && (
                 <DropdownMenuItem asChild>
                   <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
                     <User className="mr-2 h-4 w-4" />

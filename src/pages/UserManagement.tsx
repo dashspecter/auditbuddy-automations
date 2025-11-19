@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Table,
   TableBody,
@@ -51,7 +52,7 @@ interface UserProfile {
 }
 
 interface UserWithRoles extends UserProfile {
-  roles: ('admin' | 'checker')[];
+  roles: ('admin' | 'manager' | 'checker')[];
 }
 
 export default function UserManagement() {
@@ -60,11 +61,12 @@ export default function UserManagement() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
-  const [inviteRole, setInviteRole] = useState<'admin' | 'checker'>('checker');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'checker'>('checker');
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; email: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: currentUserRole } = useUserRole();
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
@@ -90,7 +92,7 @@ export default function UserManagement() {
         ...profile,
         roles: roles
           .filter(role => role.user_id === profile.id)
-          .map(role => role.role as 'admin' | 'checker'),
+          .map(role => role.role as 'admin' | 'manager' | 'checker'),
       }));
 
       return usersWithRoles;
@@ -108,7 +110,7 @@ export default function UserManagement() {
 
   // Mutation to change user role
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'checker'; currentRoles: ('admin' | 'checker')[] }) => {
+    mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'manager' | 'checker'; currentRoles: ('admin' | 'manager' | 'checker')[] }) => {
       // Get current user to prevent self-demotion
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -206,13 +208,18 @@ export default function UserManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>
-                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'checker') => setInviteRole(value)}>
+                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'manager' | 'checker') => setInviteRole(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="checker">Checker - Can conduct audits</SelectItem>
-                        <SelectItem value="admin">Admin - Full access</SelectItem>
+                        <SelectItem value="checker">Checker - Can conduct audits only</SelectItem>
+                        {currentUserRole?.isAdmin && (
+                          <>
+                            <SelectItem value="manager">Manager - Can manage audits, templates, reports & checkers</SelectItem>
+                            <SelectItem value="admin">Admin - Full access to everything</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -277,7 +284,8 @@ export default function UserManagement() {
             <AlertDescription>
               <div className="mt-2 space-y-1 text-sm">
                 <div><strong>Admin:</strong> Full access - manage users, templates, and all audits</div>
-                <div><strong>Checker:</strong> Can conduct audits and view their own audit history</div>
+                <div><strong>Manager:</strong> Can add audits, create templates, generate reports, add locations, and invite checkers</div>
+                <div><strong>Checker:</strong> Can only complete/fill out audits (view and submit)</div>
               </div>
             </AlertDescription>
           </Alert>
@@ -338,13 +346,14 @@ export default function UserManagement() {
                       <TableCell>
                         <Select 
                           value={user.roles[0] || 'checker'}
-                          onValueChange={(value: 'admin' | 'checker') => {
+                          onValueChange={(value: 'admin' | 'manager' | 'checker') => {
                             updateRoleMutation.mutate({
                               userId: user.id,
                               newRole: value,
                               currentRoles: user.roles
                             });
                           }}
+                          disabled={!currentUserRole?.isAdmin && (user.roles.includes('admin') || user.roles.includes('manager'))}
                         >
                           <SelectTrigger className="w-40 min-h-[44px]">
                             <SelectValue />
@@ -355,11 +364,20 @@ export default function UserManagement() {
                                 <Badge variant="secondary" className="text-xs">Checker</Badge>
                               </div>
                             </SelectItem>
-                            <SelectItem value="admin" className="min-h-[44px] cursor-pointer">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="default" className="text-xs">Admin</Badge>
-                              </div>
-                            </SelectItem>
+                            {currentUserRole?.isAdmin && (
+                              <>
+                                <SelectItem value="manager" className="min-h-[44px] cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">Manager</Badge>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="admin" className="min-h-[44px] cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="default" className="text-xs">Admin</Badge>
+                                  </div>
+                                </SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                       </TableCell>
