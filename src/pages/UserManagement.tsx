@@ -302,18 +302,19 @@ export default function UserManagement() {
               <p className="text-muted-foreground">Loading users...</p>
             </Card>
           ) : filteredUsers && filteredUsers.length > 0 ? (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">User</TableHead>
+                      <TableHead className="min-w-[200px]">Email</TableHead>
+                      <TableHead className="min-w-[150px]">Role</TableHead>
+                      <TableHead className="min-w-[120px]">Joined</TableHead>
+                      <TableHead className="min-w-[150px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -345,16 +346,16 @@ export default function UserManagement() {
                             });
                           }}
                         >
-                          <SelectTrigger className="w-40">
+                          <SelectTrigger className="w-40 min-h-[44px]">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="checker">
+                          <SelectContent className="z-50 bg-popover">
+                            <SelectItem value="checker" className="min-h-[44px] cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <Badge variant="secondary" className="text-xs">Checker</Badge>
                               </div>
                             </SelectItem>
-                            <SelectItem value="admin">
+                            <SelectItem value="admin" className="min-h-[44px] cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <Badge variant="default" className="text-xs">Admin</Badge>
                               </div>
@@ -369,19 +370,22 @@ export default function UserManagement() {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          className="min-h-[44px]"
                           onClick={() => {
                             setSelectedUser({ id: user.id, email: user.email });
                             setActivityDialogOpen(true);
                           }}
                         >
                           <Activity className="h-4 w-4 mr-2" />
-                          View Activity
+                          <span className="hidden sm:inline">View Activity</span>
+                          <span className="sm:hidden">Activity</span>
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </Card>
           ) : (
             <Card className="p-8 text-center">

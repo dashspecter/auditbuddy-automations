@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,6 +38,7 @@ export const Header = () => {
   const { data: roleData, isLoading } = useUserRole();
   const { toast } = useToast();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedData, setSelectedData] = useState({
     audits: true,
     templates: false,
@@ -117,67 +119,72 @@ export const Header = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `dashspect-${name}-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `${name}_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       });
 
-      setExportDialogOpen(false);
       toast({
-        title: "Data exported successfully",
-        description: `Exported ${exports.length} file(s).`,
+        title: "Export completed",
+        description: `Successfully exported ${exports.length} file(s).`,
       });
+
+      setExportDialogOpen(false);
+      setSelectedData({ audits: true, templates: false, users: false });
+      setDateFrom(undefined);
+      setDateTo(undefined);
     } catch (error) {
-      console.error('Error exporting data:', error);
+      console.error('Export error:', error);
       toast({
         title: "Export failed",
-        description: "Failed to export data. Please try again.",
+        description: "An error occurred while exporting data.",
         variant: "destructive",
       });
     }
   };
-  
+
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
 
   return (
-    <header className="bg-header text-header-foreground border-b border-border">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="bg-primary rounded-full p-2">
-              <ClipboardCheck className="h-6 w-6 text-primary-foreground" />
+    <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 md:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <Link to="/" className="flex items-center gap-2 md:gap-3">
+            <div className="bg-primary rounded-full p-1.5 md:p-2">
+              <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">Dashspect</span>
+            <span className="text-lg md:text-xl font-bold">Dashspect</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="hover:text-accent transition-colors">
+            <Link to="/" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Dashboard
             </Link>
-            <Link to="/audits" className="hover:text-accent transition-colors">
+            <Link to="/audits" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Audits
             </Link>
-            <Link to="/admin/templates" className="hover:text-accent transition-colors">
+            <Link to="/admin/templates" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Templates
             </Link>
-            <Link to="/reports" className="hover:text-accent transition-colors">
+            <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Reports
             </Link>
             <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   size="sm" 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 min-h-[44px]"
                 >
                   <Download className="h-4 w-4" />
-                  Export Data
+                  <span className="hidden lg:inline">Export Data</span>
+                  <span className="lg:hidden">Export</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Export Data</DialogTitle>
                   <DialogDescription>
@@ -232,7 +239,7 @@ export const Header = () => {
 
                   <div className="space-y-4">
                     <h4 className="text-sm font-medium">Date Range (Optional)</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>From Date</Label>
                         <Popover>
@@ -240,15 +247,15 @@ export const Header = () => {
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full justify-start text-left font-normal",
+                                "w-full justify-start text-left font-normal min-h-[44px]",
                                 !dateFrom && "text-muted-foreground"
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateFrom ? format(dateFrom, "PP") : "Pick a date"}
+                              {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0 z-50" align="start">
                             <Calendar
                               mode="single"
                               selected={dateFrom}
@@ -259,7 +266,6 @@ export const Header = () => {
                           </PopoverContent>
                         </Popover>
                       </div>
-
                       <div className="space-y-2">
                         <Label>To Date</Label>
                         <Popover>
@@ -267,15 +273,15 @@ export const Header = () => {
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full justify-start text-left font-normal",
+                                "w-full justify-start text-left font-normal min-h-[44px]",
                                 !dateTo && "text-muted-foreground"
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateTo ? format(dateTo, "PP") : "Pick a date"}
+                              {dateTo ? format(dateTo, "PPP") : "Pick a date"}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0 z-50" align="start">
                             <Calendar
                               mode="single"
                               selected={dateTo}
@@ -291,61 +297,147 @@ export const Header = () => {
                 </div>
 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setExportDialogOpen(false)}
+                    className="min-h-[44px]"
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleExportData} className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Export Selected Data
+                  <Button 
+                    onClick={handleExportData}
+                    disabled={!selectedData.audits && !selectedData.templates && !selectedData.users}
+                    className="min-h-[44px]"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.email ? getInitials(user.email) : <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.email}</p>
-                    {!isLoading && roleData && (
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {roleData.isAdmin ? 'Admin' : 'Checker'}
-                      </p>
-                    )}
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+          </nav>
+        </div>
+        
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* Mobile Menu */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden min-h-[44px] min-w-[44px]">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+              <nav className="flex flex-col gap-4 mt-8">
+                <Link 
+                  to="/" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                  <span className="text-base font-medium">Dashboard</span>
+                </Link>
+                <Link 
+                  to="/audits" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                  <span className="text-base font-medium">Audits</span>
+                </Link>
+                <Link 
+                  to="/admin/templates" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                  <span className="text-base font-medium">Templates</span>
+                </Link>
+                <Link 
+                  to="/reports" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Download className="h-5 w-5" />
+                  <span className="text-base font-medium">Reports</span>
+                </Link>
+                {roleData?.isAdmin && (
+                  <Link 
+                    to="/admin/users" 
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="h-5 w-5" />
+                    <span className="text-base font-medium">User Management</span>
+                  </Link>
+                )}
+                <div className="border-t border-border my-2"></div>
+                <Link 
+                  to="/settings" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="text-base font-medium">Settings</span>
+                </Link>
+                <button 
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut();
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors text-left min-h-[44px]"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="text-base font-medium">Sign Out</span>
+                </button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2 min-h-[44px] hidden md:flex">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.email ? getInitials(user.email) : <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden lg:inline">{user?.email}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 z-50">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.email}</p>
+                  {!isLoading && roleData && (
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {roleData.isAdmin ? 'Admin' : 'Checker'}
+                    </p>
+                  )}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {roleData?.isAdmin && (
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                  <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    User Management
                   </Link>
                 </DropdownMenuItem>
-                {roleData?.isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/users" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      User Management
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </nav>
+              )}
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="cursor-pointer min-h-[44px] flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="min-h-[44px] flex items-center text-destructive cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

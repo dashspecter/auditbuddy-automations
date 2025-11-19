@@ -103,3 +103,20 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Mobile touch target optimization */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile table scroll */
+  .mobile-table-scroll {
+    @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
+  
+  /* Dropdown z-index fix */
+  .dropdown-content {
+    @apply z-50 bg-popover;
+  }
+}
