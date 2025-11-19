@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,17 @@ import { format } from "date-fns";
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
+
+  const stats = useMemo(() => {
+    if (!audits) return { totalAudits: 0, locations: 0, complianceRate: 0 };
+
+    const totalAudits = audits.length;
+    const locations = new Set(audits.map(a => a.location)).size;
+    const compliant = audits.filter(a => (a.overall_score || 0) >= 80).length;
+    const complianceRate = totalAudits > 0 ? Math.round((compliant / totalAudits) * 100) : 0;
+
+    return { totalAudits, locations, complianceRate };
+  }, [audits]);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -49,26 +60,24 @@ const Dashboard = () => {
           <TabsContent value="overview" className="space-y-6">
             <DraftAudits />
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <StatsCard
                 title="Total Audits"
-                value="124"
+                value={auditsLoading ? "..." : stats.totalAudits.toString()}
                 icon={ClipboardCheck}
-                trend="+12%"
-                trendLabel="from last month"
+                description="All time audits"
               />
               <StatsCard
                 title="Locations"
-                value="4"
+                value={auditsLoading ? "..." : stats.locations.toString()}
                 icon={FileText}
                 description="Active locations"
               />
               <StatsCard
                 title="Compliance Rate"
-                value="87%"
+                value={auditsLoading ? "..." : `${stats.complianceRate}%`}
                 icon={TrendingUp}
-                trend="+5%"
-                trendLabel="improvement"
+                description={`${stats.totalAudits > 0 ? Math.round((stats.complianceRate / 100) * stats.totalAudits) : 0} of ${stats.totalAudits} audits`}
               />
             </div>
 

@@ -8,7 +8,7 @@ interface AuditSection {
 }
 
 interface AuditData {
-  id: number;
+  id: string | number;
   type: string;
   location: string;
   checker: string;
