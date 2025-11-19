@@ -82,7 +82,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, 'Has session:', !!session);
+        
+        // If we have a session but no refresh token, force logout
+        if (session && !session.refresh_token) {
+          console.error('Invalid session detected - no refresh token');
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -94,8 +106,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // THEN check for existing session with validation
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      console.log('Initial session check:', !!session, 'Error:', error);
+      
+      if (error) {
+        console.error('Session validation error:', error);
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Validate session has required tokens
+      if (session && !session.refresh_token) {
+        console.error('Invalid session - missing refresh token');
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
