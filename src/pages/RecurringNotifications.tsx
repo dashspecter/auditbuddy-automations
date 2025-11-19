@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Pause, Play, Trash2, Calendar, Clock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Pause, Play, Trash2, Calendar, Clock, RefreshCw, FileText, History as HistoryIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { EditRecurringNotificationDialog } from "@/components/EditRecurringNotificationDialog";
+import { NotificationHistoryDialog } from "@/components/NotificationHistoryDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +58,8 @@ const getStatusColor = (enabled: boolean) => {
 export default function RecurringNotifications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editDialog, setEditDialog] = useState<{ open: boolean; notification: any | null }>({ open: false, notification: null });
+  const [historyDialog, setHistoryDialog] = useState<{ open: boolean; notification: any | null }>({ open: false, notification: null });
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['recurring_notifications'],
@@ -266,6 +271,24 @@ export default function RecurringNotifications() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setEditDialog({ open: true, notification })}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setHistoryDialog({ open: true, notification })}
+                        >
+                          <HistoryIcon className="h-4 w-4 mr-2" />
+                          History
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() =>
                             toggleStatusMutation.mutate({
                               id: notification.id,
@@ -372,6 +395,24 @@ export default function RecurringNotifications() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => setEditDialog({ open: true, notification })}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setHistoryDialog({ open: true, notification })}
+                        >
+                          <HistoryIcon className="h-4 w-4 mr-2" />
+                          History
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() =>
                             toggleStatusMutation.mutate({
                               id: notification.id,
@@ -435,6 +476,24 @@ export default function RecurringNotifications() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Edit Dialog */}
+        {editDialog.notification && (
+          <EditRecurringNotificationDialog
+            notification={editDialog.notification}
+            open={editDialog.open}
+            onOpenChange={(open) => setEditDialog({ open, notification: editDialog.notification })}
+          />
+        )}
+
+        {/* History Dialog */}
+        {historyDialog.notification && (
+          <NotificationHistoryDialog
+            notification={historyDialog.notification}
+            open={historyDialog.open}
+            onOpenChange={(open) => setHistoryDialog({ open, notification: historyDialog.notification })}
+          />
         )}
       </main>
     </div>
