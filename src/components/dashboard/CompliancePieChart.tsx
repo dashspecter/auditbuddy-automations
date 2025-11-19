@@ -53,12 +53,20 @@ export const CompliancePieChart = () => {
     );
   }
 
+  const compliantPercentage = Math.round((pieData[0].value / audits.length) * 100);
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Overall Compliance</h3>
-      <div className="text-center mb-2">
-        <span className="text-3xl font-bold">{averageScore}%</span>
-        <p className="text-sm text-muted-foreground">Average Compliance Score</p>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="text-center p-4 bg-secondary/50 rounded-lg">
+          <span className="text-3xl font-bold">{averageScore}%</span>
+          <p className="text-sm text-muted-foreground mt-1">Average Score</p>
+        </div>
+        <div className="text-center p-4 bg-secondary/50 rounded-lg">
+          <span className="text-3xl font-bold">{compliantPercentage}%</span>
+          <p className="text-sm text-muted-foreground mt-1">Meet Threshold ({COMPLIANCE_THRESHOLD}%)</p>
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
