@@ -624,7 +624,7 @@ export default function Notifications() {
           </Card>
 
           <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Notification Preview</DialogTitle>
                 <DialogDescription>
