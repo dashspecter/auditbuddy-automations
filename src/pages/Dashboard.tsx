@@ -19,7 +19,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Audit Dashboard</h1>
-          <p className="text-muted-foreground">Monitor and manage QSR restaurant audits</p>
+          <p className="text-muted-foreground">Monitor and manage restaurant audits</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

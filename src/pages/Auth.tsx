@@ -124,7 +124,7 @@ const Auth = () => {
           <div className="bg-primary rounded-full p-3">
             <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">QSR Audit Platform</h1>
+          <h1 className="text-2xl font-bold text-foreground">Dashspect</h1>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">

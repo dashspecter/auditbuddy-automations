@@ -29,7 +29,7 @@ export const Header = () => {
             <div className="bg-primary rounded-full p-2">
               <ClipboardCheck className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">QSR Audit Platform</span>
+            <span className="text-xl font-bold">Dashspect</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
