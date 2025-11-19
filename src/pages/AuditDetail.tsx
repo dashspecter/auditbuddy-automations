@@ -407,6 +407,7 @@ const AuditDetail = () => {
           audit={audit}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['location_audit', id] });
+            queryClient.invalidateQueries({ queryKey: ['location_audits'] });
             queryClient.invalidateQueries({ queryKey: ['audit_revisions', id] });
           }}
         />
