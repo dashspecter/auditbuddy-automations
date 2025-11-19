@@ -20,6 +20,7 @@ import Notifications from "./pages/Notifications";
 import NotificationTemplates from "./pages/NotificationTemplates";
 import NotificationAuditLogs from "./pages/NotificationAuditLogs";
 import NotificationAnalytics from "./pages/NotificationAnalytics";
+import RecurringNotifications from "./pages/RecurringNotifications";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/notification-templates" element={<AdminRoute><NotificationTemplates /></AdminRoute>} />
             <Route path="/notification-audit-logs" element={<AdminRoute><NotificationAuditLogs /></AdminRoute>} />
             <Route path="/notification-analytics" element={<AdminRoute><NotificationAnalytics /></AdminRoute>} />
+            <Route path="/recurring-notifications" element={<AdminRoute><RecurringNotifications /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
