@@ -189,44 +189,6 @@ const AuditDetail = () => {
   }
 
   const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
-  const sections = [
-    {
-      name: "Compliance",
-      fields: [
-        { label: "Licenses", score: audit.compliance_licenses },
-        { label: "Permits", score: audit.compliance_permits },
-        { label: "Signage", score: audit.compliance_signage },
-        { label: "Documentation", score: audit.compliance_documentation },
-      ]
-    },
-    {
-      name: "Back of House",
-      fields: [
-        { label: "Storage", score: audit.boh_storage },
-        { label: "Temperature Control", score: audit.boh_temperature },
-        { label: "Food Preparation", score: audit.boh_preparation },
-        { label: "Equipment", score: audit.boh_equipment },
-      ]
-    },
-    {
-      name: "Cleaning & Sanitation",
-      fields: [
-        { label: "Surfaces", score: audit.cleaning_surfaces },
-        { label: "Floors", score: audit.cleaning_floors },
-        { label: "Equipment", score: audit.cleaning_equipment },
-        { label: "Waste Management", score: audit.cleaning_waste },
-      ]
-    },
-    {
-      name: "Front of House",
-      fields: [
-        { label: "Customer Areas", score: audit.foh_customer_areas },
-        { label: "Restrooms", score: audit.foh_restrooms },
-        { label: "Menu Boards", score: audit.foh_menu_boards },
-        { label: "Seating", score: audit.foh_seating },
-      ]
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -319,7 +281,9 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Auditor</p>
-                  <p className="font-semibold text-foreground">User ID: {audit.user_id.substring(0, 8)}</p>
+                  <p className="font-semibold text-foreground">
+                    {audit.profiles?.full_name || audit.profiles?.email || `User ${audit.user_id.substring(0, 8)}`}
+                  </p>
                 </div>
               </div>
               
@@ -360,7 +324,7 @@ const AuditDetail = () => {
                 </Badge>
               )}
               <Badge variant="outline" className="ml-auto">
-                Location Audit
+                {audit.audit_templates?.name || 'Location Audit'}
               </Badge>
             </div>
           </Card>
@@ -372,36 +336,6 @@ const AuditDetail = () => {
               customData={audit.custom_data as Record<string, any>}
             />
           )}
-
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Audit Sections</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {sections.map((section, index) => {
-                const sectionScore = Math.round(
-                  section.fields.reduce((sum, field) => sum + (field.score || 0), 0) / section.fields.length
-                );
-
-                return (
-                  <Card key={index} className="p-4 bg-secondary/30">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-foreground">{section.name}</h3>
-                      <span className="text-lg font-bold text-primary">{sectionScore}%</span>
-                    </div>
-                    <div className="space-y-2">
-                      {section.fields.map((field, fieldIndex) => (
-                        <div key={fieldIndex} className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{field.label}</span>
-                          <span className="font-medium text-foreground">
-                            {field.score !== null && field.score !== undefined ? `${field.score}/5` : 'N/A'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </Card>
 
           {audit.notes && (
             <Card className="p-6">
