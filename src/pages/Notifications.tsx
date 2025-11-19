@@ -390,7 +390,6 @@ export default function Notifications() {
                       <SelectValue placeholder="Select an audit to announce..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
                       {audits.map((audit) => (
                         <SelectItem key={audit.id} value={audit.id}>
                           {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
