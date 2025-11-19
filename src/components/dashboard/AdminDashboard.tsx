@@ -60,44 +60,6 @@ export const AdminDashboard = () => {
         <Badge variant="default" className="text-sm">Administrator</Badge>
       </div>
 
-      <DraftAudits />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Audits"
-          value={auditsLoading ? "..." : stats.totalAudits.toString()}
-          icon={ClipboardCheck}
-          description="All time audits"
-        />
-        <StatsCard
-          title="Total Users"
-          value={usersCount?.toString() || "..."}
-          icon={Users}
-          description="Active users"
-        />
-        <StatsCard
-          title="Locations"
-          value={auditsLoading ? "..." : stats.locations.toString()}
-          icon={FileText}
-          description="Active locations"
-        />
-        <StatsCard
-          title="Compliance Rate"
-          value={auditsLoading ? "..." : `${stats.complianceRate}%`}
-          icon={TrendingUp}
-          description={`${stats.totalAudits > 0 ? Math.round((stats.complianceRate / 100) * stats.totalAudits) : 0} of ${stats.totalAudits} audits`}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CompliancePieChart />
-        <RecentAudits />
-      </div>
-
-      <div className="w-full">
-        <ComplianceChart />
-      </div>
-
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="flex items-center gap-4">
@@ -152,6 +114,44 @@ export const AdminDashboard = () => {
             </Button>
           </Link>
         </Card>
+      </div>
+
+      <DraftAudits />
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Total Audits"
+          value={auditsLoading ? "..." : stats.totalAudits.toString()}
+          icon={ClipboardCheck}
+          description="All time audits"
+        />
+        <StatsCard
+          title="Total Users"
+          value={usersCount?.toString() || "..."}
+          icon={Users}
+          description="Active users"
+        />
+        <StatsCard
+          title="Locations"
+          value={auditsLoading ? "..." : stats.locations.toString()}
+          icon={FileText}
+          description="Active locations"
+        />
+        <StatsCard
+          title="Compliance Rate"
+          value={auditsLoading ? "..." : `${stats.complianceRate}%`}
+          icon={TrendingUp}
+          description={`${stats.totalAudits > 0 ? Math.round((stats.complianceRate / 100) * stats.totalAudits) : 0} of ${stats.totalAudits} audits`}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CompliancePieChart />
+        <RecentAudits />
+      </div>
+
+      <div className="w-full">
+        <ComplianceChart />
       </div>
     </div>
   );

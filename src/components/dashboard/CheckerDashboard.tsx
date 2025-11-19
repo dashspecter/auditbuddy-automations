@@ -78,6 +78,44 @@ export const CheckerDashboard = () => {
         <Badge variant="outline" className="text-sm">Checker</Badge>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-primary/10 p-3 rounded-lg">
+              <ClipboardCheck className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">New Audit</h3>
+              <p className="text-sm text-muted-foreground">Create a new location audit</p>
+            </div>
+          </div>
+          <Link to="/location-audit">
+            <Button className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Audit
+            </Button>
+          </Link>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-primary/10 p-3 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">View All Audits</h3>
+              <p className="text-sm text-muted-foreground">Browse your audit history</p>
+            </div>
+          </div>
+          <Link to="/audits">
+            <Button variant="outline" className="w-full">
+              <ClipboardCheck className="h-4 w-4 mr-2" />
+              View Audits
+            </Button>
+          </Link>
+        </Card>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Audits"
@@ -164,44 +202,6 @@ export const CheckerDashboard = () => {
           </div>
         )}
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <ClipboardCheck className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">New Audit</h3>
-              <p className="text-sm text-muted-foreground">Create a new location audit</p>
-            </div>
-          </div>
-          <Link to="/location-audit">
-            <Button className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Audit
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">View All Audits</h3>
-              <p className="text-sm text-muted-foreground">Browse your audit history</p>
-            </div>
-          </div>
-          <Link to="/audits">
-            <Button variant="outline" className="w-full">
-              <ClipboardCheck className="h-4 w-4 mr-2" />
-              View Audits
-            </Button>
-          </Link>
-        </Card>
-      </div>
     </div>
   );
 };
