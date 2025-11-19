@@ -20,6 +20,7 @@ export const useUserRole = () => {
       const roles = data?.map(r => r.role) || [];
       return {
         isAdmin: roles.includes('admin'),
+        isManager: roles.includes('manager'),
         isChecker: roles.includes('checker'),
         roles,
       };
