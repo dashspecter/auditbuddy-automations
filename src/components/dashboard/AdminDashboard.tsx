@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
 import { ComplianceChart } from "./ComplianceChart";
+import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
@@ -89,8 +90,12 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <ComplianceChart />
+        <CompliancePieChart />
         <RecentAudits />
+      </div>
+
+      <div className="w-full">
+        <ComplianceChart />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
