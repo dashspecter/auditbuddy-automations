@@ -16,7 +16,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     if (!authLoading && !roleLoading) {
       if (!user) {
         navigate('/auth');
-      } else if (!roleData?.isAdmin && !roleData?.isManager) {
+      } else if (!roleData?.isAdmin) {
         navigate('/');
       }
     }
@@ -33,7 +33,7 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
-  if (!user || (!roleData?.isAdmin && !roleData?.isManager)) {
+  if (!user || !roleData?.isAdmin) {
     return null;
   }
 
