@@ -176,6 +176,9 @@ export const Header = () => {
                 <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
                   Reports
                 </Link>
+                <Link to="/notifications" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+                  Notifications
+                </Link>
               </>
             )}
             {(roleData?.isAdmin || roleData?.isManager) && (
@@ -368,6 +371,14 @@ export const Header = () => {
                     >
                       <Download className="h-5 w-5" />
                       <span className="text-base font-medium">Reports</span>
+                    </Link>
+                    <Link 
+                      to="/notifications" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Megaphone className="h-5 w-5" />
+                      <span className="text-base font-medium">Notifications</span>
                     </Link>
                   </>
                 )}
