@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { z } from "zod";
 
 const passwordSchema = z.object({
@@ -25,6 +26,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -174,9 +176,35 @@ export default function Settings() {
                 </form>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5" />
+                  Getting Started Tutorial
+                </CardTitle>
+                <CardDescription>
+                  Review the onboarding tutorial to learn about available features
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Revisit the welcome tutorial to understand all the features available for your role.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowOnboarding(true)}
+                >
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Restart Tutorial
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
+      
+      <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
     </div>
   );
 }
