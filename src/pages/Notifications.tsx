@@ -389,12 +389,21 @@ export default function Notifications() {
                     <SelectTrigger id="auditId">
                       <SelectValue placeholder="Select an audit to announce..." />
                     </SelectTrigger>
-                    <SelectContent>
-                      {audits.map((audit) => (
-                        <SelectItem key={audit.id} value={audit.id}>
-                          {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="max-h-[300px]">
+                      {audits.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground text-center">
+                          No audits available
+                        </div>
+                      ) : (
+                        audits.map((audit) => (
+                          <SelectItem key={audit.id} value={audit.id}>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3 w-3" />
+                              {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
