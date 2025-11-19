@@ -50,9 +50,9 @@ const AuditDetail = () => {
     onSwiped: (eventData) => {
       if (Math.abs(eventData.deltaX) > 100) {
         if (eventData.dir === 'Right' && prevAuditId) {
-          navigate(`/audit/${prevAuditId}`);
+          navigate(`/audits/${prevAuditId}`);
         } else if (eventData.dir === 'Left' && nextAuditId) {
-          navigate(`/audit/${nextAuditId}`);
+          navigate(`/audits/${nextAuditId}`);
         }
       }
       setSwipeDirection(null);
@@ -225,7 +225,7 @@ const AuditDetail = () => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => navigate(`/audit/${prevAuditId}`)}
+                    onClick={() => navigate(`/audits/${prevAuditId}`)}
                     className="min-h-[44px] min-w-[44px]"
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -235,7 +235,7 @@ const AuditDetail = () => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => navigate(`/audit/${nextAuditId}`)}
+                    onClick={() => navigate(`/audits/${nextAuditId}`)}
                     className="min-h-[44px] min-w-[44px]"
                   >
                     <ChevronRight className="h-5 w-5" />
