@@ -9,6 +9,7 @@ import { ComplianceChart } from "./ComplianceChart";
 import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
+import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +156,10 @@ export const AdminDashboard = () => {
 
       <div className="w-full">
         <ComplianceChart />
+      </div>
+
+      <div className="w-full">
+        <LocationTrendAnalysis />
       </div>
     </div>
   );
