@@ -231,7 +231,7 @@ export default function TemplateLibrary() {
   };
 
   const handleEdit = (templateId: string) => {
-    navigate(`/admin/template-editor/${templateId}`);
+    navigate(`/admin/templates/${templateId}`);
   };
 
   const handleDeleteClick = (template: Template) => {
