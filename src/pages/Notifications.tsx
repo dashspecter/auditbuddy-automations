@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
+import { useLocationAudits } from "@/hooks/useAudits";
 import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +57,9 @@ export default function Notifications() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrencePattern, setRecurrencePattern] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [auditId, setAuditId] = useState<string>("");
   const { templates } = useNotificationTemplates();
+  const { data: audits = [] } = useLocationAudits();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
@@ -92,6 +95,7 @@ export default function Notifications() {
         scheduled_for: scheduledFor || null,
         recurrence_enabled: recurrenceEnabled,
         recurrence_pattern: recurrenceEnabled ? recurrencePattern : 'none',
+        audit_id: auditId || null,
       };
 
       // If recurring, set next_scheduled_at to the scheduled_for time or now
@@ -117,6 +121,7 @@ export default function Notifications() {
       setScheduledFor("");
       setRecurrenceEnabled(false);
       setRecurrencePattern("none");
+      setAuditId("");
       queryClient.invalidateQueries({ queryKey: ['all_notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
@@ -353,6 +358,26 @@ export default function Notifications() {
                       Notification will only be visible after this time
                     </p>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="auditId">Link to Audit (Optional)</Label>
+                  <Select value={auditId} onValueChange={setAuditId}>
+                    <SelectTrigger id="auditId">
+                      <SelectValue placeholder="Select an audit to announce..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {audits.map((audit) => (
+                        <SelectItem key={audit.id} value={audit.id}>
+                          {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Link this notification to a specific audit
+                  </p>
                 </div>
 
                 <div className="space-y-2">

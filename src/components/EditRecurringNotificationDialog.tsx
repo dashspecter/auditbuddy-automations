@@ -9,6 +9,8 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocationAudits } from "@/hooks/useAudits";
+import { format } from "date-fns";
 
 interface EditRecurringNotificationDialogProps {
   notification: {
@@ -21,6 +23,7 @@ interface EditRecurringNotificationDialogProps {
     expires_at: string | null;
     scheduled_for: string | null;
     next_scheduled_at: string | null;
+    audit_id?: string | null;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +36,7 @@ export const EditRecurringNotificationDialog = ({
 }: EditRecurringNotificationDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: audits = [] } = useLocationAudits();
   
   const [title, setTitle] = useState(notification.title);
   const [message, setMessage] = useState(notification.message);
@@ -41,6 +45,7 @@ export const EditRecurringNotificationDialog = ({
   const [recurrencePattern, setRecurrencePattern] = useState<"daily" | "weekly" | "monthly">(notification.recurrence_pattern as any);
   const [expiresAt, setExpiresAt] = useState(notification.expires_at ? notification.expires_at.slice(0, 16) : "");
   const [nextScheduledAt, setNextScheduledAt] = useState(notification.next_scheduled_at ? notification.next_scheduled_at.slice(0, 16) : "");
+  const [auditId, setAuditId] = useState<string>(notification.audit_id || "");
 
   const handleRoleToggle = (role: string) => {
     setTargetRoles((prev) =>
@@ -60,6 +65,7 @@ export const EditRecurringNotificationDialog = ({
           recurrence_pattern: recurrencePattern,
           expires_at: expiresAt || null,
           next_scheduled_at: nextScheduledAt ? new Date(nextScheduledAt).toISOString() : null,
+          audit_id: auditId || null,
         })
         .eq('id', notification.id);
 
@@ -134,6 +140,26 @@ export const EditRecurringNotificationDialog = ({
                 <SelectItem value="announcement">Announcement</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-audit">Link to Audit (Optional)</Label>
+            <Select value={auditId} onValueChange={setAuditId}>
+              <SelectTrigger id="edit-audit">
+                <SelectValue placeholder="Select an audit..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {audits.map((audit) => (
+                  <SelectItem key={audit.id} value={audit.id}>
+                    {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Link this notification to a specific audit
+            </p>
           </div>
 
           <div className="space-y-2">
