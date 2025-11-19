@@ -488,7 +488,14 @@ export default function Notifications() {
                         onCheckedChange={() => handleRoleToggle("manager")}
                         disabled={roleData?.isManager && !roleData?.isAdmin}
                       />
-                      <Label htmlFor="manager" className="cursor-pointer">
+                      <Label 
+                        htmlFor="manager" 
+                        className={cn(
+                          roleData?.isManager && !roleData?.isAdmin 
+                            ? "cursor-not-allowed opacity-50" 
+                            : "cursor-pointer"
+                        )}
+                      >
                         Managers
                       </Label>
                     </div>
@@ -499,7 +506,14 @@ export default function Notifications() {
                         onCheckedChange={() => handleRoleToggle("admin")}
                         disabled={roleData?.isManager && !roleData?.isAdmin}
                       />
-                      <Label htmlFor="admin" className="cursor-pointer">
+                      <Label 
+                        htmlFor="admin" 
+                        className={cn(
+                          roleData?.isManager && !roleData?.isAdmin 
+                            ? "cursor-not-allowed opacity-50" 
+                            : "cursor-pointer"
+                        )}
+                      >
                         Admins
                       </Label>
                     </div>
