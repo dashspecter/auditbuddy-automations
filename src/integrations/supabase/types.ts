@@ -305,6 +305,13 @@ export type Database = {
             foreignKeyName: "notification_audit_logs_notification_id_fkey"
             columns: ["notification_id"]
             isOneToOne: false
+            referencedRelation: "notification_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_audit_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
             referencedRelation: "notifications"
             referencedColumns: ["id"]
           },
@@ -330,6 +337,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notification_analytics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_reads_notification_id_fkey"
             columns: ["notification_id"]
@@ -382,7 +396,11 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean
+          last_sent_at: string | null
           message: string
+          next_scheduled_at: string | null
+          recurrence_enabled: boolean | null
+          recurrence_pattern: string
           scheduled_for: string | null
           target_roles: string[]
           title: string
@@ -394,7 +412,11 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          last_sent_at?: string | null
           message: string
+          next_scheduled_at?: string | null
+          recurrence_enabled?: boolean | null
+          recurrence_pattern?: string
           scheduled_for?: string | null
           target_roles?: string[]
           title: string
@@ -406,7 +428,11 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          last_sent_at?: string | null
           message?: string
+          next_scheduled_at?: string | null
+          recurrence_enabled?: boolean | null
+          recurrence_pattern?: string
           scheduled_for?: string | null
           target_roles?: string[]
           title?: string
@@ -461,7 +487,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      notification_analytics: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          read_count: number | null
+          read_rate_percentage: number | null
+          recurrence_pattern: string | null
+          target_roles: string[] | null
+          title: string | null
+          total_recipients: number | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_location_audit_score: {
