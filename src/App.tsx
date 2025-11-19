@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
+import { ManagerRoute } from "@/components/ManagerRoute";
 import Index from "./pages/Index";
 import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
@@ -49,11 +50,11 @@ const App = () => (
             <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
             <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
             <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/notifications" element={<AdminRoute><Notifications /></AdminRoute>} />
-            <Route path="/notification-templates" element={<AdminRoute><NotificationTemplates /></AdminRoute>} />
-            <Route path="/notification-audit-logs" element={<AdminRoute><NotificationAuditLogs /></AdminRoute>} />
-            <Route path="/notification-analytics" element={<AdminRoute><NotificationAnalytics /></AdminRoute>} />
-            <Route path="/recurring-notifications" element={<AdminRoute><RecurringNotifications /></AdminRoute>} />
+            <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
+            <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
+            <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
+            <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
+            <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
