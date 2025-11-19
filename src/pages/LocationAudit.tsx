@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Eye, FileEdit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
+import { ScorePreview } from "@/components/ScorePreview";
 
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
@@ -559,32 +560,45 @@ const LocationAudit = () => {
           </Card>
 
           {/* Dynamic Sections from Template */}
-          {selectedTemplate && selectedTemplate.sections.map((section) => (
-            <Card key={section.id} className="p-6">
-              <h2 className="text-xl font-semibold mb-2">{section.name}</h2>
-              {section.description && (
-                <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
-              )}
-              <div className="grid gap-4 md:grid-cols-2">
-                {section.fields.map((field) => (
-                  <div key={field.id}>
-                    {renderField(field)}
-                  </div>
+          {selectedTemplate && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {selectedTemplate.sections.map((section) => (
+                  <Card key={section.id} className="p-6">
+                    <h2 className="text-xl font-semibold mb-2">{section.name}</h2>
+                    {section.description && (
+                      <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                    )}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {section.fields.map((field) => (
+                        <div key={field.id}>
+                          {renderField(field)}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
                 ))}
-              </div>
-            </Card>
-          ))}
 
-          {/* Notes */}
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Additional Notes</h2>
-            <Textarea
-              placeholder="Add any additional observations or notes..."
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="min-h-[100px]"
-            />
-          </Card>
+                {/* Notes */}
+                <Card className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">Additional Notes</h2>
+                  <Textarea
+                    placeholder="Add any additional observations or notes..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="min-h-[100px]"
+                  />
+                </Card>
+              </div>
+
+              <div className="lg:col-span-1">
+                <ScorePreview 
+                  sections={selectedTemplate.sections}
+                  customData={formData.customData}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-4">
