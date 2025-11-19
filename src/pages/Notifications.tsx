@@ -67,6 +67,8 @@ export default function Notifications() {
   const { data: audits = [] } = useLocationAudits();
   const { markAsRead, markAllAsRead, readNotifications, isMarkingAllAsRead } = useNotifications();
 
+  console.log('[Notifications] Loading role:', isLoadingRole, 'Role data:', roleData);
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
     queryFn: async () => {
