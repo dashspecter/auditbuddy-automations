@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { NotificationPreview } from "@/components/NotificationPreview";
 import {
   Select,
   SelectContent,
@@ -18,10 +19,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +53,7 @@ export default function Notifications() {
   const [targetRoles, setTargetRoles] = useState<string[]>(["checker", "manager", "admin"]);
   const [expiresAt, setExpiresAt] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { templates } = useNotificationTemplates();
 
   const { data: notifications = [] } = useQuery({
@@ -202,12 +211,20 @@ export default function Notifications() {
                 </p>
               </div>
               {roleData?.isAdmin && (
-                <Button variant="outline" asChild>
-                  <a href="/notification-templates">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Manage Templates
-                  </a>
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" asChild>
+                    <a href="/notification-audit-logs">
+                      <History className="h-4 w-4 mr-2" />
+                      Audit Logs
+                    </a>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <a href="/notification-templates">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Templates
+                    </a>
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -270,14 +287,11 @@ export default function Notifications() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="message">Message *</Label>
-                  <Textarea
-                    id="message"
+                  <Label htmlFor="message">Message * (Rich Text)</Label>
+                  <RichTextEditor
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={setMessage}
                     placeholder="We've added a new reporting feature to help you track compliance..."
-                    rows={4}
-                    required
                   />
                 </div>
 
@@ -374,17 +388,45 @@ export default function Notifications() {
                   )}
                 </div>
 
-                <Button
-                  type="submit"
-                  disabled={createNotificationMutation.isPending}
-                  className="w-full md:w-auto"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {createNotificationMutation.isPending ? "Creating..." : "Create Notification"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPreviewOpen(true)}
+                    className="flex-1 md:flex-none"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createNotificationMutation.isPending}
+                    className="flex-1 md:flex-none"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {createNotificationMutation.isPending ? "Creating..." : "Create Notification"}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
+
+          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Notification Preview</DialogTitle>
+                <DialogDescription>
+                  See how your notification will appear to users
+                </DialogDescription>
+              </DialogHeader>
+              <NotificationPreview
+                title={title}
+                message={message}
+                type={type}
+                targetRoles={targetRoles}
+              />
+            </DialogContent>
+          </Dialog>
 
           <Card>
             <CardHeader>

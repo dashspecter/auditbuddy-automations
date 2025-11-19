@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -450,6 +450,14 @@ export const Header = () => {
                       <Link to="/notification-templates" className="cursor-pointer min-h-[44px] flex items-center">
                         <FileText className="mr-2 h-4 w-4" />
                         Notification Templates
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {roleData?.isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/notification-audit-logs" className="cursor-pointer min-h-[44px] flex items-center">
+                        <History className="mr-2 h-4 w-4" />
+                        Notification Logs
                       </Link>
                     </DropdownMenuItem>
                   )}

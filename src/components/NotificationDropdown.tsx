@@ -53,7 +53,8 @@ export const NotificationDropdown = () => {
     readNotifications.some((read) => read.notification_id === notificationId);
 
   return (
-    <DropdownMenu>
+    <>
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative min-h-[44px] min-w-[44px]">
           <Bell className="h-5 w-5" />
@@ -115,9 +116,10 @@ export const NotificationDropdown = () => {
                             <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {notification.message}
-                        </p>
+                        <div 
+                          className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: notification.message }}
+                        />
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(notification.created_at), {
                             addSuffix: true,
@@ -133,5 +135,34 @@ export const NotificationDropdown = () => {
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
+    <style>{`
+      .prose h1, .prose h2, .prose h3 {
+        margin-top: 0.25em;
+        margin-bottom: 0.1em;
+        font-weight: 600;
+        font-size: 0.75rem;
+        line-height: 1.2;
+      }
+      .prose ul, .prose ol {
+        margin-top: 0.1em;
+        margin-bottom: 0.1em;
+        padding-left: 1.2em;
+        font-size: 0.75rem;
+      }
+      .prose p {
+        margin-top: 0.1em;
+        margin-bottom: 0.1em;
+        font-size: 0.75rem;
+        line-height: 1.4;
+      }
+      .prose a {
+        color: hsl(var(--primary));
+        text-decoration: underline;
+      }
+      .prose strong {
+        font-weight: 600;
+      }
+    `}</style>
+  </>
   );
 };
