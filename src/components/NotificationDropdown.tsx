@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, Info, AlertCircle, AlertTriangle, Megaphone, MapPin } from "lucide-react";
+import { Bell, Check, Info, AlertCircle, AlertTriangle, Megaphone, MapPin, BellOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +44,7 @@ const getNotificationColor = (type: string) => {
 };
 
 export const NotificationDropdown = () => {
-  const { notifications, unreadNotifications, unreadCount, markAsRead, readNotifications, markAllAsRead, isMarkingAllAsRead } =
+  const { notifications, unreadNotifications, unreadCount, markAsRead, readNotifications, markAllAsRead, isMarkingAllAsRead, snoozeNotification, isSnoozingNotification } =
     useNotifications();
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
