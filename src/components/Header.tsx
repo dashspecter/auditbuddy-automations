@@ -167,13 +167,18 @@ export const Header = () => {
             <Link to="/audits" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Audits
             </Link>
-            <Link to="/admin/templates" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-              Templates
-            </Link>
-            <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-              Reports
-            </Link>
-            <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+            {(roleData?.isAdmin || roleData?.isManager) && (
+              <>
+                <Link to="/admin/templates" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+                  Templates
+                </Link>
+                <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+                  Reports
+                </Link>
+              </>
+            )}
+            {(roleData?.isAdmin || roleData?.isManager) && (
+              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   size="sm" 
@@ -315,6 +320,7 @@ export const Header = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </nav>
         </div>
         
@@ -344,22 +350,26 @@ export const Header = () => {
                   <ClipboardCheck className="h-5 w-5" />
                   <span className="text-base font-medium">Audits</span>
                 </Link>
-                <Link 
-                  to="/admin/templates" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <ClipboardCheck className="h-5 w-5" />
-                  <span className="text-base font-medium">Templates</span>
-                </Link>
-                <Link 
-                  to="/reports" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Download className="h-5 w-5" />
-                  <span className="text-base font-medium">Reports</span>
-                </Link>
+                {(roleData?.isAdmin || roleData?.isManager) && (
+                  <>
+                    <Link 
+                      to="/admin/templates" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <ClipboardCheck className="h-5 w-5" />
+                      <span className="text-base font-medium">Templates</span>
+                    </Link>
+                    <Link 
+                      to="/reports" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Download className="h-5 w-5" />
+                      <span className="text-base font-medium">Reports</span>
+                    </Link>
+                  </>
+                )}
                 {(roleData?.isAdmin || roleData?.isManager) && (
                   <Link 
                     to="/admin/users" 
