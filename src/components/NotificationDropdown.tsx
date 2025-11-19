@@ -44,7 +44,7 @@ const getNotificationColor = (type: string) => {
 };
 
 export const NotificationDropdown = () => {
-  const { notifications, unreadNotifications, unreadCount, markAsRead, readNotifications } =
+  const { notifications, unreadNotifications, unreadCount, markAsRead, readNotifications, markAllAsRead, isMarkingAllAsRead } =
     useNotifications();
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -80,9 +80,18 @@ export const NotificationDropdown = () => {
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
           {unreadCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {unreadCount} new
-            </Badge>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                markAllAsRead();
+              }}
+              disabled={isMarkingAllAsRead}
+            >
+              Mark all read
+            </Button>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

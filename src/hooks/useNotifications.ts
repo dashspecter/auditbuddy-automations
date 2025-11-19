@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 export interface Notification {
   id: string;
@@ -71,6 +72,31 @@ export const useNotifications = () => {
     enabled: !!user,
   });
 
+  // Set up realtime subscription for notification reads
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('notification-reads-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notification_reads',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notification_reads', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
       if (!user) throw new Error('User not authenticated');
@@ -81,6 +107,34 @@ export const useNotifications = () => {
           notification_id: notificationId,
           user_id: user.id,
         });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification_reads', user?.id] });
+    },
+  });
+
+  const markAllAsRead = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Get all unread notification IDs
+      const unreadIds = notifications
+        .filter(n => !readNotifications.some(read => read.notification_id === n.id))
+        .map(n => n.id);
+
+      if (unreadIds.length === 0) return;
+
+      // Insert read records for all unread notifications
+      const { error } = await supabase
+        .from('notification_reads')
+        .insert(
+          unreadIds.map(id => ({
+            notification_id: id,
+            user_id: user.id,
+          }))
+        );
 
       if (error) throw error;
     },
@@ -102,5 +156,7 @@ export const useNotifications = () => {
     readNotifications,
     isLoading,
     markAsRead: markAsRead.mutate,
+    markAllAsRead: markAllAsRead.mutate,
+    isMarkingAllAsRead: markAllAsRead.isPending,
   };
 };

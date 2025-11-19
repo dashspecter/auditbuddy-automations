@@ -21,10 +21,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +65,7 @@ export default function Notifications() {
   const [detailOpen, setDetailOpen] = useState(false);
   const { templates } = useNotificationTemplates();
   const { data: audits = [] } = useLocationAudits();
+  const { markAsRead, markAllAsRead, readNotifications, isMarkingAllAsRead } = useNotifications();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
@@ -532,8 +535,24 @@ export default function Notifications() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Existing Notifications</CardTitle>
-              <CardDescription>Manage previously created notifications</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Existing Notifications</CardTitle>
+                  <CardDescription>Manage previously created notifications</CardDescription>
+                </div>
+                {notifications.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => markAllAsRead()}
+                    disabled={isMarkingAllAsRead}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCheck className="h-4 w-4" />
+                    Mark All as Read
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {notifications.length === 0 ? (
@@ -542,18 +561,32 @@ export default function Notifications() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {notifications.map((notification) => (
+                  {notifications.map((notification) => {
+                    const isRead = readNotifications.some(read => read.notification_id === notification.id);
+                    return (
                     <div
                       key={notification.id}
-                      className="border rounded-lg p-4 flex items-start justify-between gap-4 cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all group"
+                      className={cn(
+                        "border rounded-lg p-4 flex items-start justify-between gap-4 cursor-pointer hover:shadow-md transition-all group",
+                        !isRead ? "bg-accent/50 hover:bg-accent/70 border-primary/30" : "hover:bg-accent/30"
+                      )}
                       onClick={() => {
                         setSelectedNotification(notification);
                         setDetailOpen(true);
+                        if (!isRead) {
+                          markAsRead(notification.id);
+                        }
                       }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold group-hover:text-primary transition-colors">{notification.title}</h3>
+                          {!isRead && (
+                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                          )}
+                          <h3 className={cn(
+                            "font-semibold group-hover:text-primary transition-colors",
+                            !isRead && "text-primary"
+                          )}>{notification.title}</h3>
                           <Badge variant="outline">{notification.type}</Badge>
                           {!notification.is_active && (
                             <Badge variant="destructive">Inactive</Badge>
@@ -630,7 +663,8 @@ export default function Notifications() {
                         </AlertDialog>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
