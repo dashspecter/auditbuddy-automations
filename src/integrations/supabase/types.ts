@@ -269,6 +269,47 @@ export type Database = {
           },
         ]
       }
+      notification_audit_logs: {
+        Row: {
+          action: string
+          id: string
+          metadata: Json | null
+          notification_id: string
+          performed_at: string
+          performed_by: string
+          recipients_count: number | null
+          target_roles: string[] | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          metadata?: Json | null
+          notification_id: string
+          performed_at?: string
+          performed_by: string
+          recipients_count?: number | null
+          target_roles?: string[] | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          metadata?: Json | null
+          notification_id?: string
+          performed_at?: string
+          performed_by?: string
+          recipients_count?: number | null
+          target_roles?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_audit_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_reads: {
         Row: {
           id: string

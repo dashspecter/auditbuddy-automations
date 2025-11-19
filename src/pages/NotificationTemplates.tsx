@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -236,13 +236,11 @@ export default function NotificationTemplates() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="template-message">Message *</Label>
-                      <Textarea
-                        id="template-message"
+                      <Label htmlFor="template-message">Message * (Rich Text)</Label>
+                      <RichTextEditor
                         value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        onChange={(message) => setFormData({ ...formData, message })}
                         placeholder="Enter the notification message..."
-                        rows={4}
                       />
                     </div>
                     <div className="space-y-2">
