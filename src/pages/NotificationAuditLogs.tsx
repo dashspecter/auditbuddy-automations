@@ -1,11 +1,13 @@
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Clock, User, Target } from "lucide-react";
+import { FileText, Clock, User, Target, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -86,14 +88,21 @@ export default function NotificationAuditLogs() {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <FileText className="h-8 w-8" />
-              Notification Audit Logs
-            </h1>
-            <p className="text-muted-foreground">
-              Track notification history and who sent what
-            </p>
+          <div className="flex items-center gap-4">
+            <Link to="/notifications">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <FileText className="h-8 w-8" />
+                Notification Audit Logs
+              </h1>
+              <p className="text-muted-foreground">
+                Track notification history and who sent what
+              </p>
+            </div>
           </div>
 
           <Card>
