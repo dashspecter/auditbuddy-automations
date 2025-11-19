@@ -239,22 +239,33 @@ export default function UserManagement() {
                     }
                     
                     try {
-                      // Note: This creates the user account
-                      // They will need to use the password you provide to log in
-                      const { data, error } = await supabase.auth.signUp({
-                        email: inviteEmail,
-                        password: invitePassword,
-                        options: {
-                          data: {
-                            role: inviteRole
-                          }
+                      // Call Edge Function to create user (doesn't affect current session)
+                      const { data: { session } } = await supabase.auth.getSession();
+                      
+                      const response = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${session?.access_token}`,
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            email: inviteEmail,
+                            password: invitePassword,
+                            role: inviteRole,
+                          }),
                         }
-                      });
+                      );
 
-                      if (error) throw error;
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(result.error || 'Failed to create user');
+                      }
 
                       toast({
-                        title: "User invited",
+                        title: "User created",
                         description: `${inviteEmail} has been added. They can now log in with the password you provided.`,
                       });
                       
