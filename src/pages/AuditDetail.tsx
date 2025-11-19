@@ -6,54 +6,38 @@ import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar, Do
 import { Link, useParams } from "react-router-dom";
 import { generateAuditPDF } from "@/lib/pdfExport";
 import { useToast } from "@/hooks/use-toast";
+import { useLocationAudit } from "@/hooks/useAudits";
+import { format } from "date-fns";
 
-// Mock data - will be replaced with real database data later
-const auditDetails = {
-  1: {
-    id: 1,
-    type: "location",
-    location: "LBFC Amzei",
-    checker: "Vlad",
-    date: "2025-10-27",
-    status: "compliant",
-    score: 87,
-    sections: [
-      { name: "Compliance", score: 85, items: ["Licenses displayed", "Health permits current", "Safety signage visible"] },
-      { name: "Back of House", score: 90, items: ["Clean preparation areas", "Proper storage", "Equipment maintained"] },
-      { name: "Cleaning", score: 88, items: ["Surfaces sanitized", "Floors clean", "Waste disposal proper"] },
-      { name: "Front of House", score: 85, items: ["Customer areas clean", "Menus available", "Seating organized"] },
-    ],
-    notes: "Overall good compliance. Minor issues with signage placement."
-  },
-  2: {
-    id: 2,
-    type: "location",
-    location: "LBFC Mosilor",
-    checker: "Bogdan",
-    date: "2025-10-26",
-    status: "non-compliant",
-    score: 65,
-    sections: [
-      { name: "Compliance", score: 60, items: ["Some licenses expired", "Health permits need renewal"] },
-      { name: "Back of House", score: 70, items: ["Storage needs improvement", "Some equipment issues"] },
-      { name: "Cleaning", score: 65, items: ["Surfaces need attention", "Waste area disorganized"] },
-      { name: "Front of House", score: 70, items: ["Customer areas acceptable", "Some maintenance needed"] },
-    ],
-    notes: "Several compliance issues need immediate attention. Follow-up audit scheduled."
-  },
-};
+const COMPLIANCE_THRESHOLD = 80;
 
 const AuditDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
-  const auditId = id ? parseInt(id) : null;
-  const audit = auditId ? auditDetails[auditId as keyof typeof auditDetails] : null;
+  const { data: audit, isLoading } = useLocationAudit(id || '');
 
   const handleDownloadPDF = () => {
     if (!audit) return;
     
     try {
-      generateAuditPDF(audit);
+      const pdfData = {
+        id: audit.id,
+        type: "location",
+        location: audit.location,
+        checker: "Audit User",
+        date: format(new Date(audit.audit_date || audit.created_at), 'yyyy-MM-dd'),
+        status: (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? "compliant" : "non-compliant",
+        score: audit.overall_score || 0,
+        sections: [
+          { name: "Compliance", score: Math.round(((audit.compliance_licenses || 0) + (audit.compliance_permits || 0) + (audit.compliance_signage || 0) + (audit.compliance_documentation || 0)) / 4), items: [] },
+          { name: "Back of House", score: Math.round(((audit.boh_storage || 0) + (audit.boh_temperature || 0) + (audit.boh_preparation || 0) + (audit.boh_equipment || 0)) / 4), items: [] },
+          { name: "Cleaning", score: Math.round(((audit.cleaning_surfaces || 0) + (audit.cleaning_floors || 0) + (audit.cleaning_equipment || 0) + (audit.cleaning_waste || 0)) / 4), items: [] },
+          { name: "Front of House", score: Math.round(((audit.foh_customer_areas || 0) + (audit.foh_restrooms || 0) + (audit.foh_menu_boards || 0) + (audit.foh_seating || 0)) / 4), items: [] },
+        ],
+        notes: audit.notes || ""
+      };
+
+      generateAuditPDF(pdfData);
       toast({
         title: "PDF Generated",
         description: "Your audit report has been downloaded successfully.",
@@ -66,6 +50,22 @@ const AuditDetail = () => {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading audit details...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!audit) {
     return (
@@ -83,6 +83,46 @@ const AuditDetail = () => {
       </div>
     );
   }
+
+  const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
+  const sections = [
+    {
+      name: "Compliance",
+      fields: [
+        { label: "Licenses", score: audit.compliance_licenses },
+        { label: "Permits", score: audit.compliance_permits },
+        { label: "Signage", score: audit.compliance_signage },
+        { label: "Documentation", score: audit.compliance_documentation },
+      ]
+    },
+    {
+      name: "Back of House",
+      fields: [
+        { label: "Storage", score: audit.boh_storage },
+        { label: "Temperature Control", score: audit.boh_temperature },
+        { label: "Food Preparation", score: audit.boh_preparation },
+        { label: "Equipment", score: audit.boh_equipment },
+      ]
+    },
+    {
+      name: "Cleaning & Sanitation",
+      fields: [
+        { label: "Surfaces", score: audit.cleaning_surfaces },
+        { label: "Floors", score: audit.cleaning_floors },
+        { label: "Equipment", score: audit.cleaning_equipment },
+        { label: "Waste Management", score: audit.cleaning_waste },
+      ]
+    },
+    {
+      name: "Front of House",
+      fields: [
+        { label: "Customer Areas", score: audit.foh_customer_areas },
+        { label: "Restrooms", score: audit.foh_restrooms },
+        { label: "Menu Boards", score: audit.foh_menu_boards },
+        { label: "Seating", score: audit.foh_seating },
+      ]
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,8 +159,8 @@ const AuditDetail = () => {
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Checker</p>
-                  <p className="font-semibold text-foreground">{audit.checker}</p>
+                  <p className="text-sm text-muted-foreground">Auditor</p>
+                  <p className="font-semibold text-foreground">User ID: {audit.user_id.substring(0, 8)}</p>
                 </div>
               </div>
               
@@ -130,7 +170,9 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-semibold text-foreground">{audit.date}</p>
+                  <p className="font-semibold text-foreground">
+                    {format(new Date(audit.audit_date || audit.created_at), 'MMM dd, yyyy')}
+                  </p>
                 </div>
               </div>
               
@@ -140,33 +182,26 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Score</p>
-                  <p className="font-semibold text-foreground text-2xl">{audit.score}%</p>
+                  <p className="font-semibold text-foreground text-2xl">{audit.overall_score || 0}%</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3 pt-4 border-t border-border">
               <span className="text-sm text-muted-foreground">Status:</span>
-              {audit.status === "compliant" && (
+              {isCompliant ? (
                 <Badge className="bg-success text-success-foreground gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Compliant
                 </Badge>
-              )}
-              {audit.status === "non-compliant" && (
+              ) : (
                 <Badge variant="destructive" className="gap-1">
                   <AlertCircle className="h-3 w-3" />
-                  Issues Found
-                </Badge>
-              )}
-              {audit.status === "pending" && (
-                <Badge variant="outline" className="gap-1">
-                  <Clock className="h-3 w-3" />
-                  Pending
+                  Non-Compliant
                 </Badge>
               )}
               <Badge variant="outline" className="ml-auto">
-                {audit.type}
+                Location Audit
               </Badge>
             </div>
           </Card>
@@ -174,22 +209,30 @@ const AuditDetail = () => {
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-foreground mb-4">Audit Sections</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {audit.sections.map((section, index) => (
-                <Card key={index} className="p-4 bg-secondary/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-foreground">{section.name}</h3>
-                    <span className="text-lg font-bold text-primary">{section.score}%</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {section.items.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              ))}
+              {sections.map((section, index) => {
+                const sectionScore = Math.round(
+                  section.fields.reduce((sum, field) => sum + (field.score || 0), 0) / section.fields.length
+                );
+
+                return (
+                  <Card key={index} className="p-4 bg-secondary/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-foreground">{section.name}</h3>
+                      <span className="text-lg font-bold text-primary">{sectionScore}%</span>
+                    </div>
+                    <div className="space-y-2">
+                      {section.fields.map((field, fieldIndex) => (
+                        <div key={fieldIndex} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{field.label}</span>
+                          <span className="font-medium text-foreground">
+                            {field.score !== null && field.score !== undefined ? `${field.score}/5` : 'N/A'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </Card>
 
