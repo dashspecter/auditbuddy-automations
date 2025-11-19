@@ -1,4 +1,4 @@
-import { Bell, Check, Info, AlertCircle, AlertTriangle, Megaphone } from "lucide-react";
+import { Bell, Check, Info, AlertCircle, AlertTriangle, Megaphone, MapPin } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -120,6 +120,14 @@ export const NotificationDropdown = () => {
                           className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: notification.message }}
                         />
+                        {notification.location_audits && (
+                          <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded mt-1 w-fit">
+                            <MapPin className="h-3 w-3" />
+                            <span className="font-medium">
+                              {notification.location_audits.location} - {format(new Date(notification.location_audits.audit_date), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(notification.created_at), {
                             addSuffix: true,

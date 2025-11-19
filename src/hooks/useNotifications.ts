@@ -13,6 +13,12 @@ export interface Notification {
   created_by: string;
   expires_at: string | null;
   scheduled_for: string | null;
+  audit_id: string | null;
+  location_audits?: {
+    id: string;
+    location: string;
+    audit_date: string;
+  } | null;
 }
 
 export interface NotificationRead {
@@ -33,7 +39,14 @@ export const useNotifications = () => {
 
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select(`
+          *,
+          location_audits:audit_id (
+            id,
+            location,
+            audit_date
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

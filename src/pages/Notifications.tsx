@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
@@ -66,7 +66,14 @@ export default function Notifications() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select(`
+          *,
+          location_audits:audit_id (
+            id,
+            location,
+            audit_date
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -554,6 +561,14 @@ export default function Notifications() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {notification.message}
                         </p>
+                        {notification.location_audits && (
+                          <div className="flex items-center gap-1 text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-md mb-2 w-fit">
+                            <MapPin className="h-4 w-4" />
+                            <span className="font-medium">
+                              Linked Audit: {notification.location_audits.location} - {format(new Date(notification.location_audits.audit_date), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                           <span>
                             Created: {format(new Date(notification.created_at), "PPp")}
