@@ -32,6 +32,13 @@ export interface LocationAudit {
   notes?: string;
   created_at: string;
   updated_at: string;
+  profiles?: {
+    full_name: string | null;
+    email: string;
+  };
+  audit_templates?: {
+    name: string;
+  };
 }
 
 export const useLocationAudits = () => {
@@ -53,14 +60,35 @@ export const useLocationAudit = (id: string) => {
   return useQuery({
     queryKey: ['location_audit', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch the audit
+      const { data: audit, error: auditError } = await supabase
         .from('location_audits')
         .select('*')
         .eq('id', id)
         .maybeSingle();
 
-      if (error) throw error;
-      return data as LocationAudit | null;
+      if (auditError) throw auditError;
+      if (!audit) return null;
+
+      // Fetch the profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', audit.user_id)
+        .maybeSingle();
+
+      // Fetch the template
+      const { data: template } = audit.template_id ? await supabase
+        .from('audit_templates')
+        .select('name')
+        .eq('id', audit.template_id)
+        .maybeSingle() : { data: null };
+
+      return {
+        ...audit,
+        profiles: profile,
+        audit_templates: template
+      } as LocationAudit;
     },
     enabled: !!id,
   });
