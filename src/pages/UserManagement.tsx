@@ -43,11 +43,13 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { UserActivityDialog } from "@/components/UserActivityDialog";
+import { UserAvatar } from "@/components/UserAvatar";
 
 interface UserProfile {
   id: string;
   email: string;
   full_name: string | null;
+  avatar_url: string | null;
   created_at: string;
 }
 
@@ -338,11 +340,12 @@ export default function UserManagement() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback>
-                              <User className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar 
+                            avatarUrl={user.avatar_url}
+                            userName={user.full_name}
+                            userEmail={user.email}
+                            size="md"
+                          />
                           <div>
                             <div className="font-medium">
                               {user.full_name || "No name"}

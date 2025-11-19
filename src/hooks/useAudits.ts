@@ -35,6 +35,7 @@ export interface LocationAudit {
   profiles?: {
     full_name: string | null;
     email: string;
+    avatar_url: string | null;
   };
   audit_templates?: {
     name: string;
@@ -73,7 +74,7 @@ export const useLocationAudit = (id: string) => {
       // Fetch the profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name, email, avatar_url')
         .eq('id', audit.user_id)
         .maybeSingle();
 
