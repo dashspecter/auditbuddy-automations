@@ -88,6 +88,47 @@ export type Database = {
           },
         ]
       }
+      audit_revisions: {
+        Row: {
+          audit_id: string
+          change_summary: string | null
+          changed_at: string
+          changed_by: string
+          changes: Json
+          created_at: string
+          id: string
+          revision_number: number
+        }
+        Insert: {
+          audit_id: string
+          change_summary?: string | null
+          changed_at?: string
+          changed_by: string
+          changes: Json
+          created_at?: string
+          id?: string
+          revision_number: number
+        }
+        Update: {
+          audit_id?: string
+          change_summary?: string | null
+          changed_at?: string
+          changed_by?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          revision_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_revisions_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "location_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_sections: {
         Row: {
           created_at: string
@@ -528,6 +569,10 @@ export type Database = {
     Functions: {
       calculate_location_audit_score: {
         Args: { audit_id: string }
+        Returns: number
+      }
+      get_next_revision_number: {
+        Args: { p_audit_id: string }
         Returns: number
       }
       has_role: {
