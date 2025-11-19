@@ -2,19 +2,66 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar, Download } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { generateAuditPDF } from "@/lib/pdfExport";
 import { useToast } from "@/hooks/use-toast";
-import { useLocationAudit } from "@/hooks/useAudits";
+import { useLocationAudit, useLocationAudits } from "@/hooks/useAudits";
 import { format } from "date-fns";
+import { useSwipeable } from "react-swipeable";
+import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 const COMPLIANCE_THRESHOLD = 80;
 
 const AuditDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { data: audit, isLoading } = useLocationAudit(id || '');
+  const { data: allAudits } = useLocationAudits();
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [swipeProgress, setSwipeProgress] = useState(0);
+
+  // Find adjacent audits for navigation
+  const { prevAuditId, nextAuditId } = useMemo(() => {
+    if (!allAudits || !id) return { prevAuditId: null, nextAuditId: null };
+    
+    const currentIndex = allAudits.findIndex(a => a.id === id);
+    if (currentIndex === -1) return { prevAuditId: null, nextAuditId: null };
+
+    return {
+      prevAuditId: currentIndex > 0 ? allAudits[currentIndex - 1].id : null,
+      nextAuditId: currentIndex < allAudits.length - 1 ? allAudits[currentIndex + 1].id : null,
+    };
+  }, [allAudits, id]);
+
+  const handlers = useSwipeable({
+    onSwiping: (eventData) => {
+      const progress = Math.abs(eventData.deltaX) / 100;
+      setSwipeProgress(Math.min(progress, 1));
+      
+      if (eventData.deltaX > 0 && prevAuditId) {
+        setSwipeDirection('right');
+      } else if (eventData.deltaX < 0 && nextAuditId) {
+        setSwipeDirection('left');
+      }
+    },
+    onSwiped: (eventData) => {
+      if (Math.abs(eventData.deltaX) > 100) {
+        if (eventData.dir === 'Right' && prevAuditId) {
+          navigate(`/audit/${prevAuditId}`);
+        } else if (eventData.dir === 'Left' && nextAuditId) {
+          navigate(`/audit/${nextAuditId}`);
+        }
+      }
+      setSwipeDirection(null);
+      setSwipeProgress(0);
+    },
+    trackMouse: false,
+    trackTouch: true,
+    delta: 10,
+  });
 
   const handleDownloadPDF = () => {
     if (!audit) return;
@@ -128,19 +175,74 @@ const AuditDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-4">
-            <Link to="/audits">
-              <Button variant="outline" size="icon">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-foreground">Audit Details</h1>
-              <p className="text-muted-foreground mt-1">Detailed information about this audit</p>
+      <div {...handlers} className="relative">
+        {/* Swipe indicators */}
+        {swipeDirection === 'right' && prevAuditId && (
+          <div 
+            className="fixed left-4 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-200"
+            style={{ opacity: swipeProgress }}
+          >
+            <div className="bg-primary/90 backdrop-blur-sm rounded-full p-4 shadow-lg animate-pulse">
+              <ChevronLeft className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
+        )}
+        {swipeDirection === 'left' && nextAuditId && (
+          <div 
+            className="fixed right-4 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-200"
+            style={{ opacity: swipeProgress }}
+          >
+            <div className="bg-primary/90 backdrop-blur-sm rounded-full p-4 shadow-lg animate-pulse">
+              <ChevronRight className="h-8 w-8 text-primary-foreground" />
+            </div>
+          </div>
+        )}
+
+        <main 
+          className={cn(
+            "container mx-auto px-4 py-8 transition-transform duration-200",
+            swipeDirection === 'right' && `translate-x-[${swipeProgress * 20}px]`,
+            swipeDirection === 'left' && `-translate-x-[${swipeProgress * 20}px]`
+          )}
+        >
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Link to="/audits">
+                  <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-foreground">Audit Details</h1>
+                  <p className="text-muted-foreground mt-1">Detailed information about this audit</p>
+                </div>
+              </div>
+              
+              {/* Navigation arrows for desktop */}
+              <div className="hidden md:flex gap-2">
+                {prevAuditId && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => navigate(`/audit/${prevAuditId}`)}
+                    className="min-h-[44px] min-w-[44px]"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                )}
+                {nextAuditId && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => navigate(`/audit/${nextAuditId}`)}
+                    className="min-h-[44px] min-w-[44px]"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
 
           <Card className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -255,7 +357,8 @@ const AuditDetail = () => {
             </Button>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

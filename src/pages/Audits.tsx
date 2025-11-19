@@ -11,13 +11,18 @@ import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const Audits = () => {
   const navigate = useNavigate();
-  const { data: audits, isLoading } = useLocationAudits();
+  const { data: audits, isLoading, refetch } = useLocationAudits();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all-status");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch user profiles to get checker names
   const { data: profiles } = useQuery({
@@ -80,11 +85,23 @@ const Audits = () => {
     });
   }, [audits, searchQuery, typeFilter, statusFilter, profiles, templates]);
 
+  const handleRefresh = async () => {
+    await refetch();
+    await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+    await queryClient.invalidateQueries({ queryKey: ['profiles'] });
+    await queryClient.invalidateQueries({ queryKey: ['audit_templates'] });
+    toast({
+      title: "Refreshed",
+      description: "Audits data has been updated.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -196,7 +213,8 @@ const Audits = () => {
               )}
             </Card>
         </div>
-      </main>
+        </main>
+      </PullToRefresh>
     </div>
   );
 };
