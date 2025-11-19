@@ -97,7 +97,7 @@ const ResetPassword = () => {
           <div className="bg-primary rounded-full p-3">
             <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">QSR Audit Platform</h1>
+          <h1 className="text-2xl font-bold">Dashspect</h1>
         </div>
 
         <div className="mb-6">
