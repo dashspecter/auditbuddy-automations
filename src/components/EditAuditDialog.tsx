@@ -268,6 +268,8 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
         .from('location_audits')
         .update({
           ...formData,
+          time_start: formData.time_start || null,
+          time_end: formData.time_end || null,
           overall_score: overallScore,
           status: status,
           updated_at: new Date().toISOString(),
