@@ -166,10 +166,10 @@ const Auth = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
-              <div className="text-center">
+              <div className="text-center pt-2">
                 <Link 
                   to="/forgot-password" 
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline font-medium"
                 >
                   Forgot password?
                 </Link>
