@@ -27,6 +27,7 @@ export interface NotificationRead {
   notification_id: string;
   user_id: string;
   read_at: string;
+  snoozed_until: string | null;
 }
 
 export const useNotifications = () => {
@@ -143,6 +144,44 @@ export const useNotifications = () => {
     },
   });
 
+  const snoozeNotification = useMutation({
+    mutationFn: async (notificationId: string) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Snooze until end of day
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Check if a read record exists
+      const existing = readNotifications.find(r => r.notification_id === notificationId);
+
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('notification_reads')
+          .update({ snoozed_until: endOfDay.toISOString() })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new record with snooze
+        const { error } = await supabase
+          .from('notification_reads')
+          .insert({
+            notification_id: notificationId,
+            user_id: user.id,
+            snoozed_until: endOfDay.toISOString(),
+          });
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notification_reads', user?.id] });
+    },
+  });
+
   const unreadNotifications = notifications.filter(
     (notification) => !readNotifications.some((read) => read.notification_id === notification.id)
   );
@@ -158,5 +197,7 @@ export const useNotifications = () => {
     markAsRead: markAsRead.mutate,
     markAllAsRead: markAllAsRead.mutate,
     isMarkingAllAsRead: markAllAsRead.isPending,
+    snoozeNotification: snoozeNotification.mutate,
+    isSnoozingNotification: snoozeNotification.isPending,
   };
 };

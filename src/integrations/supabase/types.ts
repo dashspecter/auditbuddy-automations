@@ -322,18 +322,21 @@ export type Database = {
           id: string
           notification_id: string
           read_at: string
+          snoozed_until: string | null
           user_id: string
         }
         Insert: {
           id?: string
           notification_id: string
           read_at?: string
+          snoozed_until?: string | null
           user_id: string
         }
         Update: {
           id?: string
           notification_id?: string
           read_at?: string
+          snoozed_until?: string | null
           user_id?: string
         }
         Relationships: [
@@ -406,6 +409,7 @@ export type Database = {
           target_roles: string[]
           title: string
           type: string
+          updated_at: string | null
         }
         Insert: {
           audit_id?: string | null
@@ -423,6 +427,7 @@ export type Database = {
           target_roles?: string[]
           title: string
           type?: string
+          updated_at?: string | null
         }
         Update: {
           audit_id?: string | null
@@ -440,6 +445,7 @@ export type Database = {
           target_roles?: string[]
           title?: string
           type?: string
+          updated_at?: string | null
         }
         Relationships: [
           {

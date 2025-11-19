@@ -1,9 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { MapPin, Calendar, Clock, Users } from "lucide-react";
+import { MapPin, Calendar, Clock, Users, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/use-toast";
 
 interface NotificationDetailDialogProps {
   notification: {
@@ -32,6 +34,8 @@ export const NotificationDetailDialog = ({
   onOpenChange,
 }: NotificationDetailDialogProps) => {
   const navigate = useNavigate();
+  const { snoozeNotification, isSnoozingNotification } = useNotifications();
+  const { toast } = useToast();
 
   if (!notification) return null;
 
@@ -53,6 +57,15 @@ export const NotificationDetailDialog = ({
       navigate(`/audits/${notification.location_audits.id}`);
       onOpenChange(false);
     }
+  };
+
+  const handleDismissForToday = () => {
+    snoozeNotification(notification.id);
+    toast({
+      title: "Notification dismissed",
+      description: "You won't see this notification again today.",
+    });
+    onOpenChange(false);
   };
 
   return (
@@ -144,6 +157,23 @@ export const NotificationDetailDialog = ({
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={handleDismissForToday}
+              disabled={isSnoozingNotification}
+            >
+              <BellOff className="h-4 w-4 mr-2" />
+              Dismiss for today
+            </Button>
+            {notification.location_audits && (
+              <Button onClick={handleViewAudit}>
+                View Audit
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
