@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Search, Shield, User } from "lucide-react";
+import { ArrowLeft, Search, Shield, User, UserPlus, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -17,7 +17,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: string;
@@ -33,6 +56,12 @@ interface UserWithRoles extends UserProfile {
 export default function UserManagement() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [inviteRole, setInviteRole] = useState<'admin' | 'checker'>('checker');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
@@ -74,6 +103,40 @@ export default function UserManagement() {
     );
   });
 
+  // Mutation to change user role
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'checker'; currentRoles: ('admin' | 'checker')[] }) => {
+      // Remove all existing roles for this user
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) throw deleteError;
+
+      // Add the new role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: newRole });
+
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+      toast({
+        title: "Role updated",
+        description: "User role has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update role: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -93,10 +156,121 @@ export default function UserManagement() {
             <div>
               <h1 className="text-3xl font-bold">User Management</h1>
               <p className="text-muted-foreground">
-                View all users and their roles
+                Manage users and assign roles
               </p>
             </div>
+            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite New User</DialogTitle>
+                  <DialogDescription>
+                    Create a new user account and assign their role.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="user@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Temporary Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Min. 6 characters"
+                      value={invitePassword}
+                      onChange={(e) => setInvitePassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'checker') => setInviteRole(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="checker">Checker - Can conduct audits</SelectItem>
+                        <SelectItem value="admin">Admin - Full access</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={async () => {
+                    if (!inviteEmail || !invitePassword) {
+                      toast({
+                        title: "Error",
+                        description: "Please fill in all fields",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    try {
+                      // Note: This creates the user account
+                      // They will need to use the password you provide to log in
+                      const { data, error } = await supabase.auth.signUp({
+                        email: inviteEmail,
+                        password: invitePassword,
+                        options: {
+                          data: {
+                            role: inviteRole
+                          }
+                        }
+                      });
+
+                      if (error) throw error;
+
+                      toast({
+                        title: "User invited",
+                        description: `${inviteEmail} has been added. They can now log in with the password you provided.`,
+                      });
+                      
+                      setInviteDialogOpen(false);
+                      setInviteEmail("");
+                      setInvitePassword("");
+                      setInviteRole('checker');
+                      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    }
+                  }}>
+                    Create User
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Role Permissions</AlertTitle>
+            <AlertDescription>
+              <div className="mt-2 space-y-1 text-sm">
+                <div><strong>Admin:</strong> Full access - manage users, templates, and all audits</div>
+                <div><strong>Checker:</strong> Can conduct audits and view their own audit history</div>
+              </div>
+            </AlertDescription>
+          </Alert>
 
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
@@ -124,7 +298,7 @@ export default function UserManagement() {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Roles</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Joined</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -150,21 +324,32 @@ export default function UserManagement() {
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          {user.roles.length > 0 ? (
-                            user.roles.map((role) => (
-                              <Badge
-                                key={role}
-                                variant={role === 'admin' ? 'default' : 'secondary'}
-                              >
-                                <Shield className="h-3 w-3 mr-1" />
-                                {role}
-                              </Badge>
-                            ))
-                          ) : (
-                            <Badge variant="outline">User</Badge>
-                          )}
-                        </div>
+                        <Select 
+                          value={user.roles[0] || 'checker'}
+                          onValueChange={(value: 'admin' | 'checker') => {
+                            updateRoleMutation.mutate({
+                              userId: user.id,
+                              newRole: value,
+                              currentRoles: user.roles
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="checker">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">Checker</Badge>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="admin">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="default" className="text-xs">Admin</Badge>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         {format(new Date(user.created_at), "MMM d, yyyy")}
