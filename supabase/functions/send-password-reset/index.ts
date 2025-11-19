@@ -44,6 +44,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email: email,
+      options: {
+        redirectTo: 'https://dashspect.com/reset-password',
+      },
     });
 
     if (error) {
