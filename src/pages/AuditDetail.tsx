@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { useSwipeable } from "react-swipeable";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
+import { supabase } from "@/integrations/supabase/client";
 
 const COMPLIANCE_THRESHOLD = 80;
 
@@ -22,6 +24,61 @@ const AuditDetail = () => {
   const { data: allAudits } = useLocationAudits();
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [swipeProgress, setSwipeProgress] = useState(0);
+  const [templateSections, setTemplateSections] = useState<any[]>([]);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+
+  // Load template data for section breakdown
+  useEffect(() => {
+    if (audit?.template_id && audit?.custom_data) {
+      loadTemplateSections(audit.template_id);
+    }
+  }, [audit]);
+
+  const loadTemplateSections = async (templateId: string) => {
+    setLoadingTemplate(true);
+    try {
+      const { data: sections, error } = await supabase
+        .from('audit_sections')
+        .select(`
+          id,
+          name,
+          description,
+          display_order,
+          audit_fields (
+            id,
+            name,
+            field_type,
+            is_required,
+            display_order
+          )
+        `)
+        .eq('template_id', templateId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      if (sections) {
+        const formattedSections = sections.map(section => ({
+          id: section.id,
+          name: section.name,
+          description: section.description,
+          fields: (section.audit_fields || [])
+            .sort((a: any, b: any) => a.display_order - b.display_order)
+            .map((field: any) => ({
+              id: field.id,
+              name: field.name,
+              field_type: field.field_type,
+              is_required: field.is_required
+            }))
+        }));
+        setTemplateSections(formattedSections);
+      }
+    } catch (error) {
+      console.error('Error loading template sections:', error);
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
 
   // Find adjacent audits for navigation
   const { prevAuditId, nextAuditId } = useMemo(() => {
@@ -307,6 +364,14 @@ const AuditDetail = () => {
               </Badge>
             </div>
           </Card>
+
+          {/* Section Score Breakdown */}
+          {audit?.custom_data && templateSections.length > 0 && (
+            <SectionScoreBreakdown 
+              sections={templateSections}
+              customData={audit.custom_data as Record<string, any>}
+            />
+          )}
 
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-foreground mb-4">Audit Sections</h2>
