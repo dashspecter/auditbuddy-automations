@@ -197,7 +197,7 @@ export const useNotifications = () => {
     markAsRead: markAsRead.mutate,
     markAllAsRead: markAllAsRead.mutate,
     isMarkingAllAsRead: markAllAsRead.isPending,
-    snoozeNotification: snoozeNotification.mutate,
+    snoozeNotification: snoozeNotification.mutateAsync,
     isSnoozingNotification: snoozeNotification.isPending,
   };
 };
