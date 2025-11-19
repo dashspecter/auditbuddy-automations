@@ -33,7 +33,9 @@ const AuditDetail = () => {
   const [templateSections, setTemplateSections] = useState<any[]>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
 
+  // Load template data for section breakdown
   // Load template data for section breakdown
   useEffect(() => {
     if (audit?.template_id && audit?.custom_data) {
@@ -102,22 +104,54 @@ const AuditDetail = () => {
     };
   }, [allAudits, id]);
 
+  // Show swipe hint on mobile after component mounts (only if there are audits to navigate to)
+  useEffect(() => {
+    const hasSeenHint = localStorage.getItem('audit-swipe-hint-seen');
+    const isMobile = window.innerWidth < 768;
+    const hasNavigation = prevAuditId || nextAuditId;
+    
+    if (!hasSeenHint && isMobile && hasNavigation) {
+      const timer = setTimeout(() => {
+        setShowSwipeHint(true);
+        // Hide after 3 seconds
+        setTimeout(() => {
+          setShowSwipeHint(false);
+          localStorage.setItem('audit-swipe-hint-seen', 'true');
+        }, 3000);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [prevAuditId, nextAuditId]);
+
   const handlers = useSwipeable({
     onSwiping: (eventData) => {
-      const progress = Math.abs(eventData.deltaX) / 100;
+      // Lower threshold for easier mobile swiping (80px instead of 100px)
+      const progress = Math.abs(eventData.deltaX) / 80;
       setSwipeProgress(Math.min(progress, 1));
       
       if (eventData.deltaX > 0 && prevAuditId) {
         setSwipeDirection('right');
       } else if (eventData.deltaX < 0 && nextAuditId) {
         setSwipeDirection('left');
+      } else {
+        setSwipeDirection(null);
       }
     },
     onSwiped: (eventData) => {
-      if (Math.abs(eventData.deltaX) > 100) {
+      // Lower threshold for easier mobile swiping
+      if (Math.abs(eventData.deltaX) > 80) {
         if (eventData.dir === 'Right' && prevAuditId) {
+          // Add subtle haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
           navigate(`/audits/${prevAuditId}`);
         } else if (eventData.dir === 'Left' && nextAuditId) {
+          // Add subtle haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
           navigate(`/audits/${nextAuditId}`);
         }
       }
@@ -126,7 +160,9 @@ const AuditDetail = () => {
     },
     trackMouse: false,
     trackTouch: true,
-    delta: 10,
+    delta: 5,
+    preventScrollOnSwipe: false,
+    touchEventOptions: { passive: false },
   });
 
   const handleDownloadPDF = () => {
@@ -203,35 +239,103 @@ const AuditDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <div {...handlers} className="relative">
-        {/* Swipe indicators */}
+      <div {...handlers} className="relative touch-pan-y">
+        {/* Swipe hint for first-time mobile users */}
+        {showSwipeHint && (prevAuditId || nextAuditId) && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:hidden animate-in slide-in-from-bottom-5 fade-in">
+            <div className="bg-primary/95 backdrop-blur-sm text-primary-foreground px-6 py-3 rounded-full shadow-xl flex items-center gap-3">
+              <ChevronLeft className="h-5 w-5 animate-pulse" />
+              <span className="text-sm font-medium">Swipe to navigate</span>
+              <ChevronRight className="h-5 w-5 animate-pulse" />
+            </div>
+          </div>
+        )}
+        
+        {/* Swipe indicators with progress ring */}
         {swipeDirection === 'right' && prevAuditId && (
           <div 
-            className="fixed left-4 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-200"
-            style={{ opacity: swipeProgress }}
+            className="fixed left-4 top-1/2 -translate-y-1/2 z-40 transition-all duration-150 md:hidden"
+            style={{ 
+              opacity: swipeProgress,
+              transform: `translateY(-50%) scale(${0.8 + swipeProgress * 0.2})`
+            }}
           >
-            <div className="bg-primary/90 backdrop-blur-sm rounded-full p-4 shadow-lg animate-pulse">
-              <ChevronLeft className="h-8 w-8 text-primary-foreground" />
+            <div className="relative">
+              <div className="bg-primary/95 backdrop-blur-sm rounded-full p-4 shadow-xl">
+                <ChevronLeft className="h-8 w-8 text-primary-foreground" />
+              </div>
+              {/* Progress ring */}
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  className="text-primary/30"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  className="text-primary-foreground"
+                  strokeDasharray={`${swipeProgress * 289} 289`}
+                  style={{ transition: 'stroke-dasharray 0.1s ease-out' }}
+                />
+              </svg>
             </div>
           </div>
         )}
         {swipeDirection === 'left' && nextAuditId && (
           <div 
-            className="fixed right-4 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-200"
-            style={{ opacity: swipeProgress }}
+            className="fixed right-4 top-1/2 -translate-y-1/2 z-40 transition-all duration-150 md:hidden"
+            style={{ 
+              opacity: swipeProgress,
+              transform: `translateY(-50%) scale(${0.8 + swipeProgress * 0.2})`
+            }}
           >
-            <div className="bg-primary/90 backdrop-blur-sm rounded-full p-4 shadow-lg animate-pulse">
-              <ChevronRight className="h-8 w-8 text-primary-foreground" />
+            <div className="relative">
+              <div className="bg-primary/95 backdrop-blur-sm rounded-full p-4 shadow-xl">
+                <ChevronRight className="h-8 w-8 text-primary-foreground" />
+              </div>
+              {/* Progress ring */}
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  className="text-primary/30"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  className="text-primary-foreground"
+                  strokeDasharray={`${swipeProgress * 289} 289`}
+                  style={{ transition: 'stroke-dasharray 0.1s ease-out' }}
+                />
+              </svg>
             </div>
           </div>
         )}
 
         <main 
-          className={cn(
-            "container mx-auto px-4 py-8 transition-transform duration-200",
-            swipeDirection === 'right' && `translate-x-[${swipeProgress * 20}px]`,
-            swipeDirection === 'left' && `-translate-x-[${swipeProgress * 20}px]`
-          )}
+          className="container mx-auto px-4 py-8 transition-transform duration-150 ease-out"
+          style={{
+            transform: swipeDirection 
+              ? `translateX(${swipeDirection === 'right' ? swipeProgress * 30 : -swipeProgress * 30}px)`
+              : 'translateX(0)'
+          }}
         >
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-4">
