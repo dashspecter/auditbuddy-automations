@@ -101,6 +101,7 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
 
     switch (field.field_type) {
       case 'rating':
+        const maxRating = field.options?.max || 5;
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id}>
@@ -111,7 +112,7 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
               onValueChange={(val) => handleFieldChange(field.id, parseInt(val))}
             >
               <div className="flex gap-4">
-                {[1, 2, 3, 4, 5].map((rating) => (
+                {Array.from({ length: maxRating }, (_, i) => i + 1).map((rating) => (
                   <div key={rating} className="flex items-center space-x-2">
                     <RadioGroupItem value={rating.toString()} id={`${field.id}-${rating}`} />
                     <Label htmlFor={`${field.id}-${rating}`}>{rating}</Label>
@@ -241,22 +242,23 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
       let overallScore = audit.overall_score;
       if (changes.custom_data) {
         let totalRatings = 0;
-        let ratingCount = 0;
+        let maxPossibleScore = 0;
 
         templateSections.forEach(section => {
           section.fields.forEach((field: any) => {
             if (field.field_type === 'rating') {
               const value = newCustomData[field.id];
+              const maxValue = field.options?.max || 5;
               if (typeof value === 'number') {
                 totalRatings += value;
-                ratingCount++;
+                maxPossibleScore += maxValue;
               }
             }
           });
         });
 
-        overallScore = ratingCount > 0 
-          ? Math.round((totalRatings / (ratingCount * 5)) * 100) 
+        overallScore = maxPossibleScore > 0 
+          ? Math.round((totalRatings / maxPossibleScore) * 100) 
           : 0;
       }
 
