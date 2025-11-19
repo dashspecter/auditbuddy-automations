@@ -20,6 +20,7 @@ import { Plus, FileText, Trash2, Pencil, Save, X, Megaphone, ArrowLeft } from "l
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { RoleGuard } from "@/components/RoleGuard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -162,29 +163,12 @@ export default function NotificationTemplates() {
     });
   };
 
-  if (!roleData?.isAdmin && !roleData?.isManager) {
-    return (
+  return (
+    <RoleGuard requireManager fallbackMessage="You don't have permission to manage notification templates.">
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>
-                You don't have permission to manage notification templates.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-          <div className="space-y-6">
+            <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Link to="/notifications">
@@ -406,8 +390,9 @@ export default function NotificationTemplates() {
               ))
             )}
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }
