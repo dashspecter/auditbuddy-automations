@@ -5,11 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const reportData = [
   { location: "LBFC Amzei", totalAudits: 24, avgScore: 87, compliant: 20, nonCompliant: 4 },
@@ -17,6 +24,19 @@ const reportData = [
   { location: "LBFC Timpuri Noi", totalAudits: 22, avgScore: 91, compliant: 21, nonCompliant: 1 },
   { location: "LBFC Apaca", totalAudits: 20, avgScore: 85, compliant: 17, nonCompliant: 3 },
 ];
+
+// Mock audit details for demonstration
+const generateMockAudits = (location: string, type: 'compliant' | 'nonCompliant', count: number) => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${location}-${type}-${i}`,
+    location,
+    date: new Date(2025, 10, Math.floor(Math.random() * 18) + 1),
+    score: type === 'compliant' ? Math.floor(Math.random() * 15) + 85 : Math.floor(Math.random() * 30) + 50,
+    auditor: ['John Doe', 'Jane Smith', 'Mike Johnson'][Math.floor(Math.random() * 3)],
+    status: type === 'compliant' ? 'Passed' : 'Failed',
+    issues: type === 'nonCompliant' ? Math.floor(Math.random() * 5) + 1 : 0,
+  }));
+};
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -27,6 +47,35 @@ const COLORS = {
 const Reports = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
+  const [selectedAudits, setSelectedAudits] = useState<any[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
+
+  const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
+    let audits: any[] = [];
+    let title = "";
+
+    if (location) {
+      // Click from location-specific chart
+      const locationData = reportData.find(loc => loc.location === location);
+      if (locationData) {
+        const count = type === 'compliant' ? locationData.compliant : locationData.nonCompliant;
+        audits = generateMockAudits(location, type, count);
+        title = `${location} - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
+      }
+    } else {
+      // Click from overall chart
+      reportData.forEach(loc => {
+        const count = type === 'compliant' ? loc.compliant : loc.nonCompliant;
+        audits.push(...generateMockAudits(loc.location, type, count));
+      });
+      title = `All Locations - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
+    }
+
+    setSelectedAudits(audits);
+    setDialogTitle(title);
+    setDialogOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,6 +247,7 @@ const Reports = () => {
           {/* Overall Compliance Pie Chart */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Overall Compliance Distribution</h3>
+            <p className="text-sm text-muted-foreground mb-4">Click on a slice to view detailed audit list</p>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -212,6 +262,11 @@ const Reports = () => {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
+                  onClick={(data) => {
+                    const type = data.name === 'Compliant' ? 'compliant' : 'nonCompliant';
+                    handlePieClick(null, type);
+                  }}
+                  cursor="pointer"
                 >
                   <Cell fill={COLORS.compliant} />
                   <Cell fill={COLORS.nonCompliant} />
@@ -232,7 +287,8 @@ const Reports = () => {
 
               return (
                 <Card key={location.location} className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">{location.location}</h3>
+                  <h3 className="text-lg font-semibold mb-2">{location.location}</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Click on a slice to view audits</p>
                   <div className="mb-4">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-muted-foreground">Average Score</span>
@@ -254,6 +310,11 @@ const Reports = () => {
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
+                        onClick={(data) => {
+                          const type = data.name === 'Compliant' ? 'compliant' : 'nonCompliant';
+                          handlePieClick(location.location, type);
+                        }}
+                        cursor="pointer"
                       >
                         <Cell fill={COLORS.compliant} />
                         <Cell fill={COLORS.nonCompliant} />
@@ -294,6 +355,66 @@ const Reports = () => {
               </PieChart>
             </ResponsiveContainer>
           </Card>
+
+          {/* Audit Details Dialog */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{dialogTitle}</DialogTitle>
+                <DialogDescription>
+                  Showing {selectedAudits.length} audit{selectedAudits.length !== 1 ? 's' : ''}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-3">
+                {selectedAudits.map((audit) => (
+                  <Card key={audit.id} className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-primary/10 p-2 rounded-lg">
+                            <MapPin className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-foreground">{audit.location}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Audited by {audit.auditor}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Date</p>
+                            <p className="text-sm font-medium flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {format(audit.date, 'MMM dd, yyyy')}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Score</p>
+                            <p className="text-sm font-bold text-foreground">{audit.score}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Status</p>
+                            <Badge className={audit.status === 'Passed' ? 'bg-success' : 'bg-destructive'}>
+                              {audit.status}
+                            </Badge>
+                          </div>
+                          {audit.issues > 0 && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Issues Found</p>
+                              <p className="text-sm font-medium text-destructive">{audit.issues}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </div>
