@@ -22,6 +22,7 @@ import NotificationTemplates from "./pages/NotificationTemplates";
 import NotificationAuditLogs from "./pages/NotificationAuditLogs";
 import NotificationAnalytics from "./pages/NotificationAnalytics";
 import RecurringNotifications from "./pages/RecurringNotifications";
+import DebugInfo from "./pages/DebugInfo";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
             <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
             <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
             <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
             <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
             <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
