@@ -60,13 +60,21 @@ export const NotificationDetailDialog = ({
     }
   };
 
-  const handleDismissForToday = () => {
-    snoozeNotification(notification.id);
-    toast({
-      title: "Notification dismissed",
-      description: "You won't see this notification again today.",
-    });
-    onOpenChange(false);
+  const handleDismissForToday = async () => {
+    try {
+      await snoozeNotification(notification.id);
+      toast({
+        title: "Notification dismissed",
+        description: "You won't see this notification again today.",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to dismiss notification. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
