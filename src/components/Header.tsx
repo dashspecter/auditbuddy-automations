@@ -313,21 +313,30 @@ export const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.email}</p>
+                    {!isLoading && roleData && (
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {roleData.isAdmin ? 'Admin' : 'Checker'}
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-sm text-muted-foreground">
-                  {user?.email}
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
                 </DropdownMenuItem>
                 {roleData?.isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/templates" className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Admin Settings
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/users" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      User Management
+                    </Link>
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
