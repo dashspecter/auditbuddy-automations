@@ -109,6 +109,13 @@ export default function UserManagement() {
   // Mutation to change user role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'checker'; currentRoles: ('admin' | 'checker')[] }) => {
+      // Get current user to prevent self-demotion
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user?.id === userId && currentRoles.includes('admin') && newRole !== 'admin') {
+        throw new Error('You cannot remove your own admin access');
+      }
+
       // Remove all existing roles for this user
       const { error: deleteError } = await supabase
         .from('user_roles')
