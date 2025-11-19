@@ -12,6 +12,7 @@ export interface Notification {
   created_at: string;
   created_by: string;
   expires_at: string | null;
+  scheduled_for: string | null;
 }
 
 export interface NotificationRead {

@@ -306,6 +306,7 @@ export type Database = {
           id: string
           is_active: boolean
           message: string
+          scheduled_for: string | null
           target_roles: string[]
           title: string
           type: string
@@ -317,6 +318,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           message: string
+          scheduled_for?: string | null
           target_roles?: string[]
           title: string
           type?: string
@@ -328,6 +330,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           message?: string
+          scheduled_for?: string | null
           target_roles?: string[]
           title?: string
           type?: string

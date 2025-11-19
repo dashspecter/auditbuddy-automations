@@ -17,10 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Plus, Megaphone, Trash2 } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, isFuture } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +43,7 @@ export default function Notifications() {
   const [type, setType] = useState<"info" | "success" | "warning" | "announcement">("info");
   const [targetRoles, setTargetRoles] = useState<string[]>(["checker", "manager", "admin"]);
   const [expiresAt, setExpiresAt] = useState("");
+  const [scheduledFor, setScheduledFor] = useState("");
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
@@ -75,6 +76,7 @@ export default function Notifications() {
         target_roles: targetRoles,
         created_by: user.id,
         expires_at: expiresAt || null,
+        scheduled_for: scheduledFor || null,
       });
 
       if (error) throw error;
@@ -89,6 +91,7 @@ export default function Notifications() {
       setType("info");
       setTargetRoles(["checker", "manager", "admin"]);
       setExpiresAt("");
+      setScheduledFor("");
       queryClient.invalidateQueries({ queryKey: ['all_notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
@@ -144,6 +147,22 @@ export default function Notifications() {
       });
       return;
     }
+    if (scheduledFor && new Date(scheduledFor) < new Date()) {
+      toast({
+        title: "Validation Error",
+        description: "Scheduled publish time cannot be in the past.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (expiresAt && scheduledFor && new Date(expiresAt) <= new Date(scheduledFor)) {
+      toast({
+        title: "Validation Error",
+        description: "Expiration time must be after the scheduled publish time.",
+        variant: "destructive",
+      });
+      return;
+    }
     createNotificationMutation.mutate();
   };
 
@@ -184,7 +203,8 @@ export default function Notifications() {
             <CardHeader>
               <CardTitle>Create New Notification</CardTitle>
               <CardDescription>
-                Send announcements, updates, or important messages to users based on their roles
+                Send announcements, updates, or important messages to users based on their roles. 
+                You can schedule notifications to publish automatically at a future date and time.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -229,14 +249,37 @@ export default function Notifications() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="expiresAt">Expires At (Optional)</Label>
+                    <Label htmlFor="scheduledFor" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Schedule Publish Time (Optional)
+                    </Label>
                     <Input
-                      id="expiresAt"
+                      id="scheduledFor"
                       type="datetime-local"
-                      value={expiresAt}
-                      onChange={(e) => setExpiresAt(e.target.value)}
+                      value={scheduledFor}
+                      onChange={(e) => setScheduledFor(e.target.value)}
+                      placeholder="Leave empty to publish immediately"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Notification will only be visible after this time
+                    </p>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expiresAt" className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    Expires At (Optional)
+                  </Label>
+                  <Input
+                    id="expiresAt"
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Notification will automatically hide after this time
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -318,6 +361,12 @@ export default function Notifications() {
                           {!notification.is_active && (
                             <Badge variant="destructive">Inactive</Badge>
                           )}
+                          {notification.scheduled_for && isFuture(new Date(notification.scheduled_for)) && (
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Scheduled
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
                           {notification.message}
@@ -326,6 +375,11 @@ export default function Notifications() {
                           <span>
                             Created: {format(new Date(notification.created_at), "PPp")}
                           </span>
+                          {notification.scheduled_for && (
+                            <span className={isFuture(new Date(notification.scheduled_for)) ? "text-primary font-medium" : ""}>
+                              • {isFuture(new Date(notification.scheduled_for)) ? "Publishes" : "Published"}: {format(new Date(notification.scheduled_for), "PPp")}
+                            </span>
+                          )}
                           {notification.expires_at && (
                             <span>
                               • Expires: {format(new Date(notification.expires_at), "PPp")}
