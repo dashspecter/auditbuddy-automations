@@ -12,10 +12,15 @@ import { Link } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const { data: audits, isLoading: auditsLoading } = useLocationAudits();
+  const { data: audits, isLoading: auditsLoading, refetch } = useLocationAudits();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const stats = useMemo(() => {
     if (!audits) return { totalAudits: 0, locations: 0, complianceRate: 0 };
@@ -27,6 +32,15 @@ const Dashboard = () => {
 
     return { totalAudits, locations, complianceRate };
   }, [audits]);
+
+  const handleRefresh = async () => {
+    await refetch();
+    await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+    toast({
+      title: "Refreshed",
+      description: "Dashboard data has been updated.",
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -45,11 +59,12 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Audit Dashboard</h1>
-          <p className="text-muted-foreground">Monitor and manage restaurant audits</p>
-        </div>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <main className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Audit Dashboard</h1>
+            <p className="text-muted-foreground">Monitor and manage restaurant audits</p>
+          </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -179,7 +194,8 @@ const Dashboard = () => {
           </TabsContent>
 
         </Tabs>
-      </main>
+        </main>
+      </PullToRefresh>
     </div>
   );
 };
