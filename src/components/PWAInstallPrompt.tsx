@@ -12,22 +12,30 @@ export const PWAInstallPrompt = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('[PWAPrompt] Component mounted', { isInstallable, isInstalled, isDismissed });
+    
     // Check if user has already dismissed the prompt
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     if (dismissed) {
+      console.log('[PWAPrompt] User has previously dismissed');
       setIsDismissed(true);
     }
 
     // Show prompt after a short delay if installable and not dismissed
     if (isInstallable && !dismissed && !isInstalled) {
+      console.log('[PWAPrompt] Will show prompt in 3 seconds');
       const timer = setTimeout(() => {
+        console.log('[PWAPrompt] Showing prompt now');
         setShowPrompt(true);
       }, 3000);
       return () => clearTimeout(timer);
+    } else {
+      console.log('[PWAPrompt] Not showing prompt:', { isInstallable, dismissed: !!dismissed, isInstalled });
     }
   }, [isInstallable, isInstalled]);
 
   const handleInstall = async () => {
+    console.log('[PWAPrompt] Install button clicked');
     const success = await promptInstall();
     if (success) {
       toast({
@@ -39,6 +47,7 @@ export const PWAInstallPrompt = () => {
   };
 
   const handleDismiss = () => {
+    console.log('[PWAPrompt] Dismissed by user');
     setShowPrompt(false);
     setIsDismissed(true);
     localStorage.setItem('pwa-install-dismissed', 'true');
@@ -48,6 +57,8 @@ export const PWAInstallPrompt = () => {
   if (isInstalled || isDismissed || !isInstallable || !showPrompt) {
     return null;
   }
+
+  console.log('[PWAPrompt] Rendering prompt');
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">

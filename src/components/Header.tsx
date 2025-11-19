@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import {
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils";
 export const Header = () => {
   const { user, signOut } = useAuth();
   const { data: roleData, isLoading } = useUserRole();
+  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,6 +50,36 @@ export const Header = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
 
+  const handleInstallApp = async () => {
+    const success = await promptInstall();
+    if (success) {
+      toast({
+        title: "Installing App",
+        description: "Dashspect is being installed to your device.",
+      });
+    } else {
+      // Show instructions for iOS or already installed
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        toast({
+          title: "Install on iOS",
+          description: "Tap the Share button and select 'Add to Home Screen'",
+          duration: 5000,
+        });
+      } else if (isInstalled) {
+        toast({
+          title: "Already Installed",
+          description: "Dashspect is already installed on your device.",
+        });
+      } else {
+        toast({
+          title: "Install Not Available",
+          description: "Your browser doesn't support app installation or it's already installed.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
   const handleExportData = async () => {
     try {
       const exports: any[] = [];
@@ -480,6 +512,12 @@ export const Header = () => {
                     </DropdownMenuItem>
                   )}
                 </>
+              )}
+              {!isInstalled && (
+                <DropdownMenuItem onClick={handleInstallApp} className="min-h-[44px] flex items-center cursor-pointer">
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  Install App
+                </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="cursor-pointer min-h-[44px] flex items-center">
