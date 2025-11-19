@@ -306,3 +306,44 @@ export const useDeleteField = () => {
     },
   });
 };
+
+export const useDeleteTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // First delete all fields in sections
+      const { data: sections } = await supabase
+        .from('audit_sections')
+        .select('id')
+        .eq('template_id', id);
+
+      if (sections) {
+        const sectionIds = sections.map(s => s.id);
+        await supabase
+          .from('audit_fields')
+          .delete()
+          .in('section_id', sectionIds);
+      }
+
+      // Then delete all sections
+      await supabase
+        .from('audit_sections')
+        .delete()
+        .eq('template_id', id);
+
+      // Finally delete the template
+      const { error } = await supabase
+        .from('audit_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audit_templates'] });
+      queryClient.invalidateQueries({ queryKey: ['template_library'] });
+    },
+  });
+};
