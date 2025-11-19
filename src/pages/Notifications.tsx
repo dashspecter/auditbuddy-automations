@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
@@ -54,6 +54,8 @@ export default function Notifications() {
   const [expiresAt, setExpiresAt] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const { templates } = useNotificationTemplates();
 
   const { data: notifications = [] } = useQuery({
@@ -80,7 +82,7 @@ export default function Notifications() {
         }
       }
 
-      const { error } = await supabase.from('notifications').insert({
+      const notificationData: any = {
         title,
         message,
         type,
@@ -88,7 +90,17 @@ export default function Notifications() {
         created_by: user.id,
         expires_at: expiresAt || null,
         scheduled_for: scheduledFor || null,
-      });
+        recurrence_enabled: recurrenceEnabled,
+        recurrence_pattern: recurrenceEnabled ? recurrencePattern : 'none',
+      };
+
+      // If recurring, set next_scheduled_at to the scheduled_for time or now
+      if (recurrenceEnabled) {
+        const startTime = scheduledFor ? new Date(scheduledFor) : new Date();
+        notificationData.next_scheduled_at = startTime.toISOString();
+      }
+
+      const { error } = await supabase.from('notifications').insert(notificationData);
 
       if (error) throw error;
     },
@@ -103,6 +115,8 @@ export default function Notifications() {
       setTargetRoles(["checker", "manager", "admin"]);
       setExpiresAt("");
       setScheduledFor("");
+      setRecurrenceEnabled(false);
+      setRecurrencePattern("none");
       queryClient.invalidateQueries({ queryKey: ['all_notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
@@ -212,6 +226,12 @@ export default function Notifications() {
               </div>
               {roleData?.isAdmin && (
                 <div className="flex gap-2">
+                  <Button variant="outline" asChild>
+                    <a href="/notification-analytics">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analytics
+                    </a>
+                  </Button>
                   <Button variant="outline" asChild>
                     <a href="/notification-audit-logs">
                       <History className="h-4 w-4 mr-2" />
@@ -343,6 +363,47 @@ export default function Notifications() {
                   <p className="text-xs text-muted-foreground">
                     Notification will automatically hide after this time
                   </p>
+                </div>
+
+                <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="recurring"
+                      checked={recurrenceEnabled}
+                      onCheckedChange={(checked) => setRecurrenceEnabled(checked as boolean)}
+                    />
+                    <Label htmlFor="recurring" className="cursor-pointer font-semibold">
+                      Enable Recurring Notification
+                    </Label>
+                  </div>
+                  
+                  {recurrenceEnabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="recurrencePattern">Recurrence Pattern *</Label>
+                        <Select
+                          value={recurrencePattern}
+                          onValueChange={(value: "none" | "daily" | "weekly" | "monthly") => setRecurrencePattern(value)}
+                        >
+                          <SelectTrigger id="recurrencePattern">
+                            <SelectValue placeholder="Select recurrence pattern" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Notification will be automatically sent at the scheduled time according to this pattern
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground bg-info/10 p-3 rounded border border-info/20">
+                        <strong>Note:</strong> The first notification will be sent at the "Scheduled For" time (or immediately if not set). 
+                        Subsequent notifications will repeat based on the selected pattern.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-2">
