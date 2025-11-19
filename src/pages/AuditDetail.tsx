@@ -2,7 +2,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Clock, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, AlertCircle, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight, Edit, History } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { generateAuditPDF } from "@/lib/pdfExport";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/UserAvatar";
+import { EditAuditDialog } from "@/components/EditAuditDialog";
+import { AuditRevisionHistory } from "@/components/AuditRevisionHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQueryClient } from "@tanstack/react-query";
 
 const COMPLIANCE_THRESHOLD = 80;
 
@@ -21,12 +25,14 @@ const AuditDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: audit, isLoading } = useLocationAudit(id || '');
   const { data: allAudits } = useLocationAudits();
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [templateSections, setTemplateSections] = useState<any[]>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Load template data for section breakdown
   useEffect(() => {
@@ -338,20 +344,36 @@ const AuditDetail = () => {
             </div>
           </Card>
 
-          {/* Section Score Breakdown */}
-          {audit?.custom_data && templateSections.length > 0 && (
-            <SectionScoreBreakdown 
-              sections={templateSections}
-              customData={audit.custom_data as Record<string, any>}
-            />
-          )}
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Audit Details</TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                Revision History
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="space-y-6">
+              {/* Section Score Breakdown */}
+              {audit?.custom_data && templateSections.length > 0 && (
+                <SectionScoreBreakdown 
+                  sections={templateSections}
+                  customData={audit.custom_data as Record<string, any>}
+                />
+              )}
 
-          {audit.notes && (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-3">Notes</h2>
-              <p className="text-muted-foreground">{audit.notes}</p>
-            </Card>
-          )}
+              {audit.notes && (
+                <Card className="p-6">
+                  <h2 className="text-xl font-semibold text-foreground mb-3">Notes</h2>
+                  <p className="text-muted-foreground">{audit.notes}</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="history">
+              <AuditRevisionHistory auditId={audit.id} />
+            </TabsContent>
+          </Tabs>
 
           <div className="flex gap-3">
             <Link to="/audits" className="flex-1">
@@ -363,10 +385,30 @@ const AuditDetail = () => {
               <Download className="h-4 w-4" />
               Download Report
             </Button>
+            <Button 
+              className="flex-1 gap-2" 
+              variant="outline"
+              onClick={() => setEditDialogOpen(true)}
+            >
+              <Edit className="h-4 w-4" />
+              Edit Audit
+            </Button>
           </div>
         </div>
         </main>
       </div>
+
+      {audit && (
+        <EditAuditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          audit={audit}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['location_audit', id] });
+            queryClient.invalidateQueries({ queryKey: ['audit_revisions', id] });
+          }}
+        />
+      )}
     </div>
   );
 };
