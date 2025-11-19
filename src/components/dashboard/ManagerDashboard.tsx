@@ -66,61 +66,6 @@ export const ManagerDashboard = () => {
         <Badge variant="secondary" className="text-sm">Manager</Badge>
       </div>
 
-      <DraftAudits />
-
-      {(pendingAudits?.length || 0) > 0 && (
-        <Card className="bg-warning/10 border-warning/30">
-          <div className="p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-warning" />
-            <div className="flex-1">
-              <h3 className="font-semibold">Pending Reviews</h3>
-              <p className="text-sm text-muted-foreground">
-                {pendingAudits?.length} audit{(pendingAudits?.length || 0) !== 1 ? 's' : ''} waiting for review
-              </p>
-            </div>
-            <Link to="/audits?status=pending">
-              <Button variant="outline" size="sm">Review</Button>
-            </Link>
-          </div>
-        </Card>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Audits"
-          value={auditsLoading ? "..." : stats.totalAudits.toString()}
-          icon={ClipboardCheck}
-          description="All location audits"
-        />
-        <StatsCard
-          title="Active Checkers"
-          value={checkersCount?.toString() || "..."}
-          icon={Users}
-          description="Team members"
-        />
-        <StatsCard
-          title="Locations"
-          value={auditsLoading ? "..." : stats.locations.toString()}
-          icon={FileText}
-          description="Managed locations"
-        />
-        <StatsCard
-          title="This Week"
-          value={auditsLoading ? "..." : stats.recentAudits.toString()}
-          icon={TrendingUp}
-          description="Audits last 7 days"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CompliancePieChart />
-        <RecentAudits />
-      </div>
-
-      <div className="w-full">
-        <ComplianceChart />
-      </div>
-
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="flex items-center gap-4">
@@ -175,6 +120,61 @@ export const ManagerDashboard = () => {
             </Button>
           </Link>
         </Card>
+      </div>
+
+      <DraftAudits />
+
+      {(pendingAudits?.length || 0) > 0 && (
+        <Card className="bg-warning/10 border-warning/30">
+          <div className="p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-warning" />
+            <div className="flex-1">
+              <h3 className="font-semibold">Pending Reviews</h3>
+              <p className="text-sm text-muted-foreground">
+                {pendingAudits?.length} audit{(pendingAudits?.length || 0) !== 1 ? 's' : ''} waiting for review
+              </p>
+            </div>
+            <Link to="/audits?status=pending">
+              <Button variant="outline" size="sm">Review</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title="Total Audits"
+          value={auditsLoading ? "..." : stats.totalAudits.toString()}
+          icon={ClipboardCheck}
+          description="All location audits"
+        />
+        <StatsCard
+          title="Active Checkers"
+          value={checkersCount?.toString() || "..."}
+          icon={Users}
+          description="Team members"
+        />
+        <StatsCard
+          title="Locations"
+          value={auditsLoading ? "..." : stats.locations.toString()}
+          icon={FileText}
+          description="Managed locations"
+        />
+        <StatsCard
+          title="This Week"
+          value={auditsLoading ? "..." : stats.recentAudits.toString()}
+          icon={TrendingUp}
+          description="Audits last 7 days"
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CompliancePieChart />
+        <RecentAudits />
+      </div>
+
+      <div className="w-full">
+        <ComplianceChart />
       </div>
     </div>
   );
