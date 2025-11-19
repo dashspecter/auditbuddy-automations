@@ -391,6 +391,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          audit_id: string | null
           created_at: string
           created_by: string
           expires_at: string | null
@@ -407,6 +408,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          audit_id?: string | null
           created_at?: string
           created_by: string
           expires_at?: string | null
@@ -423,6 +425,7 @@ export type Database = {
           type?: string
         }
         Update: {
+          audit_id?: string | null
           created_at?: string
           created_by?: string
           expires_at?: string | null
@@ -438,7 +441,15 @@ export type Database = {
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "location_audits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
