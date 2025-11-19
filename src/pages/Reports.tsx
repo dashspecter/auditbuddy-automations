@@ -9,6 +9,7 @@ import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText } from "l
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 const reportData = [
   { location: "LBFC Amzei", totalAudits: 24, avgScore: 87, compliant: 20, nonCompliant: 4 },
@@ -16,6 +17,12 @@ const reportData = [
   { location: "LBFC Timpuri Noi", totalAudits: 22, avgScore: 91, compliant: 21, nonCompliant: 1 },
   { location: "LBFC Apaca", totalAudits: 20, avgScore: 85, compliant: 17, nonCompliant: 3 },
 ];
+
+const COLORS = {
+  compliant: 'hsl(var(--success))',
+  nonCompliant: 'hsl(var(--destructive))',
+  locations: ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))']
+};
 
 const Reports = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
@@ -187,6 +194,106 @@ const Reports = () => {
               <p className="text-sm text-muted-foreground mt-1">70 of 84 audits</p>
             </Card>
           </div>
+
+          {/* Overall Compliance Pie Chart */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Overall Compliance Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Compliant', value: 70 },
+                    { name: 'Non-Compliant', value: 14 }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  <Cell fill={COLORS.compliant} />
+                  <Cell fill={COLORS.nonCompliant} />
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Per Location Pie Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reportData.map((location, index) => {
+              const pieData = [
+                { name: 'Compliant', value: location.compliant },
+                { name: 'Non-Compliant', value: location.nonCompliant }
+              ];
+
+              return (
+                <Card key={location.location} className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">{location.location}</h3>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Average Score</span>
+                      <span className="font-bold text-foreground">{location.avgScore}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Audits</span>
+                      <span className="font-medium">{location.totalAudits}</span>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        <Cell fill={COLORS.compliant} />
+                        <Cell fill={COLORS.nonCompliant} />
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Location Comparison Pie Chart */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Total Audits by Location</h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <PieChart>
+                <Pie
+                  data={reportData.map(loc => ({
+                    name: loc.location,
+                    value: loc.totalAudits
+                  }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name.replace('LBFC ', '')}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={120}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {reportData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.locations[index % COLORS.locations.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
         </div>
       </main>
     </div>
