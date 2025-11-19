@@ -16,9 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { Plus, FileText, Trash2, Pencil, Save, X, Megaphone } from "lucide-react";
+import { Plus, FileText, Trash2, Pencil, Save, X, Megaphone, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -185,14 +186,21 @@ export default function NotificationTemplates() {
       <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <FileText className="h-8 w-8" />
-                  Notification Templates
-                </h1>
-                <p className="text-muted-foreground">
-                  Create reusable templates for common announcements
-                </p>
+              <div className="flex items-center gap-4">
+                <Link to="/notifications">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <FileText className="h-8 w-8" />
+                    Notification Templates
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Create reusable templates for common announcements
+                  </p>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" asChild>
