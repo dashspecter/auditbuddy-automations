@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, TrendingUp, ClipboardCheck, Calendar, Target, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
+import { DashboardGreeting } from "./DashboardGreeting";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -77,6 +78,8 @@ export const CheckerDashboard = () => {
         </div>
         <Badge variant="outline" className="text-sm">Checker</Badge>
       </div>
+
+      <DashboardGreeting />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-6">

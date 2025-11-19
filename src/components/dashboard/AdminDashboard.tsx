@@ -8,6 +8,7 @@ import { RecentAudits } from "./RecentAudits";
 import { ComplianceChart } from "./ComplianceChart";
 import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
+import { DashboardGreeting } from "./DashboardGreeting";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,8 @@ export const AdminDashboard = () => {
         </div>
         <Badge variant="default" className="text-sm">Administrator</Badge>
       </div>
+
+      <DashboardGreeting />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
