@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3 } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
@@ -225,7 +225,13 @@ export default function Notifications() {
                 </p>
               </div>
               {roleData?.isAdmin && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" asChild>
+                    <a href="/recurring-notifications">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Recurring
+                    </a>
+                  </Button>
                   <Button variant="outline" asChild>
                     <a href="/notification-analytics">
                       <BarChart3 className="h-4 w-4 mr-2" />
