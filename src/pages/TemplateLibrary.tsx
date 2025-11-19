@@ -6,7 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Eye, Search } from "lucide-react";
+import { ArrowLeft, Copy, Eye, Search, Rocket, Edit, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useDeleteTemplate } from "@/hooks/useTemplates";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +38,7 @@ interface Template {
   description?: string;
   template_type: string;
   is_global: boolean;
+  created_by: string;
 }
 
 interface TemplateWithDetails extends Template {
@@ -42,9 +62,14 @@ export default function TemplateLibrary() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: roleData } = useUserRole();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<"all" | "location" | "staff">("all");
   const [previewTemplate, setPreviewTemplate] = useState<TemplateWithDetails | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  
+  const deleteTemplateMutation = useDeleteTemplate();
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['template_library'],
@@ -52,7 +77,6 @@ export default function TemplateLibrary() {
       const { data, error } = await supabase
         .from('audit_templates')
         .select('*')
-        .eq('is_global', true)
         .eq('is_active', true)
         .order('name');
 
@@ -202,6 +226,37 @@ export default function TemplateLibrary() {
     }
   };
 
+  const handleQuickUse = (templateId: string) => {
+    navigate(`/location-audit?template=${templateId}`);
+  };
+
+  const handleEdit = (templateId: string) => {
+    navigate(`/admin/template-editor/${templateId}`);
+  };
+
+  const handleDeleteClick = (template: Template) => {
+    setTemplateToDelete(template);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return;
+
+    try {
+      await deleteTemplateMutation.mutateAsync(templateToDelete.id);
+      toast.success('Template deleted successfully');
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Failed to delete template');
+    }
+  };
+
+  const canEditTemplate = (template: Template) => {
+    return roleData?.isAdmin || template.created_by === user?.id;
+  };
+
   const filteredTemplates = templates?.filter((template) => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          template.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -272,9 +327,16 @@ export default function TemplateLibrary() {
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold">{template.name}</h3>
-                  <Badge variant={template.template_type === 'location' ? 'default' : 'secondary'}>
-                    {template.template_type}
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Badge variant={template.template_type === 'location' ? 'default' : 'secondary'}>
+                      {template.template_type}
+                    </Badge>
+                    {template.is_global && (
+                      <Badge variant="outline" className="bg-primary/10 border-primary/30">
+                        Global
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 {template.description && (
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
@@ -285,23 +347,56 @@ export default function TemplateLibrary() {
               
               <div className="flex gap-2 mt-4">
                 <Button
+                  size="sm"
+                  onClick={() => handleQuickUse(template.id)}
+                  className="flex-1 gap-2"
+                >
+                  <Rocket className="h-4 w-4" />
+                  Quick Use
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePreview(template.id)}
-                  className="flex-1 gap-2"
+                  className="gap-2"
                 >
                   <Eye className="h-4 w-4" />
-                  Preview
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => duplicateTemplateMutation.mutate(template.id)}
-                  disabled={duplicateTemplateMutation.isPending}
-                  className="flex-1 gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  Duplicate
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => duplicateTemplateMutation.mutate(template.id)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    {canEditTemplate(template) && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleEdit(template.id)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {!template.is_global && (
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(template)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </Card>
           ))}
@@ -321,6 +416,26 @@ export default function TemplateLibrary() {
             sections={previewTemplate.sections}
           />
         )}
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Template</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{templateToDelete?.name}"? This action cannot be undone and will remove all sections and fields associated with this template.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );

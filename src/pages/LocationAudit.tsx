@@ -46,6 +46,7 @@ const LocationAudit = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
+  const templateIdFromUrl = searchParams.get('template');
   
   const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -66,6 +67,9 @@ const LocationAudit = () => {
     loadTemplates();
     if (draftId) {
       loadDraft(draftId);
+    } else if (templateIdFromUrl) {
+      // Auto-select template from URL
+      setSelectedTemplateId(templateIdFromUrl);
     }
   }, []);
 
