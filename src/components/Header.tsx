@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -403,6 +404,9 @@ export const Header = () => {
             </SheetContent>
           </Sheet>
 
+          {/* Notifications */}
+          <NotificationDropdown />
+
           {/* Desktop User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -428,12 +432,20 @@ export const Header = () => {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {(roleData?.isAdmin || roleData?.isManager) && (
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    User Management
-                  </Link>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      User Management
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
+                      <Megaphone className="mr-2 h-4 w-4" />
+                      Manage Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="cursor-pointer min-h-[44px] flex items-center">
