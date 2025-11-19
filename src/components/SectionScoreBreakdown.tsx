@@ -10,6 +10,10 @@ interface AuditField {
   id: string;
   name: string;
   field_type: string;
+  options?: {
+    max?: number;
+    [key: string]: any;
+  };
 }
 
 interface AuditSection {
@@ -30,12 +34,14 @@ interface SectionScore {
   score: number;
   totalRatings: number;
   ratingCount: number;
+  maxPossibleScore: number;
   status: 'excellent' | 'good' | 'needs-improvement' | 'critical';
   fields: Array<{
     id: string;
     name: string;
     value: any;
     type: string;
+    maxValue?: number;
   }>;
 }
 
@@ -51,15 +57,18 @@ export const SectionScoreBreakdown = ({
 
     sections.forEach(section => {
       let totalRatings = 0;
+      let maxPossibleScore = 0;
       let ratingCount = 0;
       const fieldDetails: SectionScore['fields'] = [];
 
       section.fields.forEach(field => {
         const value = customData[field.id];
+        const maxValue = field.options?.max || 5;
         
         if (field.field_type === 'rating') {
           if (typeof value === 'number') {
             totalRatings += value;
+            maxPossibleScore += maxValue;
             ratingCount++;
           }
         }
@@ -69,12 +78,13 @@ export const SectionScoreBreakdown = ({
           id: field.id,
           name: field.name,
           value: value,
-          type: field.field_type
+          type: field.field_type,
+          maxValue: field.field_type === 'rating' ? maxValue : undefined
         });
       });
 
       if (ratingCount > 0) {
-        const sectionScore = Math.round((totalRatings / (ratingCount * 5)) * 100);
+        const sectionScore = Math.round((totalRatings / maxPossibleScore) * 100);
         let status: SectionScore['status'];
         
         if (sectionScore >= 90) status = 'excellent';
@@ -87,6 +97,7 @@ export const SectionScoreBreakdown = ({
           score: sectionScore,
           totalRatings,
           ratingCount,
+          maxPossibleScore,
           status,
           fields: fieldDetails
         });
@@ -138,12 +149,12 @@ export const SectionScoreBreakdown = ({
     return 'text-destructive';
   };
 
-  const formatFieldValue = (value: any, type: string) => {
+  const formatFieldValue = (value: any, type: string, maxValue?: number) => {
     if (value === null || value === undefined) return 'Not answered';
     
     switch (type) {
       case 'rating':
-        return `${value}/5`;
+        return `${value}/${maxValue || 5}`;
       case 'yes_no':
         return value ? 'Yes' : 'No';
       case 'date':
@@ -232,7 +243,7 @@ export const SectionScoreBreakdown = ({
                               ? getRatingColor(field.value)
                               : 'text-foreground'
                           }`}>
-                            {formatFieldValue(field.value, field.type)}
+                            {formatFieldValue(field.value, field.type, field.maxValue)}
                           </span>
                         </div>
                       ))}
