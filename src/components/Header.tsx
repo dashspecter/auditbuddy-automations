@@ -102,9 +102,8 @@ export const Header = () => {
               Reports
             </Link>
             <Button 
-              variant="outline" 
               size="sm" 
-              className="border-header-foreground/20 hover:bg-primary/10 gap-2"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
               onClick={handleExportData}
             >
               <Download className="h-4 w-4" />
