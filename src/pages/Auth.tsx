@@ -41,7 +41,7 @@ const Auth = () => {
     try {
       const validated = authSchema.parse({ email, password });
       
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: validated.email,
         password: validated.password,
       });
@@ -53,6 +53,16 @@ const Auth = () => {
           setError(error.message);
         }
         return;
+      }
+
+      // Log the login activity
+      if (data.user) {
+        await supabase.rpc('log_activity', {
+          p_user_id: data.user.id,
+          p_activity_type: 'login',
+          p_description: `Logged in to Dashspect`,
+          p_metadata: {}
+        });
       }
 
       toast({

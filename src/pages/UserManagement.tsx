@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Search, Shield, User, UserPlus, Info } from "lucide-react";
+import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -41,6 +41,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { UserActivityDialog } from "@/components/UserActivityDialog";
 
 interface UserProfile {
   id: string;
@@ -60,6 +61,8 @@ export default function UserManagement() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteRole, setInviteRole] = useState<'admin' | 'checker'>('checker');
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; email: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -300,6 +303,7 @@ export default function UserManagement() {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Joined</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -354,6 +358,19 @@ export default function UserManagement() {
                       <TableCell>
                         {format(new Date(user.created_at), "MMM d, yyyy")}
                       </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser({ id: user.id, email: user.email });
+                            setActivityDialogOpen(true);
+                          }}
+                        >
+                          <Activity className="h-4 w-4 mr-2" />
+                          View Activity
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -365,6 +382,15 @@ export default function UserManagement() {
                 {searchQuery ? "No users found matching your search" : "No users found"}
               </p>
             </Card>
+          )}
+          
+          {selectedUser && (
+            <UserActivityDialog
+              userId={selectedUser.id}
+              userEmail={selectedUser.email}
+              open={activityDialogOpen}
+              onOpenChange={setActivityDialogOpen}
+            />
           )}
         </div>
       </div>
