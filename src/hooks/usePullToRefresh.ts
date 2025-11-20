@@ -22,32 +22,45 @@ export const usePullToRefresh = ({
 
     const container = containerRef.current;
     let touchStartY = 0;
+    let isAtTopOnStart = false;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop === 0) {
+      // Only activate if we're at the very top
+      isAtTopOnStart = container.scrollTop === 0;
+      if (isAtTopOnStart) {
         touchStartY = e.touches[0].clientY;
         startY.current = touchStartY;
-        setIsPulling(true);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || container.scrollTop > 0) return;
+      // Immediately bail if we didn't start at top or if we're no longer at top
+      if (!isAtTopOnStart || container.scrollTop > 0) {
+        setIsPulling(false);
+        setPullDistance(0);
+        return;
+      }
 
       const touchY = e.touches[0].clientY;
       const distance = touchY - startY.current;
 
+      // Only handle downward pulls (positive distance)
       if (distance > 0 && distance < threshold * 2) {
+        setIsPulling(true);
         setPullDistance(distance);
         // Prevent default scroll when pulling down
         if (distance > 10) {
           e.preventDefault();
         }
+      } else if (distance <= 0) {
+        // User is scrolling up, reset
+        setIsPulling(false);
+        setPullDistance(0);
       }
     };
 
     const handleTouchEnd = async () => {
-      if (pullDistance >= threshold && !isRefreshing) {
+      if (pullDistance >= threshold && !isRefreshing && isAtTopOnStart) {
         setIsRefreshing(true);
         try {
           await onRefresh();
@@ -57,6 +70,7 @@ export const usePullToRefresh = ({
       }
       setIsPulling(false);
       setPullDistance(0);
+      isAtTopOnStart = false;
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -68,7 +82,7 @@ export const usePullToRefresh = ({
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isPulling, pullDistance, threshold, onRefresh, isRefreshing, disabled]);
+  }, [pullDistance, threshold, onRefresh, isRefreshing, disabled]);
 
   return {
     containerRef,
