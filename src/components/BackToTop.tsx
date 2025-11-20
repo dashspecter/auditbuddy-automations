@@ -1,18 +1,36 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowUp } from "lucide-react";
 import { Button } from "./ui/button";
 
 export const BackToTop = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const lastScrollY = useRef(0);
+  const isAtTop = useRef(true);
 
   useEffect(() => {
     const toggleVisibility = () => {
-      // Show button when page is scrolled down 200px
-      if (window.scrollY > 200) {
+      const currentScrollY = window.scrollY;
+
+      // If we're at the top, mark it and hide button
+      if (currentScrollY <= 10) {
+        isAtTop.current = true;
+        setIsVisible(false);
+      } 
+      // If we've scrolled down from top past 200px, show button
+      else if (currentScrollY > 200 && isAtTop.current) {
+        isAtTop.current = false;
         setIsVisible(true);
-      } else {
+      }
+      // Keep button visible if we're past 200px and not at top
+      else if (currentScrollY > 200 && !isAtTop.current) {
+        setIsVisible(true);
+      }
+      // Hide button if we're below threshold
+      else if (currentScrollY <= 200 && !isAtTop.current) {
         setIsVisible(false);
       }
+
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", toggleVisibility, { passive: true });
@@ -27,6 +45,9 @@ export const BackToTop = () => {
       top: 0,
       behavior: "smooth",
     });
+    // Immediately hide button after clicking
+    setIsVisible(false);
+    isAtTop.current = true;
   };
 
   if (!isVisible) return null;
