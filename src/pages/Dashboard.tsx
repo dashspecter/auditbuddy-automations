@@ -14,6 +14,7 @@ import { useLocationAudits } from "@/hooks/useAudits";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { BackToTop } from "@/components/BackToTop";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -73,6 +74,8 @@ const Dashboard = () => {
           />
         </main>
       </PullToRefresh>
+      
+      <BackToTop />
     </div>
   );
 };
