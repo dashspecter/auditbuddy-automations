@@ -23,6 +23,7 @@ import {
   useUpdateField,
   useDeleteField,
   useSectionFields,
+  useUpdateTemplate,
 } from '@/hooks/useTemplates';
 import {
   Dialog,
@@ -45,6 +46,7 @@ const TemplateEditor = () => {
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
+  const updateTemplate = useUpdateTemplate();
   
   const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any>(null);
@@ -117,6 +119,22 @@ const TemplateEditor = () => {
     setEditingSection(null);
     setSectionForm({ name: '', description: '' });
     setIsSectionDialogOpen(true);
+  };
+
+  const handleSaveToLibrary = async () => {
+    if (!id || !template) return;
+    
+    try {
+      await updateTemplate.mutateAsync({
+        id,
+        is_active: true,
+      });
+      toast.success('Template saved to library successfully!');
+      navigate('/template-library');
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast.error('Failed to save template to library');
+    }
   };
 
   if (templateLoading || sectionsLoading) {
@@ -198,6 +216,26 @@ const TemplateEditor = () => {
                 ))}
               </div>
             )}
+          </Card>
+
+          {/* Save to Library Button */}
+          <Card className="p-6 bg-primary/5 border-primary/20">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">Save Template to Library</h3>
+                <p className="text-sm text-muted-foreground">
+                  Make this template available for creating audits
+                </p>
+              </div>
+              <Button 
+                onClick={handleSaveToLibrary}
+                disabled={!sections || sections.length === 0 || updateTemplate.isPending}
+                className="gap-2 min-h-[48px] w-full sm:w-auto"
+                size="lg"
+              >
+                {updateTemplate.isPending ? 'Saving...' : 'Save to Library'}
+              </Button>
+            </div>
           </Card>
         </div>
       </main>
