@@ -30,6 +30,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import CameraDemo from "./pages/CameraDemo";
+import PhotoGalleryPage from "./pages/PhotoGalleryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
             <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
             <Route path="/camera" element={<ProtectedRoute><CameraDemo /></ProtectedRoute>} />
+            <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Eye, FileEdit } from "lucide-react";
+import { ArrowLeft, Save, Eye, FileEdit, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
 import { ScorePreview } from "@/components/ScorePreview";
+import { AuditPhotoCapture } from "@/components/AuditPhotoCapture";
+import { PhotoGallery } from "@/components/PhotoGallery";
 
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
@@ -579,15 +582,48 @@ const LocationAudit = () => {
                   </Card>
                 ))}
 
-                {/* Notes */}
+                {/* Notes and Photos */}
                 <Card className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Additional Notes</h2>
-                  <Textarea
-                    placeholder="Add any additional observations or notes..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="min-h-[100px]"
-                  />
+                  <Tabs defaultValue="notes" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="notes">Notes</TabsTrigger>
+                      <TabsTrigger value="photos">
+                        <Camera className="h-4 w-4 mr-2" />
+                        Photos
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="notes" className="space-y-4">
+                      <div>
+                        <h2 className="text-xl font-semibold mb-4">Additional Notes</h2>
+                        <Textarea
+                          placeholder="Add any additional observations or notes..."
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="photos" className="space-y-4">
+                      {currentDraftId ? (
+                        <>
+                          <AuditPhotoCapture
+                            auditId={currentDraftId}
+                            onPhotoUploaded={() => {
+                              toast.success("Photo added to audit");
+                            }}
+                          />
+                          <div className="mt-6">
+                            <h3 className="text-lg font-semibold mb-4">Attached Photos</h3>
+                            <PhotoGallery auditId={currentDraftId} showDeleteButton={true} />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Save as draft first to attach photos
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </Card>
               </div>
 

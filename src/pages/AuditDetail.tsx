@@ -2,7 +2,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight, Edit, History } from "lucide-react";
+import { CheckCircle2, AlertCircle, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight, Edit, History, Camera } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { generateAuditPDF } from "@/lib/pdfExport";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/UserAvatar";
 import { EditAuditDialog } from "@/components/EditAuditDialog";
 import { AuditRevisionHistory } from "@/components/AuditRevisionHistory";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -451,11 +452,15 @@ const AuditDetail = () => {
           </Card>
 
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details">Audit Details</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="photos">
+                <Camera className="h-4 w-4 mr-2" />
+                Photos
+              </TabsTrigger>
               <TabsTrigger value="history">
                 <History className="h-4 w-4 mr-2" />
-                Revision History
+                History
               </TabsTrigger>
             </TabsList>
             
@@ -474,6 +479,10 @@ const AuditDetail = () => {
                   <p className="text-muted-foreground">{audit.notes}</p>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="photos">
+              <PhotoGallery auditId={audit.id} showDeleteButton={false} />
             </TabsContent>
 
             <TabsContent value="history">

@@ -88,6 +88,47 @@ export type Database = {
           },
         ]
       }
+      audit_photos: {
+        Row: {
+          audit_id: string
+          caption: string | null
+          created_at: string
+          file_size: number | null
+          id: string
+          photo_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audit_id: string
+          caption?: string | null
+          created_at?: string
+          file_size?: number | null
+          id?: string
+          photo_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audit_id?: string
+          caption?: string | null
+          created_at?: string
+          file_size?: number | null
+          id?: string
+          photo_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_photos_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "location_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_revisions: {
         Row: {
           audit_id: string
