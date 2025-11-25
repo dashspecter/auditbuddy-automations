@@ -1,12 +1,42 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardCheck, Users, TrendingUp, Shield, FileText, Bell, Mail, Phone } from "lucide-react";
+import { ClipboardCheck, Users, TrendingUp, Shield, FileText, Bell, Mail, Phone, Plus, Target, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
+import { useLocationAudits } from "@/hooks/useAudits";
+import { useMemo } from "react";
+import { StatsCard } from "@/components/dashboard/StatsCard";
 
 const Landing = () => {
   const { user } = useAuth();
+  const { data: allAudits, isLoading: auditsLoading } = useLocationAudits();
+
+  // Calculate stats for authenticated users
+  const stats = useMemo(() => {
+    if (!allAudits || !user) return { 
+      totalAudits: 0, 
+      completedAudits: 0, 
+      avgScore: 0,
+      thisMonth: 0 
+    };
+
+    const myAudits = allAudits.filter(audit => audit.user_id === user.id);
+    const totalAudits = myAudits.length;
+    const completedAudits = myAudits.filter(a => a.status === 'compliant').length;
+    const totalScore = myAudits.reduce((sum, a) => sum + (a.overall_score || 0), 0);
+    const avgScore = totalAudits > 0 ? Math.round(totalScore / totalAudits) : 0;
+    
+    // Audits from current month
+    const now = new Date();
+    const thisMonth = myAudits.filter(a => {
+      const auditDate = new Date(a.created_at);
+      return auditDate.getMonth() === now.getMonth() && 
+             auditDate.getFullYear() === now.getFullYear();
+    }).length;
+
+    return { totalAudits, completedAudits, avgScore, thisMonth };
+  }, [allAudits, user]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,25 +63,141 @@ const Landing = () => {
       <section className="container mx-auto px-4 px-safe py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-            Restaurant Compliance Made Simple
+            {user ? `Welcome Back!` : `Restaurant Compliance Made Simple`}
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Streamline your health inspections, audit processes, and compliance management with Dashspect's intuitive platform.
+            {user 
+              ? `Track your audit performance and manage compliance with ease.`
+              : `Streamline your health inspections, audit processes, and compliance management with Dashspect's intuitive platform.`
+            }
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#contact">
-              <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                Get Started
-              </Button>
-            </a>
-            <a href="#features">
-              <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
-                Learn More
-              </Button>
-            </a>
+            {user ? (
+              <>
+                <Link to="/location-audit">
+                  <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
+                    <Plus className="h-5 w-5 mr-2" />
+                    New Audit
+                  </Button>
+                </Link>
+                <Link to="/dashboard">
+                  <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
+                    View Dashboard
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <a href="#contact">
+                  <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
+                    Get Started
+                  </Button>
+                </a>
+                <a href="#features">
+                  <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
+                    Learn More
+                  </Button>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </section>
+
+      {/* Quick Stats Section - Only for authenticated users */}
+      {user && (
+        <section className="bg-muted/30 py-12 md:py-16">
+          <div className="container mx-auto px-4 px-safe">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                Your Performance at a Glance
+              </h2>
+              <p className="text-muted-foreground">
+                Quick overview of your audit activity
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+              <StatsCard
+                title="Total Audits"
+                value={auditsLoading ? "..." : stats.totalAudits.toString()}
+                icon={ClipboardCheck}
+                description="All time"
+              />
+              <StatsCard
+                title="Completed"
+                value={auditsLoading ? "..." : stats.completedAudits.toString()}
+                icon={Shield}
+                description="Finished audits"
+              />
+              <StatsCard
+                title="Average Score"
+                value={auditsLoading ? "..." : `${stats.avgScore}%`}
+                icon={Target}
+                description="Performance"
+              />
+              <StatsCard
+                title="This Month"
+                value={auditsLoading ? "..." : stats.thisMonth.toString()}
+                icon={Calendar}
+                description="Audits completed"
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
+                    <ClipboardCheck className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Quick Actions</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Jump right into your workflow
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link to="/location-audit">
+                      <Button className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Audit
+                      </Button>
+                    </Link>
+                    <Link to="/audits">
+                      <Button variant="outline" className="w-full">
+                        View All Audits
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Latest Updates</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Stay on top of your compliance
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link to="/reports">
+                      <Button variant="outline" className="w-full">
+                        View Reports
+                      </Button>
+                    </Link>
+                    <Link to="/notifications">
+                      <Button variant="outline" className="w-full">
+                        <Bell className="h-4 w-4 mr-2" />
+                        Check Notifications
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section id="features" className="bg-muted/30 py-16 md:py-24">
