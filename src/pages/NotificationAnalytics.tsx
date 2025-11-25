@@ -89,7 +89,7 @@ export default function NotificationAnalytics() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <div className="flex items-center gap-4 mb-6">
             <Link to="/notifications">
               <Button variant="ghost" size="icon">
@@ -110,7 +110,7 @@ export default function NotificationAnalytics() {
     <RoleGuard requireManager fallbackMessage="You don't have permission to view notification analytics.">
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex items-center gap-4 mb-6">
           <Link to="/notifications">
             <Button variant="ghost" size="icon">

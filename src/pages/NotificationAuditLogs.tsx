@@ -67,7 +67,7 @@ export default function NotificationAuditLogs() {
     <RoleGuard requireManager fallbackMessage="You don't have permission to view notification audit logs.">
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Link to="/notifications">

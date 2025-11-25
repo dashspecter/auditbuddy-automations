@@ -81,7 +81,7 @@ const ResetPassword = () => {
 
   if (!isValidSession) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
         <Card className="w-full max-w-md p-8 text-center">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
           <p className="text-muted-foreground">Validating reset link...</p>
@@ -91,7 +91,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
       <Card className="w-full max-w-md p-8">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="bg-primary rounded-full p-3">

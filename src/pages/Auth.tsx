@@ -128,7 +128,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
       <Card className="w-full max-w-md p-8">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="bg-primary rounded-full p-3">
@@ -173,7 +173,7 @@ const Auth = () => {
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full min-h-[48px]" disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
               <div className="text-center pt-2">
@@ -228,7 +228,7 @@ const Auth = () => {
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full min-h-[48px]" disabled={loading}>
                 {loading ? 'Creating account...' : 'Sign Up'}
               </Button>
             </form>

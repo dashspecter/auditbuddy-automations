@@ -167,7 +167,7 @@ export default function NotificationTemplates() {
     <RoleGuard requireManager fallbackMessage="You don't have permission to manage notification templates.">
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 px-safe py-8 pb-safe">
             <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">

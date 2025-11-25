@@ -204,7 +204,7 @@ const AuditDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
@@ -220,7 +220,7 @@ const AuditDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <Card className="p-8 text-center">
             <h2 className="text-2xl font-bold text-foreground mb-2">Audit Not Found</h2>
             <p className="text-muted-foreground mb-4">The requested audit could not be found.</p>
@@ -330,7 +330,7 @@ const AuditDetail = () => {
         )}
 
         <main 
-          className="container mx-auto px-4 py-8 transition-transform duration-150 ease-out"
+          className="container mx-auto px-4 px-safe py-8 pb-safe transition-transform duration-150 ease-out"
           style={{
             transform: swipeDirection 
               ? `translateX(${swipeDirection === 'right' ? swipeProgress * 30 : -swipeProgress * 30}px)`

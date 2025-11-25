@@ -56,7 +56,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
       <Card className="w-full max-w-md p-8">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="bg-primary rounded-full p-3">

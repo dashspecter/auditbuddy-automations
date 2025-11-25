@@ -123,7 +123,7 @@ const TemplateEditor = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <div className="text-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
             <p className="text-muted-foreground">Loading template...</p>
@@ -137,7 +137,7 @@ const TemplateEditor = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <Card className="p-8 text-center">
             <h2 className="text-2xl font-bold text-foreground mb-2">Template Not Found</h2>
             <p className="text-muted-foreground mb-4">The requested template could not be found.</p>
@@ -152,7 +152,7 @@ const TemplateEditor = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => navigate('/admin/templates')}>
