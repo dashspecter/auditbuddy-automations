@@ -23,44 +23,58 @@ export const usePullToRefresh = ({
     const container = containerRef.current;
     let touchStartY = 0;
     let isAtTopOnStart = false;
+    const ACTIVATION_THRESHOLD = 30; // Minimum distance before activating pull
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Only activate if we're at the very top
-      isAtTopOnStart = container.scrollTop === 0;
-      if (isAtTopOnStart) {
+      // Only track if we're at the very top
+      const isAtTop = container.scrollTop <= 1; // Allow 1px tolerance
+      if (isAtTop) {
         touchStartY = e.touches[0].clientY;
         startY.current = touchStartY;
+        isAtTopOnStart = true;
+      } else {
+        isAtTopOnStart = false;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Immediately bail if we didn't start at top or if we're no longer at top
-      if (!isAtTopOnStart || container.scrollTop > 0) {
+      // Must have started at top
+      if (!isAtTopOnStart) {
+        return;
+      }
+
+      // Double-check we're still at top
+      if (container.scrollTop > 1) {
         setIsPulling(false);
         setPullDistance(0);
+        isAtTopOnStart = false;
         return;
       }
 
       const touchY = e.touches[0].clientY;
       const distance = touchY - startY.current;
 
-      // Only handle downward pulls (positive distance)
-      if (distance > 0 && distance < threshold * 2) {
+      // Only handle downward pulls (positive distance) and must exceed activation threshold
+      if (distance > ACTIVATION_THRESHOLD && distance < threshold * 2) {
         setIsPulling(true);
-        setPullDistance(distance);
-        // Prevent default scroll when pulling down
-        if (distance > 10) {
-          e.preventDefault();
-        }
+        setPullDistance(distance - ACTIVATION_THRESHOLD); // Offset by activation threshold
+        // Prevent default scroll when actively pulling
+        e.preventDefault();
       } else if (distance <= 0) {
-        // User is scrolling up, reset
+        // User is scrolling up, reset immediately
+        setIsPulling(false);
+        setPullDistance(0);
+        isAtTopOnStart = false;
+      } else if (distance <= ACTIVATION_THRESHOLD) {
+        // Still below activation threshold, don't show indicator yet
         setIsPulling(false);
         setPullDistance(0);
       }
     };
 
     const handleTouchEnd = async () => {
-      if (pullDistance >= threshold && !isRefreshing && isAtTopOnStart) {
+      // Only trigger if we have enough pull distance, are still at top, and not already refreshing
+      if (pullDistance >= (threshold - ACTIVATION_THRESHOLD) && !isRefreshing && isAtTopOnStart && container.scrollTop <= 1) {
         setIsRefreshing(true);
         try {
           await onRefresh();

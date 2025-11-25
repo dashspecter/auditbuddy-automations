@@ -23,7 +23,9 @@ export const PullToRefresh = ({
       disabled,
     });
 
-  const progress = Math.min((pullDistance / threshold) * 100, 100);
+  // Adjust threshold for display since the hook subtracts ACTIVATION_THRESHOLD
+  const adjustedThreshold = threshold - 30;
+  const progress = Math.min((pullDistance / adjustedThreshold) * 100, 100);
 
   return (
     <div ref={containerRef} className="relative h-full overflow-auto">
@@ -34,8 +36,8 @@ export const PullToRefresh = ({
           isPulling || isRefreshing ? "opacity-100" : "opacity-0"
         )}
         style={{
-          height: `${Math.min(pullDistance, threshold)}px`,
-          transform: isRefreshing ? `translateY(${threshold}px)` : `translateY(${pullDistance}px)`,
+          height: `${Math.min(pullDistance, adjustedThreshold)}px`,
+          transform: isRefreshing ? `translateY(${adjustedThreshold}px)` : `translateY(${pullDistance}px)`,
         }}
       >
         <div className="flex flex-col items-center gap-2 p-4 bg-background/95 backdrop-blur-sm rounded-b-lg shadow-lg">
@@ -72,7 +74,7 @@ export const PullToRefresh = ({
       <div
         className="transition-transform duration-200"
         style={{
-          transform: isRefreshing ? `translateY(${threshold}px)` : 'translateY(0)',
+          transform: isRefreshing ? `translateY(${adjustedThreshold}px)` : 'translateY(0)',
         }}
       >
         {children}
