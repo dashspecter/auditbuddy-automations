@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 const TestManagement = () => {
   const [tests, setTests] = useState<any[]>([]);
@@ -20,6 +23,11 @@ const TestManagement = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [submissionDetails, setSubmissionDetails] = useState<any>(null);
   const [showAnswerReview, setShowAnswerReview] = useState(false);
+  const [previewTest, setPreviewTest] = useState<any>(null);
+  const [previewQuestions, setPreviewQuestions] = useState<any[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewCurrentQuestion, setPreviewCurrentQuestion] = useState(0);
+  const [previewAnswers, setPreviewAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadTests();
@@ -118,6 +126,35 @@ const TestManagement = () => {
     return `${window.location.origin}/take-test/${testId}`;
   };
 
+  const handlePreview = async (test: any) => {
+    try {
+      const { data: questions, error } = await supabase
+        .from("test_questions")
+        .select("*")
+        .eq("test_id", test.id)
+        .order("display_order");
+
+      if (error) throw error;
+
+      setPreviewTest(test);
+      setPreviewQuestions(questions || []);
+      setPreviewCurrentQuestion(0);
+      setPreviewAnswers({});
+      setShowPreview(true);
+    } catch (error) {
+      console.error("Error loading test preview:", error);
+      toast.error("Failed to load test preview");
+    }
+  };
+
+  const handlePreviewClose = () => {
+    setShowPreview(false);
+    setPreviewTest(null);
+    setPreviewQuestions([]);
+    setPreviewCurrentQuestion(0);
+    setPreviewAnswers({});
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -188,6 +225,14 @@ const TestManagement = () => {
                     )}
                   </div>
                   <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePreview(test)}
+                      title="Preview test"
+                    >
+                      <PlayCircle className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="icon"
@@ -436,6 +481,142 @@ const TestManagement = () => {
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Test Preview Dialog */}
+        <Dialog open={showPreview} onOpenChange={handlePreviewClose}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Test Preview: {previewTest?.title}</DialogTitle>
+            </DialogHeader>
+            
+            {previewQuestions.length > 0 && (
+              <div className="space-y-6">
+                {/* Test Info */}
+                <Card className="p-4 bg-muted">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Questions</p>
+                      <p className="font-semibold">{previewQuestions.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Time Limit</p>
+                      <p className="font-semibold">{previewTest.time_limit_minutes} min</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Passing Score</p>
+                      <p className="font-semibold">{previewTest.passing_score}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total Points</p>
+                      <p className="font-semibold">
+                        {previewQuestions.reduce((sum, q) => sum + q.points, 0)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Preview Mode</span>
+                    <span className="font-medium">
+                      Question {previewCurrentQuestion + 1} of {previewQuestions.length}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={((previewCurrentQuestion + 1) / previewQuestions.length) * 100} 
+                    className="h-2"
+                  />
+                </div>
+
+                {/* Current Question */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-semibold mb-6">
+                    {previewQuestions[previewCurrentQuestion].question}
+                  </h3>
+
+                  <RadioGroup
+                    value={previewAnswers[previewQuestions[previewCurrentQuestion].id]}
+                    onValueChange={(value) => 
+                      setPreviewAnswers({
+                        ...previewAnswers, 
+                        [previewQuestions[previewCurrentQuestion].id]: value
+                      })
+                    }
+                  >
+                    {previewQuestions[previewCurrentQuestion].options.map((opt: string, index: number) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center space-x-3 p-3 rounded hover:bg-muted"
+                      >
+                        <RadioGroupItem
+                          value={String.fromCharCode(65 + index)}
+                          id={`preview-option-${index}`}
+                        />
+                        <Label 
+                          htmlFor={`preview-option-${index}`} 
+                          className="flex-1 cursor-pointer"
+                        >
+                          <span className="font-medium">
+                            {String.fromCharCode(65 + index)}.
+                          </span> {opt}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+
+                  <div className="flex gap-3 mt-6">
+                    {previewCurrentQuestion > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setPreviewCurrentQuestion(previewCurrentQuestion - 1)}
+                      >
+                        Previous
+                      </Button>
+                    )}
+                    {previewCurrentQuestion < previewQuestions.length - 1 && (
+                      <Button
+                        onClick={() => setPreviewCurrentQuestion(previewCurrentQuestion + 1)}
+                        className="flex-1"
+                      >
+                        Next Question
+                      </Button>
+                    )}
+                    {previewCurrentQuestion === previewQuestions.length - 1 && (
+                      <Button
+                        variant="secondary"
+                        onClick={handlePreviewClose}
+                        className="flex-1"
+                      >
+                        Close Preview
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Answer Summary */}
+                <Card className="p-4 bg-muted">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Preview Progress: {Object.keys(previewAnswers).length} / {previewQuestions.length} questions viewed
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {previewQuestions.map((q, index) => (
+                      <Button
+                        key={q.id}
+                        variant={index === previewCurrentQuestion ? "default" : "outline"}
+                        size="sm"
+                        className="w-10 h-10"
+                        onClick={() => setPreviewCurrentQuestion(index)}
+                      >
+                        {index + 1}
+                      </Button>
+                    ))}
+                  </div>
+                </Card>
               </div>
             )}
           </DialogContent>
