@@ -31,8 +31,7 @@ const TestManagement = () => {
       .from("tests")
       .select(`
         *,
-        document:documents(title),
-        _count:test_submissions(count)
+        document:documents(title)
       `)
       .order("created_at", { ascending: false });
 
@@ -42,7 +41,19 @@ const TestManagement = () => {
       return;
     }
 
-    setTests(data || []);
+    // Get submission counts for each test
+    const testsWithCounts = await Promise.all(
+      (data || []).map(async (test) => {
+        const { count } = await supabase
+          .from("test_submissions")
+          .select("*", { count: "exact", head: true })
+          .eq("test_id", test.id);
+        
+        return { ...test, submissionCount: count || 0 };
+      })
+    );
+
+    setTests(testsWithCounts);
   };
 
   const loadSubmissions = async (testId: string) => {
@@ -164,7 +175,7 @@ const TestManagement = () => {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Submissions</p>
-                        <p className="font-medium">{test._count?.count || 0}</p>
+                        <p className="font-medium">{test.submissionCount || 0}</p>
                       </div>
                     </div>
                     {test.scheduled_for && (
