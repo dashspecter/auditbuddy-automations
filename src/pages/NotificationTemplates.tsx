@@ -188,10 +188,10 @@ export default function NotificationTemplates() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" asChild>
-                  <a href="/notifications">
+                  <Link to="/notifications">
                     <Megaphone className="h-4 w-4 mr-2" />
                     Send Notification
-                  </a>
+                  </Link>
                 </Button>
                 {roleData?.isAdmin && (
                   <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
