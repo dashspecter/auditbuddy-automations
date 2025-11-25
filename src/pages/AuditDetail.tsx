@@ -481,18 +481,18 @@ const AuditDetail = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 pb-safe mb-8">
             <Link to="/audits" className="flex-1">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full min-h-[48px]">
                 Back to Audits
               </Button>
             </Link>
-            <Button className="flex-1 gap-2" onClick={handleDownloadPDF}>
+            <Button className="flex-1 gap-2 min-h-[48px]" onClick={handleDownloadPDF}>
               <Download className="h-4 w-4" />
               Download Report
             </Button>
             <Button 
-              className="flex-1 gap-2" 
+              className="flex-1 gap-2 min-h-[48px]" 
               variant="outline"
               onClick={() => setEditDialogOpen(true)}
             >
