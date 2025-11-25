@@ -739,7 +739,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          document_id: string
+          document_id: string | null
           expires_at: string | null
           id: string
           is_active: boolean
@@ -753,7 +753,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          document_id: string
+          document_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -767,7 +767,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          document_id?: string
+          document_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
