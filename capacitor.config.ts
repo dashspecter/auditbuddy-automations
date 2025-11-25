@@ -21,8 +21,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: "light",
-      backgroundColor: "#1a1f2e",
-      overlaysWebView: true,
+      overlaysWebView: false,
     },
     Camera: {
       presentationStyle: "fullscreen",

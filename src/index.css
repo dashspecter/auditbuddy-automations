@@ -119,13 +119,19 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  #root {
+    min-height: 100vh;
   }
 }
 
 @layer utilities {
   /* Safe area support for iOS notch/status bar - Enhanced for native apps */
   .pt-safe {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: max(env(safe-area-inset-top, 0px), 20px);
   }
   
   .pb-safe {
