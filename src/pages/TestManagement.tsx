@@ -6,18 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Users, Link as LinkIcon, Eye } from "lucide-react";
+import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TestManagement = () => {
   const [tests, setTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [showSubmissions, setShowSubmissions] = useState(false);
+  const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  const [submissionDetails, setSubmissionDetails] = useState<any>(null);
+  const [showAnswerReview, setShowAnswerReview] = useState(false);
 
   useEffect(() => {
     loadTests();
+    loadAllSubmissions();
   }, []);
 
   const loadTests = async () => {
@@ -56,6 +62,41 @@ const TestManagement = () => {
     setShowSubmissions(true);
   };
 
+  const loadAllSubmissions = async () => {
+    const { data, error } = await supabase
+      .from("test_submissions")
+      .select(`
+        *,
+        test:tests(title, passing_score)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading all submissions:", error);
+      return;
+    }
+
+    setAllSubmissions(data || []);
+  };
+
+  const loadSubmissionDetails = async (submission: any) => {
+    const { data: questions, error } = await supabase
+      .from("test_questions")
+      .select("*")
+      .eq("test_id", submission.test_id)
+      .order("display_order");
+
+    if (error) {
+      console.error("Error loading questions:", error);
+      toast.error("Failed to load question details");
+      return;
+    }
+
+    setSelectedSubmission(submission);
+    setSubmissionDetails(questions);
+    setShowAnswerReview(true);
+  };
+
   const copyTestLink = (testId: string) => {
     const link = `${window.location.origin}/take-test/${testId}`;
     navigator.clipboard.writeText(link);
@@ -84,8 +125,16 @@ const TestManagement = () => {
             </Link>
           </div>
 
-          <div className="grid gap-4">
-            {tests.map((test) => (
+          <Tabs defaultValue="tests" className="w-full">
+            <TabsList>
+              <TabsTrigger value="tests">Tests</TabsTrigger>
+              <TabsTrigger value="submissions">All Submissions</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="tests" className="space-y-4">
+
+              <div className="grid gap-4">
+                {tests.map((test) => (
               <Card key={test.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -152,9 +201,72 @@ const TestManagement = () => {
                 <div className="mt-4 p-3 bg-muted rounded text-sm font-mono truncate">
                   {getTestUrl(test.id)}
                 </div>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="submissions" className="space-y-4">
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">All Test Submissions</h2>
+                <div className="space-y-3">
+                  {allSubmissions.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No submissions yet
+                    </p>
+                  ) : (
+                    allSubmissions.map((sub) => (
+                      <Card key={sub.id} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between">
+                          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 flex-1 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Test</p>
+                              <p className="font-medium">{sub.test?.title}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Name</p>
+                              <p className="font-medium">{sub.staff_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Location</p>
+                              <p className="font-medium">{sub.staff_location}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Score</p>
+                              <p className="font-medium text-lg">{sub.score}%</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Result</p>
+                              {sub.passed ? (
+                                <Badge variant="default">Passed</Badge>
+                              ) : (
+                                <Badge variant="destructive">Failed</Badge>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Date</p>
+                              <p className="font-medium">
+                                {format(new Date(sub.completed_at), "PP")}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => loadSubmissionDetails(sub)}
+                            className="ml-4"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Review
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </Card>
-            ))}
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
@@ -194,21 +306,131 @@ const TestManagement = () => {
                         <Badge variant="destructive">Failed</Badge>
                       )}
                     </div>
+                      <div>
+                        <p className="text-muted-foreground">Submitted</p>
+                        <p className="font-medium">
+                          {format(new Date(sub.completed_at), "PP")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadSubmissionDetails(sub)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Review Answers
+                      </Button>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAnswerReview} onOpenChange={setShowAnswerReview}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Answer Review - {selectedSubmission?.staff_name}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedSubmission && submissionDetails && (
+              <div className="space-y-6">
+                <Card className="p-4 bg-muted">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Submitted</p>
-                      <p className="font-medium">
-                        {format(new Date(sub.completed_at), "PP")}
-                      </p>
+                      <p className="text-muted-foreground">Final Score</p>
+                      <p className="text-2xl font-bold">{selectedSubmission.score}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Result</p>
+                      {selectedSubmission.passed ? (
+                        <Badge variant="default" className="mt-1">Passed</Badge>
+                      ) : (
+                        <Badge variant="destructive" className="mt-1">Failed</Badge>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Time Taken</p>
+                      <p className="font-medium">{selectedSubmission.time_taken_minutes || "N/A"} min</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Location</p>
+                      <p className="font-medium">{selectedSubmission.staff_location}</p>
                     </div>
                   </div>
                 </Card>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
 
-export default TestManagement;
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Questions & Answers</h3>
+                  {submissionDetails.map((question: any, index: number) => {
+                    const userAnswer = selectedSubmission.answers?.[question.id];
+                    const isCorrect = userAnswer === question.correct_answer;
+                    
+                    return (
+                      <Card key={question.id} className={`p-4 ${isCorrect ? "border-green-500" : "border-red-500"} border-2`}>
+                        <div className="flex items-start gap-3">
+                          {isCorrect ? (
+                            <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-1" />
+                          ) : (
+                            <XCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-1" />
+                          )}
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <p className="font-semibold">Question {index + 1}</p>
+                              <p className="mt-1">{question.question}</p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {question.options?.map((option: string, optIndex: number) => {
+                                const isUserAnswer = option === userAnswer;
+                                const isCorrectAnswer = option === question.correct_answer;
+                                
+                                return (
+                                  <div
+                                    key={optIndex}
+                                    className={`p-3 rounded-lg ${
+                                      isCorrectAnswer
+                                        ? "bg-green-100 border-green-500 border-2"
+                                        : isUserAnswer
+                                        ? "bg-red-100 border-red-500 border-2"
+                                        : "bg-muted"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span>{option}</span>
+                                      <div className="flex gap-2">
+                                        {isCorrectAnswer && (
+                                          <Badge variant="default" className="bg-green-600">
+                                            Correct Answer
+                                          </Badge>
+                                        )}
+                                        {isUserAnswer && !isCorrectAnswer && (
+                                          <Badge variant="destructive">
+                                            Your Answer
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  };
+
+  export default TestManagement;
