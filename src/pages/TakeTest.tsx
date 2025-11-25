@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
@@ -31,10 +32,11 @@ const TakeTest = () => {
   }, [testId]);
 
   useEffect(() => {
-    if (started && timeLeft > 0) {
+    if (started && timeLeft > 0 && !submitting) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
+            clearInterval(timer);
             handleSubmit();
             return 0;
           }
@@ -43,7 +45,7 @@ const TakeTest = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [started, timeLeft]);
+  }, [started, timeLeft, submitting]);
 
   const loadTest = async () => {
     try {
@@ -84,6 +86,8 @@ const TakeTest = () => {
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+    
     setSubmitting(true);
 
     try {
@@ -98,6 +102,7 @@ const TakeTest = () => {
 
       const percentageScore = Math.round((score / totalPoints) * 100);
       const passed = percentageScore >= test.passing_score;
+      const timeTaken = test.time_limit_minutes * 60 - timeLeft;
 
       const { error } = await supabase.from("test_submissions").insert({
         test_id: testId,
@@ -106,18 +111,23 @@ const TakeTest = () => {
         answers: answers,
         score: percentageScore,
         passed,
-        time_taken_minutes: Math.round((test.time_limit_minutes * 60 - timeLeft) / 60),
+        time_taken_minutes: Math.max(1, Math.round(timeTaken / 60)),
         completed_at: new Date().toISOString(),
       });
 
       if (error) throw error;
 
-      toast.success(passed ? "Congratulations! You passed!" : "Test submitted");
+      const message = timeLeft === 0 
+        ? "Time's up! Test auto-submitted." 
+        : passed 
+        ? "Congratulations! You passed!" 
+        : "Test submitted";
+      
+      toast.success(message);
       navigate(`/test-result/${testId}/${percentageScore}/${passed}`);
     } catch (error) {
       console.error("Error submitting test:", error);
       toast.error("Failed to submit test");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -217,11 +227,14 @@ const TakeTest = () => {
       <div className="max-w-3xl mx-auto pt-8">
         <Card className="p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span className={timeLeft < 300 ? "text-destructive font-semibold" : ""}>
+            <div className={`flex items-center gap-2 text-sm ${timeLeft < 60 ? "animate-pulse" : ""}`}>
+              <Clock className={`h-5 w-5 ${timeLeft < 300 ? "text-destructive" : "text-muted-foreground"}`} />
+              <span className={`font-semibold text-lg ${timeLeft < 60 ? "text-destructive" : timeLeft < 300 ? "text-orange-500" : ""}`}>
                 {formatTime(timeLeft)}
               </span>
+              {timeLeft < 60 && (
+                <Badge variant="destructive" className="ml-2">Time Running Out!</Badge>
+              )}
             </div>
             <div className="text-sm font-medium">
               Question {currentQuestion + 1} of {questions.length}
@@ -236,14 +249,16 @@ const TakeTest = () => {
           <RadioGroup
             value={answers[currentQ.id]}
             onValueChange={(value) => setAnswers({ ...answers, [currentQ.id]: value })}
+            disabled={submitting}
           >
             {currentQ.options.map((opt: string, index: number) => (
-              <div key={index} className="flex items-center space-x-3 p-3 rounded hover:bg-muted">
+              <div key={index} className={`flex items-center space-x-3 p-3 rounded ${submitting ? "opacity-50 cursor-not-allowed" : "hover:bg-muted"}`}>
                 <RadioGroupItem
                   value={String.fromCharCode(65 + index)}
                   id={`option-${index}`}
+                  disabled={submitting}
                 />
-                <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                <Label htmlFor={`option-${index}`} className={`flex-1 ${submitting ? "cursor-not-allowed" : "cursor-pointer"}`}>
                   <span className="font-medium">{String.fromCharCode(65 + index)}.</span> {opt}
                 </Label>
               </div>
@@ -255,6 +270,7 @@ const TakeTest = () => {
               <Button
                 variant="outline"
                 onClick={() => setCurrentQuestion(currentQuestion - 1)}
+                disabled={submitting}
               >
                 Previous
               </Button>
@@ -263,6 +279,7 @@ const TakeTest = () => {
               <Button
                 onClick={() => setCurrentQuestion(currentQuestion + 1)}
                 className="flex-1"
+                disabled={submitting}
               >
                 Next
               </Button>
