@@ -23,6 +23,10 @@ const config: CapacitorConfig = {
       style: "light",
       backgroundColor: "#1a1f2e",
       overlaysWebView: false,
+    },
+    Camera: {
+      presentationStyle: "fullscreen",
+      saveToGallery: true,
     }
   }
 };
