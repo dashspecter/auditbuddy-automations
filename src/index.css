@@ -26,8 +26,12 @@ All colors MUST be HSL.
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 217 91% 60%;
+    --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
+    
+    --brand-orange: 25 95% 53%;
+    --brand-orange-light: 25 95% 65%;
+    --brand-orange-dark: 25 95% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -73,8 +77,12 @@ All colors MUST be HSL.
     --muted: 223 47% 20%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 91% 60%;
+    --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
+    
+    --brand-orange: 25 95% 53%;
+    --brand-orange-light: 25 95% 65%;
+    --brand-orange-dark: 25 95% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
