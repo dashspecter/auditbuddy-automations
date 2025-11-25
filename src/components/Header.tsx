@@ -186,7 +186,7 @@ export const Header = () => {
     <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
       <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 md:gap-3">
+          <Link to="/dashboard" className="flex items-center gap-2 md:gap-3">
             <div className="bg-primary rounded-full p-1.5 md:p-2">
               <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
             </div>

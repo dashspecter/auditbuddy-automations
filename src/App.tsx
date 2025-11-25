@@ -9,6 +9,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
 import AuditDetail from "./pages/AuditDetail";
@@ -49,8 +50,9 @@ const App = () => (
         <AuthProvider>
           <PWAInstallPrompt />
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
             <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
