@@ -43,8 +43,10 @@ export interface LocationAudit {
 }
 
 export const useLocationAudits = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['location_audits'],
+    queryKey: ['location_audits', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('location_audits')
@@ -54,8 +56,8 @@ export const useLocationAudits = () => {
       if (error) throw error;
       return data as LocationAudit[];
     },
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
-    refetchOnMount: false, // Don't refetch on component mount if data exists
+    enabled: !!user,
+    staleTime: 30 * 1000, // 30 seconds
   });
 };
 

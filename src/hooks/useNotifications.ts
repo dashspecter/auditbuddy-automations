@@ -66,8 +66,7 @@ export const useNotifications = () => {
       return data as Notification[];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
-    refetchOnMount: false,
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   const { data: readNotifications = [] } = useQuery({
@@ -84,8 +83,7 @@ export const useNotifications = () => {
       return data as NotificationRead[];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
-    refetchOnMount: false,
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   // Set up realtime subscription for notification reads
