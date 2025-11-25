@@ -43,7 +43,8 @@ serve(async (req) => {
     
     const pathSegments = bucketAndPath.split("/");
     const bucket = pathSegments[0];
-    const path = pathSegments.slice(1).join("/");
+    // Decode URL-encoded characters (like %20 for spaces)
+    const path = decodeURIComponent(pathSegments.slice(1).join("/"));
     
     console.log("Parsed - Bucket:", bucket, "Path:", path);
 
