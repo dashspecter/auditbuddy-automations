@@ -189,12 +189,12 @@ export const Header = () => {
   if (isPublicPage) {
     return (
       <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
-        <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
-            <div className="bg-primary rounded-full p-1.5 md:p-2">
-              <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
+            <div className="bg-primary rounded-full p-1 md:p-2">
+              <ClipboardCheck className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
             </div>
-            <span className="text-lg md:text-xl font-bold">Dashspect</span>
+            <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -229,13 +229,13 @@ export const Header = () => {
   // Full authenticated header for dashboard and app pages
   return (
     <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
-      <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/dashboard" className="flex items-center gap-2 md:gap-3">
-            <div className="bg-primary rounded-full p-1.5 md:p-2">
-              <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
+            <div className="bg-primary rounded-full p-1 md:p-2">
+              <ClipboardCheck className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
             </div>
-            <span className="text-lg md:text-xl font-bold">Dashspect</span>
+            <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
