@@ -427,7 +427,7 @@ const LocationAudit = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
@@ -443,7 +443,7 @@ const LocationAudit = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -601,8 +601,8 @@ const LocationAudit = () => {
           )}
 
           {/* Submit Button */}
-          <div className="flex gap-4">
-            <Button type="submit" className="gap-2" disabled={!selectedTemplateId}>
+          <div className="flex flex-col sm:flex-row gap-4 pb-safe mb-8">
+            <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId}>
               <Save className="h-4 w-4" />
               Submit Audit
             </Button>
@@ -611,12 +611,12 @@ const LocationAudit = () => {
               variant="secondary" 
               onClick={handleSaveDraft}
               disabled={!selectedTemplateId}
-              className="gap-2"
+              className="gap-2 min-h-[48px] w-full sm:w-auto"
             >
               <FileEdit className="h-4 w-4" />
               Save as Draft
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate("/")}>
+            <Button type="button" variant="outline" onClick={() => navigate("/")} className="min-h-[48px] w-full sm:w-auto">
               Cancel
             </Button>
           </div>
