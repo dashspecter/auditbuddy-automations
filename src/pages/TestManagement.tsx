@@ -254,8 +254,18 @@ const TestManagement = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="mt-4 p-3 bg-muted rounded text-sm font-mono truncate">
-                  {getTestUrl(test.id)}
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-muted-foreground flex-1">
+                      Test Link: <span className="font-medium text-foreground">
+                        {test.title}
+                        {test.scheduled_for && ` - ${format(new Date(test.scheduled_for), "MMM d, yyyy")}`}
+                      </span>
+                    </p>
+                    <code className="text-xs text-muted-foreground px-2 py-1 bg-background rounded">
+                      /take-test/{test.id.slice(0, 8)}...
+                    </code>
+                  </div>
                 </div>
                   </Card>
                 ))}
