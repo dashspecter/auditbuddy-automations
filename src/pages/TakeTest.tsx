@@ -7,9 +7,19 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Loader2, AlertTriangle } from "lucide-react";
 
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
@@ -26,6 +36,7 @@ const TakeTest = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     loadTest();
@@ -37,7 +48,7 @@ const TakeTest = () => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleSubmit();
+            handleSubmit(true); // Auto-submit when time expires
             return 0;
           }
           return prev - 1;
@@ -85,9 +96,14 @@ const TakeTest = () => {
     setStarted(true);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const handleSubmit = async (autoSubmit = false) => {
     if (submitting) return;
     
+    setShowConfirmDialog(false);
     setSubmitting(true);
 
     try {
@@ -117,7 +133,7 @@ const TakeTest = () => {
 
       if (error) throw error;
 
-      const message = timeLeft === 0 
+      const message = autoSubmit
         ? "Time's up! Test auto-submitted." 
         : passed 
         ? "Congratulations! You passed!" 
@@ -285,7 +301,7 @@ const TakeTest = () => {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={handleSubmitClick}
                 disabled={submitting}
                 className="flex-1"
               >
@@ -304,6 +320,64 @@ const TakeTest = () => {
             )}
           </div>
         </Card>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Submit Test?
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-4">
+                  <p>
+                    Are you sure you want to submit your test? You won't be able to change your answers after submission.
+                  </p>
+                  
+                  <Card className="p-4 bg-muted">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Questions answered:</span>
+                        <span className="font-semibold">
+                          {Object.keys(answers).length} / {questions.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Time remaining:</span>
+                        <span className="font-semibold">{formatTime(timeLeft)}</span>
+                      </div>
+                      {Object.keys(answers).length < questions.length && (
+                        <div className="flex items-start gap-2 mt-3 p-2 bg-orange-100 dark:bg-orange-950 rounded">
+                          <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-orange-800 dark:text-orange-200">
+                            You have {questions.length - Object.keys(answers).length} unanswered question(s). These will be marked as incorrect.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={submitting}>Review Answers</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => handleSubmit(false)}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Test"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
