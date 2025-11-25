@@ -2,24 +2,32 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClipboardCheck, Users, TrendingUp, Shield, FileText, Bell, Mail, Phone } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Header } from "@/components/Header";
 
 const Landing = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border pt-safe">
-        <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary rounded-full p-2">
-              <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
+      {/* Navigation - Show authenticated header if logged in */}
+      {user ? (
+        <Header />
+      ) : (
+        <nav className="border-b border-border pt-safe">
+          <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary rounded-full p-2">
+                <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold text-foreground">Dashspect</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Dashspect</span>
+            <Link to="/auth">
+              <Button>Sign In</Button>
+            </Link>
           </div>
-          <Link to="/auth">
-            <Button>Sign In</Button>
-          </Link>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 px-safe py-16 md:py-24">
