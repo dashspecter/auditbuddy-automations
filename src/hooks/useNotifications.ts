@@ -39,6 +39,16 @@ export const useNotifications = () => {
     queryFn: async () => {
       if (!user) return [];
 
+      // Get user's account creation date
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', user.id)
+        .single();
+
+      const userCreatedAt = profile?.created_at || new Date().toISOString();
+
+      // Only fetch notifications created after user joined
       const { data, error } = await supabase
         .from('notifications')
         .select(`
@@ -49,6 +59,7 @@ export const useNotifications = () => {
             audit_date
           )
         `)
+        .gte('created_at', userCreatedAt)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
