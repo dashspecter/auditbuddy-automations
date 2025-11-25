@@ -31,6 +31,11 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import CameraDemo from "./pages/CameraDemo";
 import PhotoGalleryPage from "./pages/PhotoGalleryPage";
+import DocumentManagement from "./pages/DocumentManagement";
+import TestCreation from "./pages/TestCreation";
+import TestManagement from "./pages/TestManagement";
+import TakeTest from "./pages/TakeTest";
+import TestResult from "./pages/TestResult";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +79,11 @@ const App = () => (
             <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
             <Route path="/camera" element={<ProtectedRoute><CameraDemo /></ProtectedRoute>} />
             <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
+            <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
+            <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
+            <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
+            <Route path="/take-test/:testId" element={<TakeTest />} />
+            <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

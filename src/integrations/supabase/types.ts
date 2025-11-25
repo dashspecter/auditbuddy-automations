@@ -247,6 +247,80 @@ export type Database = {
         }
         Relationships: []
       }
+      document_categories: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_audits: {
         Row: {
           audit_date: string
@@ -568,6 +642,150 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      test_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          display_order: number
+          id: string
+          options: Json
+          points: number
+          question: string
+          test_id: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          options: Json
+          points?: number
+          question: string
+          test_id: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          options?: Json
+          points?: number
+          question?: string
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_submissions: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          created_at: string
+          id: string
+          passed: boolean | null
+          score: number | null
+          staff_location: string
+          staff_name: string
+          started_at: string
+          test_id: string
+          time_taken_minutes: number | null
+        }
+        Insert: {
+          answers: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          passed?: boolean | null
+          score?: number | null
+          staff_location: string
+          staff_name: string
+          started_at?: string
+          test_id: string
+          time_taken_minutes?: number | null
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          passed?: boolean | null
+          score?: number | null
+          staff_location?: string
+          staff_name?: string
+          started_at?: string
+          test_id?: string
+          time_taken_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_submissions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tests: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          document_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          passing_score: number
+          scheduled_for: string | null
+          time_limit_minutes: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          document_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          passing_score?: number
+          scheduled_for?: string | null
+          time_limit_minutes?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          document_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          passing_score?: number
+          scheduled_for?: string | null
+          time_limit_minutes?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
