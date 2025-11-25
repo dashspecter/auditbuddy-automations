@@ -26,14 +26,26 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Extract bucket and path from URL
+    // Handle both public and private URLs:
+    // Public: /storage/v1/object/public/bucket/path
+    // Private: /storage/v1/object/bucket/path
     const urlParts = fileUrl.split("/storage/v1/object/");
     if (urlParts.length < 2) {
       throw new Error("Invalid file URL format");
     }
     
-    const [bucketAndPath] = urlParts[1].split("?");
-    const [bucket, ...pathParts] = bucketAndPath.split("/");
-    const path = pathParts.join("/");
+    let bucketAndPath = urlParts[1].split("?")[0];
+    
+    // Remove "public/" prefix if present
+    if (bucketAndPath.startsWith("public/")) {
+      bucketAndPath = bucketAndPath.substring(7);
+    }
+    
+    const pathSegments = bucketAndPath.split("/");
+    const bucket = pathSegments[0];
+    const path = pathSegments.slice(1).join("/");
+    
+    console.log("Parsed - Bucket:", bucket, "Path:", path);
 
     // Download the file
     const { data: fileData, error: downloadError } = await supabase.storage
