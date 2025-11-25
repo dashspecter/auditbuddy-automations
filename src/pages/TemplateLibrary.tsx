@@ -268,7 +268,7 @@ export default function TemplateLibrary() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
@@ -284,7 +284,7 @@ export default function TemplateLibrary() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <Button
           variant="ghost"
           onClick={() => navigate("/admin/templates")}

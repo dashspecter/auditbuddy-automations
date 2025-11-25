@@ -93,7 +93,7 @@ const AdminTemplates = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex flex-col gap-6">
           <div className="flex justify-between items-center">
             <div>

@@ -66,7 +66,7 @@ const Dashboard = () => {
       <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
       
       <PullToRefresh onRefresh={handleRefresh}>
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <RoleBasedView
             admin={<AdminDashboard />}
             manager={<ManagerDashboard />}

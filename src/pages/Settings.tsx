@@ -114,7 +114,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Button
@@ -203,9 +203,9 @@ export default function Settings() {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Updating..." : "Update Password"}
-                  </Button>
+              <Button type="submit" disabled={loading} className="min-h-[48px]">
+                {loading ? "Updating..." : "Update Password"}
+              </Button>
                 </form>
               </CardContent>
             </Card>
@@ -227,6 +227,7 @@ export default function Settings() {
                 <Button 
                   variant="outline" 
                   onClick={() => setShowOnboarding(true)}
+                  className="min-h-[48px]"
                 >
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Restart Tutorial

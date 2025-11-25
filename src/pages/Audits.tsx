@@ -101,7 +101,7 @@ const Audits = () => {
       <Header />
       
       <PullToRefresh onRefresh={handleRefresh}>
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -110,7 +110,7 @@ const Audits = () => {
             </div>
             <div className="flex gap-2">
               <Link to="/location-audit">
-                <Button className="gap-2">
+                <Button className="gap-2 min-h-[48px]">
                   <Plus className="h-4 w-4" />
                   New Location Audit
                 </Button>
