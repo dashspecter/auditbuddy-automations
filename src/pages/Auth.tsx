@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClipboardCheck, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { Header } from '@/components/Header';
 
 const authSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -29,7 +30,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -69,7 +70,7 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You've successfully signed in.",
       });
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
@@ -89,7 +90,7 @@ const Auth = () => {
     try {
       const validated = authSchema.parse({ email, password, fullName });
       
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
         email: validated.email,
@@ -115,7 +116,7 @@ const Auth = () => {
         title: "Account created!",
         description: "You've successfully signed up and are now logged in.",
       });
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
@@ -128,14 +129,16 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
-      <Card className="w-full max-w-md p-8">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="bg-primary rounded-full p-3">
-            <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <Header />
+      <div className="flex items-center justify-center p-4 px-safe py-safe min-h-[calc(100vh-4rem)]">
+        <Card className="w-full max-w-md p-8">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="bg-primary rounded-full p-3">
+              <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Dashspect</h1>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Dashspect</h1>
-        </div>
 
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -235,6 +238,7 @@ const Auth = () => {
           </TabsContent>
         </Tabs>
       </Card>
+      </div>
     </div>
   );
 };
