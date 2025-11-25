@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -36,6 +36,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const Header = () => {
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: roleData, isLoading } = useUserRole();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
@@ -49,6 +50,8 @@ export const Header = () => {
   });
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
+
+  const isPublicPage = location.pathname === '/' || location.pathname === '/auth';
 
   const handleInstallApp = async () => {
     const success = await promptInstall();
@@ -182,11 +185,53 @@ export const Header = () => {
     return email.substring(0, 2).toUpperCase();
   };
 
+  // Simplified public header for landing and auth pages
+  if (isPublicPage) {
+    return (
+      <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
+        <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 md:gap-3">
+            <div className="bg-primary rounded-full p-1.5 md:p-2">
+              <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
+            </div>
+            <span className="text-lg md:text-xl font-bold">Dashspect</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <Button variant="ghost" className="min-h-[44px]">
+                Home
+              </Button>
+            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.email ? getInitials(user.email) : <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/auth">
+                <Button className="min-h-[44px]">
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Full authenticated header for dashboard and app pages
   return (
     <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
       <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 md:gap-3">
+          <Link to="/dashboard" className="flex items-center gap-2 md:gap-3">
             <div className="bg-primary rounded-full p-1.5 md:p-2">
               <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
             </div>
@@ -194,7 +239,7 @@ export const Header = () => {
           </Link>
           
           <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+            <Link to="/dashboard" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Dashboard
             </Link>
             <Link to="/audits" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
@@ -376,7 +421,7 @@ export const Header = () => {
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <nav className="flex flex-col gap-4 mt-8">
                 <Link 
-                  to="/" 
+                  to="/dashboard" 
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
