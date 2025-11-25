@@ -23,8 +23,8 @@ export const PullToRefresh = ({
       disabled,
     });
 
-  // Adjust threshold for display since the hook subtracts ACTIVATION_THRESHOLD
-  const adjustedThreshold = threshold - 30;
+  // Adjust threshold for display since the hook subtracts ACTIVATION_THRESHOLD (50px)
+  const adjustedThreshold = threshold - 50;
   const progress = Math.min((pullDistance / adjustedThreshold) * 100, 100);
 
   return (

@@ -22,59 +22,85 @@ export const usePullToRefresh = ({
 
     const container = containerRef.current;
     let touchStartY = 0;
-    let isAtTopOnStart = false;
-    const ACTIVATION_THRESHOLD = 30; // Minimum distance before activating pull
+    let isValidPullGesture = false;
+    let didScrollDuringGesture = false;
+    const ACTIVATION_THRESHOLD = 50; // Increased from 30 to make it harder to accidentally trigger
+    const STRICT_TOP_THRESHOLD = 0; // Must be exactly at top
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Only track if we're at the very top
-      const isAtTop = container.scrollTop <= 1; // Allow 1px tolerance
-      if (isAtTop) {
+      // Must be exactly at the top with no tolerance
+      const isExactlyAtTop = container.scrollTop === STRICT_TOP_THRESHOLD;
+      
+      if (isExactlyAtTop) {
         touchStartY = e.touches[0].clientY;
         startY.current = touchStartY;
-        isAtTopOnStart = true;
+        isValidPullGesture = true;
+        didScrollDuringGesture = false;
       } else {
-        isAtTopOnStart = false;
+        isValidPullGesture = false;
+        didScrollDuringGesture = false;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Must have started at top
-      if (!isAtTopOnStart) {
+      // If not a valid gesture from the start, ignore completely
+      if (!isValidPullGesture) {
         return;
       }
 
-      // Double-check we're still at top
-      if (container.scrollTop > 1) {
+      // If user has scrolled at all during this gesture, invalidate it permanently
+      if (container.scrollTop > STRICT_TOP_THRESHOLD) {
+        didScrollDuringGesture = true;
         setIsPulling(false);
         setPullDistance(0);
-        isAtTopOnStart = false;
+        isValidPullGesture = false;
+        return;
+      }
+
+      // If we detected scrolling earlier in this gesture, don't allow pull
+      if (didScrollDuringGesture) {
         return;
       }
 
       const touchY = e.touches[0].clientY;
       const distance = touchY - startY.current;
 
-      // Only handle downward pulls (positive distance) and must exceed activation threshold
-      if (distance > ACTIVATION_THRESHOLD && distance < threshold * 2) {
-        setIsPulling(true);
-        setPullDistance(distance - ACTIVATION_THRESHOLD); // Offset by activation threshold
-        // Prevent default scroll when actively pulling
-        e.preventDefault();
-      } else if (distance <= 0) {
-        // User is scrolling up, reset immediately
+      // Negative distance = scrolling up, immediately cancel
+      if (distance < 0) {
         setIsPulling(false);
         setPullDistance(0);
-        isAtTopOnStart = false;
+        isValidPullGesture = false;
+        return;
+      }
+
+      // Only activate after significant downward pull
+      if (distance > ACTIVATION_THRESHOLD && distance < threshold * 2.5) {
+        setIsPulling(true);
+        setPullDistance(distance - ACTIVATION_THRESHOLD);
+        // Prevent default scroll when actively pulling
+        e.preventDefault();
       } else if (distance <= ACTIVATION_THRESHOLD) {
-        // Still below activation threshold, don't show indicator yet
+        // Below threshold, don't show indicator
         setIsPulling(false);
         setPullDistance(0);
       }
     };
 
     const handleTouchEnd = async () => {
-      // Only trigger if we have enough pull distance, are still at top, and not already refreshing
-      if (pullDistance >= (threshold - ACTIVATION_THRESHOLD) && !isRefreshing && isAtTopOnStart && container.scrollTop <= 1) {
+      // Only trigger if:
+      // 1. Valid pull gesture from start
+      // 2. No scrolling happened during gesture
+      // 3. Still at exact top
+      // 4. Sufficient pull distance
+      // 5. Not already refreshing
+      const shouldRefresh = 
+        isValidPullGesture &&
+        !didScrollDuringGesture &&
+        container.scrollTop === STRICT_TOP_THRESHOLD &&
+        pullDistance >= (threshold - ACTIVATION_THRESHOLD) &&
+        !isRefreshing;
+
+      if (shouldRefresh) {
         setIsRefreshing(true);
         try {
           await onRefresh();
@@ -82,9 +108,12 @@ export const usePullToRefresh = ({
           setIsRefreshing(false);
         }
       }
+      
+      // Reset all state
       setIsPulling(false);
       setPullDistance(0);
-      isAtTopOnStart = false;
+      isValidPullGesture = false;
+      didScrollDuringGesture = false;
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
