@@ -1,18 +1,22 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, TrendingUp, ClipboardCheck, Calendar, Target, CheckCircle2 } from "lucide-react";
+import { Plus, TrendingUp, ClipboardCheck, Calendar, Target, CheckCircle2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const CheckerDashboard = () => {
   const { user } = useAuth();
   const { data: allAudits, isLoading: auditsLoading } = useLocationAudits();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Filter audits for current user only
   const myAudits = useMemo(() => {
@@ -69,6 +73,19 @@ export const CheckerDashboard = () => {
     return 'text-destructive';
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+      toast.success("Dashboard data refreshed");
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -76,7 +93,18 @@ export const CheckerDashboard = () => {
           <h2 className="text-2xl font-bold text-foreground">My Dashboard</h2>
           <p className="text-muted-foreground">Track your audit performance</p>
         </div>
-        <Badge variant="outline" className="text-sm">Checker</Badge>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Badge variant="outline" className="text-sm">Checker</Badge>
+        </div>
       </div>
 
       <DashboardGreeting />

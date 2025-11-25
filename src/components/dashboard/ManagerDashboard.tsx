@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, TrendingUp, ClipboardCheck, FileText, Bell, AlertCircle } from "lucide-react";
+import { Plus, Users, TrendingUp, ClipboardCheck, FileText, Bell, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
@@ -11,12 +11,15 @@ import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { useLocationAudits } from "@/hooks/useAudits";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export const ManagerDashboard = () => {
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { data: checkersCount } = useQuery({
     queryKey: ['checkers_count'],
@@ -42,6 +45,23 @@ export const ManagerDashboard = () => {
     },
   });
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['location_audits'] }),
+        queryClient.invalidateQueries({ queryKey: ['checkers_count'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending_audits'] }),
+      ]);
+      toast.success("Dashboard data refreshed");
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const stats = useMemo(() => {
     if (!audits) return { totalAudits: 0, locations: 0, complianceRate: 0, recentAudits: 0 };
 
@@ -65,7 +85,18 @@ export const ManagerDashboard = () => {
           <h2 className="text-2xl font-bold text-foreground">Manager Dashboard</h2>
           <p className="text-muted-foreground">Team oversight and location management</p>
         </div>
-        <Badge variant="secondary" className="text-sm">Manager</Badge>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Badge variant="secondary" className="text-sm">Manager</Badge>
+        </div>
       </div>
 
       <DashboardGreeting />
