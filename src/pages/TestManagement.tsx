@@ -452,8 +452,9 @@ const TestManagement = () => {
                             
                             <div className="space-y-2">
                               {question.options?.map((option: string, optIndex: number) => {
-                                const isUserAnswer = option === userAnswer;
-                                const isCorrectAnswer = option === question.correct_answer;
+                                const optionLetter = String.fromCharCode(65 + optIndex);
+                                const isUserAnswer = userAnswer === optionLetter;
+                                const isCorrectAnswer = question.correct_answer === optionLetter;
                                 
                                 return (
                                   <div
@@ -467,7 +468,9 @@ const TestManagement = () => {
                                     }`}
                                   >
                                     <div className="flex items-center justify-between">
-                                      <span>{option}</span>
+                                      <span>
+                                        <span className="font-semibold">{optionLetter}.</span> {option}
+                                      </span>
                                       <div className="flex gap-2">
                                         {isCorrectAnswer && (
                                           <Badge variant="default" className="bg-green-600">
@@ -477,6 +480,11 @@ const TestManagement = () => {
                                         {isUserAnswer && !isCorrectAnswer && (
                                           <Badge variant="destructive">
                                             Your Answer
+                                          </Badge>
+                                        )}
+                                        {isUserAnswer && isCorrectAnswer && (
+                                          <Badge variant="default" className="bg-green-600">
+                                            Your Answer ✓
                                           </Badge>
                                         )}
                                       </div>
