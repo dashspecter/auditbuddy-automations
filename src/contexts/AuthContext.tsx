@@ -141,8 +141,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    await supabase.auth.signOut();
-    navigate('/auth');
+    
+    try {
+      // Try to sign out from server
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    } finally {
+      // Always clear local state and redirect, even if server sign out fails
+      setSession(null);
+      setUser(null);
+      
+      // Clear local storage manually as backup
+      localStorage.removeItem('sb-lnscfmmwqxlkeunfhfdh-auth-token');
+      
+      navigate('/auth');
+    }
   };
 
   return (
