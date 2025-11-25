@@ -107,7 +107,7 @@ All colors MUST be HSL.
 @layer utilities {
   /* Safe area support for iOS notch/status bar - Enhanced for native apps */
   .pt-safe {
-    padding-top: max(3rem, env(safe-area-inset-top));
+    padding-top: max(4rem, env(safe-area-inset-top));
   }
   
   .pb-safe {

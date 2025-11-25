@@ -18,6 +18,11 @@ const config: CapacitorConfig = {
       spinnerColor: "#FFFFFF",
       splashFullScreen: true,
       splashImmersive: true,
+    },
+    StatusBar: {
+      style: "dark",
+      backgroundColor: "#1a1f2e",
+      overlaysWebView: false,
     }
   }
 };
