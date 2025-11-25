@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardCheck, Users, TrendingUp, Shield, FileText, Bell } from "lucide-react";
+import { ClipboardCheck, Users, TrendingUp, Shield, FileText, Bell, Mail, Phone } from "lucide-react";
 
 const Landing = () => {
   return (
@@ -31,11 +31,11 @@ const Landing = () => {
             Streamline your health inspections, audit processes, and compliance management with Dashspect's intuitive platform.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth">
+            <a href="#contact">
               <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
                 Get Started
               </Button>
-            </Link>
+            </a>
             <a href="#features">
               <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
                 Learn More
@@ -227,24 +227,62 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 md:py-24">
+      {/* Contact Section */}
+      <section id="contact" className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4 px-safe">
-          <Card className="bg-primary text-primary-foreground border-0">
-            <CardContent className="py-12 text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Ready to Transform Your Compliance Process?
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Get Started Today
               </h2>
-              <p className="text-primary-foreground/90 mb-8 max-w-2xl mx-auto text-lg">
-                Join restaurants using Dashspect to maintain health and safety standards with confidence.
+              <p className="text-muted-foreground text-lg">
+                Ready to transform your compliance process? Get in touch with us.
               </p>
-              <Link to="/auth">
-                <Button size="lg" variant="secondary" className="min-h-[48px]">
-                  Get Started Today
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            </div>
+
+            <Card className="bg-card border-border">
+              <CardContent className="py-12">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="flex flex-col items-center text-center p-6 rounded-lg bg-muted/50">
+                    <div className="bg-primary rounded-full p-4 mb-4">
+                      <Mail className="h-8 w-8 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Email Us</h3>
+                    <a 
+                      href="mailto:alex@grecea.work" 
+                      className="text-primary hover:underline text-lg"
+                    >
+                      alex@grecea.work
+                    </a>
+                  </div>
+
+                  <div className="flex flex-col items-center text-center p-6 rounded-lg bg-muted/50">
+                    <div className="bg-primary rounded-full p-4 mb-4">
+                      <Phone className="h-8 w-8 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Call Us</h3>
+                    <a 
+                      href="tel:+40741427777" 
+                      className="text-primary hover:underline text-lg"
+                    >
+                      0741 427 777
+                    </a>
+                  </div>
+                </div>
+
+                <div className="mt-8 text-center">
+                  <p className="text-muted-foreground mb-4">
+                    Already have an account?
+                  </p>
+                  <Link to="/auth">
+                    <Button size="lg" className="min-h-[48px]">
+                      Sign In
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
