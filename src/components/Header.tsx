@@ -183,8 +183,8 @@ export const Header = () => {
   };
 
   return (
-    <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50">
-      <div className="container mx-auto px-4 px-safe pt-safe py-3 md:py-4 flex items-center justify-between">
+    <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
+      <div className="container mx-auto px-4 px-safe py-3 md:py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
             <div className="bg-primary rounded-full p-1.5 md:p-2">
