@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -250,6 +250,12 @@ export const Header = () => {
                 <Link to="/admin/templates" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
                   Templates
                 </Link>
+                <Link to="/documents" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+                  Documents
+                </Link>
+                <Link to="/test-management" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
+                  Tests
+                </Link>
                 <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
                   Reports
                 </Link>
@@ -445,6 +451,22 @@ export const Header = () => {
                     >
                       <FileText className="h-5 w-5" />
                       <span className="text-base font-medium">Templates</span>
+                    </Link>
+                    <Link 
+                      to="/documents" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <BookOpen className="h-5 w-5" />
+                      <span className="text-base font-medium">Documents</span>
+                    </Link>
+                    <Link 
+                      to="/test-management" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <GraduationCap className="h-5 w-5" />
+                      <span className="text-base font-medium">Tests</span>
                     </Link>
                     <Link 
                       to="/reports" 
