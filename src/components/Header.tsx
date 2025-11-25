@@ -198,9 +198,9 @@ export const Header = () => {
           </Link>
 
           <div className="flex items-center gap-4">
-            <Link to="/">
+            <Link to="/dashboard">
               <Button variant="ghost" className="min-h-[44px]">
-                Home
+                Dashboard
               </Button>
             </Link>
             {user ? (
