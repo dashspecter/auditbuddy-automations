@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { NotificationPreview } from "@/components/NotificationPreview";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -262,28 +263,28 @@ export default function Notifications() {
               {roleData?.isAdmin && (
                 <div className="flex gap-2 flex-wrap">
                   <Button variant="outline" asChild>
-                    <a href="/recurring-notifications">
+                    <Link to="/recurring-notifications">
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Recurring
-                    </a>
+                    </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <a href="/notification-analytics">
+                    <Link to="/notification-analytics">
                       <BarChart3 className="h-4 w-4 mr-2" />
                       Analytics
-                    </a>
+                    </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <a href="/notification-audit-logs">
+                    <Link to="/notification-audit-logs">
                       <History className="h-4 w-4 mr-2" />
                       Audit Logs
-                    </a>
+                    </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <a href="/notification-templates">
+                    <Link to="/notification-templates">
                       <FileText className="h-4 w-4 mr-2" />
                       Templates
-                    </a>
+                    </Link>
                   </Button>
                 </div>
               )}
