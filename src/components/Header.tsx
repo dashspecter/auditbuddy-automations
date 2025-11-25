@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -247,27 +247,66 @@ export const Header = () => {
             </Link>
             {(roleData?.isAdmin || roleData?.isManager) && (
               <>
-                <Link to="/admin/templates" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-                  Templates
-                </Link>
-                <Link to="/documents" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-                  Documents
-                </Link>
-                <Link to="/test-management" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-                  Tests
-                </Link>
+                {/* Content Management Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                      Content
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/templates" className="cursor-pointer min-h-[44px] flex items-center">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Templates
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/documents" className="cursor-pointer min-h-[44px] flex items-center">
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Documents
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/test-management" className="cursor-pointer min-h-[44px] flex items-center">
+                        <GraduationCap className="mr-2 h-4 w-4" />
+                        Tests
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Link to="/reports" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
                   Reports
                 </Link>
-                <Link to="/notifications" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-                  Notifications
-                </Link>
+
+                {/* Management Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                      Management
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                    <DropdownMenuItem asChild>
+                      <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Megaphone className="mr-2 h-4 w-4" />
+                        Notifications
+                      </Link>
+                    </DropdownMenuItem>
+                    {roleData?.isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          Users
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
-            )}
-            {roleData?.isAdmin && (
-              <Link to="/admin/users" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-                Users
-              </Link>
             )}
             {(roleData?.isAdmin || roleData?.isManager) && (
               <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
@@ -442,8 +481,13 @@ export const Header = () => {
                   <ClipboardCheck className="h-5 w-5" />
                   <span className="text-base font-medium">Audits</span>
                 </Link>
+                
                 {(roleData?.isAdmin || roleData?.isManager) && (
                   <>
+                    <div className="border-t border-border my-2"></div>
+                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Content
+                    </div>
                     <Link 
                       to="/admin/templates" 
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -468,6 +512,8 @@ export const Header = () => {
                       <GraduationCap className="h-5 w-5" />
                       <span className="text-base font-medium">Tests</span>
                     </Link>
+
+                    <div className="border-t border-border my-2"></div>
                     <Link 
                       to="/reports" 
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -476,6 +522,11 @@ export const Header = () => {
                       <Download className="h-5 w-5" />
                       <span className="text-base font-medium">Reports</span>
                     </Link>
+
+                    <div className="border-t border-border my-2"></div>
+                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Management
+                    </div>
                     <Link 
                       to="/notifications" 
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -493,9 +544,10 @@ export const Header = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <User className="h-5 w-5" />
-                    <span className="text-base font-medium">User Management</span>
+                    <span className="text-base font-medium">Users</span>
                   </Link>
                 )}
+                
                 <div className="border-t border-border my-2"></div>
                 <Link 
                   to="/settings" 
