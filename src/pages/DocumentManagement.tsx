@@ -260,33 +260,64 @@ const DocumentManagement = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {documents.map((doc) => (
-              <Card key={doc.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <FileText className="h-8 w-8 text-primary" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{doc.title}</h3>
-                      <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {Math.round(doc.file_size / 1024)} KB
-                      </p>
-                    </div>
+          {/* Categories Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Categories ({categories.length})</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {categories.map((cat) => (
+                <Card key={cat.id} className="p-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">{cat.name}</h3>
+                    {cat.description && (
+                      <p className="text-sm text-muted-foreground">{cat.description}</p>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-                {doc.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
-                )}
-              </Card>
-            ))}
+                </Card>
+              ))}
+            </div>
+            {categories.length === 0 && (
+              <p className="text-muted-foreground text-center py-8">
+                No categories yet. Create one to get started.
+              </p>
+            )}
+          </div>
+
+          {/* Documents Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Documents ({documents.length})</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {documents.map((doc) => (
+                <Card key={doc.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{doc.title}</h3>
+                        <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {Math.round(doc.file_size / 1024)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                  {doc.description && (
+                    <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
+                  )}
+                </Card>
+              ))}
+            </div>
+            {documents.length === 0 && (
+              <p className="text-muted-foreground text-center py-8">
+                No documents yet. Upload one to get started.
+              </p>
+            )}
           </div>
         </div>
       </main>
