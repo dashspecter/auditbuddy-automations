@@ -542,6 +542,50 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_metrics: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          location_id: string | null
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          location_id?: string | null
+          metric_date: string
+          metric_name: string
+          metric_value: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          location_id?: string | null
+          metric_date?: string
+          metric_name?: string
+          metric_value?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_metrics_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_audit_logs: {
         Row: {
           action: string
