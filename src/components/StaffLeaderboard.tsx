@@ -23,16 +23,20 @@ export const StaffLeaderboard = () => {
   const leaderboardData = useMemo(() => {
     if (!audits || !employees) return [];
 
-    const employeeScores = employees
+    // Group employees by location
+    const locationGroups = new Map<string, any[]>();
+
+    employees
       .filter(e => e.status === "active")
-      .map((employee) => {
+      .forEach((employee) => {
+        const locationName = employee.locations?.name || "Unknown";
         const employeeAudits = audits
           .filter((a) => a.employee_id === employee.id)
           .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime())
           .slice(0, 5);
 
         if (employeeAudits.length === 0) {
-          return null;
+          return;
         }
 
         const scores = employeeAudits.map((a) => a.score);
@@ -48,20 +52,38 @@ export const StaffLeaderboard = () => {
           else if (recentAvg < olderAvg - 5) trend = "down";
         }
 
-        return {
+        const employeeData = {
           id: employee.id,
           name: employee.full_name,
           role: employee.role,
-          location: employee.locations?.name || "Unknown",
+          location: locationName,
           average,
           trend,
           auditCount: employeeAudits.length,
         };
-      })
-      .filter(Boolean)
-      .sort((a, b) => (b?.average || 0) - (a?.average || 0));
 
-    return employeeScores;
+        if (!locationGroups.has(locationName)) {
+          locationGroups.set(locationName, []);
+        }
+        locationGroups.get(locationName)!.push(employeeData);
+      });
+
+    // Sort employees within each location by score (descending)
+    locationGroups.forEach((employees) => {
+      employees.sort((a, b) => b.average - a.average);
+    });
+
+    // Convert to array and sort locations by average score
+    const locationArray = Array.from(locationGroups.entries()).map(([location, employees]) => {
+      const locationAvg = Math.round(
+        employees.reduce((sum, emp) => sum + emp.average, 0) / employees.length
+      );
+      return { location, employees, locationAvg };
+    });
+
+    locationArray.sort((a, b) => b.locationAvg - a.locationAvg);
+
+    return locationArray;
   }, [audits, employees]);
 
   const generatePDF = () => {
@@ -78,21 +100,33 @@ export const StaffLeaderboard = () => {
       doc.text(`Location: ${location}`, 14, 34);
     }
 
-    const tableData = leaderboardData.map((emp, index) => [
-      index + 1,
-      emp?.name || "",
-      emp?.role || "",
-      emp?.location || "",
-      `${emp?.average || 0}%`,
-      emp?.trend === "up" ? "↑" : emp?.trend === "down" ? "↓" : "→",
-    ]);
+    let yPosition = (filterLocationId && filterLocationId !== "__all__") ? 42 : 38;
 
-    autoTable(doc, {
-      startY: (filterLocationId && filterLocationId !== "__all__") ? 40 : 35,
-      head: [["Rank", "Name", "Role", "Location", "Score", "Trend"]],
-      body: tableData,
-      theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
+    leaderboardData.forEach((locationGroup) => {
+      // Add location header
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text(`${locationGroup.location} (Avg: ${locationGroup.locationAvg}%)`, 14, yPosition);
+      yPosition += 8;
+
+      const tableData = locationGroup.employees.map((emp, index) => [
+        index + 1,
+        emp.name,
+        emp.role,
+        `${emp.average}%`,
+        emp.trend === "up" ? "↑" : emp.trend === "down" ? "↓" : "→",
+      ]);
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["Rank", "Name", "Role", "Score", "Trend"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [59, 130, 246] },
+        margin: { left: 14 },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 10;
     });
 
     doc.save(`staff-leaderboard-${new Date().toISOString().split("T")[0]}.pdf`);
@@ -126,43 +160,57 @@ export const StaffLeaderboard = () => {
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-6">
         {leaderboardData.length === 0 ? (
           <p className="text-center py-8 text-muted-foreground">
             No staff audit data available
           </p>
         ) : (
-          leaderboardData.map((emp, index) => (
-            <div
-              key={emp?.id}
-              className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 font-bold text-primary">
-                  #{index + 1}
-                </div>
+          leaderboardData.map((locationGroup) => (
+            <div key={locationGroup.location} className="space-y-3">
+              <div className="flex items-center justify-between px-4 py-3 bg-muted/50 rounded-lg border-l-4 border-primary">
                 <div>
-                  <p className="font-semibold">{emp?.name}</p>
+                  <h3 className="font-bold text-lg">{locationGroup.location}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {emp?.role} • {emp?.location}
+                    {locationGroup.employees.length} employee{locationGroup.employees.length !== 1 ? 's' : ''}
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant={
-                    (emp?.average || 0) >= 80
-                      ? "default"
-                      : (emp?.average || 0) >= 60
-                      ? "secondary"
-                      : "destructive"
-                  }
-                  className="text-lg px-3 py-1"
-                >
-                  {emp?.average}%
+                <Badge variant="outline" className="text-lg px-3 py-1">
+                  Avg: {locationGroup.locationAvg}%
                 </Badge>
-                {getTrendIcon(emp?.trend || "neutral")}
               </div>
+              
+              {locationGroup.employees.map((emp, index) => (
+                <div
+                  key={emp.id}
+                  className="flex items-center justify-between p-4 ml-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 font-bold text-primary">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{emp.name}</p>
+                      <p className="text-sm text-muted-foreground">{emp.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Badge
+                      variant={
+                        emp.average >= 80
+                          ? "default"
+                          : emp.average >= 60
+                          ? "secondary"
+                          : "destructive"
+                      }
+                      className="text-lg px-3 py-1"
+                    >
+                      {emp.average}%
+                    </Badge>
+                    {getTrendIcon(emp.trend)}
+                  </div>
+                </div>
+              ))}
             </div>
           ))
         )}
