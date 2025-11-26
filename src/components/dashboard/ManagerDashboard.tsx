@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, TrendingUp, TrendingDown, ClipboardCheck, FileText, Bell, AlertCircle, RefreshCw } from "lucide-react";
+import { Users, TrendingUp, TrendingDown, ClipboardCheck, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
@@ -88,62 +88,6 @@ export const ManagerDashboard = () => {
       </div>
 
       <DashboardGreeting />
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <Bell className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">Send Notification</h3>
-              <p className="text-sm text-muted-foreground">Notify checkers about tasks</p>
-            </div>
-          </div>
-          <Link to="/notifications">
-            <Button variant="outline" className="w-full mt-4">
-              <Bell className="h-4 w-4 mr-2" />
-              Create Notification
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">View Reports</h3>
-              <p className="text-sm text-muted-foreground">Location performance</p>
-            </div>
-          </div>
-          <Link to="/reports">
-            <Button variant="outline" className="w-full mt-4">
-              <FileText className="h-4 w-4 mr-2" />
-              View Reports
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <ClipboardCheck className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">New Audit</h3>
-              <p className="text-sm text-muted-foreground">Create location audit</p>
-            </div>
-          </div>
-          <Link to="/location-audit">
-            <Button className="w-full mt-4">
-              <Plus className="h-4 w-4 mr-2" />
-              New Location Audit
-            </Button>
-          </Link>
-        </Card>
-      </div>
 
       <DraftAudits />
 
