@@ -1,18 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, TrendingUp, ClipboardCheck, FileText, Bell, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Users, TrendingUp, TrendingDown, ClipboardCheck, FileText, Bell, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
-import { ComplianceChart } from "./ComplianceChart";
 import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
-import { LocationPerformanceCards } from "./LocationPerformanceCards";
+import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { useLocationAudits } from "@/hooks/useAudits";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 
 export const ManagerDashboard = () => {
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
+  const dashboardStats = useDashboardStats();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -64,21 +65,6 @@ export const ManagerDashboard = () => {
     }
   };
 
-  const stats = useMemo(() => {
-    if (!audits) return { totalAudits: 0, locations: 0, complianceRate: 0, recentAudits: 0 };
-
-    const totalAudits = audits.length;
-    const locations = new Set(audits.map(a => a.location)).size;
-    const compliant = audits.filter(a => (a.overall_score || 0) >= 80).length;
-    const complianceRate = totalAudits > 0 ? Math.round((compliant / totalAudits) * 100) : 0;
-    
-    // Audits from last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentAudits = audits.filter(a => new Date(a.created_at) > sevenDaysAgo).length;
-
-    return { totalAudits, locations, complianceRate, recentAudits };
-  }, [audits]);
 
   return (
     <div className="space-y-6">
@@ -178,40 +164,43 @@ export const ManagerDashboard = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <RecentAudits />
         <StatsCard
-          title="Total Audits"
-          value={auditsLoading ? "..." : stats.totalAudits.toString()}
+          title="Completed"
+          value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
           icon={ClipboardCheck}
-          description="All location audits"
+          description="Finished audits"
         />
         <StatsCard
-          title="Active Checkers"
-          value={checkersCount?.toString() || "..."}
-          icon={Users}
-          description="Team members"
+          title="Overdue"
+          value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
+          icon={ClipboardCheck}
+          description="Past deadline"
         />
         <StatsCard
-          title="Locations"
-          value={auditsLoading ? "..." : stats.locations.toString()}
-          icon={FileText}
-          description="Managed locations"
-        />
-        <StatsCard
-          title="This Week"
-          value={auditsLoading ? "..." : stats.recentAudits.toString()}
+          title="Average Score"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
           icon={TrendingUp}
-          description="Audits last 7 days"
+          description="Overall average"
+        />
+        <StatsCard
+          title="Worst Location"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
+          icon={TrendingDown}
+          description={dashboardStats.worstLocation.name}
+        />
+        <StatsCard
+          title="Best Location"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
+          icon={TrendingUp}
+          description={dashboardStats.bestLocation.name}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart />
-        <RecentAudits />
-      </div>
-
-      <div className="w-full">
-        <ComplianceChart />
+        <LocationPerformanceChart />
       </div>
 
       <div className="w-full">
@@ -220,10 +209,6 @@ export const ManagerDashboard = () => {
 
       <div className="w-full">
         <SectionPerformanceTrends />
-      </div>
-
-      <div className="w-full">
-        <LocationPerformanceCards />
       </div>
     </div>
   );
