@@ -186,19 +186,19 @@ export default function NotificationTemplates() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" asChild>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                   <Link to="/notifications">
-                    <Megaphone className="h-4 w-4 mr-2" />
-                    Send Notification
+                    <Megaphone className="h-4 w-4" />
+                    <span className="hidden sm:inline">Send</span>
                   </Link>
                 </Button>
                 {roleData?.isAdmin && (
                   <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Template
+                      <Button size="sm" className="gap-1.5 px-2 sm:px-3">
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">New Template</span>
                       </Button>
                     </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">

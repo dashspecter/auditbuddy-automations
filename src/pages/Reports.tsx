@@ -360,13 +360,13 @@ const Reports = () => {
             </div>
 
             <div className="flex flex-wrap gap-2 mt-6">
-              <Button className="gap-2" onClick={handleExportCSV}>
+              <Button size="sm" className="gap-1.5 px-2 sm:px-3" onClick={handleExportCSV}>
                 <FileSpreadsheet className="h-4 w-4" />
-                Export to CSV
+                <span className="hidden sm:inline">CSV</span>
               </Button>
-              <Button variant="outline" className="gap-2" onClick={handleExportPDF}>
+              <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" onClick={handleExportPDF}>
                 <FileText className="h-4 w-4" />
-                Export to PDF
+                <span className="hidden sm:inline">PDF</span>
               </Button>
             </div>
           </Card>
