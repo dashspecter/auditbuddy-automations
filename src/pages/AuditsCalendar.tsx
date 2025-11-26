@@ -64,7 +64,7 @@ const AuditsCalendar = () => {
 
     return audits.map((audit) => ({
       id: audit.id,
-      title: `${audit.locations?.name || audit.location} - ${audit.profiles?.full_name || 'Unassigned'}`,
+      title: `${audit.locations?.name || audit.location} - ${audit.audit_templates?.name || 'Unknown Template'}`,
       start: new Date(audit.scheduled_start),
       end: new Date(audit.scheduled_end),
       resource: {
