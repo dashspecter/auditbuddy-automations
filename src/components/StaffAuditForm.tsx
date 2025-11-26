@@ -65,14 +65,25 @@ export const StaffAuditForm = ({ onSuccess }: StaffAuditFormProps) => {
             <SelectTrigger>
               <SelectValue placeholder="Select employee" />
             </SelectTrigger>
-            <SelectContent>
-              {employees?.filter(e => e.status === "active").map((employee) => (
-                <SelectItem key={employee.id} value={employee.id}>
-                  {employee.full_name} - {employee.role}
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-background z-50">
+              {!employees || employees.filter(e => e.status === "active").length === 0 ? (
+                <div className="px-4 py-2 text-sm text-muted-foreground">
+                  No active employees found for this location
+                </div>
+              ) : (
+                employees.filter(e => e.status === "active").map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.full_name} - {employee.role}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
+          {locationId && (!employees || employees.filter(e => e.status === "active").length === 0) && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Add employees for this location in the Employee Management page first.
+            </p>
+          )}
         </div>
       )}
 
