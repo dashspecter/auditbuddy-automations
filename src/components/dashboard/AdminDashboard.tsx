@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, ClipboardCheck, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, ClipboardCheck, RefreshCw, ChevronDown } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
 import { CompliancePieChart } from "./CompliancePieChart";
@@ -15,12 +15,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AdminDashboard = () => {
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
   const dashboardStats = useDashboardStats();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const { data: usersCount } = useQuery({
     queryKey: ['users_count'],
@@ -99,39 +103,85 @@ export const AdminDashboard = () => {
 
       <DraftAudits />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <RecentAudits />
-        <StatsCard
-          title="Completed"
-          value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
-          icon={ClipboardCheck}
-          description="Finished audits"
-        />
-        <StatsCard
-          title="Overdue"
-          value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
-          icon={ClipboardCheck}
-          description="Past deadline"
-        />
-        <StatsCard
-          title="Average Score"
-          value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
-          icon={TrendingUp}
-          description="Overall average"
-        />
-        <StatsCard
-          title="Worst Location"
-          value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
-          icon={TrendingDown}
-          description={dashboardStats.worstLocation.name}
-        />
-        <StatsCard
-          title="Best Location"
-          value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
-          icon={TrendingUp}
-          description={dashboardStats.bestLocation.name}
-        />
-      </div>
+      {isMobile ? (
+        <Collapsible open={statsOpen} onOpenChange={setStatsOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              Statistics Overview
+              <ChevronDown className={`h-4 w-4 transition-transform ${statsOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <div className="grid gap-4">
+              <RecentAudits />
+              <StatsCard
+                title="Completed"
+                value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
+                icon={ClipboardCheck}
+                description="Finished audits"
+              />
+              <StatsCard
+                title="Overdue"
+                value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
+                icon={ClipboardCheck}
+                description="Past deadline"
+              />
+              <StatsCard
+                title="Average Score"
+                value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
+                icon={TrendingUp}
+                description="Overall average"
+              />
+              <StatsCard
+                title="Worst Location"
+                value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
+                icon={TrendingDown}
+                description={dashboardStats.worstLocation.name}
+              />
+              <StatsCard
+                title="Best Location"
+                value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
+                icon={TrendingUp}
+                description={dashboardStats.bestLocation.name}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <RecentAudits />
+          <StatsCard
+            title="Completed"
+            value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
+            icon={ClipboardCheck}
+            description="Finished audits"
+          />
+          <StatsCard
+            title="Overdue"
+            value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
+            icon={ClipboardCheck}
+            description="Past deadline"
+          />
+          <StatsCard
+            title="Average Score"
+            value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
+            icon={TrendingUp}
+            description="Overall average"
+          />
+          <StatsCard
+            title="Worst Location"
+            value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
+            icon={TrendingDown}
+            description={dashboardStats.worstLocation.name}
+          />
+          <StatsCard
+            title="Best Location"
+            value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
+            icon={TrendingUp}
+            description={dashboardStats.bestLocation.name}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart />
