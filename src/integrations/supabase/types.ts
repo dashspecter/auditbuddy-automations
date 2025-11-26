@@ -952,6 +952,48 @@ export type Database = {
           },
         ]
       }
+      test_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          completed: boolean
+          employee_id: string
+          id: string
+          test_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          completed?: boolean
+          employee_id: string
+          id?: string
+          test_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          completed?: boolean
+          employee_id?: string
+          id?: string
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_assignments_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_questions: {
         Row: {
           correct_answer: string
@@ -998,11 +1040,12 @@ export type Database = {
           answers: Json
           completed_at: string | null
           created_at: string
+          employee_id: string | null
           id: string
           passed: boolean | null
           score: number | null
-          staff_location: string
-          staff_name: string
+          staff_location: string | null
+          staff_name: string | null
           started_at: string
           test_id: string
           time_taken_minutes: number | null
@@ -1011,11 +1054,12 @@ export type Database = {
           answers: Json
           completed_at?: string | null
           created_at?: string
+          employee_id?: string | null
           id?: string
           passed?: boolean | null
           score?: number | null
-          staff_location: string
-          staff_name: string
+          staff_location?: string | null
+          staff_name?: string | null
           started_at?: string
           test_id: string
           time_taken_minutes?: number | null
@@ -1024,16 +1068,24 @@ export type Database = {
           answers?: Json
           completed_at?: string | null
           created_at?: string
+          employee_id?: string | null
           id?: string
           passed?: boolean | null
           score?: number | null
-          staff_location?: string
-          staff_name?: string
+          staff_location?: string | null
+          staff_name?: string | null
           started_at?: string
           test_id?: string
           time_taken_minutes?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "test_submissions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "test_submissions_test_id_fkey"
             columns: ["test_id"]

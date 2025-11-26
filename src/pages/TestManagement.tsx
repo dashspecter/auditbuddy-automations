@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle, PlayCircle } from "lucide-react";
+import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle, PlayCircle, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { TestAssignDialog } from "@/components/TestAssignDialog";
+import { useTestAssignments } from "@/hooks/useTestAssignments";
 
 const TestManagement = () => {
   const [tests, setTests] = useState<any[]>([]);
@@ -28,6 +30,10 @@ const TestManagement = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewCurrentQuestion, setPreviewCurrentQuestion] = useState(0);
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, string>>({});
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedTestForAssignment, setSelectedTestForAssignment] = useState<{ id: string; title: string } | null>(null);
+  
+  const { data: testAssignments } = useTestAssignments();
 
   useEffect(() => {
     loadTests();
@@ -155,6 +161,21 @@ const TestManagement = () => {
     setPreviewAnswers({});
   };
 
+  const handleAssignTest = (test: any) => {
+    setSelectedTestForAssignment({ id: test.id, title: test.title });
+    setAssignDialogOpen(true);
+  };
+
+  const getAssignmentCount = (testId: string) => {
+    if (!testAssignments) return 0;
+    return testAssignments.filter(a => a.test_id === testId).length;
+  };
+
+  const getCompletedCount = (testId: string) => {
+    if (!testAssignments) return 0;
+    return testAssignments.filter(a => a.test_id === testId && a.completed).length;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -225,6 +246,15 @@ const TestManagement = () => {
                     )}
                   </div>
                   <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAssignTest(test)}
+                      title="Assign to employees"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {getAssignmentCount(test.id)}/{getCompletedCount(test.id)}
+                    </Button>
                     <Button
                       variant="outline"
                       size="icon"
@@ -335,6 +365,16 @@ const TestManagement = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Assign Test Dialog */}
+      {selectedTestForAssignment && (
+        <TestAssignDialog
+          testId={selectedTestForAssignment.id}
+          testTitle={selectedTestForAssignment.title}
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+        />
+      )}
 
       <Dialog open={showSubmissions} onOpenChange={setShowSubmissions}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
