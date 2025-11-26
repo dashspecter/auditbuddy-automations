@@ -81,53 +81,81 @@ Deno.serve(async (req) => {
         // Calculate next occurrence date
         let nextDate: Date;
         
-        // If this is the first generation, start from day before start_date
+        console.log(`Start date: ${schedule.start_date}, Last generated: ${schedule.last_generated_date}`);
+        console.log(`Today: ${today.toISOString()}`);
+        
+        // If this is the first generation, use start_date directly if it matches the pattern
         // Otherwise use the last generated date
-        const lastGenerated = schedule.last_generated_date 
-          ? new Date(schedule.last_generated_date) 
-          : (() => {
-              const d = new Date(schedule.start_date);
-              d.setDate(d.getDate() - 1); // Start from day before
-              return d;
-            })();
-
-        // Make sure we don't generate duplicate dates
-        if (schedule.last_generated_date && lastGenerated >= today) {
-          console.log(`Already generated for today or future, skipping`);
-          continue;
-        }
-
-        // Calculate next date based on pattern
-        switch (schedule.recurrence_pattern) {
-          case 'daily':
-            nextDate = new Date(lastGenerated);
-            nextDate.setDate(nextDate.getDate() + 1);
-            break;
+        if (!schedule.last_generated_date) {
+          // First generation - check if start_date matches the pattern
+          const startDate = new Date(schedule.start_date);
+          startDate.setHours(0, 0, 0, 0);
           
-          case 'weekly': {
-            nextDate = new Date(lastGenerated);
-            nextDate.setDate(nextDate.getDate() + 1);
-            // Find next occurrence of the specified day of week
+          if (schedule.recurrence_pattern === 'weekly' && startDate.getDay() !== schedule.day_of_week) {
+            // Start date doesn't match the day of week, find next occurrence
+            nextDate = new Date(startDate);
             while (nextDate.getDay() !== schedule.day_of_week) {
               nextDate.setDate(nextDate.getDate() + 1);
             }
-            break;
+          } else if (schedule.recurrence_pattern === 'monthly' && startDate.getDate() !== schedule.day_of_month) {
+            // Start date doesn't match the day of month, find next occurrence
+            nextDate = new Date(startDate);
+            const targetDay = schedule.day_of_month || 1;
+            if (nextDate.getDate() > targetDay) {
+              // Move to next month
+              nextDate.setMonth(nextDate.getMonth() + 1);
+            }
+            nextDate.setDate(Math.min(targetDay, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
+          } else {
+            // Start date matches the pattern (or it's daily), use it
+            nextDate = startDate;
           }
+        } else {
+          // Not first generation - calculate based on last generated
+          const lastGenerated = new Date(schedule.last_generated_date);
+          lastGenerated.setHours(0, 0, 0, 0);
           
-          case 'monthly': {
-            nextDate = new Date(lastGenerated);
-            nextDate.setMonth(nextDate.getMonth() + 1);
-            // Set to specified day of month
-            const dayOfMonth = schedule.day_of_month || 1;
-            nextDate.setDate(1); // Start at first day
-            nextDate.setDate(Math.min(dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
-            break;
-          }
-          
-          default:
-            console.error(`Unknown recurrence pattern: ${schedule.recurrence_pattern}`);
+          // Make sure we don't generate duplicate dates
+          if (lastGenerated >= today) {
+            console.log(`Already generated for today or future, skipping`);
             continue;
+          }
+
+          // Calculate next date based on pattern
+          switch (schedule.recurrence_pattern) {
+            case 'daily':
+              nextDate = new Date(lastGenerated);
+              nextDate.setDate(nextDate.getDate() + 1);
+              break;
+            
+            case 'weekly': {
+              nextDate = new Date(lastGenerated);
+              nextDate.setDate(nextDate.getDate() + 1);
+              // Find next occurrence of the specified day of week
+              while (nextDate.getDay() !== schedule.day_of_week) {
+                nextDate.setDate(nextDate.getDate() + 1);
+              }
+              break;
+            }
+            
+            case 'monthly': {
+              nextDate = new Date(lastGenerated);
+              nextDate.setMonth(nextDate.getMonth() + 1);
+              // Set to specified day of month
+              const dayOfMonth = schedule.day_of_month || 1;
+              nextDate.setDate(1); // Start at first day
+              nextDate.setDate(Math.min(dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
+              break;
+            }
+            
+            default:
+              console.error(`Unknown recurrence pattern: ${schedule.recurrence_pattern}`);
+              continue;
+          }
         }
+        
+        console.log(`Calculated next date: ${nextDate.toISOString()}, day of week: ${nextDate.getDay()}`);
+        console.log(`Target day of week: ${schedule.day_of_week}`);
 
         // Only generate if next date is today or in the past
         if (nextDate > today) {
