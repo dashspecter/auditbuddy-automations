@@ -703,6 +703,98 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_audit_schedules: {
+        Row: {
+          assigned_user_id: string
+          created_at: string
+          created_by: string
+          day_of_month: number | null
+          day_of_week: number | null
+          duration_hours: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          last_generated_date: string | null
+          location_id: string
+          name: string
+          notes: string | null
+          recurrence_pattern: string
+          start_date: string
+          start_time: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id: string
+          created_at?: string
+          created_by: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          duration_hours?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          location_id: string
+          name: string
+          notes?: string | null
+          recurrence_pattern: string
+          start_date: string
+          start_time: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string
+          created_at?: string
+          created_by?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          duration_hours?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          location_id?: string
+          name?: string
+          notes?: string | null
+          recurrence_pattern?: string
+          start_date?: string
+          start_time?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_audit_schedules_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_audit_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_audit_schedules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_audit_schedules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_locations: {
         Row: {
           created_at: string | null
@@ -929,6 +1021,15 @@ export type Database = {
       get_next_revision_number: {
         Args: { p_audit_id: string }
         Returns: number
+      }
+      get_next_schedule_date: {
+        Args: {
+          p_day_of_month: number
+          p_day_of_week: number
+          p_last_date: string
+          p_pattern: string
+        }
+        Returns: string
       }
       has_role: {
         Args: {
