@@ -33,9 +33,11 @@ export default function EmployeeManagement() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
-  const [filterLocationId, setFilterLocationId] = useState<string>("");
+  const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
 
-  const { data: employees, isLoading } = useEmployees(filterLocationId || undefined);
+  const { data: employees, isLoading } = useEmployees(
+    filterLocationId === "__all__" ? undefined : filterLocationId
+  );
   const { data: locations } = useLocations();
   const deleteEmployee = useDeleteEmployee();
 

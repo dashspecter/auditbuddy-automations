@@ -11,9 +11,14 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export const StaffLeaderboard = () => {
-  const [filterLocationId, setFilterLocationId] = useState<string>("");
-  const { data: audits } = useStaffAudits(undefined, filterLocationId || undefined);
-  const { data: employees } = useEmployees(filterLocationId || undefined);
+  const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
+  const { data: audits } = useStaffAudits(
+    undefined, 
+    filterLocationId === "__all__" ? undefined : filterLocationId
+  );
+  const { data: employees } = useEmployees(
+    filterLocationId === "__all__" ? undefined : filterLocationId
+  );
 
   const leaderboardData = useMemo(() => {
     if (!audits || !employees) return [];
@@ -68,7 +73,7 @@ export const StaffLeaderboard = () => {
     doc.setFontSize(11);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
     
-    if (filterLocationId) {
+    if (filterLocationId && filterLocationId !== "__all__") {
       const location = leaderboardData[0]?.location || "Selected Location";
       doc.text(`Location: ${location}`, 14, 34);
     }
@@ -83,7 +88,7 @@ export const StaffLeaderboard = () => {
     ]);
 
     autoTable(doc, {
-      startY: filterLocationId ? 40 : 35,
+      startY: (filterLocationId && filterLocationId !== "__all__") ? 40 : 35,
       head: [["Rank", "Name", "Role", "Location", "Score", "Trend"]],
       body: tableData,
       theme: "striped",
