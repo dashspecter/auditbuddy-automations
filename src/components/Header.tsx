@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -297,6 +297,12 @@ export const Header = () => {
                       <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
                         <Megaphone className="mr-2 h-4 w-4" />
                         Notifications
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/recurring-schedules" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Repeat className="mr-2 h-4 w-4" />
+                        Recurring Schedules
                       </Link>
                     </DropdownMenuItem>
                     {roleData?.isAdmin && (

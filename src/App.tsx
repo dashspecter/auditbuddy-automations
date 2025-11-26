@@ -38,6 +38,7 @@ import TakeTest from "./pages/TakeTest";
 import TestResult from "./pages/TestResult";
 import LocationsManagement from "./pages/LocationsManagement";
 import AuditsCalendar from "./pages/AuditsCalendar";
+import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
             <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
             <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
+            <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
