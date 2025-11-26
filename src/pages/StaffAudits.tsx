@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { StaffAuditForm } from "@/components/StaffAuditForm";
 import { StaffLeaderboard } from "@/components/StaffLeaderboard";
+import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 import { useState } from "react";
 
 export default function StaffAudits() {
@@ -33,7 +34,10 @@ export default function StaffAudits() {
           </Card>
         )}
 
-        <StaffLeaderboard />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <EmployeeLeaderboard />
+          <StaffLeaderboard />
+        </div>
       </div>
     </div>
   );

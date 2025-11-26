@@ -1,9 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useMemo } from "react";
-import { Trophy, Medal, Award, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 export const EmployeeLeaderboard = () => {
   const { data: staffAudits, isLoading: auditsLoading } = useStaffAudits();
@@ -138,6 +142,56 @@ export const EmployeeLeaderboard = () => {
     return 'text-destructive';
   };
 
+  const generatePDF = () => {
+    if (!leaderboardData || leaderboardData.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Employee Leaderboard", 14, 20);
+    
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
+    doc.text("Top Performers Based on Staff Audit Scores", 14, 34);
+
+    const tableData = leaderboardData.map((emp, index) => [
+      index + 1,
+      emp.name,
+      emp.location,
+      emp.role,
+      `${emp.avgScore}%`,
+      emp.auditCount.toString(),
+      emp.trend === "up" ? "↑" : emp.trend === "down" ? "↓" : "→",
+    ]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [["Rank", "Name", "Location", "Role", "Avg Score", "Audits", "Trend"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: {
+        cellPadding: 3,
+        fontSize: 10,
+      },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 15 },
+      },
+    });
+
+    doc.save(`employee-leaderboard-${new Date().toISOString().split("T")[0]}.pdf`);
+    toast.success("PDF downloaded successfully");
+  };
+
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -162,14 +216,20 @@ export const EmployeeLeaderboard = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold">Employee Leaderboard</h3>
-          <p className="text-sm text-muted-foreground">
-            Top performers based on staff audit scores
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          <Trophy className="h-8 w-8 text-primary flex-shrink-0" />
+          <div>
+            <h3 className="text-lg font-semibold">Employee Leaderboard</h3>
+            <p className="text-sm text-muted-foreground">
+              Top performers based on staff audit scores
+            </p>
+          </div>
         </div>
-        <Trophy className="h-8 w-8 text-primary" />
+        <Button onClick={generatePDF} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Download PDF
+        </Button>
       </div>
 
       <div className="space-y-3">
