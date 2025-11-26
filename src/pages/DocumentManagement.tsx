@@ -162,15 +162,15 @@ const DocumentManagement = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 pt-safe">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-1">
               <h1 className="text-3xl font-bold">Document Management</h1>
               <p className="text-muted-foreground">Upload and organize training documents</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2">
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     New Category
                   </Button>
@@ -203,7 +203,7 @@ const DocumentManagement = () => {
 
               <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button size="sm">
                     <Upload className="h-4 w-4 mr-2" />
                     Upload Document
                   </Button>
