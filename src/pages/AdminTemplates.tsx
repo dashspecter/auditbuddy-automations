@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useCreateTemplate } from '@/hooks/useTemplates';
 import { toast } from 'sonner';
+import { LocationMultiSelector } from '@/components/LocationMultiSelector';
 
 const AdminTemplates = () => {
   const { data: templates, isLoading } = useTemplates();
@@ -46,14 +47,18 @@ const AdminTemplates = () => {
     description: '',
     template_type: 'location' as 'location' | 'staff',
     is_global: true,
-    location: '',
+    location_ids: [] as string[],
   });
 
   const handleCreate = async () => {
     try {
-      const template = await createTemplate.mutateAsync({
-        ...formData,
+      await createTemplate.mutateAsync({
+        name: formData.name,
+        description: formData.description,
+        template_type: formData.template_type,
+        is_global: formData.is_global,
         is_active: true,
+        location_ids: formData.is_global ? [] : formData.location_ids,
       });
       toast.success('Template created successfully!');
       setIsCreateOpen(false);
@@ -62,7 +67,7 @@ const AdminTemplates = () => {
         description: '',
         template_type: 'location',
         is_global: true,
-        location: '',
+        location_ids: [],
       });
     } catch (error) {
       console.error('Error creating template:', error);
@@ -182,21 +187,15 @@ const AdminTemplates = () => {
                   </div>
                   {!formData.is_global && (
                     <div className="space-y-2">
-                      <Label htmlFor="location">Specific Location</Label>
-                      <Select
-                        value={formData.location}
-                        onValueChange={(value) => setFormData({ ...formData, location: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="LBFC Amzei">LBFC Amzei</SelectItem>
-                          <SelectItem value="LBFC Mosilor">LBFC Mosilor</SelectItem>
-                          <SelectItem value="LBFC Timpuri Noi">LBFC Timpuri Noi</SelectItem>
-                          <SelectItem value="LBFC Apaca">LBFC Apaca</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="location">Specific Locations</Label>
+                      <LocationMultiSelector
+                        value={formData.location_ids}
+                        onValueChange={(value) => setFormData({ ...formData, location_ids: value })}
+                        placeholder="Select one or more locations"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Select multiple locations to assign this template to
+                      </p>
                     </div>
                   )}
                 </div>

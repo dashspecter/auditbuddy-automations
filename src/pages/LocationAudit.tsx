@@ -39,6 +39,7 @@ interface TemplateBasic {
   name: string;
   description?: string;
   location_id?: string | null;
+  template_locations?: Array<{ location_id: string }>;
 }
 
 interface AuditTemplate extends TemplateBasic {
@@ -80,10 +81,14 @@ const LocationAudit = () => {
   useEffect(() => {
     if (selectedTemplateId) {
       loadTemplateDetails(selectedTemplateId);
-      // Auto-fill location if template has a specific location
+      // Auto-fill location if template has a specific location (either old or new structure)
       const template = templates.find(t => t.id === selectedTemplateId);
       if (template?.location_id) {
+        // Old structure: single location_id
         setFormData(prev => ({ ...prev, location_id: template.location_id || '' }));
+      } else if (template?.template_locations && template.template_locations.length === 1) {
+        // New structure: single location in junction table
+        setFormData(prev => ({ ...prev, location_id: template.template_locations?.[0]?.location_id || '' }));
       }
     }
   }, [selectedTemplateId, templates]);
@@ -121,7 +126,7 @@ const LocationAudit = () => {
     try {
       const { data, error } = await supabase
         .from('audit_templates')
-        .select('id, name, description, location_id')
+        .select('id, name, description, location_id, template_locations(location_id)')
         .eq('template_type', 'location')
         .eq('is_active', true)
         .order('name');
@@ -522,13 +527,22 @@ const LocationAudit = () => {
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
                   placeholder="Select location"
-                  disabled={!!templates.find(t => t.id === selectedTemplateId)?.location_id}
+                  disabled={(() => {
+                    const template = templates.find(t => t.id === selectedTemplateId);
+                    return !!template?.location_id || 
+                           (template?.template_locations && template.template_locations.length === 1);
+                  })()}
                 />
-                {templates.find(t => t.id === selectedTemplateId)?.location_id && (
-                  <p className="text-xs text-muted-foreground">
-                    This template is assigned to a specific location
-                  </p>
-                )}
+                {(() => {
+                  const template = templates.find(t => t.id === selectedTemplateId);
+                  const hasSpecificLocation = !!template?.location_id || 
+                                             (template?.template_locations && template.template_locations.length === 1);
+                  return hasSpecificLocation && (
+                    <p className="text-xs text-muted-foreground">
+                      This template is assigned to a specific location
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="space-y-2">

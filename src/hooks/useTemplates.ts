@@ -147,9 +147,19 @@ export const useCreateTemplate = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (template: Omit<AuditTemplate, 'id' | 'created_by' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (templateData: {
+      name: string;
+      description?: string;
+      template_type: 'location' | 'staff';
+      is_global: boolean;
+      is_active: boolean;
+      location_ids?: string[];
+    }) => {
       if (!user) throw new Error('User not authenticated');
 
+      const { location_ids, ...template } = templateData;
+
+      // Create the template
       const { data, error } = await supabase
         .from('audit_templates')
         .insert([{ ...template, created_by: user.id }])
@@ -157,6 +167,21 @@ export const useCreateTemplate = () => {
         .single();
 
       if (error) throw error;
+
+      // If not global and has location_ids, create junction table entries
+      if (!template.is_global && location_ids && location_ids.length > 0) {
+        const junctionRecords = location_ids.map(location_id => ({
+          template_id: data.id,
+          location_id,
+        }));
+
+        const { error: junctionError } = await supabase
+          .from('template_locations')
+          .insert(junctionRecords);
+
+        if (junctionError) throw junctionError;
+      }
+
       return data;
     },
     onSuccess: () => {
