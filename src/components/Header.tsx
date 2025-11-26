@@ -299,6 +299,12 @@ export const Header = () => {
                         Tests
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/manual-metrics" className="cursor-pointer min-h-[44px] flex items-center">
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Manual Metrics
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -349,12 +355,6 @@ export const Header = () => {
                           <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
                             <Award className="mr-2 h-4 w-4" />
                             Staff Performance
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/manual-metrics" className="cursor-pointer min-h-[44px] flex items-center">
-                            <TrendingUp className="mr-2 h-4 w-4" />
-                            Manual Metrics
                           </Link>
                         </DropdownMenuItem>
                       </>
@@ -575,6 +575,14 @@ export const Header = () => {
                       <GraduationCap className="h-5 w-5" />
                       <span className="text-base font-medium">Tests</span>
                     </Link>
+                    <Link 
+                      to="/manual-metrics" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <TrendingUp className="h-5 w-5" />
+                      <span className="text-base font-medium">Manual Metrics</span>
+                    </Link>
 
                     <div className="border-t border-border my-2"></div>
                     <Link 
@@ -645,14 +653,6 @@ export const Header = () => {
                     >
                       <Award className="h-5 w-5" />
                       <span className="text-base font-medium">Staff Performance</span>
-                    </Link>
-                    <Link 
-                      to="/manual-metrics" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <TrendingUp className="h-5 w-5" />
-                      <span className="text-base font-medium">Manual Metrics</span>
                     </Link>
                   </>
                 )}
