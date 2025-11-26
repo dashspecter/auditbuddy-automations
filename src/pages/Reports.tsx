@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -470,6 +471,9 @@ const Reports = () => {
               </ResponsiveContainer>
             </Card>
           )}
+
+          {/* Compliance Trends Chart */}
+          <ComplianceChart />
 
           {/* Per Location Pie Charts */}
           {reportData.length > 0 && (
