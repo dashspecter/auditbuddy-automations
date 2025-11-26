@@ -157,9 +157,13 @@ Deno.serve(async (req) => {
         console.log(`Calculated next date: ${nextDate.toISOString()}, day of week: ${nextDate.getDay()}`);
         console.log(`Target day of week: ${schedule.day_of_week}`);
 
-        // Only generate if next date is today or in the past
-        if (nextDate > today) {
-          console.log(`Next occurrence is in the future (${nextDate.toISOString()}), skipping`);
+        // For manual generation, allow creating audits up to 30 days in the future
+        // For automated runs, only generate if date is today or in the past
+        const maxFutureDate = new Date(today);
+        maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+        
+        if (nextDate > maxFutureDate) {
+          console.log(`Next occurrence is too far in the future (${nextDate.toISOString()}), skipping`);
           continue;
         }
 
