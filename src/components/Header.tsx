@@ -560,6 +560,14 @@ export const Header = () => {
                       <Megaphone className="h-5 w-5" />
                       <span className="text-base font-medium">Notifications</span>
                     </Link>
+                    <Link 
+                      to="/recurring-schedules" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Repeat className="h-5 w-5" />
+                      <span className="text-base font-medium">Recurring Schedules</span>
+                    </Link>
                   </>
                 )}
                 {roleData?.isAdmin && (
