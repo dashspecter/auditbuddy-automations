@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { TestAssignDialog } from "@/components/TestAssignDialog";
+import { TestAssignmentsDialog } from "@/components/TestAssignmentsDialog";
 import { useTestAssignments } from "@/hooks/useTestAssignments";
 
 const TestManagement = () => {
@@ -32,6 +33,8 @@ const TestManagement = () => {
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, string>>({});
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedTestForAssignment, setSelectedTestForAssignment] = useState<{ id: string; title: string } | null>(null);
+  const [viewAssignmentsDialogOpen, setViewAssignmentsDialogOpen] = useState(false);
+  const [selectedTestForViewAssignments, setSelectedTestForViewAssignments] = useState<{ id: string; title: string } | null>(null);
   
   const { data: testAssignments } = useTestAssignments();
 
@@ -166,6 +169,11 @@ const TestManagement = () => {
     setAssignDialogOpen(true);
   };
 
+  const handleViewAssignments = (test: any) => {
+    setSelectedTestForViewAssignments({ id: test.id, title: test.title });
+    setViewAssignmentsDialogOpen(true);
+  };
+
   const getAssignmentCount = (testId: string) => {
     if (!testAssignments) return 0;
     return testAssignments.filter(a => a.test_id === testId).length;
@@ -249,11 +257,20 @@ const TestManagement = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAssignTest(test)}
-                      title="Assign to employees"
+                      onClick={() => handleViewAssignments(test)}
+                      title="View assignments"
+                      disabled={getAssignmentCount(test.id) === 0}
                     >
                       <UserPlus className="h-4 w-4 mr-1" />
                       {getAssignmentCount(test.id)}/{getCompletedCount(test.id)}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAssignTest(test)}
+                      title="Assign to more employees"
+                    >
+                      <UserPlus className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -373,6 +390,16 @@ const TestManagement = () => {
           testTitle={selectedTestForAssignment.title}
           open={assignDialogOpen}
           onOpenChange={setAssignDialogOpen}
+        />
+      )}
+
+      {/* View Assignments Dialog */}
+      {selectedTestForViewAssignments && (
+        <TestAssignmentsDialog
+          testId={selectedTestForViewAssignments.id}
+          testTitle={selectedTestForViewAssignments.title}
+          open={viewAssignmentsDialogOpen}
+          onOpenChange={setViewAssignmentsDialogOpen}
         />
       )}
 
