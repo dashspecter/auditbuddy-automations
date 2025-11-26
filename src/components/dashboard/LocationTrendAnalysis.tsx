@@ -157,22 +157,34 @@ export const LocationTrendAnalysis = () => {
 
                 {chartData.length > 0 && (
                   <div className="mt-4 pt-4 border-t">
-                    <ResponsiveContainer width="100%" height={80}>
-                      <LineChart data={chartData}>
+                    <ResponsiveContainer width="100%" height={120}>
+                      <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                         <XAxis 
                           dataKey="date" 
-                          hide 
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={10}
+                          tickLine={false}
                         />
                         <YAxis 
                           domain={[0, 100]} 
-                          hide 
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={10}
+                          tickLine={false}
+                          tickFormatter={(value) => `${value}%`}
+                          width={35}
                         />
                         <Line 
                           type="monotone" 
                           dataKey="score" 
                           stroke="hsl(var(--primary))" 
                           strokeWidth={2}
-                          dot={false}
+                          dot={{ 
+                            fill: 'hsl(var(--primary))', 
+                            r: 4,
+                            strokeWidth: 2,
+                            stroke: 'hsl(var(--background))'
+                          }}
+                          activeDot={{ r: 6 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
