@@ -31,7 +31,8 @@ export const useTestAssignments = (testId?: string, employeeId?: string) => {
         .select(`
           *,
           employees(full_name, role, location_id, locations(name)),
-          tests(title)
+          tests(title),
+          short_code
         `)
         .order("assigned_at", { ascending: false });
       
