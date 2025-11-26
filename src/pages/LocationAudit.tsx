@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ const LocationAudit = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId);
   const [isScheduledAudit, setIsScheduledAudit] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     location_id: "",
     auditDate: new Date().toISOString().split('T')[0],
@@ -203,18 +205,29 @@ const LocationAudit = () => {
 
   const renderField = (field: AuditField) => {
     const value = formData.customData[field.id] || '';
+    const hasError = fieldErrors[field.id];
 
     switch (field.field_type) {
       case 'rating':
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <RadioGroup
               value={value.toString()}
-              onValueChange={(val) => handleFieldChange(field.id, parseInt(val))}
-              className="flex gap-4"
+              onValueChange={(val) => {
+                handleFieldChange(field.id, parseInt(val));
+                // Clear error when field is updated
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
+              className={`flex gap-4 ${hasError ? 'border-destructive' : ''}`}
             >
               {[1, 2, 3, 4, 5].map((rating) => (
                 <div key={rating} className="flex items-center space-x-2">
@@ -223,18 +236,28 @@ const LocationAudit = () => {
                 </div>
               ))}
             </RadioGroup>
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
 
       case 'yes_no':
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <RadioGroup
               value={value.toString()}
-              onValueChange={(val) => handleFieldChange(field.id, val === 'true')}
+              onValueChange={(val) => {
+                handleFieldChange(field.id, val === 'true');
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -246,71 +269,116 @@ const LocationAudit = () => {
                 <Label htmlFor={`${field.id}-no`}>No</Label>
               </div>
             </RadioGroup>
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
 
       case 'text':
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <Textarea
               id={field.id}
               value={value}
-              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              onChange={(e) => {
+                handleFieldChange(field.id, e.target.value);
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
               placeholder={`Enter ${field.name.toLowerCase()}`}
               required={field.is_required}
+              className={hasError ? 'border-destructive' : ''}
             />
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
 
       case 'number':
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <Input
               id={field.id}
               type="number"
               value={value}
-              onChange={(e) => handleFieldChange(field.id, parseFloat(e.target.value))}
+              onChange={(e) => {
+                handleFieldChange(field.id, parseFloat(e.target.value));
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
               placeholder={`Enter ${field.name.toLowerCase()}`}
               required={field.is_required}
+              className={hasError ? 'border-destructive' : ''}
             />
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
 
       case 'date':
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <Input
               id={field.id}
               type="date"
               value={value}
-              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              onChange={(e) => {
+                handleFieldChange(field.id, e.target.value);
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
               required={field.is_required}
+              className={hasError ? 'border-destructive' : ''}
             />
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
 
       default:
         return (
           <div className="space-y-2">
-            <Label htmlFor={field.id}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
             <Input
               id={field.id}
               value={value}
-              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              onChange={(e) => {
+                handleFieldChange(field.id, e.target.value);
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
               placeholder={`Enter ${field.name.toLowerCase()}`}
               required={field.is_required}
+              className={hasError ? 'border-destructive' : ''}
             />
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
     }
@@ -323,7 +391,12 @@ const LocationAudit = () => {
     }
 
     if (!selectedTemplateId) {
-      toast.error('Please select a template');
+      toast.error('Please select a template before saving a draft');
+      return;
+    }
+
+    if (!formData.location_id) {
+      toast.error('Please select a location before saving a draft');
       return;
     }
 
@@ -374,10 +447,66 @@ const LocationAudit = () => {
       }
 
       toast.success("Draft saved successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving draft:', error);
-      toast.error('Failed to save draft');
+      
+      let errorMessage = 'Failed to save draft';
+      
+      if (error?.message?.includes('location')) {
+        errorMessage = 'Invalid location selected. Please choose a valid location.';
+      } else if (error?.message?.includes('template')) {
+        errorMessage = 'Invalid template. Please select a valid audit template.';
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = 'Database error: Unable to save draft. Please try again.';
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     }
+  };
+
+  const validateAuditForm = () => {
+    const errors: string[] = [];
+    const newFieldErrors: Record<string, string> = {};
+
+    // Validate basic fields
+    if (!selectedTemplateId) {
+      errors.push('Template is required');
+      newFieldErrors.template = 'Required';
+    }
+
+    if (!formData.location_id) {
+      errors.push('Location is required');
+      newFieldErrors.location = 'Required';
+    }
+
+    if (!formData.auditDate) {
+      errors.push('Audit date is required');
+      newFieldErrors.auditDate = 'Required';
+    }
+
+    // Validate required fields in template
+    if (selectedTemplate) {
+      selectedTemplate.sections.forEach(section => {
+        section.fields.forEach(field => {
+          if (field.is_required) {
+            const value = formData.customData[field.id];
+            
+            if (value === undefined || value === null || value === '') {
+              errors.push(`${field.name} is required in ${section.name}`);
+              newFieldErrors[field.id] = 'Required';
+            } else if (field.field_type === 'rating' && (typeof value !== 'number' || value < 1 || value > 5)) {
+              errors.push(`${field.name} must be rated between 1-5 in ${section.name}`);
+              newFieldErrors[field.id] = 'Invalid rating';
+            }
+          }
+        });
+      });
+    }
+
+    setFieldErrors(newFieldErrors);
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -388,8 +517,23 @@ const LocationAudit = () => {
       return;
     }
 
-    if (!selectedTemplateId) {
-      toast.error('Please select a template');
+    // Validate form
+    const validationErrors = validateAuditForm();
+    if (validationErrors.length > 0) {
+      toast.error(
+        <div className="space-y-1">
+          <div className="font-semibold">Please fix the following errors:</div>
+          <ul className="list-disc pl-4 space-y-1">
+            {validationErrors.slice(0, 5).map((error, index) => (
+              <li key={index} className="text-sm">{error}</li>
+            ))}
+            {validationErrors.length > 5 && (
+              <li className="text-sm">...and {validationErrors.length - 5} more</li>
+            )}
+          </ul>
+        </div>,
+        { duration: 6000 }
+      );
       return;
     }
 
@@ -471,9 +615,26 @@ const LocationAudit = () => {
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${newAudit.id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting audit:', error);
-      toast.error('Failed to submit audit');
+      
+      let errorMessage = 'Failed to submit audit';
+      
+      if (error?.message?.includes('location')) {
+        errorMessage = 'Invalid location selected. Please choose a valid location and try again.';
+      } else if (error?.message?.includes('template')) {
+        errorMessage = 'Invalid template. Please select a valid audit template.';
+      } else if (error?.message?.includes('user_id')) {
+        errorMessage = 'Authentication error. Please log out and log back in.';
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = 'Database error: Unable to submit audit. Please try again.';
+      } else if (error?.code === '23502') {
+        errorMessage = 'Missing required data. Please ensure all required fields are filled.';
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      toast.error(errorMessage, { duration: 5000 });
     }
   };
 
