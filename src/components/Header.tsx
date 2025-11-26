@@ -245,9 +245,31 @@ export const Header = () => {
             <Link to="/audits" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
               Audits
             </Link>
-            <Link to="/audits-calendar" className="hover:text-accent transition-colors min-h-[44px] flex items-center">
-              Calendar
-            </Link>
+            {/* Calendar Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                  Calendar
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                <DropdownMenuItem asChild>
+                  <Link to="/audits-calendar" className="cursor-pointer min-h-[44px] flex items-center">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Calendar View
+                  </Link>
+                </DropdownMenuItem>
+                {(roleData?.isAdmin || roleData?.isManager) && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/recurring-schedules" className="cursor-pointer min-h-[44px] flex items-center">
+                      <Repeat className="mr-2 h-4 w-4" />
+                      Recurring Schedules
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {(roleData?.isAdmin || roleData?.isManager) && (
               <>
                 {/* Content Management Dropdown */}
@@ -297,12 +319,6 @@ export const Header = () => {
                       <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
                         <Megaphone className="mr-2 h-4 w-4" />
                         Notifications
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/recurring-schedules" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Repeat className="mr-2 h-4 w-4" />
-                        Recurring Schedules
                       </Link>
                     </DropdownMenuItem>
                     {roleData?.isAdmin && (
