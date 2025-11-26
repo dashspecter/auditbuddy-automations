@@ -23,6 +23,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const localizer = momentLocalizer(moment);
 
@@ -47,6 +48,7 @@ const AuditsCalendar = () => {
   const { data: audits, isLoading } = useScheduledAudits();
   const updateStatus = useUpdateAuditStatus();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -212,6 +214,9 @@ const AuditsCalendar = () => {
       if (response.ok) {
         toast.success(result.message || 'Audits generated successfully');
         setDismissedPrompt(false); // Reset dismissed state after successful generation
+        // Invalidate queries to refresh the calendar
+        queryClient.invalidateQueries({ queryKey: ['scheduled_audits'] });
+        queryClient.invalidateQueries({ queryKey: ['location_audits'] });
       } else {
         toast.error(result.error || 'Failed to generate audits');
       }
