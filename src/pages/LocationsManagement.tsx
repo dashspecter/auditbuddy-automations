@@ -31,6 +31,7 @@ import { Plus, Pencil, Trash2, MapPin } from "lucide-react";
 import { useLocations, useDeleteLocation, Location } from "@/hooks/useLocations";
 import { LocationDialog } from "@/components/locations/LocationDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LocationDataMigration } from "@/components/locations/LocationDataMigration";
 
 const LocationsManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,6 +84,9 @@ const LocationsManagement = () => {
             Add Location
           </Button>
         </div>
+
+        {/* Migration Tool */}
+        <LocationDataMigration />
 
         <Card>
           <CardHeader>
