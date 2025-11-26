@@ -157,75 +157,98 @@ Deno.serve(async (req) => {
         console.log(`Calculated next date: ${nextDate.toISOString()}, day of week: ${nextDate.getDay()}`);
         console.log(`Target day of week: ${schedule.day_of_week}`);
 
-        // For manual generation, allow creating audits up to 30 days in the future
-        // For automated runs, only generate if date is today or in the past
-        const maxFutureDate = new Date(today);
-        maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+        // Generate audits for the next 8 weeks (2 months)
+        const auditsToGenerate: Date[] = [];
+        const maxGenerateDays = 56; // 8 weeks
+        let currentDate = new Date(nextDate);
         
-        if (nextDate > maxFutureDate) {
-          console.log(`Next occurrence is too far in the future (${nextDate.toISOString()}), skipping`);
-          continue;
+        while (auditsToGenerate.length < 50 && currentDate <= new Date(today.getTime() + maxGenerateDays * 24 * 60 * 60 * 1000)) {
+          auditsToGenerate.push(new Date(currentDate));
+          
+          // Calculate next occurrence based on pattern
+          switch (schedule.recurrence_pattern) {
+            case 'daily':
+              currentDate.setDate(currentDate.getDate() + 1);
+              break;
+            case 'weekly':
+              currentDate.setDate(currentDate.getDate() + 7);
+              break;
+            case 'monthly': {
+              currentDate.setMonth(currentDate.getMonth() + 1);
+              const targetDay = schedule.day_of_month || 1;
+              currentDate.setDate(Math.min(targetDay, new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()));
+              break;
+            }
+          }
         }
-
-        // Calculate start and end datetime
-        const [hours, minutes] = schedule.start_time.split(':').map(Number);
-        const scheduledStart = new Date(nextDate);
-        scheduledStart.setHours(hours, minutes, 0, 0);
         
-        const scheduledEnd = new Date(scheduledStart);
-        scheduledEnd.setHours(scheduledEnd.getHours() + schedule.duration_hours);
+        console.log(`Will generate ${auditsToGenerate.length} audits`);
 
-        // Check if audit already exists for this date
-        const { data: existingAudit } = await supabase
-          .from('location_audits')
-          .select('id')
-          .eq('location_id', schedule.location_id)
-          .eq('assigned_user_id', schedule.assigned_user_id)
-          .eq('audit_date', nextDate.toISOString().split('T')[0])
-          .eq('status', 'scheduled')
-          .maybeSingle();
+        // Create all scheduled audits
+        for (const auditDate of auditsToGenerate) {
 
-        if (existingAudit) {
-          console.log(`Audit already exists for ${nextDate.toISOString()}, skipping`);
-          continue;
+          // Calculate start and end datetime
+          const [hours, minutes] = schedule.start_time.split(':').map(Number);
+          const scheduledStart = new Date(auditDate);
+          scheduledStart.setHours(hours, minutes, 0, 0);
+          
+          const scheduledEnd = new Date(scheduledStart);
+          scheduledEnd.setHours(scheduledEnd.getHours() + schedule.duration_hours);
+
+          // Check if audit already exists for this date
+          const { data: existingAudit } = await supabase
+            .from('location_audits')
+            .select('id')
+            .eq('location_id', schedule.location_id)
+            .eq('assigned_user_id', schedule.assigned_user_id)
+            .eq('audit_date', auditDate.toISOString().split('T')[0])
+            .eq('status', 'scheduled')
+            .maybeSingle();
+
+          if (existingAudit) {
+            console.log(`Audit already exists for ${auditDate.toISOString()}, skipping`);
+            continue;
+          }
+
+          // Create the scheduled audit
+          const { data: newAudit, error: insertError } = await supabase
+            .from('location_audits')
+            .insert({
+              location_id: schedule.location_id,
+              location: schedule.locations.name,
+              template_id: schedule.template_id,
+              user_id: schedule.assigned_user_id,
+              assigned_user_id: schedule.assigned_user_id,
+              scheduled_start: scheduledStart.toISOString(),
+              scheduled_end: scheduledEnd.toISOString(),
+              audit_date: auditDate.toISOString().split('T')[0],
+              status: 'scheduled',
+              notes: `Auto-generated from recurring schedule: ${schedule.name}`,
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error(`Error creating audit for ${auditDate.toISOString()}:`, insertError);
+            continue;
+          }
+
+          console.log(`Created audit ${newAudit.id} for ${auditDate.toISOString()}`);
+          generatedCount++;
         }
 
-        // Create the scheduled audit
-        const { data: newAudit, error: insertError } = await supabase
-          .from('location_audits')
-          .insert({
-            location_id: schedule.location_id,
-            location: schedule.locations.name,
-            template_id: schedule.template_id,
-            user_id: schedule.assigned_user_id,
-            assigned_user_id: schedule.assigned_user_id,
-            scheduled_start: scheduledStart.toISOString(),
-            scheduled_end: scheduledEnd.toISOString(),
-            audit_date: nextDate.toISOString().split('T')[0],
-            status: 'scheduled',
-            notes: `Auto-generated from recurring schedule: ${schedule.name}`,
-          })
-          .select()
-          .single();
+        // Update last_generated_date to the last audit date we created
+        if (auditsToGenerate.length > 0) {
+          const lastAuditDate = auditsToGenerate[auditsToGenerate.length - 1];
+          const { error: updateError } = await supabase
+            .from('recurring_audit_schedules')
+            .update({ last_generated_date: lastAuditDate.toISOString().split('T')[0] })
+            .eq('id', schedule.id);
 
-        if (insertError) {
-          console.error(`Error creating audit for schedule ${schedule.name}:`, insertError);
-          continue;
+          if (updateError) {
+            console.error(`Error updating last_generated_date for schedule ${schedule.name}:`, updateError);
+          }
         }
-
-        console.log(`Created audit ${newAudit.id} for ${nextDate.toISOString()}`);
-
-        // Update last_generated_date
-        const { error: updateError } = await supabase
-          .from('recurring_audit_schedules')
-          .update({ last_generated_date: nextDate.toISOString().split('T')[0] })
-          .eq('id', schedule.id);
-
-        if (updateError) {
-          console.error(`Error updating last_generated_date for schedule ${schedule.name}:`, updateError);
-        }
-
-        generatedCount++;
       } catch (scheduleError) {
         console.error(`Error processing schedule ${schedule.name}:`, scheduleError);
       }
