@@ -332,6 +332,47 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          created_at: string
+          created_by: string
+          full_name: string
+          id: string
+          location_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          full_name: string
+          id?: string
+          location_id: string
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          full_name?: string
+          id?: string
+          location_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_audits: {
         Row: {
           assigned_user_id: string | null
@@ -804,6 +845,70 @@ export type Database = {
           },
           {
             foreignKeyName: "recurring_audit_schedules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_audits: {
+        Row: {
+          audit_date: string
+          auditor_id: string
+          created_at: string
+          custom_data: Json | null
+          employee_id: string
+          id: string
+          location_id: string
+          notes: string | null
+          score: number
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          audit_date?: string
+          auditor_id: string
+          created_at?: string
+          custom_data?: Json | null
+          employee_id: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          score: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audit_date?: string
+          auditor_id?: string
+          created_at?: string
+          custom_data?: Json | null
+          employee_id?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          score?: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_audits_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_audits_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "audit_templates"

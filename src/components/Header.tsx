@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -337,6 +337,22 @@ export const Header = () => {
                         </DropdownMenuItem>
                       </>
                     )}
+                    {(roleData?.isAdmin || roleData?.isManager) && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/employees" className="cursor-pointer min-h-[44px] flex items-center">
+                            <Users className="mr-2 h-4 w-4" />
+                            Employees
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
+                            <Award className="mr-2 h-4 w-4" />
+                            Staff Performance
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -603,6 +619,26 @@ export const Header = () => {
                     >
                       <User className="h-5 w-5" />
                       <span className="text-base font-medium">Users</span>
+                    </Link>
+                  </>
+                )}
+                {(roleData?.isAdmin || roleData?.isManager) && (
+                  <>
+                    <Link 
+                      to="/admin/employees" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Users className="h-5 w-5" />
+                      <span className="text-base font-medium">Employees</span>
+                    </Link>
+                    <Link 
+                      to="/staff-audits" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Award className="h-5 w-5" />
+                      <span className="text-base font-medium">Staff Performance</span>
                     </Link>
                   </>
                 )}
