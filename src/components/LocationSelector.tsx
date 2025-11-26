@@ -39,7 +39,7 @@ export const LocationSelector = ({
       </SelectTrigger>
       <SelectContent>
         {allowAll && (
-          <SelectItem value="">All Locations</SelectItem>
+          <SelectItem value="__all__">All Locations</SelectItem>
         )}
         {locations?.map((location) => (
           <SelectItem key={location.id} value={location.id}>
