@@ -24,7 +24,7 @@ import { CheckCircle2, Clock, FileText, Loader2, AlertTriangle } from "lucide-re
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
 const TakeTest = () => {
-  const { testId } = useParams();
+  const { testId, assignmentId } = useParams();
   const navigate = useNavigate();
   const [test, setTest] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -37,10 +37,57 @@ const TakeTest = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [isAssigned, setIsAssigned] = useState(false);
+  const [assignmentRecordId, setAssignmentRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTest();
-  }, [testId]);
+    if (assignmentId) {
+      checkAssignment();
+    }
+  }, [testId, assignmentId]);
+
+  const checkAssignment = async () => {
+    if (!assignmentId) return;
+    
+    try {
+      // Load assignment details using the assignment ID from URL
+      const { data: assignment, error } = await supabase
+        .from("test_assignments")
+        .select(`
+          id,
+          employee_id,
+          completed,
+          employees(
+            id,
+            full_name,
+            location_id,
+            locations(name)
+          )
+        `)
+        .eq("id", assignmentId)
+        .eq("test_id", testId)
+        .single();
+
+      if (error) throw error;
+
+      if (assignment && assignment.employees) {
+        setIsAssigned(true);
+        setAssignmentRecordId(assignment.id);
+        setEmployeeId(assignment.employees.id);
+        setStaffName(assignment.employees.full_name);
+        setStaffLocation(assignment.employees.locations?.name || "");
+        
+        if (assignment.completed) {
+          toast.info("This test has already been completed");
+        }
+      }
+    } catch (error) {
+      console.error("Error checking assignment:", error);
+      toast.error("Invalid assignment link");
+    }
+  };
 
   useEffect(() => {
     if (started && timeLeft > 0 && !submitting) {
@@ -124,12 +171,23 @@ const TakeTest = () => {
         test_id: testId,
         staff_name: staffName,
         staff_location: staffLocation,
+        employee_id: employeeId,
         answers: answers,
         score: percentageScore,
         passed,
         time_taken_minutes: Math.max(1, Math.round(timeTaken / 60)),
         completed_at: new Date().toISOString(),
       });
+
+      if (error) throw error;
+
+      // Mark assignment as completed if this was an assigned test
+      if (assignmentRecordId && isAssigned) {
+        await supabase
+          .from("test_assignments")
+          .update({ completed: true })
+          .eq("id", assignmentRecordId);
+      }
 
       if (error) throw error;
 
@@ -205,26 +263,60 @@ const TakeTest = () => {
           </div>
 
           <div className="space-y-4">
+            {isAssigned && (
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Assigned Test</p>
+                    <p className="text-sm text-muted-foreground">
+                      This test has been assigned to you. Your information is pre-filled.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <Label>Full Name *</Label>
               <Input
                 value={staffName}
                 onChange={(e) => setStaffName(e.target.value)}
                 placeholder="Enter your full name"
+                disabled={isAssigned}
+                className={isAssigned ? "bg-muted cursor-not-allowed" : ""}
               />
+              {isAssigned && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Name is locked for assigned tests
+                </p>
+              )}
             </div>
             <div>
               <Label>Location *</Label>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
+              <Input
                 value={staffLocation}
                 onChange={(e) => setStaffLocation(e.target.value)}
-              >
-                <option value="">Select your location</option>
-                {locations.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
+                placeholder="Your location"
+                disabled={isAssigned}
+                className={isAssigned ? "bg-muted cursor-not-allowed" : ""}
+              />
+              {!isAssigned && (
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 mt-2"
+                  value={staffLocation}
+                  onChange={(e) => setStaffLocation(e.target.value)}
+                >
+                  <option value="">Select your location</option>
+                  {locations.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              )}
+              {isAssigned && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Location is locked for assigned tests
+                </p>
+              )}
             </div>
             <Button onClick={handleStart} size="lg" className="w-full">
               Start Test
