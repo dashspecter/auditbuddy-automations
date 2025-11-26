@@ -9,9 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { LocationSelector } from "@/components/LocationSelector";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { EmployeePerformanceDetail } from "@/components/EmployeePerformanceDetail";
 
 export const StaffLeaderboard = () => {
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
+  const [selectedEmployee, setSelectedEmployee] = useState<{
+    id: string;
+    name: string;
+    role: string;
+  } | null>(null);
   const { data: audits } = useStaffAudits(
     undefined, 
     filterLocationId === "__all__" ? undefined : filterLocationId
@@ -183,7 +189,8 @@ export const StaffLeaderboard = () => {
               {locationGroup.employees.map((emp, index) => (
                 <div
                   key={emp.id}
-                  className="flex items-center justify-between p-4 ml-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  className="flex items-center justify-between p-4 ml-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => setSelectedEmployee({ id: emp.id, name: emp.name, role: emp.role })}
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 font-bold text-primary">
@@ -215,6 +222,14 @@ export const StaffLeaderboard = () => {
           ))
         )}
       </div>
+
+      <EmployeePerformanceDetail
+        employeeId={selectedEmployee?.id || null}
+        employeeName={selectedEmployee?.name || ""}
+        employeeRole={selectedEmployee?.role || ""}
+        open={!!selectedEmployee}
+        onOpenChange={(open) => !open && setSelectedEmployee(null)}
+      />
     </Card>
   );
 };
