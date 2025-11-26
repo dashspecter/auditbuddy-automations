@@ -38,6 +38,7 @@ interface TemplateBasic {
   id: string;
   name: string;
   description?: string;
+  location_id?: string | null;
 }
 
 interface AuditTemplate extends TemplateBasic {
@@ -79,8 +80,13 @@ const LocationAudit = () => {
   useEffect(() => {
     if (selectedTemplateId) {
       loadTemplateDetails(selectedTemplateId);
+      // Auto-fill location if template has a specific location
+      const template = templates.find(t => t.id === selectedTemplateId);
+      if (template?.location_id) {
+        setFormData(prev => ({ ...prev, location_id: template.location_id || '' }));
+      }
     }
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, templates]);
 
   const loadDraft = async (id: string) => {
     try {
@@ -115,7 +121,7 @@ const LocationAudit = () => {
     try {
       const { data, error } = await supabase
         .from('audit_templates')
-        .select('id, name, description')
+        .select('id, name, description, location_id')
         .eq('template_type', 'location')
         .eq('is_active', true)
         .order('name');
@@ -516,7 +522,13 @@ const LocationAudit = () => {
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
                   placeholder="Select location"
+                  disabled={!!templates.find(t => t.id === selectedTemplateId)?.location_id}
                 />
+                {templates.find(t => t.id === selectedTemplateId)?.location_id && (
+                  <p className="text-xs text-muted-foreground">
+                    This template is assigned to a specific location
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
