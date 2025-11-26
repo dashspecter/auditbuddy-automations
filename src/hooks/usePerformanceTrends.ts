@@ -113,23 +113,26 @@ export const usePerformanceTrends = (locationFilter?: string, dateFrom?: Date, d
   const locationPerformance = useMemo(() => {
     if (!audits) return [];
 
-    const locationMap = new Map<string, any[]>();
+    const locationMap = new Map<string, { id: string; name: string; audits: any[] }>();
     
     audits.forEach(audit => {
       if (audit.overall_score == null) return;
       
       const locationId = audit.location_id || 'unknown';
       const locationName = audit.locations?.name || audit.location || 'Unknown Location';
-      const key = `${locationId}-${locationName}`;
       
-      if (!locationMap.has(key)) {
-        locationMap.set(key, []);
+      if (!locationMap.has(locationId)) {
+        locationMap.set(locationId, {
+          id: locationId,
+          name: locationName,
+          audits: []
+        });
       }
-      locationMap.get(key)!.push(audit);
+      locationMap.get(locationId)!.audits.push(audit);
     });
 
-    return Array.from(locationMap.entries()).map(([key, locationAudits]) => {
-      const [locationId, locationName] = key.split('-');
+    return Array.from(locationMap.values()).map((locationData) => {
+      const { id: locationId, name: locationName, audits: locationAudits } = locationData;
       
       locationAudits.sort((a, b) => 
         new Date(a.audit_date).getTime() - new Date(b.audit_date).getTime()
