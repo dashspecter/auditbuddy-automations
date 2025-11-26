@@ -40,6 +40,8 @@ import LocationsManagement from "./pages/LocationsManagement";
 import AuditSummary from "./pages/AuditSummary";
 import AuditsCalendar from "./pages/AuditsCalendar";
 import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
+import EmployeeManagement from "./pages/EmployeeManagement";
+import StaffAudits from "./pages/StaffAudits";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,8 +92,10 @@ const App = () => (
             <Route path="/take-test/:testId" element={<TakeTest />} />
             <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
             <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
+            <Route path="/admin/employees" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
             <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
             <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
+            <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

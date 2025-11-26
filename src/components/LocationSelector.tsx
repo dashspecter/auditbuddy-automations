@@ -15,6 +15,7 @@ interface LocationSelectorProps {
   placeholder?: string;
   disabled?: boolean;
   locationCounts?: Record<string, number>;
+  allowAll?: boolean;
 }
 
 export const LocationSelector = ({
@@ -23,6 +24,7 @@ export const LocationSelector = ({
   placeholder = "Select location",
   disabled = false,
   locationCounts,
+  allowAll = false,
 }: LocationSelectorProps) => {
   const { data: locations, isLoading } = useLocations();
 
@@ -36,6 +38,9 @@ export const LocationSelector = ({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
+        {allowAll && (
+          <SelectItem value="">All Locations</SelectItem>
+        )}
         {locations?.map((location) => (
           <SelectItem key={location.id} value={location.id}>
             <div className="flex items-center justify-between w-full gap-2">
