@@ -1,8 +1,6 @@
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, TrendingUp, TrendingDown, ClipboardCheck, FileText, Settings, Bell, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, ClipboardCheck, RefreshCw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
 import { ComplianceChart } from "./ComplianceChart";
@@ -100,71 +98,9 @@ export const AdminDashboard = () => {
 
       <DashboardGreeting />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">User Management</h3>
-              <p className="text-sm text-muted-foreground">Manage user roles and permissions</p>
-            </div>
-          </div>
-          <Link to="/admin/users">
-            <Button variant="outline" className="w-full mt-4">
-              <Settings className="h-4 w-4 mr-2" />
-              Manage Users
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <Bell className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">Active Notifications</h3>
-              <p className="text-sm text-muted-foreground">{notificationsCount || 0} active notifications</p>
-            </div>
-          </div>
-          <Link to="/notifications">
-            <Button variant="outline" className="w-full mt-4">
-              <Bell className="h-4 w-4 mr-2" />
-              View Notifications
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-lg">
-              <ClipboardCheck className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">New Audit</h3>
-              <p className="text-sm text-muted-foreground">Create location audit</p>
-            </div>
-          </div>
-          <Link to="/location-audit">
-            <Button className="w-full mt-4">
-              <Plus className="h-4 w-4 mr-2" />
-              New Location Audit
-            </Button>
-          </Link>
-        </Card>
-      </div>
-
       <DraftAudits />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <StatsCard
-          title="Total Audits"
-          value={dashboardStats.isLoading ? "..." : dashboardStats.totalAudits.toString()}
-          icon={ClipboardCheck}
-          description="All audits"
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatsCard
           title="Completed"
           value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
