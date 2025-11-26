@@ -3,7 +3,7 @@ import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, Copy, Trash2 } from 'lucide-react';
+import { Plus, Settings, Copy, Trash2, X } from 'lucide-react';
 import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplates';
 import { Link } from 'react-router-dom';
 import { AdminOnly } from '@/components/AdminOnly';
@@ -34,6 +34,7 @@ import { Switch } from '@/components/ui/switch';
 import { useCreateTemplate } from '@/hooks/useTemplates';
 import { toast } from 'sonner';
 import { LocationMultiSelector } from '@/components/LocationMultiSelector';
+import { LocationSelector } from '@/components/LocationSelector';
 
 const AdminTemplates = () => {
   const { data: templates, isLoading } = useTemplates();
@@ -42,6 +43,7 @@ const AdminTemplates = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filterLocationId, setFilterLocationId] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -94,17 +96,36 @@ const AdminTemplates = () => {
     }
   };
 
+  // Filter templates based on selected location
+  const filteredTemplates = templates?.filter(template => {
+    if (!filterLocationId) return true;
+    
+    // Check if template is global (should not appear in location filter)
+    if (template.is_global) return false;
+    
+    // Check old location_id field
+    if (template.location_id === filterLocationId) return true;
+    
+    // Check new template_locations (if available)
+    if (template.template_locations) {
+      return template.template_locations.some((tl: any) => tl.location_id === filterLocationId);
+    }
+    
+    return false;
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Audit Templates</h1>
-              <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
-            </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Audit Templates</h1>
+                <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
+              </div>
             <div className="flex gap-2">
               <AdminOnly>
                 <Button variant="outline" className="gap-2" asChild>
@@ -209,6 +230,28 @@ const AdminTemplates = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+              </div>
+            </div>
+
+            {/* Location Filter */}
+            <div className="flex items-center gap-2">
+              <div className="w-64">
+                <LocationSelector
+                  value={filterLocationId}
+                  onValueChange={setFilterLocationId}
+                  placeholder="Filter by location"
+                />
+              </div>
+              {filterLocationId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setFilterLocationId('')}
+                  className="h-10 w-10"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -217,14 +260,19 @@ const AdminTemplates = () => {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
               <p className="text-muted-foreground">Loading templates...</p>
             </div>
-          ) : templates && templates.length === 0 ? (
+          ) : filteredTemplates && filteredTemplates.length === 0 && !filterLocationId ? (
             <Card className="p-12 text-center">
               <p className="text-muted-foreground mb-4">No templates created yet</p>
               <Button onClick={() => setIsCreateOpen(true)}>Create your first template</Button>
             </Card>
+          ) : filteredTemplates && filteredTemplates.length === 0 && filterLocationId ? (
+            <Card className="p-12 text-center">
+              <p className="text-muted-foreground mb-4">No templates found for this location</p>
+              <Button variant="outline" onClick={() => setFilterLocationId('')}>Clear filter</Button>
+            </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {templates?.map((template) => (
+              {filteredTemplates?.map((template) => (
                 <Card key={template.id} className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
