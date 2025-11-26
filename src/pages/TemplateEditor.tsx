@@ -130,7 +130,7 @@ const TemplateEditor = () => {
         is_active: true,
       });
       toast.success('Template saved to library successfully!');
-      navigate('/template-library');
+      navigate('/admin/template-library');
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error('Failed to save template to library');

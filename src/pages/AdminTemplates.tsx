@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Settings, Copy, Trash2, X } from 'lucide-react';
 import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplates';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AdminOnly } from '@/components/AdminOnly';
 import {
   Dialog,
@@ -37,6 +37,7 @@ import { LocationMultiSelector } from '@/components/LocationMultiSelector';
 import { LocationSelector } from '@/components/LocationSelector';
 
 const AdminTemplates = () => {
+  const navigate = useNavigate();
   const { data: templates, isLoading } = useTemplates();
   const createTemplate = useCreateTemplate();
   const deleteTemplate = useDeleteTemplate();
@@ -63,6 +64,7 @@ const AdminTemplates = () => {
         location_ids: formData.is_global ? [] : formData.location_ids,
       });
       toast.success('Template created successfully!');
+      navigate('/admin/template-library');
       setIsCreateOpen(false);
       setFormData({
         name: '',
@@ -206,8 +208,8 @@ const AdminTemplates = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="location">Operational Audit</SelectItem>
-                        <SelectItem value="staff">Staff Audit</SelectItem>
+                        <SelectItem value="location">Location Audit</SelectItem>
+                        <SelectItem value="staff">Staff Performance</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
