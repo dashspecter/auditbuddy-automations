@@ -199,6 +199,8 @@ const Reports = () => {
     doc.save(`audit-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success("PDF exported successfully");
   };
+
+  const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
     if (!audits) return;
 
     let filteredAudits: any[] = [];
