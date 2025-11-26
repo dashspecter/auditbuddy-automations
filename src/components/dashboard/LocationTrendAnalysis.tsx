@@ -4,9 +4,26 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useLocationTrends } from "@/hooks/useLocationTrends";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
+import { LocationPerformanceDetail } from "./LocationPerformanceDetail";
+import type { LocationPerformance } from "@/hooks/usePerformanceTrends";
 
 export const LocationTrendAnalysis = () => {
   const { locationTrends, isLoading } = useLocationTrends();
+  const { locationPerformance } = usePerformanceTrends();
+  const [selectedLocation, setSelectedLocation] = useState<LocationPerformance | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleLocationClick = (locationName: string) => {
+    const location = locationPerformance.find(
+      loc => loc.locationName === locationName
+    );
+    if (location) {
+      setSelectedLocation(location);
+      setDialogOpen(true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -69,66 +86,75 @@ export const LocationTrendAnalysis = () => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Location Performance Trends</h3>
-        <p className="text-sm text-muted-foreground">
-          Compare current scores to previous audits for each location
-        </p>
-      </div>
-      
-      <div className="space-y-4">
-        {locationTrends.map((trend) => (
-          <div
-            key={trend.location}
-            className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold">{trend.location}</h4>
-                  {getTrendBadge(trend.trend)}
+    <>
+      <Card className="p-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Location Performance Trends</h3>
+          <p className="text-sm text-muted-foreground">
+            Compare current scores to previous audits for each location
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          {locationTrends.map((trend) => (
+            <div
+              key={trend.location}
+              onClick={() => handleLocationClick(trend.location)}
+              className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold">{trend.location}</h4>
+                    {getTrendBadge(trend.trend)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {trend.auditCount} total audits • Latest: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {trend.auditCount} total audits • Latest: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
-                </p>
+                {getTrendIcon(trend.trend)}
               </div>
-              {getTrendIcon(trend.trend)}
-            </div>
 
-            <div className="grid grid-cols-3 gap-4 mt-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Current Score</p>
-                <p className="text-2xl font-bold">{trend.currentScore}%</p>
+              <div className="grid grid-cols-3 gap-4 mt-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Current Score</p>
+                  <p className="text-2xl font-bold">{trend.currentScore}%</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Previous Score</p>
+                  <p className="text-2xl font-bold text-muted-foreground">{trend.previousScore}%</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Change</p>
+                  <p className={`text-2xl font-bold ${getScoreDifferenceColor(trend.scoreDifference)}`}>
+                    {trend.scoreDifference > 0 ? '+' : ''}{trend.scoreDifference}%
+                  </p>
+                </div>
               </div>
-              
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Previous Score</p>
-                <p className="text-2xl font-bold text-muted-foreground">{trend.previousScore}%</p>
-              </div>
-              
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Change</p>
-                <p className={`text-2xl font-bold ${getScoreDifferenceColor(trend.scoreDifference)}`}>
-                  {trend.scoreDifference > 0 ? '+' : ''}{trend.scoreDifference}%
-                </p>
-              </div>
-            </div>
 
-            {trend.trend !== 'stable' && (
-              <div className="mt-3 pt-3 border-t">
-                <p className="text-xs text-muted-foreground">
-                  {trend.trend === 'improvement' ? '📈' : '📉'} 
-                  {' '}
-                  {Math.abs(trend.percentageChange).toFixed(1)}% 
-                  {trend.trend === 'improvement' ? ' improvement' : ' decline'} 
-                  {' '}since {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </Card>
+              {trend.trend !== 'stable' && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    {trend.trend === 'improvement' ? '📈' : '📉'} 
+                    {' '}
+                    {Math.abs(trend.percentageChange).toFixed(1)}% 
+                    {trend.trend === 'improvement' ? ' improvement' : ' decline'} 
+                    {' '}since {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <LocationPerformanceDetail
+        location={selectedLocation}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
+    </>
   );
 };
