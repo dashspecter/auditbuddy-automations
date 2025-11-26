@@ -10,6 +10,9 @@ export interface LocationAudit {
   audit_date: string;
   time_start?: string;
   time_end?: string;
+  scheduled_start?: string | null;
+  scheduled_end?: string | null;
+  assigned_user_id?: string | null;
   compliance_licenses?: number;
   compliance_permits?: number;
   compliance_signage?: number;

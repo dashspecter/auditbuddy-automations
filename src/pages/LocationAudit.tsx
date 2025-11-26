@@ -59,6 +59,7 @@ const LocationAudit = () => {
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId);
+  const [isScheduledAudit, setIsScheduledAudit] = useState(false);
   const [formData, setFormData] = useState({
     location_id: "",
     auditDate: new Date().toISOString().split('T')[0],
@@ -105,6 +106,10 @@ const LocationAudit = () => {
       if (error) throw error;
       
       if (data) {
+        // Check if this is a scheduled audit
+        const isScheduled = !!(data.scheduled_start);
+        setIsScheduledAudit(isScheduled);
+        
         setSelectedTemplateId(data.template_id || '');
         setFormData({
           location_id: data.location_id || '',
@@ -114,7 +119,12 @@ const LocationAudit = () => {
           notes: data.notes || '',
           customData: (data.custom_data as Record<string, any>) || {},
         });
-        toast.info('Draft loaded successfully');
+        
+        if (isScheduled) {
+          toast.info('Scheduled audit loaded - location is locked');
+        } else {
+          toast.info('Draft loaded successfully');
+        }
       }
     } catch (error) {
       console.error('Error loading draft:', error);
@@ -533,12 +543,26 @@ const LocationAudit = () => {
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
                   placeholder="Select location"
                   disabled={(() => {
+                    // Disable if this is a scheduled audit
+                    if (isScheduledAudit) return true;
+                    
+                    // Disable if template has a specific location
                     const template = templates.find(t => t.id === selectedTemplateId);
                     return !!template?.location_id || 
                            (template?.template_locations && template.template_locations.length === 1);
                   })()}
                 />
                 {(() => {
+                  // Show message if location is locked due to scheduling
+                  if (isScheduledAudit) {
+                    return (
+                      <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">
+                        🔒 Location is locked for scheduled audits
+                      </p>
+                    );
+                  }
+                  
+                  // Show message if location is locked due to template
                   const template = templates.find(t => t.id === selectedTemplateId);
                   const hasSpecificLocation = !!template?.location_id || 
                                              (template?.template_locations && template.template_locations.length === 1);
