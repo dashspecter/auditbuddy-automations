@@ -24,7 +24,7 @@ import { CheckCircle2, Clock, FileText, Loader2, AlertTriangle } from "lucide-re
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
 const TakeTest = () => {
-  const { testId, assignmentId } = useParams();
+  const { testId, shortCode } = useParams();
   const navigate = useNavigate();
   const [test, setTest] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -40,23 +40,26 @@ const TakeTest = () => {
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [isAssigned, setIsAssigned] = useState(false);
   const [assignmentRecordId, setAssignmentRecordId] = useState<string | null>(null);
+  const [actualTestId, setActualTestId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadTest();
-    if (assignmentId) {
+    if (shortCode) {
       checkAssignment();
+    } else if (testId) {
+      loadTest();
     }
-  }, [testId, assignmentId]);
+  }, [testId, shortCode]);
 
   const checkAssignment = async () => {
-    if (!assignmentId) return;
+    if (!shortCode) return;
     
     try {
-      // Load assignment details using the assignment ID from URL
+      // Load assignment details using the short code from URL
       const { data: assignment, error } = await supabase
         .from("test_assignments")
         .select(`
           id,
+          test_id,
           employee_id,
           completed,
           employees(
@@ -66,8 +69,7 @@ const TakeTest = () => {
             locations(name)
           )
         `)
-        .eq("id", assignmentId)
-        .eq("test_id", testId)
+        .eq("short_code", shortCode)
         .single();
 
       if (error) throw error;
@@ -78,14 +80,49 @@ const TakeTest = () => {
         setEmployeeId(assignment.employees.id);
         setStaffName(assignment.employees.full_name);
         setStaffLocation(assignment.employees.locations?.name || "");
+        setActualTestId(assignment.test_id);
         
         if (assignment.completed) {
           toast.info("This test has already been completed");
         }
+        
+        // Load the test using the test_id from the assignment
+        await loadTestById(assignment.test_id);
       }
     } catch (error) {
       console.error("Error checking assignment:", error);
       toast.error("Invalid assignment link");
+      setLoading(false);
+    }
+  };
+
+  const loadTestById = async (id: string) => {
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from("tests")
+        .select("*")
+        .eq("id", id)
+        .eq("is_active", true)
+        .single();
+
+      if (testError) throw testError;
+
+      const { data: questionsData, error: questionsError } = await supabase
+        .from("test_questions")
+        .select("*")
+        .eq("test_id", id)
+        .order("display_order");
+
+      if (questionsError) throw questionsError;
+
+      setTest(testData);
+      setQuestions(questionsData);
+      setTimeLeft(testData.time_limit_minutes * 60);
+    } catch (error) {
+      console.error("Error loading test:", error);
+      toast.error("Test not found or unavailable");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,33 +143,8 @@ const TakeTest = () => {
   }, [started, timeLeft, submitting]);
 
   const loadTest = async () => {
-    try {
-      const { data: testData, error: testError } = await supabase
-        .from("tests")
-        .select("*")
-        .eq("id", testId)
-        .eq("is_active", true)
-        .single();
-
-      if (testError) throw testError;
-
-      const { data: questionsData, error: questionsError } = await supabase
-        .from("test_questions")
-        .select("*")
-        .eq("test_id", testId)
-        .order("display_order");
-
-      if (questionsError) throw questionsError;
-
-      setTest(testData);
-      setQuestions(questionsData);
-      setTimeLeft(testData.time_limit_minutes * 60);
-    } catch (error) {
-      console.error("Error loading test:", error);
-      toast.error("Test not found or unavailable");
-    } finally {
-      setLoading(false);
-    }
+    if (!testId) return;
+    await loadTestById(testId);
   };
 
   const handleStart = () => {
@@ -168,7 +180,7 @@ const TakeTest = () => {
       const timeTaken = test.time_limit_minutes * 60 - timeLeft;
 
       const { error } = await supabase.from("test_submissions").insert({
-        test_id: testId,
+        test_id: actualTestId || testId,
         staff_name: staffName,
         staff_location: staffLocation,
         employee_id: employeeId,
@@ -198,7 +210,7 @@ const TakeTest = () => {
         : "Test submitted";
       
       toast.success(message);
-      navigate(`/test-result/${testId}/${percentageScore}/${passed}`);
+      navigate(`/test-result/${actualTestId || testId}/${percentageScore}/${passed}`);
     } catch (error) {
       console.error("Error submitting test:", error);
       toast.error("Failed to submit test");

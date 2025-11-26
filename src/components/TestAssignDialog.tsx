@@ -54,7 +54,7 @@ export const TestAssignDialog = ({ testId, testTitle, open, onOpenChange }: Test
       const employee = employees?.find(e => e.id === assignment.employee_id);
       return {
         employeeName: employee?.full_name || "Unknown",
-        link: `${window.location.origin}/take-test/${testId}/${assignment.id}`
+        link: `${window.location.origin}/t/${assignment.short_code}`
       };
     });
 

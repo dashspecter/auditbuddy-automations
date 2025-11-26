@@ -91,7 +91,7 @@ const App = () => (
             <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
             <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
             <Route path="/take-test/:testId" element={<TakeTest />} />
-            <Route path="/take-test/:testId/:assignmentId" element={<TakeTest />} />
+            <Route path="/t/:shortCode" element={<TakeTest />} />
             <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
             <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
             <Route path="/admin/employees" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
