@@ -96,6 +96,25 @@ const AdminTemplates = () => {
     }
   };
 
+  // Calculate template counts per location
+  const locationCounts = templates?.reduce((acc, template) => {
+    if (template.is_global) return acc;
+    
+    // Count from old location_id field
+    if (template.location_id) {
+      acc[template.location_id] = (acc[template.location_id] || 0) + 1;
+    }
+    
+    // Count from new template_locations
+    if (template.template_locations) {
+      template.template_locations.forEach((tl: any) => {
+        acc[tl.location_id] = (acc[tl.location_id] || 0) + 1;
+      });
+    }
+    
+    return acc;
+  }, {} as Record<string, number>);
+
   // Filter templates based on selected location
   const filteredTemplates = templates?.filter(template => {
     if (!filterLocationId) return true;
@@ -240,6 +259,7 @@ const AdminTemplates = () => {
                   value={filterLocationId}
                   onValueChange={setFilterLocationId}
                   placeholder="Filter by location"
+                  locationCounts={locationCounts}
                 />
               </div>
               {filterLocationId && (

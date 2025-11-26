@@ -7,12 +7,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface LocationSelectorProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  locationCounts?: Record<string, number>;
 }
 
 export const LocationSelector = ({
@@ -20,6 +22,7 @@ export const LocationSelector = ({
   onValueChange,
   placeholder = "Select location",
   disabled = false,
+  locationCounts,
 }: LocationSelectorProps) => {
   const { data: locations, isLoading } = useLocations();
 
@@ -35,8 +38,17 @@ export const LocationSelector = ({
       <SelectContent>
         {locations?.map((location) => (
           <SelectItem key={location.id} value={location.id}>
-            {location.name}
-            {location.city && ` - ${location.city}`}
+            <div className="flex items-center justify-between w-full gap-2">
+              <span>
+                {location.name}
+                {location.city && ` - ${location.city}`}
+              </span>
+              {locationCounts && locationCounts[location.id] !== undefined && (
+                <Badge variant="secondary" className="ml-auto">
+                  {locationCounts[location.id]}
+                </Badge>
+              )}
+            </div>
           </SelectItem>
         ))}
       </SelectContent>
