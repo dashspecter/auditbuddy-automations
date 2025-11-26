@@ -90,10 +90,8 @@ export const useLocationTrends = () => {
       }
     });
 
-    // Sort by most recent audit date
-    return trends.sort((a, b) => 
-      new Date(b.currentAuditDate).getTime() - new Date(a.currentAuditDate).getTime()
-    );
+    // Sort by current score (worst first, best last)
+    return trends.sort((a, b) => a.currentScore - b.currentScore);
   }, [audits]);
 
   return {
