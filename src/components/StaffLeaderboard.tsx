@@ -10,6 +10,8 @@ import { LocationSelector } from "@/components/LocationSelector";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { EmployeePerformanceDetail } from "@/components/EmployeePerformanceDetail";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export const StaffLeaderboard = () => {
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
@@ -26,6 +28,22 @@ export const StaffLeaderboard = () => {
     filterLocationId === "__all__" ? undefined : filterLocationId
   );
 
+  // Fetch all test submissions
+  const { data: testSubmissions } = useQuery({
+    queryKey: ["all-test-submissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("test_submissions")
+        .select("id, employee_id, score, completed_at")
+        .not("employee_id", "is", null)
+        .not("score", "is", null)
+        .order("completed_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const leaderboardData = useMemo(() => {
     if (!audits || !employees) return [];
 
@@ -36,16 +54,28 @@ export const StaffLeaderboard = () => {
       .filter(e => e.status === "active")
       .forEach((employee) => {
         const locationName = employee.locations?.name || "Unknown";
+        
+        // Get employee's staff audits
         const employeeAudits = audits
           .filter((a) => a.employee_id === employee.id)
           .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime())
+          .map(a => ({ score: a.score, date: new Date(a.audit_date) }));
+
+        // Get employee's test submissions
+        const employeeTests = (testSubmissions || [])
+          .filter((t) => t.employee_id === employee.id)
+          .map(t => ({ score: t.score!, date: new Date(t.completed_at!) }));
+
+        // Combine and sort all scores by date
+        const allScores = [...employeeAudits, ...employeeTests]
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
           .slice(0, 5);
 
-        if (employeeAudits.length === 0) {
+        if (allScores.length === 0) {
           return;
         }
 
-        const scores = employeeAudits.map((a) => a.score);
+        const scores = allScores.map((s) => s.score);
         const average = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 
         // Calculate trend
@@ -65,7 +95,7 @@ export const StaffLeaderboard = () => {
           location: locationName,
           average,
           trend,
-          auditCount: employeeAudits.length,
+          auditCount: allScores.length,
         };
 
         if (!locationGroups.has(locationName)) {
@@ -90,7 +120,7 @@ export const StaffLeaderboard = () => {
     locationArray.sort((a, b) => b.locationAvg - a.locationAvg);
 
     return locationArray;
-  }, [audits, employees]);
+  }, [audits, employees, testSubmissions]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -149,7 +179,7 @@ export const StaffLeaderboard = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold">Staff Leaderboard</h2>
-          <p className="text-muted-foreground mt-1">Rankings based on last 5 audits</p>
+          <p className="text-muted-foreground mt-1">Rankings based on last 5 performance records (audits & tests)</p>
         </div>
         <Button onClick={generatePDF} variant="outline">
           <Download className="mr-2 h-4 w-4" />
