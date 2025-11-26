@@ -9,10 +9,12 @@ export interface AuditTemplate {
   template_type: 'location' | 'staff';
   is_global: boolean;
   location?: string;
+  location_id?: string;
   created_by: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  template_locations?: { location_id: string }[];
 }
 
 export interface AuditSection {
@@ -43,7 +45,7 @@ export const useTemplates = (type?: 'location' | 'staff') => {
     queryFn: async () => {
       let query = supabase
         .from('audit_templates')
-        .select('*')
+        .select('*, template_locations(location_id)')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
