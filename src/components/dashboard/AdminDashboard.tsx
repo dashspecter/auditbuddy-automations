@@ -100,7 +100,8 @@ export const AdminDashboard = () => {
 
       <DraftAudits />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <RecentAudits />
         <StatsCard
           title="Completed"
           value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
@@ -135,10 +136,6 @@ export const AdminDashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart />
-        <RecentAudits />
-      </div>
-
-      <div className="w-full">
         <ComplianceChart />
       </div>
 
