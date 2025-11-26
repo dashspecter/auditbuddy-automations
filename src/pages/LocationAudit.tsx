@@ -328,10 +328,22 @@ const LocationAudit = () => {
     }
 
     try {
+      // Get location name if location_id is provided
+      let locationName = '';
+      if (formData.location_id) {
+        const { data: locationData } = await supabase
+          .from('locations')
+          .select('name')
+          .eq('id', formData.location_id)
+          .single();
+        
+        locationName = locationData?.name || 'Unknown Location';
+      }
+
       const auditData = {
         user_id: user.id,
         location_id: formData.location_id || null,
-        location: formData.location_id ? null : '', // Keep for backward compatibility during migration
+        location: locationName,
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
         time_end: formData.timeEnd || null,
@@ -409,10 +421,22 @@ const LocationAudit = () => {
       const COMPLIANCE_THRESHOLD = 80;
       const status = overallScore >= COMPLIANCE_THRESHOLD ? 'compliant' : 'non-compliant';
 
+      // Get location name if location_id is provided
+      let locationName = '';
+      if (formData.location_id) {
+        const { data: locationData } = await supabase
+          .from('locations')
+          .select('name')
+          .eq('id', formData.location_id)
+          .single();
+        
+        locationName = locationData?.name || 'Unknown Location';
+      }
+
       const auditData = {
         user_id: user.id,
         location_id: formData.location_id || null,
-        location: formData.location_id ? null : '', // Keep for backward compatibility during migration
+        location: locationName,
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
         time_end: formData.timeEnd || null,
