@@ -149,27 +149,24 @@ const AdminTemplates = () => {
               </div>
             <div className="flex flex-wrap gap-2">
               <AdminOnly>
-                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                   <Link to="/admin/users">
                     <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">User Management</span>
-                    <span className="sm:hidden">Users</span>
+                    <span className="hidden sm:inline">Users</span>
                   </Link>
                 </Button>
               </AdminOnly>
-              <Button variant="outline" size="sm" className="gap-1.5" asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                 <Link to="/admin/template-library">
                   <Copy className="h-4 w-4" />
-                  <span className="hidden sm:inline">Template Library</span>
-                  <span className="sm:hidden">Library</span>
+                  <span className="hidden sm:inline">Library</span>
                 </Link>
               </Button>
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5">
+                  <Button size="sm" className="gap-1.5 px-2 sm:px-3">
                     <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">New Template</span>
-                    <span className="sm:hidden">New</span>
+                    <span className="hidden sm:inline">New</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>

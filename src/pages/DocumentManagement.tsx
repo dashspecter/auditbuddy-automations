@@ -170,9 +170,9 @@ const DocumentManagement = () => {
             <div className="flex flex-wrap gap-2">
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Category
+                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Category</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -203,9 +203,9 @@ const DocumentManagement = () => {
 
               <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Document
+                  <Button size="sm" className="gap-1.5 px-2 sm:px-3">
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Upload</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
