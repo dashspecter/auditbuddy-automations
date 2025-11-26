@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
 import { subWeeks, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
@@ -52,7 +52,7 @@ export const ComplianceChart = () => {
     return (
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Compliance Trends</h3>
-        <div className="flex items-center justify-center h-[300px]">
+        <div className="flex items-center justify-center h-[200px]">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </Card>
@@ -62,16 +62,16 @@ export const ComplianceChart = () => {
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Compliance Trends</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={weeklyData}>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={weeklyData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="compliant" fill="hsl(var(--success))" name="Compliant" />
-          <Bar dataKey="nonCompliant" fill="hsl(var(--destructive))" name="Non-Compliant" />
-        </BarChart>
+          <Line type="monotone" dataKey="compliant" stroke="hsl(var(--success))" strokeWidth={2} name="Compliant" />
+          <Line type="monotone" dataKey="nonCompliant" stroke="hsl(var(--destructive))" strokeWidth={2} name="Non-Compliant" />
+        </LineChart>
       </ResponsiveContainer>
     </Card>
   );
