@@ -138,7 +138,27 @@ export const TestAssignDialog = ({ testId, testTitle, open, onOpenChange }: Test
 
             {selectedLocation && employees && (
               <div>
-                <Label className="mb-2 block">Select Employees</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Select Employees ({selectedEmployees.size} selected)</Label>
+                  {employees.filter(e => e.status === "active").length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const activeEmployees = employees.filter(e => e.status === "active");
+                        if (selectedEmployees.size === activeEmployees.length) {
+                          setSelectedEmployees(new Set());
+                        } else {
+                          setSelectedEmployees(new Set(activeEmployees.map(e => e.id)));
+                        }
+                      }}
+                    >
+                      {selectedEmployees.size === employees.filter(e => e.status === "active").length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                  )}
+                </div>
                 <ScrollArea className="h-[300px] rounded-md border p-4">
                   <div className="space-y-2">
                     {employees.filter(e => e.status === "active").map((employee) => (
