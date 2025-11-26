@@ -27,6 +27,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
+import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -476,8 +477,11 @@ const Reports = () => {
           {/* Compliance Trends Chart */}
           <ComplianceChart />
 
-          {/* Employee Performance Chart */}
-          <EmployeePerformanceChart />
+          {/* Employee Performance and Leaderboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EmployeePerformanceChart />
+            <EmployeeLeaderboard />
+          </div>
 
           {/* Per Location Pie Charts */}
           {reportData.length > 0 && (
