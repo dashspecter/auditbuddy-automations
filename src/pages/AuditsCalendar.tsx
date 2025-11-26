@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Calendar, momentLocalizer, View, SlotInfo } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -11,7 +11,7 @@ import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon, Play } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -51,6 +52,8 @@ const AuditsCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showRegeneratePrompt, setShowRegeneratePrompt] = useState(false);
+  const [dismissedPrompt, setDismissedPrompt] = useState(false);
 
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
@@ -150,6 +153,38 @@ const AuditsCalendar = () => {
     return isAdminOrManager || selectedEvent.resource.isOwnAudit;
   }, [selectedEvent, isAdminOrManager]);
 
+  // Check if we need to regenerate audits (when furthest audit is within 2 weeks)
+  useEffect(() => {
+    if (!audits || audits.length === 0 || !isAdminOrManager || dismissedPrompt) {
+      setShowRegeneratePrompt(false);
+      return;
+    }
+
+    const now = new Date();
+    const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    // Find the furthest scheduled audit
+    const futureAudits = audits.filter(audit => 
+      new Date(audit.scheduled_start) > now
+    );
+    
+    if (futureAudits.length === 0) {
+      setShowRegeneratePrompt(true);
+      return;
+    }
+
+    const furthestAudit = futureAudits.reduce((latest, audit) => {
+      const auditDate = new Date(audit.scheduled_start);
+      const latestDate = new Date(latest.scheduled_start);
+      return auditDate > latestDate ? audit : latest;
+    });
+
+    const furthestDate = new Date(furthestAudit.scheduled_start);
+    
+    // Show prompt if furthest audit is within 2 weeks
+    setShowRegeneratePrompt(furthestDate <= twoWeeksFromNow);
+  }, [audits, isAdminOrManager, dismissedPrompt]);
+
   const handleGenerateAudits = async () => {
     setIsGenerating(true);
     try {
@@ -176,6 +211,7 @@ const AuditsCalendar = () => {
       
       if (response.ok) {
         toast.success(result.message || 'Audits generated successfully');
+        setDismissedPrompt(false); // Reset dismissed state after successful generation
       } else {
         toast.error(result.error || 'Failed to generate audits');
       }
@@ -226,6 +262,36 @@ const AuditsCalendar = () => {
             </div>
           )}
         </div>
+
+        {showRegeneratePrompt && isAdminOrManager && (
+          <Alert className="mb-6 border-primary/50 bg-primary/5">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <AlertTitle className="flex items-center justify-between">
+              <span>Time to Regenerate Audits</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setDismissedPrompt(true)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </AlertTitle>
+            <AlertDescription className="mt-2 flex items-center justify-between">
+              <span className="text-sm">
+                You're running low on scheduled audits for the next period. Would you like to generate audits for the next 8 weeks?
+              </span>
+              <Button
+                onClick={handleGenerateAudits}
+                disabled={isGenerating}
+                className="ml-4"
+                size="sm"
+              >
+                {isGenerating ? 'Generating...' : 'Generate Now'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="p-6">
           <div className="mb-4 flex gap-4 flex-wrap">
