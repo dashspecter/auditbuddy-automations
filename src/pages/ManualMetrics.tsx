@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, TrendingUp, MapPin, Globe } from "lucide-react";
+import { Plus, TrendingUp, MapPin } from "lucide-react";
 import { useCreateManualMetric, useManualMetrics, useMetricNames } from "@/hooks/useManualMetrics";
 import { useLocations } from "@/hooks/useLocations";
 import { LocationSelector } from "@/components/LocationSelector";
@@ -22,7 +22,6 @@ export default function ManualMetrics() {
   const [locationId, setLocationId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [selectedMetricForChart, setSelectedMetricForChart] = useState<string>("");
-  const [chartLocationId, setChartLocationId] = useState<string>("__all__");
 
   const createMetric = useCreateManualMetric();
   const { data: allMetrics } = useManualMetrics();
@@ -79,27 +78,26 @@ export default function ManualMetrics() {
       .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
   };
 
-  // Location-based chart data
-  const getLocationChartData = (metricName: string) => {
+  // Get locations that have data for this metric
+  const getLocationsWithData = (metricName: string) => {
     if (!allMetrics || !locations) return [];
 
-    const locationData = locations.map(location => {
-      const locationMetrics = allMetrics.filter(
-        m => m.metric_name === metricName && m.location_id === location.id
-      );
-      
-      if (locationMetrics.length === 0) return null;
-      
-      const average = locationMetrics.reduce((sum, m) => sum + m.metric_value, 0) / locationMetrics.length;
-      
-      return {
-        location: location.name,
-        value: Math.round(average * 100) / 100,
-        count: locationMetrics.length,
-      };
-    }).filter(Boolean);
-
-    return locationData;
+    return locations
+      .map(location => {
+        const locationMetrics = allMetrics.filter(
+          m => m.metric_name === metricName && m.location_id === location.id
+        );
+        
+        if (locationMetrics.length === 0) return null;
+        
+        return {
+          id: location.id,
+          name: location.name,
+          chartData: getChartData(metricName, location.id),
+          count: locationMetrics.length,
+        };
+      })
+      .filter(Boolean);
   };
 
   return (
@@ -245,82 +243,57 @@ export default function ManualMetrics() {
             </div>
 
             {selectedMetricForChart && (
-              <Tabs defaultValue="global" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-md">
-                  <TabsTrigger value="global" className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Global Trend
-                  </TabsTrigger>
-                  <TabsTrigger value="location" className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    By Location
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="global" className="space-y-4">
-                  <div className="mb-4">
-                    <Label>Filter by Location</Label>
-                    <LocationSelector
-                      value={chartLocationId}
-                      onValueChange={setChartLocationId}
-                      placeholder="All Locations"
-                      allowAll
-                    />
-                  </div>
-                  
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={getChartData(selectedMetricForChart, chartLocationId)}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis 
-                        dataKey="date" 
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--background))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelFormatter={(label) => {
-                          const item = getChartData(selectedMetricForChart, chartLocationId).find(d => d.date === label);
-                          return item?.fullDate || label;
-                        }}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        name={selectedMetricForChart}
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ fill: 'hsl(var(--primary))', r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </TabsContent>
-
-                <TabsContent value="location">
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {getLocationChartData(selectedMetricForChart).map((loc: any) => (
-                      <Card key={loc.location} className="p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-primary" />
-                          <h3 className="font-semibold">{loc.location}</h3>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-bold">{loc.value}</span>
-                          <span className="text-sm text-muted-foreground">avg</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Based on {loc.count} {loc.count === 1 ? 'entry' : 'entries'}
-                        </p>
-                      </Card>
-                    ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-6">
+                {getLocationsWithData(selectedMetricForChart).map((location: any) => (
+                  <Card key={location.id} className="p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-semibold">{location.name}</h3>
+                      <Badge variant="outline" className="ml-auto">
+                        {location.count} {location.count === 1 ? 'entry' : 'entries'}
+                      </Badge>
+                    </div>
+                    
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={location.chartData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                          labelFormatter={(label) => {
+                            const item = location.chartData.find((d: any) => d.date === label);
+                            return item?.fullDate || label;
+                          }}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          name={selectedMetricForChart}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Card>
+                ))}
+                
+                {getLocationsWithData(selectedMetricForChart).length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No location data available for this metric
+                  </p>
+                )}
+              </div>
             )}
           </Card>
         )}
