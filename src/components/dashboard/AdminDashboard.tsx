@@ -8,6 +8,7 @@ import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
+import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -134,6 +135,7 @@ export const AdminDashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart />
+        <LocationPerformanceChart />
       </div>
 
       <div className="w-full">
