@@ -10,13 +10,12 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  optimizeDeps: {
+    exclude: ['@capacitor/camera', '@capacitor/core', '@capacitor/status-bar']
+  },
   build: {
-    rollupOptions: {
-      external: [
-        '@capacitor/camera',
-        '@capacitor/core',
-        '@capacitor/status-bar'
-      ]
+    commonjsOptions: {
+      transformMixedEsModules: true,
     }
   },
   plugins: [
