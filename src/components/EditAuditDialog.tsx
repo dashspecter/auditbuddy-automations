@@ -314,7 +314,13 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
               <LocationSelector
                 value={formData.location_id}
                 onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                disabled={!!(audit.scheduled_start)}
               />
+              {audit.scheduled_start && (
+                <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">
+                  🔒 Location is locked for scheduled audits
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
