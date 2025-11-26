@@ -1,0 +1,96 @@
+/* react-big-calendar custom styles */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 10px 6px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.rbc-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.rbc-event {
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.rbc-event-label {
+  font-size: 80%;
+  font-weight: 500;
+}
+
+.rbc-off-range {
+  color: hsl(var(--muted-foreground));
+}
+
+.rbc-off-range-bg {
+  background: hsl(var(--muted) / 0.3);
+}
+
+.rbc-toolbar {
+  padding: 10px 15px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.rbc-toolbar button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rbc-toolbar button:hover {
+  background: hsl(var(--muted));
+}
+
+.rbc-toolbar button.rbc-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  overflow: hidden;
+  background: hsl(var(--card));
+}
+
+.rbc-time-slot {
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid hsl(var(--border) / 0.3);
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid hsl(var(--border));
+}
+
+.rbc-current-time-indicator {
+  background-color: hsl(var(--destructive));
+  height: 2px;
+}
+
+.rbc-allday-cell {
+  background: hsl(var(--muted) / 0.5);
+}
