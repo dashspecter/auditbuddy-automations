@@ -22,13 +22,13 @@ export default function StaffAudits() {
           </div>
           <Button onClick={() => setShowForm(!showForm)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Staff Audit
+            New Staff Performance
           </Button>
         </div>
 
         {showForm && (
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Submit Staff Audit</h2>
+            <h2 className="text-xl font-semibold mb-4">Submit Staff Performance Audit</h2>
             <StaffAuditForm onSuccess={() => setShowForm(false)} />
           </Card>
         )}

@@ -119,7 +119,7 @@ const Audits = () => {
               <Link to="/staff-audits">
                 <Button variant="secondary" className="gap-2 min-h-[48px]">
                   <Plus className="h-4 w-4" />
-                  New Staff Audit
+                  New Staff Performance
                 </Button>
               </Link>
             </div>
@@ -143,7 +143,7 @@ const Audits = () => {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="location">Location</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="staff">Staff Performance</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
