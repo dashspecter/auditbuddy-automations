@@ -160,7 +160,7 @@ export const usePerformanceTrends = (locationFilter?: string, dateFrom?: Date, d
       locationAudits.forEach(audit => {
         Object.keys(SECTION_MAPPINGS).forEach(key => {
           const score = audit[key as keyof typeof audit];
-          if (typeof score === 'number') {
+          if (typeof score === 'number' && score !== null) {
             sectionScores[key].push(score * 20);
           }
         });
@@ -185,14 +185,25 @@ export const usePerformanceTrends = (locationFilter?: string, dateFrom?: Date, d
             else sectionTrend = diff > 0 ? 'improving' : 'declining';
           }
 
+          // Build data points matching the scores array
+          const dataPoints: Array<{ date: string; score: number }> = [];
+          let scoreIndex = 0;
+          locationAudits.forEach((audit) => {
+            const score = audit[key as keyof typeof audit];
+            if (typeof score === 'number' && score !== null) {
+              dataPoints.push({
+                date: audit.audit_date,
+                score: Math.round(scores[scoreIndex])
+              });
+              scoreIndex++;
+            }
+          });
+
           return {
             sectionName: name,
             avgScore: Math.round(avgSectionScore),
             trend: sectionTrend,
-            dataPoints: locationAudits.map((audit, i) => ({
-              date: audit.audit_date,
-              score: Math.round(scores[i] || 0)
-            }))
+            dataPoints
           };
         })
         .filter(Boolean) as SectionPerformance[];

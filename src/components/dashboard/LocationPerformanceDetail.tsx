@@ -165,18 +165,24 @@ export const LocationPerformanceDetail = ({
           {/* Section Breakdown */}
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Section Performance Breakdown</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {location.sections.map((section) => (
-                <div key={section.sectionName} className="p-4 border border-border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium">{section.sectionName}</h4>
-                    {getTrendIcon(section.trend)}
+            {location.sections.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No section data available</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {location.sections.map((section) => (
+                  <div key={section.sectionName} className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">{section.sectionName}</h4>
+                      {getTrendIcon(section.trend)}
+                    </div>
+                    <p className="text-2xl font-bold">{section.avgScore}%</p>
+                    <p className="text-xs text-muted-foreground mt-1 capitalize">{section.trend}</p>
                   </div>
-                  <p className="text-2xl font-bold">{section.avgScore}%</p>
-                  <p className="text-xs text-muted-foreground mt-1 capitalize">{section.trend}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </DialogContent>
