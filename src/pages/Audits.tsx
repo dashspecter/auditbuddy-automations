@@ -111,9 +111,15 @@ const Audits = () => {
             </div>
             <div className="flex gap-2">
               <Link to="/location-audit">
-                <Button className="gap-2 min-h-[48px]">
+                <Button variant="default" className="gap-2 min-h-[48px]">
                   <Plus className="h-4 w-4" />
                   New Location Audit
+                </Button>
+              </Link>
+              <Link to="/staff-audits">
+                <Button variant="secondary" className="gap-2 min-h-[48px]">
+                  <Plus className="h-4 w-4" />
+                  New Staff Audit
                 </Button>
               </Link>
             </div>
