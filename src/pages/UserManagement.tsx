@@ -281,6 +281,13 @@ export default function UserManagement() {
                       setInviteRole('checker');
                       queryClient.invalidateQueries({ queryKey: ['all_users'] });
                     } catch (error: any) {
+                      // Close dialog and refresh list so user can see existing users
+                      setInviteDialogOpen(false);
+                      setInviteEmail("");
+                      setInvitePassword("");
+                      setInviteRole('checker');
+                      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+                      
                       toast({
                         title: "Error",
                         description: error.message,

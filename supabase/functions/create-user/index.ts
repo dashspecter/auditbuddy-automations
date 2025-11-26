@@ -81,7 +81,13 @@ serve(async (req) => {
 
     if (createError) throw createError;
 
-    // Add role to user_roles table
+    // Remove the default 'checker' role added by the trigger
+    await supabaseAdmin
+      .from('user_roles')
+      .delete()
+      .eq('user_id', newUser.user.id);
+
+    // Add the specified role to user_roles table
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
