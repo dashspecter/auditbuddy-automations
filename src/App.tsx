@@ -43,6 +43,7 @@ import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import StaffAudits from "./pages/StaffAudits";
 import StaffAuditNew from "./pages/StaffAuditNew";
+import ManualMetrics from "./pages/ManualMetrics";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
             <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
             <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
+            <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
