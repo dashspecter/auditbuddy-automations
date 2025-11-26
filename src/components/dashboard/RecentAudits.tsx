@@ -11,10 +11,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { SwipeableListItem } from "@/components/SwipeableListItem";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const RecentAudits = () => {
   const { data: locationAudits, isLoading: locationLoading } = useLocationAudits();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const now = new Date();
   const weekStart = startOfWeek(now);
@@ -56,44 +62,72 @@ export const RecentAudits = () => {
               </div>
             ) : (
               thisWeekAudits.map((audit) => (
-                <Link
+                <SwipeableListItem
                   key={audit.id}
-                  to={`/audits/${audit.id}`}
-                  onClick={() => setDialogOpen(false)}
-                  className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors block"
+                  onDelete={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('location_audits')
+                        .delete()
+                        .eq('id', audit.id);
+
+                      if (error) throw error;
+
+                      toast({
+                        title: "Audit deleted",
+                        description: "The audit has been successfully deleted.",
+                      });
+                      
+                      await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+                    } catch (error) {
+                      console.error('Error deleting audit:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to delete audit.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="rounded-lg"
                 >
-                  <div className="space-y-1">
-                    <p className="font-medium text-foreground">{audit.location}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {audit.overall_score !== null && audit.overall_score !== undefined && (
-                      <span className="text-lg font-bold text-foreground">
-                        {audit.overall_score}%
-                      </span>
-                    )}
-                    {audit.status === "compliant" && (
-                      <Badge className="bg-success text-success-foreground gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Compliant
-                      </Badge>
-                    )}
-                    {audit.status === "non-compliant" && (
-                      <Badge variant="destructive" className="gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Issues Found
-                      </Badge>
-                    )}
-                    {audit.status === "pending" && (
-                      <Badge variant="outline" className="gap-1">
-                        <Clock className="h-3 w-3" />
-                        Pending
-                      </Badge>
-                    )}
-                  </div>
-                </Link>
+                  <Link
+                    to={`/audits/${audit.id}`}
+                    onClick={() => setDialogOpen(false)}
+                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors block"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium text-foreground">{audit.location}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {audit.overall_score !== null && audit.overall_score !== undefined && (
+                        <span className="text-lg font-bold text-foreground">
+                          {audit.overall_score}%
+                        </span>
+                      )}
+                      {audit.status === "compliant" && (
+                        <Badge className="bg-success text-success-foreground gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Compliant
+                        </Badge>
+                      )}
+                      {audit.status === "non-compliant" && (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Issues Found
+                        </Badge>
+                      )}
+                      {audit.status === "pending" && (
+                        <Badge variant="outline" className="gap-1">
+                          <Clock className="h-3 w-3" />
+                          Pending
+                        </Badge>
+                      )}
+                    </div>
+                  </Link>
+                </SwipeableListItem>
               ))
             )}
           </div>
