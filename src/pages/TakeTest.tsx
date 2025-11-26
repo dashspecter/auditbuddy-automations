@@ -53,6 +53,8 @@ const TakeTest = () => {
   const checkAssignment = async () => {
     if (!shortCode) return;
     
+    console.log("Checking assignment with short code:", shortCode);
+    
     try {
       // Load assignment details using the short code from URL
       const { data: assignment, error } = await supabase
@@ -62,6 +64,7 @@ const TakeTest = () => {
           test_id,
           employee_id,
           completed,
+          short_code,
           employees(
             id,
             full_name,
@@ -70,11 +73,22 @@ const TakeTest = () => {
           )
         `)
         .eq("short_code", shortCode)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      console.log("Assignment query result:", { assignment, error });
 
-      if (assignment && assignment.employees) {
+      if (error) {
+        console.error("Assignment query error:", error);
+        throw error;
+      }
+
+      if (!assignment) {
+        toast.error("Invalid or expired assignment link");
+        setLoading(false);
+        return;
+      }
+
+      if (assignment.employees) {
         setIsAssigned(true);
         setAssignmentRecordId(assignment.id);
         setEmployeeId(assignment.employees.id);
@@ -86,26 +100,42 @@ const TakeTest = () => {
           toast.info("This test has already been completed");
         }
         
+        console.log("Loading test with ID:", assignment.test_id);
         // Load the test using the test_id from the assignment
         await loadTestById(assignment.test_id);
+      } else {
+        toast.error("Employee information not found");
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error checking assignment:", error);
-      toast.error("Invalid assignment link");
+      toast.error("Failed to load assignment: " + (error as Error).message);
       setLoading(false);
     }
   };
 
   const loadTestById = async (id: string) => {
+    console.log("Loading test by ID:", id);
     try {
       const { data: testData, error: testError } = await supabase
         .from("tests")
         .select("*")
         .eq("id", id)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
 
-      if (testError) throw testError;
+      console.log("Test query result:", { testData, testError });
+
+      if (testError) {
+        console.error("Test query error:", testError);
+        throw testError;
+      }
+
+      if (!testData) {
+        toast.error("Test not found or inactive");
+        setLoading(false);
+        return;
+      }
 
       const { data: questionsData, error: questionsError } = await supabase
         .from("test_questions")
@@ -113,14 +143,19 @@ const TakeTest = () => {
         .eq("test_id", id)
         .order("display_order");
 
-      if (questionsError) throw questionsError;
+      console.log("Questions query result:", { questionsData, questionsError });
+
+      if (questionsError) {
+        console.error("Questions query error:", questionsError);
+        throw questionsError;
+      }
 
       setTest(testData);
-      setQuestions(questionsData);
+      setQuestions(questionsData || []);
       setTimeLeft(testData.time_limit_minutes * 60);
     } catch (error) {
       console.error("Error loading test:", error);
-      toast.error("Test not found or unavailable");
+      toast.error("Failed to load test: " + (error as Error).message);
     } finally {
       setLoading(false);
     }
