@@ -11,7 +11,7 @@ import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -20,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const localizer = momentLocalizer(moment);
 
@@ -48,6 +50,7 @@ const AuditsCalendar = () => {
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
@@ -147,6 +150,43 @@ const AuditsCalendar = () => {
     return isAdminOrManager || selectedEvent.resource.isOwnAudit;
   }, [selectedEvent, isAdminOrManager]);
 
+  const handleGenerateAudits = async () => {
+    setIsGenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('You must be logged in to generate audits');
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-recurring-audits`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Audits generated successfully');
+      } else {
+        toast.error(result.error || 'Failed to generate audits');
+      }
+    } catch (error) {
+      console.error('Error generating audits:', error);
+      toast.error('Failed to generate audits');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -170,10 +210,20 @@ const AuditsCalendar = () => {
           </div>
           
           {isAdminOrManager && (
-            <Button onClick={() => setScheduleDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Schedule Audit
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateAudits}
+                disabled={isGenerating}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {isGenerating ? 'Generating...' : 'Generate Audits Now'}
+              </Button>
+              <Button onClick={() => setScheduleDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Schedule Audit
+              </Button>
+            </div>
           )}
         </div>
 

@@ -29,7 +29,7 @@ import {
   useDeleteRecurringSchedule,
   RecurringSchedule,
 } from '@/hooks/useRecurringSchedules';
-import { Plus, Repeat, Edit, Trash2, Calendar, Play } from 'lucide-react';
+import { Plus, Repeat, Edit, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,7 +43,6 @@ const RecurringAuditSchedules = () => {
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleEdit = (schedule: RecurringSchedule) => {
     setEditingSchedule(schedule);
@@ -73,43 +72,6 @@ const RecurringAuditSchedules = () => {
       id: schedule.id,
       is_active: !schedule.is_active,
     });
-  };
-
-  const handleGenerateAudits = async () => {
-    setIsGenerating(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('You must be logged in to generate audits');
-        return;
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-recurring-audits`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      );
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Audits generated successfully');
-      } else {
-        toast.error(result.error || 'Failed to generate audits');
-      }
-    } catch (error) {
-      console.error('Error generating audits:', error);
-      toast.error('Failed to generate audits');
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const getRecurrenceLabel = (schedule: RecurringSchedule) => {
@@ -151,20 +113,10 @@ const RecurringAuditSchedules = () => {
             </div>
           </div>
           
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleGenerateAudits}
-              disabled={isGenerating || !schedules || schedules.length === 0}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              {isGenerating ? 'Generating...' : 'Generate Audits Now'}
-            </Button>
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Schedule
-            </Button>
-          </div>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Schedule
+          </Button>
         </div>
 
         <Card>
