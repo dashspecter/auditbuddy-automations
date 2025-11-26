@@ -142,31 +142,34 @@ const AdminTemplates = () => {
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Audit Templates</h1>
                 <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
               </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <AdminOnly>
-                <Button variant="outline" className="gap-2" asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" asChild>
                   <Link to="/admin/users">
                     <Settings className="h-4 w-4" />
-                    User Management
+                    <span className="hidden sm:inline">User Management</span>
+                    <span className="sm:hidden">Users</span>
                   </Link>
                 </Button>
               </AdminOnly>
-              <Button variant="outline" className="gap-2" asChild>
+              <Button variant="outline" size="sm" className="gap-1.5" asChild>
                 <Link to="/admin/template-library">
                   <Copy className="h-4 w-4" />
-                  Template Library
+                  <span className="hidden sm:inline">Template Library</span>
+                  <span className="sm:hidden">Library</span>
                 </Link>
               </Button>
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button size="sm" className="gap-1.5">
                     <Plus className="h-4 w-4" />
-                    New Template
+                    <span className="hidden sm:inline">New Template</span>
+                    <span className="sm:hidden">New</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
