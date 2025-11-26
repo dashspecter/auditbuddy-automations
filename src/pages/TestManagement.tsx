@@ -253,28 +253,29 @@ const TestManagement = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex flex-wrap gap-2 ml-4">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="gap-1 px-2 sm:px-3"
                       onClick={() => handleViewAssignments(test)}
                       title="View assignments"
                       disabled={getAssignmentCount(test.id) === 0}
                     >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      {getAssignmentCount(test.id)}/{getCompletedCount(test.id)}
+                      <UserPlus className="h-4 w-4" />
+                      <span className="hidden xs:inline">{getAssignmentCount(test.id)}/{getCompletedCount(test.id)}</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleAssignTest(test)}
-                      title="Assign to more employees"
+                      title="Assign to employees"
                     >
                       <UserPlus className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handlePreview(test)}
                       title="Preview test"
                     >
@@ -282,7 +283,7 @@ const TestManagement = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => copyTestLink(test.id)}
                       title="Copy test link"
                     >
@@ -290,7 +291,7 @@ const TestManagement = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => {
                         setSelectedTest(test);
                         loadSubmissions(test.id);

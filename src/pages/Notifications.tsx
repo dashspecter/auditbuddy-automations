@@ -262,28 +262,28 @@ export default function Notifications() {
               </div>
               {roleData?.isAdmin && (
                 <div className="flex gap-2 flex-wrap">
-                  <Button variant="outline" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                     <Link to="/recurring-notifications">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Recurring
+                      <RefreshCw className="h-4 w-4" />
+                      <span className="hidden sm:inline">Recurring</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                     <Link to="/notification-analytics">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Analytics
+                      <BarChart3 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Analytics</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                     <Link to="/notification-audit-logs">
-                      <History className="h-4 w-4 mr-2" />
-                      Audit Logs
+                      <History className="h-4 w-4" />
+                      <span className="hidden sm:inline">Logs</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                     <Link to="/notification-templates">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Templates
+                      <FileText className="h-4 w-4" />
+                      <span className="hidden sm:inline">Templates</span>
                     </Link>
                   </Button>
                 </div>
