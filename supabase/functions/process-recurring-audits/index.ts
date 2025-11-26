@@ -80,12 +80,19 @@ Deno.serve(async (req) => {
 
         // Calculate next occurrence date
         let nextDate: Date;
+        
+        // If this is the first generation, start from day before start_date
+        // Otherwise use the last generated date
         const lastGenerated = schedule.last_generated_date 
           ? new Date(schedule.last_generated_date) 
-          : new Date(schedule.start_date);
+          : (() => {
+              const d = new Date(schedule.start_date);
+              d.setDate(d.getDate() - 1); // Start from day before
+              return d;
+            })();
 
-        // Make sure we don't generate past dates
-        if (lastGenerated >= today) {
+        // Make sure we don't generate duplicate dates
+        if (schedule.last_generated_date && lastGenerated >= today) {
           console.log(`Already generated for today or future, skipping`);
           continue;
         }
