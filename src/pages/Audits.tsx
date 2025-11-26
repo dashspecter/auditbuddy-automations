@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { SwipeableListItem } from "@/components/SwipeableListItem";
 
 const Audits = () => {
   const navigate = useNavigate();
@@ -192,60 +193,89 @@ const Audits = () => {
             ) : (
               <div className="space-y-3">
                 {filteredAudits.map((audit) => (
-                <div
-                  key={audit.id}
-                  onClick={() => navigate(`/audits/${audit.id}`)}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors gap-3 cursor-pointer group"
-                >
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">
-                          {audit.locations?.name || audit.location || 'Unknown Location'}
+                  <SwipeableListItem
+                    key={audit.id}
+                    onDelete={async () => {
+                      try {
+                        const { error } = await supabase
+                          .from('location_audits')
+                          .delete()
+                          .eq('id', audit.id);
+
+                        if (error) throw error;
+
+                        toast({
+                          title: "Audit deleted",
+                          description: "The audit has been successfully deleted.",
+                        });
+                        
+                        // Invalidate queries to refresh the list
+                        await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+                      } catch (error) {
+                        console.error('Error deleting audit:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to delete audit. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="rounded-lg"
+                  >
+                    <div
+                      onClick={() => navigate(`/audits/${audit.id}`)}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors gap-3 cursor-pointer group"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">
+                            {audit.locations?.name || audit.location || 'Unknown Location'}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {getTemplateType(audit.template_id)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Checked by {getCheckerName(audit.user_id)} • {format(new Date(audit.audit_date), 'yyyy-MM-dd')}
                         </p>
-                        <Badge variant="outline" className="text-xs">
-                          {getTemplateType(audit.template_id)}
-                        </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Checked by {getCheckerName(audit.user_id)} • {format(new Date(audit.audit_date), 'yyyy-MM-dd')}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        {audit.overall_score !== null && audit.overall_score !== undefined && (
+                          <span className="text-lg font-bold text-foreground">
+                            {audit.overall_score}%
+                          </span>
+                        )}
+                        {audit.status === "compliant" && (
+                          <Badge className="bg-success text-success-foreground gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Compliant
+                          </Badge>
+                        )}
+                        {audit.status === "non-compliant" && (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Issues Found
+                          </Badge>
+                        )}
+                        {audit.status === "pending" && (
+                          <Badge variant="outline" className="gap-1">
+                            <Clock className="h-3 w-3" />
+                            Pending
+                          </Badge>
+                        )}
+                        {audit.status === "draft" && (
+                          <Badge variant="secondary" className="gap-1">
+                            <FileEdit className="h-3 w-3" />
+                            Draft
+                          </Badge>
+                        )}
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {audit.overall_score !== null && audit.overall_score !== undefined && (
-                        <span className="text-lg font-bold text-foreground">
-                          {audit.overall_score}%
-                        </span>
-                      )}
-                    {audit.status === "compliant" && (
-                      <Badge className="bg-success text-success-foreground gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Compliant
-                      </Badge>
-                    )}
-                    {audit.status === "non-compliant" && (
-                      <Badge variant="destructive" className="gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Issues Found
-                      </Badge>
-                    )}
-                    {audit.status === "pending" && (
-                      <Badge variant="outline" className="gap-1">
-                        <Clock className="h-3 w-3" />
-                        Pending
-                      </Badge>
-                    )}
-                    {audit.status === "draft" && (
-                      <Badge variant="secondary" className="gap-1">
-                        <FileEdit className="h-3 w-3" />
-                        Draft
-                      </Badge>
-                    )}
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                </div>
-                  ))}
-                </div>
-              )}
+                  </SwipeableListItem>
+                ))}
+              </div>
+            )}
             </Card>
         </div>
         </main>
