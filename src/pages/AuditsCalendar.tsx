@@ -340,7 +340,7 @@ const AuditsCalendar = () => {
               eventPropGetter={eventStyleGetter}
               onSelectEvent={handleSelectEvent}
               views={['month', 'week', 'day', 'agenda']}
-              defaultView="week"
+              defaultView="month"
             />
           </div>
         </Card>
