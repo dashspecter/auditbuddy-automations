@@ -959,6 +959,7 @@ export type Database = {
           completed: boolean
           employee_id: string
           id: string
+          short_code: string | null
           test_id: string
         }
         Insert: {
@@ -967,6 +968,7 @@ export type Database = {
           completed?: boolean
           employee_id: string
           id?: string
+          short_code?: string | null
           test_id: string
         }
         Update: {
@@ -975,6 +977,7 @@ export type Database = {
           completed?: boolean
           employee_id?: string
           id?: string
+          short_code?: string | null
           test_id?: string
         }
         Relationships: [
@@ -1191,6 +1194,7 @@ export type Database = {
         Args: { audit_id: string }
         Returns: number
       }
+      generate_short_code: { Args: never; Returns: string }
       get_next_revision_number: {
         Args: { p_audit_id: string }
         Returns: number
