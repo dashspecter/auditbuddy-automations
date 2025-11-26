@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
@@ -64,26 +64,39 @@ const Audits = () => {
   const filteredAudits = useMemo(() => {
     if (!audits) return [];
 
-    return audits.filter(audit => {
-      // Search filter
-      const searchLower = searchQuery.toLowerCase();
-      const checkerName = getCheckerName(audit.user_id).toLowerCase();
-      const locationName = audit.locations?.name || audit.location || '';
-      const matchesSearch = 
-        locationName.toLowerCase().includes(searchLower) ||
-        checkerName.includes(searchLower);
+    return audits
+      .filter(audit => {
+        // Search filter
+        const searchLower = searchQuery.toLowerCase();
+        const checkerName = getCheckerName(audit.user_id).toLowerCase();
+        const locationName = audit.locations?.name || audit.location || '';
+        const matchesSearch = 
+          locationName.toLowerCase().includes(searchLower) ||
+          checkerName.includes(searchLower);
 
-      if (!matchesSearch) return false;
+        if (!matchesSearch) return false;
 
-      // Type filter
-      const auditType = getTemplateType(audit.template_id);
-      if (typeFilter !== "all" && auditType !== typeFilter) return false;
+        // Type filter
+        const auditType = getTemplateType(audit.template_id);
+        if (typeFilter !== "all" && auditType !== typeFilter) return false;
 
-      // Status filter
-      if (statusFilter !== "all-status" && audit.status !== statusFilter) return false;
+        // Status filter
+        if (statusFilter !== "all-status" && audit.status !== statusFilter) return false;
 
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => {
+        // Sort: completed audits first, then drafts
+        // Within each group, sort by date (newest first)
+        const aIsDraft = a.status === 'draft';
+        const bIsDraft = b.status === 'draft';
+        
+        if (aIsDraft && !bIsDraft) return 1;
+        if (!aIsDraft && bIsDraft) return -1;
+        
+        // If both same type, sort by date
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
   }, [audits, searchQuery, typeFilter, statusFilter, profiles, templates]);
 
   const handleRefresh = async () => {
@@ -109,7 +122,13 @@ const Audits = () => {
               <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
               <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Link to="/admin/template-library">
+                <Button variant="outline" className="gap-2 min-h-[48px]">
+                  <Library className="h-4 w-4" />
+                  Template Library
+                </Button>
+              </Link>
               <Link to="/location-audit">
                 <Button variant="default" className="gap-2 min-h-[48px]">
                   <Plus className="h-4 w-4" />
@@ -155,6 +174,7 @@ const Audits = () => {
                   <SelectItem value="compliant">Compliant</SelectItem>
                   <SelectItem value="non-compliant">Non-Compliant</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -212,6 +232,12 @@ const Audits = () => {
                       <Badge variant="outline" className="gap-1">
                         <Clock className="h-3 w-3" />
                         Pending
+                      </Badge>
+                    )}
+                    {audit.status === "draft" && (
+                      <Badge variant="secondary" className="gap-1">
+                        <FileEdit className="h-3 w-3" />
+                        Draft
                       </Badge>
                     )}
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
