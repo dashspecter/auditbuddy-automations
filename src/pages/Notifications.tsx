@@ -422,7 +422,7 @@ export default function Notifications() {
                           <SelectItem key={audit.id} value={audit.id}>
                             <div className="flex items-center gap-2">
                               <MapPin className="h-3 w-3" />
-                              {audit.location} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
+                              {audit.locations?.name || audit.location || 'Unknown'} - {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
                             </div>
                           </SelectItem>
                         ))

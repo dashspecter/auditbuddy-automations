@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCreateAuditRevision } from "@/hooks/useAuditRevisions";
 import { LocationAudit } from "@/hooks/useAudits";
 import { Loader2 } from "lucide-react";
+import { LocationSelector } from "@/components/LocationSelector";
 
 interface EditAuditDialogProps {
   open: boolean;
@@ -19,13 +20,11 @@ interface EditAuditDialogProps {
   onSuccess: () => void;
 }
 
-const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
-
 export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAuditDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [templateSections, setTemplateSections] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    location: audit.location,
+    location_id: audit.location_id || '',
     audit_date: audit.audit_date,
     time_start: audit.time_start || '',
     time_end: audit.time_end || '',
@@ -203,8 +202,8 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
       // Track what changed
       const changes: Record<string, { old: any; new: any }> = {};
 
-      if (formData.location !== audit.location) {
-        changes.location = { old: audit.location, new: formData.location };
+      if (formData.location_id !== audit.location_id) {
+        changes.location_id = { old: audit.location_id, new: formData.location_id };
       }
       if (formData.audit_date !== audit.audit_date) {
         changes.audit_date = { old: audit.audit_date, new: formData.audit_date };
@@ -312,19 +311,10 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="location">Location *</Label>
-              <Select
-                value={formData.location}
-                onValueChange={(value) => setFormData({ ...formData, location: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <LocationSelector
+                value={formData.location_id}
+                onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+              />
             </div>
 
             <div className="space-y-2">

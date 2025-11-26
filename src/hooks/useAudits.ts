@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface LocationAudit {
   id: string;
   user_id: string;
-  location: string;
+  location: string; // Legacy text field - deprecated
+  location_id?: string | null; // New FK to locations table
   audit_date: string;
   time_start?: string;
   time_end?: string;
@@ -28,7 +29,7 @@ export interface LocationAudit {
   template_id?: string;
   custom_data?: any;
   overall_score?: number;
-  status: 'compliant' | 'non-compliant' | 'pending';
+  status: 'compliant' | 'non-compliant' | 'pending' | 'draft';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -40,6 +41,12 @@ export interface LocationAudit {
   audit_templates?: {
     name: string;
   };
+  locations?: {
+    id: string;
+    name: string;
+    city: string | null;
+    type: string | null;
+  };
 }
 
 export const useLocationAudits = () => {
@@ -50,7 +57,7 @@ export const useLocationAudits = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('location_audits')
-        .select('*')
+        .select('*, locations(id, name, city, type)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -65,10 +72,10 @@ export const useLocationAudit = (id: string) => {
   return useQuery({
     queryKey: ['location_audit', id],
     queryFn: async () => {
-      // Fetch the audit
+      // Fetch the audit with location join
       const { data: audit, error: auditError } = await supabase
         .from('location_audits')
-        .select('*')
+        .select('*, locations(id, name, city, type)')
         .eq('id', id)
         .maybeSingle();
 

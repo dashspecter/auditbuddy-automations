@@ -217,6 +217,7 @@ export type Database = {
           is_active: boolean
           is_global: boolean
           location: string | null
+          location_id: string | null
           name: string
           template_type: string
           updated_at: string
@@ -229,6 +230,7 @@ export type Database = {
           is_active?: boolean
           is_global?: boolean
           location?: string | null
+          location_id?: string | null
           name: string
           template_type: string
           updated_at?: string
@@ -241,11 +243,20 @@ export type Database = {
           is_active?: boolean
           is_global?: boolean
           location?: string | null
+          location_id?: string | null
           name?: string
           template_type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_categories: {
         Row: {
@@ -344,6 +355,7 @@ export type Database = {
           foh_seating: number | null
           id: string
           location: string
+          location_id: string | null
           notes: string | null
           overall_score: number | null
           status: string | null
@@ -375,6 +387,7 @@ export type Database = {
           foh_seating?: number | null
           id?: string
           location: string
+          location_id?: string | null
           notes?: string | null
           overall_score?: number | null
           status?: string | null
@@ -406,6 +419,7 @@ export type Database = {
           foh_seating?: number | null
           id?: string
           location?: string
+          location_id?: string | null
           notes?: string | null
           overall_score?: number | null
           status?: string | null
@@ -416,6 +430,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "location_audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "location_audits_template_id_fkey"
             columns: ["template_id"]

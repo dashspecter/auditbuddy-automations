@@ -50,7 +50,7 @@ const Reports = () => {
     }>();
 
     audits.forEach(audit => {
-      const location = audit.location || 'Unknown Location';
+      const location = audit.locations?.name || audit.location || 'Unknown Location';
       if (!locationMap.has(location)) {
         locationMap.set(location, {
           location,
@@ -446,7 +446,9 @@ const Reports = () => {
                             <MapPin className="h-4 w-4 text-primary" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-foreground">{audit.location}</h4>
+                            <h4 className="font-semibold text-foreground">
+                              {audit.locations?.name || audit.location || 'Unknown Location'}
+                            </h4>
                             <p className="text-sm text-muted-foreground">
                               Audit #{audit.id.substring(0, 8)}
                             </p>

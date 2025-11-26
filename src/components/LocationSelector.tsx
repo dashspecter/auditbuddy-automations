@@ -34,7 +34,7 @@ export const LocationSelector = ({
       </SelectTrigger>
       <SelectContent>
         {locations?.map((location) => (
-          <SelectItem key={location.id} value={location.name}>
+          <SelectItem key={location.id} value={location.id}>
             {location.name}
             {location.city && ` - ${location.city}`}
           </SelectItem>
