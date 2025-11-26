@@ -29,10 +29,15 @@ export const useTestAssignments = (testId?: string, employeeId?: string) => {
       let query = supabase
         .from("test_assignments")
         .select(`
-          *,
+          id,
+          test_id,
+          employee_id,
+          assigned_by,
+          assigned_at,
+          completed,
+          short_code,
           employees(full_name, role, location_id, locations(name)),
-          tests(title),
-          short_code
+          tests(title)
         `)
         .order("assigned_at", { ascending: false });
       
