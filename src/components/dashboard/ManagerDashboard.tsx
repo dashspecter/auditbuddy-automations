@@ -10,6 +10,8 @@ import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
+import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
+import { LocationPerformanceCards } from "./LocationPerformanceCards";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,6 +216,14 @@ export const ManagerDashboard = () => {
 
       <div className="w-full">
         <LocationTrendAnalysis />
+      </div>
+
+      <div className="w-full">
+        <SectionPerformanceTrends />
+      </div>
+
+      <div className="w-full">
+        <LocationPerformanceCards />
       </div>
     </div>
   );
