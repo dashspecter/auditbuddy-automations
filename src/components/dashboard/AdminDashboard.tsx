@@ -9,7 +9,6 @@ import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
-import { LocationPerformanceCards } from "./LocationPerformanceCards";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -145,10 +144,6 @@ export const AdminDashboard = () => {
 
       <div className="w-full">
         <SectionPerformanceTrends />
-      </div>
-
-      <div className="w-full">
-        <LocationPerformanceCards />
       </div>
     </div>
   );
