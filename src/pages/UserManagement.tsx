@@ -263,6 +263,10 @@ export default function UserManagement() {
                       const result = await response.json();
 
                       if (!response.ok) {
+                        // Handle duplicate email error specifically
+                        if (result.error?.includes('already been registered')) {
+                          throw new Error(`A user with email ${inviteEmail} already exists. Please use a different email address.`);
+                        }
                         throw new Error(result.error || 'Failed to create user');
                       }
 
