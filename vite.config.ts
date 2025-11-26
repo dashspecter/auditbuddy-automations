@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  build: {
+    rollupOptions: {
+      external: [
+        '@capacitor/camera',
+        '@capacitor/core',
+        '@capacitor/status-bar'
+      ]
+    }
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
