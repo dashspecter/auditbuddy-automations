@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, ClipboardCheck, RefreshCw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
-import { ComplianceChart } from "./ComplianceChart";
 import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
@@ -135,7 +134,6 @@ export const AdminDashboard = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart />
-        <ComplianceChart />
       </div>
 
       <div className="w-full">
