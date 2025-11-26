@@ -60,15 +60,15 @@ const Landing = () => {
       )}
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 px-safe py-16 md:py-24">
+      <section className="container mx-auto px-4 px-safe py-8 md:py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6">
             {user ? `Welcome Back!` : `Complete Compliance & Audit Management Platform`}
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto">
             {user 
-              ? `Track your audit performance and manage compliance with ease across all your locations.`
-              : `Streamline inspections, audits, staff assessments, and compliance management across restaurants, retail, healthcare, and any location-based business.`
+              ? `Track your audit performance and manage compliance with ease.`
+              : `Streamline inspections, audits, and compliance management for location-based businesses.`
             }
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -105,67 +105,67 @@ const Landing = () => {
       </section>
 
       {/* Core Functionalities */}
-      <section className="py-16 md:py-24">
+      <section className="py-8 md:py-16 lg:py-24">
         <div className="container mx-auto px-4 px-safe">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-6 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
               Complete Audit & Compliance Solution
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage locations, staff, audits, and compliance in one platform
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+              Everything you need to manage locations, staff, audits, and compliance
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-8 max-w-6xl mx-auto">
             <Card className="border-2">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Location Audits</h3>
-                <ul className="space-y-3 text-muted-foreground">
+              <CardContent className="pt-4 md:pt-6">
+                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-foreground">Location Audits</h3>
+                <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Create custom audit templates with sections and scoring systems</span>
+                    <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Custom audit templates</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Conduct digital inspections with photo evidence capture</span>
+                    <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Digital inspections with photos</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Schedule recurring audits automatically</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Track audit history with full revision logs</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Generate PDF reports with scores and findings</span>
+                    <ClipboardCheck className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>PDF reports & analytics</span>
                   </li>
                 </ul>
               </CardContent>
             </Card>
 
             <Card className="border-2">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Staff Management</h3>
-                <ul className="space-y-3 text-muted-foreground">
+              <CardContent className="pt-4 md:pt-6">
+                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-foreground">Staff Management</h3>
+                <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Employee database with location assignment</span>
+                    <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Employee database</span>
                   </li>
                   <li className="flex items-start gap-2">
+                    <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Performance audits</span>
+                  </li>
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Staff performance audits and assessments</span>
+                    <span>Training tests with auto-generated questions</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Training tests with auto-generated questions from documents</span>
+                    <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Compliance tracking</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Track staff compliance scores and trends</span>
-                  </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Performance leaderboards and analytics</span>
                   </li>
@@ -174,26 +174,26 @@ const Landing = () => {
             </Card>
 
             <Card className="border-2">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Analytics & Reports</h3>
-                <ul className="space-y-3 text-muted-foreground">
+              <CardContent className="pt-4 md:pt-6">
+                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-foreground">Analytics & Reports</h3>
+                <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Real-time dashboards with compliance metrics</span>
+                    <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Real-time dashboards</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Location performance comparison and trends</span>
+                    <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Performance comparison</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Section-based performance breakdown</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Identify best and worst performing locations</span>
+                    <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Trend analysis</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Export detailed compliance reports</span>
                   </li>
@@ -202,26 +202,26 @@ const Landing = () => {
             </Card>
 
             <Card className="border-2">
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-foreground">Communication & Workflow</h3>
-                <ul className="space-y-3 text-muted-foreground">
+              <CardContent className="pt-4 md:pt-6">
+                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-foreground">Communication & Workflow</h3>
+                <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Notification system with role-based targeting</span>
+                    <Bell className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Role-based notifications</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Recurring notifications for regular tasks</span>
+                    <Bell className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Recurring reminders</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Document management with categorization</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Calendar view for scheduled audits</span>
+                    <Bell className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Calendar & scheduling</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-2 hidden md:flex">
                     <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span>Activity logs and audit trails</span>
                   </li>
@@ -232,19 +232,19 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Industries Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
+      {/* Industries Section - Hidden on mobile */}
+      <section className="hidden md:block bg-muted/30 py-12 md:py-16 lg:py-24">
         <div className="container mx-auto px-4 px-safe">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
               Perfect for Any Location-Based Business
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Our platform adapts to your industry's unique compliance and audit requirements
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+              Our platform adapts to your industry's unique compliance requirements
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
             <Card>
               <CardContent className="pt-6 text-center">
                 <div className="text-4xl mb-3">🍔</div>
@@ -328,87 +328,87 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-16 md:py-24">
+      {/* Features Section - Condensed on mobile */}
+      <section id="features" className="py-8 md:py-16 lg:py-24">
         <div className="container mx-auto px-4 px-safe">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-6 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
               Powerful Features Built for Scale
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto hidden md:block">
               Enterprise-grade tools designed to help teams maintain standards across multiple locations
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <ClipboardCheck className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <ClipboardCheck className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Custom Templates</h3>
-                <p className="text-muted-foreground">
-                  Build unlimited audit templates with custom sections, fields, and scoring systems tailored to your standards.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Custom Templates</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Build unlimited audit templates with custom sections and scoring.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <TrendingUp className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Real-Time Analytics</h3>
-                <p className="text-muted-foreground">
-                  Track compliance trends, compare locations, and make data-driven decisions with live dashboards.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Real-Time Analytics</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Track compliance trends with live dashboards.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <Users className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <Users className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Role-Based Access</h3>
-                <p className="text-muted-foreground">
-                  Admin, manager, and checker roles ensure everyone has the right access level and responsibilities.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Role-Based Access</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Admin, manager, and checker roles with proper access levels.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <FileText className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">PDF Reports</h3>
-                <p className="text-muted-foreground">
-                  Generate professional PDF reports with scores, photos, notes, and compliance documentation instantly.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">PDF Reports</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Generate professional reports with scores and compliance docs.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <Bell className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <Bell className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Smart Notifications</h3>
-                <p className="text-muted-foreground">
-                  Automated alerts, recurring reminders, and role-based notifications keep teams informed and on schedule.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Smart Notifications</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Automated alerts and reminders keep teams informed.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
-                  <Shield className="h-6 w-6 text-primary" />
+              <CardContent className="pt-4 md:pt-6">
+                <div className="bg-primary/10 rounded-lg p-2 md:p-3 w-fit mb-2 md:mb-4">
+                  <Shield className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Audit History</h3>
-                <p className="text-muted-foreground">
-                  Complete revision tracking, change logs, and historical data for regulatory compliance and documentation.
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Audit History</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Complete tracking and historical data for compliance.
                 </p>
               </CardContent>
             </Card>
@@ -416,102 +416,105 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Who It's For Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
+      {/* Who It's For Section - Simplified on mobile */}
+      <section className="bg-muted/30 py-8 md:py-16 lg:py-24">
         <div className="container mx-auto px-4 px-safe">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-6 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
               Designed for Every Team Member
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto hidden md:block">
               From single locations to enterprise operations with hundreds of sites
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-8 max-w-5xl mx-auto">
             <div className="text-center">
-              <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Shield className="h-8 w-8 text-primary-foreground" />
+              <div className="bg-primary rounded-full p-3 md:p-4 w-12 h-12 md:w-16 md:h-16 mx-auto mb-2 md:mb-4 flex items-center justify-center">
+                <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Administrators</h3>
-              <p className="text-muted-foreground">
-                Full control over templates, users, locations, and system-wide settings. View comprehensive analytics across all operations.
+              <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Administrators</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
+                <span className="hidden md:inline">Full control over templates, users, locations, and system-wide settings. View comprehensive analytics across all operations.</span>
+                <span className="md:hidden">Full system control and analytics</span>
               </p>
             </div>
 
             <div className="text-center">
-              <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Users className="h-8 w-8 text-primary-foreground" />
+              <div className="bg-primary rounded-full p-3 md:p-4 w-12 h-12 md:w-16 md:h-16 mx-auto mb-2 md:mb-4 flex items-center justify-center">
+                <Users className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Managers</h3>
-              <p className="text-muted-foreground">
-                Oversee multiple locations, assign audits, monitor team performance, and send notifications to keep operations running smoothly.
+              <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Managers</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
+                <span className="hidden md:inline">Oversee multiple locations, assign audits, monitor team performance, and send notifications to keep operations running smoothly.</span>
+                <span className="md:hidden">Oversee locations and teams</span>
               </p>
             </div>
 
             <div className="text-center">
-              <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
+              <div className="bg-primary rounded-full p-3 md:p-4 w-12 h-12 md:w-16 md:h-16 mx-auto mb-2 md:mb-4 flex items-center justify-center">
+                <ClipboardCheck className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Checkers/Inspectors</h3>
-              <p className="text-muted-foreground">
-                Conduct audits on-site with mobile-friendly checklists, capture photos, and submit findings in real-time from any device.
+              <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">Checkers/Inspectors</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
+                <span className="hidden md:inline">Conduct audits on-site with mobile-friendly checklists, capture photos, and submit findings in real-time from any device.</span>
+                <span className="md:hidden">Conduct audits on-site</span>
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-16 md:py-24">
+      {/* How It Works Section - Simplified on mobile */}
+      <section className="py-8 md:py-16 lg:py-24">
         <div className="container mx-auto px-4 px-safe">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-6 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
               Get Started in Minutes
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto hidden md:block">
               Simple setup process with immediate results
             </p>
           </div>
 
           <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 md:mb-4 text-lg md:text-xl font-bold">
                   1
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Add Locations</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Add Locations</h3>
+                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
                   Set up your sites, assign managers, and organize by region or type.
                 </p>
               </div>
 
               <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 md:mb-4 text-lg md:text-xl font-bold">
                   2
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Create Templates</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Create Templates</h3>
+                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
                   Build custom checklists or use pre-made templates for your industry.
                 </p>
               </div>
 
               <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 md:mb-4 text-lg md:text-xl font-bold">
                   3
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Conduct Audits</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Conduct Audits</h3>
+                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
                   Schedule or start audits instantly, capture photos, and score performance.
                 </p>
               </div>
 
               <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mx-auto mb-2 md:mb-4 text-lg md:text-xl font-bold">
                   4
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Monitor & Improve</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Monitor & Improve</h3>
+                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">
                   Track trends, identify issues, and drive continuous improvement.
                 </p>
               </div>
@@ -521,54 +524,54 @@ const Landing = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-16 md:py-24 bg-muted/30">
+      <section id="contact" className="py-8 md:py-16 lg:py-24 bg-muted/30">
         <div className="container mx-auto px-4 px-safe">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <div className="text-center mb-6 md:mb-12">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
                 Get Started Today
               </h2>
-              <p className="text-muted-foreground text-lg">
-                Ready to transform your compliance process? Get in touch with us.
+              <p className="text-sm md:text-base md:text-lg text-muted-foreground">
+                Ready to transform your compliance process?
               </p>
             </div>
 
             <Card className="bg-card border-border">
-              <CardContent className="py-12">
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div className="flex flex-col items-center text-center p-6 rounded-lg bg-muted/50">
-                    <div className="bg-primary rounded-full p-4 mb-4">
-                      <Mail className="h-8 w-8 text-primary-foreground" />
+              <CardContent className="py-6 md:py-12">
+                <div className="grid md:grid-cols-2 gap-4 md:gap-8">
+                  <div className="flex flex-col items-center text-center p-4 md:p-6 rounded-lg bg-muted/50">
+                    <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
+                      <Mail className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">Email Us</h3>
+                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Email Us</h3>
                     <a 
                       href="mailto:alex@grecea.work" 
-                      className="text-primary hover:underline text-lg"
+                      className="text-primary hover:underline text-sm md:text-lg"
                     >
                       alex@grecea.work
                     </a>
                   </div>
 
-                  <div className="flex flex-col items-center text-center p-6 rounded-lg bg-muted/50">
-                    <div className="bg-primary rounded-full p-4 mb-4">
-                      <Phone className="h-8 w-8 text-primary-foreground" />
+                  <div className="flex flex-col items-center text-center p-4 md:p-6 rounded-lg bg-muted/50">
+                    <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
+                      <Phone className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">Call Us</h3>
+                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Call Us</h3>
                     <a 
                       href="tel:+40741427777" 
-                      className="text-primary hover:underline text-lg"
+                      className="text-primary hover:underline text-sm md:text-lg"
                     >
                       0741 427 777
                     </a>
                   </div>
                 </div>
 
-                <div className="mt-8 text-center">
-                  <p className="text-muted-foreground mb-4">
+                <div className="mt-6 md:mt-8 text-center">
+                  <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
                     Already have an account?
                   </p>
                   <Link to="/auth">
-                    <Button size="lg" className="min-h-[48px]">
+                    <Button size="lg" className="min-h-[44px] md:min-h-[48px]">
                       Sign In
                     </Button>
                   </Link>
