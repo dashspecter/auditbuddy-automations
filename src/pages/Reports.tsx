@@ -9,7 +9,7 @@ import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText, MapPin, 
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useLocationAudits } from "@/hooks/useAudits";
+import { useLocations } from "@/hooks/useLocations";
+import { useTemplates } from "@/hooks/useTemplates";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -30,15 +37,44 @@ const COMPLIANCE_THRESHOLD = 80; // Scores >= 80 are compliant
 const Reports = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [templateFilter, setTemplateFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
   const [selectedAudits, setSelectedAudits] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");
 
   const { data: audits, isLoading } = useLocationAudits();
+  const { data: locations } = useLocations(false);
+  const { data: templates } = useTemplates();
+  
+  const { data: users } = useQuery({
+    queryKey: ['users_list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  // Calculate report data from real audits
+  // Calculate report data from real audits with filters
   const reportData = useMemo(() => {
     if (!audits) return [];
+
+    let filteredAudits = audits.filter(audit => {
+      const auditDate = new Date(audit.audit_date);
+      
+      if (dateFrom && auditDate < dateFrom) return false;
+      if (dateTo && auditDate > dateTo) return false;
+      if (locationFilter !== "all" && audit.location_id !== locationFilter) return false;
+      if (templateFilter !== "all" && audit.template_id !== templateFilter) return false;
+      if (userFilter !== "all" && audit.user_id !== userFilter) return false;
+      
+      return true;
+    });
 
     const locationMap = new Map<string, {
       location: string;
@@ -49,7 +85,7 @@ const Reports = () => {
       audits: any[];
     }>();
 
-    audits.forEach(audit => {
+    filteredAudits.forEach(audit => {
       const location = audit.locations?.name || audit.location || 'Unknown Location';
       if (!locationMap.has(location)) {
         locationMap.set(location, {
@@ -78,7 +114,7 @@ const Reports = () => {
       ...loc,
       avgScore: loc.totalAudits > 0 ? Math.round(loc.totalScore / loc.totalAudits) : 0
     }));
-  }, [audits]);
+  }, [audits, dateFrom, dateTo, locationFilter, templateFilter, userFilter]);
 
   // Calculate overall stats
   const overallStats = useMemo(() => {
@@ -93,7 +129,76 @@ const Reports = () => {
     return { totalAudits, avgScore, compliant, nonCompliant };
   }, [audits]);
 
-  const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
+  const handleExportCSV = () => {
+    if (!reportData || reportData.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const headers = ["Location", "Total Audits", "Average Score", "Compliant", "Non-Compliant", "Compliance Rate"];
+    const rows = reportData.map(row => [
+      row.location,
+      row.totalAudits,
+      `${row.avgScore}%`,
+      row.compliant,
+      row.nonCompliant,
+      `${row.totalAudits > 0 ? Math.round((row.compliant / row.totalAudits) * 100) : 0}%`
+    ]);
+
+    let csvContent = headers.join(",") + "\n";
+    rows.forEach(row => {
+      csvContent += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("CSV exported successfully");
+  };
+
+  const handleExportPDF = () => {
+    if (!reportData || reportData.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text("Audit Performance Report", 14, 20);
+    
+    doc.setFontSize(11);
+    doc.text(`Generated: ${format(new Date(), 'PPP')}`, 14, 28);
+    
+    if (dateFrom || dateTo) {
+      const dateRange = `Date Range: ${dateFrom ? format(dateFrom, 'PPP') : 'Start'} - ${dateTo ? format(dateTo, 'PPP') : 'End'}`;
+      doc.text(dateRange, 14, 35);
+    }
+
+    autoTable(doc, {
+      head: [["Location", "Total Audits", "Avg Score", "Compliant", "Non-Compliant", "Compliance Rate"]],
+      body: reportData.map(row => [
+        row.location,
+        row.totalAudits.toString(),
+        `${row.avgScore}%`,
+        row.compliant.toString(),
+        row.nonCompliant.toString(),
+        `${row.totalAudits > 0 ? Math.round((row.compliant / row.totalAudits) * 100) : 0}%`
+      ]),
+      startY: dateFrom || dateTo ? 42 : 35,
+      theme: 'grid',
+    });
+
+    doc.save(`audit-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast.success("PDF exported successfully");
+  };
     if (!audits) return;
 
     let filteredAudits: any[] = [];
@@ -199,41 +304,62 @@ const Reports = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Location</label>
-                <Select defaultValue="all">
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
+                    <SelectValue placeholder="All locations" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Locations</SelectItem>
-                    <SelectItem value="amzei">LBFC Amzei</SelectItem>
-                    <SelectItem value="mosilor">LBFC Mosilor</SelectItem>
-                    <SelectItem value="timpuri">LBFC Timpuri Noi</SelectItem>
-                    <SelectItem value="apaca">LBFC Apaca</SelectItem>
+                    {locations?.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Audit Type</label>
-                <Select defaultValue="all">
+                <label className="text-sm font-medium text-foreground">Template</label>
+                <Select value={templateFilter} onValueChange={setTemplateFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder="All templates" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="location">Location</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="all">All Templates</SelectItem>
+                    {templates?.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">User</label>
+                <Select value={userFilter} onValueChange={setUserFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All users" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    {users?.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name || user.email}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-6">
-              <Button className="gap-2">
+            <div className="flex flex-wrap gap-2 mt-6">
+              <Button className="gap-2" onClick={handleExportCSV}>
                 <FileSpreadsheet className="h-4 w-4" />
-                Export to Excel
+                Export to CSV
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={handleExportPDF}>
                 <FileText className="h-4 w-4" />
                 Export to PDF
               </Button>
@@ -394,6 +520,42 @@ const Reports = () => {
                 );
               })}
             </div>
+          )}
+
+          {/* Location Performance Trend Line Chart */}
+          {reportData.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Location Performance Trend</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={reportData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="location"
+                    stroke="hsl(var(--muted-foreground))"
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="avgScore" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))', r: 5 }}
+                    name="Average Score"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
           )}
 
           {/* Location Comparison Pie Chart */}

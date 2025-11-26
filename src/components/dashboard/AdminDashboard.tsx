@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, TrendingUp, ClipboardCheck, FileText, Settings, Bell, RefreshCw } from "lucide-react";
+import { Plus, Users, TrendingUp, TrendingDown, ClipboardCheck, FileText, Settings, Bell, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { RecentAudits } from "./RecentAudits";
@@ -10,7 +10,10 @@ import { CompliancePieChart } from "./CompliancePieChart";
 import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
+import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
+import { LocationPerformanceCards } from "./LocationPerformanceCards";
 import { useLocationAudits } from "@/hooks/useAudits";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
@@ -18,6 +21,7 @@ import { toast } from "sonner";
 
 export const AdminDashboard = () => {
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
+  const dashboardStats = useDashboardStats();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -154,30 +158,42 @@ export const AdminDashboard = () => {
 
       <DraftAudits />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatsCard
           title="Total Audits"
-          value={auditsLoading ? "..." : stats.totalAudits.toString()}
+          value={dashboardStats.isLoading ? "..." : dashboardStats.totalAudits.toString()}
           icon={ClipboardCheck}
-          description="All time audits"
+          description="All audits"
         />
         <StatsCard
-          title="Total Users"
-          value={usersCount?.toString() || "..."}
-          icon={Users}
-          description="Active users"
+          title="Completed"
+          value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
+          icon={ClipboardCheck}
+          description="Finished audits"
         />
         <StatsCard
-          title="Locations"
-          value={auditsLoading ? "..." : stats.locations.toString()}
-          icon={FileText}
-          description="Active locations"
+          title="Overdue"
+          value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
+          icon={ClipboardCheck}
+          description="Past deadline"
         />
         <StatsCard
-          title="Compliance Rate"
-          value={auditsLoading ? "..." : `${stats.complianceRate}%`}
+          title="Average Score"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
           icon={TrendingUp}
-          description={`${stats.totalAudits > 0 ? Math.round((stats.complianceRate / 100) * stats.totalAudits) : 0} of ${stats.totalAudits} audits`}
+          description="Overall average"
+        />
+        <StatsCard
+          title="Worst Location"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
+          icon={TrendingDown}
+          description={dashboardStats.worstLocation.name}
+        />
+        <StatsCard
+          title="Best Location"
+          value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
+          icon={TrendingUp}
+          description={dashboardStats.bestLocation.name}
         />
       </div>
 
@@ -192,6 +208,14 @@ export const AdminDashboard = () => {
 
       <div className="w-full">
         <LocationTrendAnalysis />
+      </div>
+
+      <div className="w-full">
+        <SectionPerformanceTrends />
+      </div>
+
+      <div className="w-full">
+        <LocationPerformanceCards />
       </div>
     </div>
   );
