@@ -334,6 +334,7 @@ export type Database = {
       }
       location_audits: {
         Row: {
+          assigned_user_id: string | null
           audit_date: string
           boh_equipment: number | null
           boh_preparation: number | null
@@ -358,6 +359,8 @@ export type Database = {
           location_id: string | null
           notes: string | null
           overall_score: number | null
+          scheduled_end: string | null
+          scheduled_start: string | null
           status: string | null
           template_id: string | null
           time_end: string | null
@@ -366,6 +369,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_user_id?: string | null
           audit_date: string
           boh_equipment?: number | null
           boh_preparation?: number | null
@@ -390,6 +394,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           overall_score?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           status?: string | null
           template_id?: string | null
           time_end?: string | null
@@ -398,6 +404,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_user_id?: string | null
           audit_date?: string
           boh_equipment?: number | null
           boh_preparation?: number | null
@@ -422,6 +429,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           overall_score?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           status?: string | null
           template_id?: string | null
           time_end?: string | null
@@ -430,6 +439,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "location_audits_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "location_audits_location_id_fkey"
             columns: ["location_id"]
