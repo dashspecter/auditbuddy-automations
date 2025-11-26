@@ -17,8 +17,7 @@ import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
 import { ScorePreview } from "@/components/ScorePreview";
 import { AuditPhotoCapture } from "@/components/AuditPhotoCapture";
 import { PhotoGallery } from "@/components/PhotoGallery";
-
-const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
+import { LocationSelector } from "@/components/LocationSelector";
 
 interface AuditField {
   id: string;
@@ -59,7 +58,7 @@ const LocationAudit = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId);
   const [formData, setFormData] = useState({
-    location: "",
+    location_id: "",
     auditDate: new Date().toISOString().split('T')[0],
     timeStart: "",
     timeEnd: "",
@@ -97,7 +96,7 @@ const LocationAudit = () => {
       if (data) {
         setSelectedTemplateId(data.template_id || '');
         setFormData({
-          location: data.location,
+          location_id: data.location_id || '',
           auditDate: data.audit_date,
           timeStart: data.time_start || '',
           timeEnd: data.time_end || '',
@@ -310,7 +309,8 @@ const LocationAudit = () => {
     try {
       const auditData = {
         user_id: user.id,
-        location: formData.location,
+        location_id: formData.location_id || null,
+        location: formData.location_id ? null : '', // Keep for backward compatibility during migration
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
         time_end: formData.timeEnd || null,
@@ -390,7 +390,8 @@ const LocationAudit = () => {
 
       const auditData = {
         user_id: user.id,
-        location: formData.location,
+        location_id: formData.location_id || null,
+        location: formData.location_id ? null : '', // Keep for backward compatibility during migration
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
         time_end: formData.timeEnd || null,
@@ -511,22 +512,11 @@ const LocationAudit = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="location">Location *</Label>
-                <Select
-                  value={formData.location}
-                  onValueChange={(value) => setFormData({ ...formData, location: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {locations.map((loc) => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <LocationSelector
+                  value={formData.location_id}
+                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                  placeholder="Select location"
+                />
               </div>
 
               <div className="space-y-2">

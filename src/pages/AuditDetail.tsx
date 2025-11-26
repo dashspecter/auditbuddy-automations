@@ -173,7 +173,7 @@ const AuditDetail = () => {
       const pdfData = {
         id: audit.id,
         type: "location",
-        location: audit.location,
+        location: audit.locations?.name || audit.location || 'Unknown Location',
         checker: "Audit User",
         date: format(new Date(audit.audit_date || audit.created_at), 'yyyy-MM-dd'),
         status: (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? "compliant" : "non-compliant",
@@ -385,7 +385,10 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-semibold text-foreground">{audit.location}</p>
+                  <p className="font-semibold text-foreground">
+                    {audit.locations?.name || audit.location || 'Unknown Location'}
+                    {audit.locations?.city && ` - ${audit.locations.city}`}
+                  </p>
                 </div>
               </div>
               

@@ -68,8 +68,9 @@ const Audits = () => {
       // Search filter
       const searchLower = searchQuery.toLowerCase();
       const checkerName = getCheckerName(audit.user_id).toLowerCase();
+      const locationName = audit.locations?.name || audit.location || '';
       const matchesSearch = 
-        audit.location.toLowerCase().includes(searchLower) ||
+        locationName.toLowerCase().includes(searchLower) ||
         checkerName.includes(searchLower);
 
       if (!matchesSearch) return false;
@@ -172,7 +173,9 @@ const Audits = () => {
                 >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{audit.location}</p>
+                        <p className="font-medium text-foreground">
+                          {audit.locations?.name || audit.location || 'Unknown Location'}
+                        </p>
                         <Badge variant="outline" className="text-xs">
                           {getTemplateType(audit.template_id)}
                         </Badge>
