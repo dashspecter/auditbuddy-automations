@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   optimizeDeps: {
+    include: ['react-quill'],
     exclude: ['@capacitor/camera', '@capacitor/core', '@capacitor/status-bar']
   },
   build: {
