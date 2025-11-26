@@ -39,38 +39,54 @@ export const useLocationTrends = () => {
         .filter(audit => audit.overall_score != null)
         .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime());
 
-      // Need at least 2 audits to show a trend
-      if (sortedAudits.length >= 2) {
+      // Show all locations, even with 1 audit
+      if (sortedAudits.length >= 1) {
         const currentAudit = sortedAudits[0];
-        const previousAudit = sortedAudits[1];
-        
         const currentScore = currentAudit.overall_score || 0;
-        const previousScore = previousAudit.overall_score || 0;
-        const scoreDifference = currentScore - previousScore;
-        const percentageChange = previousScore > 0 
-          ? ((scoreDifference / previousScore) * 100) 
-          : 0;
+        
+        if (sortedAudits.length >= 2) {
+          // Calculate trend if we have at least 2 audits
+          const previousAudit = sortedAudits[1];
+          const previousScore = previousAudit.overall_score || 0;
+          const scoreDifference = currentScore - previousScore;
+          const percentageChange = previousScore > 0 
+            ? ((scoreDifference / previousScore) * 100) 
+            : 0;
 
-        let trend: 'improvement' | 'decline' | 'stable';
-        if (Math.abs(scoreDifference) < 2) {
-          trend = 'stable';
-        } else if (scoreDifference > 0) {
-          trend = 'improvement';
+          let trend: 'improvement' | 'decline' | 'stable';
+          if (Math.abs(scoreDifference) < 2) {
+            trend = 'stable';
+          } else if (scoreDifference > 0) {
+            trend = 'improvement';
+          } else {
+            trend = 'decline';
+          }
+
+          trends.push({
+            location,
+            currentScore,
+            previousScore,
+            scoreDifference,
+            percentageChange,
+            trend,
+            currentAuditDate: currentAudit.audit_date,
+            previousAuditDate: previousAudit.audit_date,
+            auditCount: sortedAudits.length
+          });
         } else {
-          trend = 'decline';
+          // Only 1 audit, show as stable with no previous data
+          trends.push({
+            location,
+            currentScore,
+            previousScore: 0,
+            scoreDifference: 0,
+            percentageChange: 0,
+            trend: 'stable',
+            currentAuditDate: currentAudit.audit_date,
+            previousAuditDate: currentAudit.audit_date,
+            auditCount: sortedAudits.length
+          });
         }
-
-        trends.push({
-          location,
-          currentScore,
-          previousScore,
-          scoreDifference,
-          percentageChange,
-          trend,
-          currentAuditDate: currentAudit.audit_date,
-          previousAuditDate: previousAudit.audit_date,
-          auditCount: sortedAudits.length
-        });
       }
     });
 

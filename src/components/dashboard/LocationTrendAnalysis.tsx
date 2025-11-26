@@ -8,6 +8,7 @@ import { useState } from "react";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { LocationPerformanceDetail } from "./LocationPerformanceDetail";
 import type { LocationPerformance } from "@/hooks/usePerformanceTrends";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
 export const LocationTrendAnalysis = () => {
   const { locationTrends, isLoading } = useLocationTrends();
@@ -96,57 +97,102 @@ export const LocationTrendAnalysis = () => {
         </div>
         
         <div className="space-y-4">
-          {locationTrends.map((trend) => (
-            <div
-              key={trend.location}
-              onClick={() => handleLocationClick(trend.location)}
-              className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold">{trend.location}</h4>
-                    {getTrendBadge(trend.trend)}
+          {locationTrends.map((trend) => {
+            const locationData = locationPerformance.find(
+              loc => loc.locationName === trend.location
+            );
+            
+            const chartData = locationData?.audits
+              .sort((a, b) => new Date(a.audit_date).getTime() - new Date(b.audit_date).getTime())
+              .map(audit => ({
+                date: format(new Date(audit.audit_date), 'MMM dd'),
+                score: audit.overall_score || 0
+              })) || [];
+
+            return (
+              <div
+                key={trend.location}
+                onClick={() => handleLocationClick(trend.location)}
+                className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold">{trend.location}</h4>
+                      {getTrendBadge(trend.trend)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {trend.auditCount} total audits • Latest: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {trend.auditCount} total audits • Latest: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
-                  </p>
+                  {getTrendIcon(trend.trend)}
                 </div>
-                {getTrendIcon(trend.trend)}
-              </div>
 
-              <div className="grid grid-cols-3 gap-4 mt-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Current Score</p>
-                  <p className="text-2xl font-bold">{trend.currentScore}%</p>
+                <div className="grid grid-cols-3 gap-4 mt-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Current Score</p>
+                    <p className="text-2xl font-bold">{trend.currentScore}%</p>
+                  </div>
+                  
+                  {trend.auditCount > 1 ? (
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Previous Score</p>
+                        <p className="text-2xl font-bold text-muted-foreground">{trend.previousScore}%</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Change</p>
+                        <p className={`text-2xl font-bold ${getScoreDifferenceColor(trend.scoreDifference)}`}>
+                          {trend.scoreDifference > 0 ? '+' : ''}{trend.scoreDifference}%
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2 flex items-center justify-center">
+                      <p className="text-sm text-muted-foreground">First audit - no comparison available</p>
+                    </div>
+                  )}
                 </div>
-                
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Previous Score</p>
-                  <p className="text-2xl font-bold text-muted-foreground">{trend.previousScore}%</p>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Change</p>
-                  <p className={`text-2xl font-bold ${getScoreDifferenceColor(trend.scoreDifference)}`}>
-                    {trend.scoreDifference > 0 ? '+' : ''}{trend.scoreDifference}%
-                  </p>
-                </div>
-              </div>
 
-              {trend.trend !== 'stable' && (
-                <div className="mt-3 pt-3 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    {trend.trend === 'improvement' ? '📈' : '📉'} 
-                    {' '}
-                    {Math.abs(trend.percentageChange).toFixed(1)}% 
-                    {trend.trend === 'improvement' ? ' improvement' : ' decline'} 
-                    {' '}since {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
+                {chartData.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <ResponsiveContainer width="100%" height={80}>
+                      <LineChart data={chartData}>
+                        <XAxis 
+                          dataKey="date" 
+                          hide 
+                        />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          hide 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="score" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {trend.trend !== 'stable' && trend.auditCount > 1 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      {trend.trend === 'improvement' ? '📈' : '📉'} 
+                      {' '}
+                      {Math.abs(trend.percentageChange).toFixed(1)}% 
+                      {trend.trend === 'improvement' ? ' improvement' : ' decline'} 
+                      {' '}since {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
