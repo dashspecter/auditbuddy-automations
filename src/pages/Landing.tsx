@@ -63,12 +63,12 @@ const Landing = () => {
       <section className="container mx-auto px-4 px-safe py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
-            {user ? `Welcome Back!` : `Restaurant Compliance Made Simple`}
+            {user ? `Welcome Back!` : `Complete Compliance & Audit Management Platform`}
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {user 
-              ? `Track your audit performance and manage compliance with ease.`
-              : `Streamline your health inspections, audit processes, and compliance management with Dashspect's intuitive platform.`
+              ? `Track your audit performance and manage compliance with ease across all your locations.`
+              : `Streamline inspections, audits, staff assessments, and compliance management across restaurants, retail, healthcare, and any location-based business.`
             }
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -199,15 +199,239 @@ const Landing = () => {
         </section>
       )}
 
-      {/* Features Section */}
-      <section id="features" className="bg-muted/30 py-16 md:py-24">
+      {/* Core Functionalities */}
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Everything You Need for Compliance
+              Complete Audit & Compliance Solution
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Powerful features designed to help restaurant teams maintain health and safety standards
+              Everything you need to manage locations, staff, audits, and compliance in one platform
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Location Audits</h3>
+                <ul className="space-y-3 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Create custom audit templates with sections and scoring systems</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Conduct digital inspections with photo evidence capture</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Schedule recurring audits automatically</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Track audit history with full revision logs</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Generate PDF reports with scores and findings</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Staff Management</h3>
+                <ul className="space-y-3 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Employee database with location assignment</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Staff performance audits and assessments</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Training tests with auto-generated questions from documents</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Track staff compliance scores and trends</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Users className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Performance leaderboards and analytics</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Analytics & Reports</h3>
+                <ul className="space-y-3 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Real-time dashboards with compliance metrics</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Location performance comparison and trends</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Section-based performance breakdown</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Identify best and worst performing locations</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Export detailed compliance reports</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">Communication & Workflow</h3>
+                <ul className="space-y-3 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Notification system with role-based targeting</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Recurring notifications for regular tasks</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Document management with categorization</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Calendar view for scheduled audits</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Activity logs and audit trails</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Industries Section */}
+      <section className="bg-muted/30 py-16 md:py-24">
+        <div className="container mx-auto px-4 px-safe">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Perfect for Any Location-Based Business
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Our platform adapts to your industry's unique compliance and audit requirements
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🍔</div>
+                <h3 className="font-semibold text-lg mb-2">Food Service</h3>
+                <p className="text-sm text-muted-foreground">
+                  Restaurants, cafes, fast food chains, food trucks, catering services
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏪</div>
+                <h3 className="font-semibold text-lg mb-2">Retail</h3>
+                <p className="text-sm text-muted-foreground">
+                  Store chains, shopping centers, boutiques, supermarkets
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏨</div>
+                <h3 className="font-semibold text-lg mb-2">Hospitality</h3>
+                <p className="text-sm text-muted-foreground">
+                  Hotels, resorts, vacation rentals, bed & breakfasts
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏥</div>
+                <h3 className="font-semibold text-lg mb-2">Healthcare</h3>
+                <p className="text-sm text-muted-foreground">
+                  Clinics, dental offices, care facilities, medical practices
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏭</div>
+                <h3 className="font-semibold text-lg mb-2">Manufacturing</h3>
+                <p className="text-sm text-muted-foreground">
+                  Production facilities, warehouses, quality control departments
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏗️</div>
+                <h3 className="font-semibold text-lg mb-2">Construction</h3>
+                <p className="text-sm text-muted-foreground">
+                  Job sites, safety inspections, contractor management
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🏢</div>
+                <h3 className="font-semibold text-lg mb-2">Property Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Building inspections, maintenance audits, facility management
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="text-4xl mb-3">🎓</div>
+                <h3 className="font-semibold text-lg mb-2">Education</h3>
+                <p className="text-sm text-muted-foreground">
+                  Schools, universities, training centers, daycare facilities
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-16 md:py-24">
+        <div className="container mx-auto px-4 px-safe">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Powerful Features Built for Scale
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Enterprise-grade tools designed to help teams maintain standards across multiple locations
             </p>
           </div>
 
@@ -217,9 +441,9 @@ const Landing = () => {
                 <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
                   <ClipboardCheck className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Custom Audit Templates</h3>
+                <h3 className="text-xl font-semibold mb-2">Custom Templates</h3>
                 <p className="text-muted-foreground">
-                  Create and customize audit templates tailored to your specific requirements and standards.
+                  Build unlimited audit templates with custom sections, fields, and scoring systems tailored to your standards.
                 </p>
               </CardContent>
             </Card>
@@ -231,7 +455,7 @@ const Landing = () => {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Real-Time Analytics</h3>
                 <p className="text-muted-foreground">
-                  Track compliance trends, identify issues early, and make data-driven decisions.
+                  Track compliance trends, compare locations, and make data-driven decisions with live dashboards.
                 </p>
               </CardContent>
             </Card>
@@ -241,9 +465,9 @@ const Landing = () => {
                 <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
                   <Users className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Team Collaboration</h3>
+                <h3 className="text-xl font-semibold mb-2">Role-Based Access</h3>
                 <p className="text-muted-foreground">
-                  Role-based access for admins, managers, and checkers ensures everyone stays aligned.
+                  Admin, manager, and checker roles ensure everyone has the right access level and responsibilities.
                 </p>
               </CardContent>
             </Card>
@@ -253,9 +477,9 @@ const Landing = () => {
                 <div className="bg-primary/10 rounded-lg p-3 w-fit mb-4">
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Comprehensive Reports</h3>
+                <h3 className="text-xl font-semibold mb-2">PDF Reports</h3>
                 <p className="text-muted-foreground">
-                  Generate detailed PDF reports with scores, notes, and actionable insights.
+                  Generate professional PDF reports with scores, photos, notes, and compliance documentation instantly.
                 </p>
               </CardContent>
             </Card>
@@ -267,7 +491,7 @@ const Landing = () => {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Smart Notifications</h3>
                 <p className="text-muted-foreground">
-                  Automated alerts and reminders keep your team informed and compliant.
+                  Automated alerts, recurring reminders, and role-based notifications keep teams informed and on schedule.
                 </p>
               </CardContent>
             </Card>
@@ -279,7 +503,7 @@ const Landing = () => {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Audit History</h3>
                 <p className="text-muted-foreground">
-                  Complete revision tracking and historical data for compliance documentation.
+                  Complete revision tracking, change logs, and historical data for regulatory compliance and documentation.
                 </p>
               </CardContent>
             </Card>
@@ -288,25 +512,35 @@ const Landing = () => {
       </section>
 
       {/* Who It's For Section */}
-      <section className="py-16 md:py-24">
+      <section className="bg-muted/30 py-16 md:py-24">
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Built for Restaurant Teams
+              Designed for Every Team Member
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Whether you're a single location or multi-unit operation, Dashspect scales with your needs
+              From single locations to enterprise operations with hundreds of sites
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="text-center">
               <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <Shield className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Administrators</h3>
+              <p className="text-muted-foreground">
+                Full control over templates, users, locations, and system-wide settings. View comprehensive analytics across all operations.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <Users className="h-8 w-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Restaurant Managers</h3>
+              <h3 className="text-xl font-semibold mb-2">Managers</h3>
               <p className="text-muted-foreground">
-                Oversee multiple locations, monitor compliance, and ensure standards are met across your operations.
+                Oversee multiple locations, assign audits, monitor team performance, and send notifications to keep operations running smoothly.
               </p>
             </div>
 
@@ -314,19 +548,9 @@ const Landing = () => {
               <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Health Inspectors</h3>
+              <h3 className="text-xl font-semibold mb-2">Checkers/Inspectors</h3>
               <p className="text-muted-foreground">
-                Conduct efficient audits with digital checklists, capture evidence, and generate reports instantly.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-primary rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                <Shield className="h-8 w-8 text-primary-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Compliance Officers</h3>
-              <p className="text-muted-foreground">
-                Track trends, identify risks, and maintain audit trails for regulatory compliance.
+                Conduct audits on-site with mobile-friendly checklists, capture photos, and submit findings in real-time from any device.
               </p>
             </div>
           </div>
@@ -334,26 +558,26 @@ const Landing = () => {
       </section>
 
       {/* How It Works Section */}
-      <section className="bg-muted/30 py-16 md:py-24">
+      <section className="py-16 md:py-24">
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Simple. Efficient. Effective.
+              Get Started in Minutes
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Get started in minutes with our streamlined process
+              Simple setup process with immediate results
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-6">
               <div className="text-center">
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   1
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Create Templates</h3>
-                <p className="text-muted-foreground">
-                  Build custom audit templates or use our pre-built library to get started quickly.
+                <h3 className="text-lg font-semibold mb-2">Add Locations</h3>
+                <p className="text-sm text-muted-foreground">
+                  Set up your sites, assign managers, and organize by region or type.
                 </p>
               </div>
 
@@ -361,9 +585,9 @@ const Landing = () => {
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   2
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Conduct Audits</h3>
-                <p className="text-muted-foreground">
-                  Perform inspections with mobile-friendly checklists and capture findings in real-time.
+                <h3 className="text-lg font-semibold mb-2">Create Templates</h3>
+                <p className="text-sm text-muted-foreground">
+                  Build custom checklists or use pre-made templates for your industry.
                 </p>
               </div>
 
@@ -371,9 +595,19 @@ const Landing = () => {
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                   3
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Track & Improve</h3>
-                <p className="text-muted-foreground">
-                  Monitor trends, generate reports, and drive continuous improvement across locations.
+                <h3 className="text-lg font-semibold mb-2">Conduct Audits</h3>
+                <p className="text-sm text-muted-foreground">
+                  Schedule or start audits instantly, capture photos, and score performance.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+                  4
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Monitor & Improve</h3>
+                <p className="text-sm text-muted-foreground">
+                  Track trends, identify issues, and drive continuous improvement.
                 </p>
               </div>
             </div>
