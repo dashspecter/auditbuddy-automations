@@ -36,6 +36,7 @@ import TestCreation from "./pages/TestCreation";
 import TestManagement from "./pages/TestManagement";
 import TakeTest from "./pages/TakeTest";
 import TestResult from "./pages/TestResult";
+import LocationsManagement from "./pages/LocationsManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +85,7 @@ const App = () => (
             <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
             <Route path="/take-test/:testId" element={<TakeTest />} />
             <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
+            <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

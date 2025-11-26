@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -297,12 +297,20 @@ export const Header = () => {
                       </Link>
                     </DropdownMenuItem>
                     {roleData?.isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          Users
-                        </Link>
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/locations" className="cursor-pointer min-h-[44px] flex items-center">
+                            <MapPin className="mr-2 h-4 w-4" />
+                            Locations
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/users" className="cursor-pointer min-h-[44px] flex items-center">
+                            <User className="mr-2 h-4 w-4" />
+                            Users
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -538,14 +546,24 @@ export const Header = () => {
                   </>
                 )}
                 {roleData?.isAdmin && (
-                  <Link 
-                    to="/admin/users" 
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <User className="h-5 w-5" />
-                    <span className="text-base font-medium">Users</span>
-                  </Link>
+                  <>
+                    <Link 
+                      to="/admin/locations" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <MapPin className="h-5 w-5" />
+                      <span className="text-base font-medium">Locations</span>
+                    </Link>
+                    <Link 
+                      to="/admin/users" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <User className="h-5 w-5" />
+                      <span className="text-base font-medium">Users</span>
+                    </Link>
+                  </>
                 )}
                 
                 <div className="border-t border-border my-2"></div>

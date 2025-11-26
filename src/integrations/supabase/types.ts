@@ -425,6 +425,45 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          created_by: string
+          id: string
+          manager_id: string | null
+          name: string
+          status: string
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          manager_id?: string | null
+          name: string
+          status?: string
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          manager_id?: string | null
+          name?: string
+          status?: string
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_audit_logs: {
         Row: {
           action: string
