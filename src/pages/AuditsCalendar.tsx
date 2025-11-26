@@ -36,6 +36,7 @@ interface CalendarEvent {
     status: string;
     location: string;
     template: string;
+    templateType: string;
     assignedTo: string;
     assignedUserId: string;
     isOwnAudit: boolean;
@@ -71,6 +72,7 @@ const AuditsCalendar = () => {
         status: audit.status,
         location: audit.locations?.name || audit.location,
         template: audit.audit_templates?.name || 'Unknown Template',
+        templateType: audit.audit_templates?.template_type || 'location',
         assignedTo: audit.profiles?.full_name || audit.profiles?.email || 'Unassigned',
         assignedUserId: audit.assigned_user_id,
         isOwnAudit: audit.assigned_user_id === user?.id,
@@ -79,7 +81,7 @@ const AuditsCalendar = () => {
   }, [audits, user?.id]);
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
-    const { status, isOwnAudit } = event.resource;
+    const { status, isOwnAudit, templateType } = event.resource;
     
     let backgroundColor = 'hsl(var(--muted))';
     let borderColor = 'hsl(var(--border))';
@@ -88,15 +90,24 @@ const AuditsCalendar = () => {
       borderColor = 'hsl(var(--primary))';
     }
     
+    // Different base colors for location vs staff audits
+    const isStaffAudit = templateType === 'staff';
+    
     switch (status) {
       case 'scheduled':
-        backgroundColor = 'hsl(var(--primary) / 0.2)';
+        backgroundColor = isStaffAudit 
+          ? 'hsl(280 65% 60% / 0.2)' // Purple for staff
+          : 'hsl(var(--primary) / 0.2)'; // Primary for location
         break;
       case 'in_progress':
-        backgroundColor = 'hsl(217 91% 60% / 0.2)';
+        backgroundColor = isStaffAudit
+          ? 'hsl(280 65% 60% / 0.3)' // Darker purple for staff
+          : 'hsl(217 91% 60% / 0.2)'; // Blue for location
         break;
       case 'completed':
-        backgroundColor = 'hsl(142 76% 36% / 0.2)';
+        backgroundColor = isStaffAudit
+          ? 'hsl(280 65% 60% / 0.15)' // Light purple for staff
+          : 'hsl(142 76% 36% / 0.2)'; // Green for location
         break;
       case 'overdue':
         backgroundColor = 'hsl(var(--destructive) / 0.2)';
@@ -302,23 +313,20 @@ const AuditsCalendar = () => {
           <div className="mb-4 flex gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--primary) / 0.2)' }} />
-              <span className="text-sm">Scheduled</span>
+              <span className="text-sm">Location Audit</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(217 91% 60% / 0.2)' }} />
-              <span className="text-sm">In Progress</span>
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(280 65% 60% / 0.2)' }} />
+              <span className="text-sm">Staff Audit</span>
             </div>
+            <div className="h-4 w-px bg-border mx-2" />
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(142 76% 36% / 0.2)' }} />
-              <span className="text-sm">Completed</span>
+              <div className="w-4 h-4 rounded border-l-4" style={{ borderLeftColor: 'hsl(var(--primary))' }} />
+              <span className="text-sm">Your Audits</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--destructive) / 0.2)' }} />
               <span className="text-sm">Overdue</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-l-4" style={{ borderLeftColor: 'hsl(var(--primary))' }} />
-              <span className="text-sm">Your Audits</span>
             </div>
           </div>
 
@@ -357,8 +365,13 @@ const AuditsCalendar = () => {
               </div>
               
               <div>
-                <p className="text-sm text-muted-foreground">Template</p>
-                <p className="font-medium">{selectedEvent.resource.template}</p>
+                <p className="text-sm text-muted-foreground">Audit Type</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="capitalize">
+                    {selectedEvent.resource.templateType}
+                  </Badge>
+                  <span className="font-medium">{selectedEvent.resource.template}</span>
+                </div>
               </div>
               
               <div>
