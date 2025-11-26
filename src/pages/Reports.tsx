@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
+import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -474,6 +475,9 @@ const Reports = () => {
 
           {/* Compliance Trends Chart */}
           <ComplianceChart />
+
+          {/* Employee Performance Chart */}
+          <EmployeePerformanceChart />
 
           {/* Per Location Pie Charts */}
           {reportData.length > 0 && (
