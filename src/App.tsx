@@ -37,6 +37,7 @@ import TestManagement from "./pages/TestManagement";
 import TakeTest from "./pages/TakeTest";
 import TestResult from "./pages/TestResult";
 import LocationsManagement from "./pages/LocationsManagement";
+import AuditSummary from "./pages/AuditSummary";
 import AuditsCalendar from "./pages/AuditsCalendar";
 import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
 
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
             <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
+            <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

@@ -421,17 +421,22 @@ const LocationAudit = () => {
           .eq('id', currentDraftId);
 
         if (error) throw error;
+        
+        toast.success("Location audit submitted successfully!");
+        navigate(`/audit-summary/${currentDraftId}`);
       } else {
         // Create new audit
-        const { error } = await supabase
+        const { data: newAudit, error } = await supabase
           .from('location_audits')
-          .insert(auditData);
+          .insert(auditData)
+          .select('id')
+          .single();
 
         if (error) throw error;
+        
+        toast.success("Location audit submitted successfully!");
+        navigate(`/audit-summary/${newAudit.id}`);
       }
-
-      toast.success("Location audit submitted successfully!");
-      navigate("/");
     } catch (error) {
       console.error('Error submitting audit:', error);
       toast.error('Failed to submit audit');
