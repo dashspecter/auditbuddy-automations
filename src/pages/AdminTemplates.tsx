@@ -207,7 +207,7 @@ const AdminTemplates = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="location">Operational Audit</SelectItem>
-                        <SelectItem value="staff">Staff Performance Audit</SelectItem>
+                        <SelectItem value="staff">Staff Audit</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
