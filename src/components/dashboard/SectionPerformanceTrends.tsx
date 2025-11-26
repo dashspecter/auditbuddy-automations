@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { format } from "date-fns";
-import { useState } from "react";
+import { format, subMonths, startOfMonth } from "date-fns";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { useLocations } from "@/hooks/useLocations";
@@ -13,10 +13,13 @@ import { useTemplates } from "@/hooks/useTemplates";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export const SectionPerformanceTrends = () => {
-  const [locationFilter, setLocationFilter] = useState<string>();
-  const [dateFrom, setDateFrom] = useState<Date>();
-  const [dateTo, setDateTo] = useState<Date>();
-  const [templateFilter, setTemplateFilter] = useState<string>();
+  const today = new Date();
+  const lastMonth = subMonths(today, 1);
+  
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date>(lastMonth);
+  const [dateTo, setDateTo] = useState<Date>(today);
+  const [templateFilter, setTemplateFilter] = useState<string>("all");
 
   const { data: locations } = useLocations(false);
   const { data: templates } = useTemplates();

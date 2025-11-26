@@ -50,10 +50,10 @@ export const usePerformanceTrends = (locationFilter?: string, dateFrom?: Date, d
     return audits.filter(audit => {
       const auditDate = new Date(audit.audit_date);
       
-      if (locationFilter && audit.location_id !== locationFilter) return false;
+      if (locationFilter && locationFilter !== "all" && audit.location_id !== locationFilter) return false;
       if (dateFrom && auditDate < dateFrom) return false;
       if (dateTo && auditDate > dateTo) return false;
-      if (templateFilter && audit.template_id !== templateFilter) return false;
+      if (templateFilter && templateFilter !== "all" && audit.template_id !== templateFilter) return false;
       
       return audit.overall_score != null;
     });
