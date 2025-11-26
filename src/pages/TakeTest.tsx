@@ -343,10 +343,15 @@ const TakeTest = () => {
               <Input
                 value={staffLocation}
                 onChange={(e) => setStaffLocation(e.target.value)}
-                placeholder="Your location"
+                placeholder={isAssigned ? "Location from assignment" : "Your location"}
                 disabled={isAssigned}
                 className={isAssigned ? "bg-muted cursor-not-allowed" : ""}
               />
+              {isAssigned && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Location is locked for assigned tests
+                </p>
+              )}
               {!isAssigned && (
                 <select
                   className="w-full rounded-md border border-input bg-background px-3 py-2 mt-2"
