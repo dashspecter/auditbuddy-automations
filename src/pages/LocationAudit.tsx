@@ -768,11 +768,11 @@ const LocationAudit = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Basic Information */}
-          <Card className="p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Basic Information</h2>
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="template">Template *</Label>
+          <Card className="p-3 sm:p-6">
+            <h2 className="text-base sm:text-xl font-semibold mb-2 sm:mb-4">Basic Information</h2>
+            <div className="grid gap-2 sm:gap-4 md:grid-cols-2">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="template" className="text-sm">Template *</Label>
                 <Select
                   value={selectedTemplateId}
                   onValueChange={setSelectedTemplateId}
@@ -790,12 +790,12 @@ const LocationAudit = () => {
                   </SelectContent>
                 </Select>
                 {selectedTemplate?.description && (
-                  <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">{selectedTemplate.description}</p>
                 )}
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="location" className="text-sm">Location *</Label>
                 <LocationSelector
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
@@ -832,37 +832,37 @@ const LocationAudit = () => {
                 })()}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="auditDate">Audit Date *</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="auditDate" className="text-sm">Audit Date *</Label>
                 <Input
                   id="auditDate"
                   type="date"
                   required
                   value={formData.auditDate}
                   onChange={(e) => setFormData({ ...formData, auditDate: e.target.value })}
-                  className="h-9 sm:h-10 py-1 sm:py-2"
+                  className="h-9 sm:h-10 py-1 sm:py-2 text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="timeStart">Start Time</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="timeStart" className="text-sm">Start Time</Label>
                 <Input
                   id="timeStart"
                   type="time"
                   value={formData.timeStart}
                   onChange={(e) => setFormData({ ...formData, timeStart: e.target.value })}
-                  className="h-9 sm:h-10 py-1 sm:py-2"
+                  className="h-9 sm:h-10 py-1 sm:py-2 text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="timeEnd">End Time</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="timeEnd" className="text-sm">End Time</Label>
                 <Input
                   id="timeEnd"
                   type="time"
                   value={formData.timeEnd}
                   onChange={(e) => setFormData({ ...formData, timeEnd: e.target.value })}
-                  className="h-9 sm:h-10 py-1 sm:py-2"
+                  className="h-9 sm:h-10 py-1 sm:py-2 text-sm"
                 />
               </div>
             </div>
