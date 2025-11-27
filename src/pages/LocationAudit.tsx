@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Eye, FileEdit, Camera } from "lucide-react";
+import { ArrowLeft, Save, Eye, FileEdit, Camera, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
@@ -215,11 +215,11 @@ const LocationAudit = () => {
             <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3 w-full">
               <Button
                 type="button"
                 variant={value === 'yes' ? 'default' : 'outline'}
-                className="h-12 text-base font-medium"
+                className="h-14 text-lg font-semibold w-full"
                 onClick={() => {
                   handleFieldChange(field.id, 'yes');
                   if (hasError) {
@@ -231,12 +231,13 @@ const LocationAudit = () => {
                   }
                 }}
               >
+                <Check className="h-5 w-5 mr-2" />
                 YES
               </Button>
               <Button
                 type="button"
                 variant={value === 'no' ? 'default' : 'outline'}
-                className="h-12 text-base font-medium"
+                className="h-14 text-lg font-semibold w-full"
                 onClick={() => {
                   handleFieldChange(field.id, 'no');
                   if (hasError) {
@@ -248,6 +249,7 @@ const LocationAudit = () => {
                   }
                 }}
               >
+                <X className="h-5 w-5 mr-2" />
                 NO
               </Button>
             </div>
