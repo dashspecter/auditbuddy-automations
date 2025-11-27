@@ -32,8 +32,19 @@ export default function EquipmentDetail() {
   // Only fetch interventions if user is authenticated to avoid profile join issues
   const { data: interventions } = useEquipmentInterventions(user ? (id || "") : undefined);
   
-  // Use the actual current URL to ensure proper domain
-  const equipmentUrl = `${window.location.protocol}//${window.location.host}/equipment/${id}`;
+  // Use deployed URL for QR codes - fallback to current location if not in iframe
+  const getBaseUrl = () => {
+    // Check if we're in the Lovable editor (iframe with lovable.dev/lovable.app domain)
+    const currentHost = window.location.host;
+    if (currentHost.includes('lovable.dev') || currentHost.includes('lovable.app')) {
+      // Use the preview/deployed URL from environment or construct it
+      const projectUrl = window.location.origin.replace('lovable.dev', 'lovableproject.com').replace('lovable.app', 'lovableproject.com');
+      return projectUrl;
+    }
+    return window.location.origin;
+  };
+  
+  const equipmentUrl = `${getBaseUrl()}/equipment/${id}`;
 
   const downloadQRCode = () => {
     const svg = document.getElementById("equipment-qr-code");
