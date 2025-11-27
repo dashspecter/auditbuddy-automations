@@ -14,12 +14,18 @@ import { useEquipmentDocuments } from "@/hooks/useEquipmentDocuments";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
 import { ScheduleInterventionDialog } from "@/components/ScheduleInterventionDialog";
 import { QRCodeSVG } from "qrcode.react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function EquipmentDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
+  
+  const { user } = useAuth();
+  const { data: roleData } = useUserRole();
+  const isManager = roleData?.isManager || roleData?.isAdmin;
 
   const { data: equipment, isLoading } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
@@ -91,19 +97,25 @@ export default function EquipmentDetail() {
       <Header />
       <main className="container mx-auto p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/equipment")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Equipment List
-          </Button>
+          {isManager ? (
+            <Button variant="ghost" onClick={() => navigate("/equipment")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Equipment List
+            </Button>
+          ) : (
+            <div />
+          )}
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowQRDialog(true)}>
               <QrCode className="mr-2 h-4 w-4" />
               QR Code
             </Button>
-            <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Equipment
-            </Button>
+            {isManager && (
+              <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Equipment
+              </Button>
+            )}
           </div>
         </div>
 
@@ -203,10 +215,12 @@ export default function EquipmentDetail() {
               <Wrench className="h-5 w-5" />
               Interventions & Checks History
             </CardTitle>
-            <Button onClick={() => setShowScheduleDialog(true)}>
-              <Calendar className="mr-2 h-4 w-4" />
-              Schedule Next Check
-            </Button>
+            {isManager && (
+              <Button onClick={() => setShowScheduleDialog(true)}>
+                <Calendar className="mr-2 h-4 w-4" />
+                Schedule Next Check
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -225,15 +239,15 @@ export default function EquipmentDetail() {
                   {!interventions || interventions.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No interventions recorded yet. Schedule the first check to get started.
+                        {isManager ? "No interventions recorded yet. Schedule the first check to get started." : "No intervention history available."}
                       </TableCell>
                     </TableRow>
                   ) : (
                     interventions.map((intervention) => (
                       <TableRow
                         key={intervention.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/interventions/${intervention.id}`)}
+                        className={isManager ? "cursor-pointer hover:bg-muted/50" : ""}
+                        onClick={isManager ? () => navigate(`/interventions/${intervention.id}`) : undefined}
                       >
                         <TableCell>
                           {format(new Date(intervention.scheduled_for), "MMM d, yyyy")}
@@ -275,13 +289,15 @@ export default function EquipmentDetail() {
         </Card>
       </main>
 
-      <ScheduleInterventionDialog
-        open={showScheduleDialog}
-        onOpenChange={setShowScheduleDialog}
-        equipmentId={id!}
-        equipmentName={equipment.name}
-        locationId={equipment.location_id}
-      />
+      {isManager && (
+        <ScheduleInterventionDialog
+          open={showScheduleDialog}
+          onOpenChange={setShowScheduleDialog}
+          equipmentId={id!}
+          equipmentName={equipment.name}
+          locationId={equipment.location_id}
+        />
+      )}
 
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
         <DialogContent className="sm:max-w-md">

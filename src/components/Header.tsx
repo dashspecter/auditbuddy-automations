@@ -41,6 +41,9 @@ import { cn } from "@/lib/utils";
 export const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const isPublicPage = location.pathname === '/' || location.pathname === '/auth' || location.pathname.startsWith('/equipment/');
+  
+  // Only fetch user role for authenticated pages
   const { data: roleData, isLoading } = useUserRole();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
@@ -53,8 +56,6 @@ export const Header = () => {
   });
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
-
-  const isPublicPage = location.pathname === '/' || location.pathname === '/auth' || location.pathname.startsWith('/equipment/');
 
   const handleInstallApp = async () => {
     const success = await promptInstall();
