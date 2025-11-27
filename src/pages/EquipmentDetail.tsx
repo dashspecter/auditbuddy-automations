@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit, Calendar, FileText, Wrench } from "lucide-react";
+import { ArrowLeft, Edit, Calendar, FileText, Wrench, QrCode, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,43 @@ import { useEquipmentById } from "@/hooks/useEquipment";
 import { useEquipmentDocuments } from "@/hooks/useEquipmentDocuments";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
 import { ScheduleInterventionDialog } from "@/components/ScheduleInterventionDialog";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function EquipmentDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
   const { data: equipment, isLoading } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
   const { data: interventions } = useEquipmentInterventions(id);
+  
+  const equipmentUrl = `${window.location.origin}/equipment/${id}`;
+
+  const downloadQRCode = () => {
+    const svg = document.getElementById("equipment-qr-code");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `${equipment?.name || 'equipment'}-qr-code.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
 
   if (isLoading) {
     return (
@@ -66,10 +94,16 @@ export default function EquipmentDetail() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Equipment List
           </Button>
-          <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Equipment
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowQRDialog(true)}>
+              <QrCode className="mr-2 h-4 w-4" />
+              QR Code
+            </Button>
+            <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Equipment
+            </Button>
+          </div>
         </div>
 
         <div>
@@ -247,6 +281,35 @@ export default function EquipmentDetail() {
         equipmentName={equipment.name}
         locationId={equipment.location_id}
       />
+
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Equipment QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="bg-white p-4 rounded-lg">
+              <QRCodeSVG
+                id="equipment-qr-code"
+                value={equipmentUrl}
+                size={256}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium">{equipment.name}</p>
+              <p className="text-xs text-muted-foreground">
+                Scan to view equipment details
+              </p>
+            </div>
+            <Button onClick={downloadQRCode} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              Download QR Code
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
