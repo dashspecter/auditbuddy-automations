@@ -523,6 +523,9 @@ const LocationAudit = () => {
             } else if (field.field_type === 'rating' && (typeof value !== 'number' || value < 1 || value > 5)) {
               errors.push(`${field.name} must be rated between 1-5 in ${section.name}`);
               newFieldErrors[field.id] = 'Invalid rating';
+            } else if ((field.field_type === 'yesno' || field.field_type === 'yes_no') && value !== 'yes' && value !== 'no' && value !== true && value !== false) {
+              errors.push(`${field.name} must be answered with YES or NO in ${section.name}`);
+              newFieldErrors[field.id] = 'Invalid answer';
             }
           }
         });
@@ -562,17 +565,30 @@ const LocationAudit = () => {
     }
 
     try {
-      // Calculate overall score from rating fields
+      // Calculate overall score from rating and yes/no fields
       let totalRatings = 0;
       let ratingCount = 0;
 
       if (selectedTemplate) {
         selectedTemplate.sections.forEach(section => {
           section.fields.forEach(field => {
+            const value = formData.customData[field.id];
+            
+            // Count rating fields (1-5 scale)
             if (field.field_type === 'rating') {
-              const value = formData.customData[field.id];
               if (typeof value === 'number') {
                 totalRatings += value;
+                ratingCount++;
+              }
+            }
+            
+            // Count yes/no fields (yes = 5 points, no = 0 points)
+            if (field.field_type === 'yesno' || field.field_type === 'yes_no') {
+              if (value === 'yes' || value === true) {
+                totalRatings += 5;
+                ratingCount++;
+              } else if (value === 'no' || value === false) {
+                totalRatings += 0;
                 ratingCount++;
               }
             }
