@@ -74,13 +74,16 @@ const LocationAudit = () => {
   });
 
   useEffect(() => {
-    loadTemplates();
-    if (draftId) {
-      loadDraft(draftId);
-    } else if (templateIdFromUrl) {
-      // Auto-select template from URL
-      setSelectedTemplateId(templateIdFromUrl);
-    }
+    const initializeData = async () => {
+      await loadTemplates();
+      if (draftId) {
+        await loadDraft(draftId);
+      } else if (templateIdFromUrl) {
+        // Auto-select template from URL
+        setSelectedTemplateId(templateIdFromUrl);
+      }
+    };
+    initializeData();
   }, []);
 
   useEffect(() => {
