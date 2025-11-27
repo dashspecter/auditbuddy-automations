@@ -94,3 +94,49 @@
 .rbc-allday-cell {
   background: hsl(var(--muted) / 0.5);
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .rbc-event {
+    font-size: 0.65rem;
+    padding: 1px 3px;
+    line-height: 1.2;
+  }
+  
+  .rbc-event-label {
+    font-size: 0.6rem;
+  }
+  
+  .rbc-event-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .rbc-toolbar {
+    padding: 8px 8px;
+    font-size: 0.875rem;
+  }
+  
+  .rbc-toolbar button {
+    padding: 5px 10px;
+    font-size: 0.875rem;
+  }
+  
+  .rbc-header {
+    padding: 8px 4px;
+    font-size: 0.75rem;
+  }
+  
+  .rbc-time-slot {
+    min-height: 30px;
+  }
+  
+  .rbc-time-header-content {
+    font-size: 0.75rem;
+  }
+  
+  .rbc-day-slot .rbc-time-slot {
+    font-size: 0.75rem;
+  }
+}
