@@ -1,18 +1,82 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { StaffLeaderboard } from "@/components/StaffLeaderboard";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
-import { useStaffAudits } from "@/hooks/useStaffAudits";
+import { useStaffAudits, useCreateStaffAudit } from "@/hooks/useStaffAudits";
+import { useEmployees } from "@/hooks/useEmployees";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { LocationSelector } from "@/components/LocationSelector";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function StaffAudits() {
   const navigate = useNavigate();
   const { data: audits, isLoading } = useStaffAudits();
+  const createStaffAudit = useCreateStaffAudit();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    location_id: "",
+    employee_id: "",
+    audit_date: new Date().toISOString().split("T")[0],
+    score: 70,
+    notes: "",
+  });
+
+  const { data: employees } = useEmployees(
+    formData.location_id && formData.location_id !== "__all__" 
+      ? formData.location_id 
+      : undefined
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.location_id) {
+      toast.error("Please select a location");
+      return;
+    }
+
+    if (!formData.employee_id) {
+      toast.error("Please select an employee");
+      return;
+    }
+
+    createStaffAudit.mutate(
+      {
+        location_id: formData.location_id,
+        employee_id: formData.employee_id,
+        audit_date: formData.audit_date,
+        score: formData.score,
+        notes: formData.notes || null,
+        template_id: null,
+        custom_data: null,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Performance audit submitted successfully");
+          setIsFormOpen(false);
+          setFormData({
+            location_id: "",
+            employee_id: "",
+            audit_date: new Date().toISOString().split("T")[0],
+            score: 70,
+            notes: "",
+          });
+        },
+      }
+    );
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500";
@@ -36,12 +100,110 @@ export default function StaffAudits() {
               <Plus className="h-4 w-4" />
               New Staff Audit
             </Button>
-            <Button onClick={() => navigate('/performance-review/new')} variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button 
+              onClick={() => setIsFormOpen(!isFormOpen)} 
+              variant="outline" 
+              className="gap-2"
+            >
+              {isFormOpen ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               New Performance Review
             </Button>
           </div>
         </div>
+
+        <Collapsible open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <CollapsibleContent>
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Submit Staff Performance Audit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <LocationSelector
+                      value={formData.location_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, location_id: value, employee_id: "" })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="employee">Employee</Label>
+                    <Select
+                      value={formData.employee_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, employee_id: value })
+                      }
+                      disabled={!formData.location_id || !employees || employees.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees?.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            {employee.full_name} - {employee.role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="audit_date">Audit Date</Label>
+                    <Input
+                      type="date"
+                      id="audit_date"
+                      value={formData.audit_date}
+                      onChange={(e) =>
+                        setFormData({ ...formData, audit_date: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Performance Score: {formData.score}%</Label>
+                    <Slider
+                      value={[formData.score]}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, score: value[0] })
+                      }
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Add any observations or comments..."
+                      value={formData.notes}
+                      onChange={(e) =>
+                        setFormData({ ...formData, notes: e.target.value })
+                      }
+                      rows={6}
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={createStaffAudit.isPending}
+                      className="w-full sm:w-auto"
+                    >
+                      {createStaffAudit.isPending ? "Submitting..." : "Submit Audit"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <EmployeeLeaderboard />
