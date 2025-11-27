@@ -9,6 +9,7 @@ import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
 import { LocationPerformanceChart } from "./LocationPerformanceChart";
+import { MaintenanceInterventions } from "./MaintenanceInterventions";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -102,6 +103,8 @@ export const AdminDashboard = () => {
       <DashboardGreeting />
 
       <DraftAudits />
+
+      <MaintenanceInterventions />
 
       {isMobile ? (
         <Collapsible open={statsOpen} onOpenChange={setStatsOpen}>

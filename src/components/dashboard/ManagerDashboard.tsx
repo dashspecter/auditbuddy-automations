@@ -11,6 +11,7 @@ import { DashboardGreeting } from "./DashboardGreeting";
 import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
 import { LocationPerformanceChart } from "./LocationPerformanceChart";
+import { MaintenanceInterventions } from "./MaintenanceInterventions";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -94,6 +95,8 @@ export const ManagerDashboard = () => {
       <DashboardGreeting />
 
       <DraftAudits />
+
+      <MaintenanceInterventions />
 
       {(pendingAudits?.length || 0) > 0 && (
         <Card className="bg-warning/10 border-warning/30">
