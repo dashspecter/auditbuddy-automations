@@ -87,29 +87,31 @@ export default function StaffAudits() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Employee Performance</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+      <div className="container mx-auto p-3 sm:p-6 space-y-3 sm:space-y-6 px-safe">
+        <div className="space-y-3">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">Employee Performance</h1>
+            <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
               Track and evaluate employee performance
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex gap-2">
             <Button 
               onClick={() => navigate('/staff-audit/new')} 
-              className="gap-2 w-full sm:w-auto"
+              className="gap-1.5 flex-1 sm:flex-initial text-sm h-9"
             >
               <Plus className="h-4 w-4" />
-              New Staff Audit
+              <span className="hidden min-[400px]:inline">Staff Audit</span>
+              <span className="min-[400px]:hidden">Audit</span>
             </Button>
             <Button 
               onClick={() => setIsFormOpen(!isFormOpen)} 
               variant="outline" 
-              className="gap-2 w-full sm:w-auto"
+              className="gap-1.5 flex-1 sm:flex-initial text-sm h-9"
             >
               {isFormOpen ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              New Performance Review
+              <span className="hidden min-[400px]:inline">Review</span>
+              <span className="min-[400px]:hidden">New</span>
             </Button>
           </div>
         </div>
