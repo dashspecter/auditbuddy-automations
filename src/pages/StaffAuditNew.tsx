@@ -317,7 +317,7 @@ const StaffAuditNew = () => {
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Staff Performance Audits
+            Back to Employee Performance
           </Button>
 
           <Card className="p-6">
