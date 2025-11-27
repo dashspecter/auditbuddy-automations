@@ -83,10 +83,17 @@ export default function EquipmentForm() {
     try {
       let equipmentId = id;
 
+      // Clean up empty date fields to send null instead of empty strings
+      const cleanedData = {
+        ...data,
+        last_check_date: data.last_check_date || null,
+        next_check_date: data.next_check_date || null,
+      };
+
       if (isEditing) {
-        await updateEquipment.mutateAsync({ id: id!, ...data });
+        await updateEquipment.mutateAsync({ id: id!, ...cleanedData });
       } else {
-        const result = await createEquipment.mutateAsync(data as any);
+        const result = await createEquipment.mutateAsync(cleanedData as any);
         equipmentId = result.id;
       }
 
