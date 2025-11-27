@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock, MapPin, User, Trash2 } from "lucide-react";
+import { Plus, Calendar, Clock, MapPin, User, Trash2, ChevronDown } from "lucide-react";
 import { useRecurringMaintenanceSchedules, useDeleteRecurringMaintenanceSchedule } from "@/hooks/useRecurringMaintenanceSchedules";
 import { RecurringMaintenanceDialog } from "@/components/RecurringMaintenanceDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { calculateNextDates, formatSchedulePreview } from "@/lib/recurringScheduleUtils";
 import { format } from "date-fns";
 
 export default function RecurringMaintenanceSchedules() {
@@ -13,6 +15,7 @@ export default function RecurringMaintenanceSchedules() {
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+  const [expandedSchedules, setExpandedSchedules] = useState<Set<string>>(new Set());
 
   const { data: schedules, isLoading } = useRecurringMaintenanceSchedules();
   const deleteMutation = useDeleteRecurringMaintenanceSchedule();
@@ -37,6 +40,26 @@ export default function RecurringMaintenanceSchedules() {
 
   const getRecurrenceLabel = (pattern: string) => {
     return pattern.charAt(0).toUpperCase() + pattern.slice(1);
+  };
+
+  const toggleSchedule = (id: string) => {
+    const newExpanded = new Set(expandedSchedules);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedSchedules(newExpanded);
+  };
+
+  const getPreviewDates = (schedule: any) => {
+    const dates = calculateNextDates({
+      pattern: schedule.recurrence_pattern,
+      startDate: schedule.start_date,
+      dayOfWeek: schedule.day_of_week,
+      dayOfMonth: schedule.day_of_month,
+    }, 5);
+    return formatSchedulePreview(dates);
   };
 
   return (
@@ -106,6 +129,25 @@ export default function RecurringMaintenanceSchedules() {
                 {schedule.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{schedule.description}</p>
                 )}
+                
+                <Collapsible open={expandedSchedules.has(schedule.id)} onOpenChange={() => toggleSchedule(schedule.id)}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-between mt-2">
+                      <span className="text-xs">Next 5 Dates</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedSchedules.has(schedule.id) ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-2">
+                    <div className="space-y-1">
+                      {getPreviewDates(schedule).map((date, index) => (
+                        <div key={index} className="text-xs text-muted-foreground px-2 py-1 bg-muted/50 rounded">
+                          {index + 1}. {date}
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => handleEdit(schedule)} className="flex-1">
                     Edit
