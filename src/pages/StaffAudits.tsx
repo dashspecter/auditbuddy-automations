@@ -28,7 +28,7 @@ export default function StaffAudits() {
 
         {showForm && (
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Submit Staff Performance Audit</h2>
+            <h2 className="text-xl font-semibold mb-4">Submit Staff Performance</h2>
             <StaffAuditForm onSuccess={() => setShowForm(false)} />
           </Card>
         )}
