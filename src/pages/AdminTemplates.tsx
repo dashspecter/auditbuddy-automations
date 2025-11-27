@@ -148,14 +148,6 @@ const AdminTemplates = () => {
                 <p className="text-muted-foreground mt-1">Manage audit templates and custom fields</p>
               </div>
             <div className="flex flex-wrap gap-2">
-              <AdminOnly>
-                <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
-                  <Link to="/admin/users">
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">Users</span>
-                  </Link>
-                </Button>
-              </AdminOnly>
               <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
                 <Link to="/admin/template-library">
                   <Copy className="h-4 w-4" />
