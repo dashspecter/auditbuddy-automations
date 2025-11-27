@@ -32,10 +32,23 @@ export const ScorePreview = ({ sections, customData, className }: ScorePreviewPr
 
     sections.forEach(section => {
       section.fields.forEach(field => {
+        const value = customData[field.id];
+        
+        // Count rating fields (1-5 scale)
         if (field.field_type === 'rating') {
-          const value = customData[field.id];
           if (typeof value === 'number') {
             totalRatings += value;
+            ratingCount++;
+          }
+        }
+        
+        // Count yes/no fields (yes = 5 points, no = 0 points)
+        if (field.field_type === 'yesno' || field.field_type === 'yes_no') {
+          if (value === 'yes' || value === true) {
+            totalRatings += 5;
+            ratingCount++;
+          } else if (value === 'no' || value === false) {
+            totalRatings += 0;
             ratingCount++;
           }
         }
@@ -49,7 +62,9 @@ export const ScorePreview = ({ sections, customData, className }: ScorePreviewPr
     const isCompliant = overallScore >= COMPLIANCE_THRESHOLD;
     const answeredCount = ratingCount;
     const totalFields = sections.reduce((acc, section) => {
-      return acc + section.fields.filter(f => f.field_type === 'rating').length;
+      return acc + section.fields.filter(f => 
+        f.field_type === 'rating' || f.field_type === 'yesno' || f.field_type === 'yes_no'
+      ).length;
     }, 0);
 
     return {
