@@ -1,0 +1,159 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Calendar, Clock, MapPin, User, Trash2 } from "lucide-react";
+import { useRecurringMaintenanceSchedules, useDeleteRecurringMaintenanceSchedule } from "@/hooks/useRecurringMaintenanceSchedules";
+import { RecurringMaintenanceDialog } from "@/components/RecurringMaintenanceDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
+
+export default function RecurringMaintenanceSchedules() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+
+  const { data: schedules, isLoading } = useRecurringMaintenanceSchedules();
+  const deleteMutation = useDeleteRecurringMaintenanceSchedule();
+
+  const handleEdit = (schedule: any) => {
+    setSelectedSchedule(schedule);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setScheduleToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (scheduleToDelete) {
+      deleteMutation.mutate(scheduleToDelete);
+      setDeleteDialogOpen(false);
+      setScheduleToDelete(null);
+    }
+  };
+
+  const getRecurrenceLabel = (pattern: string) => {
+    return pattern.charAt(0).toUpperCase() + pattern.slice(1);
+  };
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Recurring Maintenance</h1>
+          <p className="text-muted-foreground">Automated scheduling for periodic equipment maintenance</p>
+        </div>
+        <Button onClick={() => { setSelectedSchedule(null); setDialogOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Schedule
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-6 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : schedules && schedules.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {schedules.map((schedule) => (
+            <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{schedule.title}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {schedule.equipment?.name}
+                    </CardDescription>
+                  </div>
+                  <Badge variant={schedule.is_active ? "default" : "secondary"}>
+                    {schedule.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>{schedule.locations?.name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{getRecurrenceLabel(schedule.recurrence_pattern)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>{schedule.start_time}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>{schedule.assigned_user?.full_name || schedule.assigned_user?.email}</span>
+                </div>
+                {schedule.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{schedule.description}</p>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(schedule)} className="flex-1">
+                    Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(schedule.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No recurring schedules</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Create automated maintenance schedules for your equipment
+            </p>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Schedule
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <RecurringMaintenanceDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        schedule={selectedSchedule}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Recurring Schedule</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this schedule? This will not affect existing scheduled interventions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
