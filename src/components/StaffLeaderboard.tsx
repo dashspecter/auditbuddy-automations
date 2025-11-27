@@ -178,7 +178,7 @@ export const StaffLeaderboard = () => {
     <Card className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Staff Leaderboard</h2>
+          <h2 className="text-2xl font-bold">Location Leaderboard</h2>
           <p className="text-muted-foreground mt-1">Rankings based on last 5 performance records (audits & tests)</p>
         </div>
         <Button onClick={generatePDF} variant="outline">
