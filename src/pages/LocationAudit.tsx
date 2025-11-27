@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
+import { useSwipeable } from "react-swipeable";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ const LocationAudit = () => {
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(draftId);
   const [isScheduledAudit, setIsScheduledAudit] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [formData, setFormData] = useState({
     location_id: "",
     auditDate: new Date().toISOString().split('T')[0],
@@ -202,6 +204,26 @@ const LocationAudit = () => {
       },
     });
   };
+
+  const handleNextSection = () => {
+    if (selectedTemplate && currentSectionIndex < selectedTemplate.sections.length - 1) {
+      setCurrentSectionIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePreviousSection = () => {
+    if (currentSectionIndex > 0) {
+      setCurrentSectionIndex(prev => prev - 1);
+    }
+  };
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => handleNextSection(),
+    onSwipedRight: () => handlePreviousSection(),
+    trackMouse: false,
+    trackTouch: true,
+    delta: 50,
+  });
 
   const renderField = (field: AuditField) => {
     const value = formData.customData[field.id] || '';
@@ -849,21 +871,101 @@ const LocationAudit = () => {
                   />
                 </div>
 
-                {selectedTemplate.sections.map((section) => (
-                  <Card key={section.id} className="p-4 sm:p-6">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-2">{section.name}</h2>
-                    {section.description && (
-                      <p className="text-sm text-muted-foreground mb-3 sm:mb-4">{section.description}</p>
-                    )}
-                    <div className="grid gap-4 sm:gap-4 md:grid-cols-2">
-                      {section.fields.map((field) => (
-                        <div key={field.id} className={field.field_type === 'yesno' || field.field_type === 'yes_no' ? 'md:col-span-2' : ''}>
-                          {renderField(field)}
-                        </div>
-                      ))}
+                {/* Mobile: Single section with swipe navigation */}
+                <div className="lg:hidden">
+                  {/* Section indicators */}
+                  <div className="flex justify-center gap-2 mb-4">
+                    {selectedTemplate.sections.map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setCurrentSectionIndex(index)}
+                        className={`h-2 rounded-full transition-all ${
+                          index === currentSectionIndex 
+                            ? 'w-8 bg-primary' 
+                            : 'w-2 bg-muted-foreground/30'
+                        }`}
+                        aria-label={`Go to section ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Swipeable section container */}
+                  <div {...swipeHandlers} className="touch-pan-y">
+                    <Card className="p-4 sm:p-6 animate-fade-in">
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg sm:text-xl font-semibold">
+                          {selectedTemplate.sections[currentSectionIndex].name}
+                        </h2>
+                        <span className="text-sm text-muted-foreground">
+                          {currentSectionIndex + 1} / {selectedTemplate.sections.length}
+                        </span>
+                      </div>
+                      {selectedTemplate.sections[currentSectionIndex].description && (
+                        <p className="text-sm text-muted-foreground mb-3 sm:mb-4">
+                          {selectedTemplate.sections[currentSectionIndex].description}
+                        </p>
+                      )}
+                      <div className="grid gap-4">
+                        {selectedTemplate.sections[currentSectionIndex].fields.map((field) => (
+                          <div key={field.id}>
+                            {renderField(field)}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Navigation buttons */}
+                      <div className="flex justify-between mt-6 pt-4 border-t">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handlePreviousSection}
+                          disabled={currentSectionIndex === 0}
+                          className="gap-2"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleNextSection}
+                          disabled={currentSectionIndex === selectedTemplate.sections.length - 1}
+                          className="gap-2"
+                        >
+                          Next
+                          <ArrowLeft className="h-4 w-4 rotate-180" />
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Swipe hint for first-time users */}
+                  {currentSectionIndex === 0 && (
+                    <div className="text-center mt-3 text-xs text-muted-foreground animate-fade-in">
+                      👆 Swipe left/right to navigate sections
                     </div>
-                  </Card>
-                ))}
+                  )}
+                </div>
+
+                {/* Desktop: All sections visible */}
+                <div className="hidden lg:block space-y-6">
+                  {selectedTemplate.sections.map((section) => (
+                    <Card key={section.id} className="p-4 sm:p-6">
+                      <h2 className="text-lg sm:text-xl font-semibold mb-2">{section.name}</h2>
+                      {section.description && (
+                        <p className="text-sm text-muted-foreground mb-3 sm:mb-4">{section.description}</p>
+                      )}
+                      <div className="grid gap-4 sm:gap-4 md:grid-cols-2">
+                        {section.fields.map((field) => (
+                          <div key={field.id} className={field.field_type === 'yesno' || field.field_type === 'yes_no' ? 'md:col-span-2' : ''}>
+                            {renderField(field)}
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
 
                 {/* Notes and Photos */}
                 <Card className="p-4 sm:p-6">
