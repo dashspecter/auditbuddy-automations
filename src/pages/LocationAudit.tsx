@@ -661,11 +661,11 @@ const LocationAudit = () => {
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         <Button
           variant="ghost"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/admin/template-library")}
           className="mb-6 gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          Back to Audits
         </Button>
 
         <div className="mb-6 flex items-center justify-between">
