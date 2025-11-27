@@ -294,11 +294,19 @@ export default function TemplateLibrary() {
           Back to Templates
         </Button>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Template Library</h1>
-          <p className="text-muted-foreground">
-            Browse and duplicate pre-built industry-standard audit templates
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Template Library</h1>
+            <p className="text-muted-foreground">
+              Browse and duplicate pre-built industry-standard audit templates
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate("/location-audit")}
+            className="gap-2"
+          >
+            + New Location Audit
+          </Button>
         </div>
 
         <Card className="p-6 mb-6">
