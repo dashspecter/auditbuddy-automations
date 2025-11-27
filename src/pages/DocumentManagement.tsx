@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FileText, Plus, Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { optimizeFile } from "@/lib/fileOptimization";
 
 const DocumentManagement = () => {
   const { user } = useAuth();
@@ -91,11 +92,14 @@ const DocumentManagement = () => {
     setUploading(true);
 
     try {
+      // Optimize file before upload
+      const optimized = await optimizeFile(newDocument.file);
+      
       // Upload file to storage
       const fileName = `${user?.id}/${Date.now()}_${newDocument.file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("documents")
-        .upload(fileName, newDocument.file);
+        .upload(fileName, optimized.file);
 
       if (uploadError) throw uploadError;
 

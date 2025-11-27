@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Camera as CameraIcon, Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { dataUrlToOptimizedBlob, IMAGE_SETTINGS } from "@/lib/fileOptimization";
 
 interface CameraCaptureProps {
   onPhotoUploaded?: (url: string) => void;
@@ -58,17 +59,20 @@ export const CameraCapture = ({ onPhotoUploaded, className }: CameraCaptureProps
     setUploading(true);
 
     try {
-      // Convert data URL to blob
-      const response = await fetch(photo);
-      const blob = await response.blob();
+      // Optimize image before upload
+      const optimizedBlob = await dataUrlToOptimizedBlob(photo, {
+        maxWidth: IMAGE_SETTINGS.MAX_WIDTH,
+        maxHeight: IMAGE_SETTINGS.MAX_HEIGHT,
+        quality: IMAGE_SETTINGS.QUALITY,
+      });
 
       // Generate unique filename
       const fileName = `${user.id}/${Date.now()}.jpg`;
 
-      // Upload to Supabase Storage
+      // Upload optimized image to Supabase Storage
       const { data, error } = await supabase.storage
         .from("photos")
-        .upload(fileName, blob, {
+        .upload(fileName, optimizedBlob, {
           contentType: "image/jpeg",
           upsert: false,
         });
