@@ -341,7 +341,7 @@ const AuditsCalendar = () => {
             </div>
           </div>
 
-          <div className="h-[600px]">
+          <div className="h-[600px] md:h-[600px] h-[500px]">
             <Calendar
               localizer={localizer}
               events={events}
@@ -351,7 +351,7 @@ const AuditsCalendar = () => {
               eventPropGetter={eventStyleGetter}
               onSelectEvent={handleSelectEvent}
               views={['month', 'week', 'day', 'agenda']}
-              defaultView="month"
+              defaultView={window.innerWidth < 768 ? 'agenda' : 'month'}
             />
           </div>
         </Card>
