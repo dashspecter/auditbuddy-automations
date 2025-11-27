@@ -906,9 +906,9 @@ const LocationAudit = () => {
                           {selectedTemplate.sections[currentSectionIndex].description}
                         </p>
                       )}
-                      <div className="grid gap-4">
+                      <div className="space-y-4">
                         {selectedTemplate.sections[currentSectionIndex].fields.map((field) => (
-                          <div key={field.id}>
+                          <div key={field.id} className="w-full">
                             {renderField(field)}
                           </div>
                         ))}
