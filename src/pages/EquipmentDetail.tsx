@@ -24,13 +24,13 @@ export default function EquipmentDetail() {
   const [showQRDialog, setShowQRDialog] = useState(false);
   
   const { user } = useAuth();
-  const { data: roleData } = useUserRole();
-  const isManager = user && (roleData?.isManager || roleData?.isAdmin);
+  const { data: roleData, isLoading: roleLoading } = useUserRole();
+  const isManager = user && !roleLoading && (roleData?.isManager || roleData?.isAdmin);
 
   const { data: equipment, isLoading, error } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
   // Only fetch interventions if user is authenticated to avoid profile join issues
-  const { data: interventions } = useEquipmentInterventions(user ? id : undefined);
+  const { data: interventions } = useEquipmentInterventions(user ? (id || "") : undefined);
   
   // Use the actual current URL to ensure proper domain
   const equipmentUrl = `${window.location.protocol}//${window.location.host}/equipment/${id}`;
