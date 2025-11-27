@@ -134,7 +134,7 @@ const AuditsCalendar = () => {
 
   const handleOpenAudit = () => {
     if (selectedEvent) {
-      navigate(`/audit/${selectedEvent.id}`);
+      navigate(`/audits/${selectedEvent.id}`);
     }
   };
 
@@ -145,7 +145,7 @@ const AuditsCalendar = () => {
         status: 'in_progress',
       });
       setDetailsDialogOpen(false);
-      navigate(`/audit/${selectedEvent.id}`);
+      navigate(`/audits/${selectedEvent.id}`);
     }
   };
 
