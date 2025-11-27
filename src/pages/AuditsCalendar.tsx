@@ -354,6 +354,9 @@ const AuditsCalendar = () => {
               onSelectEvent={handleSelectEvent}
               views={['month', 'week', 'day', 'agenda']}
               defaultView={window.innerWidth < 768 ? 'agenda' : 'month'}
+              step={30}
+              timeslots={2}
+              dayLayoutAlgorithm="no-overlap"
             />
           </div>
         </Card>
