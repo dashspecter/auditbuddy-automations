@@ -2,17 +2,16 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import { StaffAuditForm } from "@/components/StaffAuditForm";
 import { StaffLeaderboard } from "@/components/StaffLeaderboard";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
-import { useState } from "react";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 export default function StaffAudits() {
-  const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
   const { data: audits, isLoading } = useStaffAudits();
 
   const getScoreColor = (score: number) => {
@@ -27,22 +26,16 @@ export default function StaffAudits() {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Staff Performance Audits</h1>
+            <h1 className="text-3xl font-bold text-foreground">Employee Performance</h1>
             <p className="text-muted-foreground mt-2">
               Track and evaluate employee performance
             </p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-            + New Staff Performance
+          <Button onClick={() => navigate('/staff-audit-new')} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Staff Audit
           </Button>
         </div>
-
-        {showForm && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Submit Staff Performance</h2>
-            <StaffAuditForm onSuccess={() => setShowForm(false)} />
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <EmployeeLeaderboard />
