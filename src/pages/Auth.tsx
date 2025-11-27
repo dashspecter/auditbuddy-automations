@@ -20,12 +20,12 @@ const authSchema = z.object({
 });
 
 const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [signInData, setSignInData] = useState({ email: '', password: '' });
+  const [signUpData, setSignUpData] = useState({ email: '', password: '', fullName: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -43,7 +43,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const validated = authSchema.parse({ email, password });
+      const validated = authSchema.parse({ email: signInData.email, password: signInData.password });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: validated.email,
@@ -106,7 +106,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const validated = authSchema.parse({ email, password, fullName });
+      const validated = authSchema.parse({ email: signUpData.email, password: signUpData.password, fullName: signUpData.fullName });
       
       const redirectUrl = `${window.location.origin}/dashboard`;
       
@@ -172,8 +172,8 @@ const Auth = () => {
                   id="signin-email"
                   type="email"
                   placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={signInData.email}
+                  onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
                   required
                 />
               </div>
@@ -184,8 +184,8 @@ const Auth = () => {
                     id="signin-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={signInData.password}
+                    onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
                     className="pr-10"
                     required
                   />
@@ -244,8 +244,8 @@ const Auth = () => {
                   id="signup-name"
                   type="text"
                   placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  value={signUpData.fullName}
+                  onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
                   required
                 />
               </div>
@@ -255,8 +255,8 @@ const Auth = () => {
                   id="signup-email"
                   type="email"
                   placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={signUpData.email}
+                  onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
                   required
                 />
               </div>
@@ -265,20 +265,20 @@ const Auth = () => {
                 <div className="relative">
                   <Input
                     id="signup-password"
-                    type={showPassword ? "text" : "password"}
+                    type={showSignUpPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={signUpData.password}
+                    onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
                     className="pr-10"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowSignUpPassword(!showSignUpPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? (
+                    {showSignUpPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
