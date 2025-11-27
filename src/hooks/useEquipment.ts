@@ -70,10 +70,14 @@ export const useEquipmentById = (id: string) => {
         .eq("id", id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching equipment:", error);
+        throw error;
+      }
       return data as Equipment;
     },
     enabled: !!id,
+    retry: 1,
   });
 };
 

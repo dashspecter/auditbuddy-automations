@@ -25,11 +25,12 @@ export default function EquipmentDetail() {
   
   const { user } = useAuth();
   const { data: roleData } = useUserRole();
-  const isManager = roleData?.isManager || roleData?.isAdmin;
+  const isManager = user && (roleData?.isManager || roleData?.isAdmin);
 
-  const { data: equipment, isLoading } = useEquipmentById(id || "");
+  const { data: equipment, isLoading, error } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
-  const { data: interventions } = useEquipmentInterventions(id);
+  // Only fetch interventions if user is authenticated to avoid profile join issues
+  const { data: interventions } = useEquipmentInterventions(user ? id : undefined);
   
   // Use the actual current URL to ensure proper domain
   const equipmentUrl = `${window.location.protocol}//${window.location.host}/equipment/${id}`;
@@ -81,6 +82,20 @@ export default function EquipmentDetail() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto p-4 md:p-6">
+          <div className="text-center space-y-4">
+            <p className="text-lg font-medium">Unable to load equipment</p>
+            <p className="text-muted-foreground">{error.message || "Equipment not found"}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!equipment) {
     return (
       <div className="min-h-screen bg-background">
@@ -96,6 +111,18 @@ export default function EquipmentDetail() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto p-4 md:p-6 space-y-6">
+        {!user && (
+          <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              You're viewing public equipment details.{" "}
+              <Button variant="link" className="h-auto p-0 text-sm" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+              {" "}to access full features and intervention history.
+            </p>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between">
           {isManager ? (
             <Button variant="ghost" onClick={() => navigate("/equipment")}>
@@ -236,7 +263,13 @@ export default function EquipmentDetail() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!interventions || interventions.length === 0 ? (
+                  {!user ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Sign in to view intervention history
+                      </TableCell>
+                    </TableRow>
+                  ) : !interventions || interventions.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {isManager ? "No interventions recorded yet. Schedule the first check to get started." : "No intervention history available."}
