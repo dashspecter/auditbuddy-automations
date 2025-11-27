@@ -1454,6 +1454,7 @@ export type Database = {
         }
         Returns: string
       }
+      update_overdue_interventions: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "checker" | "manager"
