@@ -134,7 +134,17 @@ const AuditsCalendar = () => {
 
   const handleOpenAudit = () => {
     if (selectedEvent) {
-      navigate(`/audits/${selectedEvent.id}`);
+      // For completed audits (compliant/non-compliant), go to detail view
+      // For incomplete audits (draft/pending/scheduled/in_progress), go to edit form
+      const isCompleted = selectedEvent.resource.status === 'compliant' || 
+                         selectedEvent.resource.status === 'non-compliant' ||
+                         selectedEvent.resource.status === 'completed';
+      
+      if (isCompleted) {
+        navigate(`/audits/${selectedEvent.id}`);
+      } else {
+        navigate(`/location-audit?draft=${selectedEvent.id}`);
+      }
     }
   };
 
@@ -145,7 +155,8 @@ const AuditsCalendar = () => {
         status: 'in_progress',
       });
       setDetailsDialogOpen(false);
-      navigate(`/audits/${selectedEvent.id}`);
+      // Go to edit form to fill out the audit
+      navigate(`/location-audit?draft=${selectedEvent.id}`);
     }
   };
 
