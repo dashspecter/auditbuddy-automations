@@ -341,6 +341,7 @@ export default function EquipmentForm() {
                         <SelectContent>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="transferred">Transferred</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
