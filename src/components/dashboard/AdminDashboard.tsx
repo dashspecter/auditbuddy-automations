@@ -104,8 +104,6 @@ export const AdminDashboard = () => {
 
       <DraftAudits />
 
-      <MaintenanceInterventions />
-
       {isMobile ? (
         <Collapsible open={statsOpen} onOpenChange={setStatsOpen}>
           <CollapsibleTrigger asChild>
@@ -198,6 +196,8 @@ export const AdminDashboard = () => {
       <div className="w-full">
         <SectionPerformanceTrends />
       </div>
+
+      <MaintenanceInterventions />
     </div>
   );
 };
