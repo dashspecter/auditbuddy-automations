@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LocationSelector } from "@/components/LocationSelector";
 import { useEquipmentById, useCreateEquipment, useUpdateEquipment } from "@/hooks/useEquipment";
 import { useUploadEquipmentDocument, useEquipmentDocuments, useDeleteEquipmentDocument } from "@/hooks/useEquipmentDocuments";
+import { useEquipmentStatusHistory } from "@/hooks/useEquipmentStatusHistory";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 const equipmentSchema = z.object({
   location_id: z.string().min(1, "Location is required"),
@@ -38,9 +41,12 @@ export default function EquipmentForm() {
   const isEditing = !!id;
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [equipmentPhoto, setEquipmentPhoto] = useState<File | null>(null);
+  const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState<string | null>(null);
 
   const { data: equipment, isLoading } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
+  const { data: statusHistory } = useEquipmentStatusHistory(id || "");
   const createEquipment = useCreateEquipment();
   const updateEquipment = useUpdateEquipment();
   const uploadDocument = useUploadEquipmentDocument();
@@ -97,6 +103,14 @@ export default function EquipmentForm() {
         equipmentId = result.id;
       }
 
+      // Upload equipment photo first
+      if (equipmentPhoto && equipmentId) {
+        await uploadDocument.mutateAsync({ 
+          equipmentId, 
+          file: new File([equipmentPhoto], `photo_${equipmentPhoto.name}`, { type: equipmentPhoto.type })
+        });
+      }
+
       // Upload documents
       if (selectedFiles.length > 0 && equipmentId) {
         for (const file of selectedFiles) {
@@ -114,6 +128,23 @@ export default function EquipmentForm() {
     if (e.target.files) {
       setSelectedFiles([...selectedFiles, ...Array.from(e.target.files)]);
     }
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEquipmentPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEquipmentPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setEquipmentPhoto(null);
+    setEquipmentPhotoPreview(null);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -321,6 +352,54 @@ export default function EquipmentForm() {
 
             <Card>
               <CardHeader>
+                <CardTitle>Equipment Photo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="cursor-pointer">
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-muted/50 transition-colors">
+                      {equipmentPhotoPreview ? (
+                        <div className="relative">
+                          <img 
+                            src={equipmentPhotoPreview} 
+                            alt="Equipment preview" 
+                            className="max-h-48 mx-auto rounded"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleRemovePhoto();
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            Click to upload equipment photo
+                          </p>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handlePhotoSelect}
+                        accept="image/*"
+                      />
+                    </div>
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>"How to Use" Documents</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -388,6 +467,41 @@ export default function EquipmentForm() {
                 )}
               </CardContent>
             </Card>
+
+            {isEditing && statusHistory && statusHistory.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status Change History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {statusHistory.map((history) => (
+                      <div key={history.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {history.old_status && (
+                              <>
+                                <Badge variant="outline">{history.old_status}</Badge>
+                                <span className="text-muted-foreground">→</span>
+                              </>
+                            )}
+                            <Badge variant={history.new_status === 'active' ? 'default' : 'secondary'}>
+                              {history.new_status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {format(new Date(history.changed_at), "MMM dd, yyyy 'at' HH:mm")}
+                          </p>
+                          {history.notes && (
+                            <p className="text-sm mt-2">{history.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex gap-4">
               <Button type="submit" disabled={createEquipment.isPending || updateEquipment.isPending}>
