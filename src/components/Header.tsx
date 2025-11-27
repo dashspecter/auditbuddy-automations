@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -361,6 +361,30 @@ export const Header = () => {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Maintenance / Equipment Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                      Maintenance
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                    <DropdownMenuItem asChild>
+                      <Link to="/equipment" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Wrench className="mr-2 h-4 w-4" />
+                        Equipment
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/maintenance-calendar" className="cursor-pointer min-h-[44px] flex items-center">
+                        <CalendarMaintenance className="mr-2 h-4 w-4" />
+                        Maintenance Calendar
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
             {(roleData?.isAdmin || roleData?.isManager) && (
@@ -613,6 +637,27 @@ export const Header = () => {
                     >
                       <Repeat className="h-5 w-5" />
                       <span className="text-base font-medium">Recurring Schedules</span>
+                    </Link>
+
+                    <div className="border-t border-border my-2"></div>
+                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Maintenance
+                    </div>
+                    <Link 
+                      to="/equipment" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Wrench className="h-5 w-5" />
+                      <span className="text-base font-medium">Equipment</span>
+                    </Link>
+                    <Link 
+                      to="/maintenance-calendar" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <CalendarMaintenance className="h-5 w-5" />
+                      <span className="text-base font-medium">Maintenance Calendar</span>
                     </Link>
                   </>
                 )}

@@ -44,6 +44,11 @@ import EmployeeManagement from "./pages/EmployeeManagement";
 import StaffAudits from "./pages/StaffAudits";
 import StaffAuditNew from "./pages/StaffAuditNew";
 import ManualMetrics from "./pages/ManualMetrics";
+import EquipmentList from "./pages/EquipmentList";
+import EquipmentForm from "./pages/EquipmentForm";
+import EquipmentDetail from "./pages/EquipmentDetail";
+import InterventionDetail from "./pages/InterventionDetail";
+import MaintenanceCalendar from "./pages/MaintenanceCalendar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,6 +106,12 @@ const App = () => (
             <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
             <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
             <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
+            <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
+            <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+            <Route path="/equipment/:id" element={<ManagerRoute><EquipmentDetail /></ManagerRoute>} />
+            <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+            <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
+            <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

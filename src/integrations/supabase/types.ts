@@ -373,6 +373,192 @@ export type Database = {
           },
         ]
       }
+      equipment: {
+        Row: {
+          created_at: string
+          created_by: string
+          date_added: string
+          id: string
+          last_check_date: string | null
+          last_check_notes: string | null
+          location_id: string
+          model_type: string | null
+          name: string
+          next_check_date: string | null
+          power_consumption: string | null
+          power_supply_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          date_added?: string
+          id?: string
+          last_check_date?: string | null
+          last_check_notes?: string | null
+          location_id: string
+          model_type?: string | null
+          name: string
+          next_check_date?: string | null
+          power_consumption?: string | null
+          power_supply_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          date_added?: string
+          id?: string
+          last_check_date?: string | null
+          last_check_notes?: string | null
+          location_id?: string
+          model_type?: string | null
+          name?: string
+          next_check_date?: string | null
+          power_consumption?: string | null
+          power_supply_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_documents: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_documents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_interventions: {
+        Row: {
+          after_photo_url: string | null
+          before_photo_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          equipment_id: string
+          id: string
+          location_id: string
+          next_check_date: string | null
+          notes: string | null
+          performed_at: string | null
+          performed_by_user_id: string
+          scheduled_for: string
+          status: string
+          supervised_by_user_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          after_photo_url?: string | null
+          before_photo_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          equipment_id: string
+          id?: string
+          location_id: string
+          next_check_date?: string | null
+          notes?: string | null
+          performed_at?: string | null
+          performed_by_user_id: string
+          scheduled_for: string
+          status?: string
+          supervised_by_user_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          after_photo_url?: string | null
+          before_photo_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          equipment_id?: string
+          id?: string
+          location_id?: string
+          next_check_date?: string | null
+          notes?: string | null
+          performed_at?: string | null
+          performed_by_user_id?: string
+          scheduled_for?: string
+          status?: string
+          supervised_by_user_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_interventions_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_interventions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_interventions_performed_by_user_id_fkey"
+            columns: ["performed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_interventions_supervised_by_user_id_fkey"
+            columns: ["supervised_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_audits: {
         Row: {
           assigned_user_id: string | null
