@@ -36,7 +36,7 @@ export default function StaffAudits() {
               <Plus className="h-4 w-4" />
               New Staff Audit
             </Button>
-            <Button onClick={() => navigate('/staff-audit/new')} variant="outline" className="gap-2">
+            <Button onClick={() => navigate('/performance-review/new')} variant="outline" className="gap-2">
               <Plus className="h-4 w-4" />
               New Performance Review
             </Button>
