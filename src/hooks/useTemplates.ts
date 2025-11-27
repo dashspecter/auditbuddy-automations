@@ -57,6 +57,8 @@ export const useTemplates = (type?: 'location' | 'staff') => {
       if (error) throw error;
       return data as AuditTemplate[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 

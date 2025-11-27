@@ -56,7 +56,7 @@ export const useLocationAudits = () => {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['location_audits', user?.id],
+    queryKey: ['location_audits'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('location_audits')
@@ -67,7 +67,9 @@ export const useLocationAudits = () => {
       return data as LocationAudit[];
     },
     enabled: !!user,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -106,7 +108,9 @@ export const useLocationAudit = (id: string) => {
       } as LocationAudit;
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 };
 
