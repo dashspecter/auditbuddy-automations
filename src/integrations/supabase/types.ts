@@ -559,6 +559,47 @@ export type Database = {
           },
         ]
       }
+      equipment_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          created_at: string
+          equipment_id: string
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_status_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_audits: {
         Row: {
           assigned_user_id: string | null
