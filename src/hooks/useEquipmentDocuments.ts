@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { optimizeFile, formatFileSize } from "@/lib/fileOptimization";
 
 export interface EquipmentDocument {
   id: string;
@@ -43,12 +44,15 @@ export const useUploadEquipmentDocument = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Optimize file (compress images, validate size for all files)
+      const optimized = await optimizeFile(file);
+      
       const fileExt = file.name.split(".").pop();
       const fileName = `${equipmentId}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("equipment-documents")
-        .upload(fileName, file);
+        .upload(fileName, optimized.file);
 
       if (uploadError) throw uploadError;
 
@@ -62,13 +66,19 @@ export const useUploadEquipmentDocument = () => {
           equipment_id: equipmentId,
           file_url: publicUrl,
           file_name: file.name,
-          file_size: file.size,
+          file_size: typeof optimized.file === 'string' ? 0 : optimized.file.size,
           uploaded_by: user.id,
         }])
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Show optimization message if file was compressed
+      if (optimized.wasCompressed) {
+        toast.success(`File optimized to ${formatFileSize(optimized.file.size)}`);
+      }
+      
       return data;
     },
     onSuccess: (_, variables) => {

@@ -18,6 +18,7 @@ import { useEquipmentInterventionById, useUpdateEquipmentIntervention, useCreate
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { optimizeFile } from "@/lib/fileOptimization";
 
 const updateInterventionSchema = z.object({
   performed_at: z.string().optional(),
@@ -69,12 +70,15 @@ export default function InterventionDetail() {
   });
 
   const uploadPhoto = async (file: File, type: "before" | "after") => {
+    // Optimize file before upload
+    const optimized = await optimizeFile(file);
+    
     const fileExt = file.name.split(".").pop();
     const fileName = `${id}/${type}-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("photos")
-      .upload(fileName, file);
+      .upload(fileName, optimized.file);
 
     if (uploadError) throw uploadError;
 

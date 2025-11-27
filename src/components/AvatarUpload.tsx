@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
+import { optimizeImage, MAX_FILE_SIZES, formatFileSize } from "@/lib/fileOptimization";
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string | null;
@@ -31,15 +32,6 @@ export const AvatarUpload = ({
       }
 
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${user?.id}/${fileName}`;
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
-        return;
-      }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -47,13 +39,30 @@ export const AvatarUpload = ({
         return;
       }
 
-      // Upload to Supabase Storage
+      // Optimize and compress the image
+      const originalSize = file.size;
+      const optimized = await optimizeImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.9,
+        maxSizeBytes: MAX_FILE_SIZES.AVATAR,
+      });
+
+      const fileName = `${user?.id}-${Date.now()}.jpg`;
+      const filePath = `${user?.id}/${fileName}`;
+
+      // Upload optimized image to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, optimized.blob, { upsert: true });
 
       if (uploadError) {
         throw uploadError;
+      }
+
+      const savedKB = Math.round((originalSize - optimized.blob.size) / 1024);
+      if (savedKB > 10) {
+        toast.success(`Image optimized: saved ${savedKB}KB`);
       }
 
       // Get public URL
@@ -126,7 +135,7 @@ export const AvatarUpload = ({
       </Button>
 
       <p className="text-xs text-muted-foreground text-center">
-        JPG, PNG or WEBP (max 5MB)
+        JPG, PNG or WEBP (max {formatFileSize(MAX_FILE_SIZES.AVATAR)})
       </p>
     </div>
   );
