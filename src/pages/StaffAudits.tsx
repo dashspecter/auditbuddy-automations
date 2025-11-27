@@ -31,10 +31,16 @@ export default function StaffAudits() {
               Track and evaluate employee performance
             </p>
           </div>
-          <Button onClick={() => navigate('/staff-audit/new')} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Staff Audit
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate('/staff-audit/new')} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Staff Audit
+            </Button>
+            <Button onClick={() => navigate('/staff-audit/new')} variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Performance Review
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
