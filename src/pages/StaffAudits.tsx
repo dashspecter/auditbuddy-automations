@@ -152,7 +152,7 @@ export default function StaffAudits() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="audit_date">Audit Date</Label>
+                    <Label htmlFor="audit_date">Review Date</Label>
                     <Input
                       type="date"
                       id="audit_date"
@@ -196,7 +196,7 @@ export default function StaffAudits() {
                       disabled={createStaffAudit.isPending}
                       className="w-full sm:w-auto"
                     >
-                      {createStaffAudit.isPending ? "Submitting..." : "Submit Audit"}
+                      {createStaffAudit.isPending ? "Submitting..." : "Submit Review"}
                     </Button>
                   </div>
                 </form>
