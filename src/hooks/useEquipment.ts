@@ -129,24 +129,4 @@ export const useUpdateEquipment = () => {
   });
 };
 
-export const useDeleteEquipment = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("equipment")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["equipment"] });
-      toast.success("Equipment deleted successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete equipment: ${error.message}`);
-    },
-  });
-};
+// Equipment deletion is disabled - equipment can only be marked as inactive or transferred

@@ -63,6 +63,7 @@ export default function EquipmentList() {
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="transferred">Transferred</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -120,7 +121,11 @@ export default function EquipmentList() {
                         <TableCell>{item.last_check_date ? format(new Date(item.last_check_date), "MMM d, yyyy") : "-"}</TableCell>
                         <TableCell>{item.next_check_date ? format(new Date(item.next_check_date), "MMM d, yyyy") : "-"}</TableCell>
                         <TableCell>
-                          <Badge variant={item.status === "active" ? "default" : "secondary"}>
+                          <Badge variant={
+                            item.status === "active" ? "default" : 
+                            item.status === "transferred" ? "outline" : 
+                            "secondary"
+                          }>
                             {item.status}
                           </Badge>
                         </TableCell>

@@ -116,7 +116,11 @@ export default function EquipmentDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={equipment.status === "active" ? "default" : "secondary"}>
+                <Badge variant={
+                  equipment.status === "active" ? "default" : 
+                  equipment.status === "transferred" ? "outline" : 
+                  "secondary"
+                }>
                   {equipment.status}
                 </Badge>
               </div>
