@@ -233,15 +233,15 @@ const LocationAudit = () => {
       case 'yesno':
       case 'yes_no':
         return (
-          <div className="space-y-3">
+          <div className="space-y-3 w-full">
             <Label htmlFor={field.id} className={hasError ? 'text-destructive font-medium' : 'font-medium'}>
               {field.name} {field.is_required && '*'}
             </Label>
-            <div className="flex flex-col gap-3 w-full">
+            <div className="grid grid-cols-1 gap-3">
               <Button
                 type="button"
                 variant={value === 'yes' ? 'default' : 'outline'}
-                className={`h-14 sm:h-16 text-lg font-semibold w-full transition-all ${
+                className={`h-14 sm:h-16 text-lg font-semibold transition-all ${
                   value === 'yes' 
                     ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md' 
                     : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300'
@@ -263,7 +263,7 @@ const LocationAudit = () => {
               <Button
                 type="button"
                 variant={value === 'no' ? 'default' : 'outline'}
-                className={`h-14 sm:h-16 text-lg font-semibold w-full transition-all ${
+                className={`h-14 sm:h-16 text-lg font-semibold transition-all ${
                   value === 'no' 
                     ? 'bg-red-600 hover:bg-red-700 text-white border-red-600 shadow-md' 
                     : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300'
