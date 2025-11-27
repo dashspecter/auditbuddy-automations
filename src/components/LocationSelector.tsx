@@ -16,6 +16,7 @@ interface LocationSelectorProps {
   disabled?: boolean;
   locationCounts?: Record<string, number>;
   allowAll?: boolean;
+  id?: string;
 }
 
 export const LocationSelector = ({
@@ -25,6 +26,7 @@ export const LocationSelector = ({
   disabled = false,
   locationCounts,
   allowAll = false,
+  id,
 }: LocationSelectorProps) => {
   const { data: locations, isLoading } = useLocations();
 
@@ -34,7 +36,7 @@ export const LocationSelector = ({
 
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger>
+      <SelectTrigger id={id}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

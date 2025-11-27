@@ -22,6 +22,7 @@ interface LocationMultiSelectorProps {
   onValueChange: (value: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  id?: string;
 }
 
 export const LocationMultiSelector = ({
@@ -29,6 +30,7 @@ export const LocationMultiSelector = ({
   onValueChange,
   placeholder = "Select locations",
   disabled = false,
+  id,
 }: LocationMultiSelectorProps) => {
   const { data: locations, isLoading } = useLocations();
   const [open, setOpen] = useState(false);
@@ -56,6 +58,7 @@ export const LocationMultiSelector = ({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
             variant="outline"
             role="combobox"
             aria-expanded={open}
