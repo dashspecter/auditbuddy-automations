@@ -21,9 +21,8 @@ export default function StaffAudits() {
               Track and evaluate employee performance
             </p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Staff Performance
+          <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+            + New Staff Audit
           </Button>
         </div>
 
