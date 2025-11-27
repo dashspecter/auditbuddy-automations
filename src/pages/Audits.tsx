@@ -136,12 +136,6 @@ const Audits = () => {
                   New Location Audit
                 </Button>
               </Link>
-              <Link to="/staff-audit/new">
-                <Button variant="secondary" className="gap-2 min-h-[48px]">
-                  <Plus className="h-4 w-4" />
-                  New Staff Audit
-                </Button>
-              </Link>
             </div>
           </div>
 
