@@ -15,10 +15,12 @@ import { LocationSelector } from "@/components/LocationSelector";
 import { useEquipmentById, useCreateEquipment, useUpdateEquipment } from "@/hooks/useEquipment";
 import { useUploadEquipmentDocument, useEquipmentDocuments, useDeleteEquipmentDocument } from "@/hooks/useEquipmentDocuments";
 import { useEquipmentStatusHistory } from "@/hooks/useEquipmentStatusHistory";
+import { useCreateEquipmentIntervention } from "@/hooks/useEquipmentInterventions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const equipmentSchema = z.object({
   location_id: z.string().min(1, "Location is required"),
@@ -51,6 +53,7 @@ export default function EquipmentForm() {
   const updateEquipment = useUpdateEquipment();
   const uploadDocument = useUploadEquipmentDocument();
   const deleteDocument = useDeleteEquipmentDocument();
+  const createIntervention = useCreateEquipmentIntervention();
 
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
@@ -87,6 +90,9 @@ export default function EquipmentForm() {
 
   const onSubmit = async (data: EquipmentFormValues) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       let equipmentId = id;
 
       // Clean up empty date fields to send null instead of empty strings
@@ -116,6 +122,28 @@ export default function EquipmentForm() {
         for (const file of selectedFiles) {
           await uploadDocument.mutateAsync({ equipmentId, file });
         }
+      }
+
+      // Auto-schedule maintenance intervention if next_check_date is set
+      if (cleanedData.next_check_date && equipmentId) {
+        const nextCheckDate = new Date(cleanedData.next_check_date);
+        nextCheckDate.setHours(9, 0, 0, 0); // Set to 9:00 AM
+        
+        await createIntervention.mutateAsync({
+          equipment_id: equipmentId,
+          location_id: cleanedData.location_id,
+          title: `Scheduled Maintenance - ${cleanedData.name}`,
+          description: "Automatically scheduled maintenance check",
+          scheduled_for: nextCheckDate.toISOString(),
+          performed_by_user_id: user.id,
+          supervised_by_user_id: null,
+          status: "scheduled",
+          performed_at: null,
+          before_photo_url: null,
+          after_photo_url: null,
+          notes: null,
+          next_check_date: null,
+        });
       }
 
       navigate("/equipment");
