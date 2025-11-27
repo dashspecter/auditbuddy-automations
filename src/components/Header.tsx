@@ -566,8 +566,8 @@ export const Header = () => {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] sm:w-[320px]">
-              <nav className="flex flex-col gap-4 mt-8">
+            <SheetContent side="left" className="w-[280px] sm:w-[320px] overflow-y-auto">
+              <nav className="flex flex-col gap-4 mt-8 pb-8">
                 <Link 
                   to="/dashboard" 
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
