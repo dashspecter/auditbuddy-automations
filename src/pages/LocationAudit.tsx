@@ -242,33 +242,46 @@ const LocationAudit = () => {
 
       case 'yes_no':
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
               {field.name} {field.is_required && '*'}
             </Label>
-            <RadioGroup
-              value={value.toString()}
-              onValueChange={(val) => {
-                handleFieldChange(field.id, val === 'true');
-                if (hasError) {
-                  setFieldErrors(prev => {
-                    const next = { ...prev };
-                    delete next[field.id];
-                    return next;
-                  });
-                }
-              }}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="true" id={`${field.id}-yes`} />
-                <Label htmlFor={`${field.id}-yes`}>Yes</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="false" id={`${field.id}-no`} />
-                <Label htmlFor={`${field.id}-no`}>No</Label>
-              </div>
-            </RadioGroup>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={value === 'yes' ? 'default' : 'outline'}
+                className="h-12 text-base font-medium"
+                onClick={() => {
+                  handleFieldChange(field.id, 'yes');
+                  if (hasError) {
+                    setFieldErrors(prev => {
+                      const next = { ...prev };
+                      delete next[field.id];
+                      return next;
+                    });
+                  }
+                }}
+              >
+                YES
+              </Button>
+              <Button
+                type="button"
+                variant={value === 'no' ? 'default' : 'outline'}
+                className="h-12 text-base font-medium"
+                onClick={() => {
+                  handleFieldChange(field.id, 'no');
+                  if (hasError) {
+                    setFieldErrors(prev => {
+                      const next = { ...prev };
+                      delete next[field.id];
+                      return next;
+                    });
+                  }
+                }}
+              >
+                NO
+              </Button>
+            </div>
             {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
