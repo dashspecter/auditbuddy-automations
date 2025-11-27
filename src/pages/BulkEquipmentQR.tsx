@@ -56,7 +56,7 @@ export default function BulkEquipmentQR() {
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
                   <div className="bg-white p-3 rounded-lg">
                     <QRCodeSVG
-                      value={`${window.location.origin}/equipment/${item.id}`}
+                      value={`${window.location.protocol}//${window.location.host}/equipment/${item.id}`}
                       size={180}
                       level="H"
                       includeMargin

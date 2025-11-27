@@ -25,7 +25,8 @@ export default function EquipmentDetail() {
   const { data: documents } = useEquipmentDocuments(id || "");
   const { data: interventions } = useEquipmentInterventions(id);
   
-  const equipmentUrl = `${window.location.origin}/equipment/${id}`;
+  // Use the actual current URL to ensure proper domain
+  const equipmentUrl = `${window.location.protocol}//${window.location.host}/equipment/${id}`;
 
   const downloadQRCode = () => {
     const svg = document.getElementById("equipment-qr-code");
