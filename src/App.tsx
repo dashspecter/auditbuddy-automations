@@ -111,7 +111,7 @@ const App = () => (
             <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
             <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
             <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
-            <Route path="/equipment/:id" element={<ManagerRoute><EquipmentDetail /></ManagerRoute>} />
+            <Route path="/equipment/:id" element={<EquipmentDetail />} />
             <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
             <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
             <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
