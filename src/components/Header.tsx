@@ -256,7 +256,7 @@ export const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
                 <DropdownMenuItem asChild>
-                  <Link to="/audits" className="cursor-pointer min-h-[44px] flex items-center">
+                  <Link to="/admin/template-library" className="cursor-pointer min-h-[44px] flex items-center">
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     Location Audits
                   </Link>
@@ -582,7 +582,7 @@ export const Header = () => {
                   Audits
                 </div>
                 <Link 
-                  to="/audits" 
+                  to="/admin/template-library" 
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
