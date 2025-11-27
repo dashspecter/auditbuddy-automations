@@ -383,6 +383,12 @@ export const Header = () => {
                         Maintenance Calendar
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/recurring-maintenance" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Repeat className="mr-2 h-4 w-4" />
+                        Recurring Schedules
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -658,6 +664,14 @@ export const Header = () => {
                     >
                       <CalendarMaintenance className="h-5 w-5" />
                       <span className="text-base font-medium">Maintenance Calendar</span>
+                    </Link>
+                    <Link 
+                      to="/recurring-maintenance" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Repeat className="h-5 w-5" />
+                      <span className="text-base font-medium">Recurring Schedules</span>
                     </Link>
                   </>
                 )}

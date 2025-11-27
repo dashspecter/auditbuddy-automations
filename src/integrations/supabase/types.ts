@@ -1082,6 +1082,98 @@ export type Database = {
           },
         ]
       }
+      recurring_maintenance_schedules: {
+        Row: {
+          assigned_user_id: string
+          created_at: string
+          created_by: string
+          day_of_month: number | null
+          day_of_week: number | null
+          description: string | null
+          end_date: string | null
+          equipment_id: string
+          id: string
+          is_active: boolean
+          last_generated_date: string | null
+          location_id: string
+          recurrence_pattern: string
+          start_date: string
+          start_time: string
+          supervisor_user_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id: string
+          created_at?: string
+          created_by: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          description?: string | null
+          end_date?: string | null
+          equipment_id: string
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          location_id: string
+          recurrence_pattern: string
+          start_date: string
+          start_time: string
+          supervisor_user_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string
+          created_at?: string
+          created_by?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          description?: string | null
+          end_date?: string | null
+          equipment_id?: string
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          location_id?: string
+          recurrence_pattern?: string
+          start_date?: string
+          start_time?: string
+          supervisor_user_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_maintenance_schedules_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_maintenance_schedules_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_maintenance_schedules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_maintenance_schedules_supervisor_user_id_fkey"
+            columns: ["supervisor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_audits: {
         Row: {
           audit_date: string

@@ -40,6 +40,7 @@ import LocationsManagement from "./pages/LocationsManagement";
 import AuditSummary from "./pages/AuditSummary";
 import AuditsCalendar from "./pages/AuditsCalendar";
 import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
+import RecurringMaintenanceSchedules from "./pages/RecurringMaintenanceSchedules";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import StaffAudits from "./pages/StaffAudits";
 import StaffAuditNew from "./pages/StaffAuditNew";
@@ -112,6 +113,7 @@ const App = () => (
             <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
             <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
             <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
+            <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
