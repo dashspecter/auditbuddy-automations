@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,12 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { useLocations } from "@/hooks/useLocations";
 import { useEquipment } from "@/hooks/useEquipment";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateRecurringMaintenanceSchedule, useUpdateRecurringMaintenanceSchedule } from "@/hooks/useRecurringMaintenanceSchedules";
 import { format } from "date-fns";
+import { calculateNextDates, formatSchedulePreview } from "@/lib/recurringScheduleUtils";
+import { Calendar } from "lucide-react";
 
 interface RecurringMaintenanceDialogProps {
   open: boolean;
@@ -52,6 +55,19 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
 
   const createMutation = useCreateRecurringMaintenanceSchedule();
   const updateMutation = useUpdateRecurringMaintenanceSchedule();
+
+  const previewDates = useMemo(() => {
+    if (!formData.start_date) return [];
+    
+    const dates = calculateNextDates({
+      pattern: formData.recurrence_pattern,
+      startDate: formData.start_date,
+      dayOfWeek: formData.day_of_week,
+      dayOfMonth: formData.day_of_month,
+    }, 5);
+
+    return formatSchedulePreview(dates);
+  }, [formData.start_date, formData.recurrence_pattern, formData.day_of_week, formData.day_of_month]);
 
   useEffect(() => {
     if (schedule) {
@@ -323,6 +339,22 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
             />
             <Label htmlFor="is_active">Active</Label>
           </div>
+
+          {previewDates.length > 0 && (
+            <div className="space-y-2 pt-4 border-t">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                Next 5 Scheduled Dates
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {previewDates.map((date, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {date}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
