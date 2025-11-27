@@ -54,7 +54,7 @@ export const Header = () => {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
 
-  const isPublicPage = location.pathname === '/' || location.pathname === '/auth';
+  const isPublicPage = location.pathname === '/' || location.pathname === '/auth' || location.pathname.startsWith('/equipment/');
 
   const handleInstallApp = async () => {
     const success = await promptInstall();
