@@ -562,6 +562,7 @@ const LocationAudit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submit button clicked, starting submission...');
     
     if (!user) {
       toast.error('You must be logged in to submit an audit');
@@ -571,6 +572,7 @@ const LocationAudit = () => {
     // Validate form
     const validationErrors = validateAuditForm();
     if (validationErrors.length > 0) {
+      console.error('Validation errors:', validationErrors);
       toast.error(
         <div className="space-y-1">
           <div className="font-semibold">Please fix the following errors:</div>
@@ -587,6 +589,8 @@ const LocationAudit = () => {
       );
       return;
     }
+
+    console.log('Form validation passed, submitting audit...');
 
     try {
       // Calculate overall score from rating and yes/no fields
