@@ -285,14 +285,24 @@ export default function TemplateLibrary() {
       <Header />
       
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/admin/templates")}
-          className="mb-6 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Templates
-        </Button>
+        <div className="flex items-center gap-2 mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/admin/templates")}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Templates
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/audits")}
+            className="gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            View All Audits
+          </Button>
+        </div>
 
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
