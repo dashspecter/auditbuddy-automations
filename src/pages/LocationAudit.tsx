@@ -212,16 +212,16 @@ const LocationAudit = () => {
       case 'yes_no':
         return (
           <div className="space-y-3">
-            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive font-medium' : 'font-medium'}>
               {field.name} {field.is_required && '*'}
             </Label>
             <div className="flex flex-col gap-3 w-full">
               <Button
                 type="button"
                 variant={value === 'yes' ? 'default' : 'outline'}
-                className={`h-14 text-lg font-semibold w-full ${
+                className={`h-14 sm:h-16 text-lg font-semibold w-full transition-all ${
                   value === 'yes' 
-                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md' 
                     : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300'
                 }`}
                 onClick={() => {
@@ -235,15 +235,15 @@ const LocationAudit = () => {
                   }
                 }}
               >
-                <Check className="h-5 w-5 mr-2" />
+                <Check className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
                 YES
               </Button>
               <Button
                 type="button"
                 variant={value === 'no' ? 'default' : 'outline'}
-                className={`h-14 text-lg font-semibold w-full ${
+                className={`h-14 sm:h-16 text-lg font-semibold w-full transition-all ${
                   value === 'no' 
-                    ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
+                    ? 'bg-red-600 hover:bg-red-700 text-white border-red-600 shadow-md' 
                     : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300'
                 }`}
                 onClick={() => {
@@ -257,11 +257,11 @@ const LocationAudit = () => {
                   }
                 }}
               >
-                <X className="h-5 w-5 mr-2" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
                 NO
               </Button>
             </div>
-            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
+            {hasError && <p className="text-sm text-destructive font-medium mt-1">{hasError}</p>}
           </div>
         );
         
@@ -695,49 +695,54 @@ const LocationAudit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-8">
       <Header />
       
-      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
+      <main className="container mx-auto px-3 sm:px-4 px-safe py-4 sm:py-8 pb-safe">
         <Button
           variant="ghost"
           onClick={() => navigate("/admin/template-library")}
-          className="mb-6 gap-2"
+          className="mb-4 gap-2 -ml-2"
+          size="sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Audits
+          <span className="hidden sm:inline">Back to Audits</span>
+          <span className="sm:hidden">Back</span>
         </Button>
 
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Location Standard Checker
-              {currentDraftId && (
-                <span className="ml-3 text-sm font-normal text-muted-foreground">
-                  (Editing Draft)
-                </span>
-              )}
-            </h1>
-            <p className="text-muted-foreground">Complete the location audit form</p>
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+                Location Standard Checker
+                {currentDraftId && (
+                  <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-muted-foreground block sm:inline mt-1 sm:mt-0">
+                    (Editing Draft)
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Complete the location audit form</p>
+            </div>
+            {selectedTemplate && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPreview(true)}
+                className="gap-2 shrink-0"
+                size="sm"
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Preview Template</span>
+              </Button>
+            )}
           </div>
-          {selectedTemplate && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowPreview(true)}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview Template
-            </Button>
-          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Basic Information */}
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-            <div className="grid gap-4 md:grid-cols-2">
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Basic Information</h2>
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="template">Template *</Label>
                 <Select
@@ -834,17 +839,25 @@ const LocationAudit = () => {
 
           {/* Dynamic Sections from Template */}
           {selectedTemplate && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                {/* Mobile Score Preview - Sticky at top */}
+                <div className="lg:hidden sticky top-[60px] z-10">
+                  <ScorePreview 
+                    sections={selectedTemplate.sections}
+                    customData={formData.customData}
+                  />
+                </div>
+
                 {selectedTemplate.sections.map((section) => (
-                  <Card key={section.id} className="p-6">
-                    <h2 className="text-xl font-semibold mb-2">{section.name}</h2>
+                  <Card key={section.id} className="p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-2">{section.name}</h2>
                     {section.description && (
-                      <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                      <p className="text-sm text-muted-foreground mb-3 sm:mb-4">{section.description}</p>
                     )}
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 sm:gap-4 md:grid-cols-2">
                       {section.fields.map((field) => (
-                        <div key={field.id}>
+                        <div key={field.id} className={field.field_type === 'yesno' || field.field_type === 'yes_no' ? 'md:col-span-2' : ''}>
                           {renderField(field)}
                         </div>
                       ))}
@@ -853,7 +866,7 @@ const LocationAudit = () => {
                 ))}
 
                 {/* Notes and Photos */}
-                <Card className="p-6">
+                <Card className="p-4 sm:p-6">
                   <Tabs defaultValue="notes" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -862,9 +875,9 @@ const LocationAudit = () => {
                         Photos
                       </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="notes" className="space-y-4">
+                    <TabsContent value="notes" className="space-y-4 mt-4">
                       <div>
-                        <h2 className="text-xl font-semibold mb-4">Additional Notes</h2>
+                        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Additional Notes</h2>
                         <Textarea
                           placeholder="Add any additional observations or notes..."
                           value={formData.notes}
@@ -873,7 +886,7 @@ const LocationAudit = () => {
                         />
                       </div>
                     </TabsContent>
-                    <TabsContent value="photos" className="space-y-4">
+                    <TabsContent value="photos" className="space-y-4 mt-4">
                       {currentDraftId ? (
                         <>
                           <AuditPhotoCapture
@@ -883,12 +896,12 @@ const LocationAudit = () => {
                             }}
                           />
                           <div className="mt-6">
-                            <h3 className="text-lg font-semibold mb-4">Attached Photos</h3>
+                            <h3 className="text-base sm:text-lg font-semibold mb-4">Attached Photos</h3>
                             <PhotoGallery auditId={currentDraftId} showDeleteButton={true} />
                           </div>
                         </>
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="text-center py-8 text-sm text-muted-foreground">
                           Save as draft first to attach photos
                         </div>
                       )}
@@ -897,17 +910,19 @@ const LocationAudit = () => {
                 </Card>
               </div>
 
-              <div className="lg:col-span-1">
+              {/* Desktop Score Preview - Sticky sidebar */}
+              <div className="hidden lg:block lg:col-span-1">
                 <ScorePreview 
                   sections={selectedTemplate.sections}
                   customData={formData.customData}
+                  className="sticky top-4"
                 />
               </div>
             </div>
           )}
 
           {/* Submit Button */}
-          <div className="flex flex-col sm:flex-row gap-4 pb-safe mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-safe mb-8">
             <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId}>
               <Save className="h-4 w-4" />
               Submit Audit
