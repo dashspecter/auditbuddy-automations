@@ -834,7 +834,7 @@ const LocationAudit = () => {
                   required
                   value={formData.auditDate}
                   onChange={(e) => setFormData({ ...formData, auditDate: e.target.value })}
-                  className="h-10"
+                  className="h-9 sm:h-10 py-1 sm:py-2"
                 />
               </div>
 
@@ -845,7 +845,7 @@ const LocationAudit = () => {
                   type="time"
                   value={formData.timeStart}
                   onChange={(e) => setFormData({ ...formData, timeStart: e.target.value })}
-                  className="h-10"
+                  className="h-9 sm:h-10 py-1 sm:py-2"
                 />
               </div>
 
@@ -856,7 +856,7 @@ const LocationAudit = () => {
                   type="time"
                   value={formData.timeEnd}
                   onChange={(e) => setFormData({ ...formData, timeEnd: e.target.value })}
-                  className="h-10"
+                  className="h-9 sm:h-10 py-1 sm:py-2"
                 />
               </div>
             </div>
