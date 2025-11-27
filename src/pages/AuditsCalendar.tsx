@@ -263,26 +263,28 @@ const AuditsCalendar = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <CalendarIcon className="h-8 w-8 text-primary" />
+            <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-bold">Audits Calendar</h1>
-              <p className="text-muted-foreground">View and manage scheduled audits</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">Audits Calendar</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">View and manage scheduled audits</p>
             </div>
           </div>
           
           {isAdminOrManager && (
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Button 
                 variant="outline" 
                 onClick={handleGenerateAudits}
                 disabled={isGenerating}
+                className="w-full sm:w-auto"
               >
                 <Play className="h-4 w-4 mr-2" />
-                {isGenerating ? 'Generating...' : 'Generate Audits Now'}
+                <span className="hidden sm:inline">{isGenerating ? 'Generating...' : 'Generate Audits Now'}</span>
+                <span className="sm:hidden">{isGenerating ? 'Generating...' : 'Generate'}</span>
               </Button>
-              <Button onClick={() => setScheduleDialogOpen(true)}>
+              <Button onClick={() => setScheduleDialogOpen(true)} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Audit
               </Button>
