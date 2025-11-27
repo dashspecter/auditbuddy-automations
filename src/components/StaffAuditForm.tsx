@@ -123,7 +123,7 @@ export const StaffAuditForm = ({ onSuccess }: StaffAuditFormProps) => {
 
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={!locationId || !employeeId || createAudit.isPending}>
-          Submit Audit
+          Submit Performance
         </Button>
       </div>
     </form>
