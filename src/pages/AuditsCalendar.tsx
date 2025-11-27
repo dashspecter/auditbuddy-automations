@@ -11,9 +11,10 @@ import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,7 @@ const AuditsCalendar = () => {
   const updateStatus = useUpdateAuditStatus();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -57,6 +59,7 @@ const AuditsCalendar = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showRegeneratePrompt, setShowRegeneratePrompt] = useState(false);
   const [dismissedPrompt, setDismissedPrompt] = useState(false);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
@@ -79,6 +82,28 @@ const AuditsCalendar = () => {
       },
     }));
   }, [audits, user?.id]);
+
+  // Detect overlapping events (more than 3 events in same day)
+  const hasOverlappingEvents = useMemo(() => {
+    if (!events || events.length === 0) return false;
+    
+    const eventsByDay: Record<string, number> = {};
+    events.forEach(event => {
+      const dayKey = moment(event.start).format('YYYY-MM-DD');
+      eventsByDay[dayKey] = (eventsByDay[dayKey] || 0) + 1;
+    });
+    
+    return Object.values(eventsByDay).some(count => count > 3);
+  }, [events]);
+
+  // Auto-switch to list view on mobile when overlapping
+  useEffect(() => {
+    if (isMobile && hasOverlappingEvents) {
+      setViewMode('list');
+    } else if (!isMobile) {
+      setViewMode('calendar');
+    }
+  }, [isMobile, hasOverlappingEvents]);
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const { status, isOwnAudit, templateType } = event.resource;
@@ -322,6 +347,29 @@ const AuditsCalendar = () => {
           </Alert>
         )}
 
+        {isMobile && hasOverlappingEvents && (
+          <div className="mb-4 flex gap-2">
+            <Button
+              variant={viewMode === 'calendar' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('calendar')}
+              className="flex-1"
+            >
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Calendar
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="flex-1"
+            >
+              <List className="h-4 w-4 mr-2" />
+              List
+            </Button>
+          </div>
+        )}
+
         <Card className="p-6">
           <div className="mb-4 flex gap-4 flex-wrap">
             <div className="flex items-center gap-2">
@@ -343,22 +391,77 @@ const AuditsCalendar = () => {
             </div>
           </div>
 
-          <div className="h-[600px] md:h-[600px] h-[500px]">
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: '100%' }}
-              eventPropGetter={eventStyleGetter}
-              onSelectEvent={handleSelectEvent}
-              views={['month', 'week', 'day', 'agenda']}
-              defaultView={window.innerWidth < 768 ? 'agenda' : 'month'}
-              step={30}
-              timeslots={2}
-              dayLayoutAlgorithm="no-overlap"
-            />
-          </div>
+          {viewMode === 'list' ? (
+            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+              {events
+                .sort((a, b) => a.start.getTime() - b.start.getTime())
+                .map((event) => (
+                  <div
+                    key={event.id}
+                    className="p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
+                    style={{
+                      backgroundColor: eventStyleGetter(event).style.backgroundColor,
+                      borderLeftWidth: '4px',
+                      borderLeftColor: event.resource.isOwnAudit 
+                        ? 'hsl(var(--primary))' 
+                        : 'hsl(var(--border))',
+                    }}
+                    onClick={() => handleSelectEvent(event)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-xs capitalize",
+                              event.resource.templateType === 'staff' 
+                                ? "border-purple-500/50" 
+                                : "border-primary/50"
+                            )}
+                          >
+                            {event.resource.templateType}
+                          </Badge>
+                          {getStatusBadge(event.resource.status)}
+                        </div>
+                        <h4 className="font-medium text-sm truncate">{event.resource.location}</h4>
+                        <p className="text-xs text-muted-foreground truncate">{event.resource.template}</p>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <span>{moment(event.start).format('MMM D, h:mm A')}</span>
+                          <span>-</span>
+                          <span>{moment(event.end).format('h:mm A')}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Assigned: {event.resource.assignedTo}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              {events.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No audits scheduled
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-[600px] md:h-[600px] h-[500px]">
+              <Calendar
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                style={{ height: '100%' }}
+                eventPropGetter={eventStyleGetter}
+                onSelectEvent={handleSelectEvent}
+                views={['month', 'week', 'day', 'agenda']}
+                defaultView={window.innerWidth < 768 ? 'agenda' : 'month'}
+                step={30}
+                timeslots={2}
+                dayLayoutAlgorithm="no-overlap"
+              />
+            </div>
+          )}
         </Card>
       </main>
 
