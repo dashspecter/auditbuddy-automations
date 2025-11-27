@@ -71,11 +71,16 @@ const Auth = () => {
         // Store remember me preference
         localStorage.setItem('rememberMe', rememberMe.toString());
         
-        // If not remember me, sign out when browser closes
+        // If not remember me, update session to use sessionStorage instead of localStorage
+        // This way the session expires when browser closes (no deprecated beforeunload needed)
         if (!rememberMe) {
-          window.addEventListener('beforeunload', async () => {
-            await supabase.auth.signOut();
-          });
+          // Get the current session and update the storage
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Clear localStorage and move to sessionStorage
+            localStorage.removeItem('sb-lnscfmmwqxlkeunfhfdh-auth-token');
+            sessionStorage.setItem('sb-lnscfmmwqxlkeunfhfdh-auth-token', JSON.stringify(session));
+          }
         }
       }
 
