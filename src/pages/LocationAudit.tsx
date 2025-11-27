@@ -208,38 +208,7 @@ const LocationAudit = () => {
     const hasError = fieldErrors[field.id];
 
     switch (field.field_type) {
-      case 'rating':
-        return (
-          <div className="space-y-2">
-            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
-              {field.name} {field.is_required && '*'}
-            </Label>
-            <RadioGroup
-              value={value.toString()}
-              onValueChange={(val) => {
-                handleFieldChange(field.id, parseInt(val));
-                // Clear error when field is updated
-                if (hasError) {
-                  setFieldErrors(prev => {
-                    const next = { ...prev };
-                    delete next[field.id];
-                    return next;
-                  });
-                }
-              }}
-              className={`flex gap-4 ${hasError ? 'border-destructive' : ''}`}
-            >
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <div key={rating} className="flex items-center space-x-2">
-                  <RadioGroupItem value={rating.toString()} id={`${field.id}-${rating}`} />
-                  <Label htmlFor={`${field.id}-${rating}`}>{rating}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
-          </div>
-        );
-
+      case 'yesno':
       case 'yes_no':
         return (
           <div className="space-y-3">
@@ -282,6 +251,38 @@ const LocationAudit = () => {
                 NO
               </Button>
             </div>
+            {hasError && <p className="text-sm text-destructive">{hasError}</p>}
+          </div>
+        );
+        
+      case 'rating':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor={field.id} className={hasError ? 'text-destructive' : ''}>
+              {field.name} {field.is_required && '*'}
+            </Label>
+            <RadioGroup
+              value={value.toString()}
+              onValueChange={(val) => {
+                handleFieldChange(field.id, parseInt(val));
+                // Clear error when field is updated
+                if (hasError) {
+                  setFieldErrors(prev => {
+                    const next = { ...prev };
+                    delete next[field.id];
+                    return next;
+                  });
+                }
+              }}
+              className={`flex gap-4 ${hasError ? 'border-destructive' : ''}`}
+            >
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <div key={rating} className="flex items-center space-x-2">
+                  <RadioGroupItem value={rating.toString()} id={`${field.id}-${rating}`} />
+                  <Label htmlFor={`${field.id}-${rating}`}>{rating}</Label>
+                </div>
+              ))}
+            </RadioGroup>
             {hasError && <p className="text-sm text-destructive">{hasError}</p>}
           </div>
         );
