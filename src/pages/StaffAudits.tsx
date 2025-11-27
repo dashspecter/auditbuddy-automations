@@ -115,7 +115,7 @@ export default function StaffAudits() {
           <CollapsibleContent>
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Submit Staff Performance Audit</CardTitle>
+                <CardTitle>Submit Performance Review</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
