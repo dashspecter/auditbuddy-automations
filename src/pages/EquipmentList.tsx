@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, Edit, XCircle } from "lucide-react";
+import { Plus, Eye, Edit, XCircle, QrCode } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,10 +34,16 @@ export default function EquipmentList() {
             <h1 className="text-3xl font-bold">Equipment List</h1>
             <p className="text-muted-foreground">Manage equipment across locations</p>
           </div>
-          <Button onClick={() => navigate("/equipment/new")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Equipment
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/equipment/bulk-qr")}>
+              <QrCode className="mr-2 h-4 w-4" />
+              Print QR Labels
+            </Button>
+            <Button onClick={() => navigate("/equipment/new")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Equipment
+            </Button>
+          </div>
         </div>
 
         <Card>

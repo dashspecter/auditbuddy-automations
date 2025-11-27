@@ -48,6 +48,7 @@ import ManualMetrics from "./pages/ManualMetrics";
 import EquipmentList from "./pages/EquipmentList";
 import EquipmentForm from "./pages/EquipmentForm";
 import EquipmentDetail from "./pages/EquipmentDetail";
+import BulkEquipmentQR from "./pages/BulkEquipmentQR";
 import InterventionDetail from "./pages/InterventionDetail";
 import MaintenanceCalendar from "./pages/MaintenanceCalendar";
 
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
             <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
             <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
+            <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
             <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
             <Route path="/equipment/:id" element={<ManagerRoute><EquipmentDetail /></ManagerRoute>} />
             <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
