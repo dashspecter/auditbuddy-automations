@@ -219,7 +219,11 @@ const LocationAudit = () => {
               <Button
                 type="button"
                 variant={value === 'yes' ? 'default' : 'outline'}
-                className="h-14 text-lg font-semibold w-full"
+                className={`h-14 text-lg font-semibold w-full ${
+                  value === 'yes' 
+                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                    : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300'
+                }`}
                 onClick={() => {
                   handleFieldChange(field.id, 'yes');
                   if (hasError) {
@@ -237,7 +241,11 @@ const LocationAudit = () => {
               <Button
                 type="button"
                 variant={value === 'no' ? 'default' : 'outline'}
-                className="h-14 text-lg font-semibold w-full"
+                className={`h-14 text-lg font-semibold w-full ${
+                  value === 'no' 
+                    ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
+                    : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300'
+                }`}
                 onClick={() => {
                   handleFieldChange(field.id, 'no');
                   if (hasError) {
