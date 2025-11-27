@@ -21,17 +21,17 @@ export default function MaintenanceCalendar() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [locationId, setLocationId] = useState<string>("__all__");
-  const [equipmentId, setEquipmentId] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [equipmentId, setEquipmentId] = useState<string>("__all__");
+  const [statusFilter, setStatusFilter] = useState<string>("__all__");
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
 
   const { data: equipment } = useEquipment(locationId, "active");
   const { data: interventions } = useEquipmentInterventions(
-    equipmentId || undefined,
+    equipmentId === "__all__" ? undefined : equipmentId,
     locationId,
     undefined,
-    statusFilter || undefined
+    statusFilter === "__all__" ? undefined : statusFilter
   );
 
   const events = useMemo(() => {
@@ -97,7 +97,7 @@ export default function MaintenanceCalendar() {
                   value={locationId}
                   onValueChange={(value) => {
                     setLocationId(value);
-                    setEquipmentId(""); // Reset equipment when location changes
+                    setEquipmentId("__all__"); // Reset equipment when location changes
                   }}
                   allowAll
                 />
@@ -110,7 +110,7 @@ export default function MaintenanceCalendar() {
                     <SelectValue placeholder="All Equipment" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Equipment</SelectItem>
+                    <SelectItem value="__all__">All Equipment</SelectItem>
                     {equipment?.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name}
@@ -127,7 +127,7 @@ export default function MaintenanceCalendar() {
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
+                    <SelectItem value="__all__">All Statuses</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
