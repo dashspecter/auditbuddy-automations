@@ -104,8 +104,7 @@ const LocationAudit = () => {
         .from('location_audits')
         .select('*')
         .eq('id', id)
-        .eq('status', 'draft')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
