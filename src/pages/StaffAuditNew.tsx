@@ -340,6 +340,7 @@ const StaffAuditNew = () => {
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>
                   <LocationSelector
+                    id="location"
                     value={formData.location_id}
                     onValueChange={(value) => {
                       setFormData(prev => ({
@@ -359,7 +360,7 @@ const StaffAuditNew = () => {
                     onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}
                     disabled={!formData.location_id || formData.location_id === "__all__"}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="employee">
                       <SelectValue placeholder="Select employee" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
@@ -423,7 +424,7 @@ const StaffAuditNew = () => {
                       }));
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="template">
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">

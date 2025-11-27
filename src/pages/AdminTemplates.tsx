@@ -196,7 +196,7 @@ const AdminTemplates = () => {
                         setFormData({ ...formData, template_type: value })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -224,6 +224,7 @@ const AdminTemplates = () => {
                     <div className="space-y-2">
                       <Label htmlFor="location">Specific Locations</Label>
                       <LocationMultiSelector
+                        id="location"
                         value={formData.location_ids}
                         onValueChange={(value) => setFormData({ ...formData, location_ids: value })}
                         placeholder="Select one or more locations"

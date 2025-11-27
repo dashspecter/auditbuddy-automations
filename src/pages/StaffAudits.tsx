@@ -125,6 +125,7 @@ export default function StaffAudits() {
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
                     <LocationSelector
+                      id="location"
                       value={formData.location_id}
                       onValueChange={(value) =>
                         setFormData({ ...formData, location_id: value, employee_id: "" })
@@ -141,7 +142,7 @@ export default function StaffAudits() {
                       }
                       disabled={!formData.location_id || !employees || employees.length === 0}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="employee">
                         <SelectValue placeholder="Select employee" />
                       </SelectTrigger>
                       <SelectContent>

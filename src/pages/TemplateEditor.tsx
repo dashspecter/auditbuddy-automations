@@ -461,7 +461,7 @@ const SectionCard = ({ section, onEdit, onDelete }: any) => {
                 value={fieldForm.field_type}
                 onValueChange={(value: any) => setFieldForm({ ...fieldForm, field_type: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="field-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

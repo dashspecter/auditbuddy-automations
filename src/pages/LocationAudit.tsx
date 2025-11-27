@@ -778,7 +778,7 @@ const LocationAudit = () => {
                   onValueChange={setSelectedTemplateId}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="template">
                     <SelectValue placeholder="Select audit template" />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
@@ -797,6 +797,7 @@ const LocationAudit = () => {
               <div className="space-y-1.5 sm:space-y-2">
                 <Label htmlFor="location" className="text-sm">Location *</Label>
                 <LocationSelector
+                  id="location"
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
                   placeholder="Select location"
