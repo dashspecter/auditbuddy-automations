@@ -95,23 +95,21 @@ export default function StaffAudits() {
               Track and evaluate employee performance
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               onClick={() => navigate('/staff-audit/new')} 
-              className="gap-1.5 flex-1 sm:flex-initial text-sm h-9"
+              className="gap-1.5 w-full sm:w-auto text-sm h-9"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden min-[400px]:inline">Staff Audit</span>
-              <span className="min-[400px]:hidden">Audit</span>
+              New Staff Audit
             </Button>
             <Button 
               onClick={() => setIsFormOpen(!isFormOpen)} 
               variant="outline" 
-              className="gap-1.5 flex-1 sm:flex-initial text-sm h-9"
+              className="gap-1.5 w-full sm:w-auto text-sm h-9"
             >
               {isFormOpen ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              <span className="hidden min-[400px]:inline">Review</span>
-              <span className="min-[400px]:hidden">New</span>
+              New Performance Review
             </Button>
           </div>
         </div>
