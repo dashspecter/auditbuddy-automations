@@ -97,29 +97,29 @@ export const ScorePreview = ({ sections, customData, className }: ScorePreviewPr
   };
 
   return (
-    <Card className={`p-4 sm:p-6 ${className}`}>
-      <div className="space-y-3 sm:space-y-4">
+    <Card className={`p-3 sm:p-6 border-2 border-orange-500 ${className}`}>
+      <div className="space-y-2 sm:space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base sm:text-lg font-semibold text-foreground">Score Preview</h3>
+          <h3 className="text-sm sm:text-lg font-semibold text-foreground">Score Preview</h3>
           {getScoreIcon()}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           <div className="flex items-baseline justify-between">
-            <span className="text-xs sm:text-sm text-muted-foreground">Current Score</span>
-            <span className={`text-2xl sm:text-3xl font-bold ${getScoreColor()}`}>
+            <span className="text-xs text-muted-foreground">Current Score</span>
+            <span className={`text-xl sm:text-3xl font-bold ${getScoreColor()}`}>
               {scoreData.overallScore}%
             </span>
           </div>
-          <Progress value={scoreData.overallScore} className="h-2" />
+          <Progress value={scoreData.overallScore} className="h-1.5 sm:h-2" />
           <p className="text-xs text-muted-foreground text-right">
             {scoreData.isCompliant ? 'Compliant' : 'Non-Compliant'} 
             {' '}(Threshold: {COMPLIANCE_THRESHOLD}%)
           </p>
         </div>
 
-        <div className="pt-3 sm:pt-4 border-t border-border space-y-2">
-          <div className="flex justify-between text-xs sm:text-sm">
+        <div className="pt-2 sm:pt-4 border-t border-border space-y-1.5 sm:space-y-2">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Progress</span>
             <span className="font-medium text-foreground">
               {scoreData.answeredCount} / {scoreData.totalFields} fields
@@ -132,7 +132,7 @@ export const ScorePreview = ({ sections, customData, className }: ScorePreviewPr
         </div>
 
         {scoreData.answeredCount > 0 && (
-          <div className="pt-3 sm:pt-4 border-t border-border">
+          <div className="pt-2 sm:pt-4 border-t border-border">
             <p className="text-xs text-muted-foreground">
               {scoreData.overallScore >= COMPLIANCE_THRESHOLD 
                 ? "Great job! You're on track for compliance." 
