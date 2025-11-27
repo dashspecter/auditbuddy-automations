@@ -22,7 +22,7 @@ export default function StaffAudits() {
             </p>
           </div>
           <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-            + New Staff Audit
+            + New Staff Performance
           </Button>
         </div>
 
