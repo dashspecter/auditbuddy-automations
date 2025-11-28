@@ -67,9 +67,21 @@ const DocumentManagement = () => {
       return;
     }
 
+    // Get user's company_id
+    const { data: companyUser } = await supabase
+      .from('company_users')
+      .select('company_id')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (!companyUser) {
+      toast.error("No company found for user");
+      return;
+    }
+
     const { error } = await supabase
       .from("document_categories")
-      .insert({ ...newCategory, created_by: user?.id });
+      .insert({ ...newCategory, created_by: user?.id, company_id: companyUser.company_id });
 
     if (error) {
       console.error("Error creating category:", error);

@@ -117,6 +117,15 @@ export default function TemplateLibrary() {
 
       if (fieldsError) throw fieldsError;
 
+      // Get user's company_id
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!companyUser) throw new Error("No company found for user");
+
       // Create new template
       const { data: newTemplate, error: newTemplateError } = await supabase
         .from('audit_templates')
@@ -127,6 +136,7 @@ export default function TemplateLibrary() {
           is_global: false,
           location: originalTemplate.location,
           created_by: user.id,
+          company_id: companyUser.company_id,
           is_active: true,
         })
         .select()

@@ -40,13 +40,22 @@ export const useCreateLocation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (location: Omit<Location, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    mutationFn: async (location: Omit<Location, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'company_id'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Get user's company_id
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!companyUser) throw new Error("No company found for user");
+
       const { data, error } = await supabase
         .from('locations')
-        .insert([{ ...location, created_by: user.id }])
+        .insert([{ ...location, created_by: user.id, company_id: companyUser.company_id }])
         .select()
         .single();
 

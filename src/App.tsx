@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CompanyProvider } from "@/contexts/CompanyContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ManagerRoute } from "@/components/ManagerRoute";
@@ -51,6 +52,8 @@ import EquipmentDetail from "./pages/EquipmentDetail";
 import BulkEquipmentQR from "./pages/BulkEquipmentQR";
 import InterventionDetail from "./pages/InterventionDetail";
 import MaintenanceCalendar from "./pages/MaintenanceCalendar";
+import CompanyOnboarding from "./pages/CompanyOnboarding";
+import CompanySettings from "./pages/CompanySettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,55 +73,59 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <PWAInstallPrompt />
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
-            <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
-            <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin/templates" element={<ProtectedRoute><AdminTemplates /></ProtectedRoute>} />
-            <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
-            <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
-            <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
-            <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
-            <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
-            <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
-            <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
-            <Route path="/camera" element={<ProtectedRoute><CameraDemo /></ProtectedRoute>} />
-            <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
-            <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
-            <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
-            <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
-            <Route path="/take-test/:testId" element={<TakeTest />} />
-            <Route path="/t/:shortCode" element={<TakeTest />} />
-            <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
-            <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
-            <Route path="/admin/employees" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
-            <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
-            <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
-            <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
-            <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
-            <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
-            <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
-            <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
-            <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
-            <Route path="/equipment/:id" element={<EquipmentDetail />} />
-            <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
-            <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
-            <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
-            <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <CompanyProvider>
+            <PWAInstallPrompt />
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
+              <Route path="/settings/company" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
+              <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
+              <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/admin/templates" element={<ProtectedRoute><AdminTemplates /></ProtectedRoute>} />
+              <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
+              <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+              <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+              <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
+              <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
+              <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
+              <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
+              <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
+              <Route path="/camera" element={<ProtectedRoute><CameraDemo /></ProtectedRoute>} />
+              <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
+              <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
+              <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
+              <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
+              <Route path="/take-test/:testId" element={<TakeTest />} />
+              <Route path="/t/:shortCode" element={<TakeTest />} />
+              <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
+              <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
+              <Route path="/admin/employees" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
+              <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
+              <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
+              <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
+              <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
+              <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
+              <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
+              <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
+              <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+              <Route path="/equipment/:id" element={<EquipmentDetail />} />
+              <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+              <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
+              <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
+              <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
