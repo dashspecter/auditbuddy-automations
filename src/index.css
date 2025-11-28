@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 60%;
+    --primary: 25 95% 53%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 214 32% 91%;
@@ -43,7 +43,7 @@ All colors MUST be HSL.
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --ring: 25 95% 53%;
 
     --radius: 0.5rem;
 
@@ -56,7 +56,7 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --chart-1: 217 91% 60%;
+    --chart-1: 25 95% 53%;
     --chart-2: 199 89% 48%;
     --chart-3: 142 76% 36%;
     --chart-4: 38 92% 50%;
