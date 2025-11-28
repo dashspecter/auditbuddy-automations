@@ -5,18 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompany, useCompanyModules, useCompanyUsers, useUpdateCompany, useToggleModule } from "@/hooks/useCompany";
+import { useCompany, useCompanyUsers, useUpdateCompany } from "@/hooks/useCompany";
 import { Building2, Users, Puzzle, CreditCard, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import ModuleManagement from "@/components/settings/ModuleManagement";
 
 export default function CompanySettings() {
   const { data: company, isLoading: companyLoading } = useCompany();
-  const { data: modules = [], isLoading: modulesLoading } = useCompanyModules();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
   const updateCompany = useUpdateCompany();
-  const toggleModule = useToggleModule();
 
   const [companyName, setCompanyName] = useState("");
 
@@ -31,14 +29,6 @@ export default function CompanySettings() {
       </div>
     );
   }
-
-  const moduleLabels: Record<string, string> = {
-    location_audits: 'Location Audits',
-    staff_performance: 'Staff Performance',
-    equipment_management: 'Equipment Management',
-    notifications: 'Notifications',
-    reports: 'Reports & Analytics',
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,61 +107,7 @@ export default function CompanySettings() {
           </TabsContent>
 
           <TabsContent value="modules">
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Modules</CardTitle>
-                <CardDescription>
-                  Enable or disable modules for your company
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {modulesLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : modules.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No modules found for your company
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {modules.map((module) => (
-                      <div
-                        key={module.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            {moduleLabels[module.module_name] || module.module_name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {module.is_active 
-                              ? `Activated ${new Date(module.activated_at).toLocaleDateString()}` 
-                              : 'Inactive'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={module.is_active ? 'default' : 'outline'}>
-                            {module.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                          <Switch
-                            checked={module.is_active}
-                            onCheckedChange={(checked) => {
-                              toggleModule.mutate({
-                                moduleId: module.id,
-                                isActive: checked,
-                              });
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ModuleManagement />
           </TabsContent>
 
           <TabsContent value="users">
@@ -228,11 +164,13 @@ export default function CompanySettings() {
                         {company?.subscription_tier} tier
                       </p>
                     </div>
-                    <Button variant="outline">Upgrade Plan</Button>
+                    <Button onClick={() => window.location.href = '/pricing'}>
+                      View Plans
+                    </Button>
                   </div>
                   <div className="p-4 border rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      Billing management coming soon. Contact support for subscription changes.
+                      Visit our pricing page to change your subscription plan.
                     </p>
                   </div>
                 </div>
