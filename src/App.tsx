@@ -30,7 +30,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import CameraDemo from "./pages/CameraDemo";
 import PhotoGalleryPage from "./pages/PhotoGalleryPage";
 import DocumentManagement from "./pages/DocumentManagement";
 import TestCreation from "./pages/TestCreation";
@@ -106,7 +105,6 @@ const App = () => (
               <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
               <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
               <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
-              <Route path="/camera" element={<ProtectedRoute><CameraDemo /></ProtectedRoute>} />
               <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
               <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
               <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
