@@ -318,7 +318,7 @@ export const useUpdateCompanyRole = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ companyUserId, role }: { companyUserId: string; role: 'company_owner' | 'company_admin' }) => {
+    mutationFn: async ({ companyUserId, role }: { companyUserId: string; role: 'company_owner' | 'company_admin' | 'company_member' }) => {
       const { data, error } = await supabase
         .from('company_users')
         .update({ company_role: role })

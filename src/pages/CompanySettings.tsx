@@ -31,7 +31,7 @@ export default function CompanySettings() {
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "general");
 
-  const handleCompanyRoleChange = (companyUserId: string, newRole: 'company_owner' | 'company_admin') => {
+  const handleCompanyRoleChange = (companyUserId: string, newRole: 'company_owner' | 'company_admin' | 'company_member') => {
     updateCompanyRole.mutate({ companyUserId, role: newRole });
   };
 
@@ -167,7 +167,7 @@ export default function CompanySettings() {
                           {company?.userRole === 'company_owner' ? (
                             <Select
                               value={user.company_role}
-                              onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
+                              onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin' | 'company_member')}
                             >
                               <SelectTrigger className="w-[140px]">
                                 <SelectValue />
@@ -175,11 +175,16 @@ export default function CompanySettings() {
                               <SelectContent className="z-50 bg-background">
                                 <SelectItem value="company_owner">Owner</SelectItem>
                                 <SelectItem value="company_admin">Admin</SelectItem>
+                                <SelectItem value="company_member">Member</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
                             <Badge variant="outline" className="text-sm">
-                              {user.company_role === 'company_owner' ? 'Owner' : 'Admin'}
+                              {user.company_role === 'company_owner' 
+                                ? 'Owner' 
+                                : user.company_role === 'company_admin'
+                                ? 'Admin'
+                                : 'Member'}
                             </Badge>
                           )}
                         </div>
