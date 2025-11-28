@@ -55,6 +55,7 @@ import MaintenanceCalendar from "./pages/MaintenanceCalendar";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
+import PricingPlans from "./pages/PricingPlans";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
               <Route path="/settings/company" element={<AdminRoute><CompanySettings /></AdminRoute>} />
+              <Route path="/pricing" element={<ProtectedRoute><PricingPlans /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
               <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
