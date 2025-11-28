@@ -20,7 +20,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("guides");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { data: audits, isLoading: auditsLoading, refetch } = useLocationAudits();
   const queryClient = useQueryClient();
