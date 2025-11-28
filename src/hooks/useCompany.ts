@@ -354,6 +354,20 @@ export const useUpdatePlatformRole = () => {
   return useMutation({
     mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'manager' | 'checker'; action: 'add' | 'remove' }) => {
       if (action === 'add') {
+        // Check if role already exists
+        const { data: existing } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('role', role)
+          .maybeSingle();
+
+        if (existing) {
+          // Role already exists, just return success
+          return existing;
+        }
+
+        // Insert new role
         const { data, error } = await supabase
           .from('user_roles')
           .insert({ user_id: userId, role })
