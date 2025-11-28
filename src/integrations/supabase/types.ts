@@ -270,6 +270,8 @@ export type Database = {
       }
       companies: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           id: string
           logo_url: string | null
@@ -281,6 +283,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -292,6 +296,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null

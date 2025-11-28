@@ -58,6 +58,7 @@ import { CompanyAdminRoute } from "./components/CompanyAdminRoute";
 import { CompanyOwnerRoute } from "./components/CompanyOwnerRoute";
 import PricingPlans from "./pages/PricingPlans";
 import PlatformAdmin from "./pages/PlatformAdmin";
+import PendingApproval from "./pages/PendingApproval";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
               <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
