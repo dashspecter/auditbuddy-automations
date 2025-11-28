@@ -24,17 +24,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }, [user, authLoading, navigate]);
 
   // Only redirect to onboarding if we're certain there's no company
-  // Skip redirect if there's a network/temporary error
-  // TEMPORARILY DISABLED - letting all auth users through
-  /*
   useEffect(() => {
     if (!authLoading && user && !companyLoading && !isOnboardingRoute && !company) {
-      // Only redirect on specific "not found" errors, not on network/temporary errors
       if (companyError) {
         const errorMessage = companyError?.message?.toLowerCase() || '';
         console.log('[ProtectedRoute] Company error:', errorMessage);
         
-        // Don't redirect on these errors (they're temporary)
+        // Don't redirect on temporary/network errors
         if (errorMessage.includes('failed to fetch') || 
             errorMessage.includes('network') ||
             errorMessage.includes('timeout') ||
@@ -53,7 +49,6 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       }
     }
   }, [user, authLoading, company, companyLoading, companyError, navigate, isOnboardingRoute]);
-  */
 
   if (authLoading || (companyLoading && !isOnboardingRoute)) {
     return (
