@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Check, ClipboardList, Wrench, Bell, Users, Briefcase } from "lucide-react";
+import { Building2, Check, ClipboardList, Wrench, Bell, Users, Briefcase, LogOut } from "lucide-react";
 import { PRICING_TIERS, PricingTier } from "@/config/pricingTiers";
 
 export default function CompanyOnboarding() {
@@ -126,8 +126,33 @@ export default function CompanyOnboarding() {
   const allowedModules = PRICING_TIERS[selectedTier].allowedModules;
   const filteredModules = modules.filter(m => allowedModules.includes(m.id));
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <Link to="/" className="flex items-center gap-2">
+            <img 
+              src="/dashspect-logo-512.png" 
+              alt="DashSpect" 
+              className="h-8 w-8"
+            />
+            <span className="text-xl font-bold text-foreground">DashSpect</span>
+          </Link>
+          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
       <Card className="w-full max-w-4xl">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -314,6 +339,7 @@ export default function CompanyOnboarding() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
