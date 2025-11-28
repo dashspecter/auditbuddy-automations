@@ -8,9 +8,12 @@ export const useUserRole = () => {
   return useQuery({
     queryKey: ['user_role', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) {
+        console.log('[useUserRole] No user, returning null');
+        return null;
+      }
 
-      console.log('[useUserRole] Fetching roles for user:', user.id);
+      console.log('[useUserRole] Fetching roles for user:', user.id, user.email);
       
       const { data, error } = await supabase
         .from('user_roles')
@@ -30,10 +33,12 @@ export const useUserRole = () => {
         roles,
       };
       
-      console.log('[useUserRole] Role data:', roleData);
+      console.log('[useUserRole] Role data for', user.email, ':', roleData);
       return roleData;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1,
+    retryDelay: 500,
+    staleTime: 5 * 60 * 1000,
   });
 };

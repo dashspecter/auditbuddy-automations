@@ -50,7 +50,7 @@ export const useCompany = () => {
         .from('company_users')
         .select('company_id, company_role')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (cuError) {
         console.error('[useCompany] Error fetching company_users:', cuError);
@@ -58,7 +58,7 @@ export const useCompany = () => {
       }
 
       if (!companyUser) {
-        console.log('[useCompany] No company_users record found');
+        console.log('[useCompany] No company_users record found for user:', user.id);
         throw new Error('No company association found');
       }
 
@@ -69,23 +69,29 @@ export const useCompany = () => {
         .from('companies')
         .select('*')
         .eq('id', companyUser.company_id)
-        .single();
+        .maybeSingle();
 
       if (companyError) {
         console.error('[useCompany] Error fetching company:', companyError);
         throw companyError;
       }
 
-      console.log('[useCompany] Successfully fetched company:', company?.name);
+      if (!company) {
+        console.error('[useCompany] Company not found for id:', companyUser.company_id);
+        throw new Error('Company not found');
+      }
+
+      console.log('[useCompany] Successfully fetched company:', company.name);
 
       return {
         ...company,
         userRole: companyUser.company_role,
       } as Company & { userRole: string };
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1,
+    retryDelay: 500,
     staleTime: 5 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 
