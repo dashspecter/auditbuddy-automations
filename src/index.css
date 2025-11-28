@@ -73,7 +73,7 @@ All colors MUST be HSL.
     --popover: 222 47% 15%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 25 95% 53%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 217 33% 17%;
@@ -89,17 +89,17 @@ All colors MUST be HSL.
     --brand-orange-light: 25 95% 65%;
     --brand-orange-dark: 25 95% 45%;
 
-    /* Gradients combining blue and orange */
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(25 95% 53%) 100%);
+    /* Gradients with orange as primary */
+    --gradient-hero: linear-gradient(135deg, hsl(25 95% 53%) 0%, hsl(25 95% 65%) 100%);
     --gradient-cta: linear-gradient(90deg, hsl(25 95% 53%) 0%, hsl(25 95% 65%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 45%) 0%, hsl(217 91% 60%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 45%) 0%, hsl(25 95% 53%) 100%);
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --ring: 25 95% 53%;
 
     --header: 222 47% 11%;
     --header-foreground: 0 0% 100%;
