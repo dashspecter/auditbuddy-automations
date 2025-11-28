@@ -720,6 +720,24 @@ export const Header = () => {
                       <Wrench className="h-5 w-5" />
                       <span className="text-base font-medium">Equipment</span>
                     </Link>
+                    {roleData?.isAdmin && (
+                      <Link 
+                        to="/admin/locations" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <MapPin className="h-5 w-5" />
+                        <span className="text-base font-medium">Locations</span>
+                      </Link>
+                    )}
+                    <Link 
+                      to="/admin/employees" 
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Users className="h-5 w-5" />
+                      <span className="text-base font-medium">Employees</span>
+                    </Link>
                   </>
                 )}
                 
