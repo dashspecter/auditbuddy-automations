@@ -2,6 +2,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGuideCard } from "./ModuleGuideCard";
 import { ClipboardList, Users, Wrench, Bell, Briefcase, Video } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const MODULE_GUIDES = {
   location_audits: {
@@ -139,8 +140,11 @@ export function ModuleGuides() {
     return (
       <Alert>
         <Video className="h-4 w-4" />
-        <AlertDescription>
-          No modules are currently active. Visit Company Settings to activate modules and get started.
+        <AlertDescription className="flex items-center justify-between">
+          <span>No modules are currently active. Visit Company Settings to activate modules and get started.</span>
+          <Button asChild variant="outline" size="sm" className="ml-4">
+            <a href="/settings?tab=modules">Go to Settings</a>
+          </Button>
         </AlertDescription>
       </Alert>
     );
