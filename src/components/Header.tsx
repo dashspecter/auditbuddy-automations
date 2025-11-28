@@ -197,9 +197,11 @@ export const Header = () => {
       <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
-            <div className="bg-primary rounded-full p-1 md:p-2">
-              <ClipboardCheck className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
-            </div>
+            <img 
+              src="/dashspect-logo-512.png" 
+              alt="DashSpect" 
+              className="h-8 w-8 md:h-10 md:w-10"
+            />
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
 
@@ -238,9 +240,11 @@ export const Header = () => {
       <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/dashboard" className="flex items-center gap-2 md:gap-3">
-            <div className="bg-primary rounded-full p-1 md:p-2">
-              <ClipboardCheck className="h-4 w-4 md:h-6 md:w-6 text-primary-foreground" />
-            </div>
+            <img 
+              src="/dashspect-logo-512.png" 
+              alt="DashSpect" 
+              className="h-8 w-8 md:h-10 md:w-10"
+            />
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
           
