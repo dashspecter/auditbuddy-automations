@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Clear local storage manually as backup
       localStorage.removeItem('sb-lnscfmmwqxlkeunfhfdh-auth-token');
       
-      navigate('/');
+      navigate('/auth');
     }
   };
 
