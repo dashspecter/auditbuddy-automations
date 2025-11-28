@@ -229,9 +229,11 @@ const Auth = () => {
       <div className="flex items-center justify-center p-4 px-safe py-safe min-h-[calc(100vh-4rem)]">
         <Card className="w-full max-w-md p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="bg-primary rounded-full p-3">
-              <ClipboardCheck className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <img 
+              src="/dashspect-logo-512.png" 
+              alt="DashSpect" 
+              className="h-12 w-12"
+            />
             <h1 className="text-2xl font-bold text-foreground">Dashspect</h1>
           </div>
 
