@@ -571,15 +571,27 @@ const Landing = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 md:mt-8 text-center">
-                  <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
-                    Already have an account?
-                  </p>
-                  <Link to="/auth">
-                    <Button size="lg" className="min-h-[44px] md:min-h-[48px]">
-                      Sign In
-                    </Button>
-                  </Link>
+                <div className="mt-6 md:mt-8 text-center space-y-4">
+                  <div>
+                    <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
+                      Don't have an account?
+                    </p>
+                    <Link to="/auth">
+                      <Button size="lg" className="min-h-[44px] md:min-h-[48px]">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                  <div>
+                    <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
+                      Already have an account?
+                    </p>
+                    <Link to="/auth">
+                      <Button size="lg" variant="outline" className="min-h-[44px] md:min-h-[48px]">
+                        Sign In
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>
