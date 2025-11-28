@@ -85,7 +85,7 @@ export default function CompanySettings() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-users'] });
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
       toast({
         title: "User updated",
         description: "User information has been updated successfully.",
@@ -113,7 +113,7 @@ export default function CompanySettings() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-users'] });
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
       toast({
         title: "User removed",
         description: "User has been removed from the company.",
