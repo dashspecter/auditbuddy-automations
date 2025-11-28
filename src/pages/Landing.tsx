@@ -52,9 +52,14 @@ const Landing = () => {
               </div>
               <span className="text-xl font-bold text-foreground">Dashspect</span>
             </div>
-            <Link to="/auth">
-              <Button>Sign In</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/auth">
+                <Button variant="outline">Sign In</Button>
+              </Link>
+              <Link to="/auth">
+                <Button>Sign Up</Button>
+              </Link>
+            </div>
           </div>
         </nav>
       )}
