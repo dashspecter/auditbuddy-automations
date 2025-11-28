@@ -305,7 +305,7 @@ export default function CompanySettings() {
                           </div>
                         </div>
                         <div className="flex gap-4 pt-2 border-t">
-                          <label className="flex items-center gap-2 cursor-pointer">
+                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                             <Checkbox
                               checked={user.platform_roles?.includes('manager') || false}
                               onCheckedChange={() => handlePlatformRoleToggle(
@@ -313,10 +313,11 @@ export default function CompanySettings() {
                                 'manager', 
                                 user.platform_roles?.includes('manager') || false
                               )}
+                              disabled={company?.userRole !== 'company_owner'}
                             />
                             <span className="text-sm">Manager</span>
                           </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
+                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                             <Checkbox
                               checked={user.platform_roles?.includes('checker') || false}
                               onCheckedChange={() => handlePlatformRoleToggle(
@@ -324,6 +325,7 @@ export default function CompanySettings() {
                                 'checker', 
                                 user.platform_roles?.includes('checker') || false
                               )}
+                              disabled={company?.userRole !== 'company_owner'}
                             />
                             <span className="text-sm">Checker</span>
                           </label>
