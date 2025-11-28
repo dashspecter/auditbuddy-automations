@@ -285,11 +285,11 @@ export default function TemplateLibrary() {
       <Header />
       
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/admin/templates")}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             <ArrowLeft className="h-4 w-4" />
             Audit Templates
@@ -297,14 +297,14 @@ export default function TemplateLibrary() {
           <Button
             variant="outline"
             onClick={() => navigate("/audits")}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             <Eye className="h-4 w-4" />
             View All Audits
           </Button>
         </div>
 
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Template Library</h1>
             <p className="text-muted-foreground">
@@ -313,7 +313,7 @@ export default function TemplateLibrary() {
           </div>
           <Button
             onClick={() => navigate("/location-audit")}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             + New Location Audit
           </Button>
