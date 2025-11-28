@@ -87,21 +87,23 @@ export const Header = () => {
           </Link>
 
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" className="min-h-[44px]">
-                Dashboard
-              </Button>
-            </Link>
             {user ? (
-              <Link to="/dashboard">
-                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.email ? getInitials(user.email) : <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </Link>
+              <>
+                <Link to="/dashboard">
+                  <Button variant="ghost" className="min-h-[44px]">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user?.email ? getInitials(user.email) : <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </Link>
+              </>
             ) : (
               <Link to="/auth">
                 <Button className="min-h-[44px]">
