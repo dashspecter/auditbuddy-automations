@@ -25,10 +25,27 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Check if user has a company after auth is loaded (skip for onboarding routes)
   useEffect(() => {
     if (!authLoading && user && !companyLoading && !isOnboardingRoute) {
-      // Only redirect to onboarding if there's actually no company record
-      // Don't redirect on temporary errors or loading states
+      console.log('[ProtectedRoute] Company check:', {
+        hasCompany: !!company,
+        hasError: !!companyError,
+        errorMessage: companyError?.message,
+        userId: user.id
+      });
+      
+      // Only redirect if we're absolutely sure there's no company
+      // Don't redirect on network errors or other temporary issues
       if (companyError && !company) {
-        console.log('User has no company, redirecting to onboarding');
+        const errorMessage = companyError?.message || '';
+        
+        // Don't redirect on temporary/network errors
+        if (errorMessage.includes('Failed to fetch') || 
+            errorMessage.includes('network') ||
+            errorMessage.includes('timeout')) {
+          console.log('[ProtectedRoute] Skipping redirect due to network error');
+          return;
+        }
+        
+        console.log('[ProtectedRoute] No company found, redirecting to onboarding');
         navigate('/onboarding/company');
       }
     }
