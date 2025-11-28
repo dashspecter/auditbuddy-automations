@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart, Building2, Shield } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart, Building2, Shield, Calendar as CalendarIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,25 +21,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 export const Header = () => {
   const location = useLocation();
@@ -52,15 +35,7 @@ export const Header = () => {
   const { hasModule, isLoading: modulesLoading } = useCompanyContext();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedData, setSelectedData] = useState({
-    audits: true,
-    templates: false,
-    users: false,
-  });
-  const [dateFrom, setDateFrom] = useState<Date>();
-  const [dateTo, setDateTo] = useState<Date>();
 
   const handleInstallApp = async () => {
     const success = await promptInstall();
@@ -90,103 +65,6 @@ export const Header = () => {
           variant: "destructive",
         });
       }
-    }
-  };
-  const handleExportData = async () => {
-    try {
-      const exports: any[] = [];
-
-      // Export Audits
-      if (selectedData.audits) {
-        let query = supabase
-          .from('location_audits')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (dateFrom) {
-          query = query.gte('created_at', dateFrom.toISOString());
-        }
-        if (dateTo) {
-          query = query.lte('created_at', dateTo.toISOString());
-        }
-
-        const { data: audits, error } = await query;
-        if (error) throw error;
-        if (audits && audits.length > 0) {
-          exports.push({ name: 'audits', data: audits });
-        }
-      }
-
-      // Export Templates
-      if (selectedData.templates) {
-        const { data: templates, error } = await supabase
-          .from('audit_templates')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        if (templates && templates.length > 0) {
-          exports.push({ name: 'templates', data: templates });
-        }
-      }
-
-      // Export Users (if admin)
-      if (selectedData.users && roleData?.isAdmin) {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        if (profiles && profiles.length > 0) {
-          exports.push({ name: 'users', data: profiles });
-        }
-      }
-
-      if (exports.length === 0) {
-        toast({
-          title: "No data to export",
-          description: "No data matches your selection criteria.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create and download CSV for each selected data type
-      exports.forEach(({ name, data }) => {
-        const headers = Object.keys(data[0]).join(',');
-        const rows = data.map(item => 
-          Object.values(item).map(val => 
-            typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
-          ).join(',')
-        );
-        const csv = [headers, ...rows].join('\n');
-
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${name}_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      });
-
-      toast({
-        title: "Export completed",
-        description: `Successfully exported ${exports.length} file(s).`,
-      });
-
-      setExportDialogOpen(false);
-      setSelectedData({ audits: true, templates: false, users: false });
-      setDateFrom(undefined);
-      setDateTo(undefined);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "An error occurred while exporting data.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -448,156 +326,11 @@ export const Header = () => {
                 </DropdownMenu>
               </>
             )}
-            {(roleData?.isAdmin || roleData?.isManager) && (
-              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  size="sm" 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 min-h-[44px]"
-                >
-                  <Download className="h-4 w-4" />
-                  <span className="hidden lg:inline">Export Data</span>
-                  <span className="lg:hidden">Export</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Export Data</DialogTitle>
-                  <DialogDescription>
-                    Select what data you want to export and optionally filter by date range.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-6 py-4">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium">Select Data Types</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="audits" 
-                          checked={selectedData.audits}
-                          onCheckedChange={(checked) => 
-                            setSelectedData(prev => ({ ...prev, audits: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="audits" className="cursor-pointer">
-                          Location Audits
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="templates" 
-                          checked={selectedData.templates}
-                          onCheckedChange={(checked) => 
-                            setSelectedData(prev => ({ ...prev, templates: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="templates" className="cursor-pointer">
-                          Audit Templates
-                        </Label>
-                      </div>
-                      {roleData?.isAdmin && (
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="users" 
-                            checked={selectedData.users}
-                            onCheckedChange={(checked) => 
-                              setSelectedData(prev => ({ ...prev, users: checked as boolean }))
-                            }
-                          />
-                          <Label htmlFor="users" className="cursor-pointer">
-                            User Profiles (Admin Only)
-                          </Label>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium">Date Range (Optional)</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>From Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal min-h-[44px]",
-                                !dateFrom && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 z-50" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={dateFrom}
-                              onSelect={setDateFrom}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>To Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal min-h-[44px]",
-                                !dateTo && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateTo ? format(dateTo, "PPP") : "Pick a date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 z-50" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={dateTo}
-                              onSelect={setDateTo}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setExportDialogOpen(false)}
-                    className="min-h-[44px]"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleExportData}
-                    disabled={!selectedData.audits && !selectedData.templates && !selectedData.users}
-                    className="min-h-[44px]"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            )}
             {roleData?.isAdmin && (
               <Link to="/admin/platform">
                 <Button 
                   size="sm" 
-                  variant="outline"
-                  className="gap-2 min-h-[44px]"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 min-h-[44px]"
                 >
                   <Shield className="h-4 w-4" />
                   <span className="hidden lg:inline">Platform Admin</span>
