@@ -13,8 +13,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Don't check for company on onboarding routes
-  const isOnboardingRoute = location.pathname.startsWith('/onboarding');
+  // Don't check for company on onboarding or module selection routes  
+  const isOnboardingRoute = location.pathname.startsWith('/onboarding') || 
+                           location.pathname === '/module-selection';
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -22,34 +23,37 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
   }, [user, authLoading, navigate]);
 
-  // Check if user has a company after auth is loaded (skip for onboarding routes)
+  // Only redirect to onboarding if we're certain there's no company
+  // Skip redirect if there's a network/temporary error
+  // TEMPORARILY DISABLED - letting all auth users through
+  /*
   useEffect(() => {
-    if (!authLoading && user && !companyLoading && !isOnboardingRoute) {
-      console.log('[ProtectedRoute] Company check:', {
-        hasCompany: !!company,
-        hasError: !!companyError,
-        errorMessage: companyError?.message,
-        userId: user.id
-      });
-      
-      // Only redirect if we're absolutely sure there's no company
-      // Don't redirect on network errors or other temporary issues
-      if (companyError && !company) {
-        const errorMessage = companyError?.message || '';
+    if (!authLoading && user && !companyLoading && !isOnboardingRoute && !company) {
+      // Only redirect on specific "not found" errors, not on network/temporary errors
+      if (companyError) {
+        const errorMessage = companyError?.message?.toLowerCase() || '';
+        console.log('[ProtectedRoute] Company error:', errorMessage);
         
-        // Don't redirect on temporary/network errors
-        if (errorMessage.includes('Failed to fetch') || 
+        // Don't redirect on these errors (they're temporary)
+        if (errorMessage.includes('failed to fetch') || 
             errorMessage.includes('network') ||
-            errorMessage.includes('timeout')) {
-          console.log('[ProtectedRoute] Skipping redirect due to network error');
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('jwt')) {
+          console.log('[ProtectedRoute] Skipping redirect - temporary error');
           return;
         }
         
-        console.log('[ProtectedRoute] No company found, redirecting to onboarding');
-        navigate('/onboarding/company');
+        // Only redirect if error clearly indicates no company exists
+        if (errorMessage.includes('no company') || 
+            errorMessage.includes('not found') ||
+            errorMessage.includes('no rows')) {
+          console.log('[ProtectedRoute] Redirecting to onboarding - no company found');
+          navigate('/onboarding/company', { replace: true });
+        }
       }
     }
   }, [user, authLoading, company, companyLoading, companyError, navigate, isOnboardingRoute]);
+  */
 
   if (authLoading || (companyLoading && !isOnboardingRoute)) {
     return (
