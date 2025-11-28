@@ -144,7 +144,7 @@ export function ModuleGuides() {
         <AlertDescription className="flex items-center justify-between">
           <span>No modules are currently active. Visit Company Settings to activate modules and get started.</span>
           <Button asChild variant="outline" size="sm" className="ml-4">
-            <Link to="/settings?tab=modules">Go to Settings</Link>
+            <Link to="/settings/company?tab=modules">Go to Settings</Link>
           </Button>
         </AlertDescription>
       </Alert>
