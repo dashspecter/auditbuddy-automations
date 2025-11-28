@@ -134,7 +134,73 @@ serve(async (req) => {
 
       console.log('User added to company with role:', companyRole);
 
-      // TODO: Send invitation email with password reset link
+      // Send invitation email with password setup link (only for new users)
+      if (!existingUser) {
+        try {
+          // Generate password reset link
+          const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email: email,
+          });
+
+          if (resetError) {
+            console.error('Error generating reset link:', resetError);
+          } else if (resetData.properties?.action_link) {
+            // Get company name
+            const { data: companyData } = await supabaseAdmin
+              .from('companies')
+              .select('name')
+              .eq('id', companyId)
+              .single();
+
+            const companyName = companyData?.name || 'the company';
+
+            // Send invitation email using Resend
+            const resendApiKey = Deno.env.get('RESEND_API_KEY');
+            if (resendApiKey) {
+              const emailResponse = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${resendApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: 'Dashspect <noreply@dashspect.com>',
+                  to: [email],
+                  subject: `You've been invited to join ${companyName}`,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2>Welcome to ${companyName}!</h2>
+                      <p>You've been invited to join ${companyName} on Dashspect.</p>
+                      <p>Your role: <strong>${companyRole === 'company_admin' ? 'Admin' : 'Member'}</strong></p>
+                      <p>To get started, please set up your password by clicking the button below:</p>
+                      <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetData.properties.action_link}" 
+                           style="background-color: #ea580c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                          Set Up Password
+                        </a>
+                      </div>
+                      <p style="color: #666; font-size: 14px;">
+                        This link will expire in 24 hours. If you didn't expect this invitation, you can safely ignore this email.
+                      </p>
+                    </div>
+                  `,
+                }),
+              });
+
+              if (!emailResponse.ok) {
+                const emailError = await emailResponse.text();
+                console.error('Error sending email:', emailError);
+              } else {
+                console.log('Invitation email sent successfully');
+              }
+            }
+          }
+        } catch (emailError) {
+          console.error('Error in email sending process:', emailError);
+          // Don't fail the entire operation if email fails
+        }
+      }
 
       return new Response(
         JSON.stringify({ 
