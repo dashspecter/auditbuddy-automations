@@ -74,31 +74,55 @@ serve(async (req) => {
         throw new Error('Insufficient permissions to invite users to this company');
       }
 
-      // Generate a temporary password
-      const tempPassword = crypto.randomUUID();
+      // Check if user already exists
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = existingUsers?.users.find(u => u.email === email);
 
-      // Create the user using admin client
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: full_name || null
+      let targetUserId: string;
+
+      if (existingUser) {
+        console.log('User already exists:', existingUser.id);
+        targetUserId = existingUser.id;
+
+        // Check if user is already in this company
+        const { data: existingCompanyUser } = await supabaseAdmin
+          .from('company_users')
+          .select('id')
+          .eq('user_id', existingUser.id)
+          .eq('company_id', companyId)
+          .single();
+
+        if (existingCompanyUser) {
+          throw new Error('User is already a member of this company');
         }
-      });
+      } else {
+        // Generate a temporary password
+        const tempPassword = crypto.randomUUID();
 
-      if (createError) {
-        console.error('Error creating user:', createError);
-        throw createError;
+        // Create the user using admin client
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true, // Auto-confirm email
+          user_metadata: {
+            full_name: full_name || null
+          }
+        });
+
+        if (createError) {
+          console.error('Error creating user:', createError);
+          throw createError;
+        }
+
+        console.log('User created:', newUser.user.id);
+        targetUserId = newUser.user.id;
       }
-
-      console.log('User created:', newUser.user.id);
 
       // Add user to company
       const { error: companyUserError } = await supabaseAdmin
         .from('company_users')
         .insert({
-          user_id: newUser.user.id,
+          user_id: targetUserId,
           company_id: companyId,
           company_role: companyRole
         });
@@ -115,7 +139,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          user: newUser.user 
+          userId: targetUserId,
+          wasExisting: !!existingUser
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
