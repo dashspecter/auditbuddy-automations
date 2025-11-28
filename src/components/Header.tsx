@@ -592,6 +592,19 @@ export const Header = () => {
               </DialogContent>
             </Dialog>
             )}
+            {roleData?.isAdmin && (
+              <Link to="/admin/platform">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="gap-2 min-h-[44px]"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden lg:inline">Platform Admin</span>
+                  <span className="lg:hidden">Admin</span>
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
         
