@@ -16,19 +16,35 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
+  // Debug logging
+  console.log('[ProtectedRoute] Render:', {
+    authLoading,
+    companyLoading,
+    hasUser: !!user,
+    hasCompany: !!company,
+    pathname: location.pathname,
+    loadingTimeout,
+    errorMessage: companyError?.message
+  });
+
   // Don't check for company on onboarding or module selection routes  
   const isOnboardingRoute = location.pathname.startsWith('/onboarding') || 
                            location.pathname === '/module-selection';
 
   // Add timeout to prevent infinite loading
   useEffect(() => {
+    console.log('[ProtectedRoute] Timeout effect:', { companyLoading, isOnboardingRoute });
     if (companyLoading && !isOnboardingRoute) {
+      console.log('[ProtectedRoute] Setting 10 second timeout');
       const timer = setTimeout(() => {
-        console.error('[ProtectedRoute] Loading timeout - forcing error state');
+        console.error('[ProtectedRoute] ⚠️ LOADING TIMEOUT REACHED - forcing error state');
         setLoadingTimeout(true);
       }, 10000); // 10 second timeout
 
-      return () => clearTimeout(timer);
+      return () => {
+        console.log('[ProtectedRoute] Clearing timeout');
+        clearTimeout(timer);
+      };
     }
   }, [companyLoading, isOnboardingRoute]);
 
