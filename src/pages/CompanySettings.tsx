@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateUserRole } from "@/hooks/useCompany";
+import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
 import { Building2, Users, Puzzle, CreditCard, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManagement from "@/components/settings/ModuleManagement";
@@ -18,19 +18,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CompanySettings() {
   const [searchParams] = useSearchParams();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
   const updateCompany = useUpdateCompany();
-  const updateUserRole = useUpdateUserRole();
+  const updateCompanyRole = useUpdateCompanyRole();
+  const updatePlatformRole = useUpdatePlatformRole();
 
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "general");
 
-  const handleRoleChange = (userId: string, newRole: 'company_owner' | 'company_admin') => {
-    updateUserRole.mutate({ userId, role: newRole });
+  const handleCompanyRoleChange = (companyUserId: string, newRole: 'company_owner' | 'company_admin') => {
+    updateCompanyRole.mutate({ companyUserId, role: newRole });
+  };
+
+  const handlePlatformRoleToggle = (userId: string, role: 'admin' | 'manager' | 'checker', currentlyHas: boolean) => {
+    updatePlatformRole.mutate({ 
+      userId, 
+      role, 
+      action: currentlyHas ? 'remove' : 'add' 
+    });
   };
 
   if (companyLoading) {
@@ -139,32 +149,69 @@ export default function CompanySettings() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {users.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="p-4 border rounded-lg space-y-3"
                       >
-                        <div>
-                          <p className="font-medium">
-                            {user.profiles?.full_name || user.profiles?.email}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.profiles?.email}
-                          </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">
+                              {user.profiles?.full_name || user.profiles?.email}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {user.profiles?.email}
+                            </p>
+                          </div>
+                          <Select
+                            value={user.company_role}
+                            onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="company_owner">Owner</SelectItem>
+                              <SelectItem value="company_admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Select
-                          value={user.company_role}
-                          onValueChange={(value) => handleRoleChange(user.id, value as 'company_owner' | 'company_admin')}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="company_owner">Owner</SelectItem>
-                            <SelectItem value="company_admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-4 pt-2 border-t">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={user.platform_roles?.includes('admin') || false}
+                              onCheckedChange={() => handlePlatformRoleToggle(
+                                user.user_id, 
+                                'admin', 
+                                user.platform_roles?.includes('admin') || false
+                              )}
+                            />
+                            <span className="text-sm">Admin</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={user.platform_roles?.includes('manager') || false}
+                              onCheckedChange={() => handlePlatformRoleToggle(
+                                user.user_id, 
+                                'manager', 
+                                user.platform_roles?.includes('manager') || false
+                              )}
+                            />
+                            <span className="text-sm">Manager</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={user.platform_roles?.includes('checker') || false}
+                              onCheckedChange={() => handlePlatformRoleToggle(
+                                user.user_id, 
+                                'checker', 
+                                user.platform_roles?.includes('checker') || false
+                              )}
+                            />
+                            <span className="text-sm">Checker</span>
+                          </label>
+                        </div>
                       </div>
                     ))}
                   </div>

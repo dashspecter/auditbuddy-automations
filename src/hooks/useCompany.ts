@@ -25,6 +25,7 @@ export interface CompanyUser {
     full_name: string | null;
     email: string;
   };
+  platform_roles?: string[];
 }
 
 export interface CompanyModule {
@@ -140,15 +141,31 @@ export const useCompanyUsers = () => {
       if (!data || data.length === 0) return [];
 
       const userIds = data.map(cu => cu.user_id);
+      
+      // Fetch profiles
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', userIds);
 
+      // Fetch platform roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      // Group roles by user_id
+      const rolesByUser = userRoles?.reduce((acc, ur) => {
+        if (!acc[ur.user_id]) acc[ur.user_id] = [];
+        acc[ur.user_id].push(ur.role);
+        return acc;
+      }, {} as Record<string, string[]>) || {};
+
       // Merge the data
       const result = data.map(cu => ({
         ...cu,
         profiles: profiles?.find(p => p.id === cu.user_id),
+        platform_roles: rolesByUser[cu.user_id] || [],
       })) as CompanyUser[];
       
       console.log('[useCompanyUsers] Loaded users:', result.length);
@@ -295,17 +312,17 @@ export const useToggleModule = () => {
   });
 };
 
-// Update user role
-export const useUpdateUserRole = () => {
+// Update company role
+export const useUpdateCompanyRole = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'company_owner' | 'company_admin' }) => {
+    mutationFn: async ({ companyUserId, role }: { companyUserId: string; role: 'company_owner' | 'company_admin' }) => {
       const { data, error } = await supabase
         .from('company_users')
         .update({ company_role: role })
-        .eq('id', userId)
+        .eq('id', companyUserId)
         .select()
         .single();
 
@@ -316,7 +333,51 @@ export const useUpdateUserRole = () => {
       queryClient.invalidateQueries({ queryKey: ['company_users'] });
       toast({
         title: "Success",
-        description: "User role updated successfully",
+        description: "Company role updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Add or remove platform role
+export const useUpdatePlatformRole = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'manager' | 'checker'; action: 'add' | 'remove' }) => {
+      if (action === 'add') {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', role);
+
+        if (error) throw error;
+        return null;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
+      toast({
+        title: "Success",
+        description: "Platform role updated successfully",
       });
     },
     onError: (error) => {
