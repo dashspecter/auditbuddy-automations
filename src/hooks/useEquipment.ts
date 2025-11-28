@@ -85,13 +85,22 @@ export const useCreateEquipment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (equipment: Omit<Equipment, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (equipment: Omit<Equipment, "id" | "created_at" | "updated_at" | "company_id">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get user's company_id
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!companyUser) throw new Error("No company found for user");
+
       const { data, error } = await supabase
         .from("equipment")
-        .insert([{ ...equipment, created_by: user.id }])
+        .insert([{ ...equipment, created_by: user.id, company_id: companyUser.company_id }])
         .select()
         .single();
 

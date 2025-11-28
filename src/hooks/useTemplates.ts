@@ -163,10 +163,19 @@ export const useCreateTemplate = () => {
 
       const { location_ids, ...template } = templateData;
 
+      // Get user's company_id
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!companyUser) throw new Error("No company found for user");
+
       // Create the template
       const { data, error } = await supabase
         .from('audit_templates')
-        .insert([{ ...template, created_by: user.id }])
+        .insert([{ ...template, created_by: user.id, company_id: companyUser.company_id }])
         .select()
         .single();
 
