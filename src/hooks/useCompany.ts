@@ -43,6 +43,8 @@ export const useCompany = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      console.log('[useCompany] Fetching company for user:', user.id);
+
       // Get user's company
       const { data: companyUser, error: cuError } = await supabase
         .from('company_users')
@@ -50,7 +52,17 @@ export const useCompany = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (cuError) throw cuError;
+      if (cuError) {
+        console.error('[useCompany] Error fetching company_users:', cuError);
+        throw cuError;
+      }
+
+      if (!companyUser) {
+        console.log('[useCompany] No company_users record found');
+        throw new Error('No company association found');
+      }
+
+      console.log('[useCompany] Found company_users record:', companyUser);
 
       // Get company details
       const { data: company, error: companyError } = await supabase
@@ -59,13 +71,21 @@ export const useCompany = () => {
         .eq('id', companyUser.company_id)
         .single();
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        console.error('[useCompany] Error fetching company:', companyError);
+        throw companyError;
+      }
+
+      console.log('[useCompany] Successfully fetched company:', company?.name);
 
       return {
         ...company,
         userRole: companyUser.company_role,
       } as Company & { userRole: string };
     },
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
