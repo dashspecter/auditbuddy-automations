@@ -55,6 +55,7 @@ import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
 import { CompanyAdminRoute } from "./components/CompanyAdminRoute";
+import { CompanyOwnerRoute } from "./components/CompanyOwnerRoute";
 import PricingPlans from "./pages/PricingPlans";
 import PlatformAdmin from "./pages/PlatformAdmin";
 
@@ -83,7 +84,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
-              <Route path="/settings/company" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
+              <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
               <Route path="/pricing" element={<ProtectedRoute><PricingPlans /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function CompanySettings() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
@@ -51,18 +50,6 @@ export default function CompanySettings() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Redirect non-owners away from company settings
-  useEffect(() => {
-    if (!companyLoading && company && company.userRole !== 'company_owner') {
-      toast({
-        title: "Access Denied",
-        description: "Only company owners can access company settings.",
-        variant: "destructive",
-      });
-      navigate('/dashboard');
-    }
-  }, [company, companyLoading, navigate, toast]);
 
   const handleCompanyRoleChange = (companyUserId: string, newRole: 'company_owner' | 'company_admin' | 'company_member') => {
     updateCompanyRole.mutate({ companyUserId, role: newRole });
