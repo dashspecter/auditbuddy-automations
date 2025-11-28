@@ -56,6 +56,7 @@ import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
 import PricingPlans from "./pages/PricingPlans";
+import PlatformAdmin from "./pages/PlatformAdmin";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
               <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+              <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
               <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
               <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
               <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
