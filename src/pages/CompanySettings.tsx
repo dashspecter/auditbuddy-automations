@@ -164,9 +164,18 @@ export default function CompanySettings() {
                               {user.profiles?.email}
                             </p>
                           </div>
-                          <Badge variant="outline" className="text-sm">
-                            {user.company_role === 'company_owner' ? 'Owner' : 'Admin'}
-                          </Badge>
+                          <Select
+                            value={user.company_role}
+                            onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="company_owner">Owner</SelectItem>
+                              <SelectItem value="company_admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="flex gap-4 pt-2 border-t">
                           <label className="flex items-center gap-2 cursor-pointer">
