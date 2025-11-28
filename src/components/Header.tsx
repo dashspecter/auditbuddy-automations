@@ -725,11 +725,19 @@ export const Header = () => {
                 
                 <div className="border-t border-border my-2"></div>
                 <Link 
-                  to="/settings" 
+                  to="/settings/company" 
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Settings className="h-5 w-5" />
+                  <span className="text-base font-medium">Company Settings</span>
+                </Link>
+                <Link 
+                  to="/settings" 
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="h-5 w-5" />
                   <span className="text-base font-medium">Account Settings</span>
                 </Link>
                 <button 
@@ -813,10 +821,17 @@ export const Header = () => {
                   Install App
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings/company" className="cursor-pointer min-h-[44px] flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Company Settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="cursor-pointer min-h-[44px] flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  <User className="mr-2 h-4 w-4" />
+                  Account Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
