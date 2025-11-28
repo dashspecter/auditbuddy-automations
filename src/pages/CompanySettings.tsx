@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManagement from "@/components/settings/ModuleManagement";
 
 export default function CompanySettings() {
+  const [searchParams] = useSearchParams();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
   const updateCompany = useUpdateCompany();
 
   const [companyName, setCompanyName] = useState("");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "general");
 
   if (companyLoading) {
     return (
@@ -42,7 +45,7 @@ export default function CompanySettings() {
           </div>
         </div>
 
-        <Tabs defaultValue="general" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="general" className="gap-2">
               <Settings className="h-4 w-4" />
