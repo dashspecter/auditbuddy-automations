@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEquipment, useUpdateEquipment } from "@/hooks/useEquipment";
 import { format } from "date-fns";
+import ModuleTourWrapper from "@/components/onboarding/ModuleTourWrapper";
+import { MODULE_TOURS } from "@/config/moduleTours";
 
 export default function EquipmentList() {
   const navigate = useNavigate();
@@ -26,25 +28,39 @@ export default function EquipmentList() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Equipment List</h1>
-            <p className="text-muted-foreground">Manage equipment across locations</p>
+    <ModuleTourWrapper
+      moduleName="equipment_management"
+      steps={MODULE_TOURS.equipment_management.steps}
+      moduleIcon={MODULE_TOURS.equipment_management.icon}
+    >
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto p-4 md:p-6 space-y-6" data-tour="equipment-list">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Equipment List</h1>
+              <p className="text-muted-foreground">Manage equipment across locations</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/equipment/bulk-qr")} 
+                className="w-full sm:w-auto"
+                data-tour="bulk-qr-link"
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+                Print QR Labels
+              </Button>
+              <Button 
+                onClick={() => navigate("/equipment/new")} 
+                className="w-full sm:w-auto"
+                data-tour="add-equipment-button"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Equipment
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={() => navigate("/equipment/bulk-qr")} className="w-full sm:w-auto">
-              <QrCode className="mr-2 h-4 w-4" />
-              Print QR Labels
-            </Button>
-            <Button onClick={() => navigate("/equipment/new")} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Equipment
-            </Button>
-          </div>
-        </div>
 
         <Card>
           <CardHeader>
@@ -162,5 +178,6 @@ export default function EquipmentList() {
         </Card>
       </main>
     </div>
+    </ModuleTourWrapper>
   );
 }
