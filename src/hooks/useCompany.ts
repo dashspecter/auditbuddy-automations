@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Company {
   id: string;
@@ -127,17 +128,55 @@ export const useCompanyUsers = () => {
 
 // Get company modules
 export const useCompanyModules = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['company_modules'],
+    queryKey: ['company_modules', user?.id],
     queryFn: async () => {
+      if (!user) {
+        console.log('[useCompanyModules] No user');
+        return [];
+      }
+
+      console.log('[useCompanyModules] Fetching modules for user:', user.id);
+
+      // First get the user's company
+      const { data: companyUser, error: cuError } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (cuError) {
+        console.error('[useCompanyModules] Error fetching company user:', cuError);
+        throw cuError;
+      }
+
+      if (!companyUser) {
+        console.log('[useCompanyModules] No company user found');
+        return [];
+      }
+
+      console.log('[useCompanyModules] Fetching modules for company:', companyUser.company_id);
+
+      // Then get the company's modules
       const { data, error } = await supabase
         .from('company_modules')
         .select('*')
+        .eq('company_id', companyUser.company_id)
+        .eq('is_active', true)
         .order('module_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useCompanyModules] Error fetching modules:', error);
+        throw error;
+      }
+
+      console.log('[useCompanyModules] Loaded modules:', data?.map(m => m.module_name));
       return data as CompanyModule[];
     },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
 
