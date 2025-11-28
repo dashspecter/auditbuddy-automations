@@ -334,6 +334,7 @@ export default function TemplateLibrary() {
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="location">Location</TabsTrigger>
+                <TabsTrigger value="staff">Staff</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
