@@ -261,7 +261,7 @@ export const Header = () => {
                 <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
                   {hasModule('location_audits') && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin/template-library" className="cursor-pointer min-h-[44px] flex items-center">
+                      <Link to="/admin/template-library" className="cursor-pointer min-h-[44px] flex items-center" data-tour="templates-menu">
                         <ClipboardCheck className="mr-2 h-4 w-4" />
                         Location Audits
                       </Link>
@@ -270,7 +270,7 @@ export const Header = () => {
                   {hasModule('staff_performance') && (roleData?.isAdmin || roleData?.isManager) && (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center" data-tour="staff-audits-link">
                           <Users className="mr-2 h-4 w-4" />
                           Employee Audits
                         </Link>
@@ -328,7 +328,7 @@ export const Header = () => {
                   )}
                   {hasModule('equipment_management') && (roleData?.isAdmin || roleData?.isManager) && (
                     <DropdownMenuItem asChild>
-                      <Link to="/maintenance-calendar" className="cursor-pointer min-h-[44px] flex items-center">
+                      <Link to="/maintenance-calendar" className="cursor-pointer min-h-[44px] flex items-center" data-tour="maintenance-calendar">
                         <CalendarMaintenance className="mr-2 h-4 w-4" />
                         Maintenance Calendar
                       </Link>
@@ -364,7 +364,7 @@ export const Header = () => {
                       )}
                       {hasModule('location_audits') && (
                         <DropdownMenuItem asChild>
-                          <Link to="/reports" className="cursor-pointer min-h-[44px] flex items-center">
+                          <Link to="/reports" className="cursor-pointer min-h-[44px] flex items-center" data-tour="reports-link">
                             <BarChart3 className="mr-2 h-4 w-4" />
                             Location Performance
                           </Link>
@@ -385,7 +385,7 @@ export const Header = () => {
                   <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
                     {hasModule('notifications') && (
                       <DropdownMenuItem asChild>
-                        <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center" data-tour="notifications-page">
                           <Megaphone className="mr-2 h-4 w-4" />
                           Notifications
                         </Link>
@@ -425,7 +425,7 @@ export const Header = () => {
                     )}
                     {hasModule('staff_performance') && (
                       <DropdownMenuItem asChild>
-                        <Link to="/admin/employees" className="cursor-pointer min-h-[44px] flex items-center">
+                        <Link to="/admin/employees" className="cursor-pointer min-h-[44px] flex items-center" data-tour="employees-menu">
                           <Users className="mr-2 h-4 w-4" />
                           Employees
                         </Link>
@@ -827,7 +827,9 @@ export const Header = () => {
           </Sheet>
 
           {/* Notifications */}
-          <NotificationDropdown />
+          <div data-tour="notifications-dropdown">
+            <NotificationDropdown />
+          </div>
 
           {/* Desktop User Menu */}
           <DropdownMenu>

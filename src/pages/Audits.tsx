@@ -15,6 +15,8 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { SwipeableListItem } from "@/components/SwipeableListItem";
+import ModuleTourWrapper from "@/components/onboarding/ModuleTourWrapper";
+import { MODULE_TOURS } from "@/config/moduleTours";
 
 const Audits = () => {
   const navigate = useNavigate();
@@ -112,32 +114,37 @@ const Audits = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <PullToRefresh onRefresh={handleRefresh}>
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
-              <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
+    <ModuleTourWrapper
+      moduleName="location_audits"
+      steps={MODULE_TOURS.location_audits.steps}
+      moduleIcon={MODULE_TOURS.location_audits.icon}
+    >
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        <PullToRefresh onRefresh={handleRefresh}>
+          <main className="container mx-auto px-4 px-safe py-8 pb-safe">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
+                <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Link to="/admin/template-library" className="w-full sm:w-auto" data-tour="templates-menu">
+                  <Button variant="outline" className="gap-2 w-full">
+                    <Library className="h-4 w-4" />
+                    Template Library
+                  </Button>
+                </Link>
+                <Link to="/location-audit" className="w-full sm:w-auto">
+                  <Button variant="default" className="gap-2 w-full" data-tour="new-audit-button">
+                    <Plus className="h-4 w-4" />
+                    New Location Audit
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Link to="/admin/template-library" className="w-full sm:w-auto">
-                <Button variant="outline" className="gap-2 w-full">
-                  <Library className="h-4 w-4" />
-                  Template Library
-                </Button>
-              </Link>
-              <Link to="/location-audit" className="w-full sm:w-auto">
-                <Button variant="default" className="gap-2 w-full">
-                  <Plus className="h-4 w-4" />
-                  New Location Audit
-                </Button>
-              </Link>
-            </div>
-          </div>
 
           <Card className="p-6">
             <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -278,6 +285,7 @@ const Audits = () => {
         </main>
       </PullToRefresh>
     </div>
+    </ModuleTourWrapper>
   );
 };
 
