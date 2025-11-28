@@ -9,6 +9,7 @@ import { useCompanyModules, useToggleModule } from '@/hooks/useCompany';
 import { PRICING_TIERS, getAvailableModulesForTier } from '@/config/pricingTiers';
 import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const MODULE_CONFIG = [
   {
@@ -57,6 +58,7 @@ export default function ModuleManagement() {
   const { tier, company } = useCompanyContext();
   const { data: activeModules = [], isLoading } = useCompanyModules();
   const toggleModule = useToggleModule();
+  const queryClient = useQueryClient();
   const [dialogState, setDialogState] = useState<{
     open: boolean;
     moduleId: string;
@@ -100,23 +102,41 @@ export default function ModuleManagement() {
     // Find the module record by module_name to get the ID
     const moduleRecord = activeModules.find(m => m.module_name === dialogState.moduleId);
     
-    if (!moduleRecord) {
-      toast.error('Module not found');
-      setDialogState({ open: false, moduleId: '', moduleName: '', action: 'enable' });
-      return;
-    }
-
     try {
-      await toggleModule.mutateAsync({
-        moduleId: moduleRecord.id,
-        isActive: dialogState.action === 'enable',
-      });
+      if (!moduleRecord && dialogState.action === 'enable') {
+        // Create the module record if it doesn't exist
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: newModule, error: createError } = await supabase
+          .from('company_modules')
+          .insert({
+            company_id: company.id,
+            module_name: dialogState.moduleId,
+            is_active: true,
+          })
+          .select()
+          .single();
 
-      toast.success(
-        dialogState.action === 'enable'
-          ? `${dialogState.moduleName} has been enabled`
-          : `${dialogState.moduleName} has been disabled`
-      );
+        if (createError) throw createError;
+
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+
+        toast.success(`${dialogState.moduleName} has been enabled`);
+      } else if (moduleRecord) {
+        // Update existing module record
+        await toggleModule.mutateAsync({
+          moduleId: moduleRecord.id,
+          isActive: dialogState.action === 'enable',
+        });
+
+        toast.success(
+          dialogState.action === 'enable'
+            ? `${dialogState.moduleName} has been enabled`
+            : `${dialogState.moduleName} has been disabled`
+        );
+      } else {
+        toast.error('Module not found and cannot be disabled');
+      }
     } catch (error) {
       console.error('Error toggling module:', error);
       toast.error('Failed to update module status');
