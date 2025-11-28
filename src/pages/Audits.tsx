@@ -225,8 +225,11 @@ const Audits = () => {
                           <p className="font-medium text-foreground">
                             {audit.locations?.name || audit.location || 'Unknown Location'}
                           </p>
-                          <Badge variant="outline" className="text-xs">
-                            {getTemplateType(audit.template_id)}
+                          <Badge 
+                            variant={getTemplateType(audit.template_id) === 'staff' ? 'staff' : 'location'} 
+                            className="text-xs"
+                          >
+                            {getTemplateType(audit.template_id) === 'staff' ? 'Staff Audit' : 'Location Audit'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
