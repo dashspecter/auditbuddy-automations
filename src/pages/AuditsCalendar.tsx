@@ -378,7 +378,7 @@ const AuditsCalendar = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(280 65% 60% / 0.2)' }} />
-              <span className="text-sm">Staff Performance</span>
+              <span className="text-sm">Staff Audit</span>
             </div>
             <div className="h-4 w-px bg-border mx-2" />
             <div className="flex items-center gap-2">
