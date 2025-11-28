@@ -16,17 +16,27 @@ export const CompanyAdminRoute = ({ children }: CompanyAdminRouteProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  console.log('[CompanyAdminRoute] Auth loading:', authLoading);
+  console.log('[CompanyAdminRoute] Company loading:', companyLoading);
+  console.log('[CompanyAdminRoute] User:', user?.email);
+  console.log('[CompanyAdminRoute] Company data:', company);
+  console.log('[CompanyAdminRoute] User role:', company?.userRole);
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['company'] });
   };
 
   const isCompanyAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  
+  console.log('[CompanyAdminRoute] Is company admin?', isCompanyAdmin);
 
   useEffect(() => {
     if (!authLoading && !companyLoading) {
       if (!user) {
+        console.log('[CompanyAdminRoute] No user, redirecting to auth');
         navigate('/auth');
       } else if (!isCompanyAdmin) {
+        console.log('[CompanyAdminRoute] Not company admin, redirecting to dashboard');
         navigate('/dashboard');
       }
     }
