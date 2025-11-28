@@ -1,7 +1,9 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
+import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -9,13 +11,26 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
+  const { data: company, isLoading: companyLoading, error: companyError, refetch } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   // Don't check for company on onboarding or module selection routes  
   const isOnboardingRoute = location.pathname.startsWith('/onboarding') || 
                            location.pathname === '/module-selection';
+
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    if (companyLoading && !isOnboardingRoute) {
+      const timer = setTimeout(() => {
+        console.error('[ProtectedRoute] Loading timeout - forcing error state');
+        setLoadingTimeout(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timer);
+    }
+  }, [companyLoading, isOnboardingRoute]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -49,6 +64,34 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       }
     }
   }, [user, authLoading, company, companyLoading, companyError, navigate, isOnboardingRoute]);
+
+  // Show loading timeout error
+  if (loadingTimeout || (companyError && !isOnboardingRoute)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Loading Error</h2>
+          <p className="text-muted-foreground mb-4">
+            {loadingTimeout 
+              ? "The application is taking too long to load. This might be a connection issue."
+              : `Error: ${companyError?.message}`}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => {
+              setLoadingTimeout(false);
+              refetch();
+            }}>
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/auth')}>
+              Sign Out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (authLoading || (companyLoading && !isOnboardingRoute)) {
     return (
