@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useCompany } from "@/hooks/useCompany";
 import { RoleBadges } from "@/components/RoleBadges";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -32,6 +33,7 @@ export const Header = () => {
   // Only fetch user role for authenticated pages
   const { data: roleData, isLoading } = useUserRole();
   const { data: fullRoleData } = useUserRoles();
+  const { data: company } = useCompany();
   const { hasModule, isLoading: modulesLoading } = useCompanyContext();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
@@ -575,7 +577,7 @@ export const Header = () => {
                 )}
                 
                 <div className="border-t border-border my-2"></div>
-                {roleData?.isAdmin && (
+                {(roleData?.isAdmin || company?.userRole === 'company_owner' || company?.userRole === 'company_admin') && (
                   <Link 
                     to="/settings/company" 
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -679,12 +681,14 @@ export const Header = () => {
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/settings/company" className="cursor-pointer min-h-[44px] flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Company Settings
-                </Link>
-              </DropdownMenuItem>
+              {(roleData?.isAdmin || company?.userRole === 'company_owner' || company?.userRole === 'company_admin') && (
+                <DropdownMenuItem asChild>
+                  <Link to="/settings/company" className="cursor-pointer min-h-[44px] flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Company Settings
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="cursor-pointer min-h-[44px] flex items-center">
                   <User className="mr-2 h-4 w-4" />
