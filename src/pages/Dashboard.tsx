@@ -10,6 +10,7 @@ import { CheckerDashboard } from "@/components/dashboard/CheckerDashboard";
 import { ModuleGuides } from "@/components/dashboard/ModuleGuides";
 import { RoleBasedView } from "@/components/RoleBasedView";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
+import { TrialBanner } from "@/components/TrialBanner";
 import { Link } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,8 @@ const Dashboard = () => {
       
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="container mx-auto px-4 px-safe py-8 pb-safe">
+          <TrialBanner />
+          
           <Tabs defaultValue="guides" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="guides">

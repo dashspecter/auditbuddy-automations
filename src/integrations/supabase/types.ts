@@ -1856,6 +1856,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_subscription_active: { Args: { company_id: string }; Returns: boolean }
+      is_trial_valid: { Args: { company_id: string }; Returns: boolean }
       log_activity: {
         Args: {
           p_activity_type: string

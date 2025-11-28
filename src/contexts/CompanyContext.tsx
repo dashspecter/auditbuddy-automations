@@ -9,6 +9,9 @@ interface CompanyContextType {
   hasModule: (moduleName: string) => boolean;
   tier: PricingTier;
   canAccessModule: (moduleName: string) => boolean;
+  isTrialExpired: boolean;
+  trialDaysRemaining: number;
+  isAccountPaused: boolean;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
@@ -27,6 +30,15 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     return canAccessModule(tier, moduleName) && hasModule(moduleName);
   };
 
+  // Calculate trial status
+  const isAccountPaused = company?.status === 'paused';
+  const trialEndsAt = company?.trial_ends_at ? new Date(company.trial_ends_at) : null;
+  const now = new Date();
+  const isTrialExpired = trialEndsAt ? trialEndsAt < now : false;
+  const trialDaysRemaining = trialEndsAt 
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
   return (
     <CompanyContext.Provider
       value={{
@@ -36,6 +48,9 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         hasModule,
         tier,
         canAccessModule: canAccessModuleFn,
+        isTrialExpired,
+        trialDaysRemaining,
+        isAccountPaused,
       }}
     >
       {children}
