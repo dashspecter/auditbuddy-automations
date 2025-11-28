@@ -19,9 +19,23 @@ const authSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
 });
 
+const signUpSchema = authSchema.extend({
+  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  companyName: z.string().min(2, { message: "Company name must be at least 2 characters" }),
+  companySlug: z.string()
+    .min(2, { message: "Company slug must be at least 2 characters" })
+    .regex(/^[a-z0-9-]+$/, { message: "Slug can only contain lowercase letters, numbers, and hyphens" }),
+});
+
 const Auth = () => {
   const [signInData, setSignInData] = useState({ email: '', password: '' });
-  const [signUpData, setSignUpData] = useState({ email: '', password: '', fullName: '' });
+  const [signUpData, setSignUpData] = useState({ 
+    email: '', 
+    password: '', 
+    fullName: '', 
+    companyName: '', 
+    companySlug: '' 
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -106,33 +120,96 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const validated = authSchema.parse({ email: signUpData.email, password: signUpData.password, fullName: signUpData.fullName });
+      const validated = signUpSchema.parse(signUpData);
+      
+      // Check if company slug is already taken
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('slug', validated.companySlug)
+        .single();
+
+      if (existingCompany) {
+        setError('This company slug is already taken. Please choose another.');
+        setLoading(false);
+        return;
+      }
       
       const redirectUrl = `${window.location.origin}/dashboard`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validated.email,
         password: validated.password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: validated.fullName || '',
+            full_name: validated.fullName,
           }
         }
       });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
+      if (authError) {
+        if (authError.message.includes('already registered')) {
           setError('This email is already registered. Please sign in instead.');
         } else {
-          setError(error.message);
+          setError(authError.message);
         }
         return;
       }
 
+      if (!authData.user) {
+        setError('Failed to create user account');
+        return;
+      }
+
+      // Create company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: validated.companyName,
+          slug: validated.companySlug,
+          status: 'active',
+          subscription_tier: 'free',
+        })
+        .select()
+        .single();
+
+      if (companyError) {
+        console.error('Company creation error:', companyError);
+        setError('Failed to create company. Please contact support.');
+        return;
+      }
+
+      // Link user to company as owner
+      const { error: companyUserError } = await supabase
+        .from('company_users')
+        .insert({
+          user_id: authData.user.id,
+          company_id: company.id,
+          company_role: 'company_owner',
+        });
+
+      if (companyUserError) {
+        console.error('Company user linking error:', companyUserError);
+        setError('Failed to link account to company. Please contact support.');
+        return;
+      }
+
+      // Assign admin role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: 'admin',
+        });
+
+      if (roleError) {
+        console.error('Role assignment error:', roleError);
+      }
+
       toast({
-        title: "Account created!",
-        description: "You've successfully signed up and are now logged in.",
+        title: "Company created!",
+        description: `Welcome to ${validated.companyName}! Your account has been set up.`,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -285,6 +362,36 @@ const Auth = () => {
                     )}
                   </button>
                 </div>
+              </div>
+              <div className="border-t border-border my-4"></div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-company-name">Company Name</Label>
+                <Input
+                  id="signup-company-name"
+                  type="text"
+                  placeholder="Acme Corp"
+                  value={signUpData.companyName}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                    setSignUpData({ ...signUpData, companyName: name, companySlug: slug });
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-company-slug">Company Slug</Label>
+                <Input
+                  id="signup-company-slug"
+                  type="text"
+                  placeholder="acme-corp"
+                  value={signUpData.companySlug}
+                  onChange={(e) => setSignUpData({ ...signUpData, companySlug: e.target.value.toLowerCase() })}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your company URL: dashspect.com/{signUpData.companySlug || 'your-slug'}
+                </p>
               </div>
               {error && (
                 <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
