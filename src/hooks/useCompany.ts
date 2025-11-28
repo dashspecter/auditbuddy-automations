@@ -295,6 +295,40 @@ export const useToggleModule = () => {
   });
 };
 
+// Update user role
+export const useUpdateUserRole = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: 'company_owner' | 'company_admin' }) => {
+      const { data, error } = await supabase
+        .from('company_users')
+        .update({ company_role: role })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
+      toast({
+        title: "Success",
+        description: "User role updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
 // Invite user to company
 export const useInviteUser = () => {
   const queryClient = useQueryClient();

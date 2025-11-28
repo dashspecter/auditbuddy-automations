@@ -7,19 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCompany, useCompanyUsers, useUpdateCompany } from "@/hooks/useCompany";
+import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateUserRole } from "@/hooks/useCompany";
 import { Building2, Users, Puzzle, CreditCard, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManagement from "@/components/settings/ModuleManagement";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CompanySettings() {
   const [searchParams] = useSearchParams();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
   const updateCompany = useUpdateCompany();
+  const updateUserRole = useUpdateUserRole();
 
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "general");
+
+  const handleRoleChange = (userId: string, newRole: 'company_owner' | 'company_admin') => {
+    updateUserRole.mutate({ userId, role: newRole });
+  };
 
   if (companyLoading) {
     return (
@@ -141,9 +153,18 @@ export default function CompanySettings() {
                             {user.profiles?.email}
                           </p>
                         </div>
-                        <Badge variant="outline">
-                          {user.company_role === 'company_owner' ? 'Owner' : 'Admin'}
-                        </Badge>
+                        <Select
+                          value={user.company_role}
+                          onValueChange={(value) => handleRoleChange(user.id, value as 'company_owner' | 'company_admin')}
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="company_owner">Owner</SelectItem>
+                            <SelectItem value="company_admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     ))}
                   </div>
