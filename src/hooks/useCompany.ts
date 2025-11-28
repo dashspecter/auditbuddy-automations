@@ -98,12 +98,40 @@ export const useCompany = () => {
 
 // Get company users
 export const useCompanyUsers = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['company_users'],
+    queryKey: ['company_users', user?.id],
     queryFn: async () => {
+      if (!user) {
+        console.log('[useCompanyUsers] No user');
+        return [];
+      }
+
+      // First get the user's company
+      const { data: companyUser, error: cuError } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (cuError) {
+        console.error('[useCompanyUsers] Error fetching company:', cuError);
+        throw cuError;
+      }
+
+      if (!companyUser) {
+        console.log('[useCompanyUsers] No company found');
+        return [];
+      }
+
+      console.log('[useCompanyUsers] Fetching users for company:', companyUser.company_id);
+
+      // Get all users from the same company
       const { data, error } = await supabase
         .from('company_users')
         .select('*')
+        .eq('company_id', companyUser.company_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -118,11 +146,16 @@ export const useCompanyUsers = () => {
         .in('id', userIds);
 
       // Merge the data
-      return data.map(cu => ({
+      const result = data.map(cu => ({
         ...cu,
         profiles: profiles?.find(p => p.id === cu.user_id),
       })) as CompanyUser[];
+      
+      console.log('[useCompanyUsers] Loaded users:', result.length);
+      return result;
     },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
