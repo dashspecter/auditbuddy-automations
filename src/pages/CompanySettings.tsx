@@ -47,6 +47,9 @@ export default function CompanySettings() {
   const [editFullName, setEditFullName] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<any>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<'company_member' | 'company_admin'>('company_member');
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -125,6 +128,50 @@ export default function CompanySettings() {
       toast({
         title: "Error",
         description: `Failed to remove user: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to invite user to company
+  const inviteUserMutation = useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: 'company_member' | 'company_admin' }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            email, 
+            companyRole: role,
+            companyId: company?.id 
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to invite user');
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
+      toast({
+        title: "User invited",
+        description: "User has been added to your company.",
+      });
+      setInviteDialogOpen(false);
+      setInviteEmail("");
+      setInviteRole('company_member');
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to invite user: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -224,9 +271,16 @@ export default function CompanySettings() {
 
           <TabsContent value="users">
             <Card>
-              <CardHeader>
-                <CardTitle>Company Users</CardTitle>
-                <CardDescription>Manage users in your company</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle>Company Users</CardTitle>
+                  <CardDescription>Manage users in your company</CardDescription>
+                </div>
+                {company?.userRole === 'company_owner' && (
+                  <Button onClick={() => setInviteDialogOpen(true)}>
+                    Invite User
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
@@ -415,6 +469,60 @@ export default function CompanySettings() {
                 disabled={updateUserMutation.isPending}
               >
                 {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Invite User Dialog */}
+        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite User to Company</DialogTitle>
+              <DialogDescription>
+                Add a new user to your company by email
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email Address</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="invite-role">Company Role</Label>
+                <Select
+                  value={inviteRole}
+                  onValueChange={(value) => setInviteRole(value as 'company_member' | 'company_admin')}
+                >
+                  <SelectTrigger id="invite-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="company_member">Member</SelectItem>
+                    <SelectItem value="company_admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (inviteEmail) {
+                    inviteUserMutation.mutate({ email: inviteEmail, role: inviteRole });
+                  }
+                }}
+                disabled={!inviteEmail || inviteUserMutation.isPending}
+              >
+                {inviteUserMutation.isPending ? 'Inviting...' : 'Invite User'}
               </Button>
             </DialogFooter>
           </DialogContent>
