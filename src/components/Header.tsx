@@ -742,15 +742,17 @@ export const Header = () => {
                 )}
                 
                 <div className="border-t border-border my-2"></div>
-                <Link 
-                  to="/settings/company" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Settings className="h-5 w-5" />
-                  <span className="text-base font-medium">Company Settings</span>
-                </Link>
-                <Link 
+                {roleData?.isAdmin && (
+                  <Link 
+                    to="/settings/company" 
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Settings className="h-5 w-5" />
+                    <span className="text-base font-medium">Company Settings</span>
+                  </Link>
+                )}
+                <Link
                   to="/settings" 
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
                   onClick={() => setMobileMenuOpen(false)}
