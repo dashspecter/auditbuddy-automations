@@ -131,30 +131,41 @@ export default function CompanySettings() {
                       <Skeleton key={i} className="h-16 w-full" />
                     ))}
                   </div>
+                ) : modules.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No modules found for your company
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {modules.map((module) => (
                       <div
                         key={module.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                       >
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium">
                             {moduleLabels[module.module_name] || module.module_name}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {module.is_active ? 'Active' : 'Inactive'}
+                            {module.is_active 
+                              ? `Activated ${new Date(module.activated_at).toLocaleDateString()}` 
+                              : 'Inactive'}
                           </p>
                         </div>
-                        <Switch
-                          checked={module.is_active}
-                          onCheckedChange={(checked) => {
-                            toggleModule.mutate({
-                              moduleId: module.id,
-                              isActive: checked,
-                            });
-                          }}
-                        />
+                        <div className="flex items-center gap-3">
+                          <Badge variant={module.is_active ? 'default' : 'outline'}>
+                            {module.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Switch
+                            checked={module.is_active}
+                            onCheckedChange={(checked) => {
+                              toggleModule.mutate({
+                                moduleId: module.id,
+                                isActive: checked,
+                              });
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
