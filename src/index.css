@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 25 95% 53%;
+    --primary: 217 85% 65%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 214 32% 91%;
@@ -26,24 +26,24 @@ All colors MUST be HSL.
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 25 95% 53%;
+    --accent: 217 85% 65%;
     --accent-foreground: 0 0% 100%;
     
-    --brand-orange: 25 95% 53%;
-    --brand-orange-light: 25 95% 65%;
-    --brand-orange-dark: 25 95% 45%;
+    --brand-orange: 217 85% 65%;
+    --brand-orange-light: 217 85% 75%;
+    --brand-orange-dark: 217 85% 55%;
 
-    /* Gradients combining blue and orange */
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(25 95% 53%) 100%);
-    --gradient-cta: linear-gradient(90deg, hsl(25 95% 53%) 0%, hsl(25 95% 65%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 45%) 0%, hsl(217 91% 60%) 100%);
+    /* Gradients with blue theme */
+    --gradient-hero: linear-gradient(135deg, hsl(217 85% 65%) 0%, hsl(217 85% 55%) 100%);
+    --gradient-cta: linear-gradient(90deg, hsl(217 85% 65%) 0%, hsl(217 85% 75%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 85% 55%) 0%, hsl(217 85% 65%) 100%);
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 25 95% 53%;
+    --ring: 217 85% 65%;
 
     --radius: 0.5rem;
 
@@ -56,7 +56,7 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --chart-1: 25 95% 53%;
+    --chart-1: 217 85% 65%;
     --chart-2: 199 89% 48%;
     --chart-3: 142 76% 36%;
     --chart-4: 38 92% 50%;
@@ -73,7 +73,7 @@ All colors MUST be HSL.
     --popover: 222 47% 15%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 217 85% 65%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 217 33% 17%;
@@ -82,24 +82,24 @@ All colors MUST be HSL.
     --muted: 223 47% 20%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 25 95% 53%;
+    --accent: 217 85% 65%;
     --accent-foreground: 0 0% 100%;
     
-    --brand-orange: 25 95% 53%;
-    --brand-orange-light: 25 95% 65%;
-    --brand-orange-dark: 25 95% 45%;
+    --brand-orange: 217 85% 65%;
+    --brand-orange-light: 217 85% 75%;
+    --brand-orange-dark: 217 85% 55%;
 
-    /* Gradients combining blue and orange */
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(25 95% 53%) 100%);
-    --gradient-cta: linear-gradient(90deg, hsl(25 95% 53%) 0%, hsl(25 95% 65%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 45%) 0%, hsl(217 91% 60%) 100%);
+    /* Gradients with blue theme */
+    --gradient-hero: linear-gradient(135deg, hsl(217 85% 65%) 0%, hsl(217 85% 55%) 100%);
+    --gradient-cta: linear-gradient(90deg, hsl(217 85% 65%) 0%, hsl(217 85% 75%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 85% 55%) 0%, hsl(217 85% 65%) 100%);
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --ring: 217 85% 65%;
 
     --header: 222 47% 11%;
     --header-foreground: 0 0% 100%;
