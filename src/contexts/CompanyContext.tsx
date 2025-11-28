@@ -32,12 +32,20 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
 
   // Calculate trial status
   const isAccountPaused = company?.status === 'paused';
+  const isPendingApproval = company?.status === 'pending';
   const trialEndsAt = company?.trial_ends_at ? new Date(company.trial_ends_at) : null;
   const now = new Date();
   const isTrialExpired = trialEndsAt ? trialEndsAt < now : false;
   const trialDaysRemaining = trialEndsAt 
     ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
+
+  // Redirect to pending approval page if company is pending
+  React.useEffect(() => {
+    if (isPendingApproval && window.location.pathname !== '/pending-approval' && window.location.pathname !== '/auth') {
+      window.location.href = '/pending-approval';
+    }
+  }, [isPendingApproval]);
 
   return (
     <CompanyContext.Provider

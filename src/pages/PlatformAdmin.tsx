@@ -201,6 +201,65 @@ export default function PlatformAdmin() {
     },
   });
 
+  // Approve company mutation
+  const approveCompanyMutation = useMutation({
+    mutationFn: async (companyId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('companies')
+        .update({ 
+          status: 'active',
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', companyId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-companies'] });
+      toast({
+        title: "Company Approved",
+        description: "The company has been approved and can now access the platform.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to approve company: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject company mutation
+  const rejectCompanyMutation = useMutation({
+    mutationFn: async (companyId: string) => {
+      const { error } = await supabase
+        .from('companies')
+        .update({ status: 'suspended' })
+        .eq('id', companyId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-companies'] });
+      toast({
+        title: "Company Rejected",
+        description: "The company registration has been rejected.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to reject company: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleExtendTrial = () => {
     if (!selectedCompany) return;
     extendTrialMutation.mutate({ companyId: selectedCompany.id, days: daysToAdd });
@@ -257,8 +316,17 @@ export default function PlatformAdmin() {
           <p className="text-muted-foreground">Manage company trials, subscriptions, and platform administrators</p>
         </div>
 
-        <Tabs defaultValue="companies" className="space-y-6">
+        <Tabs defaultValue="pending" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="pending" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Pending Approvals
+              {companies?.filter(c => c.status === 'pending').length ? (
+                <Badge variant="destructive" className="ml-2">
+                  {companies.filter(c => c.status === 'pending').length}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
             <TabsTrigger value="companies" className="gap-2">
               <Building2 className="h-4 w-4" />
               Companies
@@ -268,6 +336,76 @@ export default function PlatformAdmin() {
               Platform Admins
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="pending">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Pending Company Approvals
+                </CardTitle>
+                <CardDescription>
+                  {companies?.filter(c => c.status === 'pending').length || 0} companies awaiting approval
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {companies?.filter(c => c.status === 'pending').length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No pending approvals</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {companies?.filter(c => c.status === 'pending').map((company) => (
+                      <Card key={company.id} className="border-2 border-primary/20">
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-2 flex-1">
+                                <div className="flex items-center gap-3">
+                                  <h3 className="font-semibold text-lg">{company.name}</h3>
+                                  <Badge variant="outline">Pending Approval</Badge>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    <span>/{company.slug}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>Registered: {format(new Date(company.created_at), 'MMM d, yyyy')}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-2 border-t">
+                              <Button
+                                onClick={() => approveCompanyMutation.mutate(company.id)}
+                                disabled={approveCompanyMutation.isPending}
+                                className="flex-1"
+                              >
+                                {approveCompanyMutation.isPending ? 'Approving...' : 'Approve & Start Trial'}
+                              </Button>
+                              <Button
+                                onClick={() => rejectCompanyMutation.mutate(company.id)}
+                                disabled={rejectCompanyMutation.isPending}
+                                variant="destructive"
+                                className="flex-1"
+                              >
+                                {rejectCompanyMutation.isPending ? 'Rejecting...' : 'Reject'}
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="companies">
             <Card>
