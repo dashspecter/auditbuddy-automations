@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Check, ClipboardList, Wrench, Bell, Users, Briefcase, LogOut } from "lucide-react";
 import { PRICING_TIERS, PricingTier } from "@/config/pricingTiers";
+import { useCompany } from "@/hooks/useCompany";
 
 export default function CompanyOnboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: company, isLoading: isCheckingCompany } = useCompany();
   const [step, setStep] = useState<'plan' | 'company' | 'modules'>('plan');
   const [selectedTier, setSelectedTier] = useState<PricingTier>('professional');
   const [companyName, setCompanyName] = useState("");
@@ -21,6 +23,13 @@ export default function CompanyOnboarding() {
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModulesPreview, setShowModulesPreview] = useState(false);
+
+  // Redirect if user already has a company
+  useEffect(() => {
+    if (!isCheckingCompany && company) {
+      navigate('/', { replace: true });
+    }
+  }, [company, isCheckingCompany, navigate]);
 
   const modules = [
     { id: 'location_audits', name: 'Location Audits', description: 'Audit scheduling, templates, and compliance tracking', icon: ClipboardList, color: 'hsl(var(--chart-1))' },

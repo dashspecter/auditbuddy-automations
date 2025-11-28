@@ -25,8 +25,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Check if user has a company after auth is loaded (skip for onboarding routes)
   useEffect(() => {
     if (!authLoading && user && !companyLoading && !isOnboardingRoute) {
-      // If there's a company error (user not in company_users), redirect to onboarding
-      if (companyError) {
+      // Only redirect to onboarding if there's actually no company record
+      // Don't redirect on temporary errors or loading states
+      if (companyError && !company) {
         console.log('User has no company, redirecting to onboarding');
         navigate('/onboarding/company');
       }
