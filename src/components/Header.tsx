@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
@@ -45,6 +46,7 @@ export const Header = () => {
   
   // Only fetch user role for authenticated pages
   const { data: roleData, isLoading } = useUserRole();
+  const { hasModule, isLoading: modulesLoading } = useCompanyContext();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -248,85 +250,93 @@ export const Header = () => {
             </Link>
             
             {/* Audits Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
-                  Audits
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/template-library" className="cursor-pointer min-h-[44px] flex items-center">
-                    <ClipboardCheck className="mr-2 h-4 w-4" />
-                    Location Audits
-                  </Link>
-                </DropdownMenuItem>
-                {(roleData?.isAdmin || roleData?.isManager) && (
-                  <>
+            {(hasModule('location_audits') || hasModule('staff_performance')) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                    Audits
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                  {hasModule('location_audits') && (
                     <DropdownMenuItem asChild>
-                      <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        Employee Audits
+                      <Link to="/admin/template-library" className="cursor-pointer min-h-[44px] flex items-center">
+                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                        Location Audits
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/manual-metrics" className="cursor-pointer min-h-[44px] flex items-center">
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Manual Metrics
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/test-management" className="cursor-pointer min-h-[44px] flex items-center">
-                        <GraduationCap className="mr-2 h-4 w-4" />
-                        Tests
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Calendar Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
-                  Calendar
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer min-h-[44px]">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    Audit Calendar
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem asChild>
-                      <Link to="/audits-calendar" className="cursor-pointer min-h-[44px] flex items-center">
-                        Calendar View
-                      </Link>
-                    </DropdownMenuItem>
-                    {(roleData?.isAdmin || roleData?.isManager) && (
+                  )}
+                  {hasModule('staff_performance') && (roleData?.isAdmin || roleData?.isManager) && (
+                    <>
                       <DropdownMenuItem asChild>
-                        <Link to="/recurring-schedules" className="cursor-pointer min-h-[44px] flex items-center">
-                          <Repeat className="mr-2 h-4 w-4" />
-                          Recurring Schedules
+                        <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
+                          <Users className="mr-2 h-4 w-4" />
+                          Employee Audits
                         </Link>
                       </DropdownMenuItem>
-                    )}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                {(roleData?.isAdmin || roleData?.isManager) && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/maintenance-calendar" className="cursor-pointer min-h-[44px] flex items-center">
-                      <CalendarMaintenance className="mr-2 h-4 w-4" />
-                      Maintenance Calendar
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      <DropdownMenuItem asChild>
+                        <Link to="/manual-metrics" className="cursor-pointer min-h-[44px] flex items-center">
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          Manual Metrics
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/test-management" className="cursor-pointer min-h-[44px] flex items-center">
+                          <GraduationCap className="mr-2 h-4 w-4" />
+                          Tests
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            {/* Calendar Dropdown */}
+            {(hasModule('location_audits') || hasModule('equipment_management')) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                    Calendar
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                  {hasModule('location_audits') && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="cursor-pointer min-h-[44px]">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        Audit Calendar
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem asChild>
+                          <Link to="/audits-calendar" className="cursor-pointer min-h-[44px] flex items-center">
+                            Calendar View
+                          </Link>
+                        </DropdownMenuItem>
+                        {(roleData?.isAdmin || roleData?.isManager) && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/recurring-schedules" className="cursor-pointer min-h-[44px] flex items-center">
+                              <Repeat className="mr-2 h-4 w-4" />
+                              Recurring Schedules
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )}
+                  {hasModule('equipment_management') && (roleData?.isAdmin || roleData?.isManager) && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/maintenance-calendar" className="cursor-pointer min-h-[44px] flex items-center">
+                        <CalendarMaintenance className="mr-2 h-4 w-4" />
+                        Maintenance Calendar
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {(roleData?.isAdmin || roleData?.isManager) && (
               <>
@@ -335,28 +345,34 @@ export const Header = () => {
                 </Link>
 
                 {/* Reports Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
-                      Reports
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
-                    <DropdownMenuItem asChild>
-                      <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Award className="mr-2 h-4 w-4" />
-                        Staff Performance
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/reports" className="cursor-pointer min-h-[44px] flex items-center">
-                        <BarChart3 className="mr-2 h-4 w-4" />
-                        Location Performance
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {hasModule('reports') && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="hover:text-accent hover:bg-transparent p-0 h-auto font-normal flex items-center gap-1">
+                        Reports
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
+                      {hasModule('staff_performance') && (
+                        <DropdownMenuItem asChild>
+                          <Link to="/staff-audits" className="cursor-pointer min-h-[44px] flex items-center">
+                            <Award className="mr-2 h-4 w-4" />
+                            Staff Performance
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {hasModule('location_audits') && (
+                        <DropdownMenuItem asChild>
+                          <Link to="/reports" className="cursor-pointer min-h-[44px] flex items-center">
+                            <BarChart3 className="mr-2 h-4 w-4" />
+                            Location Performance
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
                 {/* Settings Dropdown */}
                 <DropdownMenu>
@@ -367,24 +383,30 @@ export const Header = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56 z-50 bg-background">
-                    <DropdownMenuItem asChild>
-                      <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Megaphone className="mr-2 h-4 w-4" />
-                        Notifications
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/templates" className="cursor-pointer min-h-[44px] flex items-center">
-                        <FileText className="mr-2 h-4 w-4" />
-                        Audit Templates
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/equipment" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Wrench className="mr-2 h-4 w-4" />
-                        Equipment
-                      </Link>
-                    </DropdownMenuItem>
+                    {hasModule('notifications') && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/notifications" className="cursor-pointer min-h-[44px] flex items-center">
+                          <Megaphone className="mr-2 h-4 w-4" />
+                          Notifications
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {hasModule('location_audits') && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/templates" className="cursor-pointer min-h-[44px] flex items-center">
+                          <FileText className="mr-2 h-4 w-4" />
+                          Audit Templates
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {hasModule('equipment_management') && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/equipment" className="cursor-pointer min-h-[44px] flex items-center">
+                          <Wrench className="mr-2 h-4 w-4" />
+                          Equipment
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     {roleData?.isAdmin && (
                       <>
                         <DropdownMenuItem asChild>
@@ -401,12 +423,14 @@ export const Header = () => {
                         </DropdownMenuItem>
                       </>
                     )}
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/employees" className="cursor-pointer min-h-[44px] flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        Employees
-                      </Link>
-                    </DropdownMenuItem>
+                    {hasModule('staff_performance') && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/employees" className="cursor-pointer min-h-[44px] flex items-center">
+                          <Users className="mr-2 h-4 w-4" />
+                          Employees
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -578,19 +602,25 @@ export const Header = () => {
                 </Link>
 
                 {/* Audits Section */}
-                <div className="border-t border-border my-2"></div>
-                <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Audits
-                </div>
-                <Link 
-                  to="/admin/template-library" 
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <ClipboardCheck className="h-5 w-5" />
-                  <span className="text-base font-medium">Location Audits</span>
-                </Link>
-                {(roleData?.isAdmin || roleData?.isManager) && (
+                {(hasModule('location_audits') || hasModule('staff_performance')) && (
+                  <>
+                    <div className="border-t border-border my-2"></div>
+                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Audits
+                    </div>
+                  </>
+                )}
+                {hasModule('location_audits') && (
+                  <Link 
+                    to="/admin/template-library" 
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <ClipboardCheck className="h-5 w-5" />
+                    <span className="text-base font-medium">Location Audits</span>
+                  </Link>
+                )}
+                {hasModule('staff_performance') && (roleData?.isAdmin || roleData?.isManager) && (
                   <>
                     <Link 
                       to="/staff-audits" 
@@ -620,32 +650,38 @@ export const Header = () => {
                 )}
 
                 {/* Calendar Section */}
-                <div className="border-t border-border my-2"></div>
-                <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Calendar
-                </div>
-                <div className="px-2">
-                  <div className="text-xs font-semibold text-muted-foreground pl-2 mb-2">Audit Calendar</div>
-                  <Link 
-                    to="/audits-calendar" 
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <CalendarIcon className="h-5 w-5" />
-                    <span className="text-base font-medium">Calendar View</span>
-                  </Link>
-                  {(roleData?.isAdmin || roleData?.isManager) && (
+                {(hasModule('location_audits') || hasModule('equipment_management')) && (
+                  <>
+                    <div className="border-t border-border my-2"></div>
+                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Calendar
+                    </div>
+                  </>
+                )}
+                {hasModule('location_audits') && (
+                  <div className="px-2">
+                    <div className="text-xs font-semibold text-muted-foreground pl-2 mb-2">Audit Calendar</div>
                     <Link 
-                      to="/recurring-schedules" 
+                      to="/audits-calendar" 
                       className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Repeat className="h-5 w-5" />
-                      <span className="text-base font-medium">Recurring Schedules</span>
+                      <CalendarIcon className="h-5 w-5" />
+                      <span className="text-base font-medium">Calendar View</span>
                     </Link>
-                  )}
-                </div>
-                {(roleData?.isAdmin || roleData?.isManager) && (
+                    {(roleData?.isAdmin || roleData?.isManager) && (
+                      <Link 
+                        to="/recurring-schedules" 
+                        className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Repeat className="h-5 w-5" />
+                        <span className="text-base font-medium">Recurring Schedules</span>
+                      </Link>
+                    )}
+                  </div>
+                )}
+                {hasModule('equipment_management') && (roleData?.isAdmin || roleData?.isManager) && (
                   <Link 
                     to="/maintenance-calendar" 
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
@@ -670,56 +706,70 @@ export const Header = () => {
                     </Link>
 
                     {/* Reports Section */}
-                    <div className="border-t border-border my-2"></div>
-                    <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Reports
-                    </div>
-                    <Link 
-                      to="/staff-audits" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Award className="h-5 w-5" />
-                      <span className="text-base font-medium">Staff Performance</span>
-                    </Link>
-                    <Link 
-                      to="/reports" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <BarChart3 className="h-5 w-5" />
-                      <span className="text-base font-medium">Location Performance</span>
-                    </Link>
+                    {hasModule('reports') && (
+                      <>
+                        <div className="border-t border-border my-2"></div>
+                        <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Reports
+                        </div>
+                        {hasModule('staff_performance') && (
+                          <Link 
+                            to="/staff-audits" 
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <Award className="h-5 w-5" />
+                            <span className="text-base font-medium">Staff Performance</span>
+                          </Link>
+                        )}
+                        {hasModule('location_audits') && (
+                          <Link 
+                            to="/reports" 
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <BarChart3 className="h-5 w-5" />
+                            <span className="text-base font-medium">Location Performance</span>
+                          </Link>
+                        )}
+                      </>
+                    )}
 
                     {/* Settings Section */}
                     <div className="border-t border-border my-2"></div>
                     <div className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Settings
                     </div>
-                    <Link 
-                      to="/notifications" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Megaphone className="h-5 w-5" />
-                      <span className="text-base font-medium">Notifications</span>
-                    </Link>
-                    <Link 
-                      to="/admin/templates" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <FileText className="h-5 w-5" />
-                      <span className="text-base font-medium">Audit Templates</span>
-                    </Link>
-                    <Link 
-                      to="/equipment" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Wrench className="h-5 w-5" />
-                      <span className="text-base font-medium">Equipment</span>
-                    </Link>
+                    {hasModule('notifications') && (
+                      <Link 
+                        to="/notifications" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Megaphone className="h-5 w-5" />
+                        <span className="text-base font-medium">Notifications</span>
+                      </Link>
+                    )}
+                    {hasModule('location_audits') && (
+                      <Link 
+                        to="/admin/templates" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <FileText className="h-5 w-5" />
+                        <span className="text-base font-medium">Audit Templates</span>
+                      </Link>
+                    )}
+                    {hasModule('equipment_management') && (
+                      <Link 
+                        to="/equipment" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Wrench className="h-5 w-5" />
+                        <span className="text-base font-medium">Equipment</span>
+                      </Link>
+                    )}
                     {roleData?.isAdmin && (
                       <Link 
                         to="/admin/locations" 
@@ -730,14 +780,16 @@ export const Header = () => {
                         <span className="text-base font-medium">Locations</span>
                       </Link>
                     )}
-                    <Link 
-                      to="/admin/employees" 
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Users className="h-5 w-5" />
-                      <span className="text-base font-medium">Employees</span>
-                    </Link>
+                    {hasModule('staff_performance') && (
+                      <Link 
+                        to="/admin/employees" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Users className="h-5 w-5" />
+                        <span className="text-base font-medium">Employees</span>
+                      </Link>
+                    )}
                   </>
                 )}
                 
