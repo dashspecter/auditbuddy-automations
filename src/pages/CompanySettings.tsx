@@ -164,7 +164,7 @@ export default function CompanySettings() {
                               {user.profiles?.email}
                             </p>
                           </div>
-                          {company?.userRole === 'company_owner' || company?.userRole === 'company_admin' ? (
+                          {company?.userRole === 'company_owner' ? (
                             <Select
                               value={user.company_role}
                               onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
