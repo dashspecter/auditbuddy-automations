@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const timeoutRef = useRef<NodeJS.Timeout>();
   const lastActivityRef = useRef<number>(Date.now());
 
@@ -98,6 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Invalidate role and company queries on auth state change
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          queryClient.invalidateQueries({ queryKey: ['user_role'] });
+          queryClient.invalidateQueries({ queryKey: ['company'] });
+          queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+        }
         
         // Clear timer when user logs out
         if (!session && timeoutRef.current) {
