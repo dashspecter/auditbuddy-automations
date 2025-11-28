@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart, Building2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -425,6 +425,12 @@ export const Header = () => {
                             Users
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/platform" className="cursor-pointer min-h-[44px] flex items-center">
+                            <Building2 className="mr-2 h-4 w-4" />
+                            Platform Admin
+                          </Link>
+                        </DropdownMenuItem>
                       </>
                     )}
                     {hasModule('staff_performance') && (
@@ -782,6 +788,16 @@ export const Header = () => {
                       >
                         <MapPin className="h-5 w-5" />
                         <span className="text-base font-medium">Locations</span>
+                      </Link>
+                    )}
+                    {roleData?.isAdmin && (
+                      <Link 
+                        to="/admin/platform" 
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Building2 className="h-5 w-5" />
+                        <span className="text-base font-medium">Platform Admin</span>
                       </Link>
                     )}
                     {hasModule('staff_performance') && (
