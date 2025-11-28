@@ -2,7 +2,7 @@
   "name": "Dashspect - Restaurant Compliance Management",
   "short_name": "Dashspect",
   "description": "Automated restaurant audit platform for location and staff compliance tracking",
-  "theme_color": "#1a1f2e",
+  "theme_color": "#F97316",
   "background_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait",
@@ -16,8 +16,14 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/dashspect-logo-512.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
     }
