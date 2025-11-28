@@ -209,9 +209,9 @@ const Auth = () => {
 
       toast({
         title: "Company created!",
-        description: `Welcome to ${validated.companyName}! Your account has been set up.`,
+        description: "Now let's choose your modules",
       });
-      navigate('/dashboard');
+      navigate('/onboarding/modules');
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
