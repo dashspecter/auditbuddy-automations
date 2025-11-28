@@ -164,18 +164,24 @@ export default function CompanySettings() {
                               {user.profiles?.email}
                             </p>
                           </div>
-                          <Select
-                            value={user.company_role}
-                            onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
-                          >
-                            <SelectTrigger className="w-[140px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="company_owner">Owner</SelectItem>
-                              <SelectItem value="company_admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {company?.userRole === 'company_owner' || company?.userRole === 'company_admin' ? (
+                            <Select
+                              value={user.company_role}
+                              onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin')}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="z-50 bg-background">
+                                <SelectItem value="company_owner">Owner</SelectItem>
+                                <SelectItem value="company_admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="outline" className="text-sm">
+                              {user.company_role === 'company_owner' ? 'Owner' : 'Admin'}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex gap-4 pt-2 border-t">
                           <label className="flex items-center gap-2 cursor-pointer">
