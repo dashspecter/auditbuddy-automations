@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
-import { Building2, Users, Puzzle, CreditCard, Settings } from "lucide-react";
+import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManagement from "@/components/settings/ModuleManagement";
 import {
@@ -19,6 +19,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function CompanySettings() {
   const [searchParams] = useSearchParams();
@@ -30,6 +41,15 @@ export default function CompanySettings() {
 
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "general");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editFullName, setEditFullName] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<any>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleCompanyRoleChange = (companyUserId: string, newRole: 'company_owner' | 'company_admin' | 'company_member') => {
     updateCompanyRole.mutate({ companyUserId, role: newRole });
@@ -42,6 +62,73 @@ export default function CompanySettings() {
       action: currentlyHas ? 'remove' : 'add' 
     });
   };
+
+  // Mutation to update user
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, email, fullName }: { userId: string; email?: string; fullName?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, email, fullName }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-users'] });
+      toast({
+        title: "User updated",
+        description: "User information has been updated successfully.",
+      });
+      setEditDialogOpen(false);
+      setEditingUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update user: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to remove user from company
+  const removeUserMutation = useMutation({
+    mutationFn: async (companyUserId: string) => {
+      const { error } = await supabase
+        .from('company_users')
+        .delete()
+        .eq('id', companyUserId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-users'] });
+      toast({
+        title: "User removed",
+        description: "User has been removed from the company.",
+      });
+      setDeleteDialogOpen(false);
+      setDeletingUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to remove user: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   if (companyLoading) {
     return (
@@ -156,7 +243,7 @@ export default function CompanySettings() {
                         className="p-4 border rounded-lg space-y-3"
                       >
                         <div className="flex items-center justify-between">
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">
                               {user.profiles?.full_name || user.profiles?.email}
                             </p>
@@ -164,29 +251,58 @@ export default function CompanySettings() {
                               {user.profiles?.email}
                             </p>
                           </div>
-                          {company?.userRole === 'company_owner' ? (
-                            <Select
-                              value={user.company_role}
-                              onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin' | 'company_member')}
-                            >
-                              <SelectTrigger className="w-[140px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="z-50 bg-background">
-                                <SelectItem value="company_owner">Owner</SelectItem>
-                                <SelectItem value="company_admin">Admin</SelectItem>
-                                <SelectItem value="company_member">Member</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Badge variant="outline" className="text-sm">
-                              {user.company_role === 'company_owner' 
-                                ? 'Owner' 
-                                : user.company_role === 'company_admin'
-                                ? 'Admin'
-                                : 'Member'}
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {company?.userRole === 'company_owner' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingUser(user);
+                                    setEditEmail(user.profiles?.email || '');
+                                    setEditFullName(user.profiles?.full_name || '');
+                                    setEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    setDeletingUser(user);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            {company?.userRole === 'company_owner' ? (
+                              <Select
+                                value={user.company_role}
+                                onValueChange={(value) => handleCompanyRoleChange(user.id, value as 'company_owner' | 'company_admin' | 'company_member')}
+                              >
+                                <SelectTrigger className="w-[140px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="z-50 bg-background">
+                                  <SelectItem value="company_owner">Owner</SelectItem>
+                                  <SelectItem value="company_admin">Admin</SelectItem>
+                                  <SelectItem value="company_member">Member</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="outline" className="text-sm">
+                                {user.company_role === 'company_owner' 
+                                  ? 'Owner' 
+                                  : user.company_role === 'company_admin'
+                                  ? 'Admin'
+                                  : 'Member'}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-4 pt-2 border-t">
                           <label className="flex items-center gap-2 cursor-pointer">
@@ -249,6 +365,86 @@ export default function CompanySettings() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Edit User Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-full-name">Full Name</Label>
+                <Input
+                  id="edit-full-name"
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editingUser) {
+                    updateUserMutation.mutate({
+                      userId: editingUser.user_id,
+                      email: editEmail !== editingUser.profiles?.email ? editEmail : undefined,
+                      fullName: editFullName !== editingUser.profiles?.full_name ? editFullName : undefined,
+                    });
+                  }
+                }}
+                disabled={updateUserMutation.isPending}
+              >
+                {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete User Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remove User from Company</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove {deletingUser?.profiles?.full_name || deletingUser?.profiles?.email} from your company? They will no longer have access to company resources.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  if (deletingUser) {
+                    removeUserMutation.mutate(deletingUser.id);
+                  }
+                }}
+                disabled={removeUserMutation.isPending}
+              >
+                {removeUserMutation.isPending ? 'Removing...' : 'Remove User'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

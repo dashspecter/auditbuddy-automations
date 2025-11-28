@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity } from "lucide-react";
+import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -66,6 +66,12 @@ export default function UserManagement() {
   const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'checker'>('checker');
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; email: string } | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserWithRoles | null>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editFullName, setEditFullName] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserWithRoles | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: currentUserRole } = useUserRole();
@@ -146,6 +152,84 @@ export default function UserManagement() {
       toast({
         title: "Error",
         description: `Failed to update role: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to update user
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, email, fullName }: { userId: string; email?: string; fullName?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, email, fullName }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+      toast({
+        title: "User updated",
+        description: "User information has been updated successfully.",
+      });
+      setEditDialogOpen(false);
+      setEditingUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update user: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to delete user
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all_users'] });
+      toast({
+        title: "User deleted",
+        description: "User has been deleted successfully.",
+      });
+      setDeleteDialogOpen(false);
+      setDeletingUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete user: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -410,19 +494,43 @@ export default function UserManagement() {
                         {format(new Date(user.created_at), "MMM d, yyyy")}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="min-h-[44px]"
-                          onClick={() => {
-                            setSelectedUser({ id: user.id, email: user.email });
-                            setActivityDialogOpen(true);
-                          }}
-                        >
-                          <Activity className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">View Activity</span>
-                          <span className="sm:hidden">Activity</span>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="min-h-[44px]"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setEditEmail(user.email);
+                              setEditFullName(user.full_name || '');
+                              setEditDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="min-h-[44px] text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setDeletingUser(user);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="min-h-[44px]"
+                            onClick={() => {
+                              setSelectedUser({ id: user.id, email: user.email });
+                              setActivityDialogOpen(true);
+                            }}
+                          >
+                            <Activity className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -446,6 +554,86 @@ export default function UserManagement() {
               onOpenChange={setActivityDialogOpen}
             />
           )}
+
+          {/* Edit User Dialog */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription>
+                  Update user information
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-full-name">Full Name</Label>
+                  <Input
+                    id="edit-full-name"
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="user@example.com"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (editingUser) {
+                      updateUserMutation.mutate({
+                        userId: editingUser.id,
+                        email: editEmail !== editingUser.email ? editEmail : undefined,
+                        fullName: editFullName !== editingUser.full_name ? editFullName : undefined,
+                      });
+                    }
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete User Dialog */}
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete User</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete {deletingUser?.full_name || deletingUser?.email}? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    if (deletingUser) {
+                      deleteUserMutation.mutate(deletingUser.id);
+                    }
+                  }}
+                  disabled={deleteUserMutation.isPending}
+                >
+                  {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
