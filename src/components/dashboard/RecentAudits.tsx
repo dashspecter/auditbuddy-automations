@@ -96,7 +96,12 @@ export const RecentAudits = () => {
                     className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors block"
                   >
                     <div className="space-y-1">
-                      <p className="font-medium text-foreground">{audit.location}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{audit.location}</p>
+                        <Badge variant="location" className="text-xs">
+                          Location
+                        </Badge>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {format(new Date(audit.audit_date), 'MMM dd, yyyy')}
                       </p>

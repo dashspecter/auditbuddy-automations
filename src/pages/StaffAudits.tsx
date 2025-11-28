@@ -240,6 +240,7 @@ export default function StaffAudits() {
                         <h3 className="font-semibold text-foreground">
                           {audit.employees?.full_name}
                         </h3>
+                        <Badge variant="staff" className="text-xs">Staff Audit</Badge>
                         <Badge variant="outline">{audit.employees?.role}</Badge>
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
