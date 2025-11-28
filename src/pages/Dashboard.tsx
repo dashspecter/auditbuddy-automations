@@ -2,11 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClipboardCheck, Users, TrendingUp, FileText, Plus, MapPin, Calendar } from "lucide-react";
+import { ClipboardCheck, Users, TrendingUp, FileText, Plus, MapPin, Calendar, BookOpen } from "lucide-react";
 import { Header } from "@/components/Header";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ManagerDashboard } from "@/components/dashboard/ManagerDashboard";
 import { CheckerDashboard } from "@/components/dashboard/CheckerDashboard";
+import { ModuleGuides } from "@/components/dashboard/ModuleGuides";
 import { RoleBasedView } from "@/components/RoleBasedView";
 import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { Link } from "react-router-dom";
@@ -67,11 +68,30 @@ const Dashboard = () => {
       
       <PullToRefresh onRefresh={handleRefresh}>
         <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <RoleBasedView
-            admin={<AdminDashboard />}
-            manager={<ManagerDashboard />}
-            checker={<CheckerDashboard />}
-          />
+          <Tabs defaultValue="guides" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="guides">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Getting Started
+              </TabsTrigger>
+              <TabsTrigger value="dashboard">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Dashboard
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="guides">
+              <ModuleGuides />
+            </TabsContent>
+
+            <TabsContent value="dashboard">
+              <RoleBasedView
+                admin={<AdminDashboard />}
+                manager={<ManagerDashboard />}
+                checker={<CheckerDashboard />}
+              />
+            </TabsContent>
+          </Tabs>
         </main>
       </PullToRefresh>
       
