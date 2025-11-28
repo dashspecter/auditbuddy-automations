@@ -20,6 +20,7 @@ export default function CompanyOnboarding() {
   const [companySlug, setCompanySlug] = useState("");
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModulesPreview, setShowModulesPreview] = useState(false);
 
   const modules = [
     { id: 'location_audits', name: 'Location Audits', description: 'Audit scheduling, templates, and compliance tracking', icon: ClipboardList, color: 'hsl(var(--chart-1))' },
@@ -171,8 +172,18 @@ export default function CompanyOnboarding() {
         </CardHeader>
 
         <CardContent>
-          {step === 'plan' && (
+          {step === 'plan' && !showModulesPreview && (
             <div className="space-y-6">
+              <div className="flex justify-end mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowModulesPreview(true)}
+                  className="gap-2"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  View Available Modules
+                </Button>
+              </div>
               <div className="grid md:grid-cols-3 gap-4">
                 {Object.values(PRICING_TIERS).map((tier) => {
                   const Icon = tier.icon;
@@ -220,6 +231,76 @@ export default function CompanyOnboarding() {
                 type="button"
                 className="w-full"
                 onClick={() => setStep('company')}
+              >
+                Continue with {PRICING_TIERS[selectedTier].name}
+              </Button>
+            </div>
+          )}
+
+          {step === 'plan' && showModulesPreview && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Available Modules by Plan</h3>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowModulesPreview(false)}
+                >
+                  Back to Plans
+                </Button>
+              </div>
+
+              {Object.values(PRICING_TIERS).map((tier) => {
+                const allowedModules = tier.allowedModules;
+                const tierModules = modules.filter(m => allowedModules.includes(m.id));
+
+                return (
+                  <Card key={tier.id} className={tier.id === selectedTier ? 'ring-2 ring-primary' : ''}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg" style={{ backgroundColor: `${tier.color}15` }}>
+                            <tier.icon className="h-6 w-6" style={{ color: tier.color }} />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">{tier.name}</CardTitle>
+                            <CardDescription>{tier.description}</CardDescription>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">€{tier.price}</div>
+                          <div className="text-sm text-muted-foreground">/{tier.billingPeriod}</div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {tierModules.map((module) => {
+                          const Icon = module.icon;
+                          return (
+                            <div
+                              key={module.id}
+                              className="flex items-start gap-3 p-3 rounded-lg border bg-card"
+                            >
+                              <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: `${module.color}15` }}>
+                                <Icon className="h-4 w-4" style={{ color: module.color }} />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm">{module.name}</div>
+                                <div className="text-xs text-muted-foreground">{module.description}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => setShowModulesPreview(false)}
               >
                 Continue with {PRICING_TIERS[selectedTier].name}
               </Button>
