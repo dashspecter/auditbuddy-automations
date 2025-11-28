@@ -123,15 +123,15 @@ const Audits = () => {
               <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
               <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/admin/template-library">
-                <Button variant="outline" className="gap-2 min-h-[48px]">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Link to="/admin/template-library" className="w-full sm:w-auto">
+                <Button variant="outline" className="gap-2 w-full">
                   <Library className="h-4 w-4" />
                   Template Library
                 </Button>
               </Link>
-              <Link to="/location-audit">
-                <Button variant="default" className="gap-2 min-h-[48px]">
+              <Link to="/location-audit" className="w-full sm:w-auto">
+                <Button variant="default" className="gap-2 w-full">
                   <Plus className="h-4 w-4" />
                   New Location Audit
                 </Button>

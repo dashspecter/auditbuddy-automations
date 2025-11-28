@@ -34,12 +34,12 @@ export default function EquipmentList() {
             <h1 className="text-3xl font-bold">Equipment List</h1>
             <p className="text-muted-foreground">Manage equipment across locations</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/equipment/bulk-qr")}>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => navigate("/equipment/bulk-qr")} className="w-full sm:w-auto">
               <QrCode className="mr-2 h-4 w-4" />
               Print QR Labels
             </Button>
-            <Button onClick={() => navigate("/equipment/new")}>
+            <Button onClick={() => navigate("/equipment/new")} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Add Equipment
             </Button>
