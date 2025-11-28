@@ -180,17 +180,6 @@ export default function CompanySettings() {
                         <div className="flex gap-4 pt-2 border-t">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <Checkbox
-                              checked={user.platform_roles?.includes('admin') || false}
-                              onCheckedChange={() => handlePlatformRoleToggle(
-                                user.user_id, 
-                                'admin', 
-                                user.platform_roles?.includes('admin') || false
-                              )}
-                            />
-                            <span className="text-sm">Admin</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
                               checked={user.platform_roles?.includes('manager') || false}
                               onCheckedChange={() => handlePlatformRoleToggle(
                                 user.user_id, 
