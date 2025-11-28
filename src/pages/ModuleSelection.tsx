@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, MapPin, Users, Settings, Bell, BarChart3, LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function ModuleSelection() {
@@ -18,36 +18,78 @@ export default function ModuleSelection() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const modules = [
+  const modules: Array<{
+    id: string;
+    name: string;
+    description: string;
+    features: string[];
+    icon: LucideIcon;
+    color: string;
+  }> = [
     { 
       id: 'location_audits', 
       name: 'Location Audits', 
-      description: 'Audit scheduling, templates, and compliance tracking',
-      icon: '📍'
+      description: 'Complete audit management system for location inspections and compliance',
+      features: [
+        'Custom audit templates',
+        'Schedule recurring audits',
+        'Photo documentation',
+        'Real-time compliance scores'
+      ],
+      icon: MapPin,
+      color: 'text-blue-500'
     },
     { 
       id: 'staff_performance', 
       name: 'Staff Performance', 
-      description: 'Employee audits and performance tracking',
-      icon: '👥'
+      description: 'Track employee performance and conduct staff evaluations',
+      features: [
+        'Employee performance audits',
+        'Performance leaderboards',
+        'Skills assessment tests',
+        'Progress tracking & reports'
+      ],
+      icon: Users,
+      color: 'text-green-500'
     },
     { 
       id: 'equipment_management', 
       name: 'Equipment Management', 
-      description: 'Equipment tracking and maintenance schedules',
-      icon: '⚙️'
+      description: 'Manage equipment inventory, maintenance schedules, and interventions',
+      features: [
+        'Equipment tracking with QR codes',
+        'Maintenance scheduling',
+        'Status history & logs',
+        'Intervention management'
+      ],
+      icon: Settings,
+      color: 'text-purple-500'
     },
     { 
       id: 'notifications', 
       name: 'Notifications', 
-      description: 'Notification templates and recurring alerts',
-      icon: '🔔'
+      description: 'Automated notification system with templates and scheduling',
+      features: [
+        'Notification templates',
+        'Recurring alerts',
+        'Role-based targeting',
+        'Delivery analytics'
+      ],
+      icon: Bell,
+      color: 'text-orange-500'
     },
     { 
       id: 'reports', 
       name: 'Reports & Analytics', 
-      description: 'Advanced reporting and data analytics',
-      icon: '📊'
+      description: 'Comprehensive reporting and data analytics dashboard',
+      features: [
+        'Performance trends',
+        'Location analytics',
+        'Export to PDF',
+        'Custom date ranges'
+      ],
+      icon: BarChart3,
+      color: 'text-pink-500'
     },
   ];
 
@@ -127,41 +169,54 @@ export default function ModuleSelection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <div className="space-y-3">
-              {modules.map((module) => (
-                <div
-                  key={module.id}
-                  className={`relative flex items-start space-x-3 p-5 rounded-xl border-2 transition-all cursor-pointer group hover:shadow-md ${
-                    selectedModules.includes(module.id)
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border hover:border-primary/50 bg-card'
-                  }`}
-                  onClick={() => toggleModule(module.id)}
-                >
-                  <Checkbox
-                    checked={selectedModules.includes(module.id)}
-                    onCheckedChange={() => toggleModule(module.id)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-2xl">{module.icon}</span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-base">{module.name}</p>
-                        {selectedModules.includes(module.id) && (
-                          <Check className="h-5 w-5 text-primary flex-shrink-0" />
-                        )}
+            <div className="space-y-4">
+              {modules.map((module) => {
+                const IconComponent = module.icon;
+                return (
+                  <div
+                    key={module.id}
+                    className={`relative flex flex-col p-6 rounded-xl border-2 transition-all cursor-pointer group hover:shadow-lg ${
+                      selectedModules.includes(module.id)
+                        ? 'border-primary bg-primary/5 shadow-md'
+                        : 'border-border hover:border-primary/50 bg-card'
+                    }`}
+                    onClick={() => toggleModule(module.id)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <Checkbox
+                        checked={selectedModules.includes(module.id)}
+                        onCheckedChange={() => toggleModule(module.id)}
+                        className="mt-1 flex-shrink-0"
+                      />
+                      <div className={`p-3 rounded-lg bg-background/50 flex-shrink-0 ${module.color}`}>
+                        <IconComponent className="h-6 w-6" />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{module.name}</h3>
+                          {selectedModules.includes(module.id) && (
+                            <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {module.description}
+                        </p>
+                        <div className="space-y-1.5">
+                          {module.features.map((feature, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <div className="h-1 w-1 rounded-full bg-primary flex-shrink-0" />
+                              <span>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap self-start">
+                        Free
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {module.description}
-                    </p>
                   </div>
-                  <Badge variant="outline" className="text-xs whitespace-nowrap">
-                    Free
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="pt-4 space-y-3">
