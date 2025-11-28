@@ -198,7 +198,7 @@ export default function CompanyOnboarding() {
                         </div>
                         <CardDescription className="text-sm">{tier.description}</CardDescription>
                         <div className="mt-3">
-                          <span className="text-3xl font-bold">${tier.price}</span>
+                          <span className="text-3xl font-bold">€{tier.price}</span>
                           <span className="text-muted-foreground text-sm">/{tier.billingPeriod}</span>
                         </div>
                       </CardHeader>
