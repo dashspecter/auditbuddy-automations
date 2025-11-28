@@ -47,9 +47,11 @@ const Landing = () => {
         <nav className="border-b border-border pt-safe">
           <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-primary rounded-full p-2">
-                <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img 
+                src="/dashspect-logo-512.png" 
+                alt="DashSpect" 
+                className="h-8 w-8"
+              />
               <span className="text-xl font-bold text-foreground">Dashspect</span>
             </div>
             <div className="flex items-center gap-2">
