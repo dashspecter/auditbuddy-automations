@@ -101,11 +101,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Invalidate role and company queries on auth state change
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Invalidate ALL queries on auth state change to ensure fresh data
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          console.log('[AuthContext] Clearing all queries for fresh data');
+          queryClient.clear(); // Clear ALL cached queries
           queryClient.invalidateQueries({ queryKey: ['user_role'] });
           queryClient.invalidateQueries({ queryKey: ['company'] });
           queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
         }
         
         // Clear timer when user logs out
