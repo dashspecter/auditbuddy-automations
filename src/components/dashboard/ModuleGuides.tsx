@@ -117,13 +117,20 @@ const MODULE_GUIDES = {
 };
 
 export function ModuleGuides() {
-  const { company } = useCompanyContext();
+  const { modules, isLoading } = useCompanyContext();
 
-  if (!company) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Getting Started</h2>
+          <p className="text-muted-foreground mt-1">Loading your modules...</p>
+        </div>
+      </div>
+    );
   }
 
-  const activeModules = company.company_modules?.filter(m => m.is_active) || [];
+  const activeModules = modules.filter(m => m.is_active) || [];
   const activeGuides = activeModules
     .map(m => MODULE_GUIDES[m.module_name as keyof typeof MODULE_GUIDES])
     .filter(Boolean);
