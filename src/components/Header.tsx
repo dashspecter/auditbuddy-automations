@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart, Building2 } from "lucide-react";
+import { ClipboardCheck, LogOut, User, Settings, Download, Menu, Megaphone, FileText, History, Smartphone, BookOpen, GraduationCap, ChevronDown, MapPin, Repeat, Users, Award, TrendingUp, Wrench, Calendar as CalendarMaintenance, BarChart3, FileBarChart, Building2, Shield } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { RoleBadges } from "@/components/RoleBadges";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
@@ -46,6 +48,7 @@ export const Header = () => {
   
   // Only fetch user role for authenticated pages
   const { data: roleData, isLoading } = useUserRole();
+  const { data: fullRoleData } = useUserRoles();
   const { hasModule, isLoading: modulesLoading } = useCompanyContext();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const { toast } = useToast();
@@ -865,12 +868,14 @@ export const Header = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 z-50">
               <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
+                <div className="flex flex-col space-y-2">
                   <p className="text-sm font-medium leading-none">{user?.email}</p>
-                  {!isLoading && roleData && (
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {roleData.isAdmin ? 'Admin' : roleData.isManager ? 'Manager' : 'Checker'}
-                    </p>
+                  {!isLoading && fullRoleData && (
+                    <RoleBadges 
+                      platformRole={fullRoleData.platformRole} 
+                      companyRole={fullRoleData.companyRole}
+                      size="sm"
+                    />
                   )}
                 </div>
               </DropdownMenuLabel>
