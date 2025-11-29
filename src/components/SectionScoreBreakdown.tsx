@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { useAuditFieldResponses } from "@/hooks/useAuditFieldResponses";
+import FieldResponseDisplay from "@/components/audit/FieldResponseDisplay";
 
 interface AuditField {
   id: string;
@@ -26,6 +28,7 @@ interface AuditSection {
 interface SectionScoreBreakdownProps {
   sections: AuditSection[];
   customData: Record<string, any>;
+  auditId?: string;
   className?: string;
 }
 
@@ -47,10 +50,12 @@ interface SectionScore {
 
 export const SectionScoreBreakdown = ({ 
   sections, 
-  customData, 
+  customData,
+  auditId,
   className 
 }: SectionScoreBreakdownProps) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const { data: fieldResponses = [] } = useAuditFieldResponses(auditId);
 
   const sectionScores = useMemo(() => {
     const scores: SectionScore[] = [];
@@ -231,22 +236,32 @@ export const SectionScoreBreakdown = ({
                 <CollapsibleContent className="pt-4 space-y-3">
                   <div className="border-t border-border pt-3">
                     <h5 className="text-sm font-semibold text-foreground mb-3">Field Details</h5>
-                    <div className="space-y-2">
-                      {section.fields.map((field) => (
-                        <div 
-                          key={field.id} 
-                          className="flex items-center justify-between p-2 rounded bg-secondary/30 text-sm"
-                        >
-                          <span className="text-muted-foreground">{field.name}</span>
-                          <span className={`font-medium ${
-                            field.type === 'rating' && typeof field.value === 'number'
-                              ? getRatingColor(field.value)
-                              : 'text-foreground'
-                          }`}>
-                            {formatFieldValue(field.value, field.type, field.maxValue)}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      {section.fields.map((field) => {
+                        const fieldResponse = fieldResponses.find(fr => fr.field_id === field.id);
+                        return (
+                          <div key={field.id} className="space-y-2">
+                            <div 
+                              className="flex items-center justify-between p-2 rounded bg-secondary/30 text-sm"
+                            >
+                              <span className="text-muted-foreground">{field.name}</span>
+                              <span className={`font-medium ${
+                                field.type === 'rating' && typeof field.value === 'number'
+                                  ? getRatingColor(field.value)
+                                  : 'text-foreground'
+                              }`}>
+                                {formatFieldValue(field.value, field.type, field.maxValue)}
+                              </span>
+                            </div>
+                            {fieldResponse && (
+                              <FieldResponseDisplay
+                                fieldResponse={fieldResponse}
+                                fieldName={field.name}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </CollapsibleContent>

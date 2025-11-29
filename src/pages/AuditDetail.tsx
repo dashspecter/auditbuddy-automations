@@ -473,6 +473,7 @@ const AuditDetail = () => {
                 <SectionScoreBreakdown 
                   sections={templateSections}
                   customData={audit.custom_data as Record<string, any>}
+                  auditId={audit.id}
                 />
               )}
 
