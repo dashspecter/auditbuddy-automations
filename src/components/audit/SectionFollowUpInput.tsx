@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,13 +22,18 @@ export default function SectionFollowUpInput({
 }: SectionFollowUpInputProps) {
   const [needed, setNeeded] = useState(followUpNeeded);
   const [notes, setNotes] = useState(followUpNotes || "");
+  const isUserEditingRef = useRef(false);
 
+  // Only sync from props if user is not actively editing
   useEffect(() => {
-    setNeeded(followUpNeeded);
-    setNotes(followUpNotes || "");
+    if (!isUserEditingRef.current) {
+      setNeeded(followUpNeeded);
+      setNotes(followUpNotes || "");
+    }
   }, [followUpNeeded, followUpNotes]);
 
   const handleNeededChange = (isNeeded: boolean) => {
+    isUserEditingRef.current = false;
     setNeeded(isNeeded);
     if (!isNeeded) {
       setNotes("");
@@ -39,8 +44,14 @@ export default function SectionFollowUpInput({
   };
 
   const handleNotesChange = (value: string) => {
+    isUserEditingRef.current = true;
     setNotes(value);
     onFollowUpChange(needed, value);
+    
+    // Reset the editing flag after a short delay
+    setTimeout(() => {
+      isUserEditingRef.current = false;
+    }, 1000);
   };
 
   return (
