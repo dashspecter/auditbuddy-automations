@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { EditAuditDialog } from "@/components/EditAuditDialog";
 import { AuditRevisionHistory } from "@/components/AuditRevisionHistory";
 import { PhotoGallery } from "@/components/PhotoGallery";
+import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -468,6 +469,14 @@ const AuditDetail = () => {
             </TabsList>
             
             <TabsContent value="details" className="space-y-6">
+              {/* Audit Responses Summary - Observations, Photos, Attachments, Follow-ups */}
+              {audit?.custom_data && templateSections.length > 0 && (
+                <AuditResponsesSummary
+                  auditId={audit.id}
+                  sections={templateSections}
+                />
+              )}
+
               {/* Section Score Breakdown */}
               {audit?.custom_data && templateSections.length > 0 && (
                 <SectionScoreBreakdown 
