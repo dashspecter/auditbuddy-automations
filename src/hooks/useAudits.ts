@@ -60,7 +60,12 @@ export const useLocationAudits = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('location_audits')
-        .select('*, locations(id, name, city, type)')
+        .select(`
+          *,
+          locations(id, name, city, type),
+          profiles(full_name, email, avatar_url),
+          audit_templates(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
