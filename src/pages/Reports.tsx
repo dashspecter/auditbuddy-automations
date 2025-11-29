@@ -605,15 +605,15 @@ const Reports = () => {
 
           {/* Audit Details Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>{dialogTitle}</DialogTitle>
                 <DialogDescription>
                   Showing {selectedAudits.length} audit{selectedAudits.length !== 1 ? 's' : ''}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-6">
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2">
                 {selectedAudits.map((audit) => (
                   <div key={audit.id} className="space-y-4">
                     {/* Audit Header Info */}
