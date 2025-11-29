@@ -44,6 +44,143 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_field_attachments: {
+        Row: {
+          created_at: string
+          created_by: string
+          field_response_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          field_response_id: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          field_response_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_field_attachments_field_response_id_fkey"
+            columns: ["field_response_id"]
+            isOneToOne: false
+            referencedRelation: "audit_field_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_field_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string
+          field_response_id: string
+          file_size: number | null
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          field_response_id: string
+          file_size?: number | null
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          field_response_id?: string
+          file_size?: number | null
+          id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_field_photos_field_response_id_fkey"
+            columns: ["field_response_id"]
+            isOneToOne: false
+            referencedRelation: "audit_field_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_field_responses: {
+        Row: {
+          audit_id: string
+          created_at: string
+          created_by: string
+          field_id: string
+          id: string
+          observations: string | null
+          response_value: Json | null
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          created_by: string
+          field_id: string
+          id?: string
+          observations?: string | null
+          response_value?: Json | null
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          created_by?: string
+          field_id?: string
+          id?: string
+          observations?: string | null
+          response_value?: Json | null
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_field_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "location_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_field_responses_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "audit_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_field_responses_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_fields: {
         Row: {
           created_at: string

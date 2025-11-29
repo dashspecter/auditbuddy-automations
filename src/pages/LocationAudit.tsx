@@ -20,6 +20,8 @@ import { ScorePreview } from "@/components/ScorePreview";
 import { AuditPhotoCapture } from "@/components/AuditPhotoCapture";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { LocationSelector } from "@/components/LocationSelector";
+import FieldResponseInput from "@/components/audit/FieldResponseInput";
+import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
 
 interface AuditField {
   id: string;
@@ -72,6 +74,15 @@ const LocationAudit = () => {
     notes: "",
     customData: {} as Record<string, any>,
   });
+
+  // Load field responses
+  const { data: fieldResponses = [] } = useAuditFieldResponses(currentDraftId || undefined);
+  const saveFieldResponse = useSaveFieldResponse();
+
+  // Helper to find field response
+  const getFieldResponse = (fieldId: string) => {
+    return fieldResponses.find(fr => fr.field_id === fieldId);
+  };
 
   useEffect(() => {
     const initializeData = async () => {
@@ -205,6 +216,22 @@ const LocationAudit = () => {
         [fieldId]: value,
       },
     });
+
+    // Save field response to database if we have a draft
+    if (currentDraftId && selectedTemplate) {
+      const section = selectedTemplate.sections.find(s => 
+        s.fields.some(f => f.id === fieldId)
+      );
+      
+      if (section) {
+        saveFieldResponse.mutate({
+          auditId: currentDraftId,
+          fieldId,
+          sectionId: section.id,
+          responseValue: value,
+        });
+      }
+    }
   };
 
   const handleNextSection = () => {
@@ -227,9 +254,12 @@ const LocationAudit = () => {
     delta: 50,
   });
 
-  const renderField = (field: AuditField) => {
+  const renderField = (field: AuditField, sectionId: string) => {
     const value = formData.customData[field.id] || '';
     const hasError = fieldErrors[field.id];
+    const fieldResponse = getFieldResponse(field.id);
+
+    const fieldInput = (() => {
 
     switch (field.field_type) {
       case 'yesno':
@@ -430,6 +460,32 @@ const LocationAudit = () => {
           </div>
         );
     }
+    })();
+
+    return (
+      <div className="space-y-4">
+        {fieldInput}
+        {currentDraftId && (
+          <FieldResponseInput
+            auditId={currentDraftId}
+            fieldId={field.id}
+            sectionId={sectionId}
+            fieldResponse={fieldResponse}
+            onObservationChange={(observations) => {
+              if (fieldResponse) {
+                saveFieldResponse.mutate({
+                  auditId: currentDraftId,
+                  fieldId: field.id,
+                  sectionId,
+                  responseValue: formData.customData[field.id],
+                  observations,
+                });
+              }
+            }}
+          />
+        )}
+      </div>
+    );
   };
 
   const handleSaveDraft = async () => {
@@ -919,7 +975,7 @@ const LocationAudit = () => {
                       <div className="space-y-4">
                         {selectedTemplate.sections[currentSectionIndex].fields.map((field) => (
                           <div key={field.id} className="w-full">
-                            {renderField(field)}
+                            {renderField(field, selectedTemplate.sections[currentSectionIndex].id)}
                           </div>
                         ))}
                       </div>
@@ -969,7 +1025,7 @@ const LocationAudit = () => {
                       <div className="grid gap-4 sm:gap-4 md:grid-cols-2">
                         {section.fields.map((field) => (
                           <div key={field.id} className={field.field_type === 'yesno' || field.field_type === 'yes_no' ? 'md:col-span-2' : ''}>
-                            {renderField(field)}
+                            {renderField(field, section.id)}
                           </div>
                         ))}
                       </div>
