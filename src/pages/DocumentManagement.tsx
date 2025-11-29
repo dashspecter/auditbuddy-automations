@@ -31,7 +31,8 @@ const DocumentManagement = () => {
     file: null as File | null,
     documentType: "knowledge",
     locationId: "",
-    renewalDate: undefined as Date | undefined
+    renewalDate: undefined as Date | undefined,
+    notificationEmail: ""
   });
   const [uploading, setUploading] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -163,6 +164,10 @@ const DocumentManagement = () => {
         toast.error("Renewal date is required for permits and contracts");
         return;
       }
+      if (!newDocument.notificationEmail) {
+        toast.error("Notification email is required for renewal reminders");
+        return;
+      }
     }
 
     setUploading(true);
@@ -211,6 +216,7 @@ const DocumentManagement = () => {
           document_type: newDocument.documentType,
           location_id: newDocument.documentType !== "knowledge" ? newDocument.locationId : null,
           renewal_date: newDocument.documentType !== "knowledge" ? newDocument.renewalDate?.toISOString().split('T')[0] : null,
+          notification_email: newDocument.documentType !== "knowledge" ? newDocument.notificationEmail : null,
         });
 
       if (dbError) throw dbError;
@@ -223,7 +229,8 @@ const DocumentManagement = () => {
         file: null,
         documentType: "knowledge",
         locationId: "",
-        renewalDate: undefined
+        renewalDate: undefined,
+        notificationEmail: ""
       });
       setDocumentDialogOpen(false);
       loadDocuments();
@@ -391,6 +398,18 @@ const DocumentManagement = () => {
                               disabled={(date) => date < new Date()}
                             />
                           </div>
+                        </div>
+                        <div>
+                          <Label>Notification Email *</Label>
+                          <Input
+                            type="email"
+                            value={newDocument.notificationEmail}
+                            onChange={(e) => setNewDocument({ ...newDocument, notificationEmail: e.target.value })}
+                            placeholder="email@example.com"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Renewal reminder will be sent to this email 14 days in advance
+                          </p>
                         </div>
                       </>
                     )}

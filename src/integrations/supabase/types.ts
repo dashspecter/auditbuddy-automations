@@ -623,6 +623,7 @@ export type Database = {
           file_url: string
           id: string
           location_id: string | null
+          notification_email: string | null
           renewal_date: string | null
           title: string
           updated_at: string
@@ -639,6 +640,7 @@ export type Database = {
           file_url: string
           id?: string
           location_id?: string | null
+          notification_email?: string | null
           renewal_date?: string | null
           title: string
           updated_at?: string
@@ -655,6 +657,7 @@ export type Database = {
           file_url?: string
           id?: string
           location_id?: string | null
+          notification_email?: string | null
           renewal_date?: string | null
           title?: string
           updated_at?: string
