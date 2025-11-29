@@ -31,6 +31,51 @@ import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard"
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
 
+// Wrapper component to fetch sections for the breakdown
+const SectionScoreBreakdownWrapper = ({ 
+  templateId, 
+  customData, 
+  auditId 
+}: { 
+  templateId: string; 
+  customData: Record<string, any>; 
+  auditId: string 
+}) => {
+  const { data: sections } = useQuery({
+    queryKey: ['template-sections-for-breakdown', templateId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_sections')
+        .select(`
+          id,
+          name,
+          description,
+          audit_fields (
+            id,
+            name,
+            field_type,
+            options
+          )
+        `)
+        .eq('template_id', templateId)
+        .order('display_order');
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  if (!sections || sections.length === 0) return null;
+
+  return (
+    <SectionScoreBreakdown
+      sections={sections as any}
+      customData={customData}
+      auditId={auditId}
+    />
+  );
+};
+
 const COLORS = {
   compliant: 'hsl(var(--success))',
   nonCompliant: 'hsl(var(--destructive))',
@@ -702,11 +747,14 @@ const Reports = () => {
 
                     {/* Section Score Breakdown */}
                     {audit.template_id && audit.custom_data && (
-                      <SectionScoreBreakdown
-                        sections={[]}
-                        customData={audit.custom_data as Record<string, any>}
-                        auditId={audit.id}
-                      />
+                      <Card className="p-6">
+                        <h3 className="text-lg font-semibold mb-4">Score per Section</h3>
+                        <SectionScoreBreakdownWrapper
+                          templateId={audit.template_id}
+                          customData={audit.custom_data as Record<string, any>}
+                          auditId={audit.id}
+                        />
+                      </Card>
                     )}
                   </div>
                 ))}
