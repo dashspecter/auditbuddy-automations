@@ -274,7 +274,7 @@ const DocumentManagement = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold">Document Management</h1>
-              <p className="text-muted-foreground">Upload and organize training documents</p>
+              <p className="text-muted-foreground">Upload and organize training documents, permits, and contracts</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
