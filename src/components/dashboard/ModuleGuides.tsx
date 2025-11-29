@@ -5,13 +5,50 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
+// Import tutorial images
+import locationAuditsStep1 from "@/assets/tutorials/location-audits-step1.png";
+import locationAuditsStep2 from "@/assets/tutorials/location-audits-step2.png";
+import locationAuditsStep3 from "@/assets/tutorials/location-audits-step3.png";
+import locationAuditsStep4 from "@/assets/tutorials/location-audits-step4.png";
+import locationAuditsStep5 from "@/assets/tutorials/location-audits-step5.png";
+
+import staffPerformanceStep1 from "@/assets/tutorials/staff-performance-step1.png";
+import staffPerformanceStep2 from "@/assets/tutorials/staff-performance-step2.png";
+import staffPerformanceStep3 from "@/assets/tutorials/staff-performance-step3.png";
+import staffPerformanceStep4 from "@/assets/tutorials/staff-performance-step4.png";
+import staffPerformanceStep5 from "@/assets/tutorials/staff-performance-step5.png";
+
+import equipmentManagementStep1 from "@/assets/tutorials/equipment-management-step1.png";
+import equipmentManagementStep2 from "@/assets/tutorials/equipment-management-step2.png";
+import equipmentManagementStep3 from "@/assets/tutorials/equipment-management-step3.png";
+import equipmentManagementStep4 from "@/assets/tutorials/equipment-management-step4.png";
+import equipmentManagementStep5 from "@/assets/tutorials/equipment-management-step5.png";
+
+import notificationsStep1 from "@/assets/tutorials/notifications-step1.png";
+import notificationsStep2 from "@/assets/tutorials/notifications-step2.png";
+import notificationsStep3 from "@/assets/tutorials/notifications-step3.png";
+import notificationsStep4 from "@/assets/tutorials/notifications-step4.png";
+import notificationsStep5 from "@/assets/tutorials/notifications-step5.png";
+
+import reportsStep1 from "@/assets/tutorials/reports-step1.png";
+import reportsStep2 from "@/assets/tutorials/reports-step2.png";
+import reportsStep3 from "@/assets/tutorials/reports-step3.png";
+import reportsStep4 from "@/assets/tutorials/reports-step4.png";
+import reportsStep5 from "@/assets/tutorials/reports-step5.png";
+
 const MODULE_GUIDES = {
   location_audits: {
     name: "location_audits",
     title: "Location Audits",
     description: "Conduct comprehensive audits with custom templates and scheduling",
     icon: <ClipboardList className="h-5 w-5" />,
-    videoUrl: "", // Add video URL when available
+    stepImages: [
+      locationAuditsStep1,
+      locationAuditsStep2,
+      locationAuditsStep3,
+      locationAuditsStep4,
+      locationAuditsStep5
+    ],
     steps: [
       "Click 'New Audit' to start your first location audit",
       "Select a pre-built template or create a custom one",
@@ -33,7 +70,13 @@ const MODULE_GUIDES = {
     title: "Staff Performance",
     description: "Monitor and improve team performance with detailed tracking",
     icon: <Users className="h-5 w-5" />,
-    videoUrl: "",
+    stepImages: [
+      staffPerformanceStep1,
+      staffPerformanceStep2,
+      staffPerformanceStep3,
+      staffPerformanceStep4,
+      staffPerformanceStep5
+    ],
     steps: [
       "Add your team members in Employee Management",
       "Assign employees to their respective locations",
@@ -55,7 +98,13 @@ const MODULE_GUIDES = {
     title: "Equipment Management",
     description: "Track equipment, schedule maintenance, and manage interventions",
     icon: <Wrench className="h-5 w-5" />,
-    videoUrl: "",
+    stepImages: [
+      equipmentManagementStep1,
+      equipmentManagementStep2,
+      equipmentManagementStep3,
+      equipmentManagementStep4,
+      equipmentManagementStep5
+    ],
     steps: [
       "Register new equipment with location and specifications",
       "Generate QR codes for quick equipment access",
@@ -77,7 +126,13 @@ const MODULE_GUIDES = {
     title: "Notifications",
     description: "Stay connected with customizable alerts and templates",
     icon: <Bell className="h-5 w-5" />,
-    videoUrl: "",
+    stepImages: [
+      notificationsStep1,
+      notificationsStep2,
+      notificationsStep3,
+      notificationsStep4,
+      notificationsStep5
+    ],
     steps: [
       "Create notification templates for common messages",
       "Send notifications to specific roles (checkers, managers, admins)",
@@ -99,7 +154,13 @@ const MODULE_GUIDES = {
     title: "Reports & Analytics",
     description: "Comprehensive insights with detailed reports and visualizations",
     icon: <Briefcase className="h-5 w-5" />,
-    videoUrl: "",
+    stepImages: [
+      reportsStep1,
+      reportsStep2,
+      reportsStep3,
+      reportsStep4,
+      reportsStep5
+    ],
     steps: [
       "View key metrics on your dashboard",
       "Filter reports by date range and location",
