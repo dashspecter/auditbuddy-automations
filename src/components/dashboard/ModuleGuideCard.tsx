@@ -1,15 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, BookOpen, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 interface ModuleGuide {
   name: string;
   title: string;
   description: string;
   icon: React.ReactNode;
-  videoUrl?: string;
+  stepImages?: string[];
   steps: string[];
   primaryAction: {
     label: string;
@@ -26,6 +27,20 @@ interface ModuleGuideCardProps {
 }
 
 export function ModuleGuideCard({ guide }: ModuleGuideCardProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  const nextImage = () => {
+    if (guide.stepImages) {
+      setCurrentImageIndex((prev) => (prev + 1) % guide.stepImages.length);
+    }
+  };
+  
+  const prevImage = () => {
+    if (guide.stepImages) {
+      setCurrentImageIndex((prev) => (prev - 1 + guide.stepImages.length) % guide.stepImages.length);
+    }
+  };
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <CardHeader className="pb-4">
@@ -44,25 +59,53 @@ export function ModuleGuideCard({ guide }: ModuleGuideCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Video Section */}
-        {guide.videoUrl ? (
-          <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-            <iframe
-              src={guide.videoUrl}
-              title={`${guide.title} Tutorial`}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
+        {/* Image Carousel */}
+        {guide.stepImages && guide.stepImages.length > 0 ? (
+          <div className="relative aspect-video rounded-lg overflow-hidden bg-muted group">
+            <img 
+              src={guide.stepImages[currentImageIndex]}
+              alt={`${guide.title} - Step ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover"
             />
-          </div>
-        ) : (
-          <div className="relative aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <PlayCircle className="h-16 w-16 text-primary mx-auto opacity-50" />
-              <p className="text-sm text-muted-foreground">Tutorial video coming soon</p>
+            
+            {/* Navigation arrows */}
+            <button
+              onClick={prevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Previous step"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Next step"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            
+            {/* Step indicator */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {guide.stepImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`h-2 rounded-full transition-all ${
+                    index === currentImageIndex 
+                      ? 'w-6 bg-primary' 
+                      : 'w-2 bg-white/50 hover:bg-white/70'
+                  }`}
+                  aria-label={`Go to step ${index + 1}`}
+                />
+              ))}
+            </div>
+            
+            {/* Step counter */}
+            <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs font-medium">
+              {currentImageIndex + 1} / {guide.stepImages.length}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Step-by-Step Guide */}
         <div className="space-y-3">
