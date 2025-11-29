@@ -1,0 +1,188 @@
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useCompany } from "@/hooks/useCompany";
+import { useIndustries } from "@/hooks/useIndustries";
+import { useAvailableModules } from "@/hooks/useModules";
+import { useCompanyModules } from "@/hooks/useCompany";
+import { useToggleCompanyModule } from "@/hooks/useModules";
+import { Store, HardHat, ShoppingBag, Sparkles, Building2, ClipboardList, Users, Wrench, Bell, Briefcase } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function IndustryModuleManagement() {
+  const { data: company, isLoading: companyLoading } = useCompany();
+  const { data: industries = [], isLoading: industriesLoading } = useIndustries();
+  const { data: availableModules = [], isLoading: modulesLoading } = useAvailableModules(company?.industry_id || null);
+  const { data: enabledModules = [] } = useCompanyModules();
+  const toggleModule = useToggleCompanyModule();
+
+  const [showOnlyEnabled, setShowOnlyEnabled] = useState(false);
+  const [showRecommended, setShowRecommended] = useState(false);
+
+  const industryIcons: Record<string, any> = {
+    'restaurants_horeca': Store,
+    'construction_builders': HardHat,
+    'retail': ShoppingBag,
+    'services': Sparkles,
+    'other': Building2,
+  };
+
+  const moduleIcons: Record<string, any> = {
+    'ClipboardList': ClipboardList,
+    'Users': Users,
+    'Wrench': Wrench,
+    'Bell': Bell,
+    'Briefcase': Briefcase,
+  };
+
+  const currentIndustry = industries.find(i => i.id === company?.industry_id);
+  const IndustryIcon = currentIndustry ? industryIcons[currentIndustry.slug] || Building2 : Building2;
+
+  const isModuleEnabled = (moduleCode: string) => {
+    return enabledModules.some(m => m.module_name === moduleCode && m.is_active);
+  };
+
+  const handleToggle = (moduleCode: string, currentlyEnabled: boolean) => {
+    if (!company) return;
+    
+    toggleModule.mutate({
+      companyId: company.id,
+      moduleCode,
+      isEnabled: !currentlyEnabled,
+    });
+  };
+
+  const filteredModules = availableModules.filter(module => {
+    if (showOnlyEnabled && !isModuleEnabled(module.code)) return false;
+    if (showRecommended && module.industry_scope !== 'INDUSTRY_SPECIFIC') return false;
+    return true;
+  });
+
+  if (companyLoading || industriesLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-full" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Current Industry */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Industry</CardTitle>
+          <CardDescription>
+            Your company's business type
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {currentIndustry && (
+            <div className="flex items-center gap-4 p-4 border rounded-lg">
+              <div className="p-3 rounded-lg bg-primary/10">
+                <IndustryIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">{currentIndustry.name}</h3>
+                <p className="text-sm text-muted-foreground">{currentIndustry.description}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Module Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Module Management</CardTitle>
+          <CardDescription>
+            Enable or disable features for your company
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-enabled"
+                checked={showOnlyEnabled}
+                onCheckedChange={setShowOnlyEnabled}
+              />
+              <Label htmlFor="show-enabled">Show only enabled</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-recommended"
+                checked={showRecommended}
+                onCheckedChange={setShowRecommended}
+              />
+              <Label htmlFor="show-recommended">Recommended for my industry</Label>
+            </div>
+          </div>
+
+          {/* Modules List */}
+          <div className="space-y-3">
+            {modulesLoading ? (
+              <>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </>
+            ) : filteredModules.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No modules found matching your filters
+              </div>
+            ) : (
+              filteredModules.map((module) => {
+                const IconComponent = moduleIcons[module.icon_name || ''] || ClipboardList;
+                const enabled = isModuleEnabled(module.code);
+                const isRecommended = module.industry_scope === 'INDUSTRY_SPECIFIC';
+
+                return (
+                  <div
+                    key={module.id}
+                    className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                      <IconComponent className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold">{module.name}</h4>
+                        {module.industry_scope === 'GLOBAL' && (
+                          <Badge variant="secondary" className="text-xs">
+                            Global
+                          </Badge>
+                        )}
+                        {isRecommended && (
+                          <Badge variant="default" className="text-xs">
+                            Recommended
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{module.description}</p>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={() => handleToggle(module.code, enabled)}
+                      disabled={toggleModule.isPending}
+                    />
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

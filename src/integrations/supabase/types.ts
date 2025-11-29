@@ -274,6 +274,7 @@ export type Database = {
           approved_by: string | null
           created_at: string
           id: string
+          industry_id: string | null
           logo_url: string | null
           name: string
           slug: string
@@ -287,6 +288,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          industry_id?: string | null
           logo_url?: string | null
           name: string
           slug: string
@@ -300,6 +302,7 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           id?: string
+          industry_id?: string | null
           logo_url?: string | null
           name?: string
           slug?: string
@@ -308,7 +311,15 @@ export type Database = {
           trial_ends_at?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_modules: {
         Row: {
@@ -770,6 +781,36 @@ export type Database = {
           },
         ]
       }
+      industries: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       location_audits: {
         Row: {
           assigned_user_id: string | null
@@ -1013,6 +1054,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      module_industries: {
+        Row: {
+          created_at: string
+          id: string
+          industry_id: string
+          module_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry_id: string
+          module_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry_id?: string
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_industries_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_industries_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modules: {
+        Row: {
+          base_price: number | null
+          code: string
+          created_at: string
+          description: string | null
+          icon_name: string | null
+          id: string
+          industry_scope: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number | null
+          code: string
+          created_at?: string
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          industry_scope: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon_name?: string | null
+          id?: string
+          industry_scope?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       notification_audit_logs: {
         Row: {

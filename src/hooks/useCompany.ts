@@ -11,6 +11,7 @@ export interface Company {
   status: string;
   subscription_tier: string;
   trial_ends_at: string | null;
+  industry_id: string | null;
   created_at: string;
   updated_at: string;
 }
