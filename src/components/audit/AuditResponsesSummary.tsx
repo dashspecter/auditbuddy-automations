@@ -7,7 +7,7 @@ import FieldResponseDisplay from "./FieldResponseDisplay";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,13 @@ export default function AuditResponsesSummary({ auditId, sections: providedSecti
   });
 
   const sections = providedSections || fetchedSections || [];
+  
+  // Expand all sections by default when they load
+  useEffect(() => {
+    if (sections.length > 0) {
+      setExpandedSections(new Set(sections.map(s => s.id)));
+    }
+  }, [sections]);
 
   // Filter responses with content
   const responsesWithContent = fieldResponses.filter(
