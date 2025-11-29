@@ -617,10 +617,13 @@ export type Database = {
           company_id: string | null
           created_at: string
           description: string | null
+          document_type: string | null
           file_name: string
           file_size: number | null
           file_url: string
           id: string
+          location_id: string | null
+          renewal_date: string | null
           title: string
           updated_at: string
           uploaded_by: string
@@ -630,10 +633,13 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           description?: string | null
+          document_type?: string | null
           file_name: string
           file_size?: number | null
           file_url: string
           id?: string
+          location_id?: string | null
+          renewal_date?: string | null
           title: string
           updated_at?: string
           uploaded_by: string
@@ -643,10 +649,13 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           description?: string | null
+          document_type?: string | null
           file_name?: string
           file_size?: number | null
           file_url?: string
           id?: string
+          location_id?: string | null
+          renewal_date?: string | null
           title?: string
           updated_at?: string
           uploaded_by?: string
@@ -664,6 +673,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
@@ -2055,6 +2071,13 @@ export type Database = {
             referencedRelation: "documents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_renewals"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_module_onboarding: {
@@ -2126,6 +2149,35 @@ export type Database = {
           type: string | null
         }
         Relationships: []
+      }
+      upcoming_renewals: {
+        Row: {
+          category_name: string | null
+          company_id: string | null
+          document_type: string | null
+          file_url: string | null
+          id: string | null
+          location_id: string | null
+          location_name: string | null
+          renewal_date: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
