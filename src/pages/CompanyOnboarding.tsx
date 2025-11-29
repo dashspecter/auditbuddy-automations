@@ -150,7 +150,7 @@ export default function CompanyOnboarding() {
             <img 
               src="/dashspect-logo-512.png" 
               alt="DashSpect" 
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-xl bg-primary p-1"
             />
             <span className="text-xl font-bold text-foreground">DashSpect</span>
           </Link>

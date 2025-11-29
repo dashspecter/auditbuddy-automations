@@ -232,7 +232,7 @@ const Auth = () => {
             <img 
               src="/dashspect-logo-512.png" 
               alt="DashSpect" 
-              className="h-12 w-12"
+              className="h-12 w-12 rounded-xl bg-primary p-1.5"
             />
             <h1 className="text-2xl font-bold text-foreground">Dashspect</h1>
           </div>
