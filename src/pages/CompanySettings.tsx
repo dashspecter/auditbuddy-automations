@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
 import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import ModuleManagement from "@/components/settings/ModuleManagement";
+import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import {
   Select,
   SelectContent,
@@ -266,7 +266,7 @@ export default function CompanySettings() {
           </TabsContent>
 
           <TabsContent value="modules">
-            <ModuleManagement />
+            <IndustryModuleManagement />
           </TabsContent>
 
           <TabsContent value="users">
