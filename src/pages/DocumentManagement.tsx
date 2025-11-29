@@ -7,25 +7,42 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileText, Plus, Trash2, Upload } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
+import { LocationSelector } from "@/components/LocationSelector";
+import { format } from "date-fns";
 
 const DocumentManagement = () => {
   const { user } = useAuth();
   const [categories, setCategories] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [upcomingRenewals, setUpcomingRenewals] = useState<any[]>([]);
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
-  const [newDocument, setNewDocument] = useState({ title: "", description: "", categoryId: "", file: null as File | null });
+  const [newDocument, setNewDocument] = useState({ 
+    title: "", 
+    description: "", 
+    categoryId: "", 
+    file: null as File | null,
+    documentType: "knowledge",
+    locationId: "",
+    renewalDate: undefined as Date | undefined
+  });
   const [uploading, setUploading] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("knowledge");
 
   useEffect(() => {
     loadCategories();
     loadDocuments();
+    loadLocations();
+    loadUpcomingRenewals();
   }, []);
 
   const loadCategories = async () => {
@@ -48,7 +65,8 @@ const DocumentManagement = () => {
       .from("documents")
       .select(`
         *,
-        category:document_categories(name)
+        category:document_categories(name),
+        location:locations(name)
       `)
       .order("created_at", { ascending: false });
 
@@ -59,6 +77,34 @@ const DocumentManagement = () => {
     }
 
     setDocuments(data || []);
+  };
+
+  const loadLocations = async () => {
+    const { data, error } = await supabase
+      .from("locations")
+      .select("*")
+      .eq("status", "active")
+      .order("name");
+
+    if (error) {
+      console.error("Error loading locations:", error);
+      return;
+    }
+
+    setLocations(data || []);
+  };
+
+  const loadUpcomingRenewals = async () => {
+    const { data, error } = await supabase
+      .from("upcoming_renewals")
+      .select("*");
+
+    if (error) {
+      console.error("Error loading renewals:", error);
+      return;
+    }
+
+    setUpcomingRenewals(data || []);
   };
 
   const handleCreateCategory = async () => {
@@ -101,9 +147,33 @@ const DocumentManagement = () => {
       return;
     }
 
+    // Validate permit/contract specific fields
+    if (newDocument.documentType !== "knowledge") {
+      if (!newDocument.locationId) {
+        toast.error("Location is required for permits and contracts");
+        return;
+      }
+      if (!newDocument.renewalDate) {
+        toast.error("Renewal date is required for permits and contracts");
+        return;
+      }
+    }
+
     setUploading(true);
 
     try {
+      // Get user's company_id
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (!companyUser) {
+        toast.error("No company found for user");
+        return;
+      }
+
       // Optimize file before upload
       const optimized = await optimizeFile(newDocument.file);
       
@@ -131,14 +201,27 @@ const DocumentManagement = () => {
           file_name: newDocument.file.name,
           file_size: newDocument.file.size,
           uploaded_by: user?.id,
+          company_id: companyUser.company_id,
+          document_type: newDocument.documentType,
+          location_id: newDocument.documentType !== "knowledge" ? newDocument.locationId : null,
+          renewal_date: newDocument.documentType !== "knowledge" ? newDocument.renewalDate?.toISOString().split('T')[0] : null,
         });
 
       if (dbError) throw dbError;
 
       toast.success("Document uploaded successfully");
-      setNewDocument({ title: "", description: "", categoryId: "", file: null });
+      setNewDocument({ 
+        title: "", 
+        description: "", 
+        categoryId: "", 
+        file: null,
+        documentType: "knowledge",
+        locationId: "",
+        renewalDate: undefined
+      });
       setDocumentDialogOpen(false);
       loadDocuments();
+      loadUpcomingRenewals();
     } catch (error) {
       console.error("Error uploading document:", error);
       toast.error("Failed to upload document");
@@ -167,11 +250,15 @@ const DocumentManagement = () => {
 
       toast.success("Document deleted successfully");
       loadDocuments();
+      loadUpcomingRenewals();
     } catch (error) {
       console.error("Error deleting document:", error);
       toast.error("Failed to delete document");
     }
   };
+
+  const knowledgeDocuments = documents.filter(d => d.document_type === "knowledge");
+  const permitContractDocuments = documents.filter(d => d.document_type !== "knowledge");
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,11 +311,27 @@ const DocumentManagement = () => {
                     <span className="hidden sm:inline">Upload</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Upload Document</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
+                    <div>
+                      <Label>Document Type *</Label>
+                      <Select
+                        value={newDocument.documentType}
+                        onValueChange={(value) => setNewDocument({ ...newDocument, documentType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="knowledge">Knowledge</SelectItem>
+                          <SelectItem value="permit">Permit</SelectItem>
+                          <SelectItem value="contract">Contract</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div>
                       <Label>Title *</Label>
                       <Input
@@ -252,6 +355,28 @@ const DocumentManagement = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {newDocument.documentType !== "knowledge" && (
+                      <>
+                        <div>
+                          <Label>Location *</Label>
+                          <LocationSelector
+                            value={newDocument.locationId}
+                            onValueChange={(value) => setNewDocument({ ...newDocument, locationId: value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Renewal Date *</Label>
+                          <div className="border rounded-md p-3">
+                            <Calendar
+                              mode="single"
+                              selected={newDocument.renewalDate}
+                              onSelect={(date) => setNewDocument({ ...newDocument, renewalDate: date })}
+                              disabled={(date) => date < new Date()}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                     <div>
                       <Label>Description</Label>
                       <Textarea
@@ -298,43 +423,159 @@ const DocumentManagement = () => {
             )}
           </div>
 
-          {/* Documents Section */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Documents ({documents.length})</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {documents.map((doc) => (
-                <Card key={doc.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{doc.title}</h3>
-                        <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+          {/* Documents Section with Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="knowledge">Knowledge ({knowledgeDocuments.length})</TabsTrigger>
+              <TabsTrigger value="permits">Permits & Contracts ({permitContractDocuments.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="knowledge" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Knowledge Documents</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {knowledgeDocuments.map((doc) => (
+                  <Card key={doc.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <FileText className="h-8 w-8 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate">{doc.title}</h3>
+                          <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {Math.round(doc.file_size / 1024)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                    {doc.description && (
+                      <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
+                    )}
+                  </Card>
+                ))}
+              </div>
+              {knowledgeDocuments.length === 0 && (
+                <p className="text-muted-foreground text-center py-8">
+                  No knowledge documents yet. Upload one to get started.
+                </p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="permits" className="space-y-6">
+              {/* Upcoming Renewals Calendar View */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Upcoming Renewals</h2>
+                <div className="grid gap-3">
+                  {upcomingRenewals.slice(0, 5).map((renewal) => (
+                    <Card key={renewal.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 shrink-0">
+                          <CalendarIcon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold truncate">{renewal.title}</h3>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              renewal.document_type === 'permit' 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'bg-green-100 text-green-700'
+                            }`}>
+                              {renewal.document_type}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              <span>{renewal.location_name}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              <span>{format(new Date(renewal.renewal_date), "MMM d, yyyy")}</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{renewal.category_name}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {upcomingRenewals.length === 0 && (
+                    <p className="text-muted-foreground text-center py-8">
+                      No upcoming renewals scheduled.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* All Permits & Contracts */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">All Permits & Contracts</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {permitContractDocuments.map((doc) => (
+                    <Card key={doc.id} className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3 flex-1">
+                          <FileText className="h-8 w-8 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold truncate">{doc.title}</h3>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                doc.document_type === 'permit' 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {doc.document_type}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        {doc.location && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
+                            <span>{doc.location.name}</span>
+                          </div>
+                        )}
+                        {doc.renewal_date && (
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <CalendarIcon className="h-3 w-3" />
+                            <span>Renews: {format(new Date(doc.renewal_date), "MMM d, yyyy")}</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
                           {Math.round(doc.file_size / 1024)} KB
                         </p>
                       </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                  {doc.description && (
-                    <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
-                  )}
-                </Card>
-              ))}
-            </div>
-            {documents.length === 0 && (
-              <p className="text-muted-foreground text-center py-8">
-                No documents yet. Upload one to get started.
-              </p>
-            )}
-          </div>
+                      {doc.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+                {permitContractDocuments.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    No permits or contracts yet. Upload one to get started.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
