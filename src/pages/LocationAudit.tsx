@@ -506,6 +506,13 @@ const LocationAudit = () => {
     if (!user || !selectedTemplateId) return;
 
     try {
+      // First, delete all existing drafts for this user to keep only the latest
+      await supabase
+        .from('location_audits')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('status', 'draft');
+
       const { data: companyUser } = await supabase
         .from('company_users')
         .select('company_id')
@@ -589,6 +596,13 @@ const LocationAudit = () => {
 
         if (error) throw error;
       } else {
+        // Delete all existing drafts for this user before creating a new one
+        await supabase
+          .from('location_audits')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('status', 'draft');
+
         // Create new draft
         const { data, error } = await supabase
           .from('location_audits')
@@ -774,9 +788,24 @@ const LocationAudit = () => {
 
         if (error) throw error;
         
+        // Delete any other drafts for this user since we're completing an audit
+        await supabase
+          .from('location_audits')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('status', 'draft')
+          .neq('id', currentDraftId);
+        
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${currentDraftId}`);
       } else {
+        // Delete all existing drafts for this user before creating the completed audit
+        await supabase
+          .from('location_audits')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('status', 'draft');
+
         // Create new audit
         const { data: newAudit, error } = await supabase
           .from('location_audits')
