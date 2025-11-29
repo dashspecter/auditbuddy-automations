@@ -29,6 +29,7 @@ import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
+import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -698,6 +699,15 @@ const Reports = () => {
 
                     {/* Additional Information - Follow-ups, Photos, Attachments */}
                     <AuditResponsesSummary auditId={audit.id} />
+
+                    {/* Section Score Breakdown */}
+                    {audit.template_id && audit.custom_data && (
+                      <SectionScoreBreakdown
+                        sections={[]}
+                        customData={audit.custom_data as Record<string, any>}
+                        auditId={audit.id}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
