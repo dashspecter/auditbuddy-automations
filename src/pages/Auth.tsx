@@ -230,7 +230,7 @@ const Auth = () => {
         <Card className="w-full max-w-md p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
             <img 
-              src="/dashspect-logo-512.png" 
+              src="/dashspect-logo-512.png?v=2" 
               alt="DashSpect" 
               className="h-12 w-12 rounded-xl bg-primary p-1.5"
             />
