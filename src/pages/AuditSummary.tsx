@@ -18,6 +18,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { SectionScoreBreakdown } from '@/components/SectionScoreBreakdown';
+import AuditResponsesSummary from '@/components/audit/AuditResponsesSummary';
 import { cn } from '@/lib/utils';
 
 interface AuditData {
@@ -366,6 +367,14 @@ const AuditSummary = () => {
             </Card>
           )}
 
+          {/* Additional Information - Observations, Photos, Attachments, Follow-ups */}
+          {sections.length > 0 && (
+            <AuditResponsesSummary
+              auditId={audit.id}
+              sections={sections}
+            />
+          )}
+
           {/* Section Scores */}
           {sections.length > 0 && audit.custom_data && (
             <Card>
@@ -376,6 +385,7 @@ const AuditSummary = () => {
                 <SectionScoreBreakdown 
                   sections={sections}
                   customData={audit.custom_data}
+                  auditId={audit.id}
                 />
               </CardContent>
             </Card>
