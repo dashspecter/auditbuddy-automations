@@ -275,6 +275,7 @@ const Reports = () => {
       title = `All Locations - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
     }
 
+    console.log('Opening dialog with:', { title, auditCount: filteredAudits.length, audits: filteredAudits });
     setSelectedAudits(filteredAudits);
     setDialogTitle(title);
     setDialogOpen(true);
@@ -658,7 +659,7 @@ const Reports = () => {
 
           {/* Audit Details Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+            <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle>{dialogTitle}</DialogTitle>
                 <DialogDescription>
@@ -667,7 +668,12 @@ const Reports = () => {
               </DialogHeader>
               
               <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                {selectedAudits.map((audit) => (
+                {selectedAudits.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No audits found
+                  </div>
+                ) : (
+                  selectedAudits.map((audit) => (
                   <div key={audit.id} className="space-y-4">
                     {/* Audit Header Info */}
                     <Card className="p-6">
@@ -757,7 +763,8 @@ const Reports = () => {
                       </Card>
                     )}
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </DialogContent>
           </Dialog>
