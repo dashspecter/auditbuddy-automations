@@ -409,7 +409,7 @@ const AuditSummary = () => {
               <Home className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
-            <Button onClick={() => navigate(`/audit/${audit.id}`)} variant="default">
+            <Button onClick={() => navigate(`/audits/${audit.id}`)} variant="default">
               <Eye className="h-4 w-4 mr-2" />
               View Full Audit
             </Button>
