@@ -57,7 +57,19 @@ export default function FieldResponseInput({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !fieldResponse?.id) return;
+    if (!file) return;
+
+    // If no field response exists, create one first
+    if (!fieldResponse?.id) {
+      onObservationChange("");  // This will trigger creation of field response
+      // Wait a bit for the mutation to complete
+      setTimeout(() => {
+        if (photoInputRef.current) {
+          photoInputRef.current.click();
+        }
+      }, 500);
+      return;
+    }
 
     uploadPhoto.mutate({
       responseId: fieldResponse.id,
@@ -73,7 +85,19 @@ export default function FieldResponseInput({
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !fieldResponse?.id) return;
+    if (!file) return;
+
+    // If no field response exists, create one first
+    if (!fieldResponse?.id) {
+      onObservationChange("");  // This will trigger creation of field response
+      // Wait a bit for the mutation to complete
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
+      }, 500);
+      return;
+    }
 
     uploadAttachment.mutate({
       responseId: fieldResponse.id,
@@ -113,7 +137,7 @@ export default function FieldResponseInput({
           variant="outline"
           size="sm"
           onClick={() => photoInputRef.current?.click()}
-          disabled={disabled || !fieldResponse?.id}
+          disabled={disabled}
           className="gap-2"
         >
           <Camera className="h-4 w-4" />
@@ -126,7 +150,7 @@ export default function FieldResponseInput({
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || !fieldResponse?.id}
+          disabled={disabled}
           className="gap-2"
         >
           <Paperclip className="h-4 w-4" />
