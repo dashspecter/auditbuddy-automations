@@ -251,7 +251,10 @@ const Reports = () => {
   };
 
   const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
-    console.log('handlePieClick called', { location, type, audits: audits?.length });
+    console.log('=== PIE CHART CLICKED ===');
+    console.log('Location:', location);
+    console.log('Type:', type);
+    console.log('Audits available:', audits?.length);
     
     if (!audits) {
       console.error('No audits available');
@@ -259,22 +262,26 @@ const Reports = () => {
       return;
     }
 
-    let filteredAudits: any[] = [];
-    let title = "";
-
     try {
+      let filteredAudits: any[] = [];
+      let title = "";
+
       if (location) {
-        // Click from location-specific chart
+        console.log('Filtering by location:', location);
         const locationData = reportData.find(loc => loc.location === location);
+        console.log('Location data found:', locationData);
+        
         if (locationData) {
           filteredAudits = locationData.audits.filter(audit => {
             const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
             return type === 'compliant' ? isCompliant : !isCompliant;
           });
           title = `${location} - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
+        } else {
+          console.error('Location not found in reportData');
         }
       } else {
-        // Click from overall chart
+        console.log('Filtering all audits');
         filteredAudits = audits.filter(audit => {
           const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
           return type === 'compliant' ? isCompliant : !isCompliant;
@@ -282,12 +289,17 @@ const Reports = () => {
         title = `All Locations - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
       }
 
-      console.log('Setting dialog state', { title, count: filteredAudits.length });
+      console.log('Filtered audits:', filteredAudits.length);
+      console.log('Title:', title);
+      console.log('About to set state...');
+      
       setSelectedAudits(filteredAudits);
       setDialogTitle(title);
       setDialogOpen(true);
+      
+      console.log('State set successfully');
     } catch (error) {
-      console.error('Error in handlePieClick:', error);
+      console.error('ERROR in handlePieClick:', error);
       toast.error('Failed to load audit details');
     }
   };
@@ -669,87 +681,75 @@ const Reports = () => {
           )}
 
           {/* Audit Details Dialog */}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{dialogTitle}</DialogTitle>
-                <DialogDescription>
-                  Showing {selectedAudits.length} audit{selectedAudits.length !== 1 ? 's' : ''}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6 mt-4">
-                {selectedAudits.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No audits found
-                  </div>
-                ) : (
-                  selectedAudits.map((audit) => (
-                    <Card key={audit.id} className="p-6">
-                      <div className="space-y-4">
-                        {/* Basic Info */}
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold">
-                              {audit.locations?.name || audit.location || 'Unknown Location'}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(audit.audit_date || audit.created_at), 'PPP')}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold">{audit.overall_score || 0}%</p>
-                            <Badge className={`${(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}`}>
-                              {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
-                            </Badge>
-                          </div>
-                        </div>
+          {dialogOpen && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{dialogTitle}</DialogTitle>
+                  <DialogDescription>
+                    Showing {selectedAudits.length} audit{selectedAudits.length !== 1 ? 's' : ''}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 mt-4">
+                  {selectedAudits.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No audits found
+                    </div>
+                  ) : (
+                    selectedAudits.map((audit) => {
+                      try {
+                        return (
+                          <Card key={audit.id} className="p-4">
+                            <div className="space-y-3">
+                              {/* Basic Info */}
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="font-bold">
+                                    {audit.locations?.name || audit.location || 'Unknown Location'}
+                                  </h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {audit.audit_date ? format(new Date(audit.audit_date), 'PPP') : 'No date'}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xl font-bold">{audit.overall_score || 0}%</p>
+                                  <Badge className={`${(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}`}>
+                                    {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
+                                  </Badge>
+                                </div>
+                              </div>
 
-                        {/* Auditor and Template */}
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Auditor</p>
-                            <p className="font-medium">{audit.profiles?.full_name || audit.profiles?.email || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Template</p>
-                            <p className="font-medium">{audit.audit_templates?.name || 'N/A'}</p>
-                          </div>
-                        </div>
+                              {/* Auditor */}
+                              <div className="text-sm border-t pt-2">
+                                <span className="text-muted-foreground">Auditor: </span>
+                                <span className="font-medium">{audit.profiles?.full_name || audit.profiles?.email || 'N/A'}</span>
+                              </div>
 
-                        {/* Notes */}
-                        {audit.notes && (
-                          <div className="pt-2 border-t">
-                            <p className="text-sm text-muted-foreground mb-1">Notes</p>
-                            <p className="text-sm">{audit.notes}</p>
-                          </div>
-                        )}
-
-                        {/* Additional Information */}
-                        {audit.template_id && (
-                          <div className="pt-2 border-t">
-                            <AuditResponsesSummary auditId={audit.id} />
-                          </div>
-                        )}
-
-                        {/* Section Score Breakdown */}
-                        {audit.template_id && audit.custom_data && (
-                          <div className="pt-2 border-t">
-                            <h4 className="font-semibold mb-2">Score per Section</h4>
-                            <SectionScoreBreakdownWrapper
-                              templateId={audit.template_id}
-                              customData={audit.custom_data as Record<string, any>}
-                              auditId={audit.id}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+                              {/* Notes */}
+                              {audit.notes && (
+                                <div className="text-sm border-t pt-2">
+                                  <p className="text-muted-foreground mb-1">Notes:</p>
+                                  <p>{audit.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        );
+                      } catch (error) {
+                        console.error('Error rendering audit card:', error);
+                        return (
+                          <Card key={audit.id} className="p-4 bg-destructive/10">
+                            <p className="text-sm text-destructive">Error displaying audit {audit.id}</p>
+                          </Card>
+                        );
+                      }
+                    })
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
         )}
       </main>
