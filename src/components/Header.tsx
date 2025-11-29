@@ -93,7 +93,7 @@ export const Header = () => {
             <img 
               src="/dashspect-logo-512.png" 
               alt="DashSpect" 
-              className="h-8 w-8 md:h-10 md:w-10 rounded-xl"
+              className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-primary p-1"
             />
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
@@ -138,7 +138,7 @@ export const Header = () => {
             <img 
               src="/dashspect-logo-512.png" 
               alt="DashSpect" 
-              className="h-8 w-8 md:h-10 md:w-10 rounded-xl"
+              className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-primary p-1"
             />
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
