@@ -109,6 +109,11 @@ const LocationAudit = () => {
         // New structure: single location in junction table
         setFormData(prev => ({ ...prev, location_id: template.template_locations?.[0]?.location_id || '' }));
       }
+      
+      // Auto-create draft if we don't have one and we're not loading an existing draft
+      if (!currentDraftId && !draftId && user) {
+        createInitialDraft();
+      }
     }
   }, [selectedTemplateId, templates]);
 
@@ -472,20 +477,54 @@ const LocationAudit = () => {
             sectionId={sectionId}
             fieldResponse={fieldResponse}
             onObservationChange={(observations) => {
-              if (fieldResponse) {
-                saveFieldResponse.mutate({
-                  auditId: currentDraftId,
-                  fieldId: field.id,
-                  sectionId,
-                  responseValue: formData.customData[field.id],
-                  observations,
-                });
-              }
+              saveFieldResponse.mutate({
+                auditId: currentDraftId,
+                fieldId: field.id,
+                sectionId,
+                responseValue: formData.customData[field.id] || null,
+                observations,
+              });
             }}
           />
         )}
       </div>
     );
+  };
+
+  const createInitialDraft = async () => {
+    if (!user || !selectedTemplateId) return;
+
+    try {
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+
+      const { data, error } = await supabase
+        .from('location_audits')
+        .insert({
+          template_id: selectedTemplateId,
+          location: formData.location_id || '',
+          location_id: formData.location_id || null,
+          audit_date: formData.auditDate,
+          time_start: formData.timeStart || null,
+          time_end: formData.timeEnd || null,
+          notes: formData.notes || null,
+          status: 'draft',
+          user_id: user.id,
+          company_id: companyUser?.company_id || null,
+          custom_data: formData.customData,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCurrentDraftId(data.id);
+    } catch (error) {
+      console.error('Error creating initial draft:', error);
+    }
   };
 
   const handleSaveDraft = async () => {
