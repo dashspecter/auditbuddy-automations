@@ -6,6 +6,7 @@ import { CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp } from "lu
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { useAuditFieldResponses } from "@/hooks/useAuditFieldResponses";
+import { useAuditSectionResponses } from "@/hooks/useAuditSectionResponses";
 import FieldResponseDisplay from "@/components/audit/FieldResponseDisplay";
 
 interface AuditField {
@@ -33,6 +34,7 @@ interface SectionScoreBreakdownProps {
 }
 
 interface SectionScore {
+  id: string;
   name: string;
   score: number;
   totalRatings: number;
@@ -56,6 +58,7 @@ export const SectionScoreBreakdown = ({
 }: SectionScoreBreakdownProps) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { data: fieldResponses = [] } = useAuditFieldResponses(auditId);
+  const { data: sectionResponses = [] } = useAuditSectionResponses(auditId);
 
   const sectionScores = useMemo(() => {
     const scores: SectionScore[] = [];
@@ -98,6 +101,7 @@ export const SectionScoreBreakdown = ({
         else status = 'critical';
 
         scores.push({
+          id: section.id,
           name: section.name,
           score: sectionScore,
           totalRatings,
@@ -264,6 +268,36 @@ export const SectionScoreBreakdown = ({
                       })}
                     </div>
                   </div>
+
+                  {/* Follow-up Actions */}
+                  {(() => {
+                    const sectionResponse = sectionResponses.find(sr => sr.section_id === section.id);
+                    if (sectionResponse?.follow_up_needed) {
+                      return (
+                        <div className="border-t border-border pt-3">
+                          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <h5 className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                                    Follow-up Actions Required
+                                  </h5>
+                                  <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700">
+                                    Action Needed
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-orange-800 dark:text-orange-200 whitespace-pre-wrap">
+                                  {sectionResponse.follow_up_notes}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </CollapsibleContent>
               </div>
             </Collapsible>
