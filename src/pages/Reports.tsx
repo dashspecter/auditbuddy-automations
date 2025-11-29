@@ -28,6 +28,7 @@ import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
+import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 
 const COLORS = {
   compliant: 'hsl(var(--success))',
@@ -612,50 +613,57 @@ const Reports = () => {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {selectedAudits.map((audit) => (
-                  <Card key={audit.id} className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-primary/10 p-2 rounded-lg">
-                            <MapPin className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-foreground">
-                              {audit.locations?.name || audit.location || 'Unknown Location'}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Audit #{audit.id.substring(0, 8)}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Date</p>
-                            <p className="text-sm font-medium flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {format(new Date(audit.audit_date || audit.created_at), 'MMM dd, yyyy')}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Score</p>
-                            <p className="text-sm font-bold text-foreground">{audit.overall_score || 0}%</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Status</p>
-                            <Badge className={(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}>
-                              {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
-                            </Badge>
-                          </div>
-                          {audit.notes && (
-                            <div className="col-span-2 md:col-span-1">
-                              <p className="text-xs text-muted-foreground">Notes</p>
-                              <p className="text-sm font-medium truncate">{audit.notes}</p>
+                  <Card key={audit.id} className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                              <MapPin className="h-4 w-4 text-primary" />
                             </div>
-                          )}
+                            <div>
+                              <h4 className="font-semibold text-foreground">
+                                {audit.locations?.name || audit.location || 'Unknown Location'}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Audit #{audit.id.substring(0, 8)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Date</p>
+                              <p className="text-sm font-medium flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {format(new Date(audit.audit_date || audit.created_at), 'MMM dd, yyyy')}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Score</p>
+                              <p className="text-sm font-bold text-foreground">{audit.overall_score || 0}%</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Status</p>
+                              <Badge className={(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}>
+                                {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
+                              </Badge>
+                            </div>
+                            {audit.notes && (
+                              <div className="col-span-2 md:col-span-1">
+                                <p className="text-xs text-muted-foreground">Notes</p>
+                                <p className="text-sm font-medium truncate">{audit.notes}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      </div>
+                      
+                      {/* Additional Information */}
+                      <div className="border-t border-border pt-4">
+                        <AuditResponsesSummary auditId={audit.id} />
                       </div>
                     </div>
                   </Card>

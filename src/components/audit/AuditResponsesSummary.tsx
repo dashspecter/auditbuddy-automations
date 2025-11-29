@@ -8,6 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuditSection {
   id: string;
@@ -22,13 +24,56 @@ interface AuditSection {
 
 interface AuditResponsesSummaryProps {
   auditId: string;
-  sections: AuditSection[];
+  sections?: AuditSection[];
 }
 
-export default function AuditResponsesSummary({ auditId, sections }: AuditResponsesSummaryProps) {
+export default function AuditResponsesSummary({ auditId, sections: providedSections }: AuditResponsesSummaryProps) {
   const { data: fieldResponses = [] } = useAuditFieldResponses(auditId);
   const { data: sectionResponses = [] } = useAuditSectionResponses(auditId);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // Fetch template sections if not provided
+  const { data: fetchedSections } = useQuery({
+    queryKey: ['audit-template-sections', auditId],
+    queryFn: async () => {
+      // First get the audit to find the template_id
+      const { data: audit, error: auditError } = await supabase
+        .from('location_audits')
+        .select('template_id')
+        .eq('id', auditId)
+        .single();
+
+      if (auditError || !audit?.template_id) return [];
+
+      // Then get the sections for that template
+      const { data: sections, error: sectionsError } = await supabase
+        .from('audit_sections')
+        .select(`
+          id,
+          name,
+          description,
+          audit_fields (
+            id,
+            name,
+            field_type
+          )
+        `)
+        .eq('template_id', audit.template_id)
+        .order('display_order');
+
+      if (sectionsError) return [];
+
+      return sections.map(section => ({
+        id: section.id,
+        name: section.name,
+        description: section.description || undefined,
+        fields: section.audit_fields || []
+      }));
+    },
+    enabled: !providedSections
+  });
+
+  const sections = providedSections || fetchedSections || [];
 
   // Filter responses with content
   const responsesWithContent = fieldResponses.filter(
