@@ -399,12 +399,19 @@ const Reports = () => {
                           <span className="font-bold text-foreground">{row.avgScore}%</span>
                         </td>
                         <td className="py-3 px-4">
-                          <Badge className="bg-success text-success-foreground">
+                          <Badge 
+                            className="bg-success text-success-foreground cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => handlePieClick(row.location, 'compliant')}
+                          >
                             {row.compliant}
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
-                          <Badge variant="destructive">
+                          <Badge 
+                            variant="destructive"
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => handlePieClick(row.location, 'nonCompliant')}
+                          >
                             {row.nonCompliant}
                           </Badge>
                         </td>
