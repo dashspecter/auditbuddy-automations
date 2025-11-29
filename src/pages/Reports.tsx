@@ -251,34 +251,45 @@ const Reports = () => {
   };
 
   const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
-    if (!audits) return;
+    console.log('handlePieClick called', { location, type, audits: audits?.length });
+    
+    if (!audits) {
+      console.error('No audits available');
+      toast.error('No audit data available');
+      return;
+    }
 
     let filteredAudits: any[] = [];
     let title = "";
 
-    if (location) {
-      // Click from location-specific chart
-      const locationData = reportData.find(loc => loc.location === location);
-      if (locationData) {
-        filteredAudits = locationData.audits.filter(audit => {
+    try {
+      if (location) {
+        // Click from location-specific chart
+        const locationData = reportData.find(loc => loc.location === location);
+        if (locationData) {
+          filteredAudits = locationData.audits.filter(audit => {
+            const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
+            return type === 'compliant' ? isCompliant : !isCompliant;
+          });
+          title = `${location} - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
+        }
+      } else {
+        // Click from overall chart
+        filteredAudits = audits.filter(audit => {
           const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
           return type === 'compliant' ? isCompliant : !isCompliant;
         });
-        title = `${location} - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
+        title = `All Locations - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
       }
-    } else {
-      // Click from overall chart
-      filteredAudits = audits.filter(audit => {
-        const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
-        return type === 'compliant' ? isCompliant : !isCompliant;
-      });
-      title = `All Locations - ${type === 'compliant' ? 'Compliant' : 'Non-Compliant'} Audits`;
-    }
 
-    console.log('Opening dialog with:', { title, auditCount: filteredAudits.length, audits: filteredAudits });
-    setSelectedAudits(filteredAudits);
-    setDialogTitle(title);
-    setDialogOpen(true);
+      console.log('Setting dialog state', { title, count: filteredAudits.length });
+      setSelectedAudits(filteredAudits);
+      setDialogTitle(title);
+      setDialogOpen(true);
+    } catch (error) {
+      console.error('Error in handlePieClick:', error);
+      toast.error('Failed to load audit details');
+    }
   };
 
   return (
@@ -659,111 +670,82 @@ const Reports = () => {
 
           {/* Audit Details Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
-              <DialogHeader className="flex-shrink-0">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
                 <DialogTitle>{dialogTitle}</DialogTitle>
                 <DialogDescription>
                   Showing {selectedAudits.length} audit{selectedAudits.length !== 1 ? 's' : ''}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+              <div className="space-y-6 mt-4">
                 {selectedAudits.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No audits found
                   </div>
                 ) : (
                   selectedAudits.map((audit) => (
-                  <div key={audit.id} className="space-y-4">
-                    {/* Audit Header Info */}
-                    <Card className="p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="bg-primary/10 p-3 rounded-lg">
-                          <MapPin className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1 space-y-4">
+                    <Card key={audit.id} className="p-6">
+                      <div className="space-y-4">
+                        {/* Basic Info */}
+                        <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="text-xl font-bold text-foreground">
+                            <h3 className="text-lg font-bold">
                               {audit.locations?.name || audit.location || 'Unknown Location'}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              Audit #{audit.id.substring(0, 8)}
+                              {format(new Date(audit.audit_date || audit.created_at), 'PPP')}
                             </p>
                           </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date</p>
-                              <p className="text-sm font-medium flex items-center gap-1.5">
-                                <Clock className="h-4 w-4" />
-                                {format(new Date(audit.audit_date || audit.created_at), 'PPP')}
-                              </p>
-                            </div>
-                            
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Time</p>
-                              <p className="text-sm font-medium">
-                                {audit.time_start && audit.time_end 
-                                  ? `${audit.time_start} - ${audit.time_end}`
-                                  : 'N/A'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Template</p>
-                              <p className="text-sm font-medium">
-                                {audit.audit_templates?.name || 'N/A'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Auditor</p>
-                              <p className="text-sm font-medium">
-                                {audit.profiles?.full_name || audit.profiles?.email || 'N/A'}
-                              </p>
-                            </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold">{audit.overall_score || 0}%</p>
+                            <Badge className={`${(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}`}>
+                              {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
+                            </Badge>
                           </div>
-
-                          <div className="flex items-center gap-4 pt-2 border-t">
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Overall Score</p>
-                              <p className="text-3xl font-bold text-foreground">{audit.overall_score || 0}%</p>
-                            </div>
-                            <div className="h-12 w-px bg-border" />
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Compliance Status</p>
-                              <Badge className={`text-base px-3 py-1 ${(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'bg-success' : 'bg-destructive'}`}>
-                                {(audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? 'Compliant' : 'Non-Compliant'}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          {audit.notes && (
-                            <div className="pt-2 border-t">
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
-                              <p className="text-sm whitespace-pre-wrap">{audit.notes}</p>
-                            </div>
-                          )}
                         </div>
+
+                        {/* Auditor and Template */}
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Auditor</p>
+                            <p className="font-medium">{audit.profiles?.full_name || audit.profiles?.email || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Template</p>
+                            <p className="font-medium">{audit.audit_templates?.name || 'N/A'}</p>
+                          </div>
+                        </div>
+
+                        {/* Notes */}
+                        {audit.notes && (
+                          <div className="pt-2 border-t">
+                            <p className="text-sm text-muted-foreground mb-1">Notes</p>
+                            <p className="text-sm">{audit.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Additional Information */}
+                        {audit.template_id && (
+                          <div className="pt-2 border-t">
+                            <AuditResponsesSummary auditId={audit.id} />
+                          </div>
+                        )}
+
+                        {/* Section Score Breakdown */}
+                        {audit.template_id && audit.custom_data && (
+                          <div className="pt-2 border-t">
+                            <h4 className="font-semibold mb-2">Score per Section</h4>
+                            <SectionScoreBreakdownWrapper
+                              templateId={audit.template_id}
+                              customData={audit.custom_data as Record<string, any>}
+                              auditId={audit.id}
+                            />
+                          </div>
+                        )}
                       </div>
                     </Card>
-
-                    {/* Additional Information - Follow-ups, Photos, Attachments */}
-                    <AuditResponsesSummary auditId={audit.id} />
-
-                    {/* Section Score Breakdown */}
-                    {audit.template_id && audit.custom_data && (
-                      <Card className="p-6">
-                        <h3 className="text-lg font-semibold mb-4">Score per Section</h3>
-                        <SectionScoreBreakdownWrapper
-                          templateId={audit.template_id}
-                          customData={audit.custom_data as Record<string, any>}
-                          auditId={audit.id}
-                        />
-                      </Card>
-                    )}
-                  </div>
-                ))
+                  ))
                 )}
               </div>
             </DialogContent>
