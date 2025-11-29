@@ -96,8 +96,6 @@ export const ManagerDashboard = () => {
 
       <DraftAudits />
 
-      <MaintenanceInterventions />
-
       {(pendingAudits?.length || 0) > 0 && (
         <Card className="bg-warning/10 border-warning/30">
           <div className="p-4 flex items-center gap-3">
@@ -207,6 +205,8 @@ export const ManagerDashboard = () => {
       <div className="w-full">
         <SectionPerformanceTrends />
       </div>
+
+      <MaintenanceInterventions />
     </div>
   );
 };
