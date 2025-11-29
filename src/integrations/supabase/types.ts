@@ -613,7 +613,7 @@ export type Database = {
       }
       documents: {
         Row: {
-          category_id: string
+          category_id: string | null
           company_id: string | null
           created_at: string
           description: string | null
@@ -629,7 +629,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
-          category_id: string
+          category_id?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null
@@ -645,7 +645,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
-          category_id?: string
+          category_id?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null

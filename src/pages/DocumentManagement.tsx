@@ -142,8 +142,14 @@ const DocumentManagement = () => {
   };
 
   const handleUploadDocument = async () => {
-    if (!newDocument.title || !newDocument.categoryId || !newDocument.file) {
+    if (!newDocument.title || !newDocument.file) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    // Validate knowledge document specific fields
+    if (newDocument.documentType === "knowledge" && !newDocument.categoryId) {
+      toast.error("Category is required for knowledge documents");
       return;
     }
 
@@ -194,7 +200,7 @@ const DocumentManagement = () => {
       const { error: dbError } = await supabase
         .from("documents")
         .insert({
-          category_id: newDocument.categoryId,
+          category_id: newDocument.documentType === "knowledge" ? newDocument.categoryId : null,
           title: newDocument.title,
           description: newDocument.description,
           file_url: publicUrl,
@@ -339,22 +345,33 @@ const DocumentManagement = () => {
                         onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
                       />
                     </div>
-                    <div>
-                      <Label>Category *</Label>
-                      <Select
-                        value={newDocument.categoryId}
-                        onValueChange={(value) => setNewDocument({ ...newDocument, categoryId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {newDocument.documentType === "knowledge" && (
+                      <div>
+                        <Label>Category *</Label>
+                        <Select
+                          value={newDocument.categoryId}
+                          onValueChange={(value) => setNewDocument({ ...newDocument, categoryId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {newDocument.documentType === "knowledge" && (
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea
+                          value={newDocument.description}
+                          onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
+                        />
+                      </div>
+                    )}
                     {newDocument.documentType !== "knowledge" && (
                       <>
                         <div>
@@ -377,13 +394,16 @@ const DocumentManagement = () => {
                         </div>
                       </>
                     )}
-                    <div>
-                      <Label>Description</Label>
-                      <Textarea
-                        value={newDocument.description}
-                        onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
-                      />
-                    </div>
+                    {newDocument.documentType !== "knowledge" && (
+                      <div>
+                        <Label>Notes</Label>
+                        <Textarea
+                          value={newDocument.description}
+                          onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
+                          placeholder="Additional notes about this permit or contract"
+                        />
+                      </div>
+                    )}
                     <div>
                       <Label>File *</Label>
                       <Input
@@ -501,7 +521,6 @@ const DocumentManagement = () => {
                               <span>{format(new Date(renewal.renewal_date), "MMM d, yyyy")}</span>
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">{renewal.category_name}</p>
                         </div>
                       </div>
                     </Card>
@@ -534,7 +553,6 @@ const DocumentManagement = () => {
                                 {doc.document_type}
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
                           </div>
                         </div>
                         <Button
