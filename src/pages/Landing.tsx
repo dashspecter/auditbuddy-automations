@@ -48,7 +48,7 @@ const Landing = () => {
           <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src="/dashspect-logo-512.png" 
+                src="/dashspect-logo-512.png?v=2" 
                 alt="DashSpect" 
                 className="h-8 w-8 rounded-xl bg-primary p-1"
               />

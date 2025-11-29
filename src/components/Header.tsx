@@ -91,7 +91,7 @@ export const Header = () => {
         <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
             <img 
-              src="/dashspect-logo-512.png" 
+              src="/dashspect-logo-512.png?v=2" 
               alt="DashSpect" 
               className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-primary p-1"
             />
@@ -136,7 +136,7 @@ export const Header = () => {
         <div className="flex items-center gap-8">
           <Link to="/dashboard" className="flex items-center gap-2 md:gap-3">
             <img 
-              src="/dashspect-logo-512.png" 
+              src="/dashspect-logo-512.png?v=2" 
               alt="DashSpect" 
               className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-primary p-1"
             />

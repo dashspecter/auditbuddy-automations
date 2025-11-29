@@ -165,7 +165,7 @@ export default function CompanyOnboarding() {
         <div className="container flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
             <img 
-              src="/dashspect-logo-512.png" 
+              src="/dashspect-logo-512.png?v=2" 
               alt="DashSpect" 
               className="h-8 w-8 rounded-xl bg-primary p-1"
             />
