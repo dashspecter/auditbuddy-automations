@@ -307,6 +307,54 @@ export type Database = {
           },
         ]
       }
+      audit_section_responses: {
+        Row: {
+          audit_id: string
+          created_at: string
+          created_by: string
+          follow_up_needed: boolean | null
+          follow_up_notes: string | null
+          id: string
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          created_by: string
+          follow_up_needed?: boolean | null
+          follow_up_notes?: string | null
+          id?: string
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          created_by?: string
+          follow_up_needed?: boolean | null
+          follow_up_notes?: string | null
+          id?: string
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_section_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "location_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_section_responses_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_sections: {
         Row: {
           created_at: string

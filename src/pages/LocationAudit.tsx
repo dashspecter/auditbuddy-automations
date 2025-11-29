@@ -21,7 +21,9 @@ import { AuditPhotoCapture } from "@/components/AuditPhotoCapture";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { LocationSelector } from "@/components/LocationSelector";
 import FieldResponseInput from "@/components/audit/FieldResponseInput";
+import SectionFollowUpInput from "@/components/audit/SectionFollowUpInput";
 import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
+import { useAuditSectionResponses, useSaveSectionResponse } from "@/hooks/useAuditSectionResponses";
 
 interface AuditField {
   id: string;
@@ -79,9 +81,18 @@ const LocationAudit = () => {
   const { data: fieldResponses = [] } = useAuditFieldResponses(currentDraftId || undefined);
   const saveFieldResponse = useSaveFieldResponse();
 
+  // Load section responses
+  const { data: sectionResponses = [] } = useAuditSectionResponses(currentDraftId || undefined);
+  const saveSectionResponse = useSaveSectionResponse();
+
   // Helper to find field response
   const getFieldResponse = (fieldId: string) => {
     return fieldResponses.find(fr => fr.field_id === fieldId);
+  };
+
+  // Helper to find section response
+  const getSectionResponse = (sectionId: string) => {
+    return sectionResponses.find(sr => sr.section_id === sectionId);
   };
 
   useEffect(() => {
@@ -1017,6 +1028,23 @@ const LocationAudit = () => {
                             {renderField(field, selectedTemplate.sections[currentSectionIndex].id)}
                           </div>
                         ))}
+                        
+                        {/* Follow-up Actions */}
+                        {currentDraftId && (
+                          <SectionFollowUpInput
+                            sectionId={selectedTemplate.sections[currentSectionIndex].id}
+                            followUpNeeded={getSectionResponse(selectedTemplate.sections[currentSectionIndex].id)?.follow_up_needed}
+                            followUpNotes={getSectionResponse(selectedTemplate.sections[currentSectionIndex].id)?.follow_up_notes}
+                            onFollowUpChange={(needed, notes) => {
+                              saveSectionResponse.mutate({
+                                auditId: currentDraftId,
+                                sectionId: selectedTemplate.sections[currentSectionIndex].id,
+                                followUpNeeded: needed,
+                                followUpNotes: notes,
+                              });
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Navigation buttons */}
@@ -1068,6 +1096,25 @@ const LocationAudit = () => {
                           </div>
                         ))}
                       </div>
+                      
+                      {/* Follow-up Actions */}
+                      {currentDraftId && (
+                        <div className="mt-4 md:col-span-2">
+                          <SectionFollowUpInput
+                            sectionId={section.id}
+                            followUpNeeded={getSectionResponse(section.id)?.follow_up_needed}
+                            followUpNotes={getSectionResponse(section.id)?.follow_up_notes}
+                            onFollowUpChange={(needed, notes) => {
+                              saveSectionResponse.mutate({
+                                auditId: currentDraftId,
+                                sectionId: section.id,
+                                followUpNeeded: needed,
+                                followUpNotes: notes,
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
                     </Card>
                   ))}
                 </div>
