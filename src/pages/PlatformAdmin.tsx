@@ -21,6 +21,11 @@ interface Company {
   subscription_tier: string;
   trial_ends_at: string | null;
   created_at: string;
+  industry_id: string | null;
+  industries?: {
+    name: string;
+    slug: string;
+  };
 }
 
 interface UserWithRoles {
@@ -45,7 +50,13 @@ export default function PlatformAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select(`
+          *,
+          industries (
+            name,
+            slug
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -362,21 +373,24 @@ export default function PlatformAdmin() {
                           <div className="space-y-4">
                             <div className="flex items-start justify-between">
                               <div className="space-y-2 flex-1">
-                                <div className="flex items-center gap-3">
-                                  <h3 className="font-semibold text-lg">{company.name}</h3>
-                                  <Badge variant="outline">Pending Approval</Badge>
-                                </div>
-                                
-                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    <span>/{company.slug}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>Registered: {format(new Date(company.created_at), 'MMM d, yyyy')}</span>
-                                  </div>
-                                </div>
+                                 <div className="flex items-center gap-3">
+                                   <h3 className="font-semibold text-lg">{company.name}</h3>
+                                   <Badge variant="outline">Pending Approval</Badge>
+                                   {company.industries && (
+                                     <Badge variant="secondary">{company.industries.name}</Badge>
+                                   )}
+                                 </div>
+                                 
+                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                   <div className="flex items-center gap-2">
+                                     <Users className="h-4 w-4" />
+                                     <span>/{company.slug}</span>
+                                   </div>
+                                   <div className="flex items-center gap-2">
+                                     <Calendar className="h-4 w-4" />
+                                     <span>Registered: {format(new Date(company.created_at), 'MMM d, yyyy')}</span>
+                                   </div>
+                                 </div>
                               </div>
                             </div>
 
@@ -425,11 +439,14 @@ export default function PlatformAdmin() {
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between">
                           <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-lg">{company.name}</h3>
-                              {getStatusBadge(company.status)}
-                              <Badge variant="outline">{company.subscription_tier}</Badge>
-                            </div>
+                             <div className="flex items-center gap-3">
+                               <h3 className="font-semibold text-lg">{company.name}</h3>
+                               {getStatusBadge(company.status)}
+                               <Badge variant="outline">{company.subscription_tier}</Badge>
+                               {company.industries && (
+                                 <Badge variant="secondary">{company.industries.name}</Badge>
+                               )}
+                             </div>
                             
                             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-2">
