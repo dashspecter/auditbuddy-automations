@@ -35,6 +35,38 @@ export const useShiftAssignments = (shiftId?: string) => {
   });
 };
 
+export const useCreateShiftAssignment = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ shift_id, employee_id }: { shift_id: string; employee_id: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      const { data, error } = await supabase
+        .from("shift_assignments")
+        .insert({ 
+          shift_id, 
+          staff_id: employee_id, 
+          assigned_by: user.id,
+          status: "assigned"
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+    },
+    onError: (error) => {
+      toast.error("Failed to assign employee: " + error.message);
+    },
+  });
+};
+
 export const useAssignStaffToShift = () => {
   const queryClient = useQueryClient();
   

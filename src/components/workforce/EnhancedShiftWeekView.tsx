@@ -61,7 +61,7 @@ export const EnhancedShiftWeekView = () => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
-      shift.shift_assignments?.some((sa: any) => sa.employee_id === employeeId)
+      shift.shift_assignments?.some((sa: any) => sa.staff_id === employeeId)
     );
   };
 
