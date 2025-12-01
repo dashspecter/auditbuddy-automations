@@ -58,6 +58,8 @@ export const EnhancedShiftDialog = ({
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
+  const [batchMode, setBatchMode] = useState(false);
+  const [individualTimes, setIndividualTimes] = useState<Record<string, { start_time: string; end_time: string }>>({});
 
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
@@ -103,6 +105,8 @@ export const EnhancedShiftDialog = ({
       setApplyToDays([]);
       setSelectedEmployees([]);
       setAllowCrossDepartment(false);
+      setBatchMode(false);
+      setIndividualTimes({});
     }
   }, [shift, defaultDate, open]);
 
@@ -138,19 +142,84 @@ export const EnhancedShiftDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const submitData = {
-      ...formData,
-      required_count: parseInt(formData.required_count),
-      break_duration_minutes: parseInt(formData.break_duration_minutes),
-      notes: formData.notes || null,
-      breaks: breaks,
-    };
-
     if (shift) {
+      // Update existing shift
+      const submitData = {
+        ...formData,
+        required_count: parseInt(formData.required_count),
+        break_duration_minutes: parseInt(formData.break_duration_minutes),
+        notes: formData.notes || null,
+        breaks: breaks,
+      };
       await updateShift.mutateAsync({ id: shift.id, ...submitData });
       onOpenChange(false);
+    } else if (batchMode && selectedEmployees.length > 0) {
+      // Batch mode: Create individual shifts for each employee
+      for (const employeeId of selectedEmployees) {
+        const employeeTimes = individualTimes[employeeId] || {
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+        };
+        
+        const shiftData = {
+          ...formData,
+          start_time: employeeTimes.start_time,
+          end_time: employeeTimes.end_time,
+          required_count: 1, // Each shift is for one employee
+          break_duration_minutes: parseInt(formData.break_duration_minutes),
+          notes: formData.notes || null,
+          breaks: breaks,
+        };
+        
+        // Create shift for this employee
+        const newShift = await createShift.mutateAsync(shiftData);
+        
+        // Assign the employee to their shift
+        if (newShift) {
+          await createAssignment.mutateAsync({
+            shift_id: newShift.id,
+            employee_id: employeeId,
+          });
+        }
+        
+        // If apply to multiple days is selected
+        if (applyToDays.length > 0) {
+          const currentDate = new Date(formData.shift_date);
+          const currentDayOfWeek = (currentDate.getDay() + 6) % 7;
+          
+          for (const dayIndex of applyToDays) {
+            if (dayIndex !== currentDayOfWeek) {
+              const daysToAdd = dayIndex - currentDayOfWeek;
+              const newDate = new Date(currentDate);
+              newDate.setDate(newDate.getDate() + daysToAdd);
+              
+              const additionalShift = await createShift.mutateAsync({
+                ...shiftData,
+                shift_date: format(newDate, 'yyyy-MM-dd'),
+              });
+              
+              if (additionalShift) {
+                await createAssignment.mutateAsync({
+                  shift_id: additionalShift.id,
+                  employee_id: employeeId,
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      onOpenChange(false);
     } else {
-      // Create shift for selected date
+      // Regular mode: Create one shift with multiple assignments
+      const submitData = {
+        ...formData,
+        required_count: parseInt(formData.required_count),
+        break_duration_minutes: parseInt(formData.break_duration_minutes),
+        notes: formData.notes || null,
+        breaks: breaks,
+      };
+
       const newShift = await createShift.mutateAsync(submitData);
       
       // Assign selected employees to the shift
@@ -166,7 +235,7 @@ export const EnhancedShiftDialog = ({
       // If apply to multiple days is selected, create shifts for those days too
       if (applyToDays.length > 0) {
         const currentDate = new Date(formData.shift_date);
-        const currentDayOfWeek = (currentDate.getDay() + 6) % 7; // Convert to 0=Monday
+        const currentDayOfWeek = (currentDate.getDay() + 6) % 7;
         
         for (const dayIndex of applyToDays) {
           if (dayIndex !== currentDayOfWeek) {
@@ -179,7 +248,6 @@ export const EnhancedShiftDialog = ({
               shift_date: format(newDate, 'yyyy-MM-dd'),
             });
             
-            // Assign same employees to the additional shift
             if (additionalShift && selectedEmployees.length > 0) {
               for (const employeeId of selectedEmployees) {
                 await createAssignment.mutateAsync({
@@ -374,77 +442,209 @@ export const EnhancedShiftDialog = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Assign Specific Employees (Optional)</Label>
-              <Badge 
-                variant={
-                  selectedEmployees.length >= parseInt(formData.required_count) 
-                    ? "default" 
-                    : selectedEmployees.length > 0 
-                    ? "secondary" 
-                    : "outline"
-                }
-              >
-                {selectedEmployees.length} / {formData.required_count} positions filled
-              </Badge>
+              <div className="flex items-center gap-2">
+                {batchMode && (
+                  <Badge variant="secondary">
+                    Batch Mode: {selectedEmployees.length} individual shifts
+                  </Badge>
+                )}
+                {!batchMode && (
+                  <Badge 
+                    variant={
+                      selectedEmployees.length >= parseInt(formData.required_count) 
+                        ? "default" 
+                        : selectedEmployees.length > 0 
+                        ? "secondary" 
+                        : "outline"
+                    }
+                  >
+                    {selectedEmployees.length} / {formData.required_count} positions filled
+                  </Badge>
+                )}
+              </div>
             </div>
-            {formData.role && (
+            {formData.role && !batchMode && (
               <p className="text-xs text-muted-foreground">
                 Assign specific employees to fill the {formData.required_count} {formData.role} positions needed for this shift
               </p>
             )}
-            {parseInt(formData.required_count) > 1 && (
+            {batchMode && (
+              <p className="text-xs text-muted-foreground">
+                Create individual shifts for each selected employee with customizable start/end times
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              {parseInt(formData.required_count) > 1 && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="allow_cross_department"
+                    checked={allowCrossDepartment}
+                    onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
+                  />
+                  <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
+                    Show all departments/roles
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="allow_cross_department"
-                  checked={allowCrossDepartment}
-                  onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
+                  id="batch_mode"
+                  checked={batchMode}
+                  onCheckedChange={(checked) => {
+                    setBatchMode(checked as boolean);
+                    if (checked) {
+                      // Initialize times for selected employees
+                      const times: Record<string, { start_time: string; end_time: string }> = {};
+                      selectedEmployees.forEach(empId => {
+                        times[empId] = {
+                          start_time: formData.start_time,
+                          end_time: formData.end_time,
+                        };
+                      });
+                      setIndividualTimes(times);
+                    }
+                  }}
                 />
-                <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
-                  Show employees from all departments/roles (Advanced)
+                <Label htmlFor="batch_mode" className="cursor-pointer text-xs font-normal">
+                  Batch mode: Individual shifts per employee
                 </Label>
               </div>
-            )}
-            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-              {employees.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {formData.location_id ? "No employees at this location" : "Select a location first"}
-                </p>
-              ) : (
-                employees
-                  .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
-                  .map((employee) => {
-                    const isDisabled = !selectedEmployees.includes(employee.id) && 
-                                      selectedEmployees.length >= parseInt(formData.required_count);
-                    return (
-                      <div key={employee.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`employee-${employee.id}`}
-                          checked={selectedEmployees.includes(employee.id)}
-                          disabled={isDisabled}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedEmployees([...selectedEmployees, employee.id]);
-                            } else {
-                              setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
-                            }
-                          }}
-                        />
-                        <Label 
-                          htmlFor={`employee-${employee.id}`} 
-                          className={`cursor-pointer flex-1 ${isDisabled ? 'opacity-50' : ''}`}
-                        >
-                          {employee.full_name} - {employee.role}
-                        </Label>
-                      </div>
-                    );
-                  })
-              )}
             </div>
-            {selectedEmployees.length < parseInt(formData.required_count) && selectedEmployees.length > 0 && (
+            {batchMode ? (
+              <div className="space-y-3">
+                {employees.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {formData.location_id ? "No employees at this location" : "Select a location first"}
+                  </p>
+                ) : (
+                  employees
+                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
+                    .map((employee) => {
+                      const isSelected = selectedEmployees.includes(employee.id);
+                      const times = individualTimes[employee.id] || {
+                        start_time: formData.start_time,
+                        end_time: formData.end_time,
+                      };
+                      
+                      return (
+                        <div key={employee.id} className="border rounded-lg p-3 space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`employee-batch-${employee.id}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedEmployees([...selectedEmployees, employee.id]);
+                                  setIndividualTimes({
+                                    ...individualTimes,
+                                    [employee.id]: {
+                                      start_time: formData.start_time,
+                                      end_time: formData.end_time,
+                                    },
+                                  });
+                                } else {
+                                  setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
+                                  const newTimes = { ...individualTimes };
+                                  delete newTimes[employee.id];
+                                  setIndividualTimes(newTimes);
+                                }
+                              }}
+                            />
+                            <Label 
+                              htmlFor={`employee-batch-${employee.id}`} 
+                              className="cursor-pointer font-medium"
+                            >
+                              {employee.full_name} - {employee.role}
+                            </Label>
+                          </div>
+                          {isSelected && (
+                            <div className="grid grid-cols-2 gap-2 ml-6">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Start Time</Label>
+                                <Input
+                                  type="time"
+                                  value={times.start_time}
+                                  onChange={(e) => {
+                                    setIndividualTimes({
+                                      ...individualTimes,
+                                      [employee.id]: {
+                                        ...times,
+                                        start_time: e.target.value,
+                                      },
+                                    });
+                                  }}
+                                  className="h-8"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">End Time</Label>
+                                <Input
+                                  type="time"
+                                  value={times.end_time}
+                                  onChange={(e) => {
+                                    setIndividualTimes({
+                                      ...individualTimes,
+                                      [employee.id]: {
+                                        ...times,
+                                        end_time: e.target.value,
+                                      },
+                                    });
+                                  }}
+                                  className="h-8"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            ) : (
+              <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                {employees.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {formData.location_id ? "No employees at this location" : "Select a location first"}
+                  </p>
+                ) : (
+                  employees
+                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
+                    .map((employee) => {
+                      const isDisabled = !selectedEmployees.includes(employee.id) && 
+                                        !batchMode &&
+                                        selectedEmployees.length >= parseInt(formData.required_count);
+                      return (
+                        <div key={employee.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`employee-${employee.id}`}
+                            checked={selectedEmployees.includes(employee.id)}
+                            disabled={isDisabled}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedEmployees([...selectedEmployees, employee.id]);
+                              } else {
+                                setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
+                              }
+                            }}
+                          />
+                          <Label 
+                            htmlFor={`employee-${employee.id}`} 
+                            className={`cursor-pointer flex-1 ${isDisabled ? 'opacity-50' : ''}`}
+                          >
+                            {employee.full_name} - {employee.role}
+                          </Label>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            )}
+            {!batchMode && selectedEmployees.length < parseInt(formData.required_count) && selectedEmployees.length > 0 && (
               <p className="text-xs text-amber-600 dark:text-amber-500">
                 ⚠️ {parseInt(formData.required_count) - selectedEmployees.length} more {formData.role || 'staff'} position{parseInt(formData.required_count) - selectedEmployees.length > 1 ? 's' : ''} still need to be filled
               </p>
             )}
-            {selectedEmployees.length === 0 && formData.role && (
+            {!batchMode && selectedEmployees.length === 0 && formData.role && (
               <p className="text-xs text-muted-foreground">
                 💡 Leave unassigned to keep as an open shift that staff can claim
               </p>
