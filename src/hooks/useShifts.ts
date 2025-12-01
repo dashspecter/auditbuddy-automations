@@ -25,7 +25,11 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
     queryFn: async () => {
       let query = supabase
         .from("shifts")
-        .select("*, locations(name)")
+        .select(`
+          *,
+          locations(name),
+          profiles!shifts_created_by_fkey(full_name)
+        `)
         .order("shift_date", { ascending: true })
         .order("start_time", { ascending: true });
       
