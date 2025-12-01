@@ -95,9 +95,9 @@ const Shifts = () => {
                         {shift.notes}
                       </div>
                     )}
-                    {(shift as any).profiles && (
+                    {shift.creator_name && (
                       <div className="mt-2 text-xs text-muted-foreground">
-                        Created by: {(shift as any).profiles.full_name}
+                        Created by: {shift.creator_name}
                       </div>
                     )}
                   </div>

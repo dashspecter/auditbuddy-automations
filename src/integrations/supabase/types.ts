@@ -2856,6 +2856,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          creator_name: string | null
           end_time: string
           id: string
           location_id: string
@@ -2871,6 +2872,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          creator_name?: string | null
           end_time: string
           id?: string
           location_id: string
@@ -2886,6 +2888,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          creator_name?: string | null
           end_time?: string
           id?: string
           location_id?: string

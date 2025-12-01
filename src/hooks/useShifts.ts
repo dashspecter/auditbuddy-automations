@@ -14,6 +14,7 @@ export interface Shift {
   notes: string | null;
   created_at: string;
   created_by: string;
+  creator_name?: string | null;
   locations?: {
     name: string;
   };
@@ -27,8 +28,7 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         .from("shifts")
         .select(`
           *,
-          locations(name),
-          profiles!shifts_created_by_fkey(full_name)
+          locations(name)
         `)
         .order("shift_date", { ascending: true })
         .order("start_time", { ascending: true });
@@ -45,6 +45,7 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
       
       const { data, error } = await query;
       if (error) throw error;
+      
       return data as Shift[];
     },
   });
@@ -66,9 +67,16 @@ export const useCreateShift = () => {
 
       if (!companyUser) throw new Error("No company found for user");
       
+      const creatorName = user.user_metadata?.full_name || user.email || 'Unknown';
+      
       const { data, error } = await supabase
         .from("shifts")
-        .insert({ ...shift, created_by: user.id, company_id: companyUser.company_id })
+        .insert({ 
+          ...shift, 
+          created_by: user.id, 
+          company_id: companyUser.company_id,
+          creator_name: creatorName
+        })
         .select()
         .single();
       
