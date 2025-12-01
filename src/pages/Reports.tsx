@@ -304,8 +304,7 @@ const Reports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
+    <div className="space-y-6">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -749,7 +748,6 @@ const Reports = () => {
           )}
         </div>
         )}
-      </main>
     </div>
   );
 };

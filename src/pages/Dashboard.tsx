@@ -60,41 +60,38 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
       <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
       
       <PullToRefresh onRefresh={handleRefresh}>
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          
-          <Tabs defaultValue="guides" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="guides">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Getting Started
-              </TabsTrigger>
-              <TabsTrigger value="dashboard">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Dashboard
-              </TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="guides" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="guides">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Getting Started
+            </TabsTrigger>
+            <TabsTrigger value="dashboard">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="guides">
-              <ModuleGuides />
-            </TabsContent>
+          <TabsContent value="guides">
+            <ModuleGuides />
+          </TabsContent>
 
-            <TabsContent value="dashboard">
-              <RoleBasedView
-                admin={<AdminDashboard />}
-                manager={<ManagerDashboard />}
-                checker={<CheckerDashboard />}
-              />
-            </TabsContent>
-          </Tabs>
-        </main>
+          <TabsContent value="dashboard">
+            <RoleBasedView
+              admin={<AdminDashboard />}
+              manager={<ManagerDashboard />}
+              checker={<CheckerDashboard />}
+            />
+          </TabsContent>
+        </Tabs>
       </PullToRefresh>
       
       <BackToTop />
-    </div>
+    </>
   );
 };
 

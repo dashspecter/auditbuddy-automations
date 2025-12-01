@@ -118,10 +118,8 @@ const Audits = () => {
       steps={MODULE_TOURS.location_audits.steps}
       moduleIcon={MODULE_TOURS.location_audits.icon}
     >
-      <div className="min-h-screen bg-background">
-        <PullToRefresh onRefresh={handleRefresh}>
-          <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <div className="flex flex-col gap-6">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
@@ -279,9 +277,7 @@ const Audits = () => {
             )}
             </Card>
         </div>
-        </main>
       </PullToRefresh>
-    </div>
     </ModuleTourWrapper>
   );
 };

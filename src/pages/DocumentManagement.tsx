@@ -273,8 +273,7 @@ const DocumentManagement = () => {
   const permitContractDocuments = documents.filter(d => d.document_type !== "knowledge");
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8 pt-safe">
+    <div className="space-y-6">
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-1">
@@ -613,7 +612,6 @@ const DocumentManagement = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
     </div>
   );
 };

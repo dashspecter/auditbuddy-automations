@@ -111,8 +111,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 px-safe py-8 pb-safe">
+    <div className="space-y-6">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Button
@@ -234,7 +233,6 @@ export default function Settings() {
             </Card>
           </div>
         </div>
-      </div>
       
       <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
     </div>
