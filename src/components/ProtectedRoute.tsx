@@ -5,6 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -12,105 +13,40 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { data: company, isLoading: companyLoading, error: companyError, refetch } = useCompany();
+  const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
   const navigate = useNavigate();
   const location = useLocation();
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  // Debug logging
-  console.log('[ProtectedRoute] Render:', {
-    authLoading,
-    companyLoading,
-    hasUser: !!user,
-    hasCompany: !!company,
-    pathname: location.pathname,
-    loadingTimeout,
-    errorMessage: companyError?.message
-  });
+  // Routes that don't need company data
+  const isSpecialRoute = location.pathname.startsWith('/onboarding') || 
+                         location.pathname === '/pending-approval' ||
+                         location.pathname === '/system-health';
 
-  // Don't check for company on onboarding or module selection routes  
-  const isOnboardingRoute = location.pathname.startsWith('/onboarding') || 
-                           location.pathname === '/module-selection';
-
-  // Add timeout to prevent infinite loading
-  useEffect(() => {
-    console.log('[ProtectedRoute] Timeout effect:', { companyLoading, isOnboardingRoute });
-    if (companyLoading && !isOnboardingRoute) {
-      console.log('[ProtectedRoute] Setting 10 second timeout');
-      const timer = setTimeout(() => {
-        console.error('[ProtectedRoute] ⚠️ LOADING TIMEOUT REACHED - forcing error state');
-        setLoadingTimeout(true);
-      }, 10000); // 10 second timeout
-
-      return () => {
-        console.log('[ProtectedRoute] Clearing timeout');
-        clearTimeout(timer);
-      };
-    }
-  }, [companyLoading, isOnboardingRoute]);
-
+  // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
-  // Only redirect to onboarding if we're certain there's no company
+  // Redirect to onboarding if no company (unless already on special route)
   useEffect(() => {
-    if (!authLoading && user && !companyLoading && !isOnboardingRoute && !company) {
+    if (!authLoading && user && !companyLoading && !isSpecialRoute && !company) {
       if (companyError) {
         const errorMessage = companyError?.message?.toLowerCase() || '';
-        console.log('[ProtectedRoute] Company error:', errorMessage);
         
-        // Don't redirect on temporary/network errors
-        if (errorMessage.includes('failed to fetch') || 
-            errorMessage.includes('network') ||
-            errorMessage.includes('timeout') ||
-            errorMessage.includes('jwt')) {
-          console.log('[ProtectedRoute] Skipping redirect - temporary error');
-          return;
-        }
-        
-        // Only redirect if error clearly indicates no company exists
+        // Only redirect on clear "no company" errors, not temporary network issues
         if (errorMessage.includes('no company') || 
             errorMessage.includes('not found') ||
             errorMessage.includes('no rows')) {
-          console.log('[ProtectedRoute] Redirecting to onboarding - no company found');
           navigate('/onboarding/company', { replace: true });
         }
       }
     }
-  }, [user, authLoading, company, companyLoading, companyError, navigate, isOnboardingRoute]);
+  }, [user, authLoading, company, companyLoading, companyError, navigate, isSpecialRoute]);
 
-  // Show loading timeout error
-  if (loadingTimeout || (companyError && !isOnboardingRoute)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="text-center max-w-md">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Loading Error</h2>
-          <p className="text-muted-foreground mb-4">
-            {loadingTimeout 
-              ? "The application is taking too long to load. This might be a connection issue."
-              : `Error: ${companyError?.message}`}
-          </p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={() => {
-              setLoadingTimeout(false);
-              refetch();
-            }}>
-              Try Again
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/auth')}>
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (authLoading || (companyLoading && !isOnboardingRoute)) {
+  // Show loading
+  if (authLoading || (companyLoading && !isSpecialRoute)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -121,14 +57,46 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
+  // Show error if company failed to load (except on special routes)
+  if (!isSpecialRoute && companyError && !company) {
+    const errorMessage = companyError?.message?.toLowerCase() || '';
+    
+    // Don't show error for temporary network issues
+    if (!errorMessage.includes('failed to fetch') && 
+        !errorMessage.includes('network') &&
+        !errorMessage.includes('timeout')) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle>Failed to Load Company Data</AlertTitle>
+            <AlertDescription className="mt-2">
+              {companyError.message}
+              <div className="mt-4 flex gap-2">
+                <Button onClick={() => window.location.reload()} size="sm">
+                  Retry
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/auth')} size="sm">
+                  Sign Out
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+  }
+
+  // User not authenticated
   if (!user) {
     return null;
   }
 
-  // Don't wrap onboarding pages in ProtectedLayout (they have their own layouts)
-  if (isOnboardingRoute || location.pathname === '/pending-approval') {
+  // Render without layout for special routes
+  if (isSpecialRoute) {
     return <>{children}</>;
   }
 
+  // Render with layout for normal protected routes
   return <ProtectedLayout>{children}</ProtectedLayout>;
 };

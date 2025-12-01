@@ -1,7 +1,7 @@
 import { 
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
   Wrench, Package, FileText, Lightbulb, Plug, 
-  CreditCard, Building2, ChevronDown, Bell, BarChart
+  CreditCard, Building2, ChevronDown, Bell, BarChart, Activity
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -60,10 +60,10 @@ const navigationItems = [
     module: "location_audits"
   },
   { 
-    title: "Staff Performance", 
-    url: "/workforce/staff", 
-    icon: Users,
-    module: "staff_performance"
+    title: "Tasks", 
+    url: "/tasks", 
+    icon: ListTodo,
+    module: null // Always visible
   },
   { 
     title: "Equipment", 
@@ -126,6 +126,12 @@ const settingsItems = [
     url: "/settings/company", 
     icon: Building2,
     requiresOwner: true
+  },
+  { 
+    title: "System Health", 
+    url: "/system-health", 
+    icon: Activity,
+    requiresAdmin: true
   },
 ];
 
