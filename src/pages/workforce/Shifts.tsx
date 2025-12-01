@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useState } from "react";
+import { ShiftDialog } from "@/components/workforce/ShiftDialog";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -16,7 +18,7 @@ const Shifts = () => {
             Create and manage shifts for your team
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setShiftDialogOpen(true)}>
           <CalendarPlus className="h-4 w-4" />
           Create Shift
         </Button>
@@ -46,7 +48,7 @@ const Shifts = () => {
           <CardContent>
             <div className="text-center text-muted-foreground py-12">
               <p>No shifts scheduled for this date.</p>
-              <Button className="mt-4" variant="outline">
+              <Button className="mt-4" variant="outline" onClick={() => setShiftDialogOpen(true)}>
                 <CalendarPlus className="mr-2 h-4 w-4" />
                 Create Shift
               </Button>
@@ -54,6 +56,12 @@ const Shifts = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <ShiftDialog 
+        open={shiftDialogOpen} 
+        onOpenChange={setShiftDialogOpen}
+        defaultDate={date}
+      />
     </div>
   );
 };
