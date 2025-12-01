@@ -9,7 +9,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navigationItems = [
   { 
@@ -150,6 +150,17 @@ export function AppSidebar() {
     return false;
   };
 
+  // Initialize expanded groups based on active parent
+  useEffect(() => {
+    const activeParents: Record<string, boolean> = {};
+    navigationItems.forEach((item) => {
+      if (item.subItems && isParentActive(item)) {
+        activeParents[item.title] = true;
+      }
+    });
+    setExpandedGroups(prev => ({ ...prev, ...activeParents }));
+  }, [currentPath]);
+
   const shouldShowItem = (item: any) => {
     // Check module access
     if (item.module && !hasModule(item.module)) {
@@ -203,7 +214,7 @@ export function AppSidebar() {
               <div key={item.title}>
                 {item.subItems ? (
                   <Collapsible
-                    open={expandedGroups[item.title] || isParentActive(item)}
+                    open={expandedGroups[item.title] ?? false}
                     onOpenChange={() => toggleGroup(item.title)}
                   >
                     <CollapsibleTrigger className={`
@@ -213,7 +224,7 @@ export function AppSidebar() {
                     `}>
                       <item.icon className="h-4 w-4 flex-shrink-0" />
                       <span className="flex-1 text-left">{item.title}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedGroups[item.title] || isParentActive(item) ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="ml-7 mt-1 space-y-1">
                       {item.subItems.map((subItem: any) => (
