@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -276,81 +275,73 @@ export default function TemplateLibrary() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading template library...</p>
-            </div>
-          </div>
-        </main>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading template library...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/admin/templates")}
-            className="gap-2 w-full sm:w-auto"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Audit Templates
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/audits")}
-            className="gap-2 w-full sm:w-auto"
-          >
-            <Eye className="h-4 w-4" />
-            View All Audits
-          </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/admin/templates")}
+          className="gap-2 w-full sm:w-auto"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Audit Templates
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/audits")}
+          className="gap-2 w-full sm:w-auto"
+        >
+          <Eye className="h-4 w-4" />
+          View All Audits
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Template Library</h1>
+          <p className="text-muted-foreground">
+            Browse and duplicate pre-built industry-standard audit templates
+          </p>
         </div>
+        <Button
+          onClick={() => navigate("/location-audit")}
+          className="gap-2 w-full sm:w-auto"
+        >
+          + New Location Audit
+        </Button>
+      </div>
 
-        <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Template Library</h1>
-            <p className="text-muted-foreground">
-              Browse and duplicate pre-built industry-standard audit templates
-            </p>
+      <Card className="p-6 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <Button
-            onClick={() => navigate("/location-audit")}
-            className="gap-2 w-full sm:w-auto"
-          >
-            + New Location Audit
-          </Button>
+          <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as any)}>
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="location">Location</TabsTrigger>
+              <TabsTrigger value="staff">Staff</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+      </Card>
 
-        <Card className="p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search templates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as any)}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="location">Location</TabsTrigger>
-                <TabsTrigger value="staff">Staff</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </Card>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredTemplates?.map((template) => (
             <Card key={template.id} className="p-6 flex flex-col">
               <div className="flex-1">
@@ -428,44 +419,43 @@ export default function TemplateLibrary() {
                 </DropdownMenu>
               </div>
             </Card>
-          ))}
-        </div>
+        ))}
+      </div>
 
-        {filteredTemplates?.length === 0 && (
-          <Card className="p-12 text-center">
-            <p className="text-muted-foreground">No templates found matching your search.</p>
-          </Card>
-        )}
+      {filteredTemplates?.length === 0 && (
+        <Card className="p-12 text-center">
+          <p className="text-muted-foreground">No templates found matching your search.</p>
+        </Card>
+      )}
 
-        {previewTemplate && (
-          <TemplatePreviewDialog
-            open={!!previewTemplate}
-            onOpenChange={(open) => !open && setPreviewTemplate(null)}
-            templateName={previewTemplate.name}
-            sections={previewTemplate.sections}
-          />
-        )}
+      {previewTemplate && (
+        <TemplatePreviewDialog
+          open={!!previewTemplate}
+          onOpenChange={(open) => !open && setPreviewTemplate(null)}
+          templateName={previewTemplate.name}
+          sections={previewTemplate.sections}
+        />
+      )}
 
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Template</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{templateToDelete?.name}"? This action cannot be undone and will remove all sections and fields associated with this template.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteConfirm}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </main>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{templateToDelete?.name}"? This action cannot be undone and will remove all sections and fields associated with this template.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
