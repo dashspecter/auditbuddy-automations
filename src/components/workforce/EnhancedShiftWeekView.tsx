@@ -59,6 +59,20 @@ export const EnhancedShiftWeekView = () => {
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   const goToToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
+  // Group employees by department based on their role
+  const employeesByDepartment = employees.reduce((acc, employee) => {
+    const role = roles.find(r => r.name === employee.role);
+    const department = role?.department || 'General';
+    
+    if (!acc[department]) {
+      acc[department] = [];
+    }
+    acc[department].push(employee);
+    return acc;
+  }, {} as Record<string, typeof employees>);
+
+  const departments = Object.keys(employeesByDepartment).sort();
+
   const getShiftsForEmployeeAndDay = (employeeId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
@@ -251,55 +265,68 @@ export const EnhancedShiftWeekView = () => {
           })}
         </div>
 
-        {/* Employee Rows */}
-        {employees.map((employee) => (
-          <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-            <div className="p-3 border-r flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={employee.avatar_url || undefined} />
-                <AvatarFallback className="text-xs">
-                  {employee.full_name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm truncate">{employee.full_name}</div>
-                <div className="text-xs text-muted-foreground">{employee.role}</div>
+        {/* Employee Rows - Grouped by Department */}
+        {departments.map((department) => (
+          <div key={department}>
+            {/* Department Header */}
+            <div className="grid grid-cols-8 bg-muted/50 border-b">
+              <div className="col-span-8 p-2 font-semibold text-sm flex items-center gap-2">
+                <div className="h-1 w-1 rounded-full bg-primary" />
+                {department}
               </div>
             </div>
-            {weekDays.map((day) => {
-              const employeeShifts = getShiftsForEmployeeAndDay(employee.id, day);
-              const timeOff = getTimeOffForEmployeeAndDay(employee.id, day);
-              
-              return (
-                <div key={day.toISOString()} className="p-2 border-r last:border-r-0 min-h-[80px]">
-                  {timeOff ? (
-                    <div className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center">
-                      TIME OFF
-                    </div>
-                  ) : (
-                    employeeShifts.map((shift) => (
-                      <div
-                        key={shift.id}
-                        onClick={() => handleEditShift(shift)}
-                        style={{
-                          backgroundColor: `${getRoleColor(shift.role)}20`,
-                          borderColor: getRoleColor(shift.role)
-                        }}
-                        className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
-                      >
-                        <div className="font-medium">{shift.role}</div>
-                        <div className="text-muted-foreground">
-                          {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
-                        </div>
-                        {shift.close_duty && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">Close</Badge>
-                        )}
-                      </div>
-                    ))
-                  )}
+            
+            {/* Employees in this department */}
+            {employeesByDepartment[department].map((employee) => (
+              <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                <div className="p-3 border-r flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={employee.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs">
+                      {employee.full_name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{employee.full_name}</div>
+                    <div className="text-xs text-muted-foreground">{employee.role}</div>
+                  </div>
                 </div>
-              );
-            })}
+                {weekDays.map((day) => {
+                  const employeeShifts = getShiftsForEmployeeAndDay(employee.id, day);
+                  const timeOff = getTimeOffForEmployeeAndDay(employee.id, day);
+                  
+                  return (
+                    <div key={day.toISOString()} className="p-2 border-r last:border-r-0 min-h-[80px]">
+                      {timeOff ? (
+                        <div className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center">
+                          TIME OFF
+                        </div>
+                      ) : (
+                        employeeShifts.map((shift) => (
+                          <div
+                            key={shift.id}
+                            onClick={() => handleEditShift(shift)}
+                            style={{
+                              backgroundColor: `${getRoleColor(shift.role)}20`,
+                              borderColor: getRoleColor(shift.role)
+                            }}
+                            className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
+                          >
+                            <div className="font-medium">{shift.role}</div>
+                            <div className="text-muted-foreground">
+                              {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                            </div>
+                            {shift.close_duty && (
+                              <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">Close</Badge>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         ))}
       </div>
