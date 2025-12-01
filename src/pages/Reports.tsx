@@ -1,3 +1,4 @@
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -307,7 +308,8 @@ const Reports = () => {
 
   return (
     <ModuleGate module="reports">
-    <div className="space-y-6">
+      <AppLayout>
+        <div className="space-y-6">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
@@ -751,7 +753,8 @@ const Reports = () => {
           )}
         </div>
         )}
-    </div>
+        </div>
+      </AppLayout>
     </ModuleGate>
   );
 };
