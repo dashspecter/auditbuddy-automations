@@ -8,14 +8,19 @@ import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedShiftWeekView } from "@/components/workforce/EnhancedShiftWeekView";
+import { PendingApprovalsDialog } from "@/components/workforce/PendingApprovalsDialog";
+import { usePendingApprovals } from "@/hooks/useShiftAssignments";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
+  const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
   const [view, setView] = useState<"day" | "week">("week");
   
   const dateStr = date ? date.toISOString().split('T')[0] : "";
   const { data: shifts = [], isLoading } = useShifts(undefined, dateStr, dateStr);
+  const { data: pendingApprovals } = usePendingApprovals();
+  const pendingCount = pendingApprovals?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -39,6 +44,16 @@ const Shifts = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            onClick={() => setPendingDialogOpen(true)}
+          >
+            <Badge variant="destructive" className="mr-1">
+              {pendingCount || 0}
+            </Badge>
+            Pending Approvals
+          </Button>
           <Button className="gap-2" onClick={() => setShiftDialogOpen(true)}>
             <CalendarPlus className="h-4 w-4" />
             Create Shift
@@ -133,6 +148,11 @@ const Shifts = () => {
         open={shiftDialogOpen} 
         onOpenChange={setShiftDialogOpen}
         defaultDate={date}
+      />
+
+      <PendingApprovalsDialog 
+        open={pendingDialogOpen}
+        onOpenChange={setPendingDialogOpen}
       />
     </div>
   );
