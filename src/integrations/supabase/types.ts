@@ -2966,6 +2966,9 @@ export type Database = {
       }
       shift_assignments: {
         Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
           assigned_at: string
           assigned_by: string
           confirmed_at: string | null
@@ -2976,6 +2979,9 @@ export type Database = {
           status: string
         }
         Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_at?: string
           assigned_by: string
           confirmed_at?: string | null
@@ -2986,6 +2992,9 @@ export type Database = {
           status?: string
         }
         Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           assigned_at?: string
           assigned_by?: string
           confirmed_at?: string | null

@@ -92,7 +92,9 @@ export const EnhancedShiftWeekView = () => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
-      shift.shift_assignments?.some((sa: any) => sa.staff_id === employeeId)
+      shift.shift_assignments?.some((sa: any) => 
+        sa.staff_id === employeeId && sa.approval_status === 'approved'
+      )
     );
   };
 
@@ -359,25 +361,41 @@ export const EnhancedShiftWeekView = () => {
                           TIME OFF
                         </div>
                       ) : (
-                        employeeShifts.map((shift) => (
-                          <div
-                            key={shift.id}
-                            onClick={() => handleEditShift(shift)}
-                            style={{
-                              backgroundColor: `${getRoleColor(shift.role)}20`,
-                              borderColor: getRoleColor(shift.role)
-                            }}
-                            className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
-                          >
-                            <div className="font-medium">{shift.role}</div>
-                            <div className="text-muted-foreground">
-                              {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                        employeeShifts.map((shift) => {
+                          const assignment = shift.shift_assignments?.find(
+                            (sa: any) => sa.staff_id === employee.id
+                          );
+                          const isPending = assignment?.approval_status === 'pending';
+                          
+                          return (
+                            <div
+                              key={shift.id}
+                              onClick={() => handleEditShift(shift)}
+                              style={{
+                                backgroundColor: `${getRoleColor(shift.role)}20`,
+                                borderColor: getRoleColor(shift.role)
+                              }}
+                              className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
+                                isPending ? 'opacity-60 border-dashed' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium">{shift.role}</div>
+                                {isPending && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
+                                    Pending
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-muted-foreground">
+                                {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                              </div>
+                              {shift.close_duty && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">Close</Badge>
+                              )}
                             </div>
-                            {shift.close_duty && (
-                              <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">Close</Badge>
-                            )}
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   );
