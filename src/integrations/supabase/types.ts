@@ -1872,6 +1872,66 @@ export type Database = {
           },
         ]
       }
+      labor_costs: {
+        Row: {
+          actual_cost: number | null
+          actual_hours: number | null
+          actual_sales: number | null
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          location_id: string
+          projected_sales: number | null
+          scheduled_cost: number | null
+          scheduled_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          actual_hours?: number | null
+          actual_sales?: number | null
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          location_id: string
+          projected_sales?: number | null
+          scheduled_cost?: number | null
+          scheduled_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          actual_hours?: number | null
+          actual_sales?: number | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          location_id?: string
+          projected_sales?: number | null
+          scheduled_cost?: number | null
+          scheduled_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_costs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_costs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_audits: {
         Row: {
           assigned_user_id: string | null
@@ -2900,12 +2960,17 @@ export type Database = {
       }
       shifts: {
         Row: {
+          break_duration_minutes: number | null
+          breaks: Json | null
+          close_duty: boolean | null
           company_id: string
           created_at: string
           created_by: string
           creator_name: string | null
           end_time: string
           id: string
+          is_open_shift: boolean | null
+          is_published: boolean | null
           location_id: string
           notes: string | null
           required_count: number
@@ -2916,12 +2981,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          break_duration_minutes?: number | null
+          breaks?: Json | null
+          close_duty?: boolean | null
           company_id: string
           created_at?: string
           created_by: string
           creator_name?: string | null
           end_time: string
           id?: string
+          is_open_shift?: boolean | null
+          is_published?: boolean | null
           location_id: string
           notes?: string | null
           required_count?: number
@@ -2932,12 +3002,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          break_duration_minutes?: number | null
+          breaks?: Json | null
+          close_duty?: boolean | null
           company_id?: string
           created_at?: string
           created_by?: string
           creator_name?: string | null
           end_time?: string
           id?: string
+          is_open_shift?: boolean | null
+          is_published?: boolean | null
           location_id?: string
           notes?: string | null
           required_count?: number
@@ -3671,46 +3746,43 @@ export type Database = {
       }
       time_off_requests: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           company_id: string
+          created_at: string
+          employee_id: string
           end_date: string
           id: string
           reason: string | null
-          requested_at: string
-          review_notes: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          staff_id: string
           start_date: string
           status: string
-          type: string
+          updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           company_id: string
+          created_at?: string
+          employee_id: string
           end_date: string
           id?: string
           reason?: string | null
-          requested_at?: string
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          staff_id: string
           start_date: string
           status?: string
-          type: string
+          updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           company_id?: string
+          created_at?: string
+          employee_id?: string
           end_date?: string
           id?: string
           reason?: string | null
-          requested_at?: string
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          staff_id?: string
           start_date?: string
           status?: string
-          type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3721,8 +3793,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "time_off_requests_staff_id_fkey"
-            columns: ["staff_id"]
+            foreignKeyName: "time_off_requests_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]

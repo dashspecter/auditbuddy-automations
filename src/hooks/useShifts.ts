@@ -15,9 +15,19 @@ export interface Shift {
   created_at: string;
   created_by: string;
   creator_name?: string | null;
+  is_published?: boolean;
+  is_open_shift?: boolean;
+  close_duty?: boolean;
+  break_duration_minutes?: number;
+  breaks?: Array<{ start: string; end: string }>;
   locations?: {
     name: string;
   };
+  shift_assignments?: Array<{
+    id: string;
+    employee_id: string;
+    shift_id: string;
+  }>;
 }
 
 export const useShifts = (locationId?: string, startDate?: string, endDate?: string) => {
@@ -28,7 +38,8 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         .from("shifts")
         .select(`
           *,
-          locations(name)
+          locations(name),
+          shift_assignments(id, employee_id, shift_id)
         `)
         .order("shift_date", { ascending: true })
         .order("start_time", { ascending: true });
@@ -46,7 +57,11 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
       const { data, error } = await query;
       if (error) throw error;
       
-      return data as Shift[];
+      return (data as any[]).map((shift: any) => ({
+        ...shift,
+        breaks: (shift.breaks || []) as Array<{ start: string; end: string }>,
+        shift_assignments: shift.shift_assignments || []
+      })) as Shift[];
     },
   });
 };

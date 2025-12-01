@@ -7,7 +7,7 @@ import { ShiftDialog } from "@/components/workforce/ShiftDialog";
 import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShiftWeekView } from "@/components/workforce/ShiftWeekView";
+import { EnhancedShiftWeekView } from "@/components/workforce/EnhancedShiftWeekView";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -47,7 +47,7 @@ const Shifts = () => {
       </div>
 
       {view === "week" ? (
-        <ShiftWeekView />
+        <EnhancedShiftWeekView />
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
         <Card>
