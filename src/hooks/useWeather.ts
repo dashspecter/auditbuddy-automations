@@ -27,30 +27,42 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
   return useQuery({
     queryKey: ["weather", latitude, longitude],
     queryFn: async () => {
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Bucharest&forecast_days=14`
-      );
-      
-      if (!response.ok) throw new Error("Failed to fetch weather");
-      
-      const data = await response.json();
-      
-      const weatherData: WeatherData[] = data.daily.time.map((date: string, index: number) => {
-        const weatherCode = data.daily.weather_code[index];
-        const { icon, description } = getWeatherInfo(weatherCode);
+      try {
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Bucharest&forecast_days=14`
+        );
         
-        return {
-          date,
-          temperature: Math.round((data.daily.temperature_2m_max[index] + data.daily.temperature_2m_min[index]) / 2),
-          weatherCode,
-          icon,
-          description,
-        };
-      });
-      
-      return weatherData;
+        if (!response.ok) {
+          console.error("Weather API error:", response.status, response.statusText);
+          throw new Error("Failed to fetch weather");
+        }
+        
+        const data = await response.json();
+        console.log("Weather API response:", data);
+        
+        const weatherData: WeatherData[] = data.daily.time.map((date: string, index: number) => {
+          const weatherCode = data.daily.weather_code[index];
+          const { icon, description } = getWeatherInfo(weatherCode);
+          
+          return {
+            date,
+            temperature: Math.round((data.daily.temperature_2m_max[index] + data.daily.temperature_2m_min[index]) / 2),
+            weatherCode,
+            icon,
+            description,
+          };
+        });
+        
+        console.log("Processed weather data:", weatherData);
+        return weatherData;
+      } catch (error) {
+        console.error("Weather fetch error:", error);
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     refetchInterval: 1000 * 60 * 60, // Refetch every hour
+    retry: 2,
+    enabled: true, // Explicitly enable the query
   });
 };
