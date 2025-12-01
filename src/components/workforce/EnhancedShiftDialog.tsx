@@ -57,6 +57,7 @@ export const EnhancedShiftDialog = ({
   const [breaks, setBreaks] = useState<Array<{ start: string; end: string }>>([]);
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
 
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
@@ -101,6 +102,7 @@ export const EnhancedShiftDialog = ({
       setBreaks([]);
       setApplyToDays([]);
       setSelectedEmployees([]);
+      setAllowCrossDepartment(false);
     }
   }, [shift, defaultDate, open]);
 
@@ -389,6 +391,18 @@ export const EnhancedShiftDialog = ({
                 Assign specific employees to fill the {formData.required_count} {formData.role} positions needed for this shift
               </p>
             )}
+            {parseInt(formData.required_count) > 1 && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="allow_cross_department"
+                  checked={allowCrossDepartment}
+                  onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
+                />
+                <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
+                  Show employees from all departments/roles (Advanced)
+                </Label>
+              </div>
+            )}
             <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
               {employees.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -396,7 +410,7 @@ export const EnhancedShiftDialog = ({
                 </p>
               ) : (
                 employees
-                  .filter(emp => emp.role === formData.role || !formData.role)
+                  .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
                   .map((employee) => {
                     const isDisabled = !selectedEmployees.includes(employee.id) && 
                                       selectedEmployees.length >= parseInt(formData.required_count);
