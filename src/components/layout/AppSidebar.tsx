@@ -182,7 +182,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" side="left">
+    <Sidebar collapsible="icon" side="left" variant="sidebar">
       <SidebarHeader className="border-b border-border p-4">
         {open ? (
           <div className="flex items-center gap-3">
