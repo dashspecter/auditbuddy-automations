@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle } from "lucide-react";
@@ -14,8 +13,7 @@ const Tasks = () => {
   const hasTasks = false;
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Tasks</h1>
@@ -155,7 +153,6 @@ const Tasks = () => {
           </>
         )}
       </div>
-    </AppLayout>
   );
 };
 

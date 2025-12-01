@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,33 +221,28 @@ export default function Notifications() {
 
   if (isLoadingRole) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
-      </AppLayout>
     );
   }
 
   if (!roleData?.isAdmin && !roleData?.isManager) {
     return (
-      <AppLayout>
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
               You don't have permission to manage notifications.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </AppLayout>
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   return (
     <ModuleGate module="notifications">
-      <AppLayout>
-          <div className="space-y-6">
+      <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -783,7 +777,6 @@ export default function Notifications() {
             onOpenChange={setDetailOpen}
           />
         </div>
-      </AppLayout>
     </ModuleGate>
   );
 }
