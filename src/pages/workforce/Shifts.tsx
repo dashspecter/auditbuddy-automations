@@ -67,35 +67,40 @@ const Shifts = () => {
             ) : (
               <div className="space-y-3">
                 {shifts.map((shift) => (
-                  <Card key={shift.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{shift.role}</Badge>
-                          <Badge variant="secondary">
-                            <Users className="h-3 w-3 mr-1" />
-                            {shift.required_count} needed
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {shift.locations?.name || 'Location'}
-                          </div>
-                        </div>
-                        {shift.notes && (
-                          <p className="text-sm text-muted-foreground">{shift.notes}</p>
-                        )}
+                  <div key={shift.id} className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="font-semibold text-base">{shift.role}</div>
+                        <Badge variant="secondary" className="gap-1">
+                          <Users className="h-3 w-3" />
+                          {shift.required_count} needed
+                        </Badge>
                       </div>
                       <Button variant="outline" size="sm">
                         Edit
                       </Button>
                     </div>
-                  </Card>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-4 w-4" />
+                        <span>{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4" />
+                        <span>{shift.locations?.name || 'Location'}</span>
+                      </div>
+                    </div>
+                    {shift.notes && (
+                      <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                        {shift.notes}
+                      </div>
+                    )}
+                    {(shift as any).profiles && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Created by: {(shift as any).profiles.full_name}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
