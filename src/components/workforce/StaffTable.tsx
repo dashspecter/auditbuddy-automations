@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, X, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const StaffTable = () => {
@@ -35,59 +35,95 @@ export const StaffTable = () => {
 
   const uniqueRoles = [...new Set(staff?.map(s => s.role) || [])];
 
+  // Count active filters
+  const activeFilterCount = [searchTerm, locationFilter, roleFilter, statusFilter].filter(Boolean).length;
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setLocationFilter("");
+    setRoleFilter("");
+    setStatusFilter("");
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or role..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
-          <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
-            <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="All Locations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {locations?.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col gap-3">
+        {/* Filter Controls Row */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, role, or email..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
+            <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {locations?.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
-            <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              {uniqueRoles.map((role) => (
-                <SelectItem key={role} value={role}>
-                  {role}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                {uniqueRoles.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-            <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {/* Active Filters Info & Clear Button */}
+        {activeFilterCount > 0 && (
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span>
+                {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
+                {filteredStaff && ` • ${filteredStaff.length} result${filteredStaff.length !== 1 ? 's' : ''}`}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="h-8 text-xs"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear all
+            </Button>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -136,9 +172,29 @@ export const StaffTable = () => {
           </Table>
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>No staff members found.</p>
-          <p className="text-sm mt-2">Try adjusting your filters or add new staff.</p>
+        <div className="text-center py-12 text-muted-foreground space-y-4">
+          <div>
+            <p className="font-medium">No staff members found</p>
+            {activeFilterCount > 0 ? (
+              <p className="text-sm mt-2">
+                No results match your current filters. Try adjusting or clearing them.
+              </p>
+            ) : (
+              <p className="text-sm mt-2">
+                No staff members have been added yet.
+              </p>
+            )}
+          </div>
+          {activeFilterCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllFilters}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear all filters
+            </Button>
+          )}
         </div>
       )}
     </div>
