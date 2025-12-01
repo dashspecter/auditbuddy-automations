@@ -4217,6 +4217,7 @@ export type Database = {
         Returns: string
       }
       generate_short_code: { Args: never; Returns: string }
+      get_employee_company_id: { Args: { _user_id: string }; Returns: string }
       get_next_revision_number: {
         Args: { p_audit_id: string }
         Returns: number
@@ -4240,6 +4241,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_employee_assigned_to_shift: {
+        Args: { _shift_id: string; _user_id: string }
         Returns: boolean
       }
       is_subscription_active: { Args: { company_id: string }; Returns: boolean }
