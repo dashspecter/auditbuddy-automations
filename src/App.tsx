@@ -113,7 +113,7 @@ const App = () => (
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
-              <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
+              <Route path="/settings/company" element={<CompanyOwnerRoute><AppLayout><CompanySettings /></AppLayout></CompanyOwnerRoute>} />
               <Route path="/pricing" element={<CompanyOwnerRoute><AppLayout><PricingPlans /></AppLayout></CompanyOwnerRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><AppLayout><Audits /></AppLayout></ProtectedRoute>} />
