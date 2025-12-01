@@ -58,7 +58,7 @@ export function ScheduleInterventionDialog({
       title: "",
       scheduled_for: "",
       performed_by_user_id: "",
-      supervised_by_user_id: "",
+      supervised_by_user_id: "none",
       description: "",
       next_check_date: "",
     },
@@ -70,6 +70,7 @@ export function ScheduleInterventionDialog({
       location_id: locationId,
       status: "scheduled",
       ...data,
+      supervised_by_user_id: data.supervised_by_user_id && data.supervised_by_user_id !== "none" ? data.supervised_by_user_id : null,
     } as any);
     
     form.reset();
@@ -151,7 +152,7 @@ export function ScheduleInterventionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {users?.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.full_name || user.email}

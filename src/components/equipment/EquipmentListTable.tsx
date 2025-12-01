@@ -12,14 +12,14 @@ import { format } from "date-fns";
 
 export const EquipmentListTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationFilter, setLocationFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
   
   const { data: equipmentData, isLoading } = useEquipmentPaginated({ 
-    locationId: locationFilter || undefined,
-    status: statusFilter || undefined,
+    locationId: locationFilter !== "all" ? locationFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
     page: currentPage,
     pageSize 
   });
@@ -55,7 +55,7 @@ export const EquipmentListTable = () => {
             <SelectValue placeholder="All Locations" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Locations</SelectItem>
+            <SelectItem value="all">All Locations</SelectItem>
             {locations?.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>
                 {loc.name}
@@ -69,7 +69,7 @@ export const EquipmentListTable = () => {
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="maintenance">Maintenance</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>

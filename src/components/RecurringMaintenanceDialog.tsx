@@ -35,7 +35,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
     day_of_month: 1,
     start_time: "09:00",
     assigned_user_id: "",
-    supervisor_user_id: "",
+    supervisor_user_id: "none",
     is_active: true,
   });
 
@@ -83,7 +83,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
         day_of_month: schedule.day_of_month || 1,
         start_time: schedule.start_time,
         assigned_user_id: schedule.assigned_user_id,
-        supervisor_user_id: schedule.supervisor_user_id || "",
+        supervisor_user_id: schedule.supervisor_user_id || "none",
         is_active: schedule.is_active,
       });
     } else {
@@ -99,7 +99,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
         day_of_month: 1,
         start_time: "09:00",
         assigned_user_id: "",
-        supervisor_user_id: "",
+        supervisor_user_id: "none",
         is_active: true,
       });
     }
@@ -110,7 +110,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
     
     const submitData = {
       ...formData,
-      supervisor_user_id: formData.supervisor_user_id || null,
+      supervisor_user_id: formData.supervisor_user_id && formData.supervisor_user_id !== "none" ? formData.supervisor_user_id : null,
       end_date: formData.end_date || null,
       day_of_week: formData.recurrence_pattern === "weekly" ? formData.day_of_week : null,
       day_of_month: formData.recurrence_pattern === "monthly" ? formData.day_of_month : null,
@@ -321,7 +321,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
                 <SelectValue placeholder="Select supervisor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {users?.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.full_name || user.email}

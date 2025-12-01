@@ -65,7 +65,7 @@ export default function InterventionDetail() {
       notes: intervention.notes || "",
       next_check_date: intervention.next_check_date || "",
       performed_by_user_id: intervention.performed_by_user_id,
-      supervised_by_user_id: intervention.supervised_by_user_id || "",
+      supervised_by_user_id: intervention.supervised_by_user_id || "none",
     } : undefined,
   });
 
@@ -108,6 +108,7 @@ export default function InterventionDetail() {
       await updateIntervention.mutateAsync({
         id: id!,
         ...data,
+        supervised_by_user_id: data.supervised_by_user_id && data.supervised_by_user_id !== "none" ? data.supervised_by_user_id : null,
         before_photo_url: beforePhotoUrl,
         after_photo_url: afterPhotoUrl,
         performed_at: data.status === "completed" ? (data.performed_at || new Date().toISOString()) : data.performed_at,
@@ -121,7 +122,7 @@ export default function InterventionDetail() {
           title: `Follow-up: ${intervention.title}`,
           scheduled_for: new Date(data.next_check_date).toISOString(),
           performed_by_user_id: data.performed_by_user_id,
-          supervised_by_user_id: data.supervised_by_user_id || null,
+          supervised_by_user_id: data.supervised_by_user_id && data.supervised_by_user_id !== "none" ? data.supervised_by_user_id : null,
           status: "scheduled",
           description: data.description || null,
           next_check_date: null,
@@ -320,7 +321,7 @@ export default function InterventionDetail() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {users?.map((user) => (
                               <SelectItem key={user.id} value={user.id}>
                                 {user.full_name || user.email}

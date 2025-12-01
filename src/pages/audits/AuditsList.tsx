@@ -13,15 +13,15 @@ import { format } from "date-fns";
 
 const AuditsList = () => {
   const navigate = useNavigate();
-  const [locationFilter, setLocationFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: audits, isLoading } = useAuditsNew();
   const { data: locations } = useLocations();
 
   const filteredAudits = audits?.filter((audit) => {
-    const matchesLocation = !locationFilter || audit.location_id === locationFilter;
-    const matchesStatus = !statusFilter || audit.status === statusFilter;
+    const matchesLocation = locationFilter === "all" || audit.location_id === locationFilter;
+    const matchesStatus = statusFilter === "all" || audit.status === statusFilter;
     return matchesLocation && matchesStatus;
   });
 
@@ -112,7 +112,7 @@ const AuditsList = () => {
                   <SelectValue placeholder="All Locations" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
                   {locations?.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>
                       {loc.name}
@@ -126,7 +126,7 @@ const AuditsList = () => {
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
