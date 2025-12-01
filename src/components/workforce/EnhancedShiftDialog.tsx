@@ -262,7 +262,14 @@ export const EnhancedShiftDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Staff Needed *</Label>
+              <Label htmlFor="required_count">
+                Staff Needed for this Role *
+                {formData.role && (
+                  <span className="text-xs text-muted-foreground block mt-1">
+                    Total {roles.find(r => r.name === formData.role)?.name || 'staff'} positions needed ({roles.find(r => r.name === formData.role)?.department || 'General'} department)
+                  </span>
+                )}
+              </Label>
               <Input
                 type="number"
                 min="1"
@@ -271,6 +278,7 @@ export const EnhancedShiftDialog = ({
                   setFormData({ ...formData, required_count: e.target.value })
                 }
                 required
+                placeholder="e.g., 3"
               />
             </div>
 
@@ -361,8 +369,26 @@ export const EnhancedShiftDialog = ({
           )}
 
           {/* Assign Employees */}
-          <div className="space-y-2">
-            <Label>Assign Employees</Label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Assign Specific Employees (Optional)</Label>
+              <Badge 
+                variant={
+                  selectedEmployees.length >= parseInt(formData.required_count) 
+                    ? "default" 
+                    : selectedEmployees.length > 0 
+                    ? "secondary" 
+                    : "outline"
+                }
+              >
+                {selectedEmployees.length} / {formData.required_count} positions filled
+              </Badge>
+            </div>
+            {formData.role && (
+              <p className="text-xs text-muted-foreground">
+                Assign specific employees to fill the {formData.required_count} {formData.role} positions needed for this shift
+              </p>
+            )}
             <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
               {employees.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -371,29 +397,44 @@ export const EnhancedShiftDialog = ({
               ) : (
                 employees
                   .filter(emp => emp.role === formData.role || !formData.role)
-                  .map((employee) => (
-                    <div key={employee.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`employee-${employee.id}`}
-                        checked={selectedEmployees.includes(employee.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedEmployees([...selectedEmployees, employee.id]);
-                          } else {
-                            setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`employee-${employee.id}`} className="cursor-pointer flex-1">
-                        {employee.full_name} - {employee.role}
-                      </Label>
-                    </div>
-                  ))
+                  .map((employee) => {
+                    const isDisabled = !selectedEmployees.includes(employee.id) && 
+                                      selectedEmployees.length >= parseInt(formData.required_count);
+                    return (
+                      <div key={employee.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`employee-${employee.id}`}
+                          checked={selectedEmployees.includes(employee.id)}
+                          disabled={isDisabled}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedEmployees([...selectedEmployees, employee.id]);
+                            } else {
+                              setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
+                            }
+                          }}
+                        />
+                        <Label 
+                          htmlFor={`employee-${employee.id}`} 
+                          className={`cursor-pointer flex-1 ${isDisabled ? 'opacity-50' : ''}`}
+                        >
+                          {employee.full_name} - {employee.role}
+                        </Label>
+                      </div>
+                    );
+                  })
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {selectedEmployees.length} of {formData.required_count} required staff selected
-            </p>
+            {selectedEmployees.length < parseInt(formData.required_count) && selectedEmployees.length > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-500">
+                ⚠️ {parseInt(formData.required_count) - selectedEmployees.length} more {formData.role || 'staff'} position{parseInt(formData.required_count) - selectedEmployees.length > 1 ? 's' : ''} still need to be filled
+              </p>
+            )}
+            {selectedEmployees.length === 0 && formData.role && (
+              <p className="text-xs text-muted-foreground">
+                💡 Leave unassigned to keep as an open shift that staff can claim
+              </p>
+            )}
           </div>
 
           {/* Checkboxes */}
