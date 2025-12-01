@@ -1,5 +1,5 @@
-import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ interface CompanyOwnerRouteProps {
 export const CompanyOwnerRoute = ({ children }: CompanyOwnerRouteProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: company, isLoading: companyLoading } = useCompany();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const handleRefresh = () => {
@@ -22,16 +21,7 @@ export const CompanyOwnerRoute = ({ children }: CompanyOwnerRouteProps) => {
 
   const isCompanyOwner = company?.userRole === 'company_owner';
 
-  useEffect(() => {
-    if (!authLoading && !companyLoading) {
-      if (!user) {
-        navigate('/auth');
-      } else if (!isCompanyOwner) {
-        navigate('/dashboard');
-      }
-    }
-  }, [user, authLoading, company, companyLoading, navigate, isCompanyOwner]);
-
+  // Show loading state while checking auth and company
   if (authLoading || companyLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -43,18 +33,29 @@ export const CompanyOwnerRoute = ({ children }: CompanyOwnerRouteProps) => {
     );
   }
 
-  if (!user || !isCompanyOwner) {
+  // Redirect to auth if not logged in
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Show access denied if not company owner
+  if (!isCompanyOwner) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Access Denied</h1>
           <p className="text-muted-foreground">
             Only company owners can access this page.
           </p>
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Permissions
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Permissions
+            </Button>
+            <Button onClick={() => window.location.href = '/dashboard'} variant="default">
+              Go to Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );
