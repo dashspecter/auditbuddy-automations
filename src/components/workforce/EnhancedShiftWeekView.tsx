@@ -54,8 +54,10 @@ export const EnhancedShiftWeekView = () => {
   );
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
-  const { data: weatherData = [] } = useWeather();
+  const { data: weatherData = [], isLoading: weatherLoading, error: weatherError } = useWeather();
   const { data: departmentsList = [] } = useDepartments();
+
+  console.log("Weather data:", weatherData, "Loading:", weatherLoading, "Error:", weatherError);
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
