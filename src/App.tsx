@@ -61,6 +61,7 @@ import PlatformAdmin from "./pages/PlatformAdmin";
 import PendingApproval from "./pages/PendingApproval";
 import Workforce from "./pages/Workforce";
 import Staff from "./pages/workforce/Staff";
+import StaffProfile from "./pages/workforce/StaffProfile";
 import Shifts from "./pages/workforce/Shifts";
 import Attendance from "./pages/workforce/Attendance";
 import TimeOff from "./pages/workforce/TimeOff";
@@ -144,6 +145,7 @@ const App = () => (
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
               <Route path="/workforce/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+              <Route path="/workforce/staff/:id" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOff /></ProtectedRoute>} />
