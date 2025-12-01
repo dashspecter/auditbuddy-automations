@@ -25,7 +25,7 @@ export interface Shift {
   };
   shift_assignments?: Array<{
     id: string;
-    employee_id: string;
+    staff_id: string;
     shift_id: string;
   }>;
 }
@@ -39,7 +39,7 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         .select(`
           *,
           locations(name),
-          shift_assignments(id, employee_id, shift_id)
+          shift_assignments(id, staff_id, shift_id)
         `)
         .order("shift_date", { ascending: true })
         .order("start_time", { ascending: true });
