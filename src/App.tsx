@@ -69,6 +69,7 @@ import Payroll from "./pages/workforce/Payroll";
 import Tasks from "./pages/Tasks";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
+import AIFeed from "./pages/AIFeed";
 import Integrations from "./pages/Integrations";
 import Templates from "./pages/audits/Templates";
 import TemplateBuilder from "./pages/audits/TemplateBuilder";
@@ -171,6 +172,7 @@ const App = () => (
               
               {/* Insights Routes */}
               <Route path="/insights" element={<ManagerRoute><Insights /></ManagerRoute>} />
+              <Route path="/ai-feed" element={<ManagerRoute><AIFeed /></ManagerRoute>} />
               
               {/* Integrations Routes */}
               <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
