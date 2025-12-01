@@ -1067,6 +1067,7 @@ export type Database = {
           role: string
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1088,6 +1089,7 @@ export type Database = {
           role: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1109,6 +1111,7 @@ export type Database = {
           role?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -4025,6 +4028,14 @@ export type Database = {
       company_has_module: {
         Args: { _company_id: string; _module: string }
         Returns: boolean
+      }
+      create_employee_user: {
+        Args: {
+          employee_email: string
+          employee_id: string
+          employee_name: string
+        }
+        Returns: string
       }
       generate_short_code: { Args: never; Returns: string }
       get_next_revision_number: {

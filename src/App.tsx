@@ -69,6 +69,8 @@ import Shifts from "./pages/workforce/Shifts";
 import Attendance from "./pages/workforce/Attendance";
 import TimeOff from "./pages/workforce/TimeOff";
 import Payroll from "./pages/workforce/Payroll";
+import StaffLogin from "./pages/StaffLogin";
+import StaffDashboard from "./pages/StaffDashboard";
 import Tasks from "./pages/Tasks";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
@@ -111,6 +113,8 @@ const App = () => (
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/staff-login" element={<StaffLogin />} />
+              <Route path="/staff-dashboard" element={<ProtectedRoute><StaffDashboard /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />

@@ -19,6 +19,9 @@ import { useCreateEmployee, useUpdateEmployee } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
 import { Settings } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -48,6 +51,7 @@ export const EmployeeDialog = ({
     emergency_contact_phone: "",
     notes: "",
   });
+  const [createUserAccount, setCreateUserAccount] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
 
   const createEmployee = useCreateEmployee();
@@ -108,7 +112,27 @@ export const EmployeeDialog = ({
     if (employee) {
       await updateEmployee.mutateAsync({ id: employee.id, ...submitData });
     } else {
-      await createEmployee.mutateAsync(submitData);
+      const newEmployee = await createEmployee.mutateAsync(submitData);
+      
+      // If create user account is checked and email is provided, create auth user
+      if (createUserAccount && formData.email && newEmployee) {
+        try {
+          const { data, error } = await supabase.rpc('create_employee_user', {
+            employee_email: formData.email,
+            employee_name: formData.full_name,
+            employee_id: newEmployee.id
+          });
+          
+          if (error) {
+            console.error("Failed to create user account:", error);
+            toast.error("Employee created but failed to create login account");
+          } else {
+            toast.success("Employee created with login credentials!");
+          }
+        } catch (err) {
+          console.error("Error creating user:", err);
+        }
+      }
     }
     
     onOpenChange(false);
@@ -308,6 +332,27 @@ export const EmployeeDialog = ({
               </SelectContent>
             </Select>
           </div>
+
+          {!employee && formData.email && (
+            <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg">
+              <Checkbox 
+                id="createUserAccount" 
+                checked={createUserAccount}
+                onCheckedChange={(checked) => setCreateUserAccount(checked as boolean)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label
+                  htmlFor="createUserAccount"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Create login account for employee
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Allow this employee to log in and view their shifts
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
