@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -39,6 +40,7 @@ export const AppTopBar = () => {
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-40">
       <div className="flex items-center gap-4">
+        <SidebarTrigger />
         {/* Company Switcher - Future: support multiple companies */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
