@@ -6,49 +6,54 @@ import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
-  const { data: roleData, isLoading, refetch } = useUserRole();
+  const { user, loading: authLoading } = useAuth();
+  const { data: roleData, isLoading: roleLoading, refetch } = useUserRole();
   const queryClient = useQueryClient();
-
-  console.log('[ManagerRoute] User:', user?.email, 'Loading:', isLoading, 'Role data:', roleData);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['user_role'] });
     refetch();
   };
 
-  if (isLoading) {
+  // Show loading state while checking auth and roles
+  if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    console.log('[ManagerRoute] No user, redirecting to auth');
-    return <Navigate to="/auth" />;
-  }
-
-  // Allow both managers and admins
-  if (!roleData?.isManager && !roleData?.isAdmin) {
-    console.log('[ManagerRoute] Access denied - not manager or admin');
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You don't have permission to access this page.
-          </p>
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Permissions
-          </Button>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
-  console.log('[ManagerRoute] Access granted');
+  // Redirect to auth if not logged in
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Show access denied if not manager or admin
+  if (!roleData?.isManager && !roleData?.isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You need manager or administrator privileges to access this page.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Permissions
+            </Button>
+            <Button onClick={() => window.location.href = '/dashboard'} variant="default">
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 };
