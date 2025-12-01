@@ -2,25 +2,39 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Users, Settings } from "lucide-react";
 import { useShifts } from "@/hooks/useShifts";
 import { useShiftAssignments } from "@/hooks/useShiftAssignments";
+import { useLocationSchedules } from "@/hooks/useLocationSchedules";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ShiftDialog } from "./ShiftDialog";
+import { LocationScheduleDialog } from "./LocationScheduleDialog";
+import { useLocations } from "@/hooks/useLocations";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const ShiftWeekView = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   
+  const { data: locations = [] } = useLocations();
   const { data: shifts = [], isLoading } = useShifts(
-    undefined,
+    selectedLocation || undefined,
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
+  const { data: schedules = [] } = useLocationSchedules(selectedLocation || undefined);
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -29,6 +43,16 @@ export const ShiftWeekView = () => {
   const getShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => shift.shift_date === dateStr);
+  };
+
+  const getOperatingHoursForDay = (date: Date) => {
+    const dayOfWeek = (date.getDay() + 6) % 7; // Convert to 0=Monday
+    const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
+    
+    if (!schedule) return "00:00 - 00:00"; // 24/7 if not set
+    if (schedule.is_closed) return "Closed";
+    
+    return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
   };
 
   const handleAddShift = (date: Date) => {
@@ -62,6 +86,33 @@ export const ShiftWeekView = () => {
             Today
           </Button>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Locations</SelectItem>
+              {locations.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {selectedLocation && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setScheduleDialogOpen(true)}
+              title="Manage Operating Hours"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Week grid */}
@@ -79,7 +130,7 @@ export const ShiftWeekView = () => {
               {/* Day header */}
               <div className={`p-3 border-b ${isToday ? 'bg-primary text-primary-foreground' : 'bg-card'} rounded-t-lg`}>
                 <div className="text-xs font-medium">{format(day, 'EEE dd')}</div>
-                <div className="text-sm">{format(day, 'HH:mm')} - {format(addDays(day, 1), 'HH:mm').slice(0, 5)}</div>
+                <div className="text-xs opacity-90">{getOperatingHoursForDay(day)}</div>
               </div>
               
               {/* Shifts for the day */}
@@ -114,6 +165,14 @@ export const ShiftWeekView = () => {
         onOpenChange={setShiftDialogOpen}
         defaultDate={selectedDate}
       />
+      
+      {selectedLocation && (
+        <LocationScheduleDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          locationId={selectedLocation}
+        />
+      )}
     </div>
   );
 };
