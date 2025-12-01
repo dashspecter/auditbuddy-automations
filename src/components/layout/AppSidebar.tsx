@@ -7,6 +7,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCompany } from "@/hooks/useCompany";
 import {
   Sidebar,
   SidebarContent,
@@ -133,9 +134,11 @@ export function AppSidebar() {
   const location = useLocation();
   const { hasModule } = useCompanyContext();
   const { data: roleData } = useUserRole();
+  const { data: company } = useCompany();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const currentPath = location.pathname;
+  const isOwner = company?.userRole === 'company_owner';
 
   const isActive = (path: string) => currentPath === path;
   const isParentActive = (item: any) => {
@@ -158,9 +161,7 @@ export function AppSidebar() {
     if (item.requiresManager && !(roleData?.isAdmin || roleData?.isManager)) {
       return false;
     }
-    // For owner role, we'll check in the component that uses this
-    // For now, just check admin as a proxy
-    if (item.requiresOwner && !roleData?.isAdmin) {
+    if (item.requiresOwner && !isOwner) {
       return false;
     }
 

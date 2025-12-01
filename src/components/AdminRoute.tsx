@@ -5,6 +5,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 
 interface AdminRouteProps {
   children: ReactNode;
@@ -59,5 +60,5 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
-  return <>{children}</>;
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 };

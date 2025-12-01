@@ -4,6 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 
 export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -50,5 +51,5 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   console.log('[ManagerRoute] Access granted');
-  return <>{children}</>;
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 };

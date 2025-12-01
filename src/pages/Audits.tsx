@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -120,8 +119,6 @@ const Audits = () => {
       moduleIcon={MODULE_TOURS.location_audits.icon}
     >
       <div className="min-h-screen bg-background">
-        <Header />
-        
         <PullToRefresh onRefresh={handleRefresh}>
           <main className="container mx-auto px-4 px-safe py-8 pb-safe">
           <div className="flex flex-col gap-6">

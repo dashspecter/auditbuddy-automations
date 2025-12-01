@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -75,7 +74,6 @@ export default function EmployeeManagement() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div>

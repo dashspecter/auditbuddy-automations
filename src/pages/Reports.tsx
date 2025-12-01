@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -306,8 +305,6 @@ const Reports = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      
       <main className="container mx-auto px-4 px-safe py-8 pb-safe">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
