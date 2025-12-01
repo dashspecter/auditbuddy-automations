@@ -65,8 +65,7 @@ const LocationsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <MapPin className="h-8 w-8 text-primary" />
@@ -180,7 +179,6 @@ const LocationsManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
     </div>
   );
 };
