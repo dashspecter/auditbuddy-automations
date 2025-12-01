@@ -591,7 +591,7 @@ export const EnhancedShiftDialog = ({
                       };
                       
                       return (
-                        <div key={employee.id} className="border rounded-lg p-3 space-y-2">
+                        <div key={employee.id} className="border rounded-lg p-3 space-y-3">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id={`employee-batch-${employee.id}`}
@@ -622,40 +622,77 @@ export const EnhancedShiftDialog = ({
                             </Label>
                           </div>
                           {isSelected && (
-                            <div className="grid grid-cols-2 gap-2 ml-6">
+                            <div className="ml-6 space-y-3">
+                              {/* Individual Preset Selector */}
                               <div className="space-y-1">
-                                <Label className="text-xs">Start Time</Label>
-                                <Input
-                                  type="time"
-                                  value={times.start_time}
-                                  onChange={(e) => {
-                                    setIndividualTimes({
-                                      ...individualTimes,
-                                      [employee.id]: {
-                                        ...times,
-                                        start_time: e.target.value,
-                                      },
-                                    });
+                                <Label className="text-xs">Quick Preset</Label>
+                                <Select
+                                  value="custom"
+                                  onValueChange={(presetName) => {
+                                    if (presetName !== "custom") {
+                                      const preset = SHIFT_PRESETS.find(p => p.name === presetName);
+                                      if (preset) {
+                                        setIndividualTimes({
+                                          ...individualTimes,
+                                          [employee.id]: {
+                                            start_time: preset.start,
+                                            end_time: preset.end,
+                                          },
+                                        });
+                                      }
+                                    }
                                   }}
-                                  className="h-8"
-                                />
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Choose preset" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="custom">Custom</SelectItem>
+                                    {SHIFT_PRESETS.map((preset) => (
+                                      <SelectItem key={preset.name} value={preset.name}>
+                                        {preset.name} ({preset.start}-{preset.end})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">End Time</Label>
-                                <Input
-                                  type="time"
-                                  value={times.end_time}
-                                  onChange={(e) => {
-                                    setIndividualTimes({
-                                      ...individualTimes,
-                                      [employee.id]: {
-                                        ...times,
-                                        end_time: e.target.value,
-                                      },
-                                    });
-                                  }}
-                                  className="h-8"
-                                />
+                              
+                              {/* Individual Time Inputs */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Start Time</Label>
+                                  <Input
+                                    type="time"
+                                    value={times.start_time}
+                                    onChange={(e) => {
+                                      setIndividualTimes({
+                                        ...individualTimes,
+                                        [employee.id]: {
+                                          ...times,
+                                          start_time: e.target.value,
+                                        },
+                                      });
+                                    }}
+                                    className="h-8"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">End Time</Label>
+                                  <Input
+                                    type="time"
+                                    value={times.end_time}
+                                    onChange={(e) => {
+                                      setIndividualTimes({
+                                        ...individualTimes,
+                                        [employee.id]: {
+                                          ...times,
+                                          end_time: e.target.value,
+                                        },
+                                      });
+                                    }}
+                                    className="h-8"
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
