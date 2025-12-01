@@ -9,6 +9,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
 import { useLaborCosts } from "@/hooks/useLaborCosts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { useWeather } from "@/hooks/useWeather";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isWithinInterval, parseISO } from "date-fns";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
@@ -52,6 +53,7 @@ export const EnhancedShiftWeekView = () => {
   );
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
+  const { data: weatherData = [] } = useWeather();
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -102,6 +104,11 @@ export const EnhancedShiftWeekView = () => {
     if (schedule.is_closed) return "Closed";
     
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
+  };
+
+  const getWeatherForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return weatherData.find(w => w.date === dateStr);
   };
 
   const handleAddShift = (date: Date) => {
@@ -182,6 +189,7 @@ export const EnhancedShiftWeekView = () => {
           {weekDays.map((day) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+            const weather = getWeatherForDay(day);
             
             return (
               <div
@@ -192,6 +200,11 @@ export const EnhancedShiftWeekView = () => {
               >
                 <div className="font-medium">{format(day, 'EEE')}</div>
                 <div className="text-sm text-muted-foreground">{format(day, 'MMM d')}</div>
+                {weather && (
+                  <div className="text-lg my-1" title={weather.description}>
+                    {weather.icon} {weather.temperature}°C
+                  </div>
+                )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
               </div>
             );
@@ -307,7 +320,7 @@ export const EnhancedShiftWeekView = () => {
                 <span>Labor</span>
               </div>
               <div className="text-sm font-medium">
-                ${laborCost?.scheduled_cost.toFixed(2) || "0.00"}
+                {laborCost?.scheduled_cost.toFixed(2) || "0.00"} Lei
               </div>
               <div className={`text-xs ${parseFloat(laborPercentage) > 30 ? 'text-red-500' : 'text-green-500'}`}>
                 {laborPercentage}%
