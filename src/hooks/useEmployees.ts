@@ -17,6 +17,7 @@ export interface Employee {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   notes: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
   created_by: string;

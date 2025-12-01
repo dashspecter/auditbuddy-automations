@@ -107,6 +107,7 @@ export const EmployeeDialog = ({
       emergency_contact_name: formData.emergency_contact_name || null,
       emergency_contact_phone: formData.emergency_contact_phone || null,
       notes: formData.notes || null,
+      avatar_url: null,
     };
     
     if (employee) {
