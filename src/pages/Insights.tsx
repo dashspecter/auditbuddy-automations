@@ -1,4 +1,3 @@
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download, MapPin } from "lucide-react";
@@ -72,7 +71,6 @@ const Insights = () => {
 
   return (
     <ModuleGate module="reports">
-    <AppLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -272,7 +270,6 @@ const Insights = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
     </ModuleGate>
   );
 };
