@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { StaffGreeting } from "@/components/staff/StaffGreeting";
 import { TodayShiftCard } from "@/components/staff/TodayShiftCard";
 import { UpcomingShiftsList } from "@/components/staff/UpcomingShiftsList";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 
 const StaffDashboard = () => {
   const { user } = useAuth();
@@ -85,7 +86,7 @@ const StaffDashboard = () => {
   const shiftsToday = todayShift ? 1 : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header with Logout */}
       <header className="bg-card border-b sticky top-0 z-10 px-4 py-2 flex justify-end">
         <Button 
@@ -110,6 +111,9 @@ const StaffDashboard = () => {
 
       {/* Upcoming Shifts List */}
       <UpcomingShiftsList shifts={upcomingShifts} />
+
+      {/* Bottom Navigation */}
+      <StaffBottomNav />
     </div>
   );
 };
