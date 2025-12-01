@@ -1,15 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Clock, MapPin, Users } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useState } from "react";
 import { ShiftDialog } from "@/components/workforce/ShiftDialog";
 import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShiftWeekView } from "@/components/workforce/ShiftWeekView";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
+  const [view, setView] = useState<"day" | "week">("week");
   
   const dateStr = date ? date.toISOString().split('T')[0] : "";
   const { data: shifts = [], isLoading } = useShifts(undefined, dateStr, dateStr);
@@ -23,13 +26,30 @@ const Shifts = () => {
             Create and manage shifts for your team
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setShiftDialogOpen(true)}>
-          <CalendarPlus className="h-4 w-4" />
-          Create Shift
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tabs value={view} onValueChange={(v) => setView(v as "day" | "week")}>
+            <TabsList>
+              <TabsTrigger value="day" className="gap-1">
+                <CalendarIcon className="h-4 w-4" />
+                Day
+              </TabsTrigger>
+              <TabsTrigger value="week" className="gap-1">
+                <Columns3 className="h-4 w-4" />
+                Week
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button className="gap-2" onClick={() => setShiftDialogOpen(true)}>
+            <CalendarPlus className="h-4 w-4" />
+            Create Shift
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {view === "week" ? (
+        <ShiftWeekView />
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Calendar View</CardTitle>
@@ -106,9 +126,10 @@ const Shifts = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
       
-      <ShiftDialog 
+      <ShiftDialog
         open={shiftDialogOpen} 
         onOpenChange={setShiftDialogOpen}
         defaultDate={date}
