@@ -118,7 +118,7 @@ export const EnhancedShiftDialog = ({
       setAllowCrossDepartment(false);
       setBatchMode(false);
       setIndividualTimes({});
-      setSelectedPreset("");
+      setSelectedPreset("custom");
     }
   }, [shift, defaultDate, open]);
 
@@ -132,7 +132,7 @@ export const EnhancedShiftDialog = ({
 
   const handlePresetChange = (presetName: string) => {
     setSelectedPreset(presetName);
-    if (presetName) {
+    if (presetName && presetName !== "custom") {
       const preset = SHIFT_PRESETS.find(p => p.name === presetName);
       if (preset) {
         setFormData({
@@ -395,14 +395,14 @@ export const EnhancedShiftDialog = ({
           <div className="space-y-2">
             <Label>Shift Preset (Optional)</Label>
             <Select
-              value={selectedPreset}
+              value={selectedPreset || "custom"}
               onValueChange={handlePresetChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Choose a preset or set times manually" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Custom Times</SelectItem>
+                <SelectItem value="custom">Custom Times</SelectItem>
                 {SHIFT_PRESETS.map((preset) => (
                   <SelectItem key={preset.name} value={preset.name}>
                     {preset.name} ({preset.start} - {preset.end})
@@ -421,7 +421,7 @@ export const EnhancedShiftDialog = ({
                 value={formData.start_time}
                 onChange={(e) => {
                   setFormData({ ...formData, start_time: e.target.value });
-                  setSelectedPreset(""); // Clear preset when manually editing
+                  setSelectedPreset("custom"); // Clear preset when manually editing
                 }}
                 required
               />
@@ -434,7 +434,7 @@ export const EnhancedShiftDialog = ({
                 value={formData.end_time}
                 onChange={(e) => {
                   setFormData({ ...formData, end_time: e.target.value });
-                  setSelectedPreset(""); // Clear preset when manually editing
+                  setSelectedPreset("custom"); // Clear preset when manually editing
                 }}
                 required
               />
