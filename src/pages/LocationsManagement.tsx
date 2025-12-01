@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -66,8 +67,9 @@ const LocationsManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-        <div className="flex justify-between items-center mb-6">
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <MapPin className="h-8 w-8 text-primary" />
             <div>
@@ -185,7 +187,8 @@ const LocationsManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 
