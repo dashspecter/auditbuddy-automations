@@ -76,6 +76,9 @@ import ScheduleAudit from "./pages/audits/ScheduleAudit";
 import PerformAudit from "./pages/audits/PerformAudit";
 import AuditReport from "./pages/audits/AuditReport";
 import AuditsList from "./pages/audits/AuditsList";
+import DocumentDetail from "./pages/documents/DocumentDetail";
+import TrainingPrograms from "./pages/training/TrainingPrograms";
+import TrainingProgramDetail from "./pages/training/TrainingProgramDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -127,6 +130,9 @@ const App = () => (
               <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
               <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
               <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
+              <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />
+              <Route path="/training" element={<ProtectedRoute><TrainingPrograms /></ProtectedRoute>} />
+              <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
               <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
               <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
               <Route path="/take-test/:testId" element={<TakeTest />} />
