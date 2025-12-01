@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -124,5 +125,10 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return null;
   }
 
-  return <>{children}</>;
+  // Don't wrap onboarding pages in ProtectedLayout (they have their own layouts)
+  if (isOnboardingRoute || location.pathname === '/pending-approval') {
+    return <>{children}</>;
+  }
+
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 };

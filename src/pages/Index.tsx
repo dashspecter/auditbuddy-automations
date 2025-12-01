@@ -2,7 +2,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import Dashboard from "./Dashboard";
 import Landing from "./Landing";
 import { useCompanyContext } from "@/contexts/CompanyContext";
-import { TrialBanner } from "@/components/TrialBanner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -42,12 +41,7 @@ const Index = () => {
     );
   }
 
-  return (
-    <>
-      {user && <TrialBanner />}
-      {user ? <Dashboard /> : <Landing />}
-    </>
-  );
+  return user ? <Dashboard /> : <Landing />;
 };
 
 export default Index;
