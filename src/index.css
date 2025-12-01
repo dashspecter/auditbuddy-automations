@@ -184,4 +184,24 @@ Brand color: Orange (hue 25) - No blue colors used.
   .dropdown-content {
     @apply z-50 bg-popover;
   }
+  
+  /* Mobile form optimization */
+  @media (max-width: 640px) {
+    input, textarea, select {
+      @apply text-base; /* Prevents iOS zoom on focus */
+    }
+    
+    .form-container {
+      @apply space-y-4;
+    }
+    
+    .form-row {
+      @apply flex-col space-y-4;
+    }
+  }
+  
+  /* Improved dropdown/select backgrounds */
+  [data-radix-popper-content-wrapper] {
+    z-index: 100 !important;
+  }
 }

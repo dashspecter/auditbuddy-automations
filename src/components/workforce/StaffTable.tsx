@@ -19,8 +19,13 @@ export const StaffTable = () => {
   const { data: locations } = useLocations();
 
   const filteredStaff = staff?.filter((member) => {
-    const matchesSearch = member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.role.toLowerCase().includes(searchTerm.toLowerCase());
+    // Safe search that handles nulls
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      member.full_name?.toLowerCase().includes(searchLower) ||
+      member.role?.toLowerCase().includes(searchLower) ||
+      member.email?.toLowerCase().includes(searchLower);
+    
     const matchesLocation = !locationFilter || member.location_id === locationFilter;
     const matchesRole = !roleFilter || member.role === roleFilter;
     const matchesStatus = !statusFilter || member.status === statusFilter;
@@ -32,7 +37,7 @@ export const StaffTable = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -43,89 +48,93 @@ export const StaffTable = () => {
           />
         </div>
         
-        <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Locations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            {locations?.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
+          <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations?.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Roles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            {uniqueRoles.map((role) => (
-              <SelectItem key={role} value={role}>
-                {role}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              {uniqueRoles.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading staff...</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Contract</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredStaff.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.full_name}</TableCell>
-                <TableCell>{member.role}</TableCell>
-                <TableCell>{member.locations?.name}</TableCell>
-                <TableCell>
-                  <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                    {member.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{member.contract_type}</TableCell>
-                <TableCell className="text-sm">
-                  {member.email && <div>{member.email}</div>}
-                  {member.phone && <div className="text-muted-foreground">{member.phone}</div>}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link to={`/workforce/staff/${member.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                  </Link>
-                </TableCell>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="hidden sm:table-cell">Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden md:table-cell">Contract</TableHead>
+                <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredStaff.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell className="font-medium">{member.full_name}</TableCell>
+                  <TableCell>{member.role}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{member.locations?.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={member.status === "active" ? "default" : "secondary"}>
+                      {member.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
+                  <TableCell className="text-sm hidden lg:table-cell">
+                    {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
+                    {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link to={`/workforce/staff/${member.id}`}>
+                      <Button variant="ghost" size="sm" className="touch-target">
+                        <Eye className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">View</span>
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
           <p>No staff members found.</p>

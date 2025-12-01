@@ -73,7 +73,7 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{location ? "Edit Location" : "Add New Location"}</DialogTitle>
           <DialogDescription>
