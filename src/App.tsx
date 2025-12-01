@@ -85,6 +85,7 @@ import DocumentDetail from "./pages/documents/DocumentDetail";
 import TrainingPrograms from "./pages/training/TrainingPrograms";
 import TrainingProgramDetail from "./pages/training/TrainingProgramDetail";
 import SystemHealth from "./pages/SystemHealth";
+import SystemHealthData from "./pages/debug/SystemHealthData";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,6 +120,16 @@ const App = () => (
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
               <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
               <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
+              
+              {/* New Audit System Routes */}
+              <Route path="/audits/templates" element={<ManagerRoute><Templates /></ManagerRoute>} />
+              <Route path="/audits/templates/new" element={<ManagerRoute><TemplateBuilder /></ManagerRoute>} />
+              <Route path="/audits/templates/:id" element={<ManagerRoute><TemplateBuilder /></ManagerRoute>} />
+              <Route path="/audits/schedule" element={<ManagerRoute><ScheduleAudit /></ManagerRoute>} />
+              <Route path="/audits/perform/:id" element={<ProtectedRoute><PerformAudit /></ProtectedRoute>} />
+              <Route path="/audits/report/:id" element={<ProtectedRoute><AuditReport /></ProtectedRoute>} />
+              <Route path="/audits/list" element={<ProtectedRoute><AuditsList /></ProtectedRoute>} />
+              
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -188,6 +199,7 @@ const App = () => (
               
               {/* System Health - Internal Diagnostics */}
               <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
+              <Route path="/debug/system-health" element={<AdminRoute><SystemHealthData /></AdminRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
