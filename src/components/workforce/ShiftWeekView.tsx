@@ -102,7 +102,7 @@ export const ShiftWeekView = () => {
             </SelectContent>
           </Select>
           
-          {selectedLocation && (
+          {selectedLocation !== "all" && (
             <Button
               variant="outline"
               size="icon"
@@ -166,7 +166,7 @@ export const ShiftWeekView = () => {
         defaultDate={selectedDate}
       />
       
-      {selectedLocation && (
+      {selectedLocation !== "all" && (
         <LocationScheduleDialog
           open={scheduleDialogOpen}
           onOpenChange={setScheduleDialogOpen}
