@@ -99,7 +99,7 @@ export default function EmployeeManagement() {
       const { error } = await supabase.functions.invoke('create-user', {
         body: {
           email: employee.email,
-          fullName: employee.full_name,
+          full_name: employee.full_name,
           employeeId: employee.id
         }
       });
