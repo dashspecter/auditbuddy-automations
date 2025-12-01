@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopBar } from "@/components/layout/AppTopBar";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { AITestAgent } from "@/components/AITestAgent";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -22,6 +23,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </div>
         </main>
       </div>
+      
+      <AITestAgent />
     </div>
   );
 };
