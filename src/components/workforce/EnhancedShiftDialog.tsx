@@ -70,7 +70,8 @@ export const EnhancedShiftDialog = ({
   const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [individualTimes, setIndividualTimes] = useState<Record<string, { start_time: string; end_time: string }>>({});
-  const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [selectedPreset, setSelectedPreset] = useState<string>("custom");
+  const [individualPresets, setIndividualPresets] = useState<Record<string, string>>({});
 
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
@@ -119,6 +120,7 @@ export const EnhancedShiftDialog = ({
       setBatchMode(false);
       setIndividualTimes({});
       setSelectedPreset("custom");
+      setIndividualPresets({});
     }
   }, [shift, defaultDate, open]);
 
@@ -627,8 +629,13 @@ export const EnhancedShiftDialog = ({
                               <div className="space-y-1">
                                 <Label className="text-xs">Quick Preset</Label>
                                 <Select
-                                  value="custom"
+                                  value={individualPresets[employee.id] || "custom"}
                                   onValueChange={(presetName) => {
+                                    setIndividualPresets({
+                                      ...individualPresets,
+                                      [employee.id]: presetName,
+                                    });
+                                    
                                     if (presetName !== "custom") {
                                       const preset = SHIFT_PRESETS.find(p => p.name === presetName);
                                       if (preset) {
@@ -672,6 +679,11 @@ export const EnhancedShiftDialog = ({
                                           start_time: e.target.value,
                                         },
                                       });
+                                      // Reset to custom when manually editing
+                                      setIndividualPresets({
+                                        ...individualPresets,
+                                        [employee.id]: "custom",
+                                      });
                                     }}
                                     className="h-8"
                                   />
@@ -688,6 +700,11 @@ export const EnhancedShiftDialog = ({
                                           ...times,
                                           end_time: e.target.value,
                                         },
+                                      });
+                                      // Reset to custom when manually editing
+                                      setIndividualPresets({
+                                        ...individualPresets,
+                                        [employee.id]: "custom",
                                       });
                                     }}
                                     className="h-8"
