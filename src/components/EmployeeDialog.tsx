@@ -111,7 +111,7 @@ export const EmployeeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{employee ? "Edit Employee" : "Add Employee"}</DialogTitle>
         </DialogHeader>
@@ -126,7 +126,7 @@ export const EmployeeDialog = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -148,7 +148,7 @@ export const EmployeeDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="contract_type">Contract Type</Label>
               <Select
@@ -178,7 +178,7 @@ export const EmployeeDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="base_salary">Base Salary</Label>
               <Input
@@ -206,7 +206,7 @@ export const EmployeeDialog = ({
 
           <div className="space-y-2">
             <Label>Emergency Contact</Label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 placeholder="Name"
                 value={formData.emergency_contact_name}

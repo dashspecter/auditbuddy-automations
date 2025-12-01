@@ -42,7 +42,13 @@ const navigationItems = [
     title: "Audits", 
     url: "/audits", 
     icon: ClipboardCheck,
-    module: "location_audits"
+    module: "location_audits",
+    subItems: [
+      { title: "Perform Audit", url: "/audits" },
+      { title: "Template Library", url: "/audits/templates", requiresManager: true },
+      { title: "Audit Calendar", url: "/audits-calendar" },
+      { title: "Schedules", url: "/recurring-schedules", requiresManager: true },
+    ]
   },
   { 
     title: "Tasks", 
@@ -115,6 +121,12 @@ const settingsItems = [
   { 
     title: "System Health", 
     url: "/system-health", 
+    icon: Activity,
+    requiresAdmin: true
+  },
+  { 
+    title: "Debug Data", 
+    url: "/debug/system-health", 
     icon: Activity,
     requiresAdmin: true
   },
