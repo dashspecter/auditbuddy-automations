@@ -35,6 +35,16 @@ interface EnhancedShiftDialogProps {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const SHIFT_PRESETS = [
+  { name: "Morning Shift", start: "06:00", end: "14:00" },
+  { name: "Day Shift", start: "09:00", end: "17:00" },
+  { name: "Evening Shift", start: "14:00", end: "22:00" },
+  { name: "Night Shift", start: "22:00", end: "06:00" },
+  { name: "Split Shift AM", start: "07:00", end: "11:00" },
+  { name: "Split Shift PM", start: "17:00", end: "21:00" },
+  { name: "Full Day", start: "08:00", end: "20:00" },
+];
+
 export const EnhancedShiftDialog = ({
   open,
   onOpenChange,
@@ -60,6 +70,7 @@ export const EnhancedShiftDialog = ({
   const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [individualTimes, setIndividualTimes] = useState<Record<string, { start_time: string; end_time: string }>>({});
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
 
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
@@ -107,6 +118,7 @@ export const EnhancedShiftDialog = ({
       setAllowCrossDepartment(false);
       setBatchMode(false);
       setIndividualTimes({});
+      setSelectedPreset("");
     }
   }, [shift, defaultDate, open]);
 
@@ -116,6 +128,32 @@ export const EnhancedShiftDialog = ({
 
   const handleRemoveBreak = (index: number) => {
     setBreaks(breaks.filter((_, i) => i !== index));
+  };
+
+  const handlePresetChange = (presetName: string) => {
+    setSelectedPreset(presetName);
+    if (presetName) {
+      const preset = SHIFT_PRESETS.find(p => p.name === presetName);
+      if (preset) {
+        setFormData({
+          ...formData,
+          start_time: preset.start,
+          end_time: preset.end,
+        });
+        
+        // Update individual times in batch mode
+        if (batchMode) {
+          const updatedTimes = { ...individualTimes };
+          selectedEmployees.forEach(empId => {
+            updatedTimes[empId] = {
+              start_time: preset.start,
+              end_time: preset.end,
+            };
+          });
+          setIndividualTimes(updatedTimes);
+        }
+      }
+    }
   };
 
   const handleBreakChange = (index: number, field: "start" | "end", value: string) => {
@@ -351,15 +389,40 @@ export const EnhancedShiftDialog = ({
                 placeholder="e.g., 3"
               />
             </div>
+          </div>
 
+          {/* Shift Preset Selector */}
+          <div className="space-y-2">
+            <Label>Shift Preset (Optional)</Label>
+            <Select
+              value={selectedPreset}
+              onValueChange={handlePresetChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a preset or set times manually" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Custom Times</SelectItem>
+                {SHIFT_PRESETS.map((preset) => (
+                  <SelectItem key={preset.name} value={preset.name}>
+                    {preset.name} ({preset.start} - {preset.end})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Time Inputs */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Time *</Label>
               <Input
                 type="time"
                 value={formData.start_time}
-                onChange={(e) =>
-                  setFormData({ ...formData, start_time: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, start_time: e.target.value });
+                  setSelectedPreset(""); // Clear preset when manually editing
+                }}
                 required
               />
             </div>
@@ -369,9 +432,10 @@ export const EnhancedShiftDialog = ({
               <Input
                 type="time"
                 value={formData.end_time}
-                onChange={(e) =>
-                  setFormData({ ...formData, end_time: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, end_time: e.target.value });
+                  setSelectedPreset(""); // Clear preset when manually editing
+                }}
                 required
               />
             </div>
