@@ -23,6 +23,7 @@ import { useCreateShift, useUpdateShift, useDeleteShift } from "@/hooks/useShift
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useCreateShiftAssignment } from "@/hooks/useShiftAssignments";
 import { format } from "date-fns";
 
 interface EnhancedShiftDialogProps {
@@ -55,12 +56,15 @@ export const EnhancedShiftDialog = ({
   });
   const [breaks, setBreaks] = useState<Array<{ start: string; end: string }>>([]);
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
   const createShift = useCreateShift();
   const updateShift = useUpdateShift();
   const deleteShift = useDeleteShift();
+  const createAssignment = useCreateShiftAssignment();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: locations = [] } = useLocations();
+  const { data: employees = [] } = useEmployees(formData.location_id || undefined);
 
   useEffect(() => {
     if (shift) {
@@ -78,6 +82,7 @@ export const EnhancedShiftDialog = ({
         break_duration_minutes: (shift.break_duration_minutes || 0).toString(),
       });
       setBreaks(shift.breaks || []);
+      setSelectedEmployees(shift.shift_assignments?.map((sa: any) => sa.staff_id) || []);
     } else {
       const dateStr = defaultDate ? format(defaultDate, 'yyyy-MM-dd') : "";
       setFormData({
@@ -95,6 +100,7 @@ export const EnhancedShiftDialog = ({
       });
       setBreaks([]);
       setApplyToDays([]);
+      setSelectedEmployees([]);
     }
   }, [shift, defaultDate, open]);
 
@@ -143,7 +149,17 @@ export const EnhancedShiftDialog = ({
       onOpenChange(false);
     } else {
       // Create shift for selected date
-      await createShift.mutateAsync(submitData);
+      const newShift = await createShift.mutateAsync(submitData);
+      
+      // Assign selected employees to the shift
+      if (newShift && selectedEmployees.length > 0) {
+        for (const employeeId of selectedEmployees) {
+          await createAssignment.mutateAsync({
+            shift_id: newShift.id,
+            employee_id: employeeId,
+          });
+        }
+      }
       
       // If apply to multiple days is selected, create shifts for those days too
       if (applyToDays.length > 0) {
@@ -156,10 +172,20 @@ export const EnhancedShiftDialog = ({
             const newDate = new Date(currentDate);
             newDate.setDate(newDate.getDate() + daysToAdd);
             
-            await createShift.mutateAsync({
+            const additionalShift = await createShift.mutateAsync({
               ...submitData,
               shift_date: format(newDate, 'yyyy-MM-dd'),
             });
+            
+            // Assign same employees to the additional shift
+            if (additionalShift && selectedEmployees.length > 0) {
+              for (const employeeId of selectedEmployees) {
+                await createAssignment.mutateAsync({
+                  shift_id: additionalShift.id,
+                  employee_id: employeeId,
+                });
+              }
+            }
           }
         }
       }
@@ -333,6 +359,42 @@ export const EnhancedShiftDialog = ({
               </div>
             </div>
           )}
+
+          {/* Assign Employees */}
+          <div className="space-y-2">
+            <Label>Assign Employees</Label>
+            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+              {employees.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {formData.location_id ? "No employees at this location" : "Select a location first"}
+                </p>
+              ) : (
+                employees
+                  .filter(emp => emp.role === formData.role || !formData.role)
+                  .map((employee) => (
+                    <div key={employee.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`employee-${employee.id}`}
+                        checked={selectedEmployees.includes(employee.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedEmployees([...selectedEmployees, employee.id]);
+                          } else {
+                            setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`employee-${employee.id}`} className="cursor-pointer flex-1">
+                        {employee.full_name} - {employee.role}
+                      </Label>
+                    </div>
+                  ))
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {selectedEmployees.length} of {formData.required_count} required staff selected
+            </p>
+          </div>
 
           {/* Checkboxes */}
           <div className="flex flex-wrap gap-4">
