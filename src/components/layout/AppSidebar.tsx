@@ -182,7 +182,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
+    <Sidebar collapsible="icon" side="left">
       <SidebarHeader className="border-b border-border p-4">
         {open ? (
           <div className="flex items-center gap-3">
