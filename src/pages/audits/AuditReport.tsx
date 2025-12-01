@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuditNew } from "@/hooks/useAuditsNew";
 import { useAuditSections } from "@/hooks/useAuditSections";
 import { useAuditFieldResponses } from "@/hooks/useAuditFieldResponses";
-import { AuditResponsesSummary } from "@/components/audit/AuditResponsesSummary";
-import { FieldResponseInput } from "@/components/audit/FieldResponseInput";
+import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
+import FieldResponseInput from "@/components/audit/FieldResponseInput";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -90,7 +91,7 @@ const AuditReport = () => {
           </TabsList>
 
           <TabsContent value="responses">
-            <AuditResponsesSummary auditId={id!} sections={sections || []} />
+            <AuditResponsesSummary auditId={id!} />
           </TabsContent>
 
           <TabsContent value="photos">

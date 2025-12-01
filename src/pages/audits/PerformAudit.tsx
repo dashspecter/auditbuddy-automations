@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuditNew, useUpdateAudit, useCompleteAudit } from "@/hooks/useAuditsNew";
 import { useAuditSections } from "@/hooks/useAuditSections";
 import { useAuditFields } from "@/hooks/useAuditFields";
-import { useAuditFieldResponses } from "@/hooks/useAuditFieldResponses";
+import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
 import FieldResponseInput from "@/components/audit/FieldResponseInput";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ const PerformAudit = () => {
   const currentSection = sections?.[currentSectionIndex];
   const { data: fields } = useAuditFields(currentSection?.id);
   const { data: responses } = useAuditFieldResponses(id);
+  const saveFieldResponse = useSaveFieldResponse();
 
   useEffect(() => {
     if (audit && audit.status === "draft") {
@@ -65,6 +66,18 @@ const PerformAudit = () => {
     navigate(`/audits/${id}`);
   };
 
+  const handleObservationChange = async (fieldId: string, value: string) => {
+    if (!id || !currentSection) return;
+
+    await saveFieldResponse.mutateAsync({
+      auditId: id,
+      sectionId: currentSection.id,
+      fieldId: fieldId,
+      responseValue: null,
+      observations: value,
+    });
+  };
+
   if (!audit || !sections || !currentSection) {
     return (
       <AppLayout>
@@ -97,14 +110,26 @@ const PerformAudit = () => {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
-            {fields?.map((field) => (
-              <FieldResponseInput
-                key={field.id}
-                field={field}
-                auditId={id!}
-                sectionId={currentSection.id}
-              />
-            ))}
+            {fields?.map((field) => {
+              const fieldResponse = responses?.find(r => r.field_id === field.id);
+              return (
+                <div key={field.id} className="space-y-2">
+                  <div>
+                    <h3 className="font-medium">{field.name}</h3>
+                    {field.is_required && (
+                      <span className="text-sm text-muted-foreground">* Required</span>
+                    )}
+                  </div>
+                  <FieldResponseInput
+                    fieldId={field.id}
+                    auditId={id!}
+                    sectionId={currentSection.id}
+                    fieldResponse={fieldResponse}
+                    onObservationChange={(value) => handleObservationChange(field.id, value)}
+                  />
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
