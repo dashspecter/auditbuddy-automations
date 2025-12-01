@@ -84,9 +84,9 @@ export default function EmployeeManagement() {
     <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Employee Management</h1>
+            <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
             <p className="text-muted-foreground mt-2">
-              Manage employees across all locations
+              Manage your team members, reset passwords, and view performance
             </p>
           </div>
           <Button onClick={handleAddNew}>

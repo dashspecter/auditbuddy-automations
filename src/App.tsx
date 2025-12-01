@@ -161,7 +161,6 @@ const App = () => (
               <Route path="/t/:shortCode" element={<TakeTest />} />
               <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
               <Route path="/admin/locations" element={<AdminRoute><AppLayout><LocationsManagement /></AppLayout></AdminRoute>} />
-              <Route path="/admin/employees" element={<ManagerRoute><AppLayout><EmployeeManagement /></AppLayout></ManagerRoute>} />
               <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
               <Route path="/recurring-schedules" element={<ManagerRoute><AppLayout><RecurringAuditSchedules /></AppLayout></ManagerRoute>} />
               <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
@@ -178,7 +177,7 @@ const App = () => (
               
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
-              <Route path="/workforce/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+              <Route path="/workforce/staff" element={<ManagerRoute><AppLayout><EmployeeManagement /></AppLayout></ManagerRoute>} />
               <Route path="/workforce/staff/:id" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
