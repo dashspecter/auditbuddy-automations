@@ -70,6 +70,12 @@ import Tasks from "./pages/Tasks";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
 import Integrations from "./pages/Integrations";
+import Templates from "./pages/audits/Templates";
+import TemplateBuilder from "./pages/audits/TemplateBuilder";
+import ScheduleAudit from "./pages/audits/ScheduleAudit";
+import PerformAudit from "./pages/audits/PerformAudit";
+import AuditReport from "./pages/audits/AuditReport";
+import AuditsList from "./pages/audits/AuditsList";
 
 const queryClient = new QueryClient({
   defaultOptions: {

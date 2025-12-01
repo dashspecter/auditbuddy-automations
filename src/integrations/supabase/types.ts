@@ -1092,6 +1092,44 @@ export type Database = {
           },
         ]
       }
+      equipment_checks: {
+        Row: {
+          check_date: string
+          created_at: string
+          equipment_id: string
+          id: string
+          notes: string | null
+          performed_by: string
+          result_status: string
+        }
+        Insert: {
+          check_date: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          performed_by: string
+          result_status: string
+        }
+        Update: {
+          check_date?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string
+          result_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_checks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_documents: {
         Row: {
           created_at: string
@@ -1225,6 +1263,50 @@ export type Database = {
             columns: ["supervised_by_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_maintenance_events: {
+        Row: {
+          attachments: Json | null
+          cost: number | null
+          created_at: string
+          description: string
+          equipment_id: string
+          event_date: string
+          id: string
+          parts_used: Json | null
+          technician: string
+        }
+        Insert: {
+          attachments?: Json | null
+          cost?: number | null
+          created_at?: string
+          description: string
+          equipment_id: string
+          event_date: string
+          id?: string
+          parts_used?: Json | null
+          technician: string
+        }
+        Update: {
+          attachments?: Json | null
+          cost?: number | null
+          created_at?: string
+          description?: string
+          equipment_id?: string
+          event_date?: string
+          id?: string
+          parts_used?: Json | null
+          technician?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_events_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
         ]
