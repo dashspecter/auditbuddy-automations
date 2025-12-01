@@ -11,6 +11,7 @@ import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
 import AuditDetail from "./pages/AuditDetail";
@@ -103,14 +104,14 @@ const App = () => (
           <CompanyProvider>
             <PWAInstallPrompt />
             <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
               <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
               <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
               <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
               <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
