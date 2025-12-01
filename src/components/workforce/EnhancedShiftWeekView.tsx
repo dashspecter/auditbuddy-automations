@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, DollarSign } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar } from "lucide-react";
 import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
@@ -347,7 +347,6 @@ export const EnhancedShiftWeekView = () => {
           return (
             <Card key={day.toISOString()} className="p-2 text-center">
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                <DollarSign className="h-3 w-3" />
                 <span>Labor</span>
               </div>
               <div className="text-sm font-medium">
