@@ -24,7 +24,8 @@ const navigationItems = [
     icon: Users,
     module: "workforce",
     subItems: [
-      { title: "Staff", url: "/workforce/staff" },
+      { title: "Staff Directory", url: "/workforce/staff" },
+      { title: "Employee Management", url: "/admin/employees", requiresManager: true },
       { title: "Shifts", url: "/workforce/shifts" },
       { title: "Attendance", url: "/workforce/attendance" },
       { title: "Time Off", url: "/workforce/time-off" },
@@ -227,7 +228,13 @@ export function AppSidebar() {
                       <ChevronDown className={`h-4 w-4 transition-transform ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="ml-7 mt-1 space-y-1">
-                      {item.subItems.map((subItem: any) => (
+                      {item.subItems.filter((subItem: any) => {
+                        // Check if subitem has manager requirement
+                        if (subItem.requiresManager && !(roleData?.isAdmin || roleData?.isManager)) {
+                          return false;
+                        }
+                        return true;
+                      }).map((subItem: any) => (
                         <NavLink
                           key={subItem.url}
                           to={subItem.url}
