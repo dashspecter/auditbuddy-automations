@@ -1,7 +1,7 @@
 import { 
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
   Wrench, Package, FileText, Lightbulb, Plug, 
-  CreditCard, Building2, ChevronDown
+  CreditCard, Building2, ChevronDown, Bell, BarChart
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -59,16 +59,30 @@ const navigationItems = [
     module: "location_audits"
   },
   { 
-    title: "Tasks", 
-    url: "/tasks", 
-    icon: ListTodo,
-    module: "tasks"
+    title: "Staff Performance", 
+    url: "/workforce/staff", 
+    icon: Users,
+    module: "staff_performance"
   },
   { 
     title: "Equipment", 
     url: "/equipment", 
     icon: Wrench,
     module: "equipment_management"
+  },
+  { 
+    title: "Notifications", 
+    url: "/notifications", 
+    icon: Bell,
+    module: "notifications",
+    requiresManager: true
+  },
+  { 
+    title: "Reports", 
+    url: "/reports", 
+    icon: BarChart,
+    module: "reports",
+    requiresManager: true
   },
   { 
     title: "Inventory", 
