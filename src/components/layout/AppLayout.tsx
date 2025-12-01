@@ -11,14 +11,14 @@ interface AppLayoutProps {
 export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="relative flex min-h-screen w-full">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col">
           <AppTopBar />
           
           <main className="flex-1 overflow-auto">
-            <div className="container mx-auto px-4 px-safe py-4">
+            <div className="container mx-auto px-4 py-4">
               <Breadcrumbs />
               <div className="mt-4">
                 {children}
