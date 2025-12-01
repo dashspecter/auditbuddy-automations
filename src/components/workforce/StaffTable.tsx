@@ -43,12 +43,12 @@ export const StaffTable = () => {
           />
         </div>
         
-        <Select value={locationFilter} onValueChange={setLocationFilter}>
+        <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Locations" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Locations</SelectItem>
+            <SelectItem value="all">All Locations</SelectItem>
             {locations?.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>
                 {loc.name}
@@ -57,12 +57,12 @@ export const StaffTable = () => {
           </SelectContent>
         </Select>
 
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
+        <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="all">All Roles</SelectItem>
             {uniqueRoles.map((role) => (
               <SelectItem key={role} value={role}>
                 {role}
@@ -71,12 +71,12 @@ export const StaffTable = () => {
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
