@@ -586,6 +586,70 @@ export type Database = {
           },
         ]
       }
+      audits: {
+        Row: {
+          auditor_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          location_id: string
+          scheduled_for: string | null
+          started_at: string | null
+          status: string
+          template_id: string
+          total_score: number | null
+        }
+        Insert: {
+          auditor_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location_id: string
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          template_id: string
+          total_score?: number | null
+        }
+        Update: {
+          auditor_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string
+          template_id?: string
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           approved_at: string | null
@@ -2491,6 +2555,67 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      scheduled_audits: {
+        Row: {
+          assigned_to: string
+          company_id: string
+          created_at: string
+          created_by: string
+          frequency: string | null
+          id: string
+          location_id: string
+          scheduled_for: string
+          status: string
+          template_id: string
+        }
+        Insert: {
+          assigned_to: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          frequency?: string | null
+          id?: string
+          location_id: string
+          scheduled_for: string
+          status?: string
+          template_id: string
+        }
+        Update: {
+          assigned_to?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          frequency?: string | null
+          id?: string
+          location_id?: string
+          scheduled_for?: string
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_audits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shift_assignments: {
         Row: {
