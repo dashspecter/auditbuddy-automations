@@ -64,13 +64,20 @@ import PlatformAdmin from "./pages/PlatformAdmin";
 import PendingApproval from "./pages/PendingApproval";
 import Workforce from "./pages/Workforce";
 import Staff from "./pages/workforce/Staff";
-import StaffProfile from "./pages/workforce/StaffProfile";
+import WorkforceStaffProfile from "./pages/workforce/StaffProfile";
 import Shifts from "./pages/workforce/Shifts";
 import Attendance from "./pages/workforce/Attendance";
 import TimeOff from "./pages/workforce/TimeOff";
 import Payroll from "./pages/workforce/Payroll";
 import StaffLogin from "./pages/StaffLogin";
-import StaffDashboard from "./pages/StaffDashboard";
+import StaffHome from "./pages/staff/StaffHome";
+import StaffSchedule from "./pages/staff/StaffSchedule";
+import StaffShiftPool from "./pages/staff/StaffShiftPool";
+import StaffTimeOff from "./pages/staff/StaffTimeOff";
+import StaffProfile from "./pages/staff/StaffProfile";
+import StaffMessages from "./pages/staff/StaffMessages";
+import StaffEarnings from "./pages/staff/StaffEarnings";
+import StaffTasks from "./pages/staff/StaffTasks";
 import Tasks from "./pages/Tasks";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
@@ -114,7 +121,16 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/staff-login" element={<StaffLogin />} />
-              <Route path="/staff-dashboard" element={<ProtectedRoute><StaffDashboard /></ProtectedRoute>} />
+              <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
+              <Route path="/staff/schedule" element={<ProtectedRoute><StaffSchedule /></ProtectedRoute>} />
+              <Route path="/staff/shift-pool" element={<ProtectedRoute><StaffShiftPool /></ProtectedRoute>} />
+              <Route path="/staff/time-off" element={<ProtectedRoute><StaffTimeOff /></ProtectedRoute>} />
+              <Route path="/staff/messages" element={<ProtectedRoute><StaffMessages /></ProtectedRoute>} />
+              <Route path="/staff/earnings" element={<ProtectedRoute><StaffEarnings /></ProtectedRoute>} />
+              <Route path="/staff/tasks" element={<ProtectedRoute><StaffTasks /></ProtectedRoute>} />
+              <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
+              {/* Legacy route - redirect to new path */}
+              <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
@@ -178,7 +194,7 @@ const App = () => (
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
               <Route path="/workforce/staff" element={<ManagerRoute><AppLayout><EmployeeManagement /></AppLayout></ManagerRoute>} />
-              <Route path="/workforce/staff/:id" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
+              <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOff /></ProtectedRoute>} />
