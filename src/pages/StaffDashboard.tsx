@@ -78,62 +78,69 @@ const StaffDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
+      <header className="border-b bg-card sticky top-0 z-10">
+        <div className="px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">{employee?.full_name}</h1>
-              <p className="text-sm text-muted-foreground">{employee?.role}</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">{employee?.full_name}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{employee?.role}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleLogout} 
+            className="gap-1.5 shrink-0"
+          >
             <LogOut className="h-4 w-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Profile Info */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Location
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-3 sm:pb-4">
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold">{employee?.locations?.name}</span>
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-semibold text-sm sm:text-base">{employee?.locations?.name}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Role
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Badge variant="secondary">{employee?.role}</Badge>
+            <CardContent className="pb-3 sm:pb-4">
+              <Badge variant="secondary" className="text-xs sm:text-sm">{employee?.role}</Badge>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          <Card className="sm:col-span-2 lg:col-span-1">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Contact
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-1 text-sm">
-                <div>{employee?.email}</div>
-                <div className="text-muted-foreground">{employee?.phone}</div>
+            <CardContent className="pb-3 sm:pb-4">
+              <div className="space-y-1 text-xs sm:text-sm">
+                <div className="break-all">{employee?.email}</div>
+                {employee?.phone && (
+                  <div className="text-muted-foreground">{employee?.phone}</div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -141,28 +148,28 @@ const StaffDashboard = () => {
 
         {/* Upcoming Shifts */}
         <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Shifts</CardTitle>
-            <CardDescription>Your scheduled shifts</CardDescription>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">Upcoming Shifts</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Your scheduled shifts</CardDescription>
           </CardHeader>
           <CardContent>
             {upcomingShifts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No upcoming shifts assigned</p>
+              <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm sm:text-base">No upcoming shifts assigned</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {upcomingShifts.map((assignment) => (
                   <div
                     key={assignment.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="border rounded-lg p-3 sm:p-4 active:bg-accent/50 transition-colors"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge>{assignment.shifts.role}</Badge>
-                          <span className="text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className="text-xs">{assignment.shifts.role}</Badge>
+                          <span className="text-xs sm:text-sm text-muted-foreground">
                             {new Date(assignment.shifts.shift_date).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
@@ -170,20 +177,23 @@ const StaffDashboard = () => {
                             })}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                           <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
+                            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                             <span>
                               {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4" />
-                            <span>{assignment.shifts.locations?.name}</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                            <span className="truncate">{assignment.shifts.locations?.name}</span>
                           </div>
                         </div>
                       </div>
-                      <Badge variant={assignment.status === "assigned" ? "default" : "secondary"}>
+                      <Badge 
+                        variant={assignment.status === "assigned" ? "default" : "secondary"}
+                        className="text-xs self-start sm:self-auto shrink-0"
+                      >
                         {assignment.status}
                       </Badge>
                     </div>
@@ -196,12 +206,14 @@ const StaffDashboard = () => {
 
         {/* Week View - shows all shifts at location (read-only for staff) */}
         <Card>
-          <CardHeader>
-            <CardTitle>Schedule Overview</CardTitle>
-            <CardDescription>View all shifts at your location</CardDescription>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">Schedule Overview</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">View all shifts at your location</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ShiftWeekView />
+          <CardContent className="p-0 sm:p-6">
+            <div className="overflow-x-auto">
+              <ShiftWeekView />
+            </div>
           </CardContent>
         </Card>
       </div>
