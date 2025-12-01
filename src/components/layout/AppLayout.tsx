@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopBar } from "@/components/layout/AppTopBar";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -10,21 +9,19 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
+    <div className="flex min-h-screen w-full bg-background">
+      <AppSidebar />
+      
+      <div className="flex flex-1 flex-col">
+        <AppTopBar />
         
-        <div className="flex flex-1 flex-col">
-          <AppTopBar />
-          
-          <main className="flex-1 overflow-auto p-4">
-            <Breadcrumbs />
-            <div className="mt-4">
-              {children}
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 overflow-auto p-4">
+          <Breadcrumbs />
+          <div className="mt-4">
+            {children}
+          </div>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
