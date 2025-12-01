@@ -16,6 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateEmployee, useUpdateEmployee } from "@/hooks/useEmployees";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
+import { Settings } from "lucide-react";
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -45,9 +48,11 @@ export const EmployeeDialog = ({
     emergency_contact_phone: "",
     notes: "",
   });
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
 
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
+  const { data: roles = [] } = useEmployeeRoles();
 
   useEffect(() => {
     if (employee) {
@@ -251,14 +256,41 @@ export const EmployeeDialog = ({
           </div>
 
           <div>
-            <Label htmlFor="role">Role</Label>
-            <Input
-              id="role"
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="role">Role</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setRoleDialogOpen(true)}
+                className="h-auto p-1 text-xs"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Manage Roles
+              </Button>
+            </div>
+            <Select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              placeholder="e.g., Server, Cook, Manager"
+              onValueChange={(value) => setFormData({ ...formData, role: value })}
               required
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.name}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: role.color }}
+                      />
+                      {role.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -287,6 +319,7 @@ export const EmployeeDialog = ({
           </div>
         </form>
       </DialogContent>
+      <RoleManagementDialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen} />
     </Dialog>
   );
 }

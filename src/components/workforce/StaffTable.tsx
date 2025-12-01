@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEmployeesPaginated } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +24,12 @@ export const StaffTable = () => {
     pageSize 
   });
   const { data: locations } = useLocations();
+  const { data: roles = [] } = useEmployeeRoles();
   
   const staff = employeesData?.data || [];
+
+  // Create a map of role names to role objects for quick lookup
+  const roleMap = new Map(roles.map(role => [role.name, role]));
 
   // Client-side filtering for search, role, and status (after server-side location filtering)
   const filteredStaff = staff.filter((member) => {
@@ -153,10 +158,27 @@ export const StaffTable = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStaff.map((member) => (
+                {filteredStaff.map((member) => {
+                  const roleData = roleMap.get(member.role);
+                  return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.full_name}</TableCell>
-                    <TableCell>{member.role}</TableCell>
+                    <TableCell>
+                      {roleData ? (
+                        <Badge 
+                          variant="outline" 
+                          style={{ 
+                            backgroundColor: `${roleData.color}20`,
+                            borderColor: roleData.color,
+                            color: roleData.color
+                          }}
+                        >
+                          {member.role}
+                        </Badge>
+                      ) : (
+                        <span>{member.role}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">{member.locations?.name}</TableCell>
                     <TableCell>
                       <Badge variant={member.status === "active" ? "default" : "secondary"}>
@@ -177,7 +199,8 @@ export const StaffTable = () => {
                       </Link>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
