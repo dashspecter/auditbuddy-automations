@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useEmployeesPaginated } from "@/hooks/useEmployees";
+import { useEmployeesPaginated, type Employee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, X, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
+import { EmployeeDialog } from "@/components/EmployeeDialog";
 
 export const StaffTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,6 +17,8 @@ export const StaffTable = () => {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const pageSize = 20;
   
   const { data: employeesData, isLoading } = useEmployeesPaginated({ 
@@ -191,12 +194,25 @@ export const StaffTable = () => {
                       {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link to={`/workforce/staff/${member.id}`}>
-                        <Button variant="ghost" size="sm" className="touch-target">
-                          <Eye className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">View</span>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedEmployee(member);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Edit</span>
                         </Button>
-                      </Link>
+                        <Link to={`/workforce/staff/${member.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">View</span>
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                   );
@@ -262,6 +278,16 @@ export const StaffTable = () => {
           )}
         </div>
       )}
+
+      <EmployeeDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setSelectedEmployee(null);
+        }}
+        employee={selectedEmployee || undefined}
+        locations={locations || []}
+      />
     </div>
   );
 };
