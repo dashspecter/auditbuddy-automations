@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
 import { useEmployees, useDeleteEmployee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
+import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +36,8 @@ export default function EmployeeManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [employeeToResetPassword, setEmployeeToResetPassword] = useState<any>(null);
 
   const { data: employees, isLoading } = useEmployees(
     filterLocationId === "__all__" ? undefined : filterLocationId
@@ -70,6 +73,11 @@ export default function EmployeeManagement() {
   const handleAddNew = () => {
     setSelectedEmployee(null);
     setDialogOpen(true);
+  };
+
+  const handleResetPassword = (employee: any) => {
+    setEmployeeToResetPassword(employee);
+    setResetPasswordDialogOpen(true);
   };
 
   return (
@@ -132,20 +140,32 @@ export default function EmployeeManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(employee)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(employee.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {employee.user_id && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleResetPassword(employee)}
+                            title="Reset Password"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(employee)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(employee.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -230,6 +250,12 @@ export default function EmployeeManagement() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <ResetPasswordDialog
+          open={resetPasswordDialogOpen}
+          onOpenChange={setResetPasswordDialogOpen}
+          employee={employeeToResetPassword}
+        />
       </div>
   );
 }

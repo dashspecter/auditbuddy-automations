@@ -52,7 +52,7 @@ serve(async (req) => {
       throw new Error('Insufficient permissions');
     }
 
-    const { userId, email, fullName } = await req.json();
+    const { userId, email, fullName, password } = await req.json();
 
     if (!userId) {
       throw new Error('User ID is required');
@@ -65,6 +65,15 @@ serve(async (req) => {
         { email }
       );
       if (emailError) throw emailError;
+    }
+
+    // Update password if provided
+    if (password) {
+      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        { password }
+      );
+      if (passwordError) throw passwordError;
     }
 
     // Update profile
