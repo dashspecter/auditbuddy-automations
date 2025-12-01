@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
 import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
@@ -304,6 +306,7 @@ const Reports = () => {
   };
 
   return (
+    <ModuleGate module="reports">
     <div className="space-y-6">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
@@ -749,6 +752,7 @@ const Reports = () => {
         </div>
         )}
     </div>
+    </ModuleGate>
   );
 };
 

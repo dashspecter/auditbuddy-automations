@@ -31,6 +31,7 @@ import { useLocations, useDeleteLocation, Location } from "@/hooks/useLocations"
 import { LocationDialog } from "@/components/locations/LocationDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationDataMigration } from "@/components/locations/LocationDataMigration";
+import { EmptyState } from "@/components/EmptyState";
 
 const LocationsManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -150,10 +151,15 @@ const LocationsManagement = () => {
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No locations found. Add your first location to get started.</p>
-              </div>
+              <EmptyState
+                icon={MapPin}
+                title="No Locations"
+                description="No locations found. Add your first location to get started."
+                action={{
+                  label: "Add Location",
+                  onClick: handleAddNew
+                }}
+              />
             )}
           </CardContent>
         </Card>

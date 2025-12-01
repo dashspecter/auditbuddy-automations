@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { useIntegrations, useCreateIntegration } from "@/hooks/useIntegrations";
 import { useNavigate } from "react-router-dom";
 import { Plus, Settings, Plug, ShoppingCart, FileText, Users, Mail, Eye, Calendar, ChevronRight } from "lucide-react";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -88,6 +90,7 @@ const Integrations = () => {
   };
 
   return (
+    <ModuleGate module="integrations">
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -184,11 +187,15 @@ const Integrations = () => {
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading integrations...</div>
             ) : !integrations || integrations.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Plug className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No integrations configured yet</p>
-                <p className="text-sm mt-2">Click "Add Integration" to get started</p>
-              </div>
+              <EmptyState
+                icon={Plug}
+                title="No Integrations"
+                description="No integrations configured yet. Add your first integration to get started."
+                action={{
+                  label: "Add Integration",
+                  onClick: () => setDialogOpen(true)
+                }}
+              />
             ) : (
               <div className="space-y-2">
                 {integrations.map((integration) => {
@@ -228,6 +235,7 @@ const Integrations = () => {
         </Card>
       </div>
     </AppLayout>
+    </ModuleGate>
   );
 };
 
