@@ -62,6 +62,15 @@ Brand color: Orange (hue 25) - No blue colors used.
     --chart-3: 142 76% 36%;
     --chart-4: 38 92% 50%;
     --chart-5: 25 95% 45%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 25 95% 53%;
   }
 
   .dark {
@@ -110,6 +119,15 @@ Brand color: Orange (hue 25) - No blue colors used.
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+
+    --sidebar-background: 222 47% 15%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 25 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 223 47% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 25 95% 53%;
   }
 }
 
