@@ -59,6 +59,16 @@ import { CompanyOwnerRoute } from "./components/CompanyOwnerRoute";
 import PricingPlans from "./pages/PricingPlans";
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PendingApproval from "./pages/PendingApproval";
+import Workforce from "./pages/Workforce";
+import Staff from "./pages/workforce/Staff";
+import Shifts from "./pages/workforce/Shifts";
+import Attendance from "./pages/workforce/Attendance";
+import TimeOff from "./pages/workforce/TimeOff";
+import Payroll from "./pages/workforce/Payroll";
+import Tasks from "./pages/Tasks";
+import Inventory from "./pages/Inventory";
+import Insights from "./pages/Insights";
+import Integrations from "./pages/Integrations";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,6 +140,27 @@ const App = () => (
               <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
               <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
               <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
+              
+              {/* Workforce Routes */}
+              <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
+              <Route path="/workforce/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+              <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
+              <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+              <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOff /></ProtectedRoute>} />
+              <Route path="/workforce/payroll" element={<ManagerRoute><Payroll /></ManagerRoute>} />
+              
+              {/* Tasks Routes */}
+              <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+              
+              {/* Inventory Routes */}
+              <Route path="/inventory" element={<ManagerRoute><Inventory /></ManagerRoute>} />
+              
+              {/* Insights Routes */}
+              <Route path="/insights" element={<ManagerRoute><Insights /></ManagerRoute>} />
+              
+              {/* Integrations Routes */}
+              <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
