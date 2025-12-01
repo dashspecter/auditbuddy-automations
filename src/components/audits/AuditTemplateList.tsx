@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const AuditTemplateList = () => {
-  const [locationFilter, setLocationFilter] = useState<string>("");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   
   const { data: templates, isLoading } = useAuditTemplates();
@@ -27,7 +27,7 @@ export const AuditTemplateList = () => {
   const deleteTemplate = useDeleteAuditTemplate();
 
   const filteredTemplates = templates?.filter((template) => {
-    if (!locationFilter) return true;
+    if (locationFilter === "all") return true;
     if (locationFilter === "global") return template.is_global;
     return template.location_id === locationFilter;
   });
@@ -60,7 +60,7 @@ export const AuditTemplateList = () => {
             <SelectValue placeholder="Filter by location" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Templates</SelectItem>
+            <SelectItem value="all">All Templates</SelectItem>
             <SelectItem value="global">Global Templates</SelectItem>
             {locations?.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>

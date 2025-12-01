@@ -23,18 +23,18 @@ export const ShiftWeekView = () => {
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   
   const { data: locations = [] } = useLocations();
   const { data: shifts = [], isLoading } = useShifts(
-    selectedLocation || undefined,
+    selectedLocation !== "all" ? selectedLocation : undefined,
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
-  const { data: schedules = [] } = useLocationSchedules(selectedLocation || undefined);
+  const { data: schedules = [] } = useLocationSchedules(selectedLocation !== "all" ? selectedLocation : undefined);
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -93,7 +93,7 @@ export const ShiftWeekView = () => {
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locations</SelectItem>
+              <SelectItem value="all">All Locations</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
