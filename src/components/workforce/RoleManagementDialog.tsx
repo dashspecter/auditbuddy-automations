@@ -26,6 +26,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
     name: "",
     description: "",
     color: "#6366f1",
+    department: "General",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,7 +39,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
       await createRole.mutateAsync(formData);
     }
     
-    setFormData({ name: "", description: "", color: "#6366f1" });
+    setFormData({ name: "", description: "", color: "#6366f1", department: "General" });
   };
 
   const handleEdit = (role: any) => {
@@ -47,12 +48,13 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
       name: role.name,
       description: role.description || "",
       color: role.color,
+      department: role.department || "General",
     });
   };
 
   const handleCancelEdit = () => {
     setEditingRole(null);
-    setFormData({ name: "", description: "", color: "#6366f1" });
+    setFormData({ name: "", description: "", color: "#6366f1", department: "General" });
   };
 
   const handleDelete = async () => {
@@ -95,6 +97,19 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Input
+                    id="department"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    placeholder="e.g., Kitchen, Front of House"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="color">Color</Label>
                   <div className="flex gap-2">
@@ -170,7 +185,12 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                           style={{ backgroundColor: role.color }}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium">{role.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{role.name}</p>
+                            <Badge variant="secondary" className="text-xs">
+                              {role.department}
+                            </Badge>
+                          </div>
                           {role.description && (
                             <p className="text-sm text-muted-foreground truncate">
                               {role.description}

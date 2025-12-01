@@ -1011,6 +1011,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          department: string | null
           description: string | null
           id: string
           name: string
@@ -1021,6 +1022,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          department?: string | null
           description?: string | null
           id?: string
           name: string
@@ -1031,6 +1033,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          department?: string | null
           description?: string | null
           id?: string
           name?: string

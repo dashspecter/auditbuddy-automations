@@ -9,6 +9,7 @@ export interface EmployeeRole {
   name: string;
   description: string | null;
   color: string;
+  department: string;
   created_at: string;
   updated_at: string;
   created_by: string;
