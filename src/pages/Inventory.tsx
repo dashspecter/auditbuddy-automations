@@ -3,8 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Package, Upload, FileBarChart, TruckIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
+import { useNavigate } from "react-router-dom";
 
 const Inventory = () => {
+  const navigate = useNavigate();
+
+  // TODO: Add actual inventory data hook when available
+  const hasInventoryData = false;
+
   const modules = [
     {
       title: "Inventory Items",
@@ -37,89 +45,109 @@ const Inventory = () => {
   ];
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Inventory Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Track stock, manage suppliers, and process invoices
-            </p>
+    <ModuleGate module="inventory">
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Inventory Management</h1>
+              <p className="text-muted-foreground mt-1">
+                Track stock, manage suppliers, and process invoices
+              </p>
+            </div>
+            <Button className="gap-2" onClick={() => navigate("/inventory/snapshots/new")}>
+              <Package className="h-4 w-4" />
+              Take Count
+            </Button>
           </div>
-          <Button className="gap-2">
-            <Package className="h-4 w-4" />
-            Take Count
-          </Button>
-        </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {modules.map((module) => (
-            <Card key={module.title} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <module.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg">{module.title}</CardTitle>
-                </div>
-                <CardDescription>{module.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to={module.link}>
-                  <Button variant="outline" className="w-full">
-                    {module.action}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {!hasInventoryData ? (
+            <EmptyState
+              icon={Package}
+              title="No Inventory Items Yet"
+              description="Start managing your inventory by setting up items, taking stock counts, and tracking suppliers."
+              action={{
+                label: "Add First Item",
+                onClick: () => navigate("/inventory/items/new")
+              }}
+              secondaryAction={{
+                label: "Take Inventory Count",
+                onClick: () => navigate("/inventory/snapshots/new")
+              }}
+            />
+          ) : (
+            <>
+              <div className="grid gap-6 md:grid-cols-2">
+                {modules.map((module) => (
+                  <Card key={module.title} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <module.icon className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">{module.title}</CardTitle>
+                      </div>
+                      <CardDescription>{module.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link to={module.link}>
+                        <Button variant="outline" className="w-full">
+                          {module.action}
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Count
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">-</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Suppliers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                This Month Invoices
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-            </CardContent>
-          </Card>
+              {/* Quick Stats */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Total Items
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Last Count
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">-</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Active Suppliers
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      This Month Invoices
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
+    </ModuleGate>
   );
 };
 
