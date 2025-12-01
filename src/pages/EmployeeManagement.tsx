@@ -6,6 +6,8 @@ import { useEmployees, useDeleteEmployee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -80,6 +82,40 @@ export default function EmployeeManagement() {
     setResetPasswordDialogOpen(true);
   };
 
+  const handleCreateAccount = async (employee: any) => {
+    if (!employee.email) {
+      toast.error("Employee must have an email address");
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error("You must be logged in");
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: employee.email,
+          fullName: employee.full_name,
+          employeeId: employee.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Login account created for ${employee.full_name}. They can now reset their password.`);
+      
+      // Refresh the employees list
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Create account error:', error);
+      toast.error(error.message || "Failed to create account");
+    }
+  };
+
   return (
     <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -141,7 +177,7 @@ export default function EmployeeManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {employee.user_id && (
+                        {employee.user_id ? (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -150,7 +186,18 @@ export default function EmployeeManagement() {
                           >
                             <KeyRound className="h-4 w-4" />
                           </Button>
-                        )}
+                        ) : employee.email ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCreateAccount(employee)}
+                            title="Create Login Account"
+                            className="text-xs"
+                          >
+                            <KeyRound className="h-4 w-4 mr-1" />
+                            Create Account
+                          </Button>
+                        ) : null}
                         <Button
                           variant="ghost"
                           size="icon"

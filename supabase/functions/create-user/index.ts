@@ -52,9 +52,72 @@ serve(async (req) => {
     }
 
     // Get request body
-    const { email, password, role, full_name, companyId, companyRole } = await req.json();
+    const { email, password, role, full_name, companyId, companyRole, employeeId } = await req.json();
 
-    console.log('Received request:', { email, role, companyRole, companyId, hasPassword: !!password });
+    console.log('Received request:', { email, role, companyRole, companyId, employeeId, hasPassword: !!password });
+
+    // For employee account creation
+    if (employeeId) {
+      if (!email || !full_name) {
+        throw new Error('Missing required fields: email, full_name');
+      }
+
+      // Check if requesting user is a manager or admin
+      const { data: roles } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      const hasPermission = roles?.some(r => r.role === 'admin' || r.role === 'manager');
+      if (!hasPermission) {
+        throw new Error('Insufficient permissions');
+      }
+
+      // Generate a temporary password
+      const tempPassword = crypto.randomUUID();
+
+      // Create the user using admin client
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: full_name
+        }
+      });
+
+      if (createError) {
+        console.error('Error creating user:', createError);
+        throw createError;
+      }
+
+      console.log('Employee user created:', newUser.user.id);
+
+      // Link user to employee record
+      const { error: employeeUpdateError } = await supabaseAdmin
+        .from('employees')
+        .update({ user_id: newUser.user.id })
+        .eq('id', employeeId);
+
+      if (employeeUpdateError) {
+        console.error('Error linking user to employee:', employeeUpdateError);
+        throw employeeUpdateError;
+      }
+
+      console.log('User linked to employee:', employeeId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          userId: newUser.user.id,
+          message: 'Employee login account created. Use password reset to set their password.'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
 
     // For company invitations, we need email, companyId, and companyRole
     if (companyId && companyRole) {
