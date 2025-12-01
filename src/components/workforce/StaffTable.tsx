@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeesPaginated } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, X, Filter } from "lucide-react";
+import { Search, Eye, X, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const StaffTable = () => {
@@ -14,37 +14,46 @@ export const StaffTable = () => {
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   
-  const { data: staff, isLoading } = useEmployees();
+  const { data: employeesData, isLoading } = useEmployeesPaginated({ 
+    locationId: locationFilter || undefined,
+    page: currentPage,
+    pageSize 
+  });
   const { data: locations } = useLocations();
+  
+  const staff = employeesData?.data || [];
 
-  const filteredStaff = staff?.filter((member) => {
-    // Safe search that handles nulls
+  // Client-side filtering for search, role, and status (after server-side location filtering)
+  const filteredStaff = staff.filter((member) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || 
       member.full_name?.toLowerCase().includes(searchLower) ||
       member.role?.toLowerCase().includes(searchLower) ||
       member.email?.toLowerCase().includes(searchLower);
     
-    const matchesLocation = !locationFilter || member.location_id === locationFilter;
     const matchesRole = !roleFilter || member.role === roleFilter;
     const matchesStatus = !statusFilter || member.status === statusFilter;
     
-    return matchesSearch && matchesLocation && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const uniqueRoles = [...new Set(staff?.map(s => s.role) || [])];
+  const uniqueRoles = [...new Set(staff.map(s => s.role) || [])];
 
-  // Count active filters
   const activeFilterCount = [searchTerm, locationFilter, roleFilter, statusFilter].filter(Boolean).length;
 
-  // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
     setLocationFilter("");
     setRoleFilter("");
     setStatusFilter("");
+    setCurrentPage(1);
   };
+  
+  const totalPages = employeesData?.pageCount || 1;
+  const totalCount = employeesData?.count || 0;
 
   return (
     <div className="space-y-4">
@@ -129,48 +138,81 @@ export const StaffTable = () => {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading staff...</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden sm:table-cell">Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Contract</TableHead>
-                <TableHead className="hidden lg:table-cell">Contact</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStaff.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.full_name}</TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{member.locations?.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                      {member.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
-                  <TableCell className="text-sm hidden lg:table-cell">
-                    {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
-                    {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link to={`/workforce/staff/${member.id}`}>
-                      <Button variant="ghost" size="sm" className="touch-target">
-                        <Eye className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">View</span>
-                      </Button>
-                    </Link>
-                  </TableCell>
+        <>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="hidden sm:table-cell">Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Contract</TableHead>
+                  <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredStaff.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.full_name}</TableCell>
+                    <TableCell>{member.role}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{member.locations?.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={member.status === "active" ? "default" : "secondary"}>
+                        {member.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
+                    <TableCell className="text-sm hidden lg:table-cell">
+                      {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
+                      {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link to={`/workforce/staff/${member.id}`}>
+                        <Button variant="ghost" size="sm" className="touch-target">
+                          <Eye className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">View</span>
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} staff members
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12 text-muted-foreground space-y-4">
           <div>

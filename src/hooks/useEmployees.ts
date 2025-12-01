@@ -46,6 +46,43 @@ export const useEmployees = (locationId?: string) => {
   });
 };
 
+interface UseEmployeesPaginatedOptions {
+  locationId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export const useEmployeesPaginated = (options?: UseEmployeesPaginatedOptions) => {
+  const { locationId, page = 1, pageSize = 20 } = options || {};
+  
+  return useQuery({
+    queryKey: ["employees-paginated", locationId, page, pageSize],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      let query = supabase
+        .from("employees")
+        .select("*, locations(name)", { count: 'exact' })
+        .order("full_name")
+        .range(from, to);
+      
+      if (locationId) {
+        query = query.eq("location_id", locationId);
+      }
+      
+      const { data, error, count } = await query;
+      
+      if (error) throw error;
+      return { 
+        data: data as Employee[], 
+        count: count || 0,
+        pageCount: Math.ceil((count || 0) / pageSize)
+      };
+    },
+  });
+};
+
 export const useCreateEmployee = () => {
   const queryClient = useQueryClient();
   
@@ -74,6 +111,7 @@ export const useCreateEmployee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
       toast.success("Employee added successfully");
     },
     onError: (error) => {
@@ -99,6 +137,7 @@ export const useUpdateEmployee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
       toast.success("Employee updated successfully");
     },
     onError: (error) => {
@@ -121,6 +160,7 @@ export const useDeleteEmployee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
       toast.success("Employee deleted successfully");
     },
     onError: (error) => {
