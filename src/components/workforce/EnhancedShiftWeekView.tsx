@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const EnhancedShiftWeekView = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -54,10 +60,13 @@ export const EnhancedShiftWeekView = () => {
   );
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
-  const { data: weatherData = [], isLoading: weatherLoading, error: weatherError } = useWeather();
+  const { data: weatherData, isLoading: weatherLoading, error: weatherError } = useWeather();
   const { data: departmentsList = [] } = useDepartments();
 
   console.log("Weather data:", weatherData, "Loading:", weatherLoading, "Error:", weatherError);
+
+  const [weatherPopoverOpen, setWeatherPopoverOpen] = useState(false);
+  const [selectedWeatherDate, setSelectedWeatherDate] = useState<string | null>(null);
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -128,7 +137,12 @@ export const EnhancedShiftWeekView = () => {
 
   const getWeatherForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return weatherData.find(w => w.date === dateStr);
+    return weatherData?.daily?.find(w => w.date === dateStr);
+  };
+
+  const getHourlyWeatherForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return weatherData?.hourly?.[dateStr] || [];
   };
 
   const handleAddShift = (date: Date) => {
@@ -221,9 +235,46 @@ export const EnhancedShiftWeekView = () => {
                 <div className="font-medium">{format(day, 'EEE')}</div>
                 <div className="text-sm text-muted-foreground">{format(day, 'MMM d')}</div>
                 {weather && (
-                  <div className="text-lg my-1" title={weather.description}>
-                    {weather.icon} {weather.temperature}°C
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button 
+                        className="text-lg my-1 cursor-pointer hover:scale-110 transition-transform" 
+                        title={`${weather.description} - Click for hourly forecast`}
+                      >
+                        {weather.icon} {weather.temperature}°C
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-3">
+                        <div className="font-semibold text-lg flex items-center gap-2">
+                          <span className="text-2xl">{weather.icon}</span>
+                          <div>
+                            <div>{format(day, 'EEEE, MMM d')}</div>
+                            <div className="text-sm text-muted-foreground font-normal">{weather.description}</div>
+                          </div>
+                        </div>
+                        <ScrollArea className="h-[300px] pr-4">
+                          <div className="space-y-2">
+                            {getHourlyWeatherForDay(day).map((hourly, idx) => (
+                              <div key={idx} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm font-medium w-12">{hourly.time.slice(0, 5)}</span>
+                                  <span className="text-xl">{hourly.icon}</span>
+                                  <span className="text-xs text-muted-foreground">{hourly.description}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {hourly.precipitation > 0 && (
+                                    <span className="text-xs text-blue-500">💧 {hourly.precipitation}mm</span>
+                                  )}
+                                  <span className="text-sm font-medium">{hourly.temperature}°C</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
               </div>

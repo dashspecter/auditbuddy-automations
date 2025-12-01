@@ -9,6 +9,20 @@ interface WeatherData {
   description: string;
 }
 
+interface HourlyWeatherData {
+  time: string;
+  temperature: number;
+  weatherCode: number;
+  icon: string;
+  description: string;
+  precipitation: number;
+}
+
+interface WeatherResponse {
+  daily: WeatherData[];
+  hourly: Record<string, HourlyWeatherData[]>; // Keyed by date
+}
+
 // Weather code to description mapping (WMO Weather interpretation codes)
 const getWeatherInfo = (code: number): { icon: string; description: string } => {
   if (code === 0) return { icon: "☀️", description: "Clear" };
@@ -29,7 +43,7 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
     queryFn: async () => {
       try {
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Bucharest&forecast_days=14`
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,weather_code,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Bucharest&forecast_days=14`
         );
         
         if (!response.ok) {
@@ -40,7 +54,8 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
         const data = await response.json();
         console.log("Weather API response:", data);
         
-        const weatherData: WeatherData[] = data.daily.time.map((date: string, index: number) => {
+        // Process daily data
+        const dailyData: WeatherData[] = data.daily.time.map((date: string, index: number) => {
           const weatherCode = data.daily.weather_code[index];
           const { icon, description } = getWeatherInfo(weatherCode);
           
@@ -53,8 +68,36 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
           };
         });
         
-        console.log("Processed weather data:", weatherData);
-        return weatherData;
+        // Process hourly data and group by date
+        const hourlyByDate: Record<string, HourlyWeatherData[]> = {};
+        
+        data.hourly.time.forEach((time: string, index: number) => {
+          const date = time.split('T')[0];
+          const hour = time.split('T')[1];
+          const weatherCode = data.hourly.weather_code[index];
+          const { icon, description } = getWeatherInfo(weatherCode);
+          
+          if (!hourlyByDate[date]) {
+            hourlyByDate[date] = [];
+          }
+          
+          hourlyByDate[date].push({
+            time: hour,
+            temperature: Math.round(data.hourly.temperature_2m[index]),
+            weatherCode,
+            icon,
+            description,
+            precipitation: data.hourly.precipitation[index] || 0,
+          });
+        });
+        
+        const weatherResponse: WeatherResponse = {
+          daily: dailyData,
+          hourly: hourlyByDate,
+        };
+        
+        console.log("Processed weather data:", weatherResponse);
+        return weatherResponse;
       } catch (error) {
         console.error("Weather fetch error:", error);
         throw error;
