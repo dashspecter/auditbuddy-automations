@@ -1,32 +1,136 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, TrendingUp, AlertTriangle, FileText, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocations } from "@/hooks/useLocations";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useLocationTrends } from "@/hooks/useLocationTrends";
+import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
+import { useInsightSummaries, useSaveInsightSummary } from "@/hooks/useInsightSummaries";
+import { useState } from "react";
+import { format, subDays, subWeeks, subMonths } from "date-fns";
+import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
+import { LocationPerformanceChart } from "@/components/dashboard/LocationPerformanceChart";
+import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerformanceTrends";
 
 const Insights = () => {
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
+  
+  const { data: locations } = useLocations();
+  const { totalAudits, avgScore, isLoading: statsLoading } = useDashboardStats();
+  const { locationTrends, isLoading: trendsLoading } = useLocationTrends();
+  const { sectionPerformance, locationPerformance } = usePerformanceTrends(
+    locationFilter === "all" ? undefined : locationFilter
+  );
+  const { data: summaries } = useInsightSummaries();
+  const saveSummary = useSaveInsightSummary();
+
+  const getPeriodDates = () => {
+    const now = new Date();
+    switch (period) {
+      case "daily":
+        return { start: format(subDays(now, 1), "yyyy-MM-dd"), end: format(now, "yyyy-MM-dd") };
+      case "weekly":
+        return { start: format(subWeeks(now, 1), "yyyy-MM-dd"), end: format(now, "yyyy-MM-dd") };
+      case "monthly":
+        return { start: format(subMonths(now, 1), "yyyy-MM-dd"), end: format(now, "yyyy-MM-dd") };
+    }
+  };
+
+  const handleSaveSummary = () => {
+    const dates = getPeriodDates();
+    saveSummary.mutate({
+      summaryType: period,
+      periodStart: dates.start,
+      periodEnd: dates.end,
+      content: {
+        totalAudits,
+        avgScore,
+        locationTrends,
+        sectionPerformance: sectionPerformance.slice(0, 5),
+      },
+    });
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "improvement":
+      case "improving":
+        return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case "decline":
+      case "declining":
+        return <TrendingDown className="h-4 w-4 text-destructive" />;
+      default:
+        return <Minus className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">AI Insights</h1>
+            <h1 className="text-3xl font-bold">Insights</h1>
             <p className="text-muted-foreground mt-1">
-              AI-powered analytics and recommendations for your business
+              Analytics and performance trends
             </p>
           </div>
-          <Button className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Generate Report
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleSaveSummary}>
+              <Download className="h-4 w-4" />
+              Save Summary
+            </Button>
+          </div>
         </div>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Location</label>
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {locations?.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Period</label>
+                <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+            <TabsTrigger value="sections">Sections</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
           </TabsList>
 
@@ -34,101 +138,128 @@ const Insights = () => {
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4" />
-                    Active Insights
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Audits
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold">{totalAudits}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Critical Alerts
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Average Score
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-destructive">0</div>
+                  <div className="text-2xl font-bold">{avgScore}%</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Reports Generated
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Locations Tracked
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">0</div>
+                  <div className="text-2xl font-bold">{locationTrends.length}</div>
                 </CardContent>
               </Card>
             </div>
 
+            <ComplianceChart />
+          </TabsContent>
+
+          <TabsContent value="locations" className="space-y-6">
+            <LocationPerformanceChart />
+            
             <Card>
               <CardHeader>
-                <CardTitle>AI Summary</CardTitle>
-                <CardDescription>Your business at a glance</CardDescription>
+                <CardTitle>Location Trends</CardTitle>
+                <CardDescription>Score changes by location</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center text-muted-foreground py-12">
-                  <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>AI insights will appear here once you have enough data.</p>
-                  <p className="text-sm mt-2">Continue using DashSpect to unlock intelligent recommendations.</p>
-                </div>
+                {trendsLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading trends...</div>
+                ) : locationTrends.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No location data available
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {locationTrends.map((trend) => (
+                      <div key={trend.location} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium">{trend.location}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {trend.auditCount} audits
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-2xl font-bold">{trend.currentScore}%</div>
+                              {trend.auditCount >= 2 && (
+                                <div className="flex items-center gap-1 text-sm">
+                                  {getTrendIcon(trend.trend)}
+                                  <span className={
+                                    trend.trend === "improvement" ? "text-green-500" :
+                                    trend.trend === "decline" ? "text-destructive" :
+                                    "text-muted-foreground"
+                                  }>
+                                    {trend.scoreDifference > 0 ? "+" : ""}{trend.scoreDifference}%
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="alerts">
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Alerts</CardTitle>
-                <CardDescription>AI-detected issues requiring attention</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-muted-foreground py-12">
-                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No active alerts.</p>
-                  <p className="text-sm mt-2">AI will notify you of potential issues.</p>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="sections" className="space-y-6">
+            <SectionPerformanceTrends />
           </TabsContent>
 
-          <TabsContent value="reports">
+          <TabsContent value="trends" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Generated Reports</CardTitle>
-                <CardDescription>AI-generated business summaries</CardDescription>
+                <CardTitle>Saved Summaries</CardTitle>
+                <CardDescription>Previously saved insight reports</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center text-muted-foreground py-12">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No reports generated yet.</p>
-                  <Button className="mt-4" variant="outline">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate First Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="trends">
-            <Card>
-              <CardHeader>
-                <CardTitle>Trend Analysis</CardTitle>
-                <CardDescription>AI-identified patterns in your operations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-muted-foreground py-12">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Not enough data for trend analysis.</p>
-                  <p className="text-sm mt-2">Trends will appear after collecting more operational data.</p>
-                </div>
+                {summaries && summaries.length > 0 ? (
+                  <div className="space-y-4">
+                    {summaries.slice(0, 5).map((summary) => (
+                      <div key={summary.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-medium capitalize">{summary.summary_type} Summary</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(summary.period_start), "MMM d")} - {format(new Date(summary.period_end), "MMM d, yyyy")}
+                            </p>
+                          </div>
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        {summary.content_html && (
+                          <div className="text-sm text-muted-foreground mt-2">
+                            Generated {format(new Date(summary.generated_at), "MMM d, yyyy")}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No saved summaries yet. Use "Save Summary" to create one.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
