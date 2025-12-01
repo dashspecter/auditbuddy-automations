@@ -71,6 +71,7 @@ import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
 import AIFeed from "./pages/AIFeed";
 import Integrations from "./pages/Integrations";
+import IntegrationDetail from "./pages/IntegrationDetail";
 import Templates from "./pages/audits/Templates";
 import TemplateBuilder from "./pages/audits/TemplateBuilder";
 import ScheduleAudit from "./pages/audits/ScheduleAudit";
@@ -176,6 +177,7 @@ const App = () => (
               
               {/* Integrations Routes */}
               <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
+              <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
