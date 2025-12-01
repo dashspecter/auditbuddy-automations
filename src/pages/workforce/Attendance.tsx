@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, QrCode, Calendar } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
 
 const Attendance = () => {
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -13,11 +17,13 @@ const Attendance = () => {
             Monitor staff check-ins, check-outs, and work hours
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setQrDialogOpen(true)}>
           <QrCode className="h-4 w-4" />
           Generate QR Code
         </Button>
       </div>
+
+      <AttendanceQRDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
