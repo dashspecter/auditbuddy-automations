@@ -43,14 +43,14 @@ const StaffDashboard = () => {
         .from("shift_assignments")
         .select(`
           *,
-          shifts(
+          shifts!inner(
             *,
             locations(name)
           )
         `)
         .eq("staff_id", empData.id)
         .gte("shifts.shift_date", today)
-        .order("shifts.shift_date", { ascending: true })
+        .order("shift_date", { foreignTable: "shifts", ascending: true })
         .limit(5);
 
       if (assignmentsError) throw assignmentsError;
