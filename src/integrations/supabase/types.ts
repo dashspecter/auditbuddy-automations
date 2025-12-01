@@ -2012,6 +2012,50 @@ export type Database = {
           },
         ]
       }
+      location_operating_schedules: {
+        Row: {
+          close_time: string
+          created_at: string
+          created_by: string
+          day_of_week: number
+          id: string
+          is_closed: boolean
+          location_id: string
+          open_time: string
+          updated_at: string
+        }
+        Insert: {
+          close_time: string
+          created_at?: string
+          created_by: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean
+          location_id: string
+          open_time: string
+          updated_at?: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          created_by?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean
+          location_id?: string
+          open_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_operating_schedules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
