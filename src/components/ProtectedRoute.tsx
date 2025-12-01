@@ -19,6 +19,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Routes that don't need company data
   const isSpecialRoute = location.pathname.startsWith('/onboarding') || 
                          location.pathname === '/pending-approval' ||
+                         location.pathname === '/staff-dashboard' ||
                          location.pathname === '/system-health' ||
                          location.pathname === '/debug/system-health';
 
