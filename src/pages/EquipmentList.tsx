@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, QrCode, AlertTriangle, Wrench } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -21,21 +20,18 @@ export default function EquipmentList() {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
             <p className="text-muted-foreground">Loading equipment...</p>
           </div>
         </div>
-      </AppLayout>
     );
   }
 
   return (
     <ModuleGate module="equipment_management">
-      <AppLayout>
-        <div className="space-y-6">
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Equipment Management</h1>
@@ -131,7 +127,6 @@ export default function EquipmentList() {
             </>
           )}
         </div>
-      </AppLayout>
     </ModuleGate>
   );
 }
