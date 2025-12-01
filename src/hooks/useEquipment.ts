@@ -54,6 +54,54 @@ export const useEquipment = (locationId?: string, status?: string) => {
   });
 };
 
+interface UseEquipmentPaginatedOptions {
+  locationId?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export const useEquipmentPaginated = (options?: UseEquipmentPaginatedOptions) => {
+  const { locationId, status, page = 1, pageSize = 20 } = options || {};
+  
+  return useQuery({
+    queryKey: ["equipment-paginated", locationId, status, page, pageSize],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      let query = supabase
+        .from("equipment")
+        .select(`
+          *,
+          locations (
+            name,
+            city
+          )
+        `, { count: 'exact' })
+        .order("name")
+        .range(from, to);
+
+      if (locationId && locationId !== "__all__") {
+        query = query.eq("location_id", locationId);
+      }
+
+      if (status) {
+        query = query.eq("status", status);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+      return {
+        data: data as Equipment[],
+        count: count || 0,
+        pageCount: Math.ceil((count || 0) / pageSize)
+      };
+    },
+  });
+};
+
 export const useEquipmentById = (id: string) => {
   return useQuery({
     queryKey: ["equipment", id],
@@ -109,6 +157,7 @@ export const useCreateEquipment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-paginated"] });
       toast.success("Equipment added successfully");
     },
     onError: (error: Error) => {
@@ -134,6 +183,7 @@ export const useUpdateEquipment = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-paginated"] });
       toast.success("Equipment updated successfully");
     },
     onError: (error: Error) => {
