@@ -11,6 +11,7 @@ const Index = () => {
   const { user, loading } = useAuth();
   const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
 
+  // Show loading state
   if (loading || companyLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -22,6 +23,7 @@ const Index = () => {
     );
   }
 
+  // Show account paused state
   if (user && isAccountPaused) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -41,6 +43,7 @@ const Index = () => {
     );
   }
 
+  // Show Landing or Dashboard based on auth status
   return user ? <Dashboard /> : <Landing />;
 };
 
