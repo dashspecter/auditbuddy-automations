@@ -266,7 +266,7 @@ export const EnhancedShiftDialog = ({
                 Staff Needed for this Role *
                 {formData.role && (
                   <span className="text-xs text-muted-foreground block mt-1">
-                    Total {roles.find(r => r.name === formData.role)?.name || 'staff'} positions needed ({roles.find(r => r.name === formData.role)?.department || 'General'} department)
+                    Total {roles.find(r => r.name === formData.role)?.name || 'staff'} positions needed
                   </span>
                 )}
               </Label>

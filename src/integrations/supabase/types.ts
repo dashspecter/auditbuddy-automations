@@ -833,6 +833,50 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          color: string | null
+          company_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_categories: {
         Row: {
           company_id: string
@@ -1011,7 +1055,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
-          department: string | null
+          department_id: string | null
           description: string | null
           id: string
           name: string
@@ -1022,7 +1066,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
-          department?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           name: string
@@ -1033,7 +1077,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
-          department?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -1045,6 +1089,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_roles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
