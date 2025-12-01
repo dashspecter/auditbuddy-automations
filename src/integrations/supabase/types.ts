@@ -110,6 +110,69 @@ export type Database = {
           },
         ]
       }
+      api_call_logs: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          duration_ms: number | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          integration_id: string | null
+          method: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status_code: number | null
+          success: boolean | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          duration_ms?: number | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          integration_id?: string | null
+          method: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status_code?: number | null
+          success?: boolean | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          duration_ms?: number | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          integration_id?: string | null
+          method?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status_code?: number | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_call_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_call_logs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_logs: {
         Row: {
           approved_at: string | null
@@ -3809,45 +3872,52 @@ export type Database = {
       }
       webhook_logs: {
         Row: {
-          created_at: string
-          direction: string
-          endpoint: string | null
-          error: string | null
+          company_id: string
+          created_at: string | null
+          error_message: string | null
           headers: Json | null
           id: string
           integration_id: string | null
-          method: string | null
-          payload: Json | null
-          response_body: Json | null
-          response_status: number | null
+          payload: Json
+          processed: boolean | null
+          processed_at: string | null
+          status_code: number | null
+          webhook_type: string
         }
         Insert: {
-          created_at?: string
-          direction: string
-          endpoint?: string | null
-          error?: string | null
+          company_id: string
+          created_at?: string | null
+          error_message?: string | null
           headers?: Json | null
           id?: string
           integration_id?: string | null
-          method?: string | null
-          payload?: Json | null
-          response_body?: Json | null
-          response_status?: number | null
+          payload: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          status_code?: number | null
+          webhook_type: string
         }
         Update: {
-          created_at?: string
-          direction?: string
-          endpoint?: string | null
-          error?: string | null
+          company_id?: string
+          created_at?: string | null
+          error_message?: string | null
           headers?: Json | null
           id?: string
           integration_id?: string | null
-          method?: string | null
-          payload?: Json | null
-          response_body?: Json | null
-          response_status?: number | null
+          payload?: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          status_code?: number | null
+          webhook_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "webhook_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "webhook_logs_integration_id_fkey"
             columns: ["integration_id"]
