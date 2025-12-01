@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit, Calendar, FileText, Wrench, QrCode, Download } from "lucide-react";
+import { ArrowLeft, Edit, Calendar, FileText, Wrench, QrCode, Download, ClipboardCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEquipmentById } from "@/hooks/useEquipment";
 import { useEquipmentDocuments } from "@/hooks/useEquipmentDocuments";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
+import { useEquipmentChecks } from "@/hooks/useEquipmentChecks";
+import { useMaintenanceEvents } from "@/hooks/useMaintenanceEvents";
+import { useEquipmentStatusHistory } from "@/hooks/useEquipmentStatusHistory";
 import { ScheduleInterventionDialog } from "@/components/ScheduleInterventionDialog";
+import { EquipmentCheckDialog } from "@/components/equipment/EquipmentCheckDialog";
+import { MaintenanceEventDialog } from "@/components/equipment/MaintenanceEventDialog";
+import { EquipmentRiskBadge } from "@/components/equipment/EquipmentRiskBadge";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -22,6 +29,8 @@ export default function EquipmentDetail() {
   const { id } = useParams();
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showCheckDialog, setShowCheckDialog] = useState(false);
+  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
   
   const { user } = useAuth();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
@@ -29,8 +38,10 @@ export default function EquipmentDetail() {
 
   const { data: equipment, isLoading, error } = useEquipmentById(id || "");
   const { data: documents } = useEquipmentDocuments(id || "");
-  // Only fetch interventions if user is authenticated to avoid profile join issues
   const { data: interventions } = useEquipmentInterventions(user ? (id || "") : undefined);
+  const { data: checks } = useEquipmentChecks(id);
+  const { data: maintenanceEvents } = useMaintenanceEvents(id);
+  const { data: statusHistory } = useEquipmentStatusHistory(id);
   
   // For QR codes to work, they must use the published app URL
   // When viewing in editor, use window.location.origin which will be correct when scanned from published app
@@ -139,10 +150,20 @@ export default function EquipmentDetail() {
               QR Code
             </Button>
             {isManager && (
-              <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Equipment
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setShowCheckDialog(true)}>
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Log Check
+                </Button>
+                <Button variant="outline" onClick={() => setShowMaintenanceDialog(true)}>
+                  <Wrench className="mr-2 h-4 w-4" />
+                  Log Maintenance
+                </Button>
+                <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -191,13 +212,11 @@ export default function EquipmentDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={
-                  equipment.status === "active" ? "default" : 
-                  equipment.status === "transferred" ? "outline" : 
-                  "secondary"
-                }>
-                  {equipment.status}
-                </Badge>
+                <EquipmentRiskBadge
+                  lastCheckDate={equipment.last_check_date}
+                  nextCheckDate={equipment.next_check_date}
+                  status={equipment.status}
+                />
               </div>
             </div>
 
@@ -238,99 +257,219 @@ export default function EquipmentDetail() {
         )}
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5" />
-              Interventions & Checks History
+              History & Maintenance
             </CardTitle>
-            {isManager && (
-              <Button onClick={() => setShowScheduleDialog(true)}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule Next Check
-              </Button>
-            )}
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Performed By</TableHead>
-                    <TableHead>Supervised By</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Next Check</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!user ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Sign in to view intervention history
-                      </TableCell>
-                    </TableRow>
-                  ) : !interventions || interventions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        {isManager ? "No interventions recorded yet. Schedule the first check to get started." : "No intervention history available."}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    interventions.map((intervention) => (
-                      <TableRow
-                        key={intervention.id}
-                        className={isManager ? "cursor-pointer hover:bg-muted/50" : ""}
-                        onClick={isManager ? () => navigate(`/interventions/${intervention.id}`) : undefined}
-                      >
-                        <TableCell>
-                          {format(new Date(intervention.scheduled_for), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell>{intervention.title}</TableCell>
-                        <TableCell>
-                          {intervention.performed_by?.full_name || intervention.performed_by?.email}
-                        </TableCell>
-                        <TableCell>
-                          {intervention.supervised_by
-                            ? intervention.supervised_by.full_name || intervention.supervised_by.email
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              intervention.status === "completed"
-                                ? "default"
-                                : intervention.status === "overdue"
-                                ? "destructive"
-                                : "secondary"
-                            }
-                          >
-                            {intervention.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {intervention.next_check_date
-                            ? format(new Date(intervention.next_check_date), "MMM d, yyyy")
-                            : "-"}
-                        </TableCell>
+            <Tabs defaultValue="interventions">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="interventions">Interventions</TabsTrigger>
+                <TabsTrigger value="checks">Checks</TabsTrigger>
+                <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+                <TabsTrigger value="status">Status History</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="interventions">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Performed By</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Next Check</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {!user ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            Sign in to view intervention history
+                          </TableCell>
+                        </TableRow>
+                      ) : !interventions || interventions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No interventions recorded yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        interventions.map((intervention) => (
+                          <TableRow
+                            key={intervention.id}
+                            className={isManager ? "cursor-pointer hover:bg-muted/50" : ""}
+                            onClick={isManager ? () => navigate(`/interventions/${intervention.id}`) : undefined}
+                          >
+                            <TableCell>
+                              {format(new Date(intervention.scheduled_for), "MMM d, yyyy")}
+                            </TableCell>
+                            <TableCell>{intervention.title}</TableCell>
+                            <TableCell>
+                              {intervention.performed_by?.full_name || intervention.performed_by?.email}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  intervention.status === "completed"
+                                    ? "default"
+                                    : intervention.status === "overdue"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
+                              >
+                                {intervention.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {intervention.next_check_date
+                                ? format(new Date(intervention.next_check_date), "MMM d, yyyy")
+                                : "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="checks">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Check Date</TableHead>
+                        <TableHead>Result</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {!checks || checks.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            No checks logged yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        checks.map((check) => (
+                          <TableRow key={check.id}>
+                            <TableCell>{format(new Date(check.check_date), "MMM d, yyyy")}</TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                check.result_status === "passed" ? "default" :
+                                check.result_status === "failed" ? "destructive" :
+                                "secondary"
+                              }>
+                                {check.result_status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-md truncate">{check.notes || "-"}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="maintenance">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Technician</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {!maintenanceEvents || maintenanceEvents.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No maintenance events logged yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        maintenanceEvents.map((event) => (
+                          <TableRow key={event.id}>
+                            <TableCell>{format(new Date(event.event_date), "MMM d, yyyy")}</TableCell>
+                            <TableCell>{event.technician}</TableCell>
+                            <TableCell className="max-w-md truncate">{event.description}</TableCell>
+                            <TableCell>{event.cost ? `$${event.cost.toFixed(2)}` : "-"}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="status">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>From</TableHead>
+                        <TableHead>To</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {!statusHistory || statusHistory.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No status changes recorded.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        statusHistory.map((history) => (
+                          <TableRow key={history.id}>
+                            <TableCell>{format(new Date(history.changed_at), "MMM d, yyyy p")}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{history.old_status || "N/A"}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge>{history.new_status}</Badge>
+                            </TableCell>
+                            <TableCell className="max-w-md truncate">{history.notes || "-"}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </main>
 
       {isManager && (
-        <ScheduleInterventionDialog
-          open={showScheduleDialog}
-          onOpenChange={setShowScheduleDialog}
-          equipmentId={id!}
-          equipmentName={equipment.name}
-          locationId={equipment.location_id}
-        />
+        <>
+          <ScheduleInterventionDialog
+            open={showScheduleDialog}
+            onOpenChange={setShowScheduleDialog}
+            equipmentId={id!}
+            equipmentName={equipment.name}
+            locationId={equipment.location_id}
+          />
+          <EquipmentCheckDialog
+            open={showCheckDialog}
+            onOpenChange={setShowCheckDialog}
+            equipmentId={id!}
+          />
+          <MaintenanceEventDialog
+            open={showMaintenanceDialog}
+            onOpenChange={setShowMaintenanceDialog}
+            equipmentId={id!}
+          />
+        </>
       )}
 
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
