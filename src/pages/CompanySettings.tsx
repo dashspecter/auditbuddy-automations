@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,18 +178,15 @@ export default function CompanySettings() {
 
   if (companyLoading) {
     return (
-      <AppLayout>
-        <div className="space-y-4">
+      <div className="space-y-4">
           <Skeleton className="h-8 w-64 mb-4" />
           <Skeleton className="h-64 w-full" />
         </div>
-      </AppLayout>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-3 mb-6">
           <Building2 className="h-8 w-8 text-primary" />
           <div>
@@ -554,6 +550,5 @@ export default function CompanySettings() {
           </DialogContent>
         </Dialog>
       </div>
-    </AppLayout>
   );
 }
