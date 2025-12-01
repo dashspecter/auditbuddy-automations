@@ -1,16 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus } from "lucide-react";
+import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus, Briefcase } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGate } from "@/components/ModuleGate";
 import { useEmployees } from "@/hooks/useEmployees";
 import { EmptyState } from "@/components/EmptyState";
+import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
+import { useState } from "react";
 
 const Workforce = () => {
   const navigate = useNavigate();
   const { hasModule } = useCompanyContext();
   const { data: employees, isLoading } = useEmployees();
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
 
   const modules = [
     {
@@ -73,12 +76,18 @@ const Workforce = () => {
               Manage your team, schedules, and payroll in one place
             </p>
           </div>
-          <Link to="/workforce/staff/new">
-            <Button className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Add Staff Member
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setRoleDialogOpen(true)}>
+              <Briefcase className="h-4 w-4" />
+              Manage Roles
             </Button>
-          </Link>
+            <Link to="/workforce/staff/new">
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Add Staff Member
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {staffCount === 0 ? (
@@ -162,6 +171,7 @@ const Workforce = () => {
           </>
         )}
       </div>
+      <RoleManagementDialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen} />
     </ModuleGate>
   );
 };
