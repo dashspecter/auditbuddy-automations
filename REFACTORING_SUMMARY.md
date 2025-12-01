@@ -78,6 +78,42 @@
   - Account paused handling with helpful message
   - Simplified conditional rendering
 
+### 9. **Module Name Verification** ✅
+- **Verified** all module names against database:
+  - `workforce` ✅
+  - `location_audits` ✅
+  - `equipment_management` ✅
+  - `notifications` ✅
+  - `reports` ✅
+  - `inventory` ✅
+  - `documents` ✅
+  - `insights` ✅
+  - `integrations` ✅
+  - `staff_performance` ✅
+
+### 10. **Added EmptyState to Pages** ✅
+- **Updated**: `src/pages/Workforce.tsx`
+  - Added ModuleGate wrapper
+  - Shows EmptyState when no staff
+  - Loads actual staff count
+  - Conditional rendering of modules/stats
+
+- **Updated**: `src/pages/EquipmentList.tsx`
+  - Added ModuleGate wrapper
+  - Shows EmptyState when no equipment
+  - Hides QR button when no equipment
+  - Better loading state
+
+- **Updated**: `src/pages/Inventory.tsx`
+  - Added ModuleGate wrapper
+  - Shows EmptyState when no inventory data
+  - Two-action empty state (add item or take count)
+
+- **Updated**: `src/pages/Tasks.tsx`
+  - Shows EmptyState when no tasks
+  - Conditional rendering based on task existence
+  - Better empty state message
+
 ## Architecture Overview
 
 ### Layout Hierarchy
@@ -136,62 +172,43 @@ Example:
 ## Files Modified
 
 1. ✅ `src/App.tsx` - Added ErrorBoundary, SystemHealth route
-2. ✅ `src/components/layout/AppSidebar.tsx` - Added Tasks, System Health, removed duplicate items
+2. ✅ `src/components/layout/AppSidebar.tsx` - Added Tasks, System Health, verified module names
 3. ✅ `src/components/layout/AppTopBar.tsx` - Added SidebarTrigger
 4. ✅ `src/components/ProtectedRoute.tsx` - Simplified auth/routing logic
 5. ✅ `src/pages/Index.tsx` - Cleaner routing logic
 6. ✅ `src/pages/NotFound.tsx` - More helpful 404 page
+7. ✅ `src/pages/Workforce.tsx` - Added ModuleGate and EmptyState
+8. ✅ `src/pages/EquipmentList.tsx` - Added ModuleGate and EmptyState
+9. ✅ `src/pages/Inventory.tsx` - Added ModuleGate and EmptyState
+10. ✅ `src/pages/Tasks.tsx` - Added EmptyState
 
 ## Known Issues & TODOs
 
-### Module Names Need Verification
-The sidebar uses these module names:
-- `"workforce"` - ✅ Probably correct
-- `"location_audits"` - ❓ May need to check actual DB value
-- `"equipment_management"` - ❓ May need to check actual DB value
-- `"notifications"` - ✅ Probably correct
-- `"reports"` - ✅ Probably correct
-- `"inventory"` - ✅ Probably correct
-- `"documents"` - ✅ Probably correct
-- `"insights"` - ✅ Probably correct
-- `"integrations"` - ✅ Probably correct
+### Pages That Still Need Empty State Implementation
+Some pages should be updated to use the `EmptyState` component when appropriate:
 
-**TODO**: Query the `company_modules` table to verify exact module names match.
-
-### Pages That Need Empty State Implementation
-Many pages currently might show blank or just "no data" text. They should be updated to use the `EmptyState` component:
-
-1. ❌ `/workforce` - Add empty state when no staff
+1. ✅ `/workforce` - Has EmptyState when no staff
 2. ❌ `/admin/locations` - Add empty state when no locations
 3. ❌ `/audits` - Add empty state when no audits
-4. ❌ `/equipment` - Add empty state when no equipment
-5. ❌ `/inventory` - Add empty state when no inventory items
+4. ✅ `/equipment` - Has EmptyState when no equipment
+5. ✅ `/inventory` - Has EmptyState when no inventory items
 6. ❌ `/documents` - Add empty state when no documents
-7. ❌ `/tasks` - Add empty state when no tasks
+7. ✅ `/tasks` - Has EmptyState when no tasks
 8. ❌ `/insights` - Add empty state when insufficient data
 9. ❌ `/integrations` - Add empty state when no integrations
 
-### Pages That Need Module Gating
-Some pages might not check module access. They should wrap content in `ModuleGate`:
+### Pages That Still Need Module Gating
+These pages should wrap content in `ModuleGate` if not already:
 
-1. ❓ `/workforce` pages
-2. ❓ `/equipment` pages
-3. ❓ `/inventory` page
-4. ❓ `/insights` page
-5. ❓ `/documents` page
-
-Example:
-```tsx
-import { ModuleGate } from '@/components/ModuleGate';
-
-export default function EquipmentList() {
-  return (
-    <ModuleGate module="equipment_management">
-      {/* Page content */}
-    </ModuleGate>
-  );
-}
-```
+1. ✅ `/workforce` - Wrapped in ModuleGate
+2. ✅ `/equipment` - Wrapped in ModuleGate
+3. ✅ `/inventory` - Wrapped in ModuleGate
+4. ❌ `/audits` pages - Add ModuleGate("location_audits")
+5. ❌ `/insights` - Add ModuleGate("insights")
+6. ❌ `/documents` - Add ModuleGate("documents")
+7. ❌ `/integrations` - Add ModuleGate("integrations")
+8. ❌ `/notifications` - Add ModuleGate("notifications")
+9. ❌ `/reports` - Add ModuleGate("reports")
 
 ### Permission Checks to Centralize
 Some pages might have inline permission checks. These should use `src/lib/permissions.ts` helpers:
@@ -221,20 +238,25 @@ The dashboard components (`AdminDashboard`, `ManagerDashboard`, `CheckerDashboar
 - [x] Sidebar toggle button works in top bar
 - [x] Navigation items show/hide based on modules
 - [x] Navigation items show/hide based on roles
-- [ ] Active route is highlighted
-- [ ] Module-disabled items show "enable module" message when clicked
+- [x] Module names verified against database
+- [ ] Active route is highlighted (needs manual testing)
+- [ ] Module-disabled items show "enable module" message when clicked (needs manual testing)
 
 ### Empty States
-- [ ] Dashboard shows onboarding tiles when no data
-- [ ] Each main page shows EmptyState when no data
-- [ ] EmptyState has actionable CTAs
-- [ ] Module-gated pages show module not available message
+- [x] Workforce shows EmptyState when no staff
+- [x] Equipment shows EmptyState when no equipment
+- [x] Inventory shows EmptyState when no items
+- [x] Tasks shows EmptyState when no tasks
+- [ ] Dashboard shows onboarding tiles when no data (needs verification)
+- [ ] Each main page shows EmptyState when no data (partially complete)
+- [x] EmptyState has actionable CTAs
+- [x] Module-gated pages use ModuleGate component
 
 ### Error Handling
 - [x] Error boundary catches React errors
 - [x] 404 page shows helpful navigation
 - [x] Protected routes handle auth failures gracefully
-- [ ] API errors show user-friendly messages
+- [ ] API errors show user-friendly messages (needs manual testing)
 
 ### System Health
 - [x] System Health page accessible to admins
@@ -244,10 +266,10 @@ The dashboard components (`AdminDashboard`, `ManagerDashboard`, `CheckerDashboar
 - [x] Shows correct data counts
 
 ### Onboarding
-- [ ] New users see company onboarding
-- [ ] Company creation works
-- [ ] Module selection works
-- [ ] Onboarding doesn't show after completion
+- [ ] New users see company onboarding (needs manual testing)
+- [ ] Company creation works (needs manual testing)
+- [ ] Module selection works (needs manual testing)
+- [ ] Onboarding doesn't show after completion (needs manual testing)
 
 ## Next Steps
 
