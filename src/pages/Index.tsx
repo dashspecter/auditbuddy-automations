@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -42,13 +41,7 @@ const Index = () => {
     );
   }
 
-  return user ? (
-    <ProtectedLayout>
-      <Dashboard />
-    </ProtectedLayout>
-  ) : (
-    <Landing />
-  );
+  return user ? <Dashboard /> : <Landing />;
 };
 
 export default Index;
