@@ -1,10 +1,9 @@
 import { useAuth } from "@/contexts/AuthContext";
-import Dashboard from "./Dashboard";
 import Landing from "./Landing";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
@@ -43,8 +42,8 @@ const Index = () => {
     );
   }
 
-  // Show Landing or Dashboard based on auth status
-  return user ? <Dashboard /> : <Landing />;
+  // Redirect to dashboard if logged in, otherwise show landing
+  return user ? <Navigate to="/dashboard" replace /> : <Landing />;
 };
 
 export default Index;
