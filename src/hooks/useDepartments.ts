@@ -3,44 +3,45 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export interface EmployeeRole {
+export interface Department {
   id: string;
   company_id: string;
   name: string;
   description: string | null;
   color: string;
-  department_id: string | null;
+  display_order: number;
+  created_by: string;
   created_at: string;
   updated_at: string;
-  created_by: string;
 }
 
-export const useEmployeeRoles = () => {
+export const useDepartments = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['employee_roles'],
+    queryKey: ['departments'],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('employee_roles')
+        .from('departments')
         .select('*')
+        .order('display_order')
         .order('name');
 
       if (error) throw error;
-      return data as EmployeeRole[];
+      return data as Department[];
     },
     enabled: !!user,
   });
 };
 
-export const useCreateEmployeeRole = () => {
+export const useCreateDepartment = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (role: Omit<EmployeeRole, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'company_id'>) => {
+    mutationFn: async (department: Omit<Department, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'company_id'>) => {
       if (!user) throw new Error('Not authenticated');
 
       const { data: companyData } = await supabase
@@ -52,9 +53,9 @@ export const useCreateEmployeeRole = () => {
       if (!companyData) throw new Error('No company found');
 
       const { data, error } = await supabase
-        .from('employee_roles')
+        .from('departments')
         .insert({
-          ...role,
+          ...department,
           company_id: companyData.company_id,
           created_by: user.id,
         })
@@ -65,22 +66,23 @@ export const useCreateEmployeeRole = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
       queryClient.invalidateQueries({ queryKey: ['employee_roles'] });
-      toast.success('Role created successfully');
+      toast.success('Department created successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to create role: ${error.message}`);
+      toast.error(`Failed to create department: ${error.message}`);
     },
   });
 };
 
-export const useUpdateEmployeeRole = () => {
+export const useUpdateDepartment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<EmployeeRole> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Department> & { id: string }) => {
       const { data, error } = await supabase
-        .from('employee_roles')
+        .from('departments')
         .update(updates)
         .eq('id', id)
         .select()
@@ -90,34 +92,35 @@ export const useUpdateEmployeeRole = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
       queryClient.invalidateQueries({ queryKey: ['employee_roles'] });
-      toast.success('Role updated successfully');
+      toast.success('Department updated successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update role: ${error.message}`);
+      toast.error(`Failed to update department: ${error.message}`);
     },
   });
 };
 
-export const useDeleteEmployeeRole = () => {
+export const useDeleteDepartment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('employee_roles')
+        .from('departments')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
       queryClient.invalidateQueries({ queryKey: ['employee_roles'] });
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast.success('Role deleted successfully');
+      toast.success('Department deleted successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to delete role: ${error.message}`);
+      toast.error(`Failed to delete department: ${error.message}`);
     },
   });
 };

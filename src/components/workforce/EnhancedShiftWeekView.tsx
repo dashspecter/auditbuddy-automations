@@ -9,6 +9,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
 import { useLaborCosts } from "@/hooks/useLaborCosts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { useDepartments } from "@/hooks/useDepartments";
 import { useWeather } from "@/hooks/useWeather";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isWithinInterval, parseISO } from "date-fns";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
@@ -54,6 +55,7 @@ export const EnhancedShiftWeekView = () => {
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: weatherData = [] } = useWeather();
+  const { data: departmentsList = [] } = useDepartments();
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -62,12 +64,14 @@ export const EnhancedShiftWeekView = () => {
   // Group employees by department based on their role
   const employeesByDepartment = employees.reduce((acc, employee) => {
     const role = roles.find(r => r.name === employee.role);
-    const department = role?.department || 'General';
+    const departmentId = role?.department_id;
+    const department = departmentsList.find(d => d.id === departmentId);
+    const departmentName = department?.name || 'General';
     
-    if (!acc[department]) {
-      acc[department] = [];
+    if (!acc[departmentName]) {
+      acc[departmentName] = [];
     }
-    acc[department].push(employee);
+    acc[departmentName].push(employee);
     return acc;
   }, {} as Record<string, typeof employees>);
 

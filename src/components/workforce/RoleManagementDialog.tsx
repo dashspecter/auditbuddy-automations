@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Briefcase } from "lucide-react";
+import { Plus, Pencil, Trash2, Briefcase, Building2 } from "lucide-react";
 import { useEmployeeRoles, useCreateEmployeeRole, useUpdateEmployeeRole, useDeleteEmployeeRole } from "@/hooks/useEmployeeRoles";
+import { useDepartments } from "@/hooks/useDepartments";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DepartmentManagementDialog } from "./DepartmentManagementDialog";
 
 interface RoleManagementDialogProps {
   open: boolean;
@@ -16,17 +19,19 @@ interface RoleManagementDialogProps {
 
 export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialogProps) {
   const { data: roles = [], isLoading } = useEmployeeRoles();
+  const { data: departments = [] } = useDepartments();
   const createRole = useCreateEmployeeRole();
   const updateRole = useUpdateEmployeeRole();
   const deleteRole = useDeleteEmployeeRole();
 
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [deletingRole, setDeletingRole] = useState<string | null>(null);
+  const [departmentDialogOpen, setDepartmentDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     color: "#6366f1",
-    department: "General",
+    department_id: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +44,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
       await createRole.mutateAsync(formData);
     }
     
-    setFormData({ name: "", description: "", color: "#6366f1", department: "General" });
+    setFormData({ name: "", description: "", color: "#6366f1", department_id: "" });
   };
 
   const handleEdit = (role: any) => {
@@ -48,13 +53,13 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
       name: role.name,
       description: role.description || "",
       color: role.color,
-      department: role.department || "General",
+      department_id: role.department_id || "",
     });
   };
 
   const handleCancelEdit = () => {
     setEditingRole(null);
-    setFormData({ name: "", description: "", color: "#6366f1", department: "General" });
+    setFormData({ name: "", description: "", color: "#6366f1", department_id: "" });
   };
 
   const handleDelete = async () => {
@@ -98,14 +103,34 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department *</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="e.g., Kitchen, Front of House"
-                    required
-                  />
+                  <Label htmlFor="department_id">Department *</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.department_id}
+                      onValueChange={(value) => setFormData({ ...formData, department_id: value })}
+                      required
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>
+                            {dept.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setDepartmentDialogOpen(true)}
+                      title="Manage Departments"
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -184,19 +209,19 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                           className="w-4 h-4 rounded-full flex-shrink-0"
                           style={{ backgroundColor: role.color }}
                         />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{role.name}</p>
-                            <Badge variant="secondary" className="text-xs">
-                              {role.department}
-                            </Badge>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{role.name}</p>
+                              <Badge variant="secondary" className="text-xs">
+                                {departments.find(d => d.id === role.department_id)?.name || 'General'}
+                              </Badge>
+                            </div>
+                            {role.description && (
+                              <p className="text-sm text-muted-foreground truncate">
+                                {role.description}
+                              </p>
+                            )}
                           </div>
-                          {role.description && (
-                            <p className="text-sm text-muted-foreground truncate">
-                              {role.description}
-                            </p>
-                          )}
-                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -223,6 +248,11 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
           </div>
         </DialogContent>
       </Dialog>
+
+      <DepartmentManagementDialog 
+        open={departmentDialogOpen}
+        onOpenChange={setDepartmentDialogOpen}
+      />
 
       <AlertDialog open={!!deletingRole} onOpenChange={(open) => !open && setDeletingRole(null)}>
         <AlertDialogContent>
