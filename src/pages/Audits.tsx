@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { SwipeableListItem } from "@/components/SwipeableListItem";
 import ModuleTourWrapper from "@/components/onboarding/ModuleTourWrapper";
 import { MODULE_TOURS } from "@/config/moduleTours";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
 
 const Audits = () => {
   const navigate = useNavigate();
@@ -113,12 +115,13 @@ const Audits = () => {
   };
 
   return (
-    <ModuleTourWrapper
-      moduleName="location_audits"
-      steps={MODULE_TOURS.location_audits.steps}
-      moduleIcon={MODULE_TOURS.location_audits.icon}
-    >
-      <PullToRefresh onRefresh={handleRefresh}>
+    <ModuleGate module="location_audits">
+      <ModuleTourWrapper
+        moduleName="location_audits"
+        steps={MODULE_TOURS.location_audits.steps}
+        moduleIcon={MODULE_TOURS.location_audits.icon}
+      >
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -181,11 +184,15 @@ const Audits = () => {
                 <p className="text-muted-foreground">Loading audits...</p>
               </div>
             ) : filteredAudits.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  {audits?.length === 0 ? "No audits found. Create your first audit!" : "No audits match your filters."}
-                </p>
-              </div>
+              <EmptyState
+                icon={FileEdit}
+                title={audits?.length === 0 ? "No Audits Yet" : "No Matching Audits"}
+                description={audits?.length === 0 ? "Create your first audit to get started." : "No audits match your current filters."}
+                action={audits?.length === 0 ? {
+                  label: "Create Audit",
+                  onClick: () => navigate('/location-audit')
+                } : undefined}
+              />
             ) : (
               <div className="space-y-3">
                 {filteredAudits.map((audit) => (
@@ -279,6 +286,7 @@ const Audits = () => {
         </div>
       </PullToRefresh>
     </ModuleTourWrapper>
+    </ModuleGate>
   );
 };
 

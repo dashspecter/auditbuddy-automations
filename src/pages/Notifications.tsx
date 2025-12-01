@@ -34,6 +34,7 @@ import {
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
+import { ModuleGate } from "@/components/ModuleGate";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -246,6 +247,7 @@ export default function Notifications() {
   }
 
   return (
+    <ModuleGate module="notifications">
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 px-safe py-8 pb-safe">
@@ -786,5 +788,6 @@ export default function Notifications() {
         </div>
       </div>
     </div>
+    </ModuleGate>
   );
 }

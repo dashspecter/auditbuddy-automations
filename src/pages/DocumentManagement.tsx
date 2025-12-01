@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
 import { LocationSelector } from "@/components/LocationSelector";
 import { format } from "date-fns";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
 
 const DocumentManagement = () => {
   const { user } = useAuth();
@@ -273,6 +275,7 @@ const DocumentManagement = () => {
   const permitContractDocuments = documents.filter(d => d.document_type !== "knowledge");
 
   return (
+    <ModuleGate module="documents">
     <div className="space-y-6">
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -461,9 +464,15 @@ const DocumentManagement = () => {
                   ))}
                 </div>
                 {categories.length === 0 && (
-                  <p className="text-muted-foreground text-center py-8">
-                    No categories yet. Create one to get started.
-                  </p>
+                  <EmptyState
+                    icon={FileText}
+                    title="No Categories"
+                    description="No categories yet. Create one to get started."
+                    action={{
+                      label: "Create Category",
+                      onClick: () => setCategoryDialogOpen(true)
+                    }}
+                  />
                 )}
               </div>
 
@@ -499,9 +508,15 @@ const DocumentManagement = () => {
                   ))}
                 </div>
                 {knowledgeDocuments.length === 0 && (
-                  <p className="text-muted-foreground text-center py-8">
-                    No knowledge documents yet. Upload one to get started.
-                  </p>
+                  <EmptyState
+                    icon={FileText}
+                    title="No Documents"
+                    description="No knowledge documents yet. Upload one to get started."
+                    action={{
+                      label: "Upload Document",
+                      onClick: () => setDocumentDialogOpen(true)
+                    }}
+                  />
                 )}
               </div>
             </TabsContent>
@@ -604,15 +619,25 @@ const DocumentManagement = () => {
                   ))}
                 </div>
                 {permitContractDocuments.length === 0 && (
-                  <p className="text-muted-foreground text-center py-8">
-                    No permits or contracts yet. Upload one to get started.
-                  </p>
+                  <EmptyState
+                    icon={CalendarIcon}
+                    title="No Permits or Contracts"
+                    description="No permits or contracts yet. Upload one to get started."
+                    action={{
+                      label: "Upload Document",
+                      onClick: () => {
+                        setNewDocument({ ...newDocument, documentType: "permit" });
+                        setDocumentDialogOpen(true);
+                      }
+                    }}
+                  />
                 )}
               </div>
             </TabsContent>
           </Tabs>
         </div>
     </div>
+    </ModuleGate>
   );
 };
 

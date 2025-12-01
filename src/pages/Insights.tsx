@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocations } from "@/hooks/useLocations";
@@ -14,6 +14,8 @@ import { format, subDays, subWeeks, subMonths } from "date-fns";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { LocationPerformanceChart } from "@/components/dashboard/LocationPerformanceChart";
 import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerformanceTrends";
+import { ModuleGate } from "@/components/ModuleGate";
+import { EmptyState } from "@/components/EmptyState";
 
 const Insights = () => {
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -69,6 +71,7 @@ const Insights = () => {
   };
 
   return (
+    <ModuleGate module="reports">
     <AppLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -183,9 +186,11 @@ const Insights = () => {
                 {trendsLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Loading trends...</div>
                 ) : locationTrends.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No location data available
-                  </div>
+                  <EmptyState
+                    icon={MapPin}
+                    title="No Location Data"
+                    description="No location data available yet. Perform audits to see trends."
+                  />
                 ) : (
                   <div className="space-y-3">
                     {locationTrends.map((trend) => (
@@ -256,9 +261,11 @@ const Insights = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No saved summaries yet. Use "Save Summary" to create one.
-                  </div>
+                  <EmptyState
+                    icon={Calendar}
+                    title="No Saved Summaries"
+                    description="No saved summaries yet. Use 'Save Summary' to create one."
+                  />
                 )}
               </CardContent>
             </Card>
@@ -266,6 +273,7 @@ const Insights = () => {
         </Tabs>
       </div>
     </AppLayout>
+    </ModuleGate>
   );
 };
 

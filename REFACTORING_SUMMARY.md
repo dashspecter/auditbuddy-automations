@@ -114,6 +114,34 @@
   - Conditional rendering based on task existence
   - Better empty state message
 
+- **Updated**: `src/pages/LocationsManagement.tsx` ✅
+  - Added EmptyState when no locations
+  - Action button to add first location
+
+- **Updated**: `src/pages/Audits.tsx` ✅
+  - Added ModuleGate wrapper for "location_audits"
+  - Added EmptyState when no audits
+  - Different messages for no audits vs no filtered results
+
+- **Updated**: `src/pages/DocumentManagement.tsx` ✅
+  - Added ModuleGate wrapper for "documents"
+  - Added EmptyState for categories, knowledge docs, and permits/contracts
+  - Action buttons to create/upload
+
+- **Updated**: `src/pages/Insights.tsx` ✅
+  - Added ModuleGate wrapper for "reports"
+  - Added EmptyState for location trends and saved summaries
+
+- **Updated**: `src/pages/Integrations.tsx` ✅
+  - Added ModuleGate wrapper for "integrations"
+  - Added EmptyState when no integrations configured
+
+- **Updated**: `src/pages/Notifications.tsx` ✅
+  - Added ModuleGate wrapper for "notifications"
+
+- **Updated**: `src/pages/Reports.tsx` ✅
+  - Added ModuleGate wrapper for "reports"
+
 ## Architecture Overview
 
 ### Layout Hierarchy
@@ -181,34 +209,63 @@ Example:
 8. ✅ `src/pages/EquipmentList.tsx` - Added ModuleGate and EmptyState
 9. ✅ `src/pages/Inventory.tsx` - Added ModuleGate and EmptyState
 10. ✅ `src/pages/Tasks.tsx` - Added EmptyState
+11. ✅ `src/pages/LocationsManagement.tsx` - Added EmptyState
+12. ✅ `src/pages/Audits.tsx` - Added ModuleGate and EmptyState
+13. ✅ `src/pages/DocumentManagement.tsx` - Added ModuleGate and EmptyState
+14. ✅ `src/pages/Insights.tsx` - Added ModuleGate and EmptyState
+15. ✅ `src/pages/Integrations.tsx` - Added ModuleGate and EmptyState
+16. ✅ `src/pages/Notifications.tsx` - Added ModuleGate
+17. ✅ `src/pages/Reports.tsx` - Added ModuleGate
 
 ## Known Issues & TODOs
 
 ### Pages That Still Need Empty State Implementation
-Some pages should be updated to use the `EmptyState` component when appropriate:
+All main pages now have EmptyState components! ✅
 
 1. ✅ `/workforce` - Has EmptyState when no staff
-2. ❌ `/admin/locations` - Add empty state when no locations
-3. ❌ `/audits` - Add empty state when no audits
+2. ✅ `/admin/locations` - Has EmptyState when no locations
+3. ✅ `/audits` - Has EmptyState when no audits
 4. ✅ `/equipment` - Has EmptyState when no equipment
 5. ✅ `/inventory` - Has EmptyState when no inventory items
-6. ❌ `/documents` - Add empty state when no documents
+6. ✅ `/documents` - Has EmptyState when no documents/categories
 7. ✅ `/tasks` - Has EmptyState when no tasks
-8. ❌ `/insights` - Add empty state when insufficient data
-9. ❌ `/integrations` - Add empty state when no integrations
+8. ✅ `/insights` - Has EmptyState when insufficient data
+9. ✅ `/integrations` - Has EmptyState when no integrations
 
 ### Pages That Still Need Module Gating
-These pages should wrap content in `ModuleGate` if not already:
+All module pages now have ModuleGate! ✅
 
 1. ✅ `/workforce` - Wrapped in ModuleGate
 2. ✅ `/equipment` - Wrapped in ModuleGate
 3. ✅ `/inventory` - Wrapped in ModuleGate
-4. ❌ `/audits` pages - Add ModuleGate("location_audits")
-5. ❌ `/insights` - Add ModuleGate("insights")
-6. ❌ `/documents` - Add ModuleGate("documents")
-7. ❌ `/integrations` - Add ModuleGate("integrations")
-8. ❌ `/notifications` - Add ModuleGate("notifications")
-9. ❌ `/reports` - Add ModuleGate("reports")
+4. ✅ `/audits` pages - Wrapped in ModuleGate("location_audits")
+5. ✅ `/insights` - Wrapped in ModuleGate("reports")
+6. ✅ `/documents` - Wrapped in ModuleGate("documents")
+7. ✅ `/integrations` - Wrapped in ModuleGate("integrations")
+8. ✅ `/notifications` - Wrapped in ModuleGate("notifications")
+9. ✅ `/reports` - Wrapped in ModuleGate("reports")
+
+### Manual Testing Required
+
+**Module-Disabled Click Behavior Testing:**
+To test that disabled modules show proper fallback screens:
+
+1. Navigate to Company Settings → Billing & Modules
+2. Disable a module (e.g., "Equipment Management")
+3. Click on the disabled module's nav item in the sidebar
+4. **Expected**: ModuleGate fallback with "Module Not Available" message
+5. **Expected**: Options to "View Billing & Modules" and "Back to Dashboard"
+6. **Expected**: NO blank pages or errors
+
+**Test each module:**
+- Location Audits (`/audits`)
+- Equipment Management (`/equipment`)
+- Documents (`/documents`)
+- Insights/Reports (`/insights`, `/reports`)
+- Integrations (`/integrations`)
+- Notifications (`/notifications`)
+- Workforce (`/workforce`)
+- Inventory (`/inventory`)
 
 ### Permission Checks to Centralize
 Some pages might have inline permission checks. These should use `src/lib/permissions.ts` helpers:
@@ -247,10 +304,15 @@ The dashboard components (`AdminDashboard`, `ManagerDashboard`, `CheckerDashboar
 - [x] Equipment shows EmptyState when no equipment
 - [x] Inventory shows EmptyState when no items
 - [x] Tasks shows EmptyState when no tasks
+- [x] Locations shows EmptyState when no locations
+- [x] Audits shows EmptyState when no audits
+- [x] Documents shows EmptyState when no documents
+- [x] Insights shows EmptyState when no data
+- [x] Integrations shows EmptyState when no integrations
 - [ ] Dashboard shows onboarding tiles when no data (needs verification)
-- [ ] Each main page shows EmptyState when no data (partially complete)
 - [x] EmptyState has actionable CTAs
 - [x] Module-gated pages use ModuleGate component
+- [ ] Module-disabled items show proper fallback message (needs manual testing)
 
 ### Error Handling
 - [x] Error boundary catches React errors
@@ -273,14 +335,15 @@ The dashboard components (`AdminDashboard`, `ManagerDashboard`, `CheckerDashboar
 
 ## Next Steps
 
-1. **Verify Module Names**: Query database and update sidebar navigation items
-2. **Add Empty States**: Update all main pages to use EmptyState component
-3. **Add Module Gates**: Wrap module-specific pages in ModuleGate
-4. **Test Navigation**: Click through all nav items, verify visibility
-5. **Test Permissions**: Log in as different roles, verify access
-6. **Test Empty States**: Clear data, verify helpful messages
-7. **Test Error Boundary**: Force errors, verify recovery
-8. **Polish UI**: Ensure consistent spacing, colors, typography
+1. ✅ **Verify Module Names**: Verified all module names match database
+2. ✅ **Add Empty States**: Updated all main pages to use EmptyState component
+3. ✅ **Add Module Gates**: Wrapped all module-specific pages in ModuleGate
+4. **Test Navigation**: Click through all nav items, verify visibility (manual testing required)
+5. **Test Module-Disabled Behavior**: Disable modules and verify fallback screens (manual testing required)
+6. **Test Permissions**: Log in as different roles, verify access (manual testing required)
+7. **Test Empty States**: Clear data, verify helpful messages (manual testing required)
+8. **Test Error Boundary**: Force errors, verify recovery (manual testing required)
+9. **Polish UI**: Ensure consistent spacing, colors, typography
 
 ## Architecture Decisions
 
