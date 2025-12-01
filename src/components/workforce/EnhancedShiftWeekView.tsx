@@ -27,7 +27,7 @@ export const EnhancedShiftWeekView = () => {
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [view, setView] = useState<"day" | "week">("week");
   
@@ -36,22 +36,22 @@ export const EnhancedShiftWeekView = () => {
   
   const { data: locations = [] } = useLocations();
   const { data: shifts = [], isLoading } = useShifts(
-    selectedLocation || undefined,
+    selectedLocation === "all" ? undefined : selectedLocation,
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
-  const { data: employees = [] } = useEmployees(selectedLocation || undefined);
+  const { data: employees = [] } = useEmployees(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: timeOffRequests = [] } = useTimeOffRequests(
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
   const { data: laborCosts = [] } = useLaborCosts(
-    selectedLocation || undefined,
+    selectedLocation === "all" ? undefined : selectedLocation,
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
   const { data: roles = [] } = useEmployeeRoles();
-  const { data: schedules = [] } = useLocationSchedules(selectedLocation || undefined);
+  const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -148,7 +148,7 @@ export const EnhancedShiftWeekView = () => {
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locations</SelectItem>
+              <SelectItem value="all">All Locations</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -157,7 +157,7 @@ export const EnhancedShiftWeekView = () => {
             </SelectContent>
           </Select>
           
-          {selectedLocation && (
+          {selectedLocation !== "all" && (
             <Button
               variant="outline"
               size="icon"
@@ -333,7 +333,7 @@ export const EnhancedShiftWeekView = () => {
         defaultDate={selectedDate}
       />
       
-      {selectedLocation && (
+      {selectedLocation !== "all" && (
         <LocationScheduleDialog
           open={scheduleDialogOpen}
           onOpenChange={setScheduleDialogOpen}
