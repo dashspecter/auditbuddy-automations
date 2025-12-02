@@ -145,7 +145,7 @@ const StaffHome = () => {
           </Card>
           <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
             <DollarSign className="h-5 w-5 text-primary mb-2" />
-            <div className="text-2xl font-bold">${earnings.thisWeek}</div>
+            <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
             <div className="text-xs text-muted-foreground">This Week</div>
           </Card>
         </div>

@@ -134,7 +134,7 @@ const StaffShiftPool = () => {
                 {shift.hourly_rate && (
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span>${shift.hourly_rate}/hour</span>
+                    <span>{shift.hourly_rate} Lei/hour</span>
                   </div>
                 )}
               </div>

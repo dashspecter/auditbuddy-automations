@@ -111,7 +111,7 @@ const StaffEarnings = () => {
             <span className="text-sm opacity-90">This Week</span>
           </div>
           <div className="text-4xl font-bold mb-2">
-            ${earnings.thisWeek.toFixed(2)}
+            {earnings.thisWeek.toFixed(2)} Lei
           </div>
           <div className="flex items-center gap-4 text-sm opacity-90">
             <div className="flex items-center gap-1">
@@ -120,7 +120,7 @@ const StaffEarnings = () => {
             </div>
             <div className="flex items-center gap-1">
               <TrendingUp className="h-4 w-4" />
-              <span>${employee?.hourly_rate || 15}/hr</span>
+              <span>{employee?.hourly_rate || 15} Lei/hr</span>
             </div>
           </div>
         </Card>
@@ -130,7 +130,7 @@ const StaffEarnings = () => {
           <Card className="p-4">
             <Calendar className="h-5 w-5 text-primary mb-2" />
             <div className="text-2xl font-bold">
-              ${earnings.thisMonth.toFixed(2)}
+              {earnings.thisMonth.toFixed(2)} Lei
             </div>
             <div className="text-xs text-muted-foreground">This Month</div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -141,7 +141,7 @@ const StaffEarnings = () => {
           <Card className="p-4">
             <DollarSign className="h-5 w-5 text-primary mb-2" />
             <div className="text-2xl font-bold">
-              ${earnings.tips.toFixed(2)}
+              {earnings.tips.toFixed(2)} Lei
             </div>
             <div className="text-xs text-muted-foreground">Tips This Week</div>
           </Card>
@@ -153,15 +153,15 @@ const StaffEarnings = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Base Pay</span>
-              <span className="font-medium">${earnings.thisWeek.toFixed(2)}</span>
+              <span className="font-medium">{earnings.thisWeek.toFixed(2)} Lei</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Tips</span>
-              <span className="font-medium">${earnings.tips.toFixed(2)}</span>
+              <span className="font-medium">{earnings.tips.toFixed(2)} Lei</span>
             </div>
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="font-semibold">Gross Total</span>
-              <span className="font-bold text-lg">${(earnings.thisWeek + earnings.tips).toFixed(2)}</span>
+              <span className="font-bold text-lg">{(earnings.thisWeek + earnings.tips).toFixed(2)} Lei</span>
             </div>
           </div>
         </Card>
