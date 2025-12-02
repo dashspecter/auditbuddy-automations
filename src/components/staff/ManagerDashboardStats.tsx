@@ -1,13 +1,15 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, Clock, TrendingUp } from "lucide-react";
+import { Users, Calendar, Clock, ListTodo } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useTaskStats } from "@/hooks/useTasks";
 
 export const ManagerDashboardStats = () => {
   const navigate = useNavigate();
+  const { data: taskStats } = useTaskStats();
   const { data: todayStaff, isLoading: staffLoading } = useQuery({
     queryKey: ["today-working-staff"],
     queryFn: async () => {
@@ -89,7 +91,7 @@ export const ManagerDashboardStats = () => {
   return (
     <div className="space-y-4">
       {/* Team Stats Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <Card 
           className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
           onClick={() => navigate("/staff/team")}
@@ -113,6 +115,14 @@ export const ManagerDashboardStats = () => {
           <Calendar className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{teamStats?.upcomingShifts || 0}</div>
           <div className="text-[10px] text-muted-foreground">Upcoming</div>
+        </Card>
+        <Card 
+          className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
+          onClick={() => navigate("/tasks")}
+        >
+          <ListTodo className="h-4 w-4 text-primary mb-1" />
+          <div className="text-xl font-bold">{taskStats?.pending || 0}</div>
+          <div className="text-[10px] text-muted-foreground">Open Tasks</div>
         </Card>
       </div>
 
