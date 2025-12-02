@@ -50,7 +50,23 @@ const StaffSchedule = () => {
     const weekEnd = addDays(weekStart, 6);
     const { data, error } = await supabase
       .from("shift_assignments")
-      .select(`*, shifts!inner(*, locations(name))`)
+      .select(`
+        id,
+        staff_id,
+        shift_id,
+        approval_status,
+        shifts:shift_id (
+          id,
+          shift_date,
+          start_time,
+          end_time,
+          role,
+          location_id,
+          locations:location_id (
+            name
+          )
+        )
+      `)
       .eq("staff_id", employeeId)
       .in("approval_status", ["approved", "pending"])
       .gte("shifts.shift_date", weekStart.toISOString().split('T')[0])
