@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Calendar, Clock, Users, ArrowLeftRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle, XCircle, Calendar, Clock, Users, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { usePendingApprovals, useApproveShiftAssignment, useRejectShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useTimeOffRequests, useUpdateTimeOffRequest } from "@/hooks/useTimeOffRequests";
 import { usePendingSwapRequests, useApproveSwapRequest, useRejectSwapRequest } from "@/hooks/useShiftSwapRequests";
@@ -20,6 +21,7 @@ export const ManagerApprovalsSection = () => {
   const rejectSwap = useRejectSwapRequest();
   
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(true);
 
   const pendingTimeOff = timeOffRequests.filter(req => req.status === 'pending');
 
@@ -86,19 +88,28 @@ export const ManagerApprovalsSection = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          Manager Approvals
-        </h2>
-        <Badge variant="destructive">{totalPending}</Badge>
-      </div>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="overflow-hidden">
+        <CollapsibleTrigger className="w-full p-4 hover:bg-accent/5 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold">Manager Approvals</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="destructive">{totalPending}</Badge>
+              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-4">
 
-      {/* Pending Shift Assignments */}
-      {pendingShifts.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Shift Assignments</h3>
+            {/* Pending Shift Assignments */}
+            {pendingShifts.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Shift Assignments</h3>
           {pendingShifts.map((assignment) => (
             <Card key={assignment.id} className="p-3">
               <div className="flex items-start justify-between mb-2">
@@ -141,14 +152,14 @@ export const ManagerApprovalsSection = () => {
                 </Button>
               </div>
             </Card>
-          ))}
-        </div>
-      )}
+                ))}
+              </div>
+            )}
 
-      {/* Pending Time Off Requests */}
-      {pendingTimeOff.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Time Off Requests</h3>
+            {/* Pending Time Off Requests */}
+            {pendingTimeOff.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Time Off Requests</h3>
           {pendingTimeOff.map((request) => {
             const days = Math.ceil(
               (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 60 * 60 * 24)
@@ -193,15 +204,15 @@ export const ManagerApprovalsSection = () => {
                   </Button>
                 </div>
               </Card>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+              </div>
+            )}
 
-      {/* Pending Shift Swaps */}
-      {swapRequests.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Shift Swap Requests</h3>
+            {/* Pending Shift Swaps */}
+            {swapRequests.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Shift Swap Requests</h3>
           {swapRequests.map((swap: any) => (
             <Card key={swap.id} className="p-3">
               <div className="flex items-center gap-2 mb-3">
@@ -256,10 +267,13 @@ export const ManagerApprovalsSection = () => {
                   Reject
                 </Button>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+              </Card>
+            ))}
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
