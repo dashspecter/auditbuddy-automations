@@ -22,7 +22,7 @@ export const ManagerDashboardStats = () => {
             role,
             avatar_url
           ),
-          shifts:shift_id (
+          shifts!inner:shift_id (
             shift_date,
             start_time,
             end_time,
