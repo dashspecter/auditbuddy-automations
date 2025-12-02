@@ -122,6 +122,47 @@ const StaffShiftPool = () => {
 
   const claimShift = async (shiftId: string) => {
     try {
+      // Get the shift details
+      const { data: shiftData } = await supabase
+        .from("shifts")
+        .select("shift_date, start_time, end_time")
+        .eq("id", shiftId)
+        .single();
+
+      if (!shiftData) {
+        toast.error("Shift not found");
+        return;
+      }
+
+      // Check if employee already has a shift on this date
+      const { data: existingAssignments } = await supabase
+        .from("shift_assignments")
+        .select(`
+          *,
+          shifts!inner(shift_date, start_time, end_time)
+        `)
+        .eq("staff_id", employee.id)
+        .eq("shifts.shift_date", shiftData.shift_date)
+        .in("approval_status", ["pending", "approved"]);
+
+      if (existingAssignments && existingAssignments.length > 0) {
+        // Check for time overlaps
+        const hasOverlap = existingAssignments.some((assignment: any) => {
+          const existingStart = assignment.shifts.start_time;
+          const existingEnd = assignment.shifts.end_time;
+          const newStart = shiftData.start_time;
+          const newEnd = shiftData.end_time;
+          
+          // Check if times overlap
+          return (newStart < existingEnd && newEnd > existingStart);
+        });
+
+        if (hasOverlap) {
+          toast.error("You already have a shift that overlaps with this time slot");
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from("shift_assignments")
         .insert([{
