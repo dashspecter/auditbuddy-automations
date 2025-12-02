@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,7 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { useCreateLocation, useUpdateLocation, Location } from "@/hooks/useLocations";
+import { useLocationOperatingSchedules, useSaveLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
+import { Clock } from "lucide-react";
 
 const locationSchema = z.object({
   name: z.string().min(1, "Location name is required"),
@@ -45,9 +49,50 @@ interface LocationDialogProps {
   location?: Location | null;
 }
 
+const DAYS_OF_WEEK = [
+  { value: 0, label: "Monday" },
+  { value: 1, label: "Tuesday" },
+  { value: 2, label: "Wednesday" },
+  { value: 3, label: "Thursday" },
+  { value: 4, label: "Friday" },
+  { value: 5, label: "Saturday" },
+  { value: 6, label: "Sunday" },
+];
+
 export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogProps) => {
   const createLocation = useCreateLocation();
   const updateLocation = useUpdateLocation();
+  const saveSchedules = useSaveLocationOperatingSchedules();
+  const { data: existingSchedules } = useLocationOperatingSchedules(location?.id);
+
+  const [operatingHours, setOperatingHours] = useState<
+    Record<number, { open_time: string; close_time: string; is_closed: boolean }>
+  >({});
+
+  useEffect(() => {
+    if (existingSchedules && existingSchedules.length > 0) {
+      const scheduleMap = existingSchedules.reduce((acc, schedule) => {
+        acc[schedule.day_of_week] = {
+          open_time: schedule.open_time,
+          close_time: schedule.close_time,
+          is_closed: schedule.is_closed,
+        };
+        return acc;
+      }, {} as Record<number, { open_time: string; close_time: string; is_closed: boolean }>);
+      setOperatingHours(scheduleMap);
+    } else {
+      // Default: Open 9-5 on weekdays
+      const defaultSchedule = DAYS_OF_WEEK.reduce((acc, day) => {
+        acc[day.value] = {
+          open_time: "09:00",
+          close_time: "17:00",
+          is_closed: day.value >= 5, // Weekend closed by default
+        };
+        return acc;
+      }, {} as Record<number, { open_time: string; close_time: string; is_closed: boolean }>);
+      setOperatingHours(defaultSchedule);
+    }
+  }, [existingSchedules, open]);
 
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationSchema),
@@ -62,11 +107,24 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
   });
 
   const onSubmit = async (data: LocationFormValues) => {
+    let locationId = location?.id;
+    
     if (location) {
       await updateLocation.mutateAsync({ id: location.id, ...data });
     } else {
-      await createLocation.mutateAsync(data as any);
+      const result = await createLocation.mutateAsync(data as any);
+      locationId = result.id;
     }
+
+    // Save operating schedules
+    if (locationId) {
+      const schedules = Object.entries(operatingHours).map(([day, hours]) => ({
+        day_of_week: parseInt(day),
+        ...hours,
+      }));
+      await saveSchedules.mutateAsync({ locationId, schedules });
+    }
+
     onOpenChange(false);
     form.reset();
   };
@@ -162,6 +220,71 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
               )}
             />
 
+            <Separator className="my-6" />
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Operating Hours</h3>
+              </div>
+              
+              {DAYS_OF_WEEK.map((day) => (
+                <div key={day.value} className="flex items-center gap-4">
+                  <div className="w-24 font-medium text-sm">{day.label}</div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      type="time"
+                      value={operatingHours[day.value]?.open_time || "09:00"}
+                      onChange={(e) =>
+                        setOperatingHours({
+                          ...operatingHours,
+                          [day.value]: {
+                            ...operatingHours[day.value],
+                            open_time: e.target.value,
+                          },
+                        })
+                      }
+                      disabled={operatingHours[day.value]?.is_closed}
+                      className="w-32"
+                    />
+                    <span className="text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      value={operatingHours[day.value]?.close_time || "17:00"}
+                      onChange={(e) =>
+                        setOperatingHours({
+                          ...operatingHours,
+                          [day.value]: {
+                            ...operatingHours[day.value],
+                            close_time: e.target.value,
+                          },
+                        })
+                      }
+                      disabled={operatingHours[day.value]?.is_closed}
+                      className="w-32"
+                    />
+                    <div className="flex items-center gap-2 ml-auto">
+                      <Switch
+                        checked={!operatingHours[day.value]?.is_closed}
+                        onCheckedChange={(checked) =>
+                          setOperatingHours({
+                            ...operatingHours,
+                            [day.value]: {
+                              ...operatingHours[day.value],
+                              is_closed: !checked,
+                            },
+                          })
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground w-16">
+                        {operatingHours[day.value]?.is_closed ? "Closed" : "Open"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button
                 type="button"
@@ -170,7 +293,10 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createLocation.isPending || updateLocation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={createLocation.isPending || updateLocation.isPending || saveSchedules.isPending}
+              >
                 {location ? "Update" : "Create"}
               </Button>
             </div>
