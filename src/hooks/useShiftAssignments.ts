@@ -62,155 +62,27 @@ export const useApproveShiftAssignment = () => {
       
       console.log("[Approve] Starting approval process for assignment:", assignmentId);
       
-      // Get the assignment details to check for overlaps
-      const { data: assignment, error: fetchError } = await supabase
-        .from("shift_assignments")
-        .select(`
-          staff_id,
-          shifts!inner(id, shift_date, start_time, end_time, role, location_id, locations(name, company_id)),
-          employees!inner(full_name, company_id)
-        `)
-        .eq("id", assignmentId)
-        .single();
-      
-      if (fetchError) {
-        console.error("[Approve] Failed to fetch assignment:", fetchError);
-        throw fetchError;
-      }
-      
-      const shift = (assignment as any).shifts;
-      const employee = (assignment as any).employees;
-      
-      console.log("[Approve] Assignment details:", {
-        employee: employee.full_name,
-        shift_date: shift.shift_date,
-        time: `${shift.start_time} - ${shift.end_time}`,
-        role: shift.role
+      // Call the database function to approve the shift assignment
+      console.log("[Approve] Calling approve_shift_assignment function");
+      const { data, error: rpcError } = await supabase.rpc('approve_shift_assignment', {
+        assignment_id: assignmentId
       });
       
-      // Check for overlapping approved shifts on the same date
-      const { data: existingAssignments, error: checkError } = await supabase
-        .from("shift_assignments")
-        .select(`
-          id,
-          shift_id,
-          shifts!inner(id, shift_date, start_time, end_time)
-        `)
-        .eq("staff_id", assignment.staff_id)
-        .eq("approval_status", "approved")
-        .neq("id", assignmentId);
-      
-      if (checkError) {
-        console.error("[Approve] Failed to check existing assignments:", checkError);
-        throw checkError;
+      if (rpcError) {
+        console.error("[Approve] Function call FAILED:", rpcError);
+        throw rpcError;
       }
       
-      console.log("[Approve] Found existing approved assignments:", existingAssignments?.length || 0);
+      console.log("[Approve] Function call SUCCESS. Returned data:", data);
+      const result = data as { status: string; message: string };
       
-      // Filter by date and check for time overlaps in JavaScript for accuracy
-      if (existingAssignments && existingAssignments.length > 0) {
-        const newStart = shift.start_time;
-        const newEnd = shift.end_time;
-        const newDate = shift.shift_date;
-        
-        for (const existing of existingAssignments) {
-          const existingShift = (existing as any).shifts;
-          
-          // Only check shifts on the same date
-          if (existingShift.shift_date !== newDate) continue;
-          
-          const existingStart = existingShift.start_time;
-          const existingEnd = existingShift.end_time;
-          
-          console.log("[Approve] Checking conflict:", {
-            existing: `${existingStart} - ${existingEnd}`,
-            new: `${newStart} - ${newEnd}`
-          });
-          
-          // Check if times overlap
-          if (
-            (newStart >= existingStart && newStart < existingEnd) ||
-            (newEnd > existingStart && newEnd <= existingEnd) ||
-            (newStart <= existingStart && newEnd >= existingEnd)
-          ) {
-            console.log("[Approve] CONFLICT DETECTED! Deleting assignment:", assignmentId);
-            
-            // Delete the conflicting assignment first
-            const { data: deleteData, error: deleteError } = await supabase
-              .from("shift_assignments")
-              .delete()
-              .eq("id", assignmentId)
-              .select();
-            
-            if (deleteError) {
-              console.error("[Approve] FAILED to delete conflicting assignment:", deleteError);
-              throw new Error(`Failed to remove conflicting shift: ${deleteError.message}`);
-            }
-            
-            if (!deleteData || deleteData.length === 0) {
-              console.error("[Approve] Delete returned 0 rows for conflict deletion.");
-              throw new Error("Failed to remove conflicting shift - no rows affected. You may not have permission.");
-            }
-            
-            console.log("[Approve] Successfully deleted assignment. Deleted rows:", deleteData);
-            
-            // Try to create an alert for the employee (non-blocking)
-            try {
-              const alertResult = await supabase
-                .from("alerts")
-                .insert({
-                  company_id: employee.company_id,
-                  title: "Shift Assignment Rejected - Schedule Conflict",
-                  message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${shift.locations.name} was automatically rejected due to a schedule conflict with another approved shift.`,
-                  severity: "warning",
-                  category: "staff",
-                  source: "shift_assignments",
-                  source_reference_id: assignmentId,
-                  metadata: {
-                    shift_date: shift.shift_date,
-                    role: shift.role,
-                    location_name: shift.locations.name,
-                    staff_id: assignment.staff_id,
-                    employee_name: employee.full_name,
-                    reason: "schedule_conflict"
-                  }
-                });
-              if (alertResult.error) {
-                console.error("[Approve] Failed to create conflict alert:", alertResult.error);
-              } else {
-                console.log("[Approve] Conflict alert created");
-              }
-            } catch (alertError) {
-              console.error("[Approve] Exception creating conflict alert:", alertError);
-            }
-            
-            // Return a special result indicating conflict rejection
-            return {
-              status: 'rejected_conflict',
-              message: `Cannot approve: Employee already has an approved shift from ${existingStart.slice(0, 5)} to ${existingEnd.slice(0, 5)} on this date`
-            };
-          }
-        }
+      // Create alert for conflict if needed
+      if (result.status === 'rejected_conflict') {
+        // The function already deleted the assignment
+        // No need to create an alert here as it's already handled
       }
       
-      console.log("[Approve] No conflicts found, proceeding with approval");
-      
-      const { error } = await supabase
-        .from("shift_assignments")
-        .update({ 
-          approval_status: 'approved',
-          approved_by: user.id,
-          approved_at: new Date().toISOString()
-        })
-        .eq("id", assignmentId);
-      
-      if (error) {
-        console.error("[Approve] Failed to update approval status:", error);
-        throw error;
-      }
-      
-      console.log("[Approve] Successfully approved assignment");
-      return { status: 'approved' };
+      return result;
     },
     onSuccess: (result) => {
       console.log("[Approve] onSuccess - result:", result);
@@ -263,89 +135,51 @@ export const useRejectShiftAssignment = () => {
       }
       console.log("[Reject] User authenticated:", user.id);
       
-      console.log("[Reject] Starting rejection for assignment:", assignmentId);
+      // Call the database function to reject the shift assignment
+      console.log("[Reject] Calling reject_shift_assignment function");
+      const { data, error: rpcError } = await supabase.rpc('reject_shift_assignment', {
+        assignment_id: assignmentId
+      });
       
-      // Get assignment details before deleting
-      const { data: assignment, error: fetchError } = await supabase
-        .from("shift_assignments")
-        .select(`
-          staff_id,
-          shifts!inner(
-            shift_date,
-            start_time,
-            end_time,
-            role,
-            location_id,
-            locations(name, company_id)
-          ),
-          employees!inner(full_name, company_id)
-        `)
-        .eq("id", assignmentId)
-        .single();
-      
-      if (fetchError) {
-        console.error("[Reject] Failed to fetch assignment:", fetchError);
-        throw fetchError;
+      if (rpcError) {
+        console.error("[Reject] Function call FAILED:", rpcError);
+        throw rpcError;
       }
       
-      console.log("[Reject] Assignment details:", assignment);
-      
-      const shift = (assignment as any).shifts;
-      const employee = (assignment as any).employees;
-      const location = shift.locations;
-      
-      // Delete the assignment first
-      console.log("[Reject] Attempting to delete assignment:", assignmentId);
-      const { data: deletedData, error: deleteError, count } = await supabase
-        .from("shift_assignments")
-        .delete()
-        .eq("id", assignmentId)
-        .select();
-      
-      if (deleteError) {
-        console.error("[Reject] Delete FAILED:", deleteError);
-        throw deleteError;
-      }
-      
-      if (!deletedData || deletedData.length === 0) {
-        console.error("[Reject] Delete returned 0 rows. RLS may be blocking deletion.");
-        console.error("[Reject] Assignment ID:", assignmentId);
-        console.error("[Reject] User ID:", user.id);
-        throw new Error("Failed to delete shift assignment - no rows affected. You may not have permission to delete this shift.");
-      }
-      
-      console.log("[Reject] Delete SUCCESS. Deleted rows:", deletedData, "Count:", count);
+      console.log("[Reject] Function call SUCCESS. Returned data:", data);
+      const assignmentData = data as any;
       
       // Try to create alert for the employee (don't fail if this doesn't work)
-      try {
-        console.log("[Reject] Creating alert for employee");
-        const alertResult = await supabase
-          .from("alerts")
-          .insert({
-            company_id: employee.company_id,
-            title: "Shift Assignment Rejected",
-            message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${location.name} has been rejected by management.`,
-            severity: "warning",
-            category: "staff",
-            source: "shift_assignments",
-            source_reference_id: assignmentId,
-            metadata: {
-              shift_date: shift.shift_date,
-              role: shift.role,
-              location_name: location.name,
-              staff_id: assignment.staff_id,
-              employee_name: employee.full_name
-            }
-          });
-        
-        if (alertResult.error) {
-          console.error("[Reject] Alert creation failed:", alertResult.error);
-        } else {
-          console.log("[Reject] Alert created successfully");
+      if (assignmentData) {
+        try {
+          console.log("[Reject] Creating alert for employee");
+          const alertResult = await supabase
+            .from("alerts")
+            .insert({
+              company_id: assignmentData.company_id,
+              title: "Shift Assignment Rejected",
+              message: `Your shift assignment for ${assignmentData.role} on ${new Date(assignmentData.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${assignmentData.start_time.slice(0, 5)} - ${assignmentData.end_time.slice(0, 5)}) at ${assignmentData.location_name} has been rejected by management.`,
+              severity: "warning",
+              category: "staff",
+              source: "shift_assignments",
+              source_reference_id: assignmentId,
+              metadata: {
+                shift_date: assignmentData.shift_date,
+                role: assignmentData.role,
+                location_name: assignmentData.location_name,
+                staff_id: assignmentData.staff_id,
+                employee_name: assignmentData.employee_name
+              }
+            });
+          
+          if (alertResult.error) {
+            console.error("[Reject] Alert creation failed:", alertResult.error);
+          } else {
+            console.log("[Reject] Alert created successfully");
+          }
+        } catch (alertError) {
+          console.error("[Reject] Exception creating alert:", alertError);
         }
-      } catch (alertError) {
-        console.error("[Reject] Exception creating alert:", alertError);
-        // Continue anyway - the shift is already deleted
       }
       
       console.log("[Reject] Rejection complete");
