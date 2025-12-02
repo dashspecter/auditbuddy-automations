@@ -140,6 +140,54 @@ export const useRejectShiftAssignment = () => {
   
   return useMutation({
     mutationFn: async (assignmentId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      // Get assignment details before deleting
+      const { data: assignment, error: fetchError } = await supabase
+        .from("shift_assignments")
+        .select(`
+          staff_id,
+          shifts!inner(
+            shift_date,
+            start_time,
+            end_time,
+            role,
+            location_id,
+            locations(name, company_id)
+          ),
+          employees!inner(full_name, company_id)
+        `)
+        .eq("id", assignmentId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      const shift = (assignment as any).shifts;
+      const employee = (assignment as any).employees;
+      const location = shift.locations;
+      
+      // Create alert for the employee
+      await supabase
+        .from("alerts")
+        .insert({
+          company_id: employee.company_id,
+          title: "Shift Assignment Rejected",
+          message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${location.name} has been rejected by management.`,
+          severity: "warning",
+          category: "staff",
+          source: "shift_assignments",
+          source_reference_id: assignmentId,
+          metadata: {
+            shift_date: shift.shift_date,
+            role: shift.role,
+            location_name: location.name,
+            staff_id: assignment.staff_id,
+            employee_name: employee.full_name
+          }
+        });
+      
+      // Delete the assignment
       const { error } = await supabase
         .from("shift_assignments")
         .delete()
@@ -151,7 +199,9 @@ export const useRejectShiftAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-      toast.success("Shift assignment rejected");
+      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
+      toast.success("Shift assignment rejected and employee notified");
     },
     onError: (error) => {
       toast.error("Failed to reject: " + error.message);
