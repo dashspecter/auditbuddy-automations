@@ -73,6 +73,7 @@ import StaffLogin from "./pages/StaffLogin";
 import StaffHome from "./pages/staff/StaffHome";
 import StaffSchedule from "./pages/staff/StaffSchedule";
 import StaffShiftPool from "./pages/staff/StaffShiftPool";
+import StaffSwapRequests from "./pages/staff/StaffSwapRequests";
 import StaffTimeOff from "./pages/staff/StaffTimeOff";
 import StaffProfile from "./pages/staff/StaffProfile";
 import StaffMessages from "./pages/staff/StaffMessages";
@@ -124,6 +125,7 @@ const App = () => (
               <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/staff/schedule" element={<ProtectedRoute><StaffSchedule /></ProtectedRoute>} />
               <Route path="/staff/shift-pool" element={<ProtectedRoute><StaffShiftPool /></ProtectedRoute>} />
+              <Route path="/staff/swap-requests" element={<ProtectedRoute><StaffSwapRequests /></ProtectedRoute>} />
               <Route path="/staff/time-off" element={<ProtectedRoute><StaffTimeOff /></ProtectedRoute>} />
               <Route path="/staff/messages" element={<ProtectedRoute><StaffMessages /></ProtectedRoute>} />
               <Route path="/staff/earnings" element={<ProtectedRoute><StaffEarnings /></ProtectedRoute>} />

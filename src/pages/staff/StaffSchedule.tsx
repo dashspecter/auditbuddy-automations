@@ -177,6 +177,18 @@ const StaffSchedule = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get target colleague role
+      const { data: targetEmployee, error: targetError } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("id", selectedColleague)
+        .single();
+
+      if (targetError) throw targetError;
+
+      // Check if roles are different
+      const requiresManagerApproval = selectedShift.shifts.role !== targetEmployee.role;
+
       // Create swap request
       const { error } = await supabase
         .from("shift_swap_requests")
@@ -186,12 +198,19 @@ const StaffSchedule = () => {
           requester_notes: swapNote || null,
           created_by: user.id,
           company_id: employee.company_id,
-          status: "pending"
+          status: requiresManagerApproval ? "pending_manager_approval" : "pending",
+          requires_manager_approval: requiresManagerApproval,
+          target_response: "pending"
         });
 
       if (error) throw error;
 
-      toast.success("Swap request sent! The colleague will be notified.");
+      if (requiresManagerApproval) {
+        toast.success("Swap request sent! Manager approval is required for different roles.");
+      } else {
+        toast.success("Swap request sent! The colleague will be notified.");
+      }
+      
       setSwapDialogOpen(false);
       setSelectedColleague(null);
       setSwapNote("");
