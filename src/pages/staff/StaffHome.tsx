@@ -175,7 +175,7 @@ const StaffHome = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="bg-gradient-hero text-primary-foreground px-safe pt-safe pb-6">
+      <div className="bg-gradient-hero text-primary-foreground px-safe pt-safe pb-8">
         <div className="px-4 pt-4">
           <p className="text-sm opacity-90 mb-1">{format(new Date(), "EEEE, MMMM d")}</p>
           <h1 className="text-2xl font-bold mb-1">
@@ -185,7 +185,7 @@ const StaffHome = () => {
         </div>
       </div>
 
-      <div className="px-4 -mt-4 space-y-4 pb-6">
+      <div className="px-4 space-y-4 pb-6 mt-4">
         {/* Manager Approvals Section */}
         {isManager && <ManagerApprovalsSection />}
         
