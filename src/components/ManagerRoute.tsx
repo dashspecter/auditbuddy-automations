@@ -4,6 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 
 export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -55,5 +56,5 @@ export const ManagerRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return <>{children}</>;
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 };
