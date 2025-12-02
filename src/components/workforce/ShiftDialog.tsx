@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Clock, AlertTriangle } from "lucide-react";
 import { useCreateShift, useUpdateShift } from "@/hooks/useShifts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useLocations } from "@/hooks/useLocations";
+import { useLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
 
 interface ShiftDialogProps {
   open: boolean;
@@ -47,6 +50,47 @@ export const ShiftDialog = ({
   const updateShift = useUpdateShift();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: locations = [] } = useLocations();
+  const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
+
+  const operatingHoursInfo = useMemo(() => {
+    if (!formData.location_id || !formData.shift_date || operatingSchedules.length === 0) {
+      return null;
+    }
+
+    const shiftDate = new Date(formData.shift_date + 'T00:00:00');
+    const dayOfWeek = (shiftDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+    const schedule = operatingSchedules.find(s => s.day_of_week === dayOfWeek);
+
+    if (!schedule) return null;
+    if (schedule.is_closed) {
+      return { isClosed: true };
+    }
+
+    return {
+      isClosed: false,
+      openTime: schedule.open_time,
+      closeTime: schedule.close_time,
+    };
+  }, [formData.location_id, formData.shift_date, operatingSchedules]);
+
+  const shiftValidation = useMemo(() => {
+    if (!operatingHoursInfo || operatingHoursInfo.isClosed || !formData.start_time || !formData.end_time) {
+      return null;
+    }
+
+    const { openTime, closeTime } = operatingHoursInfo;
+    const shiftStart = formData.start_time;
+    const shiftEnd = formData.end_time;
+
+    const isOutsideHours = shiftStart < openTime || shiftEnd > closeTime;
+
+    return {
+      isValid: !isOutsideHours,
+      message: isOutsideHours
+        ? `Shift times (${shiftStart} - ${shiftEnd}) are outside operating hours (${openTime} - ${closeTime})`
+        : null,
+    };
+  }, [operatingHoursInfo, formData.start_time, formData.end_time]);
 
   useEffect(() => {
     if (shift) {
@@ -201,6 +245,41 @@ export const ShiftDialog = ({
               </div>
             </div>
 
+            {/* Operating Hours Info */}
+            {operatingHoursInfo && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  {operatingHoursInfo.isClosed ? (
+                    <span className="text-destructive font-medium">
+                      Location is closed on this day
+                    </span>
+                  ) : (
+                    <span>
+                      Operating hours: {operatingHoursInfo.openTime} - {operatingHoursInfo.closeTime}
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Shift Validation Warning */}
+            {shiftValidation && !shiftValidation.isValid && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{shiftValidation.message}</AlertDescription>
+              </Alert>
+            )}
+
+            {operatingHoursInfo?.isClosed && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Cannot create shifts on days when the location is closed
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -224,7 +303,12 @@ export const ShiftDialog = ({
               </Button>
               <Button
                 type="submit"
-                disabled={createShift.isPending || updateShift.isPending}
+                disabled={
+                  createShift.isPending || 
+                  updateShift.isPending || 
+                  operatingHoursInfo?.isClosed || 
+                  (shiftValidation && !shiftValidation.isValid)
+                }
               >
                 {shift ? "Update" : "Create"} Shift
               </Button>
