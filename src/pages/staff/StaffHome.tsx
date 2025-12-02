@@ -11,6 +11,7 @@ import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
+import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
 
 const StaffHome = () => {
   const { user } = useAuth();
@@ -186,8 +187,13 @@ const StaffHome = () => {
       </div>
 
       <div className="px-4 space-y-4 pb-6 mt-4">
-        {/* Manager Approvals Section */}
-        {isManager && <ManagerApprovalsSection />}
+        {/* Manager Dashboard */}
+        {isManager && (
+          <>
+            <ManagerDashboardStats />
+            <ManagerApprovalsSection />
+          </>
+        )}
         
         {/* Today's Shift Card */}
         {todayShift ? (
