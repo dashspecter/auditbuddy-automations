@@ -127,7 +127,7 @@ const StaffShiftPool = () => {
         .insert([{
           shift_id: shiftId,
           staff_id: employee.id,
-          assigned_by: user?.id || "",
+          assigned_by: employee.id,
           status: "pending"
         }]);
 
@@ -136,7 +136,8 @@ const StaffShiftPool = () => {
       toast.success("Shift claimed! Awaiting approval");
       loadData();
     } catch (error: any) {
-      toast.error("Failed to claim shift");
+      console.error("Claim shift error:", error);
+      toast.error(error.message || "Failed to claim shift");
     }
   };
 
