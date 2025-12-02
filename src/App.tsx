@@ -80,6 +80,7 @@ import StaffMessages from "./pages/staff/StaffMessages";
 import StaffEarnings from "./pages/staff/StaffEarnings";
 import StaffTasks from "./pages/staff/StaffTasks";
 import ManagerSchedule from "./pages/staff/ManagerSchedule";
+import TeamView from "./pages/staff/TeamView";
 import Tasks from "./pages/Tasks";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
@@ -133,6 +134,7 @@ const App = () => (
               <Route path="/staff/earnings" element={<ProtectedRoute><StaffEarnings /></ProtectedRoute>} />
               <Route path="/staff/tasks" element={<ProtectedRoute><StaffTasks /></ProtectedRoute>} />
               <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
+              <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
               {/* Legacy route - redirect to new path */}
               <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
