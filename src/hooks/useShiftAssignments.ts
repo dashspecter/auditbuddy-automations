@@ -111,15 +111,21 @@ export const useApproveShiftAssignment = () => {
             (newEnd > existingStart && newEnd <= existingEnd) ||
             (newStart <= existingStart && newEnd >= existingEnd)
           ) {
-            // Delete the conflicting assignment and notify
-            await supabase
+            // Delete the conflicting assignment first
+            const { error: deleteError } = await supabase
               .from("shift_assignments")
               .delete()
               .eq("id", assignmentId);
             
-            // Try to create an alert for the employee
+            if (deleteError) {
+              console.error("Failed to delete conflicting assignment:", deleteError);
+            } else {
+              console.log("Conflicting assignment deleted:", assignmentId);
+            }
+            
+            // Try to create an alert for the employee (non-blocking)
             try {
-              await supabase
+              const alertResult = await supabase
                 .from("alerts")
                 .insert({
                   company_id: employee.company_id,
@@ -138,11 +144,14 @@ export const useApproveShiftAssignment = () => {
                     reason: "schedule_conflict"
                   }
                 });
+              if (alertResult.error) {
+                console.error("Failed to create conflict alert:", alertResult.error);
+              }
             } catch (alertError) {
               console.error("Failed to create conflict alert:", alertError);
             }
             
-            throw new Error(`Cannot approve: Employee already has an approved shift from ${existingStart} to ${existingEnd} on this date`);
+            throw new Error(`Cannot approve: Employee already has an approved shift from ${existingStart.slice(0, 5)} to ${existingEnd.slice(0, 5)} on this date`);
           }
         }
       }
@@ -168,6 +177,11 @@ export const useApproveShiftAssignment = () => {
       toast.success("Shift assignment approved");
     },
     onError: (error) => {
+      // Also invalidate on error since we may have deleted a conflicting shift
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
       toast.error("Failed to approve: " + error.message);
     },
   });
