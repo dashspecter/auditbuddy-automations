@@ -39,12 +39,16 @@ export const ManagerApprovalsSection = () => {
   };
 
   const handleRejectShift = async (id: string) => {
+    console.log("[ManagerApprovals] Reject button clicked for:", id);
     setProcessingId(id);
     try {
+      console.log("[ManagerApprovals] Calling mutateAsync...");
       await rejectShift.mutateAsync(id);
+      console.log("[ManagerApprovals] Mutation completed, refetching...");
       await refetchShifts();
+      console.log("[ManagerApprovals] Refetch completed");
     } catch (error) {
-      // Error is already handled by the mutation
+      console.error("[ManagerApprovals] Error during rejection:", error);
     } finally {
       setProcessingId(null);
     }
