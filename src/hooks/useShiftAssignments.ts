@@ -74,27 +74,32 @@ export const useApproveShiftAssignment = () => {
       
       const shift = (assignment as any).shifts;
       
-      // Check for overlapping approved shifts
+      // Check for overlapping approved shifts on the same date
       const { data: existingAssignments, error: checkError } = await supabase
         .from("shift_assignments")
         .select(`
           id,
-          shifts!inner(shift_date, start_time, end_time)
+          shift_id,
+          shifts!inner(id, shift_date, start_time, end_time)
         `)
         .eq("staff_id", assignment.staff_id)
-        .eq("shifts.shift_date", shift.shift_date)
         .eq("approval_status", "approved")
         .neq("id", assignmentId);
       
       if (checkError) throw checkError;
       
-      // Check for time overlaps
+      // Filter by date and check for time overlaps in JavaScript for accuracy
       if (existingAssignments && existingAssignments.length > 0) {
         const newStart = shift.start_time;
         const newEnd = shift.end_time;
+        const newDate = shift.shift_date;
         
         for (const existing of existingAssignments) {
           const existingShift = (existing as any).shifts;
+          
+          // Only check shifts on the same date
+          if (existingShift.shift_date !== newDate) continue;
+          
           const existingStart = existingShift.start_time;
           const existingEnd = existingShift.end_time;
           
