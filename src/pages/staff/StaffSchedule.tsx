@@ -8,6 +8,15 @@ import { StaffNav } from "@/components/staff/StaffNav";
 import { ChevronLeft, ChevronRight, RefreshCw, Share, Calendar } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const StaffSchedule = () => {
   const { user } = useAuth();
@@ -15,6 +24,10 @@ const StaffSchedule = () => {
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shifts, setShifts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<any>(null);
+  const [offerNote, setOfferNote] = useState("");
 
   useEffect(() => {
     if (user) loadData();
@@ -88,6 +101,54 @@ const StaffSchedule = () => {
     const dayStr = format(day, "yyyy-MM-dd");
     return shifts.some(s => s.shifts.shift_date === dayStr);
   });
+
+  const handleOfferShift = (assignment: any) => {
+    setSelectedShift(assignment);
+    setOfferDialogOpen(true);
+  };
+
+  const handleSwapShift = (assignment: any) => {
+    setSelectedShift(assignment);
+    setSwapDialogOpen(true);
+  };
+
+  const submitOfferShift = async () => {
+    if (!selectedShift) return;
+    
+    try {
+      // Update shift assignment to mark it as offered
+      const { error } = await supabase
+        .from("shift_assignments")
+        .update({
+          status: "offered",
+          notes: offerNote
+        })
+        .eq("id", selectedShift.id);
+
+      if (error) throw error;
+      
+      toast.success("Shift offered successfully! Other employees can now claim it.");
+      setOfferDialogOpen(false);
+      setOfferNote("");
+      loadData();
+    } catch (error: any) {
+      console.error("Error offering shift:", error);
+      toast.error("Failed to offer shift");
+    }
+  };
+
+  const submitSwapRequest = async () => {
+    if (!selectedShift) return;
+    
+    try {
+      // Create a swap request (this could be a new table or notification)
+      toast.info("Swap requests feature coming soon! You'll be able to select another shift to swap with.");
+      setSwapDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error creating swap request:", error);
+      toast.error("Failed to create swap request");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -178,11 +239,21 @@ const StaffSchedule = () => {
                       </div>
                       {assignment.approval_status === "approved" && (
                         <div className="flex gap-2 mt-3">
-                          <Button variant="outline" size="sm" className="flex-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleOfferShift(assignment)}
+                          >
                             <Share className="h-3 w-3 mr-1" />
                             Offer
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleSwapShift(assignment)}
+                          >
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Swap
                           </Button>
@@ -198,6 +269,93 @@ const StaffSchedule = () => {
       </div>
 
       <StaffNav />
+
+      {/* Offer Shift Dialog */}
+      <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Offer Shift</DialogTitle>
+            <DialogDescription>
+              Make this shift available for other employees to claim.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedShift && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">
+                  {format(new Date(selectedShift.shifts.shift_date), "EEEE, MMMM d")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {selectedShift.shifts.start_time.slice(0, 5)} - {selectedShift.shifts.end_time.slice(0, 5)}
+                </div>
+                <Badge variant="secondary" className="mt-2">
+                  {selectedShift.shifts.role}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="offer-note">Note (optional)</Label>
+                <Textarea
+                  id="offer-note"
+                  placeholder="Add any details about this shift..."
+                  value={offerNote}
+                  onChange={(e) => setOfferNote(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setOfferDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={submitOfferShift}>
+                  Offer Shift
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Swap Shift Dialog */}
+      <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Swap Shift</DialogTitle>
+            <DialogDescription>
+              Request to swap this shift with another employee.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedShift && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">
+                  {format(new Date(selectedShift.shifts.shift_date), "EEEE, MMMM d")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {selectedShift.shifts.start_time.slice(0, 5)} - {selectedShift.shifts.end_time.slice(0, 5)}
+                </div>
+                <Badge variant="secondary" className="mt-2">
+                  {selectedShift.shifts.role}
+                </Badge>
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                Swap functionality allows you to exchange shifts with another employee. This feature will let you browse available shifts and request a swap.
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSwapDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={submitSwapRequest}>
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
