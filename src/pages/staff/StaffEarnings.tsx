@@ -48,33 +48,57 @@ const StaffEarnings = () => {
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
 
-    // Get attendance logs for calculation
-    const { data: weekLogs } = await supabase
-      .from("attendance_logs")
-      .select("*")
+    // Get shift assignments with attendance logs
+    const { data: weekAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        *,
+        shifts!inner(
+          shift_date,
+          start_time,
+          end_time
+        ),
+        attendance_logs!left(check_in_at)
+      `)
       .eq("staff_id", emp.id)
-      .gte("check_in_at", weekStart.toISOString())
-      .lte("check_in_at", weekEnd.toISOString());
+      .gte("shifts.shift_date", format(weekStart, "yyyy-MM-dd"))
+      .lte("shifts.shift_date", format(weekEnd, "yyyy-MM-dd"));
 
-    const { data: monthLogs } = await supabase
-      .from("attendance_logs")
-      .select("*")
+    const { data: monthAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        *,
+        shifts!inner(
+          shift_date,
+          start_time,
+          end_time
+        ),
+        attendance_logs!left(check_in_at)
+      `)
       .eq("staff_id", emp.id)
-      .gte("check_in_at", monthStart.toISOString())
-      .lte("check_in_at", monthEnd.toISOString());
+      .gte("shifts.shift_date", format(monthStart, "yyyy-MM-dd"))
+      .lte("shifts.shift_date", format(monthEnd, "yyyy-MM-dd"));
 
-    const calculateHours = (logs: any[]) => {
-      return logs?.reduce((total, log) => {
-        if (log.check_out_at) {
-          const hours = (new Date(log.check_out_at).getTime() - new Date(log.check_in_at).getTime()) / (1000 * 60 * 60);
+    const calculateShiftHours = (assignments: any[]) => {
+      return assignments?.reduce((total, assignment) => {
+        // Only count shifts where staff clocked in
+        const hasClockIn = assignment.attendance_logs && 
+                          assignment.attendance_logs.length > 0 && 
+                          assignment.attendance_logs[0].check_in_at;
+        
+        if (hasClockIn && assignment.shifts) {
+          // Calculate hours based on scheduled shift duration
+          const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
+          const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
+          const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
           return total + hours;
         }
         return total;
       }, 0) || 0;
     };
 
-    const hoursWeek = calculateHours(weekLogs || []);
-    const hoursMonth = calculateHours(monthLogs || []);
+    const hoursWeek = calculateShiftHours(weekAssignments || []);
+    const hoursMonth = calculateShiftHours(monthAssignments || []);
     const hourlyRate = emp.hourly_rate || 15;
 
     setEarnings({
@@ -169,7 +193,7 @@ const StaffEarnings = () => {
         {/* Info Card */}
         <Card className="p-4 bg-muted/50">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> Earnings shown are estimates based on scheduled hours. 
+            <strong>Note:</strong> Earnings are calculated based on scheduled shift hours for shifts where you clocked in. 
             Final amounts may vary. Check your paystubs for official records.
           </p>
         </Card>
