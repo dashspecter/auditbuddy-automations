@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Download, Calendar } from "lucide-react";
+import { Coins, Download, Calendar } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Payroll = () => {
@@ -27,7 +27,7 @@ const Payroll = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0</div>
+              <div className="text-2xl font-bold">0 Lei</div>
             </CardContent>
           </Card>
           <Card>
@@ -47,7 +47,7 @@ const Payroll = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0</div>
+              <div className="text-2xl font-bold">0 Lei</div>
             </CardContent>
           </Card>
           <Card>
@@ -75,7 +75,7 @@ const Payroll = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center text-muted-foreground py-12">
-                  <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <Coins className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No active pay period.</p>
                   <p className="text-sm mt-2">Create a pay period to start tracking payroll.</p>
                   <Button className="mt-4" variant="outline">
