@@ -4305,6 +4305,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_shift_assignment: {
+        Args: { assignment_id: string }
+        Returns: Json
+      }
       calculate_location_audit_score: {
         Args: { audit_id: string }
         Returns: number
@@ -4366,6 +4370,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      reject_shift_assignment: {
+        Args: { assignment_id: string }
+        Returns: Json
       }
       update_overdue_interventions: { Args: never; Returns: undefined }
     }
