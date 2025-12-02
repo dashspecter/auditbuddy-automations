@@ -55,17 +55,25 @@ const StaffHome = () => {
 
   const loadShifts = async (employeeId: string) => {
     const today = new Date().toISOString().split('T')[0];
-    console.log("Loading shifts for date:", today, "employeeId:", employeeId);
     
     const { data: assignmentsData, error } = await supabase
       .from("shift_assignments")
       .select(`
-        *,
-        shifts!inner(
-          *,
-          locations(name)
-        ),
-        attendance_logs!left(check_in_at)
+        id,
+        staff_id,
+        shift_id,
+        approval_status,
+        shifts:shift_id (
+          id,
+          shift_date,
+          start_time,
+          end_time,
+          role,
+          location_id,
+          locations:location_id (
+            name
+          )
+        )
       `)
       .eq("staff_id", employeeId)
       .in("approval_status", ["approved", "pending"])
@@ -73,24 +81,14 @@ const StaffHome = () => {
       .order("shift_date", { foreignTable: "shifts", ascending: true })
       .limit(10);
 
-    console.log("Shift assignments data:", assignmentsData);
-    console.log("Shift assignments error:", error);
-
     if (error) {
       console.error("Error loading shifts:", error);
       return;
     }
 
     if (assignmentsData && assignmentsData.length > 0) {
-      console.log("Processing assignments:", assignmentsData);
-      const todayShiftData = assignmentsData.find((s: any) => {
-        console.log("Checking shift date:", s.shifts?.shift_date, "vs today:", today);
-        return s.shifts?.shift_date === today;
-      });
+      const todayShiftData = assignmentsData.find((s: any) => s.shifts?.shift_date === today);
       const upcomingShiftsData = assignmentsData.filter((s: any) => s.shifts?.shift_date > today);
-      
-      console.log("Today's shift:", todayShiftData);
-      console.log("Upcoming shifts:", upcomingShiftsData);
       
       setTodayShift(todayShiftData);
       setUpcomingShifts(upcomingShiftsData);
@@ -98,7 +96,6 @@ const StaffHome = () => {
       // Calculate earnings for this week
       await calculateWeeklyEarnings(employeeId);
     } else {
-      console.log("No assignments found");
       setTodayShift(null);
       setUpcomingShifts([]);
     }
@@ -112,20 +109,23 @@ const StaffHome = () => {
     const { data: weekAssignments } = await supabase
       .from("shift_assignments")
       .select(`
-        *,
-        shifts!inner(shift_date, start_time, end_time),
-        attendance_logs!left(check_in_at)
+        id,
+        staff_id,
+        shift_id,
+        approval_status,
+        shifts:shift_id (
+          shift_date,
+          start_time,
+          end_time
+        )
       `)
       .eq("staff_id", employeeId)
+      .eq("approval_status", "approved")
       .gte("shifts.shift_date", weekStartStr);
 
     let weeklyTotal = 0;
     weekAssignments?.forEach((assignment: any) => {
-      const hasClockIn = assignment.attendance_logs && 
-                        assignment.attendance_logs.length > 0 && 
-                        assignment.attendance_logs[0].check_in_at;
-      
-      if (hasClockIn && assignment.shifts) {
+      if (assignment.shifts) {
         const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
         const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
         const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
