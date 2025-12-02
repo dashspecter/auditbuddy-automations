@@ -167,33 +167,38 @@ export const useRejectShiftAssignment = () => {
       const employee = (assignment as any).employees;
       const location = shift.locations;
       
-      // Create alert for the employee
-      await supabase
-        .from("alerts")
-        .insert({
-          company_id: employee.company_id,
-          title: "Shift Assignment Rejected",
-          message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${location.name} has been rejected by management.`,
-          severity: "warning",
-          category: "staff",
-          source: "shift_assignments",
-          source_reference_id: assignmentId,
-          metadata: {
-            shift_date: shift.shift_date,
-            role: shift.role,
-            location_name: location.name,
-            staff_id: assignment.staff_id,
-            employee_name: employee.full_name
-          }
-        });
-      
-      // Delete the assignment
-      const { error } = await supabase
+      // Delete the assignment first
+      const { error: deleteError } = await supabase
         .from("shift_assignments")
         .delete()
         .eq("id", assignmentId);
       
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+      
+      // Try to create alert for the employee (don't fail if this doesn't work)
+      try {
+        await supabase
+          .from("alerts")
+          .insert({
+            company_id: employee.company_id,
+            title: "Shift Assignment Rejected",
+            message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${location.name} has been rejected by management.`,
+            severity: "warning",
+            category: "staff",
+            source: "shift_assignments",
+            source_reference_id: assignmentId,
+            metadata: {
+              shift_date: shift.shift_date,
+              role: shift.role,
+              location_name: location.name,
+              staff_id: assignment.staff_id,
+              employee_name: employee.full_name
+            }
+          });
+      } catch (alertError) {
+        console.error("Failed to create alert for rejected shift:", alertError);
+        // Continue anyway - the shift is already deleted
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
