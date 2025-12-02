@@ -26,6 +26,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
+import { useShiftPresets } from "@/hooks/useShiftPresets";
 import { format } from "date-fns";
 
 interface EnhancedShiftDialogProps {
@@ -36,16 +37,6 @@ interface EnhancedShiftDialogProps {
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const SHIFT_PRESETS = [
-  { name: "Morning Shift", start: "06:00", end: "14:00" },
-  { name: "Day Shift", start: "09:00", end: "17:00" },
-  { name: "Evening Shift", start: "14:00", end: "22:00" },
-  { name: "Night Shift", start: "22:00", end: "06:00" },
-  { name: "Split Shift AM", start: "07:00", end: "11:00" },
-  { name: "Split Shift PM", start: "17:00", end: "21:00" },
-  { name: "Full Day", start: "08:00", end: "20:00" },
-];
 
 export const EnhancedShiftDialog = ({
   open,
@@ -83,6 +74,7 @@ export const EnhancedShiftDialog = ({
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees(formData.location_id || undefined);
   const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
+  const { data: shiftPresets = [] } = useShiftPresets();
 
   const operatingHoursInfo = useMemo(() => {
     if (!formData.location_id || !formData.shift_date || operatingSchedules.length === 0) {
@@ -189,12 +181,12 @@ export const EnhancedShiftDialog = ({
   const handlePresetChange = (presetName: string) => {
     setSelectedPreset(presetName);
     if (presetName && presetName !== "custom") {
-      const preset = SHIFT_PRESETS.find(p => p.name === presetName);
+      const preset = shiftPresets.find(p => p.name === presetName);
       if (preset) {
         setFormData({
           ...formData,
-          start_time: preset.start,
-          end_time: preset.end,
+          start_time: preset.start_time,
+          end_time: preset.end_time,
         });
         
         // Update individual times in batch mode
@@ -202,8 +194,8 @@ export const EnhancedShiftDialog = ({
           const updatedTimes = { ...individualTimes };
           selectedEmployees.forEach(empId => {
             updatedTimes[empId] = {
-              start_time: preset.start,
-              end_time: preset.end,
+              start_time: preset.start_time,
+              end_time: preset.end_time,
             };
           });
           setIndividualTimes(updatedTimes);
@@ -459,9 +451,9 @@ export const EnhancedShiftDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="custom">Custom Times</SelectItem>
-                {SHIFT_PRESETS.map((preset) => (
+                {shiftPresets.map((preset) => (
                   <SelectItem key={preset.name} value={preset.name}>
-                    {preset.name} ({preset.start} - {preset.end})
+                    {preset.name} ({preset.start_time} - {preset.end_time})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -726,13 +718,13 @@ export const EnhancedShiftDialog = ({
                                     });
                                     
                                     if (presetName !== "custom") {
-                                      const preset = SHIFT_PRESETS.find(p => p.name === presetName);
+                                      const preset = shiftPresets.find(p => p.name === presetName);
                                       if (preset) {
                                         setIndividualTimes({
                                           ...individualTimes,
                                           [employee.id]: {
-                                            start_time: preset.start,
-                                            end_time: preset.end,
+                                            start_time: preset.start_time,
+                                            end_time: preset.end_time,
                                           },
                                         });
                                       }
@@ -744,9 +736,9 @@ export const EnhancedShiftDialog = ({
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="custom">Custom</SelectItem>
-                                    {SHIFT_PRESETS.map((preset) => (
+                                    {shiftPresets.map((preset) => (
                                       <SelectItem key={preset.name} value={preset.name}>
-                                        {preset.name} ({preset.start}-{preset.end})
+                                        {preset.name} ({preset.start_time}-{preset.end_time})
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

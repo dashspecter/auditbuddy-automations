@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
-import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2 } from "lucide-react";
+import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
+import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
 import {
   Select,
   SelectContent,
@@ -209,6 +210,10 @@ export default function CompanySettings() {
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
+            <TabsTrigger value="workforce" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Workforce
+            </TabsTrigger>
             <TabsTrigger value="billing" className="gap-2">
               <CreditCard className="h-4 w-4" />
               Billing
@@ -261,6 +266,10 @@ export default function CompanySettings() {
 
           <TabsContent value="modules">
             <IndustryModuleManagement />
+          </TabsContent>
+
+          <TabsContent value="workforce">
+            <ShiftPresetsManagement />
           </TabsContent>
 
           <TabsContent value="users">
