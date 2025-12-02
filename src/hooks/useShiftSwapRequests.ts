@@ -9,7 +9,6 @@ export interface ShiftSwapRequest {
   target_staff_id: string | null;
   status: string;
   target_response: string | null;
-  manager_approved: boolean | null;
   manager_approved_by: string | null;
   manager_approved_at: string | null;
   created_at: string;
@@ -62,7 +61,7 @@ export const usePendingSwapRequests = () => {
           )
         `)
         .eq("target_response", "accepted")
-        .is("manager_approved", null)
+        .is("manager_approved_at", null)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -82,7 +81,6 @@ export const useApproveSwapRequest = () => {
       const { data, error } = await supabase
         .from("shift_swap_requests")
         .update({ 
-          manager_approved: true,
           manager_approved_by: user.id,
           manager_approved_at: new Date().toISOString(),
           status: "completed"
@@ -116,7 +114,6 @@ export const useRejectSwapRequest = () => {
       const { data, error } = await supabase
         .from("shift_swap_requests")
         .update({ 
-          manager_approved: false,
           manager_approved_by: user.id,
           manager_approved_at: new Date().toISOString(),
           status: "declined"
