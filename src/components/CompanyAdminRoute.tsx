@@ -5,6 +5,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 
 interface CompanyAdminRouteProps {
   children: ReactNode;
@@ -61,5 +62,5 @@ export const CompanyAdminRoute = ({ children }: CompanyAdminRouteProps) => {
     );
   }
 
-  return <>{children}</>;
+  return <ProtectedLayout>{children}</ProtectedLayout>;
 };

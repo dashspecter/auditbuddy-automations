@@ -140,8 +140,8 @@ const App = () => (
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
-              <Route path="/settings/company" element={<CompanyOwnerRoute><AppLayout><CompanySettings /></AppLayout></CompanyOwnerRoute>} />
-              <Route path="/pricing" element={<CompanyOwnerRoute><AppLayout><PricingPlans /></AppLayout></CompanyOwnerRoute>} />
+              <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
+              <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
               <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
@@ -164,61 +164,61 @@ const App = () => (
               <Route path="/admin/templates" element={<ProtectedRoute><AdminTemplates /></ProtectedRoute>} />
               <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
               <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><AppLayout><UserManagement /></AppLayout></AdminRoute>} />
-              <Route path="/admin/debug" element={<AdminRoute><AppLayout><DebugInfo /></AppLayout></AdminRoute>} />
-              <Route path="/admin/platform" element={<AdminRoute><AppLayout><PlatformAdmin /></AppLayout></AdminRoute>} />
-              <Route path="/notifications" element={<ManagerRoute><AppLayout><Notifications /></AppLayout></ManagerRoute>} />
-              <Route path="/notification-templates" element={<ManagerRoute><AppLayout><NotificationTemplates /></AppLayout></ManagerRoute>} />
-              <Route path="/notification-audit-logs" element={<ManagerRoute><AppLayout><NotificationAuditLogs /></AppLayout></ManagerRoute>} />
-              <Route path="/notification-analytics" element={<ManagerRoute><AppLayout><NotificationAnalytics /></AppLayout></ManagerRoute>} />
-              <Route path="/recurring-notifications" element={<ManagerRoute><AppLayout><RecurringNotifications /></AppLayout></ManagerRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+              <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+              <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
+              <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
+              <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
+              <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
+              <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
+              <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
               <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
-              <Route path="/documents" element={<ManagerRoute><AppLayout><DocumentManagement /></AppLayout></ManagerRoute>} />
+              <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
               <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />
               <Route path="/training" element={<ProtectedRoute><TrainingPrograms /></ProtectedRoute>} />
               <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
-              <Route path="/test-creation" element={<ManagerRoute><AppLayout><TestCreation /></AppLayout></ManagerRoute>} />
-              <Route path="/test-management" element={<ManagerRoute><AppLayout><TestManagement /></AppLayout></ManagerRoute>} />
+              <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
+              <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
               <Route path="/take-test/:testId" element={<TakeTest />} />
               <Route path="/t/:shortCode" element={<TakeTest />} />
               <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
-              <Route path="/admin/locations" element={<AdminRoute><AppLayout><LocationsManagement /></AppLayout></AdminRoute>} />
+              <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
               <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
-              <Route path="/recurring-schedules" element={<ManagerRoute><AppLayout><RecurringAuditSchedules /></AppLayout></ManagerRoute>} />
+              <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
               <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
               <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
-              <Route path="/manual-metrics" element={<ManagerRoute><AppLayout><ManualMetrics /></AppLayout></ManagerRoute>} />
-              <Route path="/equipment" element={<ManagerRoute><AppLayout><EquipmentList /></AppLayout></ManagerRoute>} />
-              <Route path="/equipment/bulk-qr" element={<ManagerRoute><AppLayout><BulkEquipmentQR /></AppLayout></ManagerRoute>} />
-              <Route path="/equipment/new" element={<ManagerRoute><AppLayout><EquipmentForm /></AppLayout></ManagerRoute>} />
+              <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
+              <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
+              <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
+              <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
               <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
-              <Route path="/equipment/:id/edit" element={<ManagerRoute><AppLayout><EquipmentForm /></AppLayout></ManagerRoute>} />
+              <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
               <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
-              <Route path="/maintenance-calendar" element={<ManagerRoute><AppLayout><MaintenanceCalendar /></AppLayout></ManagerRoute>} />
-              <Route path="/recurring-maintenance" element={<ManagerRoute><AppLayout><RecurringMaintenanceSchedules /></AppLayout></ManagerRoute>} />
+              <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
+              <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
               
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
-              <Route path="/workforce/staff" element={<ManagerRoute><AppLayout><EmployeeManagement /></AppLayout></ManagerRoute>} />
+              <Route path="/workforce/staff" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
               <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
-              <Route path="/workforce/payroll" element={<ManagerRoute><AppLayout><Payroll /></AppLayout></ManagerRoute>} />
+              <Route path="/workforce/payroll" element={<ManagerRoute><Payroll /></ManagerRoute>} />
               
               {/* Tasks Routes */}
               <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
               
               {/* Inventory Routes */}
-              <Route path="/inventory" element={<ManagerRoute><AppLayout><Inventory /></AppLayout></ManagerRoute>} />
+              <Route path="/inventory" element={<ManagerRoute><Inventory /></ManagerRoute>} />
               
               {/* Insights Routes */}
-              <Route path="/insights" element={<ManagerRoute><AppLayout><Insights /></AppLayout></ManagerRoute>} />
-              <Route path="/ai-feed" element={<ManagerRoute><AppLayout><AIFeed /></AppLayout></ManagerRoute>} />
+              <Route path="/insights" element={<ManagerRoute><Insights /></ManagerRoute>} />
+              <Route path="/ai-feed" element={<ManagerRoute><AIFeed /></ManagerRoute>} />
               
               {/* Integrations Routes */}
-              <Route path="/integrations" element={<ManagerRoute><AppLayout><Integrations /></AppLayout></ManagerRoute>} />
-              <Route path="/integrations/:id" element={<ManagerRoute><AppLayout><IntegrationDetail /></AppLayout></ManagerRoute>} />
+              <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
+              <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               
