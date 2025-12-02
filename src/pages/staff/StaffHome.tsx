@@ -50,7 +50,7 @@ const StaffHome = () => {
     const today = new Date().toISOString().split('T')[0];
     const { data: assignmentsData } = await supabase
       .from("shift_assignments")
-      .select(`*, shifts!inner(*, locations(name))`)
+      .select(`*, shifts!inner(*, locations(name)), attendance_logs!left(check_in_at)`)
       .eq("staff_id", employeeId)
       .gte("shifts.shift_date", today)
       .order("shift_date", { foreignTable: "shifts", ascending: true })
@@ -62,7 +62,42 @@ const StaffHome = () => {
       
       setTodayShift(todayShiftData);
       setUpcomingShifts(upcomingShiftsData);
+      
+      // Calculate earnings for this week
+      await calculateWeeklyEarnings(employeeId);
     }
+  };
+
+  const calculateWeeklyEarnings = async (employeeId: string) => {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+
+    const { data: weekAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        *,
+        shifts!inner(shift_date, start_time, end_time),
+        attendance_logs!left(check_in_at)
+      `)
+      .eq("staff_id", employeeId)
+      .gte("shifts.shift_date", weekStartStr);
+
+    let weeklyTotal = 0;
+    weekAssignments?.forEach((assignment: any) => {
+      const hasClockIn = assignment.attendance_logs && 
+                        assignment.attendance_logs.length > 0 && 
+                        assignment.attendance_logs[0].check_in_at;
+      
+      if (hasClockIn && assignment.shifts) {
+        const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
+        const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
+        const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
+        weeklyTotal += hours * (employee?.hourly_rate || 15);
+      }
+    });
+
+    setEarnings({ thisWeek: weeklyTotal, thisMonth: 0 });
   };
 
   if (isLoading) {
