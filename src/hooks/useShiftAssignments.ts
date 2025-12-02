@@ -60,19 +60,16 @@ export const useApproveShiftAssignment = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("shift_assignments")
         .update({ 
           approval_status: 'approved',
           approved_by: user.id,
           approved_at: new Date().toISOString()
         })
-        .eq("id", assignmentId)
-        .select()
-        .single();
+        .eq("id", assignmentId);
       
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
