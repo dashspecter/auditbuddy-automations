@@ -1102,6 +1102,7 @@ export type Database = {
       }
       employees: {
         Row: {
+          annual_vacation_days: number | null
           avatar_url: string | null
           base_salary: number | null
           company_id: string
@@ -1122,8 +1123,10 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string | null
+          vacation_year_start_month: number | null
         }
         Insert: {
+          annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
           company_id: string
@@ -1144,8 +1147,10 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          vacation_year_start_month?: number | null
         }
         Update: {
+          annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
           company_id?: string
@@ -1166,6 +1171,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string | null
+          vacation_year_start_month?: number | null
         }
         Relationships: [
           {
@@ -3910,6 +3916,8 @@ export type Database = {
           end_date: string
           id: string
           reason: string | null
+          rejection_reason: string | null
+          request_type: string | null
           start_date: string
           status: string
           updated_at: string
@@ -3923,6 +3931,8 @@ export type Database = {
           end_date: string
           id?: string
           reason?: string | null
+          rejection_reason?: string | null
+          request_type?: string | null
           start_date: string
           status?: string
           updated_at?: string
@@ -3936,6 +3946,8 @@ export type Database = {
           end_date?: string
           id?: string
           reason?: string | null
+          rejection_reason?: string | null
+          request_type?: string | null
           start_date?: string
           status?: string
           updated_at?: string
@@ -4308,6 +4320,10 @@ export type Database = {
           employee_name: string
         }
         Returns: string
+      }
+      employee_has_time_off: {
+        Args: { _check_date: string; _employee_id: string }
+        Returns: boolean
       }
       generate_short_code: { Args: never; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
