@@ -149,10 +149,6 @@ export const useApproveShiftAssignment = () => {
             
             console.log("[Approve] Successfully deleted assignment. Deleted rows:", deleteData);
             
-            // Immediately invalidate queries after successful deletion
-            await queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
-            await queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-            
             // Try to create an alert for the employee (non-blocking)
             try {
               const alertResult = await supabase
@@ -183,7 +179,11 @@ export const useApproveShiftAssignment = () => {
               console.error("[Approve] Exception creating conflict alert:", alertError);
             }
             
-            throw new Error(`Cannot approve: Employee already has an approved shift from ${existingStart.slice(0, 5)} to ${existingEnd.slice(0, 5)} on this date`);
+            // Return a special result indicating conflict rejection
+            return {
+              status: 'rejected_conflict',
+              message: `Cannot approve: Employee already has an approved shift from ${existingStart.slice(0, 5)} to ${existingEnd.slice(0, 5)} on this date`
+            };
           }
         }
       }
@@ -205,23 +205,33 @@ export const useApproveShiftAssignment = () => {
       }
       
       console.log("[Approve] Successfully approved assignment");
+      return { status: 'approved' };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       // Force refetch all related queries
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
       queryClient.invalidateQueries({ queryKey: ["team-stats"] });
-      toast.success("Shift assignment approved");
+      
+      if (result?.status === 'rejected_conflict') {
+        toast.error(result.message);
+      } else {
+        toast.success("Shift assignment approved");
+      }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       // Also invalidate on error since we may have deleted a conflicting shift
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
       queryClient.invalidateQueries({ queryKey: ["team-stats"] });
-      toast.error("Failed to approve: " + error.message);
+      
+      // Only show error toast if it's not already handled
+      if (!error.message?.includes('already has an approved shift')) {
+        toast.error("Failed to approve: " + error.message);
+      }
     },
   });
 };
