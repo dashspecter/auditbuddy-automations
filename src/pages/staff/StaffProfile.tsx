@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -131,7 +131,7 @@ const StaffProfile = () => {
         </Button>
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };

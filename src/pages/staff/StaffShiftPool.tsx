@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { Clock, MapPin, Wallet, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -301,7 +301,7 @@ const StaffShiftPool = () => {
         )}
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };

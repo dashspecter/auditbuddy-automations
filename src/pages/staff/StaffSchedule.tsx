@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { ChevronLeft, ChevronRight, RefreshCw, Share, Calendar } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { toast } from "sonner";
@@ -351,7 +351,7 @@ const StaffSchedule = () => {
         )}
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
 
       {/* Offer Shift Dialog */}
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>

@@ -1,67 +1,100 @@
-import { Users, User, MapPin, Calendar, Umbrella, RefreshCw } from "lucide-react";
-import { useState } from "react";
-import { ColleaguesDialog } from "./ColleaguesDialog";
-import { ManagerDetailsDialog } from "./ManagerDetailsDialog";
-import { LocationDetailsDialog } from "./LocationDetailsDialog";
-import { OpenShiftsDialog } from "./OpenShiftsDialog";
-import { VacationDetailsDialog } from "./VacationDetailsDialog";
-import { ShiftRequestDialog } from "./ShiftRequestDialog";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Home, Calendar, Clock, Umbrella, User, Users, ClipboardList } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export const StaffBottomNav = () => {
-  const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const { data: roleData } = useUserRole();
+  const [isManager, setIsManager] = useState(false);
 
-  const navItems = [
-    { id: "colleagues", icon: Users, label: "Colleagues" },
-    { id: "manager", icon: User, label: "Manager" },
-    { id: "location", icon: MapPin, label: "Location" },
-    { id: "shifts", icon: Calendar, label: "Open Shifts" },
-    { id: "vacation", icon: Umbrella, label: "Vacation" },
-    { id: "request", icon: RefreshCw, label: "Requests" },
+  useEffect(() => {
+    const checkManagerRole = async () => {
+      if (!user) return;
+      
+      // Check platform roles
+      const platformManager = roleData?.isManager || roleData?.isAdmin;
+      
+      // Check company role
+      const { data: empData } = await supabase
+        .from("employees")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (empData) {
+        const { data: companyUserData } = await supabase
+          .from("company_users")
+          .select("company_role")
+          .eq("user_id", user.id)
+          .eq("company_id", empData.company_id)
+          .maybeSingle();
+        
+        const companyManager = companyUserData?.company_role === 'company_admin' || 
+                               companyUserData?.company_role === 'company_owner';
+        
+        setIsManager(platformManager || companyManager);
+      } else {
+        setIsManager(platformManager || false);
+      }
+    };
+
+    checkManagerRole();
+  }, [user, roleData]);
+
+  const staffNavItems = [
+    { id: "home", path: "/staff", icon: Home, label: "Home" },
+    { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
+    { id: "shifts", path: "/staff/shift-pool", icon: Clock, label: "Shifts" },
+    { id: "swaps", path: "/staff/swap-requests", icon: ClipboardList, label: "Swaps" },
+    { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
+    { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
   ];
 
+  const managerNavItems = [
+    { id: "home", path: "/staff", icon: Home, label: "Home" },
+    { id: "who-working", path: "/staff/manager-schedule", icon: Users, label: "Who's Working" },
+    { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "My Schedule" },
+    { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
+    { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
+  ];
+
+  const navItems = isManager ? managerNavItems : staffNavItems;
+
+  const isActive = (path: string) => {
+    if (path === "/staff") {
+      return location.pathname === path;
+    }
+    return location.pathname.startsWith(path);
+  };
+
   return (
-    <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border pb-safe z-50">
-        <div className="grid grid-cols-6 gap-1 px-2 py-2">
-          {navItems.map((item) => (
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border pb-safe z-50 shadow-lg">
+      <div className="flex items-center justify-around px-2 h-16">
+        {navItems.map((item) => {
+          const active = isActive(item.path);
+          return (
             <button
               key={item.id}
-              onClick={() => setActiveDialog(item.id)}
-              className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg hover:bg-accent/10 active:bg-accent/20 transition-colors touch-target"
+              onClick={() => navigate(item.path)}
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all touch-target ${
+                active 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <item.icon className="h-5 w-5 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground font-medium leading-tight text-center">
+              <item.icon className={`h-5 w-5 ${active ? "scale-110" : ""} transition-transform`} />
+              <span className={`text-[10px] font-medium ${active ? "font-semibold" : ""}`}>
                 {item.label}
               </span>
             </button>
-          ))}
-        </div>
-      </nav>
-
-      <ColleaguesDialog 
-        open={activeDialog === "colleagues"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-      <ManagerDetailsDialog 
-        open={activeDialog === "manager"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-      <LocationDetailsDialog 
-        open={activeDialog === "location"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-      <OpenShiftsDialog 
-        open={activeDialog === "shifts"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-      <VacationDetailsDialog 
-        open={activeDialog === "vacation"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-      <ShiftRequestDialog 
-        open={activeDialog === "request"} 
-        onOpenChange={(open) => !open && setActiveDialog(null)} 
-      />
-    </>
+          );
+        })}
+      </div>
+    </nav>
   );
 };
