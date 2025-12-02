@@ -3027,11 +3027,17 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          manager_approved_at: string | null
+          manager_approved_by: string | null
+          manager_notes: string | null
           requester_assignment_id: string
           requester_notes: string | null
+          requires_manager_approval: boolean | null
           responded_at: string | null
           status: string
           target_assignment_id: string | null
+          target_responded_at: string | null
+          target_response: string | null
           target_staff_id: string | null
         }
         Insert: {
@@ -3039,11 +3045,17 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_notes?: string | null
           requester_assignment_id: string
           requester_notes?: string | null
+          requires_manager_approval?: boolean | null
           responded_at?: string | null
           status?: string
           target_assignment_id?: string | null
+          target_responded_at?: string | null
+          target_response?: string | null
           target_staff_id?: string | null
         }
         Update: {
@@ -3051,11 +3063,17 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
+          manager_notes?: string | null
           requester_assignment_id?: string
           requester_notes?: string | null
+          requires_manager_approval?: boolean | null
           responded_at?: string | null
           status?: string
           target_assignment_id?: string | null
+          target_responded_at?: string | null
+          target_response?: string | null
           target_staff_id?: string | null
         }
         Relationships: [
@@ -3064,6 +3082,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_manager_approved_by_fkey"
+            columns: ["manager_approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

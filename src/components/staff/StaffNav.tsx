@@ -5,6 +5,7 @@ const navItems = [
   { id: "home", path: "/staff", icon: Home, label: "Home" },
   { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
   { id: "shifts", path: "/staff/shift-pool", icon: Clock, label: "Shifts" },
+  { id: "swaps", path: "/staff/swap-requests", icon: ListTodo, label: "Swaps" },
   { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
   { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
 ];
