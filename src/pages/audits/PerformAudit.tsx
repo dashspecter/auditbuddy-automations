@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -80,15 +79,12 @@ const PerformAudit = () => {
 
   if (!audit || !sections || !currentSection) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">Loading audit...</div>
-      </AppLayout>
+      <div className="text-center py-12">Loading audit...</div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold">{audit.audit_templates?.name}</h1>
@@ -156,7 +152,6 @@ const PerformAudit = () => {
           )}
         </div>
       </div>
-    </AppLayout>
   );
 };
 
