@@ -195,8 +195,8 @@ const StaffHome = () => {
           </>
         )}
         
-        {/* Today's Shift Card */}
-        {todayShift ? (
+        {/* Today's Shift Card - Only for non-managers */}
+        {!isManager && todayShift ? (
           <Card className="p-4 shadow-lg border-primary/20">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -247,7 +247,7 @@ const StaffHome = () => {
               </div>
             )}
           </Card>
-        ) : (
+        ) : !isManager ? (
           <Card className="p-6 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">No shift scheduled for today</p>
@@ -255,7 +255,7 @@ const StaffHome = () => {
               Browse available shifts
             </Button>
           </Card>
-        )}
+        ) : null}
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
