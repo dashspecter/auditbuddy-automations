@@ -9,15 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight } from "lucide-react";
 import { StaffNav } from "@/components/staff/StaffNav";
 import { format } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
+import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
 
 const StaffHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: roleData } = useUserRole();
   const [employee, setEmployee] = useState<any>(null);
   const [todayShift, setTodayShift] = useState<any>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
+
+  const isManager = roleData?.isManager || roleData?.isAdmin;
 
   useEffect(() => {
     if (!user) {
@@ -165,6 +170,9 @@ const StaffHome = () => {
       </div>
 
       <div className="px-4 -mt-4 space-y-4 pb-6">
+        {/* Manager Approvals Section */}
+        {isManager && <ManagerApprovalsSection />}
+        
         {/* Today's Shift Card */}
         {todayShift ? (
           <Card className="p-4 shadow-lg border-primary/20">
