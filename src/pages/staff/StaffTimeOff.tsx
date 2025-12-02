@@ -96,23 +96,31 @@ const StaffTimeOff = () => {
 
   const submitRequest = async () => {
     try {
-      const { error } = await supabase
+      console.log("Submitting time off request:", { employee, formData });
+      
+      const { data, error } = await supabase
         .from("time_off_requests")
         .insert([{
           employee_id: employee.id,
           company_id: employee.company_id,
           ...formData,
           status: "pending"
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Time off request error:", error);
+        throw error;
+      }
 
+      console.log("Time off request created:", data);
       toast.success("Time off request submitted");
       setDialogOpen(false);
       setFormData({ start_date: "", end_date: "", request_type: "vacation", reason: "" });
       loadData();
-    } catch (error) {
-      toast.error("Failed to submit request");
+    } catch (error: any) {
+      console.error("Submit request error:", error);
+      toast.error(error?.message || "Failed to submit request");
     }
   };
 
