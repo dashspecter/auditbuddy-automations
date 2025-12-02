@@ -68,6 +68,8 @@ const StaffSchedule = () => {
         staff_id,
         shift_id,
         approval_status,
+        status,
+        notes,
         shifts:shift_id (
           id,
           shift_date,
@@ -231,13 +233,26 @@ const StaffSchedule = () => {
                           {assignment.approval_status === "pending" && (
                             <Badge variant="outline" className="text-xs">Pending</Badge>
                           )}
+                          {assignment.status === "offered" && (
+                            <Badge className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                              Offered
+                            </Badge>
+                          )}
                           <Badge variant="secondary">{assignment.shifts.role}</Badge>
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {assignment.shifts.locations?.name}
                       </div>
-                      {assignment.approval_status === "approved" && (
+                      {assignment.status === "offered" && (
+                        <div className="mt-3 p-2 bg-amber-500/5 border border-amber-500/20 rounded text-xs text-amber-700 dark:text-amber-400">
+                          Waiting for someone to claim this shift
+                          {assignment.notes && (
+                            <div className="mt-1 text-muted-foreground">Note: {assignment.notes}</div>
+                          )}
+                        </div>
+                      )}
+                      {assignment.approval_status === "approved" && assignment.status !== "offered" && (
                         <div className="flex gap-2 mt-3">
                           <Button 
                             variant="outline" 
