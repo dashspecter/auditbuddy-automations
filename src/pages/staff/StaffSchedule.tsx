@@ -28,6 +28,9 @@ const StaffSchedule = () => {
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [offerNote, setOfferNote] = useState("");
+  const [colleagues, setColleagues] = useState<any[]>([]);
+  const [selectedColleague, setSelectedColleague] = useState<string | null>(null);
+  const [swapNote, setSwapNote] = useState("");
 
   useEffect(() => {
     if (user) loadData();
@@ -109,9 +112,28 @@ const StaffSchedule = () => {
     setOfferDialogOpen(true);
   };
 
-  const handleSwapShift = (assignment: any) => {
+  const handleSwapShift = async (assignment: any) => {
     setSelectedShift(assignment);
     setSwapDialogOpen(true);
+    
+    // Load colleagues from the same company
+    if (employee) {
+      try {
+        const { data, error } = await supabase
+          .from("employees")
+          .select("id, full_name, role, avatar_url")
+          .eq("company_id", employee.company_id)
+          .eq("status", "active")
+          .neq("id", employee.id)
+          .order("full_name");
+
+        if (error) throw error;
+        setColleagues(data || []);
+      } catch (error) {
+        console.error("Error loading colleagues:", error);
+        toast.error("Failed to load colleagues");
+      }
+    }
   };
 
   const submitOfferShift = async () => {
@@ -149,15 +171,33 @@ const StaffSchedule = () => {
   };
 
   const submitSwapRequest = async () => {
-    if (!selectedShift) return;
+    if (!selectedShift || !selectedColleague || !employee) return;
     
     try {
-      // Create a swap request (this could be a new table or notification)
-      toast.info("Swap requests feature coming soon! You'll be able to select another shift to swap with.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create swap request
+      const { error } = await supabase
+        .from("shift_swap_requests")
+        .insert({
+          requester_assignment_id: selectedShift.id,
+          target_staff_id: selectedColleague,
+          requester_notes: swapNote || null,
+          created_by: user.id,
+          company_id: employee.company_id,
+          status: "pending"
+        });
+
+      if (error) throw error;
+
+      toast.success("Swap request sent! The colleague will be notified.");
       setSwapDialogOpen(false);
+      setSelectedColleague(null);
+      setSwapNote("");
     } catch (error: any) {
       console.error("Error creating swap request:", error);
-      toast.error("Failed to create swap request");
+      toast.error("Failed to create swap request: " + error.message);
     }
   };
 
@@ -343,16 +383,17 @@ const StaffSchedule = () => {
 
       {/* Swap Shift Dialog */}
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Swap Shift</DialogTitle>
             <DialogDescription>
-              Request to swap this shift with another employee.
+              Select a colleague to request a shift swap with.
             </DialogDescription>
           </DialogHeader>
           {selectedShift && (
             <div className="space-y-4">
               <div className="bg-muted p-3 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Your Shift</div>
                 <div className="font-medium">
                   {format(new Date(selectedShift.shifts.shift_date), "EEEE, MMMM d")}
                 </div>
@@ -363,17 +404,85 @@ const StaffSchedule = () => {
                   {selectedShift.shifts.role}
                 </Badge>
               </div>
-              
-              <div className="text-sm text-muted-foreground">
-                Swap functionality allows you to exchange shifts with another employee. This feature will let you browse available shifts and request a swap.
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Colleague</label>
+                {colleagues.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4 text-center bg-muted rounded-lg">
+                    No colleagues available
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {colleagues.map((colleague) => (
+                      <div
+                        key={colleague.id}
+                        onClick={() => setSelectedColleague(colleague.id)}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          selectedColleague === colleague.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                            {colleague.avatar_url ? (
+                              <img 
+                                src={colleague.avatar_url} 
+                                alt={colleague.full_name}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-sm font-medium">
+                                {colleague.full_name.split(" ").map((n: string) => n[0]).join("")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{colleague.full_name}</div>
+                            <div className="text-xs text-muted-foreground">{colleague.role}</div>
+                          </div>
+                          {selectedColleague === colleague.id && (
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Note (Optional)</label>
+                <textarea
+                  value={swapNote}
+                  onChange={(e) => setSwapNote(e.target.value)}
+                  placeholder="Add a message for your colleague..."
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setSwapDialogOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => {
+                    setSwapDialogOpen(false);
+                    setSelectedColleague(null);
+                    setSwapNote("");
+                  }}
+                >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={submitSwapRequest}>
-                  Continue
+                <Button 
+                  className="flex-1" 
+                  onClick={submitSwapRequest}
+                  disabled={!selectedColleague}
+                >
+                  Send Request
                 </Button>
               </div>
             </div>
