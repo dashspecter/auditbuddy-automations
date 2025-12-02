@@ -29,17 +29,24 @@ const StaffHome = () => {
 
   const loadData = async () => {
     try {
-      const { data: empData } = await supabase
+      const { data: empData, error } = await supabase
         .from("employees")
         .select("*, locations(name)")
         .eq("user_id", user?.id)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading employee:", error);
+        toast.error("Failed to load data");
+        return;
+      }
 
       if (empData) {
         setEmployee(empData);
         await loadShifts(empData.id);
       }
     } catch (error: any) {
+      console.error("Failed to load data:", error);
       toast.error("Failed to load data");
     } finally {
       setIsLoading(false);
@@ -48,23 +55,39 @@ const StaffHome = () => {
 
   const loadShifts = async (employeeId: string) => {
     const today = new Date().toISOString().split('T')[0];
-    const { data: assignmentsData } = await supabase
+    const { data: assignmentsData, error } = await supabase
       .from("shift_assignments")
-      .select(`*, shifts!inner(*, locations(name)), attendance_logs!left(check_in_at)`)
+      .select(`
+        *,
+        shifts!inner(
+          *,
+          locations(name)
+        ),
+        attendance_logs!left(check_in_at)
+      `)
       .eq("staff_id", employeeId)
+      .eq("approval_status", "approved")
       .gte("shifts.shift_date", today)
       .order("shift_date", { foreignTable: "shifts", ascending: true })
-      .limit(5);
+      .limit(10);
 
-    if (assignmentsData) {
-      const todayShiftData = assignmentsData.find(s => s.shifts.shift_date === today);
-      const upcomingShiftsData = assignmentsData.filter(s => s.shifts.shift_date > today);
+    if (error) {
+      console.error("Error loading shifts:", error);
+      return;
+    }
+
+    if (assignmentsData && assignmentsData.length > 0) {
+      const todayShiftData = assignmentsData.find((s: any) => s.shifts?.shift_date === today);
+      const upcomingShiftsData = assignmentsData.filter((s: any) => s.shifts?.shift_date > today);
       
       setTodayShift(todayShiftData);
       setUpcomingShifts(upcomingShiftsData);
       
       // Calculate earnings for this week
       await calculateWeeklyEarnings(employeeId);
+    } else {
+      setTodayShift(null);
+      setUpcomingShifts([]);
     }
   };
 
