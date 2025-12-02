@@ -97,14 +97,37 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
-      name: location?.name || "",
-      address: location?.address || "",
-      city: location?.city || "",
-      type: location?.type || "",
-      manager_id: location?.manager_id || null,
-      status: location?.status || "active",
+      name: "",
+      address: "",
+      city: "",
+      type: "",
+      manager_id: null,
+      status: "active",
     },
   });
+
+  // Update form when location changes
+  useEffect(() => {
+    if (location) {
+      form.reset({
+        name: location.name || "",
+        address: location.address || "",
+        city: location.city || "",
+        type: location.type || "",
+        manager_id: location.manager_id || null,
+        status: location.status || "active",
+      });
+    } else {
+      form.reset({
+        name: "",
+        address: "",
+        city: "",
+        type: "",
+        manager_id: null,
+        status: "active",
+      });
+    }
+  }, [location, form, open]);
 
   const onSubmit = async (data: LocationFormValues) => {
     let locationId = location?.id;
