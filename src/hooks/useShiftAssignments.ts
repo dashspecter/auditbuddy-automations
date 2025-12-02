@@ -244,6 +244,8 @@ export const useRejectShiftAssignment = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
+      console.log("[Reject] Starting rejection for assignment:", assignmentId);
+      
       // Get assignment details before deleting
       const { data: assignment, error: fetchError } = await supabase
         .from("shift_assignments")
@@ -262,23 +264,36 @@ export const useRejectShiftAssignment = () => {
         .eq("id", assignmentId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("[Reject] Failed to fetch assignment:", fetchError);
+        throw fetchError;
+      }
+      
+      console.log("[Reject] Assignment details:", assignment);
       
       const shift = (assignment as any).shifts;
       const employee = (assignment as any).employees;
       const location = shift.locations;
       
       // Delete the assignment first
-      const { error: deleteError } = await supabase
+      console.log("[Reject] Attempting to delete assignment:", assignmentId);
+      const { data: deletedData, error: deleteError } = await supabase
         .from("shift_assignments")
         .delete()
-        .eq("id", assignmentId);
+        .eq("id", assignmentId)
+        .select();
       
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("[Reject] Delete FAILED:", deleteError);
+        throw deleteError;
+      }
+      
+      console.log("[Reject] Delete SUCCESS. Deleted rows:", deletedData);
       
       // Try to create alert for the employee (don't fail if this doesn't work)
       try {
-        await supabase
+        console.log("[Reject] Creating alert for employee");
+        const alertResult = await supabase
           .from("alerts")
           .insert({
             company_id: employee.company_id,
@@ -296,12 +311,21 @@ export const useRejectShiftAssignment = () => {
               employee_name: employee.full_name
             }
           });
+        
+        if (alertResult.error) {
+          console.error("[Reject] Alert creation failed:", alertResult.error);
+        } else {
+          console.log("[Reject] Alert created successfully");
+        }
       } catch (alertError) {
-        console.error("Failed to create alert for rejected shift:", alertError);
+        console.error("[Reject] Exception creating alert:", alertError);
         // Continue anyway - the shift is already deleted
       }
+      
+      console.log("[Reject] Rejection complete");
     },
     onSuccess: () => {
+      console.log("[Reject] onSuccess - invalidating queries");
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
@@ -310,6 +334,9 @@ export const useRejectShiftAssignment = () => {
       toast.success("Shift assignment rejected and employee notified");
     },
     onError: (error) => {
+      console.error("[Reject] onError:", error);
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.error("Failed to reject: " + error.message);
     },
   });
