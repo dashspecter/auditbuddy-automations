@@ -203,7 +203,7 @@ const App = () => (
               <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-              <Route path="/workforce/time-off" element={<ProtectedRoute><AppLayout><TimeOffApprovals /></AppLayout></ProtectedRoute>} />
+              <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
               <Route path="/workforce/payroll" element={<ManagerRoute><AppLayout><Payroll /></AppLayout></ManagerRoute>} />
               
               {/* Tasks Routes */}
