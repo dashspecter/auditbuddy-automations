@@ -12,6 +12,7 @@ import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
 import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { MaintenanceInterventions } from "./MaintenanceInterventions";
+import { TasksWidget } from "./TasksWidget";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -206,7 +207,10 @@ export const ManagerDashboard = () => {
         <SectionPerformanceTrends />
       </div>
 
-      <MaintenanceInterventions />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MaintenanceInterventions />
+        <TasksWidget />
+      </div>
     </div>
   );
 };

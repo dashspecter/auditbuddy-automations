@@ -1,61 +1,21 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { useMyTasks, useCompleteTask } from "@/hooks/useTasks";
+import { format, isPast, isToday } from "date-fns";
 
 const StaffTasks = () => {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: tasks, isLoading } = useMyTasks();
+  const completeTask = useCompleteTask();
 
-  useEffect(() => {
-    if (user) loadTasks();
-  }, [user]);
-
-  const loadTasks = async () => {
-    try {
-      // Placeholder - would integrate with actual task system
-      setTasks([
-        {
-          id: 1,
-          title: "Complete opening checklist",
-          priority: "high",
-          dueTime: "9:00 AM",
-          completed: false
-        },
-        {
-          id: 2,
-          title: "Restock supplies",
-          priority: "medium",
-          dueTime: "2:00 PM",
-          completed: false
-        },
-        {
-          id: 3,
-          title: "Clean equipment",
-          priority: "low",
-          dueTime: "End of shift",
-          completed: true
-        }
-      ]);
-    } catch (error) {
-      toast.error("Failed to load tasks");
-    } finally {
-      setIsLoading(false);
+  const toggleTask = (taskId: string, currentStatus: string) => {
+    if (currentStatus !== 'completed') {
+      completeTask.mutate(taskId);
     }
-  };
-
-  const toggleTask = (taskId: number) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    ));
-    toast.success("Task updated");
   };
 
   if (isLoading) {
@@ -74,8 +34,18 @@ const StaffTasks = () => {
     }
   };
 
-  const pendingTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
+  const pendingTasks = tasks?.filter(t => t.status !== 'completed') || [];
+  const completedTasks = tasks?.filter(t => t.status === 'completed') || [];
+
+  const isOverdue = (dueAt: string | null) => {
+    if (!dueAt) return false;
+    return isPast(new Date(dueAt)) && !isToday(new Date(dueAt));
+  };
+
+  const isDueToday = (dueAt: string | null) => {
+    if (!dueAt) return false;
+    return isToday(new Date(dueAt));
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -104,12 +74,16 @@ const StaffTasks = () => {
             </h2>
             <div className="space-y-2">
               {pendingTasks.map((task) => (
-                <Card key={task.id} className="p-4">
+                <Card 
+                  key={task.id} 
+                  className={`p-4 ${isOverdue(task.due_at) ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                >
                   <div className="flex items-start gap-3">
                     <Checkbox 
-                      checked={task.completed}
-                      onCheckedChange={() => toggleTask(task.id)}
+                      checked={task.status === 'completed'}
+                      onCheckedChange={() => toggleTask(task.id, task.status)}
                       className="mt-1"
+                      disabled={completeTask.isPending}
                     />
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-2 mb-2">
@@ -118,9 +92,25 @@ const StaffTasks = () => {
                           {task.priority}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>Due: {task.dueTime}</span>
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {task.due_at && (
+                          <div className={`flex items-center gap-1 ${isOverdue(task.due_at) ? 'text-destructive' : isDueToday(task.due_at) ? 'text-warning' : ''}`}>
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {isOverdue(task.due_at) ? 'Overdue: ' : isDueToday(task.due_at) ? 'Due today: ' : 'Due: '}
+                              {format(new Date(task.due_at), "MMM d, h:mm a")}
+                            </span>
+                          </div>
+                        )}
+                        {task.location?.name && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>{task.location.name}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -139,12 +129,17 @@ const StaffTasks = () => {
                 <Card key={task.id} className="p-4 opacity-60">
                   <div className="flex items-start gap-3">
                     <Checkbox 
-                      checked={task.completed}
-                      onCheckedChange={() => toggleTask(task.id)}
+                      checked={true}
+                      disabled
                       className="mt-1"
                     />
                     <div className="flex-1">
                       <h3 className="font-medium line-through">{task.title}</h3>
+                      {task.completed_at && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Completed {format(new Date(task.completed_at), "MMM d, h:mm a")}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -153,7 +148,7 @@ const StaffTasks = () => {
           </div>
         )}
 
-        {tasks.length === 0 && (
+        {(!tasks || tasks.length === 0) && (
           <Card className="p-8 text-center">
             <ListTodo className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No tasks assigned</p>
