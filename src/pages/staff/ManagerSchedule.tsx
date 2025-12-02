@@ -182,12 +182,12 @@ const ManagerSchedule = () => {
           
           return (
             <div key={day.toString()}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-sm font-medium ${isToday ? "text-primary" : ""}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
                   {format(day, "EEE, MMM d")}
                 </span>
-                <Badge variant="outline" className="text-xs">
-                  <Users className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="text-sm font-medium px-2 py-1">
+                  <Users className="h-4 w-4 mr-1" />
                   {dayShifts.length}
                 </Badge>
               </div>
@@ -201,33 +201,33 @@ const ManagerSchedule = () => {
                   dayShifts.map((shift) => (
                     <Card
                       key={shift.id}
-                      className={`p-2 ${getRoleColor(shift.role)}/10 border-l-4`}
+                      className={`p-3 ${getRoleColor(shift.role)}/10 border-l-4`}
                       style={{ borderLeftColor: getRoleColor(shift.role).replace("bg-", "").replace("500", "#") }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           {shift.shift_assignments && shift.shift_assignments.length > 0 ? (
                             shift.shift_assignments.map((assignment: any) => (
-                              <div key={assignment.id} className="flex items-center gap-2 mb-1">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <div className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                              <div key={assignment.id} className="flex items-center gap-3 mb-2">
+                                <div className="flex items-center gap-3 flex-1">
+                                  <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold">
                                     {assignment.employees?.full_name?.charAt(0)}
                                   </div>
-                                  <span className="text-sm font-medium">
+                                  <span className="text-base font-semibold">
                                     {assignment.employees?.full_name}
                                   </span>
                                 </div>
-                                <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs">
+                                <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs font-medium">
                                   {assignment.approval_status}
                                 </Badge>
                               </div>
                             ))
                           ) : (
-                            <span className="text-sm text-muted-foreground italic">Unassigned</span>
+                            <span className="text-base text-muted-foreground italic font-medium">Unassigned</span>
                           )}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <span>{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
-                            <Badge variant="outline" className="text-xs">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                            <span className="font-medium">{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
+                            <Badge variant="outline" className="text-xs font-medium">
                               {shift.role}
                             </Badge>
                           </div>
