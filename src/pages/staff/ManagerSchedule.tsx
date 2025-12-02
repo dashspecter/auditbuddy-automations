@@ -16,6 +16,7 @@ const ManagerSchedule = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [locations, setLocations] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -79,6 +80,17 @@ const ManagerSchedule = () => {
       if (shiftsData) {
         setShifts(shiftsData);
       }
+
+      // Load location operating schedules
+      const { data: schedulesData } = await supabase
+        .from("location_operating_schedules")
+        .select("*")
+        .eq("location_id", selectedLocation || empData.location_id)
+        .order("day_of_week", { ascending: true });
+
+      if (schedulesData) {
+        setSchedules(schedulesData);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -102,6 +114,16 @@ const ManagerSchedule = () => {
       Dishwasher: "bg-cyan-500",
     };
     return colors[role] || "bg-gray-500";
+  };
+
+  const getOperatingHours = (date: Date) => {
+    const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+    const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
+    
+    if (!schedule) return "24/7";
+    if (schedule.is_closed) return "Closed";
+    
+    return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
   };
 
   if (isLoading) {
@@ -165,31 +187,26 @@ const ManagerSchedule = () => {
       </div>
 
       <div className="px-4 py-4 space-y-3">
-        {/* Timeline Header */}
-        <div className="flex gap-1 text-xs text-muted-foreground overflow-x-auto pb-2">
-          <div className="w-20 flex-shrink-0"></div>
-          {Array.from({ length: 15 }, (_, i) => i + 6).map((hour) => (
-            <div key={hour} className="w-12 text-center flex-shrink-0">
-              {hour === 12 ? "12PM" : hour > 12 ? `${hour - 12}PM` : `${hour}AM`}
-            </div>
-          ))}
-        </div>
-
         {/* Daily Shifts */}
         {weekDays.map((day) => {
           const dayShifts = getShiftsForDay(day);
           const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
           
           return (
-            <div key={day.toString()}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
-                  {format(day, "EEE, MMM d")}
+            <div key={day.toString()} className={isToday ? "bg-primary/5 -mx-4 px-4 py-3 rounded-lg" : ""}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+                    {format(day, "EEE, MMM d")}
+                  </span>
+                  <Badge variant="outline" className="text-sm font-medium px-2 py-1">
+                    <Users className="h-4 w-4 mr-1" />
+                    {dayShifts.length}
+                  </Badge>
+                </div>
+                <span className="text-sm text-muted-foreground font-medium">
+                  {getOperatingHours(day)}
                 </span>
-                <Badge variant="outline" className="text-sm font-medium px-2 py-1">
-                  <Users className="h-4 w-4 mr-1" />
-                  {dayShifts.length}
-                </Badge>
               </div>
               
               <div className="space-y-2">
