@@ -8,12 +8,32 @@ import { StaffNav } from "@/components/staff/StaffNav";
 import { Clock, MapPin, Wallet, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const StaffShiftPool = () => {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<any>(null);
   const [openShifts, setOpenShifts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("my-location");
+  const [selectedRole, setSelectedRole] = useState<string>("my-role");
 
   useEffect(() => {
     if (user) loadData();
@@ -23,12 +43,13 @@ const StaffShiftPool = () => {
     try {
       const { data: empData } = await supabase
         .from("employees")
-        .select("id, location_id, company_id")
+        .select("id, location_id, company_id, role")
         .eq("user_id", user?.id)
         .single();
 
       if (empData) {
         setEmployee(empData);
+        await loadFilterOptions(empData);
         await loadOpenShifts(empData);
       }
     } catch (error) {
@@ -38,22 +59,66 @@ const StaffShiftPool = () => {
     }
   };
 
+  const loadFilterOptions = async (emp: any) => {
+    // Load all locations in company
+    const { data: locationsData } = await supabase
+      .from("locations")
+      .select("id, name")
+      .eq("company_id", emp.company_id)
+      .order("name");
+    
+    if (locationsData) setLocations(locationsData);
+
+    // Load unique roles from shifts
+    const { data: shiftsData } = await supabase
+      .from("shifts")
+      .select("role")
+      .eq("location_id", emp.location_id);
+    
+    if (shiftsData) {
+      const uniqueRoles = [...new Set(shiftsData.map((s: any) => s.role).filter(Boolean))];
+      setRoles(uniqueRoles as string[]);
+    }
+  };
+
   const loadOpenShifts = async (emp: any) => {
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
+    
+    let query = supabase
       .from("shifts")
       .select(`*, locations(name), shift_assignments(id)`)
-      .eq("location_id", emp.location_id)
       .gte("shift_date", today)
       .order("shift_date", { ascending: true })
       .limit(20);
 
-    const available = data?.filter((shift: any) => 
+    // Apply location filter
+    if (selectedLocation === "my-location") {
+      query = query.eq("location_id", emp.location_id);
+    } else if (selectedLocation !== "all") {
+      query = query.eq("location_id", selectedLocation);
+    }
+
+    const { data } = await query;
+
+    let available = data?.filter((shift: any) => 
       !shift.shift_assignments || shift.shift_assignments.length < (shift.required_staff || 1)
     ) || [];
+
+    // Apply role filter
+    if (selectedRole === "my-role") {
+      available = available.filter((shift: any) => shift.role === emp.role);
+    } else if (selectedRole !== "all") {
+      available = available.filter((shift: any) => shift.role === selectedRole);
+    }
     
     setOpenShifts(available);
   };
+
+  useEffect(() => {
+    if (employee) {
+      loadOpenShifts(employee);
+    }
+  }, [selectedLocation, selectedRole]);
 
   const claimShift = async (shiftId: string) => {
     try {
@@ -90,10 +155,55 @@ const StaffShiftPool = () => {
         <div className="px-4 py-4">
           <h1 className="text-xl font-bold mb-3">Available Shifts</h1>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Filter Shifts</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="my-location">My Location Only</SelectItem>
+                        <SelectItem value="all">All Locations</SelectItem>
+                        {locations.map((loc) => (
+                          <SelectItem key={loc.id} value={loc.id}>
+                            {loc.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select value={selectedRole} onValueChange={setSelectedRole}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="my-role">My Role Only</SelectItem>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        {roles.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Badge variant="secondary">{openShifts.length} shifts available</Badge>
           </div>
         </div>
