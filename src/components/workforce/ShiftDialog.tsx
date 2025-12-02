@@ -82,7 +82,10 @@ export const ShiftDialog = ({
     const shiftStart = formData.start_time;
     const shiftEnd = formData.end_time;
 
-    const isOutsideHours = shiftStart < openTime || shiftEnd > closeTime;
+    // Handle midnight case: "00:00:00" means end of day (open until midnight)
+    const closeTimeNormalized = closeTime === "00:00:00" || closeTime === "00:00" ? "23:59:59" : closeTime;
+    
+    const isOutsideHours = shiftStart < openTime || shiftEnd > closeTimeNormalized;
 
     return {
       isValid: !isOutsideHours,
