@@ -67,7 +67,7 @@ import Staff from "./pages/workforce/Staff";
 import WorkforceStaffProfile from "./pages/workforce/StaffProfile";
 import Shifts from "./pages/workforce/Shifts";
 import Attendance from "./pages/workforce/Attendance";
-import TimeOff from "./pages/workforce/TimeOff";
+import TimeOffApprovals from "./pages/workforce/TimeOffApprovals";
 import Payroll from "./pages/workforce/Payroll";
 import StaffLogin from "./pages/StaffLogin";
 import StaffHome from "./pages/staff/StaffHome";
@@ -199,7 +199,7 @@ const App = () => (
               <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-              <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOff /></ProtectedRoute>} />
+              <Route path="/workforce/time-off" element={<ProtectedRoute><AppLayout><TimeOffApprovals /></AppLayout></ProtectedRoute>} />
               <Route path="/workforce/payroll" element={<ManagerRoute><AppLayout><Payroll /></AppLayout></ManagerRoute>} />
               
               {/* Tasks Routes */}

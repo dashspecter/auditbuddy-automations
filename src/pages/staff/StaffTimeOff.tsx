@@ -48,14 +48,14 @@ const StaffTimeOff = () => {
     try {
       const { data: empData } = await supabase
         .from("employees")
-        .select("id, company_id")
+        .select("id, company_id, annual_vacation_days, vacation_year_start_month")
         .eq("user_id", user?.id)
         .single();
 
       if (empData) {
         setEmployee(empData);
         await loadRequests(empData.id);
-        await calculateBalance(empData.id);
+        await calculateBalance(empData.id, empData.annual_vacation_days || 25);
       }
     } catch (error) {
       toast.error("Failed to load data");
@@ -74,7 +74,7 @@ const StaffTimeOff = () => {
     setRequests(data || []);
   };
 
-  const calculateBalance = async (employeeId: string) => {
+  const calculateBalance = async (employeeId: string, totalDays: number) => {
     const currentYear = new Date().getFullYear();
     const { data } = await supabase
       .from("time_off_requests")
@@ -91,7 +91,7 @@ const StaffTimeOff = () => {
       return total + days;
     }, 0) || 0;
 
-    setBalance({ total: 25, used, remaining: 25 - used });
+    setBalance({ total: totalDays, used, remaining: totalDays - used });
   };
 
   const submitRequest = async () => {
