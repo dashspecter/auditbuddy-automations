@@ -111,18 +111,26 @@ export const EnhancedShiftDialog = ({
     }
 
     const { openTime, closeTime } = operatingHoursInfo;
-    const shiftStart = formData.start_time;
-    const shiftEnd = formData.end_time;
-
-    // Handle midnight case: "00:00:00" means end of day (open until midnight)
-    const closeTimeNormalized = closeTime === "00:00:00" || closeTime === "00:00" ? "23:59:59" : closeTime;
     
-    const isOutsideHours = shiftStart < openTime || shiftEnd > closeTimeNormalized;
+    // Normalize all times to HH:MM:SS format for consistent comparison
+    const normalizeTime = (time: string) => {
+      if (time.length === 5) return `${time}:00`; // HH:MM -> HH:MM:00
+      return time;
+    };
+    
+    const shiftStart = normalizeTime(formData.start_time);
+    const shiftEnd = normalizeTime(formData.end_time);
+    const openTimeNormalized = normalizeTime(openTime);
+    
+    // Handle midnight case: "00:00:00" means end of day (open until midnight)
+    const closeTimeNormalized = closeTime === "00:00:00" || closeTime === "00:00" ? "23:59:59" : normalizeTime(closeTime);
+    
+    const isOutsideHours = shiftStart < openTimeNormalized || shiftEnd > closeTimeNormalized;
 
     return {
       isValid: !isOutsideHours,
       message: isOutsideHours
-        ? `Shift times (${shiftStart} - ${shiftEnd}) are outside operating hours (${openTime} - ${closeTime})`
+        ? `Shift times (${formData.start_time} - ${formData.end_time}) are outside operating hours (${openTime} - ${closeTime})`
         : null,
     };
   }, [operatingHoursInfo, formData.start_time, formData.end_time]);
