@@ -60,6 +60,8 @@ export const useApproveShiftAssignment = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
+      console.log("[Approve] Starting approval process for assignment:", assignmentId);
+      
       // Get the assignment details to check for overlaps
       const { data: assignment, error: fetchError } = await supabase
         .from("shift_assignments")
@@ -71,10 +73,20 @@ export const useApproveShiftAssignment = () => {
         .eq("id", assignmentId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("[Approve] Failed to fetch assignment:", fetchError);
+        throw fetchError;
+      }
       
       const shift = (assignment as any).shifts;
       const employee = (assignment as any).employees;
+      
+      console.log("[Approve] Assignment details:", {
+        employee: employee.full_name,
+        shift_date: shift.shift_date,
+        time: `${shift.start_time} - ${shift.end_time}`,
+        role: shift.role
+      });
       
       // Check for overlapping approved shifts on the same date
       const { data: existingAssignments, error: checkError } = await supabase
@@ -88,7 +100,12 @@ export const useApproveShiftAssignment = () => {
         .eq("approval_status", "approved")
         .neq("id", assignmentId);
       
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("[Approve] Failed to check existing assignments:", checkError);
+        throw checkError;
+      }
+      
+      console.log("[Approve] Found existing approved assignments:", existingAssignments?.length || 0);
       
       // Filter by date and check for time overlaps in JavaScript for accuracy
       if (existingAssignments && existingAssignments.length > 0) {
@@ -105,23 +122,36 @@ export const useApproveShiftAssignment = () => {
           const existingStart = existingShift.start_time;
           const existingEnd = existingShift.end_time;
           
+          console.log("[Approve] Checking conflict:", {
+            existing: `${existingStart} - ${existingEnd}`,
+            new: `${newStart} - ${newEnd}`
+          });
+          
           // Check if times overlap
           if (
             (newStart >= existingStart && newStart < existingEnd) ||
             (newEnd > existingStart && newEnd <= existingEnd) ||
             (newStart <= existingStart && newEnd >= existingEnd)
           ) {
+            console.log("[Approve] CONFLICT DETECTED! Deleting assignment:", assignmentId);
+            
             // Delete the conflicting assignment first
-            const { error: deleteError } = await supabase
+            const { data: deleteData, error: deleteError } = await supabase
               .from("shift_assignments")
               .delete()
-              .eq("id", assignmentId);
+              .eq("id", assignmentId)
+              .select();
             
             if (deleteError) {
-              console.error("Failed to delete conflicting assignment:", deleteError);
-            } else {
-              console.log("Conflicting assignment deleted:", assignmentId);
+              console.error("[Approve] FAILED to delete conflicting assignment:", deleteError);
+              throw new Error(`Failed to remove conflicting shift: ${deleteError.message}`);
             }
+            
+            console.log("[Approve] Successfully deleted assignment. Deleted rows:", deleteData);
+            
+            // Immediately invalidate queries after successful deletion
+            await queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+            await queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
             
             // Try to create an alert for the employee (non-blocking)
             try {
@@ -145,16 +175,20 @@ export const useApproveShiftAssignment = () => {
                   }
                 });
               if (alertResult.error) {
-                console.error("Failed to create conflict alert:", alertResult.error);
+                console.error("[Approve] Failed to create conflict alert:", alertResult.error);
+              } else {
+                console.log("[Approve] Conflict alert created");
               }
             } catch (alertError) {
-              console.error("Failed to create conflict alert:", alertError);
+              console.error("[Approve] Exception creating conflict alert:", alertError);
             }
             
             throw new Error(`Cannot approve: Employee already has an approved shift from ${existingStart.slice(0, 5)} to ${existingEnd.slice(0, 5)} on this date`);
           }
         }
       }
+      
+      console.log("[Approve] No conflicts found, proceeding with approval");
       
       const { error } = await supabase
         .from("shift_assignments")
@@ -165,7 +199,12 @@ export const useApproveShiftAssignment = () => {
         })
         .eq("id", assignmentId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("[Approve] Failed to update approval status:", error);
+        throw error;
+      }
+      
+      console.log("[Approve] Successfully approved assignment");
     },
     onSuccess: () => {
       // Force refetch all related queries
