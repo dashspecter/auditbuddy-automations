@@ -115,6 +115,17 @@ const StaffHome = () => {
                 <div className="text-xs text-muted-foreground">End</div>
               </div>
             </div>
+            <div className="mb-3">
+              <Badge variant="outline" className="text-xs">
+                {todayShift.shifts.role}
+              </Badge>
+              {todayShift.shifts.locations?.name && (
+                <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{todayShift.shifts.locations.name}</span>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button className="flex-1 touch-target" size="sm">
                 <LogIn className="h-4 w-4 mr-2" />
@@ -161,16 +172,24 @@ const StaffHome = () => {
             </div>
             <div className="space-y-2">
               {upcomingShifts.slice(0, 3).map((assignment: any) => (
-                <Card key={assignment.id} className="p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-sm">
-                      {format(new Date(assignment.shifts.shift_date), "EEE, MMM d")}
+                <Card key={assignment.id} className="p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="font-medium text-sm">
+                        {format(new Date(assignment.shifts.shift_date), "EEE, MMM d")}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
-                    </div>
+                    <Badge variant="outline">{assignment.shifts.role}</Badge>
                   </div>
-                  <Badge variant="outline">{assignment.shifts.role}</Badge>
+                  {assignment.shifts.locations?.name && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>{assignment.shifts.locations.name}</span>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
