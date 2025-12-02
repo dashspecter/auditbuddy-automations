@@ -241,8 +241,14 @@ export const useRejectShiftAssignment = () => {
   
   return useMutation({
     mutationFn: async (assignmentId: string) => {
+      console.log("[Reject] MUTATION FUNCTION CALLED for:", assignmentId);
+      
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        console.error("[Reject] No authenticated user!");
+        throw new Error("Not authenticated");
+      }
+      console.log("[Reject] User authenticated:", user.id);
       
       console.log("[Reject] Starting rejection for assignment:", assignmentId);
       
@@ -326,9 +332,10 @@ export const useRejectShiftAssignment = () => {
     },
     onSuccess: () => {
       console.log("[Reject] onSuccess - invalidating queries");
-      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      // Force immediate refetch by resetting the queries
+      queryClient.resetQueries({ queryKey: ["shift-assignments"] });
+      queryClient.resetQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
       queryClient.invalidateQueries({ queryKey: ["team-stats"] });
       toast.success("Shift assignment rejected and employee notified");
