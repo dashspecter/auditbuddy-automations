@@ -19,7 +19,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, X, Clock, AlertTriangle } from "lucide-react";
+import { Plus, X, Clock, AlertTriangle, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useCreateShift, useUpdateShift, useDeleteShift } from "@/hooks/useShifts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useLocations } from "@/hooks/useLocations";
@@ -849,40 +855,66 @@ export const EnhancedShiftDialog = ({
           </div>
 
           {/* Checkboxes */}
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="close_duty"
-                checked={formData.close_duty}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, close_duty: checked as boolean })
-                }
-              />
-              <Label htmlFor="close_duty" className="cursor-pointer">Close Duty</Label>
-            </div>
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="close_duty"
+                  checked={formData.close_duty}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, close_duty: checked as boolean })
+                  }
+                />
+                <Label htmlFor="close_duty" className="cursor-pointer">Close Duty</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Marks this shift as a closing shift. The employee is responsible for end-of-day duties like locking up.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_open_shift"
-                checked={formData.is_open_shift}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, is_open_shift: checked as boolean })
-                }
-              />
-              <Label htmlFor="is_open_shift" className="cursor-pointer">Open Shift</Label>
-            </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_open_shift"
+                  checked={formData.is_open_shift}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_open_shift: checked as boolean })
+                  }
+                />
+                <Label htmlFor="is_open_shift" className="cursor-pointer">Open Shift</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Makes this shift available for employees to claim. Useful when you need coverage but haven't assigned anyone yet.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_published"
-                checked={formData.is_published}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, is_published: checked as boolean })
-                }
-              />
-              <Label htmlFor="is_published" className="cursor-pointer">Published</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_published"
+                  checked={formData.is_published}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_published: checked as boolean })
+                  }
+                />
+                <Label htmlFor="is_published" className="cursor-pointer">Published</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>When published, the shift becomes visible to assigned employees in their schedule. Unpublished shifts are only visible to managers.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-          </div>
+          </TooltipProvider>
 
           {/* Shift Notes */}
           <div className="space-y-2">
