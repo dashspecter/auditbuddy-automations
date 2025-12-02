@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { StaffNav } from "@/components/staff/StaffNav";
-import { DollarSign, TrendingUp, Clock, Calendar } from "lucide-react";
+import { Wallet, TrendingUp, Clock, Calendar } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 
@@ -107,7 +107,7 @@ const StaffEarnings = () => {
         {/* Current Period Card */}
         <Card className="p-6 bg-gradient-accent text-primary-foreground">
           <div className="flex items-center gap-2 mb-3">
-            <DollarSign className="h-5 w-5" />
+            <Wallet className="h-5 w-5" />
             <span className="text-sm opacity-90">This Week</span>
           </div>
           <div className="text-4xl font-bold mb-2">
@@ -139,7 +139,7 @@ const StaffEarnings = () => {
           </Card>
 
           <Card className="p-4">
-            <DollarSign className="h-5 w-5 text-primary mb-2" />
+            <Wallet className="h-5 w-5 text-primary mb-2" />
             <div className="text-2xl font-bold">
               {earnings.tips.toFixed(2)} Lei
             </div>

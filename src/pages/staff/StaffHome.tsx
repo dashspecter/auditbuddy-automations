@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, DollarSign, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight } from "lucide-react";
 import { StaffNav } from "@/components/staff/StaffNav";
 import { format } from "date-fns";
 
@@ -155,7 +155,7 @@ const StaffHome = () => {
             <div className="text-xs text-muted-foreground">Upcoming Shifts</div>
           </Card>
           <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
-            <DollarSign className="h-5 w-5 text-primary mb-2" />
+            <Wallet className="h-5 w-5 text-primary mb-2" />
             <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
             <div className="text-xs text-muted-foreground">This Week</div>
           </Card>
