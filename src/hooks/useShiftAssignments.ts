@@ -65,7 +65,8 @@ export const useApproveShiftAssignment = () => {
         .from("shift_assignments")
         .select(`
           staff_id,
-          shifts!inner(id, shift_date, start_time, end_time)
+          shifts!inner(id, shift_date, start_time, end_time, role, location_id, locations(name, company_id)),
+          employees!inner(full_name, company_id)
         `)
         .eq("id", assignmentId)
         .single();
@@ -73,6 +74,7 @@ export const useApproveShiftAssignment = () => {
       if (fetchError) throw fetchError;
       
       const shift = (assignment as any).shifts;
+      const employee = (assignment as any).employees;
       
       // Check for overlapping approved shifts on the same date
       const { data: existingAssignments, error: checkError } = await supabase
@@ -109,6 +111,37 @@ export const useApproveShiftAssignment = () => {
             (newEnd > existingStart && newEnd <= existingEnd) ||
             (newStart <= existingStart && newEnd >= existingEnd)
           ) {
+            // Delete the conflicting assignment and notify
+            await supabase
+              .from("shift_assignments")
+              .delete()
+              .eq("id", assignmentId);
+            
+            // Try to create an alert for the employee
+            try {
+              await supabase
+                .from("alerts")
+                .insert({
+                  company_id: employee.company_id,
+                  title: "Shift Assignment Rejected - Schedule Conflict",
+                  message: `Your shift assignment for ${shift.role} on ${new Date(shift.shift_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}) at ${shift.locations.name} was automatically rejected due to a schedule conflict with another approved shift.`,
+                  severity: "warning",
+                  category: "staff",
+                  source: "shift_assignments",
+                  source_reference_id: assignmentId,
+                  metadata: {
+                    shift_date: shift.shift_date,
+                    role: shift.role,
+                    location_name: shift.locations.name,
+                    staff_id: assignment.staff_id,
+                    employee_name: employee.full_name,
+                    reason: "schedule_conflict"
+                  }
+                });
+            } catch (alertError) {
+              console.error("Failed to create conflict alert:", alertError);
+            }
+            
             throw new Error(`Cannot approve: Employee already has an approved shift from ${existingStart} to ${existingEnd} on this date`);
           }
         }

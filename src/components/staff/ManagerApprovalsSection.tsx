@@ -29,10 +29,11 @@ export const ManagerApprovalsSection = () => {
     setProcessingId(id);
     try {
       await approveShift.mutateAsync(id);
-      await refetchShifts();
     } catch (error) {
       // Error is already handled by the mutation
+      // Conflicting shifts are automatically deleted, so refetch
     } finally {
+      await refetchShifts();
       setProcessingId(null);
     }
   };
