@@ -66,7 +66,7 @@ const StaffHome = () => {
         attendance_logs!left(check_in_at)
       `)
       .eq("staff_id", employeeId)
-      .eq("approval_status", "approved")
+      .in("approval_status", ["approved", "pending"])
       .gte("shifts.shift_date", today)
       .order("shift_date", { foreignTable: "shifts", ascending: true })
       .limit(10);
@@ -160,7 +160,9 @@ const StaffHome = () => {
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <span className="text-sm font-semibold text-muted-foreground">TODAY'S SHIFT</span>
               </div>
-              <Badge variant="secondary">Active</Badge>
+              <Badge variant={todayShift.approval_status === "pending" ? "secondary" : "default"}>
+                {todayShift.approval_status === "pending" ? "Pending Approval" : "Confirmed"}
+              </Badge>
             </div>
             <div className="flex items-center gap-4 mb-3">
               <div className="text-center">
@@ -184,16 +186,23 @@ const StaffHome = () => {
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button className="flex-1 touch-target" size="sm">
-                <LogIn className="h-4 w-4 mr-2" />
-                Clock In
-              </Button>
-              <Button variant="outline" className="flex-1 touch-target" size="sm">
-                <LogOutIcon className="h-4 w-4 mr-2" />
-                Clock Out
-              </Button>
-            </div>
+            {todayShift.approval_status === "approved" && (
+              <div className="flex gap-2">
+                <Button className="flex-1 touch-target" size="sm">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Clock In
+                </Button>
+                <Button variant="outline" className="flex-1 touch-target" size="sm">
+                  <LogOutIcon className="h-4 w-4 mr-2" />
+                  Clock Out
+                </Button>
+              </div>
+            )}
+            {todayShift.approval_status === "pending" && (
+              <div className="text-sm text-muted-foreground text-center py-2">
+                Awaiting manager approval
+              </div>
+            )}
           </Card>
         ) : (
           <Card className="p-6 text-center">
