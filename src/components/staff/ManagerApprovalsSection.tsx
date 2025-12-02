@@ -21,7 +21,7 @@ export const ManagerApprovalsSection = () => {
   const rejectSwap = useRejectSwapRequest();
   
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const pendingTimeOff = timeOffRequests.filter(req => req.status === 'pending');
 

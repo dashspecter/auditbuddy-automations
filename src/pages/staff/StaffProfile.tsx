@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight } from "lucide-react";
+import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -13,6 +13,7 @@ const StaffProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState<any>(null);
+  const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,11 +29,73 @@ const StaffProfile = () => {
         .single();
 
       setEmployee(empData);
+      
+      if (empData) {
+        await calculateEarnings(empData.id, empData.hourly_rate || 15);
+      }
     } catch (error) {
       toast.error("Failed to load profile");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const calculateEarnings = async (employeeId: string, hourlyRate: number) => {
+    // Calculate this week's earnings
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+
+    const { data: weekAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        shifts:shift_id (
+          start_time,
+          end_time
+        )
+      `)
+      .eq("staff_id", employeeId)
+      .eq("approval_status", "approved")
+      .gte("shifts.shift_date", weekStartStr);
+
+    let weeklyTotal = 0;
+    weekAssignments?.forEach((assignment: any) => {
+      if (assignment.shifts) {
+        const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
+        const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
+        const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
+        weeklyTotal += hours * hourlyRate;
+      }
+    });
+
+    // Calculate this month's earnings
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    const monthStartStr = monthStart.toISOString().split('T')[0];
+
+    const { data: monthAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        shifts:shift_id (
+          start_time,
+          end_time
+        )
+      `)
+      .eq("staff_id", employeeId)
+      .eq("approval_status", "approved")
+      .gte("shifts.shift_date", monthStartStr);
+
+    let monthlyTotal = 0;
+    monthAssignments?.forEach((assignment: any) => {
+      if (assignment.shifts) {
+        const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
+        const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
+        const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
+        monthlyTotal += hours * hourlyRate;
+      }
+    });
+
+    setEarnings({ thisWeek: weeklyTotal, thisMonth: monthlyTotal });
   };
 
   const handleLogout = async () => {
@@ -49,6 +112,7 @@ const StaffProfile = () => {
   }
 
   const menuItems = [
+    { icon: Wallet, label: "My Earnings", path: "/staff/earnings" },
     { icon: Calendar, label: "My Availability", path: "/staff/availability" },
     { icon: User, label: "Personal Information", path: "/staff/profile/edit" },
     { icon: MapPin, label: "Emergency Contacts", path: "/staff/profile/emergency" },
@@ -73,6 +137,33 @@ const StaffProfile = () => {
       </div>
 
       <div className="px-4 -mt-4 space-y-4 pb-6">
+        {/* Earnings Card */}
+        <Card className="p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              Earnings Overview
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-accent/10 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">This Week</div>
+              <div className="text-2xl font-bold">{earnings.thisWeek.toFixed(0)} Lei</div>
+            </div>
+            <div className="bg-accent/10 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-1">This Month</div>
+              <div className="text-2xl font-bold">{earnings.thisMonth.toFixed(0)} Lei</div>
+            </div>
+          </div>
+          <Button 
+            variant="link" 
+            className="w-full mt-3 text-sm"
+            onClick={() => navigate("/staff/earnings")}
+          >
+            View Detailed Earnings <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </Card>
+
         {/* Contact Info Card */}
         <Card className="p-4 shadow-lg">
           <h2 className="font-semibold mb-3">Contact Information</h2>

@@ -257,22 +257,24 @@ const StaffHome = () => {
           </Card>
         ) : null}
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/schedule")}>
-            <Calendar className="h-5 w-5 text-primary mb-2" />
-            <div className="text-2xl font-bold">{upcomingShifts.length}</div>
-            <div className="text-xs text-muted-foreground">Upcoming Shifts</div>
-          </Card>
-          <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
-            <Wallet className="h-5 w-5 text-primary mb-2" />
-            <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
-            <div className="text-xs text-muted-foreground">This Week</div>
-          </Card>
-        </div>
+        {/* Quick Stats Grid - Only for non-managers */}
+        {!isManager && (
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/schedule")}>
+              <Calendar className="h-5 w-5 text-primary mb-2" />
+              <div className="text-2xl font-bold">{upcomingShifts.length}</div>
+              <div className="text-xs text-muted-foreground">Upcoming Shifts</div>
+            </Card>
+            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
+              <Wallet className="h-5 w-5 text-primary mb-2" />
+              <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
+              <div className="text-xs text-muted-foreground">This Week</div>
+            </Card>
+          </div>
+        )}
 
-        {/* Upcoming Shifts */}
-        {upcomingShifts.length > 0 && (
+        {/* Upcoming Shifts - Only for non-managers */}
+        {!isManager && upcomingShifts.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold">Upcoming Shifts</h2>
