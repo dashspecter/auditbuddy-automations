@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,10 +97,7 @@ const RecurringAuditSchedules = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Repeat className="h-8 w-8 text-primary" />
@@ -203,7 +199,6 @@ const RecurringAuditSchedules = () => {
             )}
           </CardContent>
         </Card>
-      </main>
 
       <RecurringScheduleDialog
         open={dialogOpen}
