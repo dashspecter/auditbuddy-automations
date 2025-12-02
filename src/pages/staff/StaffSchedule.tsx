@@ -22,17 +22,24 @@ const StaffSchedule = () => {
 
   const loadData = async () => {
     try {
-      const { data: empData } = await supabase
+      const { data: empData, error } = await supabase
         .from("employees")
         .select("*")
         .eq("user_id", user?.id)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading employee:", error);
+        toast.error("Failed to load schedule");
+        return;
+      }
 
       if (empData) {
         setEmployee(empData);
         await loadWeekShifts(empData.id);
       }
     } catch (error) {
+      console.error("Failed to load schedule:", error);
       toast.error("Failed to load schedule");
     } finally {
       setIsLoading(false);
@@ -41,24 +48,31 @@ const StaffSchedule = () => {
 
   const loadWeekShifts = async (employeeId: string) => {
     const weekEnd = addDays(weekStart, 6);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("shift_assignments")
       .select(`*, shifts!inner(*, locations(name))`)
       .eq("staff_id", employeeId)
+      .eq("approval_status", "approved")
       .gte("shifts.shift_date", weekStart.toISOString().split('T')[0])
       .lte("shifts.shift_date", weekEnd.toISOString().split('T')[0])
       .order("shift_date", { foreignTable: "shifts", ascending: true });
 
+    if (error) {
+      console.error("Error loading shifts:", error);
+    }
+    
     setShifts(data || []);
   };
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = format(new Date(), "yyyy-MM-dd");
   
-  // Filter to only show days with shifts
+  // Filter to only show days with shifts that are today or in the future
   const daysWithShifts = weekDays.filter(day => {
     const dayStr = format(day, "yyyy-MM-dd");
-    return shifts.some(s => s.shifts.shift_date === dayStr);
+    const hasShifts = shifts.some(s => s.shifts.shift_date === dayStr);
+    const isNotPast = dayStr >= today;
+    return hasShifts && isNotPast;
   });
 
   if (isLoading) {
