@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -15,6 +16,35 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
   const location = useLocation();
+  const [isStaff, setIsStaff] = useState<boolean | null>(null);
+  const [checkingStaff, setCheckingStaff] = useState(true);
+
+  // Check if user is a staff member
+  useEffect(() => {
+    const checkStaffStatus = async () => {
+      if (!user) {
+        setCheckingStaff(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setIsStaff(!!data);
+      } catch (error) {
+        console.error('Error checking staff status:', error);
+        setIsStaff(false);
+      } finally {
+        setCheckingStaff(false);
+      }
+    };
+
+    checkStaffStatus();
+  }, [user]);
 
   // Routes that don't need company data
   const isSpecialRoute = location.pathname.startsWith('/onboarding') || 
@@ -23,8 +53,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
                          location.pathname === '/system-health' ||
                          location.pathname === '/debug/system-health';
 
-  // Show loading state while checking auth and company
-  if (authLoading || (companyLoading && !isSpecialRoute)) {
+  // Show loading state while checking auth, staff status, and company
+  if (authLoading || checkingStaff || (companyLoading && !isSpecialRoute && !isStaff)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -40,8 +70,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Check for company data (unless on special routes)
-  if (!isSpecialRoute) {
+  // Staff users should be on staff routes
+  if (isStaff && !location.pathname.startsWith('/staff')) {
+    return <Navigate to="/staff" replace />;
+  }
+
+  // Check for company data (unless on special routes or user is staff)
+  if (!isSpecialRoute && !isStaff) {
     // Redirect to onboarding if no company
     if (!company && !companyError) {
       return <Navigate to="/onboarding/company" replace />;
@@ -85,8 +120,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     }
   }
 
-  // Render without layout for special routes
-  if (isSpecialRoute) {
+  // Render without layout for special routes or staff routes
+  if (isSpecialRoute || location.pathname.startsWith('/staff')) {
     return <>{children}</>;
   }
 
