@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { Wallet, TrendingUp, Clock, Calendar } from "lucide-react";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
@@ -199,7 +199,7 @@ const StaffEarnings = () => {
         </Card>
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };

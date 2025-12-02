@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { MessageSquare, Send, Search } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -104,7 +104,7 @@ const StaffMessages = () => {
         </Button>
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ArrowLeftRight, Check, X, Clock, AlertCircle } from "lucide-react";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import {
   Dialog,
   DialogContent,
@@ -486,7 +486,7 @@ const StaffSwapRequests = () => {
         </DialogContent>
       </Dialog>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };

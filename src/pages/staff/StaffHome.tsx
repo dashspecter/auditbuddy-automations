@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight } from "lucide-react";
-import { StaffNav } from "@/components/staff/StaffNav";
+import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
@@ -21,8 +21,11 @@ const StaffHome = () => {
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [companyRole, setCompanyRole] = useState<string | null>(null);
 
-  const isManager = roleData?.isManager || roleData?.isAdmin;
+  // Check both platform role and company role for manager access
+  const isManager = roleData?.isManager || roleData?.isAdmin || 
+    companyRole === 'company_admin' || companyRole === 'company_owner';
 
   useEffect(() => {
     if (!user) {
@@ -34,6 +37,7 @@ const StaffHome = () => {
 
   const loadData = async () => {
     try {
+      // Load employee data
       const { data: empData, error } = await supabase
         .from("employees")
         .select("*, locations(name)")
@@ -49,6 +53,18 @@ const StaffHome = () => {
       if (empData) {
         setEmployee(empData);
         await loadShifts(empData.id);
+        
+        // Check company role for manager features
+        const { data: companyUserData } = await supabase
+          .from("company_users")
+          .select("company_role")
+          .eq("user_id", user?.id)
+          .eq("company_id", empData.company_id)
+          .maybeSingle();
+        
+        if (companyUserData) {
+          setCompanyRole(companyUserData.company_role);
+        }
       }
     } catch (error: any) {
       console.error("Failed to load data:", error);
@@ -308,7 +324,7 @@ const StaffHome = () => {
         </div>
       </div>
 
-      <StaffNav />
+      <StaffBottomNav />
     </div>
   );
 };
