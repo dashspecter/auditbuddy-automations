@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StaffNav } from "@/components/staff/StaffNav";
-import { ChevronLeft, ChevronRight, RefreshCw, Share } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Share, Calendar } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { toast } from "sonner";
 
@@ -54,6 +54,12 @@ const StaffSchedule = () => {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = format(new Date(), "yyyy-MM-dd");
+  
+  // Filter to only show days with shifts
+  const daysWithShifts = weekDays.filter(day => {
+    const dayStr = format(day, "yyyy-MM-dd");
+    return shifts.some(s => s.shifts.shift_date === dayStr);
+  });
 
   if (isLoading) {
     return (
@@ -100,25 +106,31 @@ const StaffSchedule = () => {
 
       {/* Schedule Grid */}
       <div className="px-4 py-4 space-y-3">
-        {weekDays.map((day) => {
-          const dayStr = format(day, "yyyy-MM-dd");
-          const isToday = dayStr === today;
-          const dayShifts = shifts.filter(s => s.shifts.shift_date === dayStr);
+        {daysWithShifts.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No shifts scheduled this week</p>
+            <p className="text-sm text-muted-foreground mt-1">Check back later or browse the shift pool</p>
+          </Card>
+        ) : (
+          daysWithShifts.map((day) => {
+            const dayStr = format(day, "yyyy-MM-dd");
+            const isToday = dayStr === today;
+            const dayShifts = shifts.filter(s => s.shifts.shift_date === dayStr);
 
-          return (
-            <Card 
-              key={dayStr} 
-              className={`p-4 ${isToday ? "border-primary bg-primary/5" : ""}`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="font-semibold">{format(day, "EEEE")}</div>
-                  <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
+            return (
+              <Card 
+                key={dayStr} 
+                className={`p-4 ${isToday ? "border-primary bg-primary/5" : ""}`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="font-semibold">{format(day, "EEEE")}</div>
+                    <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
+                  </div>
+                  {isToday && <Badge>Today</Badge>}
                 </div>
-                {isToday && <Badge>Today</Badge>}
-              </div>
 
-              {dayShifts.length > 0 ? (
                 <div className="space-y-2">
                   {dayShifts.map((assignment: any) => (
                     <div key={assignment.id} className="bg-muted/50 rounded-lg p-3">
@@ -144,14 +156,10 @@ const StaffSchedule = () => {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-4 text-sm text-muted-foreground">
-                  No shifts scheduled
-                </div>
-              )}
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })
+        )}
       </div>
 
       <StaffNav />
