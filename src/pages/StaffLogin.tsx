@@ -46,7 +46,7 @@ const StaffLogin = () => {
       .single();
 
     if (data) {
-      navigate("/staff-dashboard");
+      navigate("/staff");
     }
   };
 
@@ -119,7 +119,7 @@ const StaffLogin = () => {
 
       toast.success("Password updated successfully!");
       setShowPasswordChange(false);
-      navigate("/staff-dashboard");
+      navigate("/staff");
     } catch (error: any) {
       console.error("Password change error:", error);
       toast.error(error.message || "Failed to update password");
@@ -130,7 +130,7 @@ const StaffLogin = () => {
 
   const handleSkipPasswordChange = () => {
     setShowPasswordChange(false);
-    navigate("/staff-dashboard");
+    navigate("/staff");
   };
 
   return (
