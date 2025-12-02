@@ -11,7 +11,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const ManagerApprovalsSection = () => {
-  const { data: pendingShifts = [], isLoading: shiftsLoading, refetch: refetchShifts } = usePendingApprovals();
+  const { data: pendingShifts = [], isLoading: shiftsLoading } = usePendingApprovals();
   const { data: timeOffRequests = [], isLoading: timeOffLoading } = useTimeOffRequests();
   const { data: swapRequests = [], isLoading: swapsLoading } = usePendingSwapRequests();
   const approveShift = useApproveShiftAssignment();
@@ -26,14 +26,14 @@ export const ManagerApprovalsSection = () => {
   const pendingTimeOff = timeOffRequests.filter(req => req.status === 'pending');
 
   const handleApproveShift = async (id: string) => {
+    console.log("[ManagerApprovals] Approve button clicked for:", id);
     setProcessingId(id);
     try {
       await approveShift.mutateAsync(id);
+      console.log("[ManagerApprovals] Approval mutation completed");
     } catch (error) {
-      // Error is already handled by the mutation
-      // Conflicting shifts are automatically deleted, so refetch
+      console.error("[ManagerApprovals] Error during approval:", error);
     } finally {
-      await refetchShifts();
       setProcessingId(null);
     }
   };
@@ -44,9 +44,7 @@ export const ManagerApprovalsSection = () => {
     try {
       console.log("[ManagerApprovals] Calling mutateAsync...");
       await rejectShift.mutateAsync(id);
-      console.log("[ManagerApprovals] Mutation completed, refetching...");
-      await refetchShifts();
-      console.log("[ManagerApprovals] Refetch completed");
+      console.log("[ManagerApprovals] Mutation completed successfully");
     } catch (error) {
       console.error("[ManagerApprovals] Error during rejection:", error);
     } finally {

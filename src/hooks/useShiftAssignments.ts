@@ -147,6 +147,11 @@ export const useApproveShiftAssignment = () => {
               throw new Error(`Failed to remove conflicting shift: ${deleteError.message}`);
             }
             
+            if (!deleteData || deleteData.length === 0) {
+              console.error("[Approve] Delete returned 0 rows for conflict deletion.");
+              throw new Error("Failed to remove conflicting shift - no rows affected. You may not have permission.");
+            }
+            
             console.log("[Approve] Successfully deleted assignment. Deleted rows:", deleteData);
             
             // Try to create an alert for the employee (non-blocking)
@@ -208,12 +213,17 @@ export const useApproveShiftAssignment = () => {
       return { status: 'approved' };
     },
     onSuccess: (result) => {
-      // Force refetch all related queries
-      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
-      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
+      console.log("[Approve] onSuccess - result:", result);
+      // Use Promise.all to ensure all invalidations complete together
+      Promise.all([
+        queryClient.resetQueries({ queryKey: ["pending-approvals"] }),
+        queryClient.resetQueries({ queryKey: ["shift-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["shifts"] }),
+        queryClient.invalidateQueries({ queryKey: ["today-working-staff"] }),
+        queryClient.invalidateQueries({ queryKey: ["team-stats"] })
+      ]).then(() => {
+        console.log("[Approve] All queries invalidated");
+      });
       
       if (result?.status === 'rejected_conflict') {
         toast.error(result.message);
@@ -222,11 +232,14 @@ export const useApproveShiftAssignment = () => {
       }
     },
     onError: (error: any) => {
+      console.error("[Approve] onError:", error);
       // Also invalidate on error since we may have deleted a conflicting shift
-      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
-      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
+      Promise.all([
+        queryClient.resetQueries({ queryKey: ["pending-approvals"] }),
+        queryClient.resetQueries({ queryKey: ["shift-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["today-working-staff"] }),
+        queryClient.invalidateQueries({ queryKey: ["team-stats"] })
+      ]);
       
       // Only show error toast if it's not already handled
       if (!error.message?.includes('already has an approved shift')) {
@@ -283,7 +296,7 @@ export const useRejectShiftAssignment = () => {
       
       // Delete the assignment first
       console.log("[Reject] Attempting to delete assignment:", assignmentId);
-      const { data: deletedData, error: deleteError } = await supabase
+      const { data: deletedData, error: deleteError, count } = await supabase
         .from("shift_assignments")
         .delete()
         .eq("id", assignmentId)
@@ -294,7 +307,14 @@ export const useRejectShiftAssignment = () => {
         throw deleteError;
       }
       
-      console.log("[Reject] Delete SUCCESS. Deleted rows:", deletedData);
+      if (!deletedData || deletedData.length === 0) {
+        console.error("[Reject] Delete returned 0 rows. RLS may be blocking deletion.");
+        console.error("[Reject] Assignment ID:", assignmentId);
+        console.error("[Reject] User ID:", user.id);
+        throw new Error("Failed to delete shift assignment - no rows affected. You may not have permission to delete this shift.");
+      }
+      
+      console.log("[Reject] Delete SUCCESS. Deleted rows:", deletedData, "Count:", count);
       
       // Try to create alert for the employee (don't fail if this doesn't work)
       try {
@@ -331,13 +351,17 @@ export const useRejectShiftAssignment = () => {
       console.log("[Reject] Rejection complete");
     },
     onSuccess: () => {
-      console.log("[Reject] onSuccess - invalidating queries");
-      // Force immediate refetch by resetting the queries
-      queryClient.resetQueries({ queryKey: ["shift-assignments"] });
-      queryClient.resetQueries({ queryKey: ["pending-approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
-      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
-      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
+      console.log("[Reject] onSuccess - resetting and invalidating queries");
+      // Use Promise.all to ensure all invalidations complete together
+      Promise.all([
+        queryClient.resetQueries({ queryKey: ["pending-approvals"] }),
+        queryClient.resetQueries({ queryKey: ["shift-assignments"] }),
+        queryClient.invalidateQueries({ queryKey: ["shifts"] }),
+        queryClient.invalidateQueries({ queryKey: ["today-working-staff"] }),
+        queryClient.invalidateQueries({ queryKey: ["team-stats"] })
+      ]).then(() => {
+        console.log("[Reject] All queries invalidated successfully");
+      });
       toast.success("Shift assignment rejected and employee notified");
     },
     onError: (error) => {
