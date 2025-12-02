@@ -52,7 +52,7 @@ const StaffSchedule = () => {
       .from("shift_assignments")
       .select(`*, shifts!inner(*, locations(name))`)
       .eq("staff_id", employeeId)
-      .eq("approval_status", "approved")
+      .in("approval_status", ["approved", "pending"])
       .gte("shifts.shift_date", weekStart.toISOString().split('T')[0])
       .lte("shifts.shift_date", weekEnd.toISOString().split('T')[0])
       .order("shift_date", { foreignTable: "shifts", ascending: true });
@@ -150,21 +150,28 @@ const StaffSchedule = () => {
                         <span className="font-medium text-sm">
                           {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
                         </span>
-                        <Badge variant="secondary">{assignment.shifts.role}</Badge>
+                        <div className="flex gap-2">
+                          {assignment.approval_status === "pending" && (
+                            <Badge variant="outline" className="text-xs">Pending</Badge>
+                          )}
+                          <Badge variant="secondary">{assignment.shifts.role}</Badge>
+                        </div>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {assignment.shifts.locations?.name}
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Share className="h-3 w-3 mr-1" />
-                          Offer
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          Swap
-                        </Button>
-                      </div>
+                      {assignment.approval_status === "approved" && (
+                        <div className="flex gap-2 mt-3">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Share className="h-3 w-3 mr-1" />
+                            Offer
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Swap
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
