@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StaffNav } from "@/components/staff/StaffNav";
-import { Clock, MapPin, DollarSign, Filter } from "lucide-react";
+import { Clock, MapPin, Wallet, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -133,7 +133,7 @@ const StaffShiftPool = () => {
                 </div>
                 {shift.hourly_rate && (
                   <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
                     <span>{shift.hourly_rate} Lei/hour</span>
                   </div>
                 )}
