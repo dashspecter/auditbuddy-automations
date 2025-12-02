@@ -118,24 +118,33 @@ const StaffSchedule = () => {
     if (!selectedShift) return;
     
     try {
+      console.log("Offering shift with ID:", selectedShift.id);
+      
       // Update shift assignment to mark it as offered
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("shift_assignments")
         .update({
           status: "offered",
           notes: offerNote
         })
-        .eq("id", selectedShift.id);
+        .eq("id", selectedShift.id)
+        .select();
+
+      console.log("Update result:", { data, error });
 
       if (error) throw error;
       
       toast.success("Shift offered successfully! Other employees can now claim it.");
       setOfferDialogOpen(false);
       setOfferNote("");
-      loadData();
+      
+      // Reload the shifts to see the updated status
+      if (employee) {
+        await loadWeekShifts(employee.id);
+      }
     } catch (error: any) {
       console.error("Error offering shift:", error);
-      toast.error("Failed to offer shift");
+      toast.error("Failed to offer shift: " + error.message);
     }
   };
 
