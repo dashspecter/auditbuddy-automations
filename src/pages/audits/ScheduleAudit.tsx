@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -46,8 +45,7 @@ const ScheduleAudit = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Schedule Audit</h1>
           <p className="text-muted-foreground mt-1">
@@ -142,7 +140,6 @@ const ScheduleAudit = () => {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
   );
 };
 

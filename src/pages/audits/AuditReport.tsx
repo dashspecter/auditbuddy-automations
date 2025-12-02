@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,17 +21,14 @@ const AuditReport = () => {
 
   if (!audit) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">Loading audit...</div>
-      </AppLayout>
+      <div className="text-center py-12">Loading audit...</div>
     );
   }
 
   const scorePercentage = audit.total_score || 0;
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => navigate("/audits")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -121,7 +117,6 @@ const AuditReport = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
   );
 };
 
