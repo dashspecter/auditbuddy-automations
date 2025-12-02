@@ -67,12 +67,10 @@ const StaffSchedule = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = format(new Date(), "yyyy-MM-dd");
   
-  // Filter to only show days with shifts that are today or in the future
+  // Filter to only show days with shifts
   const daysWithShifts = weekDays.filter(day => {
     const dayStr = format(day, "yyyy-MM-dd");
-    const hasShifts = shifts.some(s => s.shifts.shift_date === dayStr);
-    const isNotPast = dayStr >= today;
-    return hasShifts && isNotPast;
+    return shifts.some(s => s.shifts.shift_date === dayStr);
   });
 
   if (isLoading) {
