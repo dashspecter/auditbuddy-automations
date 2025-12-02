@@ -127,8 +127,7 @@ const StaffShiftPool = () => {
         .insert([{
           shift_id: shiftId,
           staff_id: employee.id,
-          assigned_by: employee.id,
-          status: "pending"
+          assigned_by: employee.id
         }]);
 
       if (error) throw error;
