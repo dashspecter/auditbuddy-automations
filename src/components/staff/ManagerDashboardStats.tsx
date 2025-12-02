@@ -92,7 +92,7 @@ export const ManagerDashboardStats = () => {
       <div className="grid grid-cols-3 gap-3">
         <Card 
           className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/workforce/staff")}
+          onClick={() => navigate("/staff/team")}
         >
           <Users className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{teamStats?.totalStaff || 0}</div>
