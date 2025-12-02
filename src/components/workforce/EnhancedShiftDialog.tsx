@@ -621,18 +621,16 @@ export const EnhancedShiftDialog = ({
               </p>
             )}
             <div className="flex flex-wrap gap-3">
-              {parseInt(formData.required_count) > 1 && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="allow_cross_department"
-                    checked={allowCrossDepartment}
-                    onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
-                  />
-                  <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
-                    Show all departments/roles
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="allow_cross_department"
+                  checked={allowCrossDepartment}
+                  onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
+                />
+                <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
+                  Show all employees (including other roles)
+                </Label>
+              </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="batch_mode"
