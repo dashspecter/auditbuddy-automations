@@ -11,7 +11,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const ManagerApprovalsSection = () => {
-  const { data: pendingShifts = [], isLoading: shiftsLoading } = usePendingApprovals();
+  const { data: pendingShifts = [], isLoading: shiftsLoading, refetch: refetchShifts } = usePendingApprovals();
   const { data: timeOffRequests = [], isLoading: timeOffLoading } = useTimeOffRequests();
   const { data: swapRequests = [], isLoading: swapsLoading } = usePendingSwapRequests();
   const approveShift = useApproveShiftAssignment();
@@ -27,14 +27,26 @@ export const ManagerApprovalsSection = () => {
 
   const handleApproveShift = async (id: string) => {
     setProcessingId(id);
-    await approveShift.mutateAsync(id);
-    setProcessingId(null);
+    try {
+      await approveShift.mutateAsync(id);
+      await refetchShifts();
+    } catch (error) {
+      // Error is already handled by the mutation
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleRejectShift = async (id: string) => {
     setProcessingId(id);
-    await rejectShift.mutateAsync(id);
-    setProcessingId(null);
+    try {
+      await rejectShift.mutateAsync(id);
+      await refetchShifts();
+    } catch (error) {
+      // Error is already handled by the mutation
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleApproveTimeOff = async (id: string) => {
