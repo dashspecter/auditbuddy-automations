@@ -233,6 +233,7 @@ export const EmployeeDialog = ({
               value={formData.full_name}
               onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
               required
+              autoFocus
             />
           </div>
 
