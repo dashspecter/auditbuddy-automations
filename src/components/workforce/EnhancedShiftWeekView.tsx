@@ -522,12 +522,14 @@ export const EnhancedShiftWeekView = () => {
 
         {/* Location Rows */}
         {viewMode === "location" && (selectedLocation === "all" ? locations : locations.filter(l => l.id === selectedLocation)).map((location) => (
-          <div key={location.id}>
+          <div key={location.id} className="border-t-2 border-border first:border-t-0">
             {/* Location Header with role badges per day */}
-            <div className="grid grid-cols-8 bg-muted/50 border-b">
-              <div className="p-2 font-semibold text-sm flex items-center gap-2 border-r">
-                <MapPin className="h-3 w-3 text-primary" />
-                {location.name}
+            <div className="grid grid-cols-8 bg-primary/5 dark:bg-primary/10 border-b-2 border-primary/20">
+              <div className="p-3 font-semibold text-sm flex items-center gap-2 border-r bg-primary/10 dark:bg-primary/15">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/20">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-foreground">{location.name}</span>
               </div>
               {weekDays.map((day) => {
                 const roleCounts = getRoleCountsForLocationAndDay(location.id, day);
