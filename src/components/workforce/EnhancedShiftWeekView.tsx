@@ -317,6 +317,11 @@ export const EnhancedShiftWeekView = () => {
                     <div className="text-muted-foreground">
                       {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
                     </div>
+                    {selectedLocation === "all" && shift.locations?.name && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                        📍 {shift.locations.name}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -348,6 +353,9 @@ export const EnhancedShiftWeekView = () => {
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm truncate">{employee.full_name}</div>
                     <div className="text-xs text-muted-foreground">{employee.role}</div>
+                    {selectedLocation === "all" && employee.locations?.name && (
+                      <div className="text-[10px] text-muted-foreground truncate">📍 {employee.locations.name}</div>
+                    )}
                   </div>
                 </div>
                 {weekDays.map((day) => {
@@ -390,6 +398,11 @@ export const EnhancedShiftWeekView = () => {
                               <div className="text-muted-foreground">
                                 {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
                               </div>
+                              {selectedLocation === "all" && shift.locations?.name && (
+                                <div className="text-[10px] text-muted-foreground truncate">
+                                  📍 {shift.locations.name}
+                                </div>
+                              )}
                               {shift.close_duty && (
                                 <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-1">Close</Badge>
                               )}
