@@ -14,9 +14,9 @@ export interface LocationOperatingSchedule {
   created_by: string;
 }
 
-export const useLocationSchedules = (locationId?: string) => {
+export const useLocationSchedules = (locationId?: string, fetchAll: boolean = false) => {
   return useQuery({
-    queryKey: ["location-schedules", locationId],
+    queryKey: ["location-schedules", locationId, fetchAll],
     queryFn: async () => {
       let query = supabase
         .from("location_operating_schedules")
@@ -31,7 +31,7 @@ export const useLocationSchedules = (locationId?: string) => {
       if (error) throw error;
       return data as LocationOperatingSchedule[];
     },
-    enabled: !!locationId,
+    enabled: fetchAll || !!locationId,
   });
 };
 
