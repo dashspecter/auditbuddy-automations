@@ -210,8 +210,9 @@ const TaskNew = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-3">
+            <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+              <div className="space-y-3 md:pr-6 md:border-r md:border-border">
+                <Label className="text-sm font-medium">Assign To</Label>
                 <div className="flex gap-2">
                   <TooltipProvider>
                     <Tooltip>
