@@ -216,11 +216,11 @@ export const useTaskStats = () => {
   return useQuery({
     queryKey: ["task-stats", company?.id],
     queryFn: async () => {
-      if (!company?.id) return { total: 0, pending: 0, overdue: 0, completed: 0 };
+      if (!company?.id) return { total: 0, pending: 0, overdue: 0, completed: 0, completedLate: 0 };
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("status, due_at")
+        .select("status, due_at, start_at, duration_minutes, completed_late")
         .eq("company_id", company.id);
 
       if (error) throw error;
@@ -231,13 +231,26 @@ export const useTaskStats = () => {
         pending: 0,
         overdue: 0,
         completed: 0,
+        completedLate: 0,
       };
 
       data.forEach((task) => {
         if (task.status === "completed") {
           stats.completed++;
+          if (task.completed_late) {
+            stats.completedLate++;
+          }
         } else if (task.status === "pending" || task.status === "in_progress") {
-          if (task.due_at && new Date(task.due_at) < now) {
+          // Check if overdue based on start_at + duration_minutes OR due_at
+          let isOverdue = false;
+          if (task.start_at && task.duration_minutes) {
+            const deadline = new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
+            isOverdue = now > deadline;
+          } else if (task.due_at) {
+            isOverdue = new Date(task.due_at) < now;
+          }
+          
+          if (isOverdue) {
             stats.overdue++;
           } else {
             stats.pending++;

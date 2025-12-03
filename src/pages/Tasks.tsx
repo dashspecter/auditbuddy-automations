@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
@@ -36,8 +36,17 @@ const statusColors: Record<string, string> = {
 };
 
 const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () => void; onDelete: () => void }) => {
-  const isOverdue = task.due_at && isPast(new Date(task.due_at)) && task.status !== "completed";
-  const isDueToday = task.due_at && isToday(new Date(task.due_at));
+  // Calculate deadline from start_at + duration_minutes, or fallback to due_at
+  const getDeadline = () => {
+    if (task.start_at && task.duration_minutes) {
+      return new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
+    }
+    return task.due_at ? new Date(task.due_at) : null;
+  };
+  
+  const deadline = getDeadline();
+  const isOverdue = deadline && isPast(deadline) && task.status !== "completed";
+  const isDueToday = deadline && isToday(deadline);
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
 
   return (
@@ -56,6 +65,9 @@ const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () =
             </h4>
             {isRecurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+            {task.completed_late && (
+              <Badge variant="destructive" className="text-xs">Late</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -77,13 +89,25 @@ const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () =
               {task.assigned_employee.full_name}
             </span>
           )}
+          {task.assigned_role && !task.assigned_employee && (
+            <span className="flex items-center gap-1 text-primary">
+              <Users className="h-3 w-3" />
+              {task.assigned_role.name} (shared)
+            </span>
+          )}
           {task.location && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {task.location.name}
             </span>
           )}
-          {task.due_at && (
+          {task.start_at && task.duration_minutes && (
+            <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : ""}`}>
+              <Timer className="h-3 w-3" />
+              {format(new Date(task.start_at), "MMM d, HH:mm")} • {task.duration_minutes}min
+            </span>
+          )}
+          {!task.start_at && task.due_at && (
             <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : isDueToday ? "text-orange-600 font-medium" : ""}`}>
               <Clock className="h-3 w-3" />
               {isOverdue ? "Overdue: " : isDueToday ? "Today: " : "Due: "}
@@ -167,7 +191,7 @@ const Tasks = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -210,6 +234,17 @@ const Tasks = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.completed || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Completed Late
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.completedLate || 0}</div>
           </CardContent>
         </Card>
       </div>
