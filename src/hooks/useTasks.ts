@@ -140,7 +140,7 @@ export const useMyTasks = () => {
       const hasShiftToday = (todayShifts && todayShifts.length > 0);
       const shiftLocationIds = todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
 
-      // Fetch tasks directly assigned to this employee (exclude completed)
+      // Fetch tasks directly assigned to this employee (including completed so they can revisit)
       const { data: directTasks, error: directError } = await supabase
         .from("tasks")
         .select(`
@@ -150,7 +150,6 @@ export const useMyTasks = () => {
         `)
         .eq("company_id", company.id)
         .eq("assigned_to", employee.id)
-        .neq("status", "completed")
         .order("due_at", { ascending: true, nullsFirst: false });
 
       if (directError) throw directError;
