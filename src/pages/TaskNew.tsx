@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar } from "lucide-react";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
@@ -25,13 +25,16 @@ const TaskNew = () => {
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useLocations();
 
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     title: "",
     description: "",
     priority: "medium",
     due_at: "",
     assigned_to: "",
     location_id: "",
+    recurrence_type: "none",
+    recurrence_interval: 1,
+    recurrence_end_date: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +54,11 @@ const TaskNew = () => {
         assigned_to: formData.assigned_to || undefined,
         location_id: formData.location_id || undefined,
         source: "manual",
+        recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
+        recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : undefined,
+        recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
+          ? new Date(formData.recurrence_end_date).toISOString()
+          : undefined,
       });
 
       toast.success("Task created successfully");
@@ -186,18 +194,129 @@ const TaskNew = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
+            {/* Recurrence Section */}
+            <Card className="border-dashed">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Recurrence Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Repeat</Label>
+                    <Select
+                      value={formData.recurrence_type}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, recurrence_type: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Does not repeat</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.recurrence_type !== "none" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Every</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={formData.recurrence_interval}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                recurrence_interval: parseInt(e.target.value) || 1,
+                              }))
+                            }
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {formData.recurrence_type === "daily"
+                              ? "day(s)"
+                              : formData.recurrence_type === "weekly"
+                              ? "week(s)"
+                              : "month(s)"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>End Date (Optional)</Label>
+                        <Input
+                          type="date"
+                          value={formData.recurrence_end_date}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              recurrence_end_date: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {formData.recurrence_type !== "none" && (
+                  <p className="text-sm text-muted-foreground">
+                    This task will repeat{" "}
+                    {formData.recurrence_interval > 1
+                      ? `every ${formData.recurrence_interval} `
+                      : ""}
+                    {formData.recurrence_type === "daily"
+                      ? formData.recurrence_interval > 1
+                        ? "days"
+                        : "daily"
+                      : formData.recurrence_type === "weekly"
+                      ? formData.recurrence_interval > 1
+                        ? "weeks"
+                        : "weekly"
+                      : formData.recurrence_interval > 1
+                      ? "months"
+                      : "monthly"}
+                    {formData.recurrence_end_date
+                      ? ` until ${format(new Date(formData.recurrence_end_date), "PPP")}`
+                      : ""}
+                    .
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/tasks")}
+                onClick={() => navigate("/tasks/calendar")}
               >
-                Cancel
+                <Calendar className="h-4 w-4 mr-2" />
+                View Calendar
               </Button>
-              <Button type="submit" disabled={createTask.isPending}>
-                <Save className="h-4 w-4 mr-2" />
-                {createTask.isPending ? "Creating..." : "Create Task"}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/tasks")}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createTask.isPending}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {createTask.isPending ? "Creating..." : "Create Task"}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
