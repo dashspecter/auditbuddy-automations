@@ -32,7 +32,7 @@ const TaskNew = () => {
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: locations = [] } = useLocations();
-  const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('employee');
+  const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
 
 const [formData, setFormData] = useState({
     title: "",
