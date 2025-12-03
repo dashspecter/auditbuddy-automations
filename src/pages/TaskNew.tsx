@@ -12,7 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info } from "lucide-react";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -157,32 +163,52 @@ const [formData, setFormData] = useState({
               <div className="space-y-2">
                 <Label>Assign To</Label>
                 <div className="flex gap-2 mb-2">
-                  <Button
-                    type="button"
-                    variant={assignmentType === 'employee' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setAssignmentType('employee');
-                      setFormData(prev => ({ ...prev, assigned_role_id: '' }));
-                    }}
-                    className="flex-1"
-                  >
-                    <User className="h-4 w-4 mr-1" />
-                    Employee
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={assignmentType === 'role' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setAssignmentType('role');
-                      setFormData(prev => ({ ...prev, assigned_to: '' }));
-                    }}
-                    className="flex-1"
-                  >
-                    <Users className="h-4 w-4 mr-1" />
-                    Role
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant={assignmentType === 'employee' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setAssignmentType('employee');
+                            setFormData(prev => ({ ...prev, assigned_role_id: '' }));
+                          }}
+                          className="flex-1"
+                        >
+                          <User className="h-4 w-4 mr-1" />
+                          Employee
+                          <Info className="h-3 w-3 ml-1 opacity-60" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">Task assigned to a specific employee. Only that person will see and be responsible for this task.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant={assignmentType === 'role' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setAssignmentType('role');
+                            setFormData(prev => ({ ...prev, assigned_to: '' }));
+                          }}
+                          className="flex-1"
+                        >
+                          <Users className="h-4 w-4 mr-1" />
+                          Role
+                          <Info className="h-3 w-3 ml-1 opacity-60" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-sm">Task assigned to all employees with this role at the selected location. Only visible when they have a scheduled shift.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 {assignmentType === 'employee' ? (
                   <Select
