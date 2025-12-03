@@ -1,4 +1,4 @@
-import { Header } from "@/components/Header";
+// Header removed - page uses app layout
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -204,44 +204,31 @@ const AuditDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading audit details...</p>
-            </div>
-          </div>
-        </main>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading audit details...</p>
+        </div>
       </div>
     );
   }
 
   if (!audit) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <Card className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Audit Not Found</h2>
-            <p className="text-muted-foreground mb-4">The requested audit could not be found.</p>
-            <Link to="/audits">
-              <Button>Back to Audits</Button>
-            </Link>
-          </Card>
-        </main>
-      </div>
+      <Card className="p-8 text-center">
+        <h2 className="text-2xl font-bold text-foreground mb-2">Audit Not Found</h2>
+        <p className="text-muted-foreground mb-4">The requested audit could not be found.</p>
+        <Link to="/audits">
+          <Button>Back to Audits</Button>
+        </Link>
+      </Card>
     );
   }
 
   const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <div {...handlers} className="relative touch-pan-y">
+    <div {...handlers} className="relative touch-pan-y">
         {/* Swipe hint for first-time mobile users */}
         {showSwipeHint && (prevAuditId || nextAuditId) && (
           <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:hidden animate-in slide-in-from-bottom-5 fade-in">
@@ -522,23 +509,22 @@ const AuditDetail = () => {
               Edit Audit
             </Button>
           </div>
-        </div>
+          </div>
         </main>
-      </div>
 
-      {audit && (
-        <EditAuditDialog
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          audit={audit}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['location_audit', id] });
-            queryClient.invalidateQueries({ queryKey: ['location_audits'] });
-            queryClient.invalidateQueries({ queryKey: ['audit_revisions', id] });
-          }}
-        />
-      )}
-    </div>
+        {audit && (
+          <EditAuditDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            audit={audit}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['location_audit', id] });
+              queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+              queryClient.invalidateQueries({ queryKey: ['audit_revisions', id] });
+            }}
+          />
+        )}
+      </div>
   );
 };
 
