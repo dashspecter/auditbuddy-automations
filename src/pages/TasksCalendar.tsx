@@ -59,15 +59,18 @@ const TasksCalendar = () => {
   // Convert tasks to calendar events
   const events = useMemo(() => {
     return filteredTasks
-      .filter((task) => task.due_at)
+      .filter((task) => task.start_at || task.due_at)
       .map((task) => {
-        const dueDate = new Date(task.due_at!);
+        const startDate = new Date(task.start_at || task.due_at!);
+        const endDate = task.start_at && task.duration_minutes
+          ? new Date(startDate.getTime() + task.duration_minutes * 60000)
+          : startDate;
         return {
           id: task.id,
           title: task.title,
-          start: dueDate,
-          end: dueDate,
-          allDay: true,
+          start: startDate,
+          end: endDate,
+          allDay: !task.start_at,
           resource: task,
         };
       });
@@ -104,10 +107,10 @@ const TasksCalendar = () => {
   const eventStyleGetter = (event: any) => {
     const task = event.resource;
     const isCompleted = task.status === "completed";
-    const isOverdue =
-      task.status !== "completed" &&
-      task.due_at &&
-      new Date(task.due_at) < new Date();
+    const deadline = task.start_at && task.duration_minutes 
+      ? new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000)
+      : task.due_at ? new Date(task.due_at) : null;
+    const isOverdue = !isCompleted && deadline && deadline < new Date();
 
     let backgroundColor = "hsl(var(--primary))";
     if (isCompleted) {
@@ -293,12 +296,13 @@ const TasksCalendar = () => {
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-red-600">
               {
-                filteredTasks.filter(
-                  (t) =>
-                    t.status !== "completed" &&
-                    t.due_at &&
-                    new Date(t.due_at) < new Date()
-                ).length
+                filteredTasks.filter((t) => {
+                  if (t.status === "completed") return false;
+                  const deadline = t.start_at && t.duration_minutes
+                    ? new Date(new Date(t.start_at).getTime() + t.duration_minutes * 60000)
+                    : t.due_at ? new Date(t.due_at) : null;
+                  return deadline && deadline < new Date();
+                }).length
               }
             </div>
             <p className="text-muted-foreground text-sm">Overdue</p>
