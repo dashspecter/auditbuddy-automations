@@ -3701,10 +3701,12 @@ export type Database = {
           assigned_to: string | null
           company_id: string
           completed_at: string | null
+          completed_late: boolean | null
           created_at: string
           created_by: string
           description: string | null
           due_at: string | null
+          duration_minutes: number | null
           id: string
           is_recurring_instance: boolean | null
           location_id: string | null
@@ -3715,6 +3717,7 @@ export type Database = {
           recurrence_type: string | null
           source: string
           source_reference_id: string | null
+          start_at: string | null
           status: string
           title: string
           updated_at: string
@@ -3724,10 +3727,12 @@ export type Database = {
           assigned_to?: string | null
           company_id: string
           completed_at?: string | null
+          completed_late?: boolean | null
           created_at?: string
           created_by: string
           description?: string | null
           due_at?: string | null
+          duration_minutes?: number | null
           id?: string
           is_recurring_instance?: boolean | null
           location_id?: string | null
@@ -3738,6 +3743,7 @@ export type Database = {
           recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null
+          start_at?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -3747,10 +3753,12 @@ export type Database = {
           assigned_to?: string | null
           company_id?: string
           completed_at?: string | null
+          completed_late?: boolean | null
           created_at?: string
           created_by?: string
           description?: string | null
           due_at?: string | null
+          duration_minutes?: number | null
           id?: string
           is_recurring_instance?: boolean | null
           location_id?: string | null
@@ -3761,6 +3769,7 @@ export type Database = {
           recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null
+          start_at?: string | null
           status?: string
           title?: string
           updated_at?: string

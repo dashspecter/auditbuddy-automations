@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock } from "lucide-react";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -38,7 +38,8 @@ const [formData, setFormData] = useState({
     title: "",
     description: "",
     priority: "medium",
-    due_at: "",
+    start_at: "",
+    duration_minutes: 30,
     assigned_to: "",
     assigned_role_id: "",
     location_id: "",
@@ -60,7 +61,8 @@ const [formData, setFormData] = useState({
         title: formData.title,
         description: formData.description || undefined,
         priority: formData.priority,
-        due_at: formData.due_at ? new Date(formData.due_at).toISOString() : undefined,
+        start_at: formData.start_at ? new Date(formData.start_at).toISOString() : undefined,
+        duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : undefined,
         assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : undefined,
         location_id: formData.location_id || undefined,
@@ -147,19 +149,51 @@ const [formData, setFormData] = useState({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="due_at">Due Date</Label>
+                <Label htmlFor="start_at">Start Time</Label>
                 <Input
-                  id="due_at"
+                  id="start_at"
                   type="datetime-local"
-                  value={formData.due_at}
+                  value={formData.start_at}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, due_at: e.target.value }))
+                    setFormData((prev) => ({ ...prev, start_at: e.target.value }))
                   }
                 />
+                <p className="text-xs text-muted-foreground">When the task becomes active</p>
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="duration">Time Limit (minutes)</Label>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={formData.duration_minutes.toString()}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, duration_minutes: parseInt(value) }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 minutes</SelectItem>
+                      <SelectItem value="10">10 minutes</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="45">45 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="90">1.5 hours</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="180">3 hours</SelectItem>
+                      <SelectItem value="240">4 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Time available to complete (countdown will show)
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label>Assign To</Label>
                 <div className="flex gap-2 mb-2">

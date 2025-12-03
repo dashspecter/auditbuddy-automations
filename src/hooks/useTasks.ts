@@ -13,7 +13,10 @@ export interface Task {
   assigned_to: string | null;
   assigned_role_id: string | null;
   due_at: string | null;
+  start_at: string | null;
+  duration_minutes: number | null;
   completed_at: string | null;
+  completed_late: boolean | null;
   status: string;
   priority: string;
   source: string;
@@ -254,6 +257,8 @@ interface CreateTaskData {
   priority: string;
   status?: string;
   due_at?: string;
+  start_at?: string;
+  duration_minutes?: number;
   assigned_to?: string;
   assigned_role_id?: string;
   location_id?: string;
@@ -322,11 +327,28 @@ export const useCompleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
+      // First, get the task to check if it should be marked as late
+      const { data: existingTask } = await supabase
+        .from("tasks")
+        .select("start_at, duration_minutes")
+        .eq("id", taskId)
+        .single();
+
+      const now = new Date();
+      let completedLate = false;
+
+      if (existingTask?.start_at && existingTask?.duration_minutes) {
+        const startTime = new Date(existingTask.start_at);
+        const deadline = new Date(startTime.getTime() + existingTask.duration_minutes * 60000);
+        completedLate = now > deadline;
+      }
+
       const { data: task, error } = await supabase
         .from("tasks")
         .update({
           status: "completed",
-          completed_at: new Date().toISOString(),
+          completed_at: now.toISOString(),
+          completed_late: completedLate,
         })
         .eq("id", taskId)
         .select()
