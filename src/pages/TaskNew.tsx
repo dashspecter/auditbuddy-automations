@@ -144,17 +144,17 @@ const TaskNew = () => {
               <div className="space-y-2">
                 <Label htmlFor="assigned_to">Assign To</Label>
                 <Select
-                  value={formData.assigned_to}
+                  value={formData.assigned_to || "unassigned"}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, assigned_to: value }))
+                    setFormData((prev) => ({ ...prev, assigned_to: value === "unassigned" ? "" : value }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
-                    {employees.map((emp) => (
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {employees.filter(emp => emp.id).map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.full_name}
                       </SelectItem>
@@ -166,17 +166,17 @@ const TaskNew = () => {
               <div className="space-y-2">
                 <Label htmlFor="location_id">Location</Label>
                 <Select
-                  value={formData.location_id}
+                  value={formData.location_id || "no-location"}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, location_id: value }))
+                    setFormData((prev) => ({ ...prev, location_id: value === "no-location" ? "" : value }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No location</SelectItem>
-                    {locations.map((loc) => (
+                    <SelectItem value="no-location">No location</SelectItem>
+                    {locations.filter(loc => loc.id).map((loc) => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}
                       </SelectItem>
