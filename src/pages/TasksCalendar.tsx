@@ -41,7 +41,16 @@ const TasksCalendar = () => {
     let filtered = tasks;
 
     if (filterEmployee !== "all") {
-      filtered = filtered.filter((t) => t.assigned_to === filterEmployee);
+      // Get the employee's role
+      const selectedEmployee = employees.find((e) => e.id === filterEmployee);
+      const employeeRoleName = selectedEmployee?.role;
+      const matchingRole = employeeRoleName ? roles.find((r) => r.name === employeeRoleName) : null;
+      
+      // Show tasks directly assigned to this employee OR assigned to their role
+      filtered = filtered.filter((t) => 
+        t.assigned_to === filterEmployee ||
+        (matchingRole && t.assigned_role_id === matchingRole.id && !t.assigned_to)
+      );
     }
 
     if (filterRole !== "all") {
