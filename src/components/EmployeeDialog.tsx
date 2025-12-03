@@ -65,7 +65,10 @@ export const EmployeeDialog = ({
   const addStaffLocation = useAddStaffLocation();
   const removeStaffLocation = useRemoveStaffLocation();
 
+  // Initialize form when dialog opens or employee changes
   useEffect(() => {
+    if (!open) return; // Only run when dialog is open
+    
     if (employee) {
       setFormData({
         full_name: employee.full_name,
@@ -82,11 +85,6 @@ export const EmployeeDialog = ({
         emergency_contact_phone: employee.emergency_contact_phone || "",
         notes: employee.notes || "",
       });
-      // Load additional locations from staff_locations (non-primary)
-      const additionalLocs = staffLocations
-        .filter(sl => !sl.is_primary && sl.location_id !== employee.location_id)
-        .map(sl => sl.location_id);
-      setAdditionalLocations(additionalLocs);
     } else {
       setFormData({
         full_name: "",
@@ -106,7 +104,18 @@ export const EmployeeDialog = ({
       setAdditionalLocations([]);
     }
     setSelectedLocationToAdd("");
-  }, [employee, open, staffLocations]);
+    setCreateUserAccount(false);
+  }, [employee, open]);
+
+  // Separate effect for loading additional locations (only when editing)
+  useEffect(() => {
+    if (employee && staffLocations.length > 0) {
+      const additionalLocs = staffLocations
+        .filter(sl => !sl.is_primary && sl.location_id !== employee.location_id)
+        .map(sl => sl.location_id);
+      setAdditionalLocations(additionalLocs);
+    }
+  }, [employee, staffLocations]);
 
   const handleAddLocation = () => {
     if (selectedLocationToAdd && !additionalLocations.includes(selectedLocationToAdd) && selectedLocationToAdd !== formData.location_id) {
@@ -228,9 +237,8 @@ export const EmployeeDialog = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="full_name">Full Name</Label>
-            <input
+            <Input
               id="full_name"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={formData.full_name}
               onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
               required
