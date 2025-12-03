@@ -1,0 +1,434 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag } from "lucide-react";
+import { useUpdateTask, useTasks } from "@/hooks/useTasks";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { LocationMultiSelector } from "@/components/LocationMultiSelector";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const TaskEdit = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const updateTask = useUpdateTask();
+  const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
+  const { data: employees = [] } = useEmployees();
+  const { data: roles = [] } = useEmployeeRoles();
+  const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const task = tasks.find(t => t.id === id);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    priority: "medium",
+    start_at: "",
+    duration_minutes: 30,
+    assigned_to: "",
+    assigned_role_id: "",
+    location_ids: [] as string[],
+    recurrence_type: "none",
+    recurrence_interval: 1,
+    recurrence_end_date: "",
+  });
+
+  // Initialize form with task data
+  useEffect(() => {
+    if (task && !isInitialized) {
+      setFormData({
+        title: task.title || "",
+        description: task.description || "",
+        priority: task.priority || "medium",
+        start_at: task.start_at ? format(new Date(task.start_at), "yyyy-MM-dd'T'HH:mm") : "",
+        duration_minutes: task.duration_minutes || 30,
+        assigned_to: task.assigned_to || "",
+        assigned_role_id: task.assigned_role_id || "",
+        location_ids: task.location_id ? [task.location_id] : [],
+        recurrence_type: task.recurrence_type || "none",
+        recurrence_interval: task.recurrence_interval || 1,
+        recurrence_end_date: task.recurrence_end_date 
+          ? format(new Date(task.recurrence_end_date), "yyyy-MM-dd") 
+          : "",
+      });
+      setAssignmentType(task.assigned_to ? 'employee' : 'role');
+      setIsInitialized(true);
+    }
+  }, [task, isInitialized]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!id) return;
+
+    if (!formData.title.trim()) {
+      toast.error("Please enter a task title");
+      return;
+    }
+
+    try {
+      await updateTask.mutateAsync({
+        id,
+        title: formData.title,
+        description: formData.description || null,
+        priority: formData.priority,
+        start_at: formData.start_at ? new Date(formData.start_at).toISOString() : null,
+        duration_minutes: formData.duration_minutes,
+        assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : null,
+        assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : null,
+        location_id: formData.location_ids[0] || null,
+        recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : null,
+        recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : null,
+        recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
+          ? new Date(formData.recurrence_end_date).toISOString()
+          : null,
+      });
+
+      toast.success("Task updated successfully");
+      navigate("/tasks");
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Failed to update task");
+    }
+  };
+
+  if (isLoadingTasks) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => navigate("/tasks")}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Tasks
+        </Button>
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Task not found
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/tasks")}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Edit Task</h1>
+          <p className="text-muted-foreground mt-1">Update task details</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Info Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5" />
+              Basic Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+              <div className="space-y-2">
+                <Label htmlFor="title">Task Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter task title"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Add task details..."
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scheduling Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Schedule
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="start_at">Start Date & Time</Label>
+                <Input
+                  id="start_at"
+                  type="datetime-local"
+                  value={formData.start_at}
+                  onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duration (minutes)</Label>
+                <Select
+                  value={String(formData.duration_minutes)}
+                  onValueChange={(value) => setFormData({ ...formData, duration_minutes: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 min</SelectItem>
+                    <SelectItem value="30">30 min</SelectItem>
+                    <SelectItem value="45">45 min</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1.5 hours</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                    <SelectItem value="180">3 hours</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                    <SelectItem value="480">8 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Assignment Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4 pr-6 md:border-r border-border">
+                <div className="space-y-2">
+                  <Label>Assign to</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={assignmentType === 'role' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setAssignmentType('role')}
+                      className="flex-1"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Role
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={assignmentType === 'employee' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setAssignmentType('employee')}
+                      className="flex-1"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Employee
+                    </Button>
+                  </div>
+                </div>
+
+                {assignmentType === 'employee' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="assigned_to">Employee</Label>
+                    <Select
+                      value={formData.assigned_to}
+                      onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((emp) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="assigned_role" className="flex items-center gap-1 cursor-help">
+                            Role
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">Tasks assigned to a role will be visible to all employees with that role who have an active shift at the task's location.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Select
+                      value={formData.assigned_role_id}
+                      onValueChange={(value) => setFormData({ ...formData, assigned_role_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Locations
+                </Label>
+                <LocationMultiSelector
+                  value={formData.location_ids}
+                  onValueChange={(ids) => setFormData({ ...formData, location_ids: ids })}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recurrence Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              Recurrence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="recurrence_type">Repeat</Label>
+                <Select
+                  value={formData.recurrence_type}
+                  onValueChange={(value) => setFormData({ ...formData, recurrence_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No repeat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Don't repeat</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.recurrence_type !== "none" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_interval">Every</Label>
+                    <Select
+                      value={String(formData.recurrence_interval)}
+                      onValueChange={(value) => setFormData({ ...formData, recurrence_interval: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {formData.recurrence_type === 'daily' ? (n === 1 ? 'day' : 'days') :
+                                formData.recurrence_type === 'weekly' ? (n === 1 ? 'week' : 'weeks') :
+                                (n === 1 ? 'month' : 'months')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_end_date">Until (optional)</Label>
+                    <Input
+                      id="recurrence_end_date"
+                      type="date"
+                      value={formData.recurrence_end_date}
+                      onChange={(e) => setFormData({ ...formData, recurrence_end_date: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => navigate("/tasks")}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={updateTask.isPending}>
+            <Save className="h-4 w-4 mr-2" />
+            {updateTask.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default TaskEdit;

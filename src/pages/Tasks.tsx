@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
@@ -35,7 +35,7 @@ const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 };
 
-const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () => void; onDelete: () => void }) => {
+const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComplete: () => void; onEdit: () => void; onDelete: () => void }) => {
   // Calculate deadline from start_at + duration_minutes, or fallback to due_at
   const getDeadline = () => {
     if (task.start_at && task.duration_minutes) {
@@ -122,9 +122,14 @@ const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () =
           )}
         </div>
       </div>
-      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={onDelete}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={onEdit}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={onDelete}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
@@ -299,6 +304,7 @@ const Tasks = () => {
                         key={task.id}
                         task={task}
                         onComplete={() => handleComplete(task.id)}
+                        onEdit={() => navigate(`/tasks/edit/${task.id}`)}
                         onDelete={() => setDeleteTaskId(task.id)}
                       />
                     ))}
