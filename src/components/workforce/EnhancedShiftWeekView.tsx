@@ -124,9 +124,45 @@ export const EnhancedShiftWeekView = () => {
     return role?.color || "#6366f1";
   };
 
-  const getLaborCostForDay = (date: Date) => {
+  const calculateLaborCostForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return laborCosts.find(lc => lc.date === dateStr);
+    const dayShifts = shifts.filter(shift => 
+      shift.shift_date === dateStr && !shift.is_open_shift
+    );
+    
+    let totalHours = 0;
+    let totalCost = 0;
+    
+    dayShifts.forEach(shift => {
+      const approvedAssignments = shift.shift_assignments?.filter(
+        (sa: any) => sa.approval_status === 'approved'
+      ) || [];
+      
+      if (approvedAssignments.length > 0) {
+        // Calculate shift duration in hours
+        const [startH, startM] = shift.start_time.split(':').map(Number);
+        const [endH, endM] = shift.end_time.split(':').map(Number);
+        let hours = (endH + endM / 60) - (startH + startM / 60);
+        if (hours < 0) hours += 24; // Handle overnight shifts
+        
+        approvedAssignments.forEach((sa: any) => {
+          const employee = employees.find(e => e.id === sa.staff_id);
+          const hourlyRate = employee?.hourly_rate || 0;
+          totalHours += hours;
+          totalCost += hours * hourlyRate;
+        });
+      }
+    });
+    
+    // Check stored labor costs for projected/actual sales
+    const storedCost = laborCosts.find(lc => lc.date === dateStr);
+    
+    return {
+      scheduled_hours: totalHours,
+      scheduled_cost: totalCost,
+      projected_sales: storedCost?.projected_sales || 0,
+      actual_sales: storedCost?.actual_sales || 0
+    };
   };
 
   const getOperatingHoursForDay = (date: Date) => {
@@ -584,8 +620,8 @@ export const EnhancedShiftWeekView = () => {
       <div className="grid grid-cols-8 gap-2">
         <div className="col-span-1" />
         {weekDays.map((day) => {
-          const laborCost = getLaborCostForDay(day);
-          const laborPercentage = laborCost && laborCost.projected_sales > 0
+          const laborCost = calculateLaborCostForDay(day);
+          const laborPercentage = laborCost.projected_sales > 0
             ? ((laborCost.scheduled_cost / laborCost.projected_sales) * 100).toFixed(2)
             : "0.00";
           const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -596,13 +632,13 @@ export const EnhancedShiftWeekView = () => {
                 <span>Labor</span>
               </div>
               <div className="text-sm font-medium">
-                {laborCost?.scheduled_cost.toFixed(2) || "0.00"} Lei
+                {laborCost.scheduled_cost.toFixed(2)} Lei
               </div>
               <div className={`text-xs ${parseFloat(laborPercentage) > 30 ? 'text-red-500' : 'text-green-500'}`}>
                 {laborPercentage}%
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {laborCost?.scheduled_hours.toFixed(1) || "0.0"} hrs
+                {laborCost.scheduled_hours.toFixed(1)} hrs
               </div>
             </Card>
           );
