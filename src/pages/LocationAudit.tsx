@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { useSwipeable } from "react-swipeable";
-import { Header } from "@/components/Header";
+// Header removed - page uses app layout
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -843,25 +843,17 @@ const LocationAudit = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading templates...</p>
-            </div>
-          </div>
-        </main>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading templates...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 lg:pb-8">
-      <Header />
-      
-      <main className="container mx-auto px-3 sm:px-4 px-safe py-4 sm:py-8 pb-safe">
+    <div className="space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate("/admin/template-library")}
@@ -1234,7 +1226,6 @@ const LocationAudit = () => {
             sections={selectedTemplate.sections}
           />
         )}
-      </main>
     </div>
   );
 };
