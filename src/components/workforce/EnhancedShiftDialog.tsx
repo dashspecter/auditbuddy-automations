@@ -119,11 +119,49 @@ export const EnhancedShiftDialog = ({
     const shiftStart = normalizeTime(formData.start_time);
     const shiftEnd = normalizeTime(formData.end_time);
     const openTimeNormalized = normalizeTime(openTime);
+    const closeTimeNormalized = normalizeTime(closeTime);
     
-    // Handle midnight case: "00:00:00" means end of day (open until midnight)
-    const closeTimeNormalized = closeTime === "00:00:00" || closeTime === "00:00" ? "23:59:59" : normalizeTime(closeTime);
+    // Check if operating hours span overnight (close time is earlier than open time)
+    const isOvernightOperation = closeTimeNormalized < openTimeNormalized;
     
-    const isOutsideHours = shiftStart < openTimeNormalized || shiftEnd > closeTimeNormalized;
+    let isOutsideHours = false;
+    
+    if (isOvernightOperation) {
+      // For overnight operations (e.g., 10:00 - 01:00):
+      // Valid shifts: start >= openTime OR end <= closeTime (next day)
+      // A shift from 10:00-17:00 is valid (daytime portion)
+      // A shift from 23:00-01:00 is valid (overnight portion)
+      
+      // Shift must either:
+      // 1. Be entirely in the daytime portion (start >= open AND end <= 23:59:59)
+      // 2. Be entirely in the overnight portion (start >= 00:00:00 AND end <= close)
+      // 3. Span from daytime into overnight (start >= open AND end <= close next day)
+      
+      const isDaytimeShift = shiftStart >= openTimeNormalized && shiftEnd >= shiftStart;
+      const isOvernightShift = shiftEnd <= closeTimeNormalized && shiftStart <= shiftEnd;
+      const isSpanningShift = shiftStart >= openTimeNormalized && shiftEnd <= closeTimeNormalized && shiftEnd < shiftStart;
+      
+      // For simplicity: if shift starts after opening, it's valid for the daytime portion
+      // The shift 10:00-17:00 when hours are 10:00-01:00 is valid
+      isOutsideHours = shiftStart < openTimeNormalized && shiftEnd > closeTimeNormalized;
+      
+      // More precise: shift is valid if it starts on or after opening time
+      // and ends before or at closing time (accounting for overnight)
+      if (shiftStart >= openTimeNormalized) {
+        // Daytime shift - end time can be up to midnight
+        isOutsideHours = false;
+      } else if (shiftEnd <= closeTimeNormalized) {
+        // Early morning shift - before close time
+        isOutsideHours = false;
+      } else {
+        isOutsideHours = true;
+      }
+    } else {
+      // Normal same-day hours: shift must be within open-close range
+      // Handle midnight case: "00:00:00" means end of day (open until midnight)
+      const effectiveCloseTime = closeTimeNormalized === "00:00:00" ? "23:59:59" : closeTimeNormalized;
+      isOutsideHours = shiftStart < openTimeNormalized || shiftEnd > effectiveCloseTime;
+    }
 
     return {
       isValid: !isOutsideHours,
