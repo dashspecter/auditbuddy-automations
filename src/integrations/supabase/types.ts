@@ -3597,6 +3597,42 @@ export type Database = {
           },
         ]
       }
+      task_locations: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_locations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_photos: {
         Row: {
           caption: string | null

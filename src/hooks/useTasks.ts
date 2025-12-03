@@ -274,7 +274,7 @@ interface CreateTaskData {
   duration_minutes?: number;
   assigned_to?: string;
   assigned_role_id?: string;
-  location_id?: string;
+  location_ids?: string[];
   source?: string;
   source_reference_id?: string;
   recurrence_type?: string;
@@ -291,17 +291,38 @@ export const useCreateTask = () => {
     mutationFn: async (data: CreateTaskData) => {
       if (!company?.id || !user?.id) throw new Error("Not authenticated");
 
+      const { location_ids, ...taskData } = data;
+
+      // Create the task (use first location as primary for backward compatibility)
       const { data: task, error } = await supabase
         .from("tasks")
         .insert({
-          ...data,
+          ...taskData,
           company_id: company.id,
           created_by: user.id,
+          location_id: location_ids?.[0] || null,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Insert into task_locations junction table for all locations
+      if (location_ids && location_ids.length > 0) {
+        const taskLocations = location_ids.map(locationId => ({
+          task_id: task.id,
+          location_id: locationId,
+        }));
+
+        const { error: locError } = await supabase
+          .from("task_locations")
+          .insert(taskLocations);
+
+        if (locError) {
+          console.error("Error creating task locations:", locError);
+        }
+      }
+
       return task;
     },
     onSuccess: () => {
