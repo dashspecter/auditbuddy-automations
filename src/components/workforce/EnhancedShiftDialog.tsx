@@ -67,6 +67,7 @@ export const EnhancedShiftDialog = ({
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
+  const [showAllLocations, setShowAllLocations] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [individualTimes, setIndividualTimes] = useState<Record<string, { start_time: string; end_time: string }>>({});
   const [selectedPreset, setSelectedPreset] = useState<string>("custom");
@@ -78,7 +79,7 @@ export const EnhancedShiftDialog = ({
   const createAssignment = useCreateShiftAssignment();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: locations = [] } = useLocations();
-  const { data: employees = [] } = useEmployees(formData.location_id || undefined);
+  const { data: employees = [] } = useEmployees(showAllLocations ? undefined : (formData.location_id || undefined));
   const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
   const { data: shiftPresets = [] } = useShiftPresets();
 
@@ -672,7 +673,17 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
                 />
                 <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
-                  Show all employees (including other roles)
+                  Show all roles
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show_all_locations"
+                  checked={showAllLocations}
+                  onCheckedChange={(checked) => setShowAllLocations(checked as boolean)}
+                />
+                <Label htmlFor="show_all_locations" className="cursor-pointer text-xs font-normal">
+                  Show all locations
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -695,7 +706,7 @@ export const EnhancedShiftDialog = ({
                   }}
                 />
                 <Label htmlFor="batch_mode" className="cursor-pointer text-xs font-normal">
-                  Batch mode: Individual shifts per employee
+                  Batch mode
                 </Label>
               </div>
             </div>
@@ -703,7 +714,7 @@ export const EnhancedShiftDialog = ({
               <div className="space-y-3">
                 {employees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {formData.location_id ? "No employees at this location" : "Select a location first"}
+                    {showAllLocations ? "No employees found" : (formData.location_id ? "No employees at this location" : "Select a location first")}
                   </p>
                 ) : (
                   employees
@@ -744,6 +755,9 @@ export const EnhancedShiftDialog = ({
                               className="cursor-pointer font-medium"
                             >
                               {employee.full_name} - {employee.role}
+                              {showAllLocations && employee.locations?.name && (
+                                <span className="text-muted-foreground font-normal"> ({employee.locations.name})</span>
+                              )}
                             </Label>
                           </div>
                           {isSelected && (
@@ -845,7 +859,7 @@ export const EnhancedShiftDialog = ({
               <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                 {employees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {formData.location_id ? "No employees at this location" : "Select a location first"}
+                    {showAllLocations ? "No employees found" : (formData.location_id ? "No employees at this location" : "Select a location first")}
                   </p>
                 ) : (
                   employees
@@ -873,6 +887,9 @@ export const EnhancedShiftDialog = ({
                             className={`cursor-pointer flex-1 ${isDisabled ? 'opacity-50' : ''}`}
                           >
                             {employee.full_name} - {employee.role}
+                            {showAllLocations && employee.locations?.name && (
+                              <span className="text-muted-foreground"> ({employee.locations.name})</span>
+                            )}
                           </Label>
                         </div>
                       );
