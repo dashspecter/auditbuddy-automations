@@ -137,7 +137,7 @@ export const useMyTasks = () => {
       const hasShiftToday = (todayShifts && todayShifts.length > 0);
       const shiftLocationIds = todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
 
-      // Fetch tasks directly assigned to this employee
+      // Fetch tasks directly assigned to this employee (exclude completed)
       const { data: directTasks, error: directError } = await supabase
         .from("tasks")
         .select(`
@@ -147,6 +147,7 @@ export const useMyTasks = () => {
         `)
         .eq("company_id", company.id)
         .eq("assigned_to", employee.id)
+        .neq("status", "completed")
         .order("due_at", { ascending: true, nullsFirst: false });
 
       if (directError) throw directError;
@@ -163,7 +164,7 @@ export const useMyTasks = () => {
           .single();
 
         if (matchingRole) {
-          // Fetch tasks assigned to this role at locations where employee has shift today
+          // Fetch tasks assigned to this role at locations where employee has shift today (exclude completed)
           const { data: roleTasksData, error: roleError } = await supabase
             .from("tasks")
             .select(`
@@ -175,6 +176,7 @@ export const useMyTasks = () => {
             .eq("assigned_role_id", matchingRole.id)
             .in("location_id", shiftLocationIds)
             .is("assigned_to", null) // Only role-assigned, not individually assigned
+            .neq("status", "completed") // Exclude completed - shared tasks disappear when done
             .order("due_at", { ascending: true, nullsFirst: false });
 
           if (!roleError && roleTasksData) {
