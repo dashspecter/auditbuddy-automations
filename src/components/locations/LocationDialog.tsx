@@ -30,7 +30,33 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useCreateLocation, useUpdateLocation, Location } from "@/hooks/useLocations";
 import { useLocationOperatingSchedules, useSaveLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
-import { Clock } from "lucide-react";
+import { Clock, MapPin, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+// Geocode an address to coordinates
+const geocodeAddress = async (address?: string, city?: string): Promise<{ latitude: number; longitude: number } | null> => {
+  const searchQuery = [address, city].filter(Boolean).join(', ');
+  if (!searchQuery) return null;
+  
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+      { headers: { 'User-Agent': 'DashspectApp/1.0' } }
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (data.length === 0) return null;
+    
+    return {
+      latitude: parseFloat(data[0].lat),
+      longitude: parseFloat(data[0].lon),
+    };
+  } catch {
+    return null;
+  }
+};
 
 const locationSchema = z.object({
   name: z.string().min(1, "Location name is required"),
@@ -129,13 +155,32 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
     }
   }, [location, form, open]);
 
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   const onSubmit = async (data: LocationFormValues) => {
     let locationId = location?.id;
     
+    // Auto-geocode the address
+    setIsGeocoding(true);
+    let coordinates: { latitude: number; longitude: number } | null = null;
+    
+    if (data.address || data.city) {
+      coordinates = await geocodeAddress(data.address, data.city);
+      if (coordinates) {
+        toast.success("Location coordinates detected from address");
+      }
+    }
+    setIsGeocoding(false);
+    
+    const locationData = {
+      ...data,
+      ...(coordinates ? { latitude: coordinates.latitude, longitude: coordinates.longitude } : {}),
+    };
+    
     if (location) {
-      await updateLocation.mutateAsync({ id: location.id, ...data });
+      await updateLocation.mutateAsync({ id: location.id, ...locationData });
     } else {
-      const result = await createLocation.mutateAsync(data as any);
+      const result = await createLocation.mutateAsync(locationData as any);
       locationId = result.id;
     }
 
@@ -318,9 +363,14 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
               </Button>
               <Button 
                 type="submit" 
-                disabled={createLocation.isPending || updateLocation.isPending || saveSchedules.isPending}
+                disabled={createLocation.isPending || updateLocation.isPending || saveSchedules.isPending || isGeocoding}
               >
-                {location ? "Update" : "Create"}
+                {isGeocoding ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Detecting location...
+                  </>
+                ) : location ? "Update" : "Create"}
               </Button>
             </div>
           </form>
