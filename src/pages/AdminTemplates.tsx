@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, Copy, Trash2, X } from 'lucide-react';
+import { Plus, Settings, Copy, Trash2, X, Eye } from 'lucide-react';
 import { useTemplates, useDeleteTemplate } from '@/hooks/useTemplates';
 import { Link, useNavigate } from 'react-router-dom';
 import { AdminOnly } from '@/components/AdminOnly';
@@ -35,6 +35,7 @@ import { useCreateTemplate } from '@/hooks/useTemplates';
 import { toast } from 'sonner';
 import { LocationMultiSelector } from '@/components/LocationMultiSelector';
 import { LocationSelector } from '@/components/LocationSelector';
+import { TemplatePreviewDialog } from '@/components/TemplatePreviewDialog';
 
 const AdminTemplates = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ const AdminTemplates = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('');
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -304,6 +306,14 @@ const AdminTemplates = () => {
                     )}
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setPreviewTemplateId(template.id)}
+                      title="Preview template"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     <Link to={`/admin/templates/${template.id}`} className="flex-1">
                       <Button variant="outline" className="w-full gap-2">
                         <Settings className="h-4 w-4" />
@@ -324,6 +334,12 @@ const AdminTemplates = () => {
             </div>
           )}
         </div>
+
+        <TemplatePreviewDialog
+          templateId={previewTemplateId || ''}
+          open={!!previewTemplateId}
+          onOpenChange={(open) => !open && setPreviewTemplateId(null)}
+        />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
