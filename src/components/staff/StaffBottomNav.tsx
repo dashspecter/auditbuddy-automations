@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Calendar, Clock, Umbrella, User, Users, ClipboardList } from "lucide-react";
+import { Home, Calendar, Repeat, Umbrella, User, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,8 +49,7 @@ export const StaffBottomNav = () => {
   const staffNavItems = [
     { id: "home", path: "/staff", icon: Home, label: "Home" },
     { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
-    { id: "shifts", path: "/staff/shift-pool", icon: Clock, label: "Shifts" },
-    { id: "swaps", path: "/staff/swap-requests", icon: ClipboardList, label: "Swaps" },
+    { id: "shifts", path: "/staff/shifts", icon: Repeat, label: "Shifts" },
     { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
     { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
   ];
