@@ -535,13 +535,16 @@ export const EnhancedShiftWeekView = () => {
                           <div className="text-muted-foreground">
                             {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
                           </div>
-                          {approvedAssignments.length > 0 && (
-                            <div className="text-[10px] text-muted-foreground mt-1 truncate">
-                              {approvedAssignments.map((sa: any) => {
-                                const emp = employees.find(e => e.id === sa.staff_id);
-                                return emp?.full_name?.split(' ')[0];
-                              }).filter(Boolean).join(', ')}
-                            </div>
+                          {approvedAssignments.map((sa: any) => {
+                            const emp = employees.find(e => e.id === sa.staff_id);
+                            return emp ? (
+                              <div key={sa.id} className="text-[11px] font-medium mt-1">
+                                {emp.full_name}
+                              </div>
+                            ) : null;
+                          })}
+                          {assignedCount === 0 && (
+                            <div className="text-[10px] text-muted-foreground italic mt-1">Unassigned</div>
                           )}
                         </div>
                       );
