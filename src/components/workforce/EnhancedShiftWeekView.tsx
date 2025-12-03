@@ -444,7 +444,7 @@ export const EnhancedShiftWeekView = () => {
             {/* Employees in this department */}
             {employeesByDepartment[department].map((employee) => (
               <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                <div className="p-3 border-r flex items-center gap-3">
+                <div className="p-3 border-r flex items-center gap-3 bg-background">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={employee.avatar_url || undefined} />
                     <AvatarFallback className="text-xs">
