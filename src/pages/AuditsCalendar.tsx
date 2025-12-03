@@ -84,26 +84,65 @@ const AuditsCalendar = () => {
       },
     }));
 
-    // Add scheduled audits from the scheduled_audits table
-    const eventsFromScheduledAudits = (scheduledAuditsNew || []).map((audit) => {
-      const scheduledDate = new Date(audit.scheduled_for);
-      const endDate = new Date(scheduledDate.getTime() + 60 * 60 * 1000); // 1 hour duration
-      return {
-        id: `scheduled-${audit.id}`,
-        title: `${audit.locations?.name || 'Unknown Location'} - ${audit.audit_templates?.name || 'Unknown Template'}`,
-        start: scheduledDate,
-        end: endDate,
-        resource: {
-          status: audit.status,
-          location: audit.locations?.name || 'Unknown Location',
-          template: audit.audit_templates?.name || 'Unknown Template',
-          templateType: 'location',
-          assignedTo: 'Assigned',
-          assignedUserId: audit.assigned_to,
-          isOwnAudit: audit.assigned_to === user?.id,
-          source: 'scheduled_audits' as const,
-        },
+    // Add scheduled audits from the scheduled_audits table, expanding recurring ones
+    const eventsFromScheduledAudits: CalendarEvent[] = [];
+    const today = new Date();
+    const futureLimit = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000); // 60 days ahead
+
+    (scheduledAuditsNew || []).forEach((audit) => {
+      const baseDate = new Date(audit.scheduled_for);
+      const frequency = audit.frequency || 'one-time';
+      const title = `${audit.locations?.name || 'Unknown Location'} - ${audit.audit_templates?.name || 'Unknown Template'}`;
+      
+      const createEvent = (date: Date, instanceIndex: number): CalendarEvent => {
+        const endDate = new Date(date.getTime() + 60 * 60 * 1000); // 1 hour duration
+        return {
+          id: `scheduled-${audit.id}-${instanceIndex}`,
+          title,
+          start: date,
+          end: endDate,
+          resource: {
+            status: audit.status,
+            location: audit.locations?.name || 'Unknown Location',
+            template: audit.audit_templates?.name || 'Unknown Template',
+            templateType: 'location',
+            assignedTo: 'Assigned',
+            assignedUserId: audit.assigned_to,
+            isOwnAudit: audit.assigned_to === user?.id,
+            source: 'scheduled_audits' as const,
+          },
+        };
       };
+
+      if (frequency === 'one-time') {
+        eventsFromScheduledAudits.push(createEvent(baseDate, 0));
+      } else {
+        // Generate recurring events
+        let currentDate = new Date(baseDate);
+        let instanceIndex = 0;
+        
+        while (currentDate <= futureLimit && instanceIndex < 100) {
+          if (currentDate >= today || instanceIndex === 0) {
+            eventsFromScheduledAudits.push(createEvent(new Date(currentDate), instanceIndex));
+          }
+          
+          // Move to next occurrence
+          switch (frequency) {
+            case 'daily':
+              currentDate.setDate(currentDate.getDate() + 1);
+              break;
+            case 'weekly':
+              currentDate.setDate(currentDate.getDate() + 7);
+              break;
+            case 'monthly':
+              currentDate.setMonth(currentDate.getMonth() + 1);
+              break;
+            default:
+              currentDate = new Date(futureLimit.getTime() + 1); // Exit loop
+          }
+          instanceIndex++;
+        }
+      }
     });
 
     return [...eventsFromLocationAudits, ...eventsFromScheduledAudits];
