@@ -54,10 +54,6 @@ const Shifts = () => {
             </Badge>
             Pending Approvals
           </Button>
-          <Button className="gap-2" onClick={() => setShiftDialogOpen(true)}>
-            <CalendarPlus className="h-4 w-4" />
-            Create Shift
-          </Button>
         </div>
       </div>
 
