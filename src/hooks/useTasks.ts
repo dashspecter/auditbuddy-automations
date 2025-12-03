@@ -154,6 +154,21 @@ export const useMyTasks = () => {
 
       if (directError) throw directError;
 
+      // Also fetch tasks that were completed by this employee (even if not directly assigned)
+      const { data: completedByMeTasks, error: completedError } = await supabase
+        .from("tasks")
+        .select(`
+          *,
+          location:locations(id, name),
+          assigned_role:employee_roles(id, name)
+        `)
+        .eq("company_id", company.id)
+        .eq("completed_by", employee.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false });
+
+      if (completedError) throw completedError;
+
       // Fetch tasks assigned to employee's role (only if has shift today)
       let roleTasks: any[] = [];
       if (hasShiftToday && employee.role) {
@@ -188,7 +203,7 @@ export const useMyTasks = () => {
       }
 
       // Combine and deduplicate tasks
-      const allTasks = [...(directTasks || []), ...roleTasks];
+      const allTasks = [...(directTasks || []), ...(completedByMeTasks || []), ...roleTasks];
       const uniqueTasks = allTasks.filter((task, index, self) => 
         index === self.findIndex(t => t.id === task.id)
       );
@@ -357,6 +372,7 @@ export const useUpdateTask = () => {
 
 export const useCompleteTask = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (taskId: string) => {
@@ -366,6 +382,17 @@ export const useCompleteTask = () => {
         .select("start_at, duration_minutes")
         .eq("id", taskId)
         .single();
+
+      // Get the employee record for the current user to set completed_by
+      let employeeId: string | null = null;
+      if (user?.id) {
+        const { data: employee } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+        employeeId = employee?.id || null;
+      }
 
       const now = new Date();
       let completedLate = false;
@@ -382,6 +409,7 @@ export const useCompleteTask = () => {
           status: "completed",
           completed_at: now.toISOString(),
           completed_late: completedLate,
+          completed_by: employeeId,
         })
         .eq("id", taskId)
         .select()
