@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
+import { useScheduledAuditsNew } from '@/hooks/useScheduledAuditsNew';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List } from 'lucide-react';
@@ -41,6 +42,7 @@ interface CalendarEvent {
     assignedTo: string;
     assignedUserId: string;
     isOwnAudit: boolean;
+    source?: 'location_audits' | 'scheduled_audits';
   };
 }
 
@@ -48,6 +50,7 @@ const AuditsCalendar = () => {
   const { user } = useAuth();
   const { data: roleData } = useUserRole();
   const { data: audits, isLoading } = useScheduledAudits();
+  const { data: scheduledAuditsNew, isLoading: isLoadingNew } = useScheduledAuditsNew();
   const updateStatus = useUpdateAuditStatus();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -64,9 +67,7 @@ const AuditsCalendar = () => {
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
   const events: CalendarEvent[] = useMemo(() => {
-    if (!audits) return [];
-
-    return audits.map((audit) => ({
+    const eventsFromLocationAudits = (audits || []).map((audit) => ({
       id: audit.id,
       title: `${audit.locations?.name || audit.location} - ${audit.audit_templates?.name || 'Unknown Template'}`,
       start: new Date(audit.scheduled_start),
@@ -79,9 +80,34 @@ const AuditsCalendar = () => {
         assignedTo: audit.profiles?.full_name || audit.profiles?.email || 'Unassigned',
         assignedUserId: audit.assigned_user_id,
         isOwnAudit: audit.assigned_user_id === user?.id,
+        source: 'location_audits' as const,
       },
     }));
-  }, [audits, user?.id]);
+
+    // Add scheduled audits from the scheduled_audits table
+    const eventsFromScheduledAudits = (scheduledAuditsNew || []).map((audit) => {
+      const scheduledDate = new Date(audit.scheduled_for);
+      const endDate = new Date(scheduledDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+      return {
+        id: `scheduled-${audit.id}`,
+        title: `${audit.locations?.name || 'Unknown Location'} - ${audit.audit_templates?.name || 'Unknown Template'}`,
+        start: scheduledDate,
+        end: endDate,
+        resource: {
+          status: audit.status,
+          location: audit.locations?.name || 'Unknown Location',
+          template: audit.audit_templates?.name || 'Unknown Template',
+          templateType: 'location',
+          assignedTo: 'Assigned',
+          assignedUserId: audit.assigned_to,
+          isOwnAudit: audit.assigned_to === user?.id,
+          source: 'scheduled_audits' as const,
+        },
+      };
+    });
+
+    return [...eventsFromLocationAudits, ...eventsFromScheduledAudits];
+  }, [audits, scheduledAuditsNew, user?.id]);
 
   // Detect overlapping events (more than 3 events in same day)
   const hasOverlappingEvents = useMemo(() => {
@@ -159,6 +185,15 @@ const AuditsCalendar = () => {
 
   const handleOpenAudit = () => {
     if (selectedEvent) {
+      // Handle scheduled audits from scheduled_audits table
+      if (selectedEvent.resource.source === 'scheduled_audits') {
+        // Extract the actual ID (remove 'scheduled-' prefix)
+        const actualId = selectedEvent.id.replace('scheduled-', '');
+        // Navigate to start a new audit with this scheduled audit's details
+        navigate(`/location-audit?scheduled=${actualId}`);
+        return;
+      }
+      
       // For completed audits (compliant/non-compliant), go to detail view
       // For incomplete audits (draft/pending/scheduled/in_progress), go to edit form
       const isCompleted = selectedEvent.resource.status === 'compliant' || 
@@ -175,6 +210,14 @@ const AuditsCalendar = () => {
 
   const handleStartAudit = async () => {
     if (selectedEvent) {
+      // Handle scheduled audits from scheduled_audits table
+      if (selectedEvent.resource.source === 'scheduled_audits') {
+        const actualId = selectedEvent.id.replace('scheduled-', '');
+        setDetailsDialogOpen(false);
+        navigate(`/location-audit?scheduled=${actualId}`);
+        return;
+      }
+      
       await updateStatus.mutateAsync({
         auditId: selectedEvent.id,
         status: 'in_progress',
@@ -263,6 +306,7 @@ const AuditsCalendar = () => {
         setDismissedPrompt(false); // Reset dismissed state after successful generation
         // Invalidate queries to refresh the calendar
         queryClient.invalidateQueries({ queryKey: ['scheduled_audits'] });
+        queryClient.invalidateQueries({ queryKey: ['scheduled-audits-new'] });
         queryClient.invalidateQueries({ queryKey: ['location_audits'] });
       } else {
         toast.error(result.error || 'Failed to generate audits');
@@ -275,7 +319,7 @@ const AuditsCalendar = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingNew) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
