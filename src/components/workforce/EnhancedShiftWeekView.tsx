@@ -345,8 +345,9 @@ export const EnhancedShiftWeekView = () => {
           </div>
           {weekDays.map((day) => {
             const openShifts = getOpenShiftsForDay(day);
+            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
             return (
-              <div key={day.toISOString()} className="p-2 border-r last:border-r-0">
+              <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -414,9 +415,10 @@ export const EnhancedShiftWeekView = () => {
                 {weekDays.map((day) => {
                   const employeeShifts = getShiftsForEmployeeAndDay(employee.id, day);
                   const timeOff = getTimeOffForEmployeeAndDay(employee.id, day);
+                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                   
                   return (
-                    <div key={day.toISOString()} className="p-2 border-r last:border-r-0 min-h-[80px]">
+                    <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 min-h-[80px] ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
                       {timeOff ? (
                         <div className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center">
                           TIME OFF
@@ -483,9 +485,10 @@ export const EnhancedShiftWeekView = () => {
               {weekDays.map((day) => {
                 const roleCounts = getRoleCountsForLocationAndDay(location.id, day);
                 const totalStaff = Object.values(roleCounts).reduce((sum, count) => sum + count, 0);
+                const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                 
                 return (
-                  <div key={day.toISOString()} className="p-2 border-r last:border-r-0 flex flex-wrap gap-1 items-center justify-center">
+                  <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 flex flex-wrap gap-1 items-center justify-center ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
                     {totalStaff > 0 ? (
                       <>
                         {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
@@ -523,9 +526,10 @@ export const EnhancedShiftWeekView = () => {
               </div>
               {weekDays.map((day) => {
                 const locationShifts = getShiftsForLocationAndDay(location.id, day);
+                const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                 
                 return (
-                  <div key={day.toISOString()} className="p-2 border-r last:border-r-0 min-h-[80px]">
+                  <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 min-h-[80px] ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
                     {locationShifts.map((shift) => {
                       const approvedAssignments = shift.shift_assignments?.filter(
                         (sa: any) => sa.approval_status === 'approved'
@@ -584,9 +588,10 @@ export const EnhancedShiftWeekView = () => {
           const laborPercentage = laborCost && laborCost.projected_sales > 0
             ? ((laborCost.scheduled_cost / laborCost.projected_sales) * 100).toFixed(2)
             : "0.00";
+          const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
           
           return (
-            <Card key={day.toISOString()} className="p-2 text-center">
+            <Card key={day.toISOString()} className={`p-2 text-center ${isToday ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}>
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                 <span>Labor</span>
               </div>
