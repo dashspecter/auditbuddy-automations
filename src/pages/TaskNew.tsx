@@ -12,9 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, RefreshCw, Calendar } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User } from "lucide-react";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useLocations } from "@/hooks/useLocations";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -23,7 +24,9 @@ const TaskNew = () => {
   const navigate = useNavigate();
   const createTask = useCreateTask();
   const { data: employees = [] } = useEmployees();
+  const { data: roles = [] } = useEmployeeRoles();
   const { data: locations = [] } = useLocations();
+  const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('employee');
 
 const [formData, setFormData] = useState({
     title: "",
@@ -31,6 +34,7 @@ const [formData, setFormData] = useState({
     priority: "medium",
     due_at: "",
     assigned_to: "",
+    assigned_role_id: "",
     location_id: "",
     recurrence_type: "none",
     recurrence_interval: 1,
@@ -51,7 +55,8 @@ const [formData, setFormData] = useState({
         description: formData.description || undefined,
         priority: formData.priority,
         due_at: formData.due_at ? new Date(formData.due_at).toISOString() : undefined,
-        assigned_to: formData.assigned_to || undefined,
+        assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : undefined,
+        assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : undefined,
         location_id: formData.location_id || undefined,
         source: "manual",
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
@@ -150,25 +155,79 @@ const [formData, setFormData] = useState({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="assigned_to">Assign To</Label>
-                <Select
-                  value={formData.assigned_to || "unassigned"}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, assigned_to: value === "unassigned" ? "" : value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {employees.filter(emp => emp.id).map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Assign To</Label>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    variant={assignmentType === 'employee' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setAssignmentType('employee');
+                      setFormData(prev => ({ ...prev, assigned_role_id: '' }));
+                    }}
+                    className="flex-1"
+                  >
+                    <User className="h-4 w-4 mr-1" />
+                    Employee
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={assignmentType === 'role' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setAssignmentType('role');
+                      setFormData(prev => ({ ...prev, assigned_to: '' }));
+                    }}
+                    className="flex-1"
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    Role
+                  </Button>
+                </div>
+                {assignmentType === 'employee' ? (
+                  <Select
+                    value={formData.assigned_to || "unassigned"}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, assigned_to: value === "unassigned" ? "" : value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {employees.filter(emp => emp.id).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select
+                    value={formData.assigned_role_id || "unassigned"}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, assigned_role_id: value === "unassigned" ? "" : value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {roles.filter(role => role.id).map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {assignmentType === 'role' && (
+                  <p className="text-xs text-muted-foreground">
+                    All employees with this role can see and complete this task
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
