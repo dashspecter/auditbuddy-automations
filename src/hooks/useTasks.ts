@@ -11,6 +11,7 @@ export interface Task {
   description: string | null;
   created_by: string;
   assigned_to: string | null;
+  assigned_role_id: string | null;
   due_at: string | null;
   completed_at: string | null;
   status: string;
@@ -30,6 +31,10 @@ export interface Task {
     id: string;
     full_name: string;
     avatar_url: string | null;
+  } | null;
+  assigned_role?: {
+    id: string;
+    name: string;
   } | null;
   location?: {
     id: string;
@@ -186,6 +191,7 @@ interface CreateTaskData {
   status?: string;
   due_at?: string;
   assigned_to?: string;
+  assigned_role_id?: string;
   location_id?: string;
   source?: string;
   source_reference_id?: string;
