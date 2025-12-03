@@ -56,24 +56,89 @@ const TasksCalendar = () => {
     return filtered;
   }, [tasks, filterEmployee, filterRole, employees]);
 
-  // Convert tasks to calendar events
+  // Helper to generate recurring occurrences
+  const generateOccurrences = (task: any, rangeStart: Date, rangeEnd: Date) => {
+    const occurrences: any[] = [];
+    const startDate = new Date(task.start_at || task.due_at!);
+    const duration = task.duration_minutes || 0;
+    const recurrenceEnd = task.recurrence_end_date ? new Date(task.recurrence_end_date) : rangeEnd;
+    const interval = task.recurrence_interval || 1;
+
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= rangeEnd && currentDate <= recurrenceEnd) {
+      if (currentDate >= rangeStart || currentDate.toDateString() === startDate.toDateString()) {
+        const endDate = duration > 0
+          ? new Date(currentDate.getTime() + duration * 60000)
+          : new Date(currentDate);
+        
+        occurrences.push({
+          id: `${task.id}-${currentDate.toISOString()}`,
+          title: task.title,
+          start: new Date(currentDate),
+          end: endDate,
+          allDay: !task.start_at,
+          resource: task,
+        });
+      }
+
+      // Move to next occurrence
+      switch (task.recurrence_type) {
+        case "daily":
+          currentDate.setDate(currentDate.getDate() + interval);
+          break;
+        case "weekly":
+          currentDate.setDate(currentDate.getDate() + 7 * interval);
+          break;
+        case "monthly":
+          currentDate.setMonth(currentDate.getMonth() + interval);
+          break;
+        default:
+          return occurrences;
+      }
+    }
+
+    return occurrences;
+  };
+
+  // Convert tasks to calendar events (expand recurring tasks)
   const events = useMemo(() => {
-    return filteredTasks
-      .filter((task) => task.start_at || task.due_at)
-      .map((task) => {
+    // Define visible range (show 3 months forward for recurring tasks)
+    const rangeStart = new Date();
+    rangeStart.setMonth(rangeStart.getMonth() - 1);
+    const rangeEnd = new Date();
+    rangeEnd.setMonth(rangeEnd.getMonth() + 3);
+
+    const allEvents: any[] = [];
+
+    filteredTasks.forEach((task) => {
+      if (!task.start_at && !task.due_at) return;
+
+      const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+
+      if (isRecurring) {
+        // Generate all occurrences for recurring tasks
+        const occurrences = generateOccurrences(task, rangeStart, rangeEnd);
+        allEvents.push(...occurrences);
+      } else {
+        // Single occurrence task
         const startDate = new Date(task.start_at || task.due_at!);
         const endDate = task.start_at && task.duration_minutes
           ? new Date(startDate.getTime() + task.duration_minutes * 60000)
           : startDate;
-        return {
+        
+        allEvents.push({
           id: task.id,
           title: task.title,
           start: startDate,
           end: endDate,
           allDay: !task.start_at,
           resource: task,
-        };
-      });
+        });
+      }
+    });
+
+    return allEvents;
   }, [filteredTasks]);
 
   const getPriorityColor = (priority: string) => {
