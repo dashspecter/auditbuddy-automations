@@ -45,16 +45,23 @@ const TasksCalendar = () => {
     }
 
     if (filterRole !== "all") {
+      // Find employees with this role
       const employeesInRole = employees
         .filter((e) => e.role === filterRole)
         .map((e) => e.id);
-      filtered = filtered.filter(
-        (t) => t.assigned_to && employeesInRole.includes(t.assigned_to)
+      
+      // Find the role ID from employee_roles that matches the name
+      const matchingRole = roles.find((r) => r.name === filterRole);
+      
+      // Filter tasks assigned to employees with this role OR directly assigned to this role
+      filtered = filtered.filter((t) => 
+        (t.assigned_to && employeesInRole.includes(t.assigned_to)) ||
+        (matchingRole && t.assigned_role_id === matchingRole.id)
       );
     }
 
     return filtered;
-  }, [tasks, filterEmployee, filterRole, employees]);
+  }, [tasks, filterEmployee, filterRole, employees, roles]);
 
   // Helper to generate recurring occurrences
   const generateOccurrences = (task: any, rangeStart: Date, rangeEnd: Date) => {
