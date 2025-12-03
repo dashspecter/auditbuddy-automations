@@ -1,11 +1,75 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle, MapPin } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useMyTasks, useCompleteTask } from "@/hooks/useTasks";
-import { format, isPast, isToday } from "date-fns";
+import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
+import { format, isPast, isToday, differenceInSeconds } from "date-fns";
+
+// Countdown timer component
+const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const start = new Date(startAt);
+      const deadline = new Date(start.getTime() + durationMinutes * 60000);
+      const now = new Date();
+      const remaining = differenceInSeconds(deadline, now);
+      
+      if (remaining <= 0) {
+        setIsExpired(true);
+        setTimeLeft(0);
+      } else {
+        setIsExpired(false);
+        setTimeLeft(remaining);
+      }
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [startAt, durationMinutes]);
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    if (mins > 0) {
+      return `${mins}m ${secs}s`;
+    }
+    return `${secs}s`;
+  };
+
+  if (isExpired) {
+    return (
+      <Badge variant="destructive" className="text-xs animate-pulse">
+        <Timer className="h-3 w-3 mr-1" />
+        Time expired!
+      </Badge>
+    );
+  }
+
+  const isUrgent = timeLeft < 300; // Less than 5 minutes
+  const isWarning = timeLeft < 900; // Less than 15 minutes
+
+  return (
+    <Badge 
+      variant={isUrgent ? "destructive" : "secondary"} 
+      className={`text-xs ${isUrgent ? 'animate-pulse' : isWarning ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : ''}`}
+    >
+      <Timer className="h-3 w-3 mr-1" />
+      {formatTime(timeLeft)} left
+    </Badge>
+  );
+};
 
 const StaffTasks = () => {
   const { user } = useAuth();
@@ -37,15 +101,15 @@ const StaffTasks = () => {
   const pendingTasks = tasks?.filter(t => t.status !== 'completed') || [];
   const completedTasks = tasks?.filter(t => t.status === 'completed') || [];
 
-  const isOverdue = (dueAt: string | null) => {
-    if (!dueAt) return false;
-    return isPast(new Date(dueAt)) && !isToday(new Date(dueAt));
+  // Check if task has started (is now active)
+  const isTaskActive = (task: Task) => {
+    if (!task.start_at) return true; // No start time means always active
+    return new Date(task.start_at) <= new Date();
   };
 
-  const isDueToday = (dueAt: string | null) => {
-    if (!dueAt) return false;
-    return isToday(new Date(dueAt));
-  };
+  // Filter to only show active tasks
+  const activePendingTasks = pendingTasks.filter(isTaskActive);
+  const upcomingTasks = pendingTasks.filter(t => !isTaskActive(t));
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -55,8 +119,13 @@ const StaffTasks = () => {
           <h1 className="text-xl font-bold mb-3">My Tasks</h1>
           <div className="flex gap-2">
             <Badge variant="secondary">
-              {pendingTasks.length} pending
+              {activePendingTasks.length} active
             </Badge>
+            {upcomingTasks.length > 0 && (
+              <Badge variant="outline">
+                {upcomingTasks.length} upcoming
+              </Badge>
+            )}
             <Badge variant="outline">
               {completedTasks.length} completed
             </Badge>
@@ -65,18 +134,18 @@ const StaffTasks = () => {
       </div>
 
       <div className="px-4 py-4 space-y-4">
-        {/* Pending Tasks */}
-        {pendingTasks.length > 0 && (
+        {/* Active Tasks */}
+        {activePendingTasks.length > 0 && (
           <div>
             <h2 className="font-semibold mb-3 flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-primary" />
-              To Do
+              To Do Now
             </h2>
             <div className="space-y-2">
-              {pendingTasks.map((task) => (
+              {activePendingTasks.map((task) => (
                 <Card 
                   key={task.id} 
-                  className={`p-4 ${isOverdue(task.due_at) ? 'border-destructive/50 bg-destructive/5' : ''}`}
+                  className="p-4"
                 >
                   <div className="flex items-start gap-3">
                     <Checkbox 
@@ -95,15 +164,13 @@ const StaffTasks = () => {
                       {task.description && (
                         <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        {task.due_at && (
-                          <div className={`flex items-center gap-1 ${isOverdue(task.due_at) ? 'text-destructive' : isDueToday(task.due_at) ? 'text-warning' : ''}`}>
-                            <Clock className="h-3 w-3" />
-                            <span>
-                              {isOverdue(task.due_at) ? 'Overdue: ' : isDueToday(task.due_at) ? 'Due today: ' : 'Due: '}
-                              {format(new Date(task.due_at), "MMM d, h:mm a")}
-                            </span>
-                          </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {/* Show countdown timer if task has start_at and duration */}
+                        {task.start_at && task.duration_minutes && (
+                          <CountdownTimer 
+                            startAt={task.start_at} 
+                            durationMinutes={task.duration_minutes} 
+                          />
                         )}
                         {task.location?.name && (
                           <div className="flex items-center gap-1">
@@ -112,6 +179,34 @@ const StaffTasks = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Tasks */}
+        {upcomingTasks.length > 0 && (
+          <div>
+            <h2 className="font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Coming Up
+            </h2>
+            <div className="space-y-2">
+              {upcomingTasks.map((task) => (
+                <Card key={task.id} className="p-4 opacity-70 border-dashed">
+                  <div className="flex items-start gap-3">
+                    <Checkbox disabled className="mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-medium">{task.title}</h3>
+                      {task.start_at && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Starts: {format(new Date(task.start_at), "h:mm a")}
+                          {task.duration_minutes && ` • ${task.duration_minutes} min to complete`}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -134,7 +229,12 @@ const StaffTasks = () => {
                       className="mt-1"
                     />
                     <div className="flex-1">
-                      <h3 className="font-medium line-through">{task.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium line-through">{task.title}</h3>
+                        {task.completed_late && (
+                          <Badge variant="destructive" className="text-xs">Late</Badge>
+                        )}
+                      </div>
                       {task.completed_at && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Completed {format(new Date(task.completed_at), "MMM d, h:mm a")}
