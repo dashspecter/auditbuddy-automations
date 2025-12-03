@@ -22,7 +22,7 @@ import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock } from "
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
-import { useLocations } from "@/hooks/useLocations";
+import { LocationMultiSelector } from "@/components/LocationMultiSelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -31,10 +31,9 @@ const TaskNew = () => {
   const createTask = useCreateTask();
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
-  const { data: locations = [] } = useLocations();
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
 
-const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     priority: "medium",
@@ -42,7 +41,7 @@ const [formData, setFormData] = useState({
     duration_minutes: 30,
     assigned_to: "",
     assigned_role_id: "",
-    location_id: "",
+    location_ids: [] as string[],
     recurrence_type: "none",
     recurrence_interval: 1,
     recurrence_end_date: "",
@@ -65,7 +64,7 @@ const [formData, setFormData] = useState({
         duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : undefined,
         assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : undefined,
-        location_id: formData.location_id || undefined,
+        location_ids: formData.location_ids.length > 0 ? formData.location_ids : undefined,
         source: "manual",
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : undefined,
@@ -291,25 +290,17 @@ const [formData, setFormData] = useState({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location_id">Location</Label>
-                <Select
-                  value={formData.location_id || "no-location"}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, location_id: value === "no-location" ? "" : value }))
+                <Label>Locations</Label>
+                <LocationMultiSelector
+                  value={formData.location_ids}
+                  onValueChange={(ids) =>
+                    setFormData((prev) => ({ ...prev, location_ids: ids }))
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-location">No location</SelectItem>
-                    {locations.filter(loc => loc.id).map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select locations"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Task will appear at all selected locations
+                </p>
               </div>
             </div>
 
