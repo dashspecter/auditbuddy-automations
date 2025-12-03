@@ -73,30 +73,53 @@ serve(async (req) => {
         throw new Error('Insufficient permissions');
       }
 
-      // Generate a temporary password
-      const tempPassword = crypto.randomUUID();
+      // Check if user already exists
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = existingUsers?.users.find(u => u.email === email);
 
-      // Create the user using admin client
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: full_name
+      let targetUserId: string;
+
+      if (existingUser) {
+        console.log('User already exists, linking to employee:', existingUser.id);
+        targetUserId = existingUser.id;
+
+        // Check if this user is already linked to another employee
+        const { data: existingEmployee } = await supabaseAdmin
+          .from('employees')
+          .select('id, full_name')
+          .eq('user_id', existingUser.id)
+          .single();
+
+        if (existingEmployee && existingEmployee.id !== employeeId) {
+          throw new Error(`This email is already linked to employee: ${existingEmployee.full_name}`);
         }
-      });
+      } else {
+        // Generate a temporary password
+        const tempPassword = crypto.randomUUID();
 
-      if (createError) {
-        console.error('Error creating user:', createError);
-        throw createError;
+        // Create the user using admin client
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name: full_name
+          }
+        });
+
+        if (createError) {
+          console.error('Error creating user:', createError);
+          throw createError;
+        }
+
+        console.log('Employee user created:', newUser.user.id);
+        targetUserId = newUser.user.id;
       }
-
-      console.log('Employee user created:', newUser.user.id);
 
       // Link user to employee record
       const { error: employeeUpdateError } = await supabaseAdmin
         .from('employees')
-        .update({ user_id: newUser.user.id })
+        .update({ user_id: targetUserId })
         .eq('id', employeeId);
 
       if (employeeUpdateError) {
@@ -109,8 +132,11 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          userId: newUser.user.id,
-          message: 'Employee login account created. Use password reset to set their password.'
+          userId: targetUserId,
+          wasExisting: !!existingUser,
+          message: existingUser 
+            ? 'Existing user account linked to employee.' 
+            : 'Employee login account created. Use password reset to set their password.'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
