@@ -100,6 +100,8 @@ import TrainingPrograms from "./pages/training/TrainingPrograms";
 import TrainingProgramDetail from "./pages/training/TrainingProgramDetail";
 import SystemHealth from "./pages/SystemHealth";
 import SystemHealthData from "./pages/debug/SystemHealthData";
+import AttendanceKiosk from "./pages/AttendanceKiosk";
+import StaffScanAttendance from "./pages/staff/StaffScanAttendance";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +139,7 @@ const App = () => (
               <Route path="/staff/tasks" element={<ProtectedRoute><StaffTasks /></ProtectedRoute>} />
               <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
               <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
+              <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
               {/* Legacy route - redirect to new path */}
               <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
@@ -225,6 +228,9 @@ const App = () => (
               <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              
+              {/* Attendance Kiosk - Public route for displaying QR codes */}
+              <Route path="/kiosk/:token" element={<AttendanceKiosk />} />
               
               {/* System Health - Internal Diagnostics */}
               <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
