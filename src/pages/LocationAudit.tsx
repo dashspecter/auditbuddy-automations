@@ -58,6 +58,7 @@ const LocationAudit = () => {
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
   const templateIdFromUrl = searchParams.get('template');
+  const scheduledAuditId = searchParams.get('scheduled');
   
   const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -98,7 +99,9 @@ const LocationAudit = () => {
   useEffect(() => {
     const initializeData = async () => {
       await loadTemplates();
-      if (draftId) {
+      if (scheduledAuditId) {
+        await loadScheduledAudit(scheduledAuditId);
+      } else if (draftId) {
         await loadDraft(draftId);
       } else if (templateIdFromUrl) {
         // Auto-select template from URL
@@ -162,6 +165,41 @@ const LocationAudit = () => {
     } catch (error) {
       console.error('Error loading draft:', error);
       toast.error('Failed to load draft');
+    }
+  };
+
+  const loadScheduledAudit = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_audits')
+        .select(`
+          *,
+          locations(name)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setIsScheduledAudit(true);
+        setSelectedTemplateId(data.template_id || '');
+        
+        const scheduledDate = data.scheduled_for 
+          ? new Date(data.scheduled_for).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0];
+        
+        setFormData(prev => ({
+          ...prev,
+          location_id: data.location_id || '',
+          auditDate: scheduledDate,
+        }));
+        
+        toast.info(`Starting scheduled audit for ${data.locations?.name || 'location'}`);
+      }
+    } catch (error) {
+      console.error('Error loading scheduled audit:', error);
+      toast.error('Failed to load scheduled audit');
     }
   };
 
