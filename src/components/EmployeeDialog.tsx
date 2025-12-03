@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/select";
 import { useCreateEmployee, useUpdateEmployee } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { useStaffLocations, useAddStaffLocation, useRemoveStaffLocation } from "@/hooks/useStaffLocations";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
-import { Settings } from "lucide-react";
+import { Settings, X, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -38,7 +40,7 @@ export const EmployeeDialog = ({
 }: EmployeeDialogProps) => {
   const [formData, setFormData] = useState({
     full_name: "",
-    location_id: "",
+    location_id: "", // Primary location
     role: "",
     status: "active",
     email: "",
@@ -51,12 +53,17 @@ export const EmployeeDialog = ({
     emergency_contact_phone: "",
     notes: "",
   });
+  const [additionalLocations, setAdditionalLocations] = useState<string[]>([]);
+  const [selectedLocationToAdd, setSelectedLocationToAdd] = useState("");
   const [createUserAccount, setCreateUserAccount] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
 
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
   const { data: roles = [] } = useEmployeeRoles();
+  const { data: staffLocations = [] } = useStaffLocations(employee?.id);
+  const addStaffLocation = useAddStaffLocation();
+  const removeStaffLocation = useRemoveStaffLocation();
 
   useEffect(() => {
     if (employee) {
@@ -75,6 +82,11 @@ export const EmployeeDialog = ({
         emergency_contact_phone: employee.emergency_contact_phone || "",
         notes: employee.notes || "",
       });
+      // Load additional locations from staff_locations (non-primary)
+      const additionalLocs = staffLocations
+        .filter(sl => !sl.is_primary && sl.location_id !== employee.location_id)
+        .map(sl => sl.location_id);
+      setAdditionalLocations(additionalLocs);
     } else {
       setFormData({
         full_name: "",
@@ -91,8 +103,30 @@ export const EmployeeDialog = ({
         emergency_contact_phone: "",
         notes: "",
       });
+      setAdditionalLocations([]);
     }
-  }, [employee, open]);
+    setSelectedLocationToAdd("");
+  }, [employee, open, staffLocations]);
+
+  const handleAddLocation = () => {
+    if (selectedLocationToAdd && !additionalLocations.includes(selectedLocationToAdd) && selectedLocationToAdd !== formData.location_id) {
+      setAdditionalLocations([...additionalLocations, selectedLocationToAdd]);
+      setSelectedLocationToAdd("");
+    }
+  };
+
+  const handleRemoveAdditionalLocation = (locationId: string) => {
+    setAdditionalLocations(additionalLocations.filter(id => id !== locationId));
+  };
+
+  const getLocationName = (locationId: string) => {
+    const location = locations.find(l => l.id === locationId);
+    return location?.name || locationId;
+  };
+
+  const availableLocationsToAdd = locations.filter(
+    l => l.id !== formData.location_id && !additionalLocations.includes(l.id)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,10 +145,49 @@ export const EmployeeDialog = ({
       user_id: employee?.user_id || null,
     };
     
+    let employeeId: string;
+    
     if (employee) {
       await updateEmployee.mutateAsync({ id: employee.id, ...submitData });
+      employeeId = employee.id;
+      
+      // Sync additional locations for existing employee
+      const currentAdditionalLocs = staffLocations
+        .filter(sl => !sl.is_primary && sl.location_id !== formData.location_id)
+        .map(sl => ({ id: sl.id, location_id: sl.location_id }));
+      
+      // Remove locations that are no longer selected
+      for (const loc of currentAdditionalLocs) {
+        if (!additionalLocations.includes(loc.location_id)) {
+          await removeStaffLocation.mutateAsync(loc.id);
+        }
+      }
+      
+      // Add new locations
+      for (const locId of additionalLocations) {
+        const exists = currentAdditionalLocs.some(l => l.location_id === locId);
+        if (!exists) {
+          await addStaffLocation.mutateAsync({
+            staffId: employeeId,
+            locationId: locId,
+            isPrimary: false
+          });
+        }
+      }
     } else {
       const newEmployee = await createEmployee.mutateAsync(submitData);
+      employeeId = newEmployee?.id;
+      
+      // Add additional locations for new employee
+      if (employeeId && additionalLocations.length > 0) {
+        for (const locId of additionalLocations) {
+          await addStaffLocation.mutateAsync({
+            staffId: employeeId,
+            locationId: locId,
+            isPrimary: false
+          });
+        }
+      }
       
       // If create user account is checked and email is provided, create auth user
       if (createUserAccount && formData.email && newEmployee) {
@@ -268,14 +341,18 @@ export const EmployeeDialog = ({
             />
           </div>
 
-          <div>
-            <Label htmlFor="location">Location</Label>
+          <div className="space-y-3">
+            <Label htmlFor="location">Primary Location</Label>
             <Select
               value={formData.location_id}
-              onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+              onValueChange={(value) => {
+                setFormData({ ...formData, location_id: value });
+                // Remove from additional locations if it was there
+                setAdditionalLocations(additionalLocations.filter(id => id !== value));
+              }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select location" />
+                <SelectValue placeholder="Select primary location" />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
@@ -285,6 +362,57 @@ export const EmployeeDialog = ({
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Additional Locations */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Additional Locations</Label>
+              
+              {additionalLocations.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {additionalLocations.map(locId => (
+                    <Badge key={locId} variant="secondary" className="flex items-center gap-1">
+                      {getLocationName(locId)}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAdditionalLocation(locId)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              {availableLocationsToAdd.length > 0 && (
+                <div className="flex gap-2">
+                  <Select
+                    value={selectedLocationToAdd}
+                    onValueChange={setSelectedLocationToAdd}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Add another location..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableLocationsToAdd.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleAddLocation}
+                    disabled={!selectedLocationToAdd}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
