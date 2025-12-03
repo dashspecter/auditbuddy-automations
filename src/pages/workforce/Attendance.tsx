@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, QrCode, Calendar } from "lucide-react";
+import { Clock, QrCode, Calendar, Tablet, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
+import { KioskManagementDialog } from "@/components/workforce/KioskManagementDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const Attendance = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [kioskDialogOpen, setKioskDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -17,13 +26,33 @@ const Attendance = () => {
             Monitor staff check-ins, check-outs, and work hours
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setQrDialogOpen(true)}>
-          <QrCode className="h-4 w-4" />
-          Generate QR Code
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="gap-2">
+              <QrCode className="h-4 w-4" />
+              Generate QR Code
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setQrDialogOpen(true)}>
+              <QrCode className="h-4 w-4 mr-2" />
+              Static QR Code (Print)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setKioskDialogOpen(true)}>
+              <Tablet className="h-4 w-4 mr-2" />
+              Dynamic Kiosk (Recommended)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setKioskDialogOpen(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Kiosks
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <AttendanceQRDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen} />
+      <KioskManagementDialog open={kioskDialogOpen} onOpenChange={setKioskDialogOpen} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

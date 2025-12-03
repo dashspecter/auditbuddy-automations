@@ -173,6 +173,63 @@ export type Database = {
           },
         ]
       }
+      attendance_kiosks: {
+        Row: {
+          company_id: string
+          created_at: string
+          device_name: string
+          device_token: string
+          id: string
+          is_active: boolean
+          last_active_at: string | null
+          location_id: string
+          registered_at: string
+          registered_by: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          device_name?: string
+          device_token: string
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          location_id: string
+          registered_at?: string
+          registered_by: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          device_name?: string
+          device_token?: string
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          location_id?: string
+          registered_at?: string
+          registered_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_kiosks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_kiosks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_logs: {
         Row: {
           approved_at: string | null
