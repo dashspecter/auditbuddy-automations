@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin } from "lucide-react";
 import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const EnhancedShiftWeekView = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -38,6 +39,7 @@ export const EnhancedShiftWeekView = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [view, setView] = useState<"day" | "week">("week");
+  const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -137,6 +139,40 @@ export const EnhancedShiftWeekView = () => {
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
   };
 
+  // Get role counts for a specific day
+  const getRoleCountsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayShifts = shifts.filter(shift => shift.shift_date === dateStr && !shift.is_open_shift);
+    
+    const roleCounts: Record<string, number> = {};
+    dayShifts.forEach(shift => {
+      const approvedAssignments = shift.shift_assignments?.filter(
+        (sa: any) => sa.approval_status === 'approved'
+      ) || [];
+      if (approvedAssignments.length > 0) {
+        roleCounts[shift.role] = (roleCounts[shift.role] || 0) + approvedAssignments.length;
+      }
+    });
+    
+    return roleCounts;
+  };
+
+  // Group shifts by location
+  const shiftsByLocation = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    locations.forEach(loc => {
+      grouped[loc.id] = shifts.filter(shift => shift.location_id === loc.id);
+    });
+    return grouped;
+  }, [shifts, locations]);
+
+  const getShiftsForLocationAndDay = (locationId: string, date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return (shiftsByLocation[locationId] || []).filter(
+      shift => shift.shift_date === dateStr && !shift.is_open_shift
+    );
+  };
+
   const getWeatherForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return weatherData?.daily?.find(w => w.date === dateStr);
@@ -186,6 +222,17 @@ export const EnhancedShiftWeekView = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "employee" | "location")}>
+            <ToggleGroupItem value="employee" aria-label="Employee view" className="gap-1">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Employees</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="location" aria-label="Location view" className="gap-1">
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline">Locations</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="All Locations" />
@@ -221,11 +268,15 @@ export const EnhancedShiftWeekView = () => {
       {/* Week grid with employee rows */}
       <div className="border rounded-lg overflow-hidden bg-card">
         <div className="grid grid-cols-8 border-b">
-          <div className="p-3 border-r bg-muted/50 font-medium">Employee</div>
+          <div className="p-3 border-r bg-muted/50 font-medium">
+            {viewMode === "employee" ? "Employee" : "Location"}
+          </div>
           {weekDays.map((day) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
             const weather = getWeatherForDay(day);
+            const roleCounts = getRoleCountsForDay(day);
+            const totalStaff = Object.values(roleCounts).reduce((sum, count) => sum + count, 0);
             
             return (
               <div
@@ -279,6 +330,26 @@ export const EnhancedShiftWeekView = () => {
                   </Popover>
                 )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
+                {/* Role count badges */}
+                {totalStaff > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                    {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
+                      <Badge 
+                        key={role} 
+                        variant="secondary" 
+                        className="text-[10px] px-1 py-0"
+                        style={{ backgroundColor: `${getRoleColor(role)}30` }}
+                      >
+                        {count} {role.length > 6 ? role.slice(0, 6) + '..' : role}
+                      </Badge>
+                    ))}
+                    {Object.keys(roleCounts).length > 3 && (
+                      <Badge variant="outline" className="text-[10px] px-1 py-0">
+                        +{Object.keys(roleCounts).length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -330,7 +401,7 @@ export const EnhancedShiftWeekView = () => {
         </div>
 
         {/* Employee Rows - Grouped by Department */}
-        {departments.map((department) => (
+        {viewMode === "employee" && departments.map((department) => (
           <div key={department}>
             {/* Department Header */}
             <div className="grid grid-cols-8 bg-muted/50 border-b">
@@ -415,6 +486,73 @@ export const EnhancedShiftWeekView = () => {
                 })}
               </div>
             ))}
+          </div>
+        ))}
+
+        {/* Location Rows */}
+        {viewMode === "location" && (selectedLocation === "all" ? locations : locations.filter(l => l.id === selectedLocation)).map((location) => (
+          <div key={location.id}>
+            {/* Location Header */}
+            <div className="grid grid-cols-8 bg-muted/50 border-b">
+              <div className="col-span-8 p-2 font-semibold text-sm flex items-center gap-2">
+                <MapPin className="h-3 w-3 text-primary" />
+                {location.name}
+              </div>
+            </div>
+            
+            {/* Shifts row for this location */}
+            <div className="grid grid-cols-8 border-b hover:bg-muted/30 transition-colors">
+              <div className="p-3 border-r text-xs text-muted-foreground">
+                All shifts
+              </div>
+              {weekDays.map((day) => {
+                const locationShifts = getShiftsForLocationAndDay(location.id, day);
+                
+                return (
+                  <div key={day.toISOString()} className="p-2 border-r last:border-r-0 min-h-[80px]">
+                    {locationShifts.map((shift) => {
+                      const approvedAssignments = shift.shift_assignments?.filter(
+                        (sa: any) => sa.approval_status === 'approved'
+                      ) || [];
+                      const assignedCount = approvedAssignments.length;
+                      
+                      return (
+                        <div
+                          key={shift.id}
+                          onClick={() => handleEditShift(shift)}
+                          style={{
+                            backgroundColor: `${getRoleColor(shift.role)}20`,
+                            borderColor: getRoleColor(shift.role)
+                          }}
+                          className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{shift.role}</div>
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                              {assignedCount}/{shift.staff_needed || 1}
+                            </Badge>
+                          </div>
+                          <div className="text-muted-foreground">
+                            {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                          </div>
+                          {approvedAssignments.length > 0 && (
+                            <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                              {approvedAssignments.map((sa: any) => {
+                                const emp = employees.find(e => e.id === sa.staff_id);
+                                return emp?.full_name?.split(' ')[0];
+                              }).filter(Boolean).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {locationShifts.length === 0 && (
+                      <div className="text-xs text-muted-foreground text-center py-2">No shifts</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
