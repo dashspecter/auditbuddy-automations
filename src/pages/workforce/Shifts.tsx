@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3 } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ShiftDialog } from "@/components/workforce/ShiftDialog";
 import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +10,52 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedShiftWeekView } from "@/components/workforce/EnhancedShiftWeekView";
 import { PendingApprovalsDialog } from "@/components/workforce/PendingApprovalsDialog";
 import { usePendingApprovals } from "@/hooks/useShiftAssignments";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useLocations } from "@/hooks/useLocations";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
   const [view, setView] = useState<"day" | "week">("week");
+  const [editingShift, setEditingShift] = useState<any>(null);
   
   const dateStr = date ? date.toISOString().split('T')[0] : "";
   const { data: shifts = [], isLoading } = useShifts(undefined, dateStr, dateStr);
   const { data: pendingApprovals } = usePendingApprovals();
+  const { data: employees = [] } = useEmployees();
+  const { data: locations = [] } = useLocations();
   const pendingCount = pendingApprovals?.length || 0;
+
+  // Group shifts by location
+  const shiftsByLocation = useMemo(() => {
+    const grouped: Record<string, typeof shifts> = {};
+    shifts.forEach(shift => {
+      const locationId = shift.location_id || 'unknown';
+      if (!grouped[locationId]) {
+        grouped[locationId] = [];
+      }
+      grouped[locationId].push(shift);
+    });
+    return grouped;
+  }, [shifts]);
+
+  const getEmployeeName = (staffId: string) => {
+    const employee = employees.find(e => e.id === staffId);
+    return employee?.full_name || 'Unknown';
+  };
+
+  const getLocationName = (locationId: string) => {
+    const location = locations.find(l => l.id === locationId);
+    return location?.name || 'Unknown Location';
+  };
+
+  const getAssignedEmployees = (shift: any) => {
+    const assignments = shift.shift_assignments || [];
+    const approved = assignments.filter((a: any) => a.approval_status === 'approved');
+    const pending = assignments.filter((a: any) => a.approval_status === 'pending');
+    return { approved, pending, total: assignments.length };
+  };
 
   return (
     <div className="space-y-6">
@@ -96,41 +131,127 @@ const Shifts = () => {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {shifts.map((shift) => (
-                  <div key={shift.id} className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="font-semibold text-base">{shift.role}</div>
-                        <Badge variant="secondary" className="gap-1">
-                          <Users className="h-3 w-3" />
-                          {shift.required_count} needed
-                        </Badge>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
+              <div className="space-y-6">
+                {Object.entries(shiftsByLocation).map(([locationId, locationShifts]) => (
+                  <div key={locationId} className="space-y-3">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-lg">{getLocationName(locationId)}</h3>
+                      <Badge variant="outline" className="ml-auto">
+                        {locationShifts.length} shift{locationShifts.length !== 1 ? 's' : ''}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-4 w-4" />
-                        <span>{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4" />
-                        <span>{shift.locations?.name || 'Location'}</span>
-                      </div>
-                    </div>
-                    {shift.notes && (
-                      <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
-                        {shift.notes}
-                      </div>
-                    )}
-                    {shift.creator_name && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Created by: {shift.creator_name}
-                      </div>
-                    )}
+                    {locationShifts.map((shift) => {
+                      const { approved, pending } = getAssignedEmployees(shift);
+                      const filledCount = approved.length;
+                      const isFullyStaffed = filledCount >= shift.required_count;
+                      const needsMore = shift.required_count - filledCount;
+                      
+                      return (
+                        <div key={shift.id} className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="font-semibold text-base">{shift.role}</div>
+                              {shift.is_open_shift && (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                                  Open Shift
+                                </Badge>
+                              )}
+                              <Badge 
+                                variant={isFullyStaffed ? "default" : "destructive"} 
+                                className={`gap-1 ${isFullyStaffed ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ''}`}
+                              >
+                                <Users className="h-3 w-3" />
+                                {filledCount}/{shift.required_count} filled
+                              </Badge>
+                              {pending.length > 0 && (
+                                <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300">
+                                  <AlertCircle className="h-3 w-3" />
+                                  {pending.length} pending
+                                </Badge>
+                              )}
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingShift(shift);
+                                setShiftDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4" />
+                              <span>{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
+                            </div>
+                            {shift.break_duration_minutes && shift.break_duration_minutes > 0 && (
+                              <div className="text-xs">
+                                ({shift.break_duration_minutes}min break)
+                              </div>
+                            )}
+                            {shift.close_duty && (
+                              <Badge variant="outline" className="text-xs">Close Duty</Badge>
+                            )}
+                          </div>
+                          
+                          {/* Assigned Employees */}
+                          {approved.length > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                                <UserCheck className="h-4 w-4 text-green-600" />
+                                Assigned Staff:
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {approved.map((assignment: any) => (
+                                  <Badge key={assignment.id} variant="secondary" className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
+                                    {getEmployeeName(assignment.staff_id)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Pending assignments */}
+                          {pending.length > 0 && (
+                            <div className="mt-2">
+                              <div className="flex items-center gap-2 text-sm font-medium mb-2 text-amber-600">
+                                <AlertCircle className="h-4 w-4" />
+                                Pending Approval:
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {pending.map((assignment: any) => (
+                                  <Badge key={assignment.id} variant="outline" className="border-amber-300 text-amber-700">
+                                    {getEmployeeName(assignment.staff_id)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Needs more staff warning */}
+                          {needsMore > 0 && (
+                            <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              Needs {needsMore} more {needsMore === 1 ? 'person' : 'people'}
+                            </div>
+                          )}
+                          
+                          {shift.notes && (
+                            <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
+                              <span className="font-medium">Notes:</span> {shift.notes}
+                            </div>
+                          )}
+                          {shift.creator_name && (
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              Created by: {shift.creator_name}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -142,8 +263,12 @@ const Shifts = () => {
       
       <ShiftDialog
         open={shiftDialogOpen} 
-        onOpenChange={setShiftDialogOpen}
+        onOpenChange={(open) => {
+          setShiftDialogOpen(open);
+          if (!open) setEditingShift(null);
+        }}
         defaultDate={date}
+        shift={editingShift}
       />
 
       <PendingApprovalsDialog 
