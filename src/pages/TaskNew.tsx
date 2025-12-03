@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag } from "lucide-react";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -95,38 +95,22 @@ const TaskNew = () => {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Task Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                placeholder="Enter task title"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, title: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter task description"
-                rows={4}
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Basic Info */}
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2 md:col-span-3">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Enter task title"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, title: e.target.value }))
+                  }
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
                 <Select
@@ -136,7 +120,8 @@ const TaskNew = () => {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
+                    <Flag className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Priority" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>
@@ -146,7 +131,33 @@ const TaskNew = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter task description (optional)"
+                rows={2}
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scheduling */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Scheduling
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="start_at">Start Time</Label>
                 <Input
@@ -159,43 +170,49 @@ const TaskNew = () => {
                 />
                 <p className="text-xs text-muted-foreground">When the task becomes active</p>
               </div>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="duration">Time Limit (minutes)</Label>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={formData.duration_minutes.toString()}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, duration_minutes: parseInt(value) }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5 minutes</SelectItem>
-                      <SelectItem value="10">10 minutes</SelectItem>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="45">45 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="90">1.5 hours</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                      <SelectItem value="180">3 hours</SelectItem>
-                      <SelectItem value="240">4 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Time available to complete (countdown will show)
-                </p>
+                <Label htmlFor="duration">Time Limit</Label>
+                <Select
+                  value={formData.duration_minutes.toString()}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, duration_minutes: parseInt(value) }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 minutes</SelectItem>
+                    <SelectItem value="10">10 minutes</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="90">1.5 hours</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                    <SelectItem value="180">3 hours</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Countdown timer will show</p>
               </div>
-              <div className="space-y-2">
-                <Label>Assign To</Label>
-                <div className="flex gap-2 mb-2">
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Assignment */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div className="flex gap-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -211,11 +228,10 @@ const TaskNew = () => {
                         >
                           <User className="h-4 w-4 mr-1" />
                           Employee
-                          <Info className="h-3 w-3 ml-1 opacity-60" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        <p className="text-sm">Task assigned to a specific employee. Only that person will see and be responsible for this task.</p>
+                      <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                        <p className="text-sm">Assigned to a specific person</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -234,11 +250,10 @@ const TaskNew = () => {
                         >
                           <Users className="h-4 w-4 mr-1" />
                           Role
-                          <Info className="h-3 w-3 ml-1 opacity-60" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        <p className="text-sm">Task assigned to all employees with this role at the selected location. Only visible when they have a scheduled shift.</p>
+                      <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                        <p className="text-sm">All employees with this role can complete</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -282,15 +297,13 @@ const TaskNew = () => {
                     </SelectContent>
                   </Select>
                 )}
-                {assignmentType === 'role' && (
-                  <p className="text-xs text-muted-foreground">
-                    All employees with this role can see and complete this task
-                  </p>
-                )}
               </div>
 
               <div className="space-y-2">
-                <Label>Locations</Label>
+                <Label className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Locations
+                </Label>
                 <LocationMultiSelector
                   value={formData.location_ids}
                   onValueChange={(ids) =>
@@ -303,134 +316,134 @@ const TaskNew = () => {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Recurrence Section */}
-            <Card className="border-dashed">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Recurrence Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
+        {/* Recurrence Settings */}
+        <Card className="border-dashed">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Recurrence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Repeat</Label>
+                <Select
+                  value={formData.recurrence_type}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, recurrence_type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Does not repeat</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.recurrence_type !== "none" && (
+                <>
                   <div className="space-y-2">
-                    <Label>Repeat</Label>
-                    <Select
-                      value={formData.recurrence_type}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, recurrence_type: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Does not repeat</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Every</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={formData.recurrence_interval}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            recurrence_interval: parseInt(e.target.value) || 1,
+                          }))
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {formData.recurrence_type === "daily"
+                          ? "day(s)"
+                          : formData.recurrence_type === "weekly"
+                          ? "week(s)"
+                          : "month(s)"}
+                      </span>
+                    </div>
                   </div>
 
-                  {formData.recurrence_type !== "none" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Every</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={30}
-                            value={formData.recurrence_interval}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                recurrence_interval: parseInt(e.target.value) || 1,
-                              }))
-                            }
-                            className="w-20"
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {formData.recurrence_type === "daily"
-                              ? "day(s)"
-                              : formData.recurrence_type === "weekly"
-                              ? "week(s)"
-                              : "month(s)"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>End Date (Optional)</Label>
-                        <Input
-                          type="date"
-                          value={formData.recurrence_end_date}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              recurrence_end_date: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {formData.recurrence_type !== "none" && (
-                  <p className="text-sm text-muted-foreground">
-                    This task will repeat{" "}
-                    {formData.recurrence_interval > 1
-                      ? `every ${formData.recurrence_interval} `
-                      : ""}
-                    {formData.recurrence_type === "daily"
-                      ? formData.recurrence_interval > 1
-                        ? "days"
-                        : "daily"
-                      : formData.recurrence_type === "weekly"
-                      ? formData.recurrence_interval > 1
-                        ? "weeks"
-                        : "weekly"
-                      : formData.recurrence_interval > 1
-                      ? "months"
-                      : "monthly"}
-                    {formData.recurrence_end_date
-                      ? ` until ${format(new Date(formData.recurrence_end_date), "PPP")}`
-                      : ""}
-                    .
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-between gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate("/tasks/calendar")}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                View Calendar
-              </Button>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate("/tasks")}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createTask.isPending}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {createTask.isPending ? "Creating..." : "Create Task"}
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={formData.recurrence_end_date}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          recurrence_end_date: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </>
+              )}
             </div>
-          </form>
-        </CardContent>
-      </Card>
+
+            {formData.recurrence_type !== "none" && (
+              <p className="text-sm text-muted-foreground">
+                This task will repeat{" "}
+                {formData.recurrence_interval > 1
+                  ? `every ${formData.recurrence_interval} `
+                  : ""}
+                {formData.recurrence_type === "daily"
+                  ? formData.recurrence_interval > 1
+                    ? "days"
+                    : "daily"
+                  : formData.recurrence_type === "weekly"
+                  ? formData.recurrence_interval > 1
+                    ? "weeks"
+                    : "weekly"
+                  : formData.recurrence_interval > 1
+                  ? "months"
+                  : "monthly"}
+                {formData.recurrence_end_date
+                  ? ` until ${format(new Date(formData.recurrence_end_date), "PPP")}`
+                  : ""}
+                .
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-between gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/tasks/calendar")}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            View Calendar
+          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/tasks")}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createTask.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              {createTask.isPending ? "Creating..." : "Create Task"}
+            </Button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 };
