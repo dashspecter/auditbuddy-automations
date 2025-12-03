@@ -19,6 +19,12 @@ export interface Task {
   source_reference_id: string | null;
   created_at: string;
   updated_at: string;
+  // Recurrence fields
+  recurrence_type: string | null;
+  recurrence_interval: number | null;
+  recurrence_end_date: string | null;
+  parent_task_id: string | null;
+  is_recurring_instance: boolean | null;
   // Joined data
   assigned_employee?: {
     id: string;
@@ -183,6 +189,9 @@ interface CreateTaskData {
   location_id?: string;
   source?: string;
   source_reference_id?: string;
+  recurrence_type?: string;
+  recurrence_interval?: number;
+  recurrence_end_date?: string;
 }
 
 export const useCreateTask = () => {

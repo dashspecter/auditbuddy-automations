@@ -3642,8 +3642,13 @@ export type Database = {
           description: string | null
           due_at: string | null
           id: string
+          is_recurring_instance: boolean | null
           location_id: string | null
+          parent_task_id: string | null
           priority: string
+          recurrence_end_date: string | null
+          recurrence_interval: number | null
+          recurrence_type: string | null
           source: string
           source_reference_id: string | null
           status: string
@@ -3659,8 +3664,13 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           id?: string
+          is_recurring_instance?: boolean | null
           location_id?: string | null
+          parent_task_id?: string | null
           priority?: string
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null
           status?: string
@@ -3676,8 +3686,13 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           id?: string
+          is_recurring_instance?: boolean | null
           location_id?: string | null
+          parent_task_id?: string | null
           priority?: string
+          recurrence_end_date?: string | null
+          recurrence_interval?: number | null
+          recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null
           status?: string
@@ -3697,6 +3712,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]

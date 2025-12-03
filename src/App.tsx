@@ -83,6 +83,7 @@ import ManagerSchedule from "./pages/staff/ManagerSchedule";
 import TeamView from "./pages/staff/TeamView";
 import Tasks from "./pages/Tasks";
 import TaskNew from "./pages/TaskNew";
+import TasksCalendar from "./pages/TasksCalendar";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
 import AIFeed from "./pages/AIFeed";
@@ -210,6 +211,7 @@ const App = () => (
               {/* Tasks Routes */}
               <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
               <Route path="/tasks/new" element={<ProtectedRoute><TaskNew /></ProtectedRoute>} />
+              <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
               
               {/* Inventory Routes */}
               <Route path="/inventory" element={<ManagerRoute><Inventory /></ManagerRoute>} />

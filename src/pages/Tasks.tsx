@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2 } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
@@ -38,6 +38,7 @@ const statusColors: Record<string, string> = {
 const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () => void; onDelete: () => void }) => {
   const isOverdue = task.due_at && isPast(new Date(task.due_at)) && task.status !== "completed";
   const isDueToday = task.due_at && isToday(new Date(task.due_at));
+  const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
 
   return (
     <div className={`flex items-start gap-3 p-4 border rounded-lg ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""}`}>
@@ -49,9 +50,14 @@ const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () =
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <h4 className={`font-medium ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
-            {task.title}
-          </h4>
+          <div className="flex items-center gap-2">
+            <h4 className={`font-medium ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
+              {task.title}
+            </h4>
+            {isRecurring && (
+              <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+          </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Badge className={priorityColors[task.priority] || priorityColors.medium}>
               {task.priority}
@@ -82,6 +88,12 @@ const TaskItem = ({ task, onComplete, onDelete }: { task: Task; onComplete: () =
               <Clock className="h-3 w-3" />
               {isOverdue ? "Overdue: " : isDueToday ? "Today: " : "Due: "}
               {format(new Date(task.due_at), "MMM d, HH:mm")}
+            </span>
+          )}
+          {isRecurring && (
+            <span className="flex items-center gap-1 text-primary">
+              <RefreshCw className="h-3 w-3" />
+              {task.recurrence_type}
             </span>
           )}
         </div>
@@ -135,17 +147,23 @@ const Tasks = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Tasks</h1>
           <p className="text-muted-foreground mt-1">
             Manage daily operations and follow-up actions
           </p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/tasks/new")}>
-          <Plus className="h-4 w-4" />
-          Create Task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/tasks/calendar")}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Calendar
+          </Button>
+          <Button onClick={() => navigate("/tasks/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Task
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}
