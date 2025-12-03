@@ -139,10 +139,14 @@ export const EnhancedShiftWeekView = () => {
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
   };
 
-  // Get role counts for a specific day
-  const getRoleCountsForDay = (date: Date) => {
+  // Get role counts for a specific location and day
+  const getRoleCountsForLocationAndDay = (locationId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const dayShifts = shifts.filter(shift => shift.shift_date === dateStr && !shift.is_open_shift);
+    const dayShifts = shifts.filter(shift => 
+      shift.shift_date === dateStr && 
+      !shift.is_open_shift && 
+      shift.location_id === locationId
+    );
     
     const roleCounts: Record<string, number> = {};
     dayShifts.forEach(shift => {
@@ -275,8 +279,6 @@ export const EnhancedShiftWeekView = () => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
             const isWeekend = day.getDay() === 0 || day.getDay() === 6;
             const weather = getWeatherForDay(day);
-            const roleCounts = getRoleCountsForDay(day);
-            const totalStaff = Object.values(roleCounts).reduce((sum, count) => sum + count, 0);
             
             return (
               <div
@@ -330,30 +332,6 @@ export const EnhancedShiftWeekView = () => {
                   </Popover>
                 )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
-                {/* Role count badges */}
-                {totalStaff > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
-                    {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
-                      <Badge 
-                        key={role} 
-                        variant="secondary" 
-                        className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
-                        style={{ 
-                          backgroundColor: `${getRoleColor(role)}25`,
-                          borderColor: `${getRoleColor(role)}50`,
-                          color: getRoleColor(role)
-                        }}
-                      >
-                        {count} {role.length > 8 ? role.slice(0, 7) + '..' : role}
-                      </Badge>
-                    ))}
-                    {Object.keys(roleCounts).length > 3 && (
-                      <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
-                        +{Object.keys(roleCounts).length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -496,12 +474,46 @@ export const EnhancedShiftWeekView = () => {
         {/* Location Rows */}
         {viewMode === "location" && (selectedLocation === "all" ? locations : locations.filter(l => l.id === selectedLocation)).map((location) => (
           <div key={location.id}>
-            {/* Location Header */}
+            {/* Location Header with role badges per day */}
             <div className="grid grid-cols-8 bg-muted/50 border-b">
-              <div className="col-span-8 p-2 font-semibold text-sm flex items-center gap-2">
+              <div className="p-2 font-semibold text-sm flex items-center gap-2 border-r">
                 <MapPin className="h-3 w-3 text-primary" />
                 {location.name}
               </div>
+              {weekDays.map((day) => {
+                const roleCounts = getRoleCountsForLocationAndDay(location.id, day);
+                const totalStaff = Object.values(roleCounts).reduce((sum, count) => sum + count, 0);
+                
+                return (
+                  <div key={day.toISOString()} className="p-2 border-r last:border-r-0 flex flex-wrap gap-1 items-center justify-center">
+                    {totalStaff > 0 ? (
+                      <>
+                        {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
+                          <Badge 
+                            key={role} 
+                            variant="secondary" 
+                            className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
+                            style={{ 
+                              backgroundColor: `${getRoleColor(role)}25`,
+                              borderColor: `${getRoleColor(role)}50`,
+                              color: getRoleColor(role)
+                            }}
+                          >
+                            {count} {role.length > 7 ? role.slice(0, 6) + '..' : role}
+                          </Badge>
+                        ))}
+                        {Object.keys(roleCounts).length > 3 && (
+                          <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
+                            +{Object.keys(roleCounts).length - 3}
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             
             {/* Shifts row for this location */}
