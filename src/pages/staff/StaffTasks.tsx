@@ -3,10 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle, MapPin, Timer } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
 import { format, isPast, isToday, differenceInSeconds } from "date-fns";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -75,11 +76,16 @@ const StaffTasks = () => {
   const { user } = useAuth();
   const { data: tasks, isLoading } = useMyTasks();
   const completeTask = useCompleteTask();
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
   const toggleTask = (taskId: string, currentStatus: string) => {
     if (currentStatus !== 'completed') {
       completeTask.mutate(taskId);
     }
+  };
+
+  const toggleExpand = (taskId: string) => {
+    setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
   };
 
   if (isLoading) {
@@ -142,47 +148,143 @@ const StaffTasks = () => {
               To Do Now
             </h2>
             <div className="space-y-2">
-              {activePendingTasks.map((task) => (
-                <Card 
-                  key={task.id} 
-                  className="p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <Checkbox 
-                      checked={task.status === 'completed'}
-                      onCheckedChange={() => toggleTask(task.id, task.status)}
-                      className="mt-1"
-                      disabled={completeTask.isPending}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-medium">{task.title}</h3>
-                        <Badge variant={priorityColor(task.priority) as any} className="text-xs">
-                          {task.priority}
-                        </Badge>
-                      </div>
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {/* Show countdown timer if task has start_at and duration */}
-                        {task.start_at && task.duration_minutes && (
-                          <CountdownTimer 
-                            startAt={task.start_at} 
-                            durationMinutes={task.duration_minutes} 
-                          />
-                        )}
-                        {task.location?.name && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span>{task.location.name}</span>
+              {activePendingTasks.map((task) => {
+                const isExpanded = expandedTaskId === task.id;
+                const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+                
+                return (
+                  <Card 
+                    key={task.id} 
+                    className="overflow-hidden"
+                  >
+                    <div 
+                      className="p-4 cursor-pointer"
+                      onClick={() => toggleExpand(task.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox 
+                          checked={task.status === 'completed'}
+                          onCheckedChange={() => toggleTask(task.id, task.status)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-1"
+                          disabled={completeTask.isPending}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{task.title}</h3>
+                              {isRecurring && (
+                                <RefreshCw className="h-3.5 w-3.5 text-primary" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={priorityColor(task.priority) as any} className="text-xs">
+                                {task.priority}
+                              </Badge>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
                           </div>
-                        )}
+                          {task.description && !isExpanded && (
+                            <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{task.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {task.start_at && task.duration_minutes && (
+                              <CountdownTimer 
+                                startAt={task.start_at} 
+                                durationMinutes={task.duration_minutes} 
+                              />
+                            )}
+                            {task.location?.name && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{task.location.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                    
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 pt-0 border-t bg-muted/30">
+                        <div className="pt-3 space-y-3">
+                          {task.description && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                              <p className="text-sm">{task.description}</p>
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            {task.start_at && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Start Time
+                                </p>
+                                <p>{format(new Date(task.start_at), "MMM d, h:mm a")}</p>
+                              </div>
+                            )}
+                            
+                            {task.duration_minutes && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Timer className="h-3 w-3" />
+                                  Duration
+                                </p>
+                                <p>{task.duration_minutes} minutes</p>
+                              </div>
+                            )}
+                            
+                            {task.location?.name && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Location
+                                </p>
+                                <p>{task.location.name}</p>
+                              </div>
+                            )}
+                            
+                            {task.assigned_role?.name && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  Assigned Role
+                                </p>
+                                <p>{task.assigned_role.name}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {isRecurring && (
+                            <div className="pt-2 border-t">
+                              <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                Recurrence
+                              </p>
+                              <p className="text-sm text-primary">
+                                Repeats {task.recurrence_type}
+                                {task.recurrence_interval && task.recurrence_interval > 1
+                                  ? ` every ${task.recurrence_interval} ${
+                                      task.recurrence_type === "daily" ? "days" :
+                                      task.recurrence_type === "weekly" ? "weeks" : "months"
+                                    }`
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
