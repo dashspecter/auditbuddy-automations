@@ -3737,6 +3737,7 @@ export type Database = {
           assigned_to: string | null
           company_id: string
           completed_at: string | null
+          completed_by: string | null
           completed_late: boolean | null
           created_at: string
           created_by: string
@@ -3763,6 +3764,7 @@ export type Database = {
           assigned_to?: string | null
           company_id: string
           completed_at?: string | null
+          completed_by?: string | null
           completed_late?: boolean | null
           created_at?: string
           created_by: string
@@ -3789,6 +3791,7 @@ export type Database = {
           assigned_to?: string | null
           company_id?: string
           completed_at?: string | null
+          completed_by?: string | null
           completed_late?: boolean | null
           created_at?: string
           created_by?: string
@@ -3823,6 +3826,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
