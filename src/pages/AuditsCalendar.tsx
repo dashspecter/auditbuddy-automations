@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
 import { useScheduledAuditsNew } from '@/hooks/useScheduledAuditsNew';
+import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -22,6 +23,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -51,6 +59,7 @@ const AuditsCalendar = () => {
   const { data: roleData } = useUserRole();
   const { data: audits, isLoading } = useScheduledAudits();
   const { data: scheduledAuditsNew, isLoading: isLoadingNew } = useScheduledAuditsNew();
+  const { data: locations } = useLocations();
   const updateStatus = useUpdateAuditStatus();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -63,6 +72,7 @@ const AuditsCalendar = () => {
   const [showRegeneratePrompt, setShowRegeneratePrompt] = useState(false);
   const [dismissedPrompt, setDismissedPrompt] = useState(false);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [filterLocationId, setFilterLocationId] = useState<string>('all');
 
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
@@ -148,12 +158,22 @@ const AuditsCalendar = () => {
     return [...eventsFromLocationAudits, ...eventsFromScheduledAudits];
   }, [audits, scheduledAuditsNew, user?.id]);
 
+  // Filter events by location
+  const filteredEvents = useMemo(() => {
+    if (filterLocationId === 'all') return events;
+    return events.filter(event => {
+      // Check if the location matches - we need to match by location name since that's what we have
+      const locationName = locations?.find(l => l.id === filterLocationId)?.name;
+      return event.resource.location === locationName;
+    });
+  }, [events, filterLocationId, locations]);
+
   // Detect overlapping events (more than 3 events in same day)
   const hasOverlappingEvents = useMemo(() => {
-    if (!events || events.length === 0) return false;
+    if (!filteredEvents || filteredEvents.length === 0) return false;
     
     const eventsByDay: Record<string, number> = {};
-    events.forEach(event => {
+    filteredEvents.forEach(event => {
       const dayKey = moment(event.start).format('YYYY-MM-DD');
       eventsByDay[dayKey] = (eventsByDay[dayKey] || 0) + 1;
     });
@@ -469,11 +489,29 @@ const AuditsCalendar = () => {
               <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--destructive) / 0.2)' }} />
               <span className="text-sm">Overdue</span>
             </div>
+            
+            {/* Location Filter */}
+            <div className="ml-auto flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <Select value={filterLocationId} onValueChange={setFilterLocationId}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations?.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {viewMode === 'list' ? (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {events
+              {filteredEvents
                 .sort((a, b) => a.start.getTime() - b.start.getTime())
                 .map((event) => (
                   <div
@@ -518,7 +556,7 @@ const AuditsCalendar = () => {
                     </div>
                   </div>
                 ))}
-              {events.length === 0 && (
+              {filteredEvents.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   No audits scheduled
                 </div>
@@ -528,7 +566,7 @@ const AuditsCalendar = () => {
             <div className="h-[600px] md:h-[600px] h-[500px]">
               <Calendar
                 localizer={localizer}
-                events={events}
+                events={filteredEvents}
                 startAccessor="start"
                 endAccessor="end"
                 style={{ height: '100%' }}
