@@ -91,13 +91,15 @@ export const ShiftDialog = ({
     const openTimeNormalized = normalizeTime(openTime);
     const closeTimeNormalized = normalizeTime(closeTime);
     
-    // Check if operating hours span overnight (close time is earlier than open time)
-    const isOvernightOperation = closeTimeNormalized < openTimeNormalized;
+    // 00:00:00 close time means midnight (end of day), treat it as 24:00
+    // For overnight detection: only consider it overnight if close < open AND close is NOT midnight
+    const isMidnightClose = closeTimeNormalized === "00:00:00";
+    const isOvernightOperation = !isMidnightClose && closeTimeNormalized < openTimeNormalized;
     
     let isOutsideHours = false;
     
     if (isOvernightOperation) {
-      // For overnight operations (e.g., 10:00 - 01:00):
+      // For overnight operations (e.g., 18:00 - 02:00):
       // Shift is valid if it starts on or after opening time (daytime portion)
       // or ends before or at closing time (early morning portion)
       if (shiftStart >= openTimeNormalized) {
@@ -108,8 +110,9 @@ export const ShiftDialog = ({
         isOutsideHours = true;
       }
     } else {
-      // Normal same-day hours: shift must be within open-close range
-      const effectiveCloseTime = closeTimeNormalized === "00:00:00" ? "23:59:59" : closeTimeNormalized;
+      // Normal same-day hours (including midnight close): shift must be within open-close range
+      // Treat 00:00:00 as end of day (effectively 24:00)
+      const effectiveCloseTime = isMidnightClose ? "24:00:00" : closeTimeNormalized;
       isOutsideHours = shiftStart < openTimeNormalized || shiftEnd > effectiveCloseTime;
     }
 
