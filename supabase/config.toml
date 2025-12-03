@@ -1,1 +1,4 @@
 project_id = "wwprkfaknkxrebtplfut"
+
+[functions.auto-clockout]
+verify_jwt = false

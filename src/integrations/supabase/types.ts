@@ -234,6 +234,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          auto_clocked_out: boolean | null
           check_in_at: string
           check_out_at: string | null
           created_at: string
@@ -248,6 +249,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_clocked_out?: boolean | null
           check_in_at: string
           check_out_at?: string | null
           created_at?: string
@@ -262,6 +264,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_clocked_out?: boolean | null
           check_in_at?: string
           check_out_at?: string | null
           created_at?: string
@@ -774,6 +777,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          auto_clockout_delay_minutes: number | null
           created_at: string
           id: string
           industry_id: string | null
@@ -788,6 +792,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_clockout_delay_minutes?: number | null
           created_at?: string
           id?: string
           industry_id?: string | null
@@ -802,6 +807,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_clockout_delay_minutes?: number | null
           created_at?: string
           id?: string
           industry_id?: string | null

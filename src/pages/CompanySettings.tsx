@@ -11,6 +11,7 @@ import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock }
 import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
+import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
 import {
   Select,
   SelectContent,
@@ -268,7 +269,8 @@ export default function CompanySettings() {
             <IndustryModuleManagement />
           </TabsContent>
 
-          <TabsContent value="workforce">
+          <TabsContent value="workforce" className="space-y-6">
+            <AutoClockoutSettings company={company} />
             <ShiftPresetsManagement />
           </TabsContent>
 
