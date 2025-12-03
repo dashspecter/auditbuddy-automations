@@ -63,10 +63,17 @@ export const EnhancedShiftWeekView = () => {
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: allSchedules = [] } = useLocationSchedules(undefined, true); // Fetch all schedules for all locations
-  const { data: weatherData, isLoading: weatherLoading, error: weatherError } = useWeather();
   const { data: departmentsList = [] } = useDepartments();
 
-  console.log("Weather data:", weatherData, "Loading:", weatherLoading, "Error:", weatherError);
+  // Get selected location's coordinates for weather
+  const selectedLocationData = selectedLocation !== "all" 
+    ? locations.find(l => l.id === selectedLocation) 
+    : locations[0]; // Use first location if "all" selected
+  
+  const { data: weatherData, isLoading: weatherLoading, error: weatherError } = useWeather(
+    (selectedLocationData as any)?.latitude,
+    (selectedLocationData as any)?.longitude
+  );
 
   const [weatherPopoverOpen, setWeatherPopoverOpen] = useState(false);
   const [selectedWeatherDate, setSelectedWeatherDate] = useState<string | null>(null);

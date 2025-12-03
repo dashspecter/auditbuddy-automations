@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 
 interface WeatherData {
   date: string;
@@ -20,7 +19,7 @@ interface HourlyWeatherData {
 
 interface WeatherResponse {
   daily: WeatherData[];
-  hourly: Record<string, HourlyWeatherData[]>; // Keyed by date
+  hourly: Record<string, HourlyWeatherData[]>;
 }
 
 // Weather code to description mapping (WMO Weather interpretation codes)
@@ -35,15 +34,20 @@ const getWeatherInfo = (code: number): { icon: string; description: string } => 
   return { icon: "⛈️", description: "Thunderstorm" };
 };
 
-export const useWeather = (latitude: number = 44.4268, longitude: number = 26.1025) => {
-  // Default to Bucharest, Romania coordinates
+// Default to Bucharest, Romania if no coordinates provided
+const DEFAULT_LAT = 44.4268;
+const DEFAULT_LNG = 26.1025;
+
+export const useWeather = (latitude?: number | null, longitude?: number | null) => {
+  const lat = latitude || DEFAULT_LAT;
+  const lng = longitude || DEFAULT_LNG;
   
   return useQuery({
-    queryKey: ["weather", latitude, longitude],
+    queryKey: ["weather", lat, lng],
     queryFn: async () => {
       try {
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,weather_code,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe/Bucharest&forecast_days=14`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,weather_code,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=14`
         );
         
         if (!response.ok) {
@@ -52,7 +56,6 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
         }
         
         const data = await response.json();
-        console.log("Weather API response:", data);
         
         // Process daily data
         const dailyData: WeatherData[] = data.daily.time.map((date: string, index: number) => {
@@ -91,21 +94,50 @@ export const useWeather = (latitude: number = 44.4268, longitude: number = 26.10
           });
         });
         
-        const weatherResponse: WeatherResponse = {
+        return {
           daily: dailyData,
           hourly: hourlyByDate,
-        };
-        
-        console.log("Processed weather data:", weatherResponse);
-        return weatherResponse;
+        } as WeatherResponse;
       } catch (error) {
         console.error("Weather fetch error:", error);
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 60, // 1 hour
-    refetchInterval: 1000 * 60 * 60, // Refetch every hour
+    staleTime: 1000 * 60 * 60,
+    refetchInterval: 1000 * 60 * 60,
     retry: 2,
-    enabled: true, // Explicitly enable the query
+  });
+};
+
+// Geocode an address to coordinates using free Nominatim API
+export const useGeocodeAddress = (address?: string, city?: string) => {
+  const searchQuery = [address, city].filter(Boolean).join(', ');
+  
+  return useQuery({
+    queryKey: ["geocode", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery) return null;
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'DashspectApp/1.0'
+          }
+        }
+      );
+      
+      if (!response.ok) throw new Error("Geocoding failed");
+      
+      const data = await response.json();
+      if (data.length === 0) return null;
+      
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+      };
+    },
+    enabled: !!searchQuery,
+    staleTime: Infinity, // Cache permanently
   });
 };
