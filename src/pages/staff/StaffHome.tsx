@@ -6,23 +6,28 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight, ListTodo } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
 import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
+import { useMyTasks } from "@/hooks/useTasks";
 
 const StaffHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
+  const { data: myTasks = [] } = useMyTasks();
   const [employee, setEmployee] = useState<any>(null);
   const [todayShift, setTodayShift] = useState<any>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [companyRole, setCompanyRole] = useState<string | null>(null);
+
+  // Count active (non-completed) tasks
+  const activeTaskCount = myTasks.filter(t => t.status !== 'completed').length;
 
   // Check both platform role and company role for manager access
   const isManager = roleData?.isManager || roleData?.isAdmin || 
@@ -324,8 +329,17 @@ const StaffHome = () => {
               <MessageSquare className="h-6 w-6 mb-2 text-primary" />
               <span className="text-xs">Messages</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/tasks")}>
-              <Clock className="h-6 w-6 mb-2 text-primary" />
+            <Button 
+              variant="outline" 
+              className={`h-auto py-4 flex-col touch-target relative ${activeTaskCount > 0 ? "border-primary bg-primary/5" : ""}`}
+              onClick={() => navigate("/staff/tasks")}
+            >
+              {activeTaskCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {activeTaskCount}
+                </Badge>
+              )}
+              <ListTodo className={`h-6 w-6 mb-2 ${activeTaskCount > 0 ? "text-primary" : "text-primary"}`} />
               <span className="text-xs">My Tasks</span>
             </Button>
           </div>
