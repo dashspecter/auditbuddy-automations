@@ -42,7 +42,7 @@ export interface Task {
   } | null;
 }
 
-export const useTasks = (filters?: { status?: string; assignedTo?: string; locationId?: string }) => {
+export const useTasks = (filters?: { status?: string; assignedTo?: string; locationId?: string; assignedRoleId?: string }) => {
   const { company } = useCompanyContext();
 
   return useQuery({
@@ -54,7 +54,8 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
         .from("tasks")
         .select(`
           *,
-          location:locations(id, name)
+          location:locations(id, name),
+          assigned_role:employee_roles(id, name)
         `)
         .eq("company_id", company.id)
         .order("created_at", { ascending: false });
@@ -65,6 +66,10 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
 
       if (filters?.assignedTo) {
         query = query.eq("assigned_to", filters.assignedTo);
+      }
+
+      if (filters?.assignedRoleId) {
+        query = query.eq("assigned_role_id", filters.assignedRoleId);
       }
 
       if (filters?.locationId) {
@@ -109,23 +114,80 @@ export const useMyTasks = () => {
       // First get the employee record for the current user
       const { data: employee } = await supabase
         .from("employees")
-        .select("id")
+        .select("id, role, location_id")
         .eq("user_id", user.id)
         .single();
 
       if (!employee) return [];
 
-      const { data: tasks, error } = await supabase
+      // Get today's date for shift checking
+      const today = new Date().toISOString().split('T')[0];
+
+      // Check if employee has a shift today
+      const { data: todayShifts } = await supabase
+        .from("shift_assignments")
+        .select(`
+          id,
+          shifts!inner(shift_date, location_id)
+        `)
+        .eq("staff_id", employee.id)
+        .eq("approval_status", "approved")
+        .eq("shifts.shift_date", today);
+
+      const hasShiftToday = (todayShifts && todayShifts.length > 0);
+      const shiftLocationIds = todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
+
+      // Fetch tasks directly assigned to this employee
+      const { data: directTasks, error: directError } = await supabase
         .from("tasks")
         .select(`
           *,
-          location:locations(id, name)
+          location:locations(id, name),
+          assigned_role:employee_roles(id, name)
         `)
         .eq("company_id", company.id)
         .eq("assigned_to", employee.id)
         .order("due_at", { ascending: true, nullsFirst: false });
 
-      if (error) throw error;
+      if (directError) throw directError;
+
+      // Fetch tasks assigned to employee's role (only if has shift today)
+      let roleTasks: any[] = [];
+      if (hasShiftToday && employee.role) {
+        // Get the role ID that matches employee's role name
+        const { data: matchingRole } = await supabase
+          .from("employee_roles")
+          .select("id")
+          .eq("company_id", company.id)
+          .eq("name", employee.role)
+          .single();
+
+        if (matchingRole) {
+          // Fetch tasks assigned to this role at locations where employee has shift today
+          const { data: roleTasksData, error: roleError } = await supabase
+            .from("tasks")
+            .select(`
+              *,
+              location:locations(id, name),
+              assigned_role:employee_roles(id, name)
+            `)
+            .eq("company_id", company.id)
+            .eq("assigned_role_id", matchingRole.id)
+            .in("location_id", shiftLocationIds)
+            .is("assigned_to", null) // Only role-assigned, not individually assigned
+            .order("due_at", { ascending: true, nullsFirst: false });
+
+          if (!roleError && roleTasksData) {
+            roleTasks = roleTasksData;
+          }
+        }
+      }
+
+      // Combine and deduplicate tasks
+      const allTasks = [...(directTasks || []), ...roleTasks];
+      const uniqueTasks = allTasks.filter((task, index, self) => 
+        index === self.findIndex(t => t.id === task.id)
+      );
 
       // Add employee info
       const { data: emp } = await supabase
@@ -134,9 +196,9 @@ export const useMyTasks = () => {
         .eq("id", employee.id)
         .single();
 
-      return (tasks || []).map((task) => ({
+      return uniqueTasks.map((task) => ({
         ...task,
-        assigned_employee: emp,
+        assigned_employee: task.assigned_to ? emp : null,
       })) as Task[];
     },
     enabled: !!company?.id && !!user?.id,
