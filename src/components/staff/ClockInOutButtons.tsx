@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut as LogOutIcon, Loader2 } from "lucide-react";
+import { LogIn, LogOut as LogOutIcon, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ClockInOutButtonsProps {
   todayShift: any;
@@ -14,6 +15,22 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
   const [isClocking, setIsClocking] = useState(false);
   const [currentLog, setCurrentLog] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Calculate if late
+  const lateInfo = useMemo(() => {
+    if (!todayShift?.shifts?.start_time) return null;
+    
+    const now = new Date();
+    const [hours, minutes] = todayShift.shifts.start_time.split(':').map(Number);
+    const shiftStart = new Date();
+    shiftStart.setHours(hours, minutes, 0, 0);
+    
+    if (now > shiftStart) {
+      const lateMinutes = Math.floor((now.getTime() - shiftStart.getTime()) / 60000);
+      return { isLate: true, minutes: lateMinutes };
+    }
+    return { isLate: false, minutes: 0 };
+  }, [todayShift]);
 
   useEffect(() => {
     checkExistingLog();
@@ -163,24 +180,34 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
 
   // Not clocked in yet
   return (
-    <div className="flex gap-2">
-      <Button 
-        className="flex-1 touch-target" 
-        size="sm"
-        onClick={handleClockIn}
-        disabled={isClocking}
-      >
-        {isClocking ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <LogIn className="h-4 w-4 mr-2" />
-        )}
-        Clock In
-      </Button>
-      <Button variant="outline" className="flex-1 touch-target" size="sm" disabled>
-        <LogOutIcon className="h-4 w-4 mr-2" />
-        Clock Out
-      </Button>
+    <div className="space-y-2">
+      {lateInfo?.isLate && (
+        <Alert variant="destructive" className="py-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            You're {lateInfo.minutes} minutes late! Please clock in now.
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className="flex gap-2">
+        <Button 
+          className="flex-1 touch-target" 
+          size="sm"
+          onClick={handleClockIn}
+          disabled={isClocking}
+        >
+          {isClocking ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <LogIn className="h-4 w-4 mr-2" />
+          )}
+          Clock In {lateInfo?.isLate ? '(Late)' : ''}
+        </Button>
+        <Button variant="outline" className="flex-1 touch-target" size="sm" disabled>
+          <LogOutIcon className="h-4 w-4 mr-2" />
+          Clock Out
+        </Button>
+      </div>
     </div>
   );
 }
