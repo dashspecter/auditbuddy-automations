@@ -33,6 +33,8 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
 import { useShiftPresets } from "@/hooks/useShiftPresets";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 interface EnhancedShiftDialogProps {
@@ -82,6 +84,61 @@ export const EnhancedShiftDialog = ({
   const { data: employees = [] } = useEmployees(showAllLocations ? undefined : (formData.location_id || undefined));
   const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
   const { data: shiftPresets = [] } = useShiftPresets();
+
+  // Fetch existing shift assignments for the selected date to filter out unavailable employees
+  const { data: existingAssignments = [] } = useQuery({
+    queryKey: ["shift-assignments-for-date", formData.shift_date],
+    queryFn: async () => {
+      if (!formData.shift_date) return [];
+      
+      const { data, error } = await supabase
+        .from("shift_assignments")
+        .select(`
+          staff_id,
+          shifts!inner(shift_date, start_time, end_time)
+        `)
+        .eq("shifts.shift_date", formData.shift_date)
+        .neq("approval_status", "rejected");
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!formData.shift_date,
+  });
+
+  // Filter out employees who have conflicting shifts
+  const availableEmployees = useMemo(() => {
+    if (!formData.start_time || !formData.end_time || !formData.shift_date) {
+      return employees;
+    }
+
+    const normalizeTime = (time: string) => {
+      if (time.length === 5) return `${time}:00`;
+      return time;
+    };
+
+    const newStart = normalizeTime(formData.start_time);
+    const newEnd = normalizeTime(formData.end_time);
+
+    return employees.filter(employee => {
+      // Check if this employee has any conflicting assignments
+      const hasConflict = existingAssignments.some((assignment: any) => {
+        if (assignment.staff_id !== employee.id) return false;
+        
+        const existingStart = normalizeTime(assignment.shifts.start_time);
+        const existingEnd = normalizeTime(assignment.shifts.end_time);
+        
+        // Check for time overlap
+        return (
+          (newStart >= existingStart && newStart < existingEnd) ||
+          (newEnd > existingStart && newEnd <= existingEnd) ||
+          (newStart <= existingStart && newEnd >= existingEnd)
+        );
+      });
+      
+      return !hasConflict;
+    });
+  }, [employees, existingAssignments, formData.start_time, formData.end_time, formData.shift_date]);
 
   const operatingHoursInfo = useMemo(() => {
     if (!formData.location_id || !formData.shift_date || operatingSchedules.length === 0) {
@@ -712,12 +769,12 @@ export const EnhancedShiftDialog = ({
             </div>
             {batchMode ? (
               <div className="space-y-3">
-                {employees.length === 0 ? (
+                {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? "No employees found" : (formData.location_id ? "No employees at this location" : "Select a location first")}
+                    {showAllLocations ? "No available employees found" : (formData.location_id ? "No available employees at this location" : "Select a location first")}
                   </p>
                 ) : (
-                  employees
+                  availableEmployees
                     .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
                     .map((employee) => {
                       const isSelected = selectedEmployees.includes(employee.id);
@@ -857,12 +914,12 @@ export const EnhancedShiftDialog = ({
               </div>
             ) : (
               <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-                {employees.length === 0 ? (
+                {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? "No employees found" : (formData.location_id ? "No employees at this location" : "Select a location first")}
+                    {showAllLocations ? "No available employees found" : (formData.location_id ? "No available employees at this location" : "Select a location first")}
                   </p>
                 ) : (
-                  employees
+                  availableEmployees
                     .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
                     .map((employee) => {
                       const isDisabled = !selectedEmployees.includes(employee.id) && 
