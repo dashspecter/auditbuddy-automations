@@ -62,6 +62,7 @@ export const EnhancedShiftWeekView = () => {
   );
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
+  const { data: allSchedules = [] } = useLocationSchedules(undefined, true); // Fetch all schedules for all locations
   const { data: weatherData, isLoading: weatherLoading, error: weatherError } = useWeather();
   const { data: departmentsList = [] } = useDepartments();
 
@@ -170,6 +171,16 @@ export const EnhancedShiftWeekView = () => {
     const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
     
     if (!schedule) return "24 Hours";
+    if (schedule.is_closed) return "Closed";
+    
+    return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
+  };
+
+  const getOperatingHoursForLocationAndDay = (locationId: string, date: Date) => {
+    const dayOfWeek = (date.getDay() + 6) % 7;
+    const schedule = allSchedules.find(s => s.location_id === locationId && s.day_of_week === dayOfWeek);
+    
+    if (!schedule) return null;
     if (schedule.is_closed) return "Closed";
     
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
@@ -522,34 +533,42 @@ export const EnhancedShiftWeekView = () => {
                 const roleCounts = getRoleCountsForLocationAndDay(location.id, day);
                 const totalStaff = Object.values(roleCounts).reduce((sum, count) => sum + count, 0);
                 const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                const operatingHours = getOperatingHoursForLocationAndDay(location.id, day);
                 
                 return (
-                  <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 flex flex-wrap gap-1 items-center justify-center ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
-                    {totalStaff > 0 ? (
-                      <>
-                        {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
-                          <Badge 
-                            key={role} 
-                            variant="secondary" 
-                            className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
-                            style={{ 
-                              backgroundColor: `${getRoleColor(role)}25`,
-                              borderColor: `${getRoleColor(role)}50`,
-                              color: getRoleColor(role)
-                            }}
-                          >
-                            {count} {role.length > 7 ? role.slice(0, 6) + '..' : role}
-                          </Badge>
-                        ))}
-                        {Object.keys(roleCounts).length > 3 && (
-                          <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
-                            +{Object.keys(roleCounts).length - 3}
-                          </Badge>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                  <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 flex flex-col items-center justify-center gap-1 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
+                    {operatingHours && (
+                      <div className={`text-[10px] font-medium ${operatingHours === 'Closed' ? 'text-red-500' : 'text-muted-foreground'}`}>
+                        🕐 {operatingHours}
+                      </div>
                     )}
+                    <div className="flex flex-wrap gap-1 items-center justify-center">
+                      {totalStaff > 0 ? (
+                        <>
+                          {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
+                            <Badge 
+                              key={role} 
+                              variant="secondary" 
+                              className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
+                              style={{ 
+                                backgroundColor: `${getRoleColor(role)}25`,
+                                borderColor: `${getRoleColor(role)}50`,
+                                color: getRoleColor(role)
+                              }}
+                            >
+                              {count} {role.length > 7 ? role.slice(0, 6) + '..' : role}
+                            </Badge>
+                          ))}
+                          {Object.keys(roleCounts).length > 3 && (
+                            <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
+                              +{Object.keys(roleCounts).length - 3}
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
