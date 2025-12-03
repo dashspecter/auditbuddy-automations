@@ -119,20 +119,26 @@ export const EmployeeDialog = ({
       // If create user account is checked and email is provided, create auth user
       if (createUserAccount && formData.email && newEmployee) {
         try {
-          const { data, error } = await supabase.rpc('create_employee_user', {
-            employee_email: formData.email,
-            employee_name: formData.full_name,
-            employee_id: newEmployee.id
+          const { data, error } = await supabase.functions.invoke('create-user', {
+            body: {
+              email: formData.email,
+              full_name: formData.full_name,
+              employeeId: newEmployee.id
+            }
           });
           
           if (error) {
             console.error("Failed to create user account:", error);
             toast.error("Employee created but failed to create login account");
+          } else if (data?.error) {
+            console.error("Failed to create user account:", data.error);
+            toast.error(`Employee created but failed to create login account: ${data.error}`);
           } else {
             toast.success("Employee created with login credentials!");
           }
         } catch (err) {
           console.error("Error creating user:", err);
+          toast.error("Employee created but failed to create login account");
         }
       }
     }
