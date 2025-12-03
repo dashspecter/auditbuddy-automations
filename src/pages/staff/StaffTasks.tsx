@@ -322,30 +322,127 @@ const StaffTasks = () => {
           <div>
             <h2 className="font-semibold mb-3 text-muted-foreground">Completed</h2>
             <div className="space-y-2">
-              {completedTasks.map((task) => (
-                <Card key={task.id} className="p-4 opacity-60">
-                  <div className="flex items-start gap-3">
-                    <Checkbox 
-                      checked={true}
-                      disabled
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium line-through">{task.title}</h3>
-                        {task.completed_late && (
-                          <Badge variant="destructive" className="text-xs">Late</Badge>
-                        )}
+              {completedTasks.map((task) => {
+                const isExpanded = expandedTaskId === task.id;
+                const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+                
+                return (
+                  <Card 
+                    key={task.id} 
+                    className="overflow-hidden opacity-70"
+                  >
+                    <div 
+                      className="p-4 cursor-pointer"
+                      onClick={() => toggleExpand(task.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox 
+                          checked={true}
+                          disabled
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium line-through">{task.title}</h3>
+                              {task.completed_late && (
+                                <Badge variant="destructive" className="text-xs">Late</Badge>
+                              )}
+                              {isRecurring && (
+                                <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          {task.completed_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Completed {format(new Date(task.completed_at), "MMM d, h:mm a")}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {task.completed_at && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Completed {format(new Date(task.completed_at), "MMM d, h:mm a")}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                </Card>
-              ))}
+                    
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 pt-0 border-t bg-muted/30">
+                        <div className="pt-3 space-y-3">
+                          {task.description && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                              <p className="text-sm">{task.description}</p>
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            {task.start_at && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Started
+                                </p>
+                                <p>{format(new Date(task.start_at), "MMM d, h:mm a")}</p>
+                              </div>
+                            )}
+                            
+                            {task.duration_minutes && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Timer className="h-3 w-3" />
+                                  Duration
+                                </p>
+                                <p>{task.duration_minutes} minutes</p>
+                              </div>
+                            )}
+                            
+                            {task.location?.name && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Location
+                                </p>
+                                <p>{task.location.name}</p>
+                              </div>
+                            )}
+                            
+                            {task.assigned_role?.name && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  Assigned Role
+                                </p>
+                                <p>{task.assigned_role.name}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {isRecurring && (
+                            <div className="pt-2 border-t">
+                              <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                Recurrence
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Repeats {task.recurrence_type}
+                                {task.recurrence_interval && task.recurrence_interval > 1
+                                  ? ` every ${task.recurrence_interval} ${
+                                      task.recurrence_type === "daily" ? "days" :
+                                      task.recurrence_type === "weekly" ? "weeks" : "months"
+                                    }`
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
