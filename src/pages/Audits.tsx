@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
@@ -270,10 +270,44 @@ const Audits = () => {
                           </Badge>
                         )}
                         {audit.status === "draft" && (
-                          <Badge variant="secondary" className="gap-1">
-                            <FileEdit className="h-3 w-3" />
-                            Draft
-                          </Badge>
+                          <>
+                            <Badge variant="secondary" className="gap-1">
+                              <FileEdit className="h-3 w-3" />
+                              Draft
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const { error } = await supabase
+                                    .from('location_audits')
+                                    .delete()
+                                    .eq('id', audit.id);
+
+                                  if (error) throw error;
+
+                                  toast({
+                                    title: "Draft deleted",
+                                    description: "The draft audit has been deleted.",
+                                  });
+                                  
+                                  await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+                                } catch (error) {
+                                  console.error('Error deleting draft:', error);
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to delete draft.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </div>
