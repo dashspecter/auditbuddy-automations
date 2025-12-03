@@ -213,7 +213,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                             <div className="flex items-center gap-2">
                               <p className="font-medium">{role.name}</p>
                               <Badge variant="secondary" className="text-xs">
-                                {departments.find(d => d.id === role.department_id)?.name || 'General'}
+                                {role.department?.name || 'General'}
                               </Badge>
                             </div>
                             {role.description && (

@@ -13,6 +13,10 @@ export interface EmployeeRole {
   created_at: string;
   updated_at: string;
   created_by: string;
+  department?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export const useEmployeeRoles = () => {
@@ -25,7 +29,10 @@ export const useEmployeeRoles = () => {
 
       const { data, error } = await supabase
         .from('employee_roles')
-        .select('*')
+        .select(`
+          *,
+          department:departments(id, name)
+        `)
         .order('name');
 
       if (error) throw error;
