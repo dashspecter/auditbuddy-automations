@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Header } from '@/components/Header';
+// Header removed - page uses app layout
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -136,10 +136,7 @@ const AdminTemplates = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
+    <div className="space-y-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4">
@@ -347,7 +344,6 @@ const AdminTemplates = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
     </div>
   );
 };
