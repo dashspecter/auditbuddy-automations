@@ -313,8 +313,15 @@ const StaffSchedule = () => {
                         {assignment.shifts.locations?.name}
                       </div>
                       {assignment.status === "offered" && (
-                        <div className="mt-3 p-2 bg-amber-500/5 border border-amber-500/20 rounded text-xs text-amber-700 dark:text-amber-400">
-                          Waiting for someone to claim this shift
+                        <div className={`mt-3 p-2 border rounded text-xs ${
+                          dayStr < today 
+                            ? "bg-muted/50 border-muted text-muted-foreground"
+                            : "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {dayStr < today 
+                            ? "Shift expired - was not claimed"
+                            : "Waiting for someone to claim this shift"
+                          }
                           {assignment.notes && (
                             <div className="mt-1 text-muted-foreground">Note: {assignment.notes}</div>
                           )}
