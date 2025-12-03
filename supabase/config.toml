@@ -2,3 +2,6 @@ project_id = "wwprkfaknkxrebtplfut"
 
 [functions.auto-clockout]
 verify_jwt = false
+
+[functions.check-late-clockins]
+verify_jwt = false

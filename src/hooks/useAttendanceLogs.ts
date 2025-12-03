@@ -15,12 +15,21 @@ export interface AttendanceLog {
   approved_by: string | null;
   approved_at: string | null;
   created_at: string;
+  is_late?: boolean;
+  late_minutes?: number;
+  expected_clock_in?: string;
+  auto_clocked_out?: boolean;
   employees?: {
     full_name: string;
     role: string;
   };
   locations?: {
     name: string;
+  };
+  shifts?: {
+    start_time: string;
+    end_time: string;
+    role: string;
   };
 }
 
@@ -30,7 +39,7 @@ export const useAttendanceLogs = (locationId?: string, date?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("attendance_logs")
-        .select("*, employees(full_name, role), locations(name)")
+        .select("*, employees(full_name, role), locations(name), shifts(start_time, end_time, role)")
         .order("check_in_at", { ascending: false });
       
       if (locationId) {

@@ -6,13 +6,14 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, LogIn, LogOut as LogOutIcon, ArrowRight, ListTodo } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
 import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
 import { useMyTasks } from "@/hooks/useTasks";
+import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
 
 const StaffHome = () => {
   const { user } = useAuth();
@@ -235,16 +236,11 @@ const StaffHome = () => {
               )}
             </div>
             {todayShift.approval_status === "approved" && (
-              <div className="flex gap-2">
-                <Button className="flex-1 touch-target" size="sm">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Clock In
-                </Button>
-                <Button variant="outline" className="flex-1 touch-target" size="sm">
-                  <LogOutIcon className="h-4 w-4 mr-2" />
-                  Clock Out
-                </Button>
-              </div>
+              <ClockInOutButtons 
+                todayShift={todayShift} 
+                employee={employee} 
+                onRefresh={loadData}
+              />
             )}
             {todayShift.approval_status === "pending" && (
               <div className="text-sm text-muted-foreground text-center py-2">
