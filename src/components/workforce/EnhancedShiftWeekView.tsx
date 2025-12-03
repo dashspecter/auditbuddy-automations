@@ -332,19 +332,23 @@ export const EnhancedShiftWeekView = () => {
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
                 {/* Role count badges */}
                 {totalStaff > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                  <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
                     {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
                       <Badge 
                         key={role} 
                         variant="secondary" 
-                        className="text-[10px] px-1 py-0"
-                        style={{ backgroundColor: `${getRoleColor(role)}30` }}
+                        className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
+                        style={{ 
+                          backgroundColor: `${getRoleColor(role)}25`,
+                          borderColor: `${getRoleColor(role)}50`,
+                          color: getRoleColor(role)
+                        }}
                       >
-                        {count} {role.length > 6 ? role.slice(0, 6) + '..' : role}
+                        {count} {role.length > 8 ? role.slice(0, 7) + '..' : role}
                       </Badge>
                     ))}
                     {Object.keys(roleCounts).length > 3 && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0">
+                      <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
                         +{Object.keys(roleCounts).length - 3}
                       </Badge>
                     )}
