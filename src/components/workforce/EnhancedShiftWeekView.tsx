@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck } from "lucide-react";
-import { useShifts } from "@/hooks/useShifts";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff } from "lucide-react";
+import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
 import { useLaborCosts } from "@/hooks/useLaborCosts";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const EnhancedShiftWeekView = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -64,6 +65,7 @@ export const EnhancedShiftWeekView = () => {
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: allSchedules = [] } = useLocationSchedules(undefined, true); // Fetch all schedules for all locations
   const { data: departmentsList = [] } = useDepartments();
+  const bulkPublish = useBulkPublishShifts();
 
   // Get selected location's coordinates for weather
   const selectedLocationData = selectedLocation !== "all" 
@@ -81,6 +83,32 @@ export const EnhancedShiftWeekView = () => {
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   const goToToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+  // Get unpublished shifts for a day
+  const getUnpublishedShiftsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return shifts.filter(shift => shift.shift_date === dateStr && !shift.is_published);
+  };
+
+  // Get all unpublished shifts for the week
+  const unpublishedWeekShiftIds = useMemo(() => {
+    return shifts.filter(shift => !shift.is_published).map(s => s.id);
+  }, [shifts]);
+
+  // Publish all shifts for a specific day
+  const handlePublishDay = (date: Date) => {
+    const unpublishedIds = getUnpublishedShiftsForDay(date).map(s => s.id);
+    if (unpublishedIds.length > 0) {
+      bulkPublish.mutate({ shiftIds: unpublishedIds, publish: true });
+    }
+  };
+
+  // Publish all shifts for the week
+  const handlePublishWeek = () => {
+    if (unpublishedWeekShiftIds.length > 0) {
+      bulkPublish.mutate({ shiftIds: unpublishedWeekShiftIds, publish: true });
+    }
+  };
 
   // Group employees by department based on their role
   const employeesByDepartment = employees.reduce((acc, employee) => {
@@ -341,6 +369,30 @@ export const EnhancedShiftWeekView = () => {
             </Button>
           )}
 
+          {unpublishedWeekShiftIds.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                    onClick={handlePublishWeek}
+                    disabled={bulkPublish.isPending}
+                  >
+                    <Send className="h-4 w-4" />
+                    <span className="hidden sm:inline">Publish Week</span>
+                    <Badge variant="secondary" className="ml-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      {unpublishedWeekShiftIds.length}
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Publish all {unpublishedWeekShiftIds.length} unpublished shifts for this week</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           <Button onClick={() => handleAddShift(new Date())} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Shift
@@ -356,7 +408,11 @@ export const EnhancedShiftWeekView = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-primary/20 border border-primary" />
-          <span>Regular Shift</span>
+          <span>Published</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded bg-primary/10 border border-dashed border-primary/40 opacity-50" />
+          <span>Unpublished (Draft)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 flex items-center justify-center">
@@ -457,6 +513,31 @@ export const EnhancedShiftWeekView = () => {
                   </Popover>
                 )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
+                {/* Publish day button */}
+                {getUnpublishedShiftsForDay(day).length > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 mt-1 text-[10px] text-green-600 hover:bg-green-50 dark:hover:bg-green-950 gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePublishDay(day);
+                          }}
+                          disabled={bulkPublish.isPending}
+                        >
+                          <Send className="h-3 w-3" />
+                          Publish ({getUnpublishedShiftsForDay(day).length})
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Publish {getUnpublishedShiftsForDay(day).length} draft shift(s) for {format(day, 'EEEE')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             );
           })}
@@ -482,27 +563,39 @@ export const EnhancedShiftWeekView = () => {
                   <Plus className="h-3 w-3 mr-1" />
                   Add
                 </Button>
-                {openShifts.map((shift) => (
-                  <div
-                    key={shift.id}
-                    onClick={() => handleEditShift(shift)}
-                    style={{
-                      backgroundColor: `${getRoleColor(shift.role)}20`,
-                      borderColor: getRoleColor(shift.role)
-                    }}
-                    className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
-                  >
-                    <div className="font-medium">{shift.role}</div>
-                    <div className="text-muted-foreground">
-                      {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
-                    </div>
-                    {selectedLocation === "all" && shift.locations?.name && (
-                      <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                        📍 {shift.locations.name}
+                {openShifts.map((shift) => {
+                  const isUnpublished = !shift.is_published;
+                  return (
+                    <div
+                      key={shift.id}
+                      onClick={() => handleEditShift(shift)}
+                      style={{
+                        backgroundColor: isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
+                        borderColor: isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
+                      }}
+                      className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
+                        isUnpublished ? 'opacity-50 border-dashed' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{shift.role}</div>
+                        {isUnpublished && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
+                            Draft
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="text-muted-foreground">
+                        {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                      </div>
+                      {selectedLocation === "all" && shift.locations?.name && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          📍 {shift.locations.name}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -571,21 +664,27 @@ export const EnhancedShiftWeekView = () => {
                             (sa: any) => sa.staff_id === employee.id
                           );
                           const isPending = assignment?.approval_status === 'pending';
+                          const isUnpublished = !shift.is_published;
                           
                           return (
                             <div
                               key={shift.id}
                               onClick={() => handleEditShift(shift)}
                               style={{
-                                backgroundColor: `${getRoleColor(shift.role)}20`,
-                                borderColor: getRoleColor(shift.role)
+                                backgroundColor: isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
+                                borderColor: isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
                               }}
                               className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
                                 isPending ? 'opacity-60 border-dashed' : ''
-                              }`}
+                              } ${isUnpublished ? 'opacity-50 border-dashed' : ''}`}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="font-medium">{shift.role}</div>
+                                {isUnpublished && !isPending && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
+                                    Draft
+                                  </Badge>
+                                )}
                                 {isPending && (
                                   <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
                                     Pending
@@ -688,22 +787,32 @@ export const EnhancedShiftWeekView = () => {
                         (sa: any) => sa.approval_status === 'approved'
                       ) || [];
                       const assignedCount = approvedAssignments.length;
+                      const isUnpublished = !shift.is_published;
                       
                       return (
                         <div
                           key={shift.id}
                           onClick={() => handleEditShift(shift)}
                           style={{
-                            backgroundColor: `${getRoleColor(shift.role)}20`,
-                            borderColor: getRoleColor(shift.role)
+                            backgroundColor: isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
+                            borderColor: isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
                           }}
-                          className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
+                          className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
+                            isUnpublished ? 'opacity-50 border-dashed' : ''
+                          }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="font-medium">{shift.role}</div>
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                              {assignedCount}/{shift.staff_needed || 1}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {isUnpublished && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
+                                  Draft
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                {assignedCount}/{shift.staff_needed || 1}
+                              </Badge>
+                            </div>
                           </div>
                           <div className="text-muted-foreground">
                             {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}

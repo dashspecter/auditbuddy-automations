@@ -155,3 +155,28 @@ export const useDeleteShift = () => {
     },
   });
 };
+
+export const useBulkPublishShifts = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ shiftIds, publish = true }: { shiftIds: string[]; publish?: boolean }) => {
+      if (shiftIds.length === 0) return;
+      
+      const { error } = await supabase
+        .from("shifts")
+        .update({ is_published: publish })
+        .in("id", shiftIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      const action = variables.publish ? "published" : "unpublished";
+      toast.success(`${variables.shiftIds.length} shift(s) ${action} successfully`);
+    },
+    onError: (error) => {
+      toast.error("Failed to publish shifts: " + error.message);
+    },
+  });
+};
