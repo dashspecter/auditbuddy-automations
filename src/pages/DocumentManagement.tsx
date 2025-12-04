@@ -10,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
 import { LocationSelector } from "@/components/LocationSelector";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { Badge } from "@/components/ui/badge";
 
 const DocumentManagement = () => {
   const { user } = useAuth();
@@ -272,7 +273,77 @@ const DocumentManagement = () => {
   };
 
   const knowledgeDocuments = documents.filter(d => d.document_type === "knowledge");
-  const permitContractDocuments = documents.filter(d => d.document_type !== "knowledge");
+  const contractDocuments = documents.filter(d => d.document_type === "contract");
+  const permitDocuments = documents.filter(d => d.document_type === "permit");
+
+  const getRenewalStatus = (renewalDate: string) => {
+    const daysUntil = differenceInDays(new Date(renewalDate), new Date());
+    if (daysUntil < 0) return { label: "Expired", variant: "destructive" as const, urgent: true };
+    if (daysUntil <= 14) return { label: `${daysUntil}d left`, variant: "destructive" as const, urgent: true };
+    if (daysUntil <= 30) return { label: `${daysUntil}d left`, variant: "outline" as const, urgent: false };
+    return { label: `${daysUntil}d left`, variant: "secondary" as const, urgent: false };
+  };
+
+  const renderDocumentCard = (doc: any) => {
+    const renewalStatus = doc.renewal_date ? getRenewalStatus(doc.renewal_date) : null;
+    
+    return (
+      <Card key={doc.id} className={`p-4 ${renewalStatus?.urgent ? 'border-destructive/50' : ''}`}>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-3 flex-1">
+            {doc.document_type === 'contract' ? (
+              <ScrollText className="h-8 w-8 text-green-600" />
+            ) : (
+              <FileCheck className="h-8 w-8 text-blue-600" />
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold truncate">{doc.title}</h3>
+              {doc.location && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>{doc.location.name}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.open(doc.file_url, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+        {doc.renewal_date && renewalStatus && (
+          <div className="flex items-center gap-2 mt-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {format(new Date(doc.renewal_date), "MMM d, yyyy")}
+            </span>
+            <Badge variant={renewalStatus.variant} className="ml-auto">
+              {renewalStatus.urgent && <AlertTriangle className="h-3 w-3 mr-1" />}
+              {renewalStatus.label}
+            </Badge>
+          </div>
+        )}
+        {doc.description && (
+          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{doc.description}</p>
+        )}
+        <p className="text-xs text-muted-foreground mt-2">
+          {Math.round((doc.file_size || 0) / 1024)} KB
+        </p>
+      </Card>
+    );
+  };
 
   return (
     <ModuleGate module="documents">
@@ -442,9 +513,22 @@ const DocumentManagement = () => {
 
           {/* Documents Section with Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="knowledge">Knowledge ({knowledgeDocuments.length})</TabsTrigger>
-              <TabsTrigger value="permits">Permits & Contracts ({permitContractDocuments.length})</TabsTrigger>
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
+              <TabsTrigger value="knowledge" className="gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Knowledge</span>
+                <span className="text-xs">({knowledgeDocuments.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="contracts" className="gap-1.5">
+                <ScrollText className="h-4 w-4" />
+                <span className="hidden sm:inline">Contracts</span>
+                <span className="text-xs">({contractDocuments.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="permits" className="gap-1.5">
+                <FileCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Permits</span>
+                <span className="text-xs">({permitDocuments.length})</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="knowledge" className="space-y-6">
@@ -521,110 +605,100 @@ const DocumentManagement = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="permits" className="space-y-6">
-              {/* Upcoming Renewals Calendar View */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Upcoming Renewals</h2>
-                <div className="grid gap-3">
-                  {upcomingRenewals.slice(0, 5).map((renewal) => (
-                    <Card key={renewal.id} className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 shrink-0">
-                          <CalendarIcon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold truncate">{renewal.title}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              renewal.document_type === 'permit' 
-                                ? 'bg-blue-100 text-blue-700' 
-                                : 'bg-green-100 text-green-700'
-                            }`}>
-                              {renewal.document_type}
-                            </span>
+            <TabsContent value="contracts" className="space-y-6">
+              {/* Upcoming Contract Renewals */}
+              {upcomingRenewals.filter(r => r.document_type === 'contract').length > 0 && (
+                <Card className="p-4 border-yellow-200 bg-yellow-50/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                    <h3 className="font-semibold text-yellow-800">Upcoming Renewals</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {upcomingRenewals.filter(r => r.document_type === 'contract').slice(0, 3).map((renewal) => {
+                      const status = getRenewalStatus(renewal.renewal_date);
+                      return (
+                        <div key={renewal.id} className="flex items-center justify-between p-2 bg-background rounded">
+                          <div className="flex items-center gap-2">
+                            <ScrollText className="h-4 w-4 text-green-600" />
+                            <span className="font-medium">{renewal.title}</span>
+                            <span className="text-sm text-muted-foreground">• {renewal.location_name}</span>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              <span>{renewal.location_name}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <CalendarIcon className="h-3 w-3" />
-                              <span>{format(new Date(renewal.renewal_date), "MMM d, yyyy")}</span>
-                            </div>
-                          </div>
+                          <Badge variant={status.variant}>
+                            {status.urgent && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {format(new Date(renewal.renewal_date), "MMM d")} ({status.label})
+                          </Badge>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                  {upcomingRenewals.length === 0 && (
-                    <p className="text-muted-foreground text-center py-8">
-                      No upcoming renewals scheduled.
-                    </p>
-                  )}
-                </div>
-              </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
 
-              {/* All Permits & Contracts */}
+              {/* All Contracts */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">All Permits & Contracts</h2>
+                <h2 className="text-xl font-semibold">All Contracts</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {permitContractDocuments.map((doc) => (
-                    <Card key={doc.id} className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3 flex-1">
-                          <FileText className="h-8 w-8 text-primary" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold truncate">{doc.title}</h3>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                doc.document_type === 'permit' 
-                                  ? 'bg-blue-100 text-blue-700' 
-                                  : 'bg-green-100 text-green-700'
-                              }`}>
-                                {doc.document_type}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        {doc.location && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span>{doc.location.name}</span>
-                          </div>
-                        )}
-                        {doc.renewal_date && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <CalendarIcon className="h-3 w-3" />
-                            <span>Renews: {format(new Date(doc.renewal_date), "MMM d, yyyy")}</span>
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(doc.file_size / 1024)} KB
-                        </p>
-                      </div>
-                      {doc.description && (
-                        <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
-                      )}
-                    </Card>
-                  ))}
+                  {contractDocuments.map(renderDocumentCard)}
                 </div>
-                {permitContractDocuments.length === 0 && (
+                {contractDocuments.length === 0 && (
                   <EmptyState
-                    icon={CalendarIcon}
-                    title="No Permits or Contracts"
-                    description="No permits or contracts yet. Upload one to get started."
+                    icon={ScrollText}
+                    title="No Contracts"
+                    description="No contracts uploaded yet. Add contracts with renewal dates to track them."
                     action={{
-                      label: "Upload Document",
+                      label: "Upload Contract",
+                      onClick: () => {
+                        setNewDocument({ ...newDocument, documentType: "contract" });
+                        setDocumentDialogOpen(true);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="permits" className="space-y-6">
+              {/* Upcoming Permit Renewals */}
+              {upcomingRenewals.filter(r => r.document_type === 'permit').length > 0 && (
+                <Card className="p-4 border-blue-200 bg-blue-50/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-semibold text-blue-800">Upcoming Renewals</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {upcomingRenewals.filter(r => r.document_type === 'permit').slice(0, 3).map((renewal) => {
+                      const status = getRenewalStatus(renewal.renewal_date);
+                      return (
+                        <div key={renewal.id} className="flex items-center justify-between p-2 bg-background rounded">
+                          <div className="flex items-center gap-2">
+                            <FileCheck className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium">{renewal.title}</span>
+                            <span className="text-sm text-muted-foreground">• {renewal.location_name}</span>
+                          </div>
+                          <Badge variant={status.variant}>
+                            {status.urgent && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {format(new Date(renewal.renewal_date), "MMM d")} ({status.label})
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+
+              {/* All Permits */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">All Permits</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {permitDocuments.map(renderDocumentCard)}
+                </div>
+                {permitDocuments.length === 0 && (
+                  <EmptyState
+                    icon={FileCheck}
+                    title="No Permits"
+                    description="No permits uploaded yet. Add permits with renewal dates to get reminders 2 weeks before expiry."
+                    action={{
+                      label: "Upload Permit",
                       onClick: () => {
                         setNewDocument({ ...newDocument, documentType: "permit" });
                         setDocumentDialogOpen(true);
