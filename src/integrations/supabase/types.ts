@@ -1184,6 +1184,8 @@ export type Database = {
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
+          expected_shifts_per_week: number | null
+          expected_weekly_hours: number | null
           full_name: string
           hire_date: string | null
           hourly_rate: number | null
@@ -1208,6 +1210,8 @@ export type Database = {
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          expected_shifts_per_week?: number | null
+          expected_weekly_hours?: number | null
           full_name: string
           hire_date?: string | null
           hourly_rate?: number | null
@@ -1232,6 +1236,8 @@ export type Database = {
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          expected_shifts_per_week?: number | null
+          expected_weekly_hours?: number | null
           full_name?: string
           hire_date?: string | null
           hourly_rate?: number | null

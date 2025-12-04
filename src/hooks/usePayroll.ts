@@ -62,6 +62,10 @@ export interface PayrollSummaryItem {
   days_worked: number;
   late_count: number;
   total_late_minutes: number;
+  expected_weekly_hours: number | null;
+  expected_shifts_per_week: number | null;
+  extra_shifts: number;
+  missing_shifts: number;
 }
 
 export const usePayrollPeriods = () => {
@@ -126,7 +130,9 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
               id,
               full_name,
               role,
-              hourly_rate
+              hourly_rate,
+              expected_weekly_hours,
+              expected_shifts_per_week
             )
           )
         `)
@@ -225,6 +231,11 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
 export const usePayrollSummary = (startDate?: string, endDate?: string, locationId?: string) => {
   const { data: entries = [], isLoading } = usePayrollFromShifts(startDate, endDate, locationId);
 
+  // Calculate weeks in period
+  const weeksInPeriod = startDate && endDate 
+    ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)))
+    : 1;
+
   const summary = entries.reduce((acc, entry) => {
     const existing = acc.find(e => e.employee_id === entry.employee_id);
     if (existing) {
@@ -250,18 +261,33 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         days_worked: 1,
         late_count: entry.is_late ? 1 : 0,
         total_late_minutes: entry.late_minutes,
+        expected_weekly_hours: (entry as any).expected_weekly_hours || null,
+        expected_shifts_per_week: (entry as any).expected_shifts_per_week || null,
+        extra_shifts: 0,
+        missing_shifts: 0,
       });
     }
     return acc;
   }, [] as PayrollSummaryItem[]);
 
-  // Calculate overtime/undertime for each employee
+  // Calculate overtime/undertime and extra/missing shifts for each employee
   summary.forEach(item => {
     const diff = item.actual_hours - item.scheduled_hours;
     if (diff > 0) {
       item.overtime_hours = diff;
     } else if (diff < 0 && item.actual_hours > 0) {
       item.undertime_hours = Math.abs(diff);
+    }
+    
+    // Calculate extra/missing shifts based on expected shifts per week
+    if (item.expected_shifts_per_week) {
+      const expectedShiftsForPeriod = item.expected_shifts_per_week * weeksInPeriod;
+      const shiftDiff = item.days_worked - expectedShiftsForPeriod;
+      if (shiftDiff > 0) {
+        item.extra_shifts = shiftDiff;
+      } else if (shiftDiff < 0) {
+        item.missing_shifts = Math.abs(shiftDiff);
+      }
     }
   });
 
@@ -290,7 +316,7 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     shift_count: number;
   }>);
 
-  return { data: summary, entries, locationSummary, isLoading };
+  return { data: summary, entries, locationSummary, isLoading, weeksInPeriod };
 };
 
 export const useCreatePayrollPeriod = () => {

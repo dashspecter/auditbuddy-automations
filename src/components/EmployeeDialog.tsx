@@ -49,6 +49,8 @@ export const EmployeeDialog = ({
     hire_date: "",
     base_salary: "",
     hourly_rate: "",
+    expected_weekly_hours: "",
+    expected_shifts_per_week: "",
     emergency_contact_name: "",
     emergency_contact_phone: "",
     notes: "",
@@ -81,6 +83,8 @@ export const EmployeeDialog = ({
         hire_date: employee.hire_date || "",
         base_salary: employee.base_salary?.toString() || "",
         hourly_rate: employee.hourly_rate?.toString() || "",
+        expected_weekly_hours: employee.expected_weekly_hours?.toString() || "",
+        expected_shifts_per_week: employee.expected_shifts_per_week?.toString() || "",
         emergency_contact_name: employee.emergency_contact_name || "",
         emergency_contact_phone: employee.emergency_contact_phone || "",
         notes: employee.notes || "",
@@ -97,6 +101,8 @@ export const EmployeeDialog = ({
         hire_date: "",
         base_salary: "",
         hourly_rate: "",
+        expected_weekly_hours: "",
+        expected_shifts_per_week: "",
         emergency_contact_name: "",
         emergency_contact_phone: "",
         notes: "",
@@ -144,6 +150,8 @@ export const EmployeeDialog = ({
       ...formData,
       base_salary: formData.base_salary ? parseFloat(formData.base_salary) : null,
       hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+      expected_weekly_hours: formData.expected_weekly_hours ? parseFloat(formData.expected_weekly_hours) : null,
+      expected_shifts_per_week: formData.expected_shifts_per_week ? parseInt(formData.expected_shifts_per_week) : null,
       email: formData.email || null,
       phone: formData.phone || null,
       hire_date: formData.hire_date || null,
@@ -319,6 +327,32 @@ export const EmployeeDialog = ({
                 value={formData.hourly_rate}
                 onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
                 placeholder="Per hour"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
+              <Input
+                id="expected_weekly_hours"
+                type="number"
+                step="0.5"
+                value={formData.expected_weekly_hours}
+                onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })}
+                placeholder="e.g. 40"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
+              <Input
+                id="expected_shifts_per_week"
+                type="number"
+                step="1"
+                value={formData.expected_shifts_per_week}
+                onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })}
+                placeholder="e.g. 5"
               />
             </div>
           </div>
