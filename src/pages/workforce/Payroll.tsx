@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Calendar, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope } from "lucide-react";
+import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
@@ -373,6 +373,23 @@ const Payroll = () => {
                                         )}
                                       </div>
                                     </div>
+                                    
+                                    {/* Future/Scheduled Shifts */}
+                                    {item.future_dates.length > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2 font-medium text-slate-600">
+                                          <CalendarDays className="h-4 w-4" />
+                                          Scheduled ({item.future_dates.length})
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {item.future_dates.map(date => (
+                                            <Badge key={date} variant="outline" className="text-xs bg-slate-50 border-slate-200 text-slate-600">
+                                              {format(parseISO(date), "MMM d")}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                     
                                     {/* Vacation Days */}
                                     <div className="space-y-2">
