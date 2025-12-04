@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
@@ -150,6 +150,12 @@ const EmployeePerformance = () => {
                     {employee.task_score}
                   </div>
                 </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Tests</div>
+                  <div className={`font-medium ${getScoreColor(employee.test_score)}`}>
+                    {employee.test_score}
+                  </div>
+                </div>
               </div>
               
               <div className={`flex items-center justify-center w-14 h-14 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
@@ -170,7 +176,7 @@ const EmployeePerformance = () => {
         <CollapsibleContent>
           <div className="px-4 pb-4 ml-12 space-y-4">
             {/* Score breakdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1">
@@ -240,6 +246,31 @@ const EmployeePerformance = () => {
                     <span className="text-red-600 ml-1">
                       ({employee.tasks_overdue} overdue)
                     </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-4 w-4 text-purple-500" />
+                    Tests
+                  </span>
+                  <span className={`font-medium ${getScoreColor(employee.test_score)}`}>
+                    {employee.test_score}/100
+                  </span>
+                </div>
+                <Progress 
+                  value={employee.test_score} 
+                  className={`h-2 [&>div]:${getProgressColor(employee.test_score)}`}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {employee.tests_taken > 0 ? (
+                    <>
+                      {employee.tests_passed}/{employee.tests_taken} passed (avg: {employee.average_test_score}%)
+                    </>
+                  ) : (
+                    "No tests taken"
                   )}
                 </div>
               </div>

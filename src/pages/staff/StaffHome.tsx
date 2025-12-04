@@ -14,6 +14,8 @@ import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSect
 import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
 import { useMyTasks } from "@/hooks/useTasks";
 import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
+import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeaderboard";
+import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 
 const StaffHome = () => {
   const { user } = useAuth();
@@ -307,6 +309,17 @@ const StaffHome = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Pending Tests */}
+        {employee && <PendingTestsCard employeeId={employee.id} />}
+
+        {/* Location Leaderboard */}
+        {employee && (
+          <StaffLocationLeaderboard
+            locationId={employee.location_id}
+            currentEmployeeId={employee.id}
+          />
         )}
 
         {/* Quick Actions */}

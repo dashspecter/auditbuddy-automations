@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Users, Clock, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, MapPin, Calendar } from "lucide-react";
+import { Trophy, Medal, Users, Clock, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, MapPin, Calendar, FileText } from "lucide-react";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { usePayrollSummary } from "@/hooks/usePayroll";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
@@ -95,6 +95,13 @@ export const WorkforceAnalytics = ({ locationId, period = "month" }: WorkforceAn
     ? Math.round(allScores.reduce((sum, s) => sum + s.task_score, 0) / allScores.length)
     : 0;
 
+  const avgTestScore = allScores.length > 0
+    ? Math.round(allScores.reduce((sum, s) => sum + s.test_score, 0) / allScores.length)
+    : 0;
+
+  const totalTestsTaken = allScores.reduce((sum, s) => sum + s.tests_taken, 0);
+  const totalTestsPassed = allScores.reduce((sum, s) => sum + s.tests_passed, 0);
+
   const totalLateArrivals = allScores.reduce((sum, s) => sum + s.late_count, 0);
   const totalMissedShifts = allScores.reduce((sum, s) => sum + s.shifts_missed, 0);
   const totalTasksOverdue = allScores.reduce((sum, s) => sum + s.tasks_overdue, 0);
@@ -186,7 +193,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month" }: WorkforceAn
       </div>
 
       {/* Score Breakdown */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -238,6 +245,24 @@ export const WorkforceAnalytics = ({ locationId, period = "month" }: WorkforceAn
               </span>
             </div>
             <Progress value={avgTaskScore} className="h-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-purple-500" />
+              Test Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-2xl font-bold">{avgTestScore}%</span>
+              <span className="text-sm text-muted-foreground">
+                {totalTestsPassed}/{totalTestsTaken} passed
+              </span>
+            </div>
+            <Progress value={avgTestScore} className="h-2" />
           </CardContent>
         </Card>
       </div>
