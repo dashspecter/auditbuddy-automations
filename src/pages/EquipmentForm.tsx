@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -181,26 +180,21 @@ export default function EquipmentForm() {
 
   if (isLoading && isEditing) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </CardContent>
-          </Card>
-        </main>
+      <div className="container mx-auto p-4 md:p-6">
+        <Skeleton className="h-10 w-48 mb-6" />
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
         <Button variant="ghost" onClick={() => navigate("/equipment")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Equipment List
@@ -542,7 +536,6 @@ export default function EquipmentForm() {
             </div>
           </form>
         </Form>
-      </main>
     </div>
   );
 }
