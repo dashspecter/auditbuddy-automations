@@ -13,6 +13,7 @@ export interface EmployeePerformanceScore {
   attendance_score: number;
   punctuality_score: number;
   task_score: number;
+  test_score: number;
   // Overall score (0-100)
   overall_score: number;
   // Raw metrics
@@ -25,6 +26,10 @@ export interface EmployeePerformanceScore {
   tasks_completed: number;
   tasks_completed_on_time: number;
   tasks_overdue: number;
+  // Test metrics
+  tests_taken: number;
+  tests_passed: number;
+  average_test_score: number;
 }
 
 export const useEmployeePerformance = (
@@ -105,6 +110,16 @@ export const useEmployeePerformance = (
       const { data: tasks, error: tasksError } = await tasksQuery;
       if (tasksError) throw tasksError;
 
+      // Get test submissions for the period
+      const { data: testSubmissions, error: testError } = await supabase
+        .from("test_submissions")
+        .select("id, employee_id, score, passed, completed_at")
+        .gte("completed_at", `${startDate}T00:00:00`)
+        .lte("completed_at", `${endDate}T23:59:59`)
+        .not("employee_id", "is", null);
+
+      if (testError) throw testError;
+
       // Calculate performance for each employee
       const performanceScores: EmployeePerformanceScore[] = [];
 
@@ -169,6 +184,16 @@ export const useEmployeePerformance = (
           (t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date()
         ).length;
 
+        // Calculate test metrics
+        const employeeTests = (testSubmissions || []).filter(
+          (sub) => sub.employee_id === employeeId
+        );
+        const testsTaken = employeeTests.length;
+        const testsPassed = employeeTests.filter((t) => t.passed).length;
+        const averageTestScore = testsTaken > 0
+          ? Math.round(employeeTests.reduce((sum, t) => sum + (t.score || 0), 0) / testsTaken)
+          : 0;
+
         // Calculate component scores (0-100)
         // Attendance score: % of scheduled shifts worked
         const attendanceScore =
@@ -192,9 +217,12 @@ export const useEmployeePerformance = (
             ? Math.round((tasksCompletedOnTime / tasksAssigned) * 100)
             : 100; // Perfect score if no tasks assigned
 
-        // Overall score: Equal weight (33.33% each)
+        // Test score: Average test score if tests taken, otherwise neutral (doesn't hurt)
+        const testScore = testsTaken > 0 ? averageTestScore : 100;
+
+        // Overall score: Equal weight (25% each)
         const overallScore = Math.round(
-          (attendanceScore + punctualityScore + taskScore) / 3
+          (attendanceScore + punctualityScore + taskScore + testScore) / 4
         );
 
         performanceScores.push({
@@ -207,6 +235,7 @@ export const useEmployeePerformance = (
           attendance_score: attendanceScore,
           punctuality_score: punctualityScore,
           task_score: taskScore,
+          test_score: testScore,
           overall_score: overallScore,
           shifts_scheduled: shiftsScheduled,
           shifts_worked: shiftsWithAttendance,
@@ -217,6 +246,9 @@ export const useEmployeePerformance = (
           tasks_completed: tasksCompleted,
           tasks_completed_on_time: tasksCompletedOnTime,
           tasks_overdue: tasksOverdue,
+          tests_taken: testsTaken,
+          tests_passed: testsPassed,
+          average_test_score: averageTestScore,
         });
       }
 
