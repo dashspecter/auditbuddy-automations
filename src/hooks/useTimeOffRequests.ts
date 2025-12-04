@@ -10,6 +10,8 @@ export interface TimeOffRequest {
   end_date: string;
   status: string;
   reason: string | null;
+  request_type: string | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
   approved_by: string | null;

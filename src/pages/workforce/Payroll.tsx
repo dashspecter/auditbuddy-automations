@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Calendar, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { Coins, Calendar, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod } from "@/hooks/usePayroll";
+import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
+import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
 import { PayPeriodDialog } from "@/components/workforce/PayPeriodDialog";
-import { format } from "date-fns";
+import { format, parseISO, eachDayOfInterval, isWithinInterval } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -21,6 +23,7 @@ import {
 const Payroll = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
   const { data: periods = [], isLoading: periodsLoading } = usePayrollPeriods();
   const { data: locations = [] } = useLocations();
   const createPeriod = useCreatePayrollPeriod();
@@ -34,6 +37,52 @@ const Payroll = () => {
     activePeriod?.end_date,
     locationFilter
   );
+
+  // Fetch time off requests for the period
+  const { data: timeOffRequests = [] } = useTimeOffRequests(
+    activePeriod?.start_date,
+    activePeriod?.end_date
+  );
+
+  // Calculate time off dates for each employee
+  const getEmployeeTimeOff = (employeeId: string) => {
+    const employeeTimeOff = timeOffRequests.filter(
+      req => req.employee_id === employeeId && req.status === 'approved'
+    );
+    
+    const vacationDates: string[] = [];
+    const medicalDates: string[] = [];
+    const otherLeaveDates: string[] = [];
+    
+    employeeTimeOff.forEach(req => {
+      const days = eachDayOfInterval({
+        start: parseISO(req.start_date),
+        end: parseISO(req.end_date)
+      }).map(d => format(d, 'yyyy-MM-dd'));
+      
+      if (req.request_type === 'vacation' || !req.request_type) {
+        vacationDates.push(...days);
+      } else if (req.request_type === 'medical' || req.request_type === 'sick') {
+        medicalDates.push(...days);
+      } else {
+        otherLeaveDates.push(...days);
+      }
+    });
+    
+    return { vacationDates, medicalDates, otherLeaveDates };
+  };
+
+  const toggleExpanded = (employeeId: string) => {
+    setExpandedEmployees(prev => {
+      const next = new Set(prev);
+      if (next.has(employeeId)) {
+        next.delete(employeeId);
+      } else {
+        next.add(employeeId);
+      }
+      return next;
+    });
+  };
   
   const currentPeriodTotal = payrollSummary.reduce((sum, item) => sum + item.total_amount, 0);
   const totalScheduledHours = payrollSummary.reduce((sum, item) => sum + item.scheduled_hours, 0);
@@ -189,86 +238,212 @@ const Payroll = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8"></TableHead>
                         <TableHead>Employee</TableHead>
                         <TableHead>Role</TableHead>
-                        <TableHead>Days</TableHead>
-                        <TableHead>Expected</TableHead>
-                        <TableHead>Shifts +/-</TableHead>
-                        <TableHead>Scheduled</TableHead>
-                        <TableHead>Actual</TableHead>
-                        <TableHead>Hours +/-</TableHead>
+                        <TableHead>Worked</TableHead>
+                        <TableHead>Missed</TableHead>
+                        <TableHead>Leave</TableHead>
+                        <TableHead>Hours</TableHead>
                         <TableHead>Late</TableHead>
-                        <TableHead>Rate</TableHead>
                         <TableHead className="text-right">Total Pay</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payrollSummary.map((item) => (
-                        <TableRow key={item.employee_id}>
-                          <TableCell className="font-medium">{item.employee_name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{item.role}</Badge>
-                          </TableCell>
-                          <TableCell>{item.days_worked}</TableCell>
-                          <TableCell>
-                            {item.expected_shifts_per_week ? (
-                              <span className="text-muted-foreground">{item.expected_shifts_per_week}/wk</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
+                      {payrollSummary.map((item) => {
+                        const timeOff = getEmployeeTimeOff(item.employee_id);
+                        const isExpanded = expandedEmployees.has(item.employee_id);
+                        
+                        return (
+                          <>
+                            <TableRow 
+                              key={item.employee_id} 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => toggleExpanded(item.employee_id)}
+                            >
+                              <TableCell className="w-8">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">{item.employee_name}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{item.role}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="default" className="bg-green-500">
+                                  {item.worked_dates.length}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {item.missed_dates.length > 0 ? (
+                                  <Badge variant="destructive">{item.missed_dates.length}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">0</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {(timeOff.vacationDates.length + timeOff.medicalDates.length + timeOff.otherLeaveDates.length) > 0 ? (
+                                  <div className="flex gap-1">
+                                    {timeOff.vacationDates.length > 0 && (
+                                      <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                        <Palmtree className="h-3 w-3 mr-1" />
+                                        {timeOff.vacationDates.length}
+                                      </Badge>
+                                    )}
+                                    {timeOff.medicalDates.length > 0 && (
+                                      <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                        <Stethoscope className="h-3 w-3 mr-1" />
+                                        {timeOff.medicalDates.length}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">0</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <span>{item.actual_hours.toFixed(1)}h</span>
+                                  {item.overtime_hours > 0 && (
+                                    <Badge variant="default" className="bg-green-500 text-xs">
+                                      +{item.overtime_hours.toFixed(1)}
+                                    </Badge>
+                                  )}
+                                  {item.undertime_hours > 0 && (
+                                    <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
+                                      -{item.undertime_hours.toFixed(1)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {item.late_count > 0 ? (
+                                  <Badge variant="destructive">{item.late_count}x</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                {item.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei
+                              </TableCell>
+                            </TableRow>
+                            
+                            {/* Expanded details row */}
+                            {isExpanded && (
+                              <TableRow key={`${item.employee_id}-details`} className="bg-muted/30">
+                                <TableCell colSpan={9} className="p-4">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    {/* Worked Shifts */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 font-medium text-green-700">
+                                        <Briefcase className="h-4 w-4" />
+                                        Worked Shifts ({item.worked_dates.length})
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {item.worked_dates.length > 0 ? (
+                                          item.worked_dates.map(date => (
+                                            <Badge key={date} variant="outline" className="text-xs bg-green-50 border-green-200">
+                                              {format(parseISO(date), "MMM d")}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">No shifts worked</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Missed Shifts */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 font-medium text-red-700">
+                                        <X className="h-4 w-4" />
+                                        Missed Shifts ({item.missed_dates.length})
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {item.missed_dates.length > 0 ? (
+                                          item.missed_dates.map(date => (
+                                            <Badge key={date} variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700">
+                                              {format(parseISO(date), "MMM d")}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">No missed shifts</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Vacation Days */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 font-medium text-blue-700">
+                                        <Palmtree className="h-4 w-4" />
+                                        Vacation ({timeOff.vacationDates.length})
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {timeOff.vacationDates.length > 0 ? (
+                                          timeOff.vacationDates.map(date => (
+                                            <Badge key={date} variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">
+                                              {format(parseISO(date), "MMM d")}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">No vacation days</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Medical Leave */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 font-medium text-purple-700">
+                                        <Stethoscope className="h-4 w-4" />
+                                        Medical Leave ({timeOff.medicalDates.length})
+                                      </div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {timeOff.medicalDates.length > 0 ? (
+                                          timeOff.medicalDates.map(date => (
+                                            <Badge key={date} variant="outline" className="text-xs bg-purple-50 border-purple-200 text-purple-700">
+                                              {format(parseISO(date), "MMM d")}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">No medical leave</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Additional stats */}
+                                  <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                    <span>Scheduled: {item.scheduled_hours.toFixed(1)}h</span>
+                                    <span>Actual: {item.actual_hours.toFixed(1)}h</span>
+                                    <span>Rate: {item.hourly_rate} Lei/hr</span>
+                                    {item.expected_shifts_per_week && (
+                                      <span>Expected: {item.expected_shifts_per_week} shifts/week</span>
+                                    )}
+                                    {item.late_count > 0 && (
+                                      <span className="text-orange-600">Late: {item.late_count}x ({item.total_late_minutes}m total)</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            {item.extra_shifts > 0 && (
-                              <Badge variant="default" className="bg-green-500">
-                                +{item.extra_shifts}
-                              </Badge>
-                            )}
-                            {item.missing_shifts > 0 && (
-                              <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                                -{item.missing_shifts}
-                              </Badge>
-                            )}
-                            {item.extra_shifts === 0 && item.missing_shifts === 0 && (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>{item.scheduled_hours.toFixed(1)}h</TableCell>
-                          <TableCell>{item.actual_hours.toFixed(1)}h</TableCell>
-                          <TableCell>
-                            {item.overtime_hours > 0 && (
-                              <Badge variant="default" className="bg-green-500">
-                                +{item.overtime_hours.toFixed(1)}h
-                              </Badge>
-                            )}
-                            {item.undertime_hours > 0 && (
-                              <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                                -{item.undertime_hours.toFixed(1)}h
-                              </Badge>
-                            )}
-                            {item.overtime_hours === 0 && item.undertime_hours === 0 && (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {item.late_count > 0 ? (
-                              <Badge variant="destructive">{item.late_count}x ({item.total_late_minutes}m)</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>{item.hourly_rate} Lei/hr</TableCell>
-                          <TableCell className="text-right font-bold">
-                            {item.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </>
+                        );
+                      })}
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={5} className="font-bold">Total</TableCell>
-                        <TableCell className="font-bold">{totalScheduledHours.toFixed(1)}h</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-bold">Total</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-bold">
+                          {payrollSummary.reduce((s, i) => s + i.worked_dates.length, 0)}
+                        </TableCell>
+                        <TableCell className="font-bold">
+                          {payrollSummary.reduce((s, i) => s + i.missed_dates.length, 0)}
+                        </TableCell>
+                        <TableCell></TableCell>
                         <TableCell className="font-bold">{totalActualHours.toFixed(1)}h</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell className="font-bold">{totalLateCount}x</TableCell>
                         <TableCell className="text-right font-bold text-lg">
                           {currentPeriodTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei
                         </TableCell>

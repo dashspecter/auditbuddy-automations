@@ -68,6 +68,12 @@ export interface PayrollSummaryItem {
   expected_shifts_per_week: number | null;
   extra_shifts: number;
   missing_shifts: number;
+  // Detailed breakdown with dates
+  worked_dates: string[];
+  missed_dates: string[];
+  vacation_dates: string[];
+  medical_dates: string[];
+  other_leave_dates: string[];
 }
 
 export const usePayrollPeriods = () => {
@@ -256,14 +262,26 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
 
   const summary = entries.reduce((acc, entry) => {
     const existing = acc.find(e => e.employee_id === entry.employee_id);
+    
+    // Determine if shift was worked (has actual hours and not missed)
+    const wasWorked = entry.actual_hours > 0 && !entry.is_missed;
+    const wasMissed = entry.is_missed;
+    
     if (existing) {
       existing.scheduled_hours += entry.scheduled_hours;
       existing.actual_hours += entry.actual_hours;
       existing.total_amount += entry.daily_amount;
-      existing.days_worked += 1;
+      existing.days_worked += wasWorked ? 1 : 0;
       if (entry.is_late) {
         existing.late_count += 1;
         existing.total_late_minutes += entry.late_minutes;
+      }
+      // Track dates
+      if (wasWorked && !existing.worked_dates.includes(entry.date)) {
+        existing.worked_dates.push(entry.date);
+      }
+      if (wasMissed && !existing.missed_dates.includes(entry.date)) {
+        existing.missed_dates.push(entry.date);
       }
     } else {
       acc.push({
@@ -276,13 +294,18 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         overtime_hours: 0,
         undertime_hours: 0,
         total_amount: entry.daily_amount,
-        days_worked: 1,
+        days_worked: wasWorked ? 1 : 0,
         late_count: entry.is_late ? 1 : 0,
         total_late_minutes: entry.late_minutes,
         expected_weekly_hours: (entry as any).expected_weekly_hours || null,
         expected_shifts_per_week: (entry as any).expected_shifts_per_week || null,
         extra_shifts: 0,
         missing_shifts: 0,
+        worked_dates: wasWorked ? [entry.date] : [],
+        missed_dates: wasMissed ? [entry.date] : [],
+        vacation_dates: [],
+        medical_dates: [],
+        other_leave_dates: [],
       });
     }
     return acc;
@@ -307,6 +330,10 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         item.missing_shifts = Math.abs(shiftDiff);
       }
     }
+    
+    // Sort dates
+    item.worked_dates.sort();
+    item.missed_dates.sort();
   });
 
   // Aggregate by location
