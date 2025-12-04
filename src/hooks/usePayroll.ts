@@ -37,10 +37,31 @@ export interface DailyPayrollEntry {
   employee_name: string;
   role: string;
   date: string;
-  hours: number;
+  scheduled_hours: number;
+  actual_hours: number;
   hourly_rate: number;
   daily_amount: number;
   shift_id: string;
+  location_id: string;
+  location_name: string;
+  is_late: boolean;
+  late_minutes: number;
+  auto_clocked_out: boolean;
+}
+
+export interface PayrollSummaryItem {
+  employee_id: string;
+  employee_name: string;
+  role: string;
+  hourly_rate: number;
+  scheduled_hours: number;
+  actual_hours: number;
+  overtime_hours: number;
+  undertime_hours: number;
+  total_amount: number;
+  days_worked: number;
+  late_count: number;
+  total_late_minutes: number;
 }
 
 export const usePayrollPeriods = () => {
@@ -79,15 +100,15 @@ export const usePayrollItems = (periodId?: string) => {
   });
 };
 
-// Calculate payroll from shifts data
-export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
+// Calculate payroll from shifts data with attendance comparison
+export const usePayrollFromShifts = (startDate?: string, endDate?: string, locationId?: string) => {
   return useQuery({
-    queryKey: ["payroll-from-shifts", startDate, endDate],
+    queryKey: ["payroll-from-shifts", startDate, endDate, locationId],
     queryFn: async () => {
       if (!startDate || !endDate) return [];
 
       // Get shifts within the date range with their assignments
-      const { data: shifts, error: shiftsError } = await supabase
+      let shiftsQuery = supabase
         .from("shifts")
         .select(`
           id,
@@ -96,6 +117,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
           end_time,
           role,
           location_id,
+          locations(name),
           shift_assignments!inner(
             id,
             staff_id,
@@ -112,9 +134,23 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
         .lte("shift_date", endDate)
         .eq("shift_assignments.approval_status", "approved");
 
+      if (locationId) {
+        shiftsQuery = shiftsQuery.eq("location_id", locationId);
+      }
+
+      const { data: shifts, error: shiftsError } = await shiftsQuery;
       if (shiftsError) throw shiftsError;
 
-      // Calculate daily payroll entries
+      // Get attendance logs for the period
+      const { data: attendanceLogs, error: attendanceError } = await supabase
+        .from("attendance_logs")
+        .select("*")
+        .gte("check_in_at", `${startDate}T00:00:00`)
+        .lte("check_in_at", `${endDate}T23:59:59`);
+
+      if (attendanceError) throw attendanceError;
+
+      // Calculate daily payroll entries with actual vs scheduled comparison
       const payrollEntries: DailyPayrollEntry[] = [];
 
       for (const shift of shifts || []) {
@@ -122,7 +158,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
           const employee = assignment.employees;
           if (!employee) continue;
 
-          // Calculate hours from shift times
+          // Calculate scheduled hours from shift times
           const startTime = parseISO(`${shift.shift_date}T${shift.start_time}`);
           let endTime = parseISO(`${shift.shift_date}T${shift.end_time}`);
           
@@ -131,20 +167,50 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
             endTime = new Date(endTime.getTime() + 24 * 60 * 60 * 1000);
           }
           
-          const minutes = differenceInMinutes(endTime, startTime);
-          const hours = minutes / 60;
+          const scheduledMinutes = differenceInMinutes(endTime, startTime);
+          const scheduledHours = scheduledMinutes / 60;
+          
+          // Find matching attendance log
+          const attendanceLog = attendanceLogs?.find(
+            log => log.staff_id === employee.id && log.shift_id === shift.id
+          );
+
+          let actualHours = 0;
+          let isLate = false;
+          let lateMinutes = 0;
+          let autoClockedOut = false;
+
+          if (attendanceLog) {
+            isLate = attendanceLog.is_late || false;
+            lateMinutes = attendanceLog.late_minutes || 0;
+            autoClockedOut = attendanceLog.auto_clocked_out || false;
+            
+            if (attendanceLog.check_out_at) {
+              const checkIn = new Date(attendanceLog.check_in_at);
+              const checkOut = new Date(attendanceLog.check_out_at);
+              actualHours = differenceInMinutes(checkOut, checkIn) / 60;
+            }
+          }
+
           const hourlyRate = employee.hourly_rate || 0;
-          const dailyAmount = hours * hourlyRate;
+          // Pay based on actual hours worked (or scheduled if no attendance)
+          const dailyAmount = (actualHours > 0 ? actualHours : scheduledHours) * hourlyRate;
 
           payrollEntries.push({
             employee_id: employee.id,
             employee_name: employee.full_name,
             role: employee.role || shift.role,
             date: shift.shift_date,
-            hours,
+            scheduled_hours: scheduledHours,
+            actual_hours: actualHours,
             hourly_rate: hourlyRate,
             daily_amount: dailyAmount,
             shift_id: shift.id,
+            location_id: shift.location_id,
+            location_name: (shift.locations as any)?.name || 'Unknown',
+            is_late: isLate,
+            late_minutes: lateMinutes,
+            auto_clocked_out: autoClockedOut,
           });
         }
       }
@@ -155,39 +221,76 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string) => {
   });
 };
 
-// Aggregate payroll by employee
-export const usePayrollSummary = (startDate?: string, endDate?: string) => {
-  const { data: entries = [], isLoading } = usePayrollFromShifts(startDate, endDate);
+// Aggregate payroll by employee with overtime/undertime
+export const usePayrollSummary = (startDate?: string, endDate?: string, locationId?: string) => {
+  const { data: entries = [], isLoading } = usePayrollFromShifts(startDate, endDate, locationId);
 
   const summary = entries.reduce((acc, entry) => {
     const existing = acc.find(e => e.employee_id === entry.employee_id);
     if (existing) {
-      existing.total_hours += entry.hours;
+      existing.scheduled_hours += entry.scheduled_hours;
+      existing.actual_hours += entry.actual_hours;
       existing.total_amount += entry.daily_amount;
       existing.days_worked += 1;
+      if (entry.is_late) {
+        existing.late_count += 1;
+        existing.total_late_minutes += entry.late_minutes;
+      }
     } else {
       acc.push({
         employee_id: entry.employee_id,
         employee_name: entry.employee_name,
         role: entry.role,
         hourly_rate: entry.hourly_rate,
-        total_hours: entry.hours,
+        scheduled_hours: entry.scheduled_hours,
+        actual_hours: entry.actual_hours,
+        overtime_hours: 0,
+        undertime_hours: 0,
         total_amount: entry.daily_amount,
         days_worked: 1,
+        late_count: entry.is_late ? 1 : 0,
+        total_late_minutes: entry.late_minutes,
+      });
+    }
+    return acc;
+  }, [] as PayrollSummaryItem[]);
+
+  // Calculate overtime/undertime for each employee
+  summary.forEach(item => {
+    const diff = item.actual_hours - item.scheduled_hours;
+    if (diff > 0) {
+      item.overtime_hours = diff;
+    } else if (diff < 0 && item.actual_hours > 0) {
+      item.undertime_hours = Math.abs(diff);
+    }
+  });
+
+  // Aggregate by location
+  const locationSummary = entries.reduce((acc, entry) => {
+    const existing = acc.find(l => l.location_id === entry.location_id);
+    if (existing) {
+      existing.total_hours += entry.actual_hours || entry.scheduled_hours;
+      existing.total_amount += entry.daily_amount;
+      existing.shift_count += 1;
+    } else {
+      acc.push({
+        location_id: entry.location_id,
+        location_name: entry.location_name,
+        total_hours: entry.actual_hours || entry.scheduled_hours,
+        total_amount: entry.daily_amount,
+        shift_count: 1,
       });
     }
     return acc;
   }, [] as Array<{
-    employee_id: string;
-    employee_name: string;
-    role: string;
-    hourly_rate: number;
+    location_id: string;
+    location_name: string;
     total_hours: number;
     total_amount: number;
-    days_worked: number;
+    shift_count: number;
   }>);
 
-  return { data: summary, entries, isLoading };
+  return { data: summary, entries, locationSummary, isLoading };
 };
 
 export const useCreatePayrollPeriod = () => {
