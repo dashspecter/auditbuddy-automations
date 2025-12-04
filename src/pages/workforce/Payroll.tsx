@@ -558,10 +558,10 @@ const Payroll = () => {
                             {entry.actual_hours > 0 ? `${entry.actual_hours.toFixed(1)}h` : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-wrap">
                               {entry.is_missed && (
-                                <Badge variant="destructive" className="text-xs bg-red-600">
-                                  Missed
+                                <Badge variant="destructive" className="text-xs">
+                                  Missed (No pay)
                                 </Badge>
                               )}
                               {entry.is_late && !entry.is_missed && (
@@ -573,15 +573,24 @@ const Payroll = () => {
                                 <Badge variant="secondary" className="text-xs">Auto</Badge>
                               )}
                               {!entry.is_late && !entry.auto_clocked_out && entry.actual_hours > 0 && !entry.is_missed && (
-                                <Badge variant="outline" className="text-xs">OK</Badge>
+                                <Badge variant="outline" className="text-xs text-green-600 border-green-300">Checked in</Badge>
                               )}
-                              {entry.actual_hours === 0 && !entry.is_missed && (
-                                <Badge variant="secondary" className="text-xs">No attendance</Badge>
+                              {entry.actual_hours === 0 && !entry.is_missed && !entry.requires_checkin && (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">No tracking</Badge>
+                              )}
+                              {entry.actual_hours === 0 && !entry.is_missed && entry.requires_checkin && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Missed (No pay)
+                                </Badge>
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {entry.daily_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei
+                            {entry.is_missed ? (
+                              <span className="text-red-600">0.00 Lei</span>
+                            ) : (
+                              <span>{entry.daily_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
