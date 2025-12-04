@@ -192,9 +192,11 @@ const Payroll = () => {
                         <TableHead>Employee</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Days</TableHead>
+                        <TableHead>Expected</TableHead>
+                        <TableHead>Shifts +/-</TableHead>
                         <TableHead>Scheduled</TableHead>
                         <TableHead>Actual</TableHead>
-                        <TableHead>+/-</TableHead>
+                        <TableHead>Hours +/-</TableHead>
                         <TableHead>Late</TableHead>
                         <TableHead>Rate</TableHead>
                         <TableHead className="text-right">Total Pay</TableHead>
@@ -208,6 +210,28 @@ const Payroll = () => {
                             <Badge variant="outline">{item.role}</Badge>
                           </TableCell>
                           <TableCell>{item.days_worked}</TableCell>
+                          <TableCell>
+                            {item.expected_shifts_per_week ? (
+                              <span className="text-muted-foreground">{item.expected_shifts_per_week}/wk</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {item.extra_shifts > 0 && (
+                              <Badge variant="default" className="bg-green-500">
+                                +{item.extra_shifts}
+                              </Badge>
+                            )}
+                            {item.missing_shifts > 0 && (
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                                -{item.missing_shifts}
+                              </Badge>
+                            )}
+                            {item.extra_shifts === 0 && item.missing_shifts === 0 && (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                           <TableCell>{item.scheduled_hours.toFixed(1)}h</TableCell>
                           <TableCell>{item.actual_hours.toFixed(1)}h</TableCell>
                           <TableCell>
@@ -239,7 +263,7 @@ const Payroll = () => {
                         </TableRow>
                       ))}
                       <TableRow className="bg-muted/50">
-                        <TableCell colSpan={3} className="font-bold">Total</TableCell>
+                        <TableCell colSpan={5} className="font-bold">Total</TableCell>
                         <TableCell className="font-bold">{totalScheduledHours.toFixed(1)}h</TableCell>
                         <TableCell className="font-bold">{totalActualHours.toFixed(1)}h</TableCell>
                         <TableCell></TableCell>
