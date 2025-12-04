@@ -414,26 +414,30 @@ const Payroll = () => {
                                   </div>
                                   
                                   {/* Extra/Missing Shifts Info */}
-                                  {(item.extra_shifts > 0 || item.missing_shifts > 0) && (
-                                    <div className="mt-4 pt-4 border-t">
-                                      <div className="flex flex-wrap gap-4">
-                                        {item.extra_shifts > 0 && (
-                                          <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
-                                            <TrendingUp className="h-4 w-4" />
-                                            <span className="font-medium">{item.extra_shifts} Extra Shifts</span>
-                                            <span className="text-xs text-green-600">(above expected {item.expected_shifts_per_week}/week)</span>
-                                          </div>
-                                        )}
-                                        {item.missing_shifts > 0 && (
-                                          <div className="flex items-center gap-2 text-orange-700 bg-orange-50 px-3 py-2 rounded-lg">
-                                            <TrendingDown className="h-4 w-4" />
-                                            <span className="font-medium">{item.missing_shifts} Missing Shifts</span>
-                                            <span className="text-xs text-orange-600">(below expected {item.expected_shifts_per_week}/week)</span>
-                                          </div>
-                                        )}
-                                      </div>
+                                  <div className="mt-4 pt-4 border-t">
+                                    <div className="flex flex-wrap gap-4">
+                                      {item.extra_shifts > 0 && (
+                                        <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                                          <TrendingUp className="h-4 w-4" />
+                                          <span className="font-medium">{item.extra_shifts} Extra Shifts</span>
+                                          <span className="text-xs text-green-600">(above expected {item.expected_shifts_per_week}/week)</span>
+                                        </div>
+                                      )}
+                                      {item.missing_shifts > 0 && (
+                                        <div className="flex items-center gap-2 text-orange-700 bg-orange-50 px-3 py-2 rounded-lg">
+                                          <TrendingDown className="h-4 w-4" />
+                                          <span className="font-medium">{item.missing_shifts} Missing Shifts</span>
+                                          <span className="text-xs text-orange-600">(below expected {item.expected_shifts_per_week}/week)</span>
+                                        </div>
+                                      )}
+                                      {!item.expected_shifts_per_week && item.extra_shifts === 0 && item.missing_shifts === 0 && (
+                                        <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg text-sm">
+                                          <AlertTriangle className="h-4 w-4" />
+                                          <span>Set "Expected Shifts/Week" in employee profile to track extra/missing shifts</span>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  </div>
                                   
                                   {/* Additional stats */}
                                   <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-xs text-muted-foreground">
