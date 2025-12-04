@@ -417,10 +417,32 @@ const Payroll = () => {
                                   <div className="mt-4 pt-4 border-t">
                                     <div className="flex flex-wrap gap-4">
                                       {item.extra_shifts > 0 && (
-                                        <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
-                                          <TrendingUp className="h-4 w-4" />
-                                          <span className="font-medium">{item.extra_shifts} Extra Shifts</span>
-                                          <span className="text-xs text-green-600">(above expected {item.expected_shifts_per_week}/week)</span>
+                                        <div className="space-y-2">
+                                          <div className="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                                            <TrendingUp className="h-4 w-4" />
+                                            <span className="font-medium">{item.extra_shifts} Extra Shifts</span>
+                                            <span className="text-xs text-green-600">(above expected {item.expected_shifts_per_week}/week)</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-1 ml-2">
+                                            {item.extra_shift_dates.map(date => (
+                                              <Badge key={date} variant="outline" className="text-xs bg-green-50 border-green-300 text-green-700">
+                                                {format(parseISO(date), "MMM d")}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                          {item.overtime_pay > 0 && (
+                                            <div className="text-sm font-medium text-green-700 ml-2">
+                                              Overtime Premium: +{item.overtime_pay.toFixed(2)} Lei
+                                              <span className="text-xs text-green-600 ml-1">
+                                                (at {item.overtime_rate} Lei/hr instead of {item.hourly_rate} Lei/hr)
+                                              </span>
+                                            </div>
+                                          )}
+                                          {item.extra_shifts > 0 && !item.overtime_rate && (
+                                            <div className="text-xs text-muted-foreground ml-2">
+                                              Set overtime rate in employee profile to calculate premium pay
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                       {item.missing_shifts > 0 && (
@@ -444,6 +466,9 @@ const Payroll = () => {
                                     <span>Scheduled: {item.scheduled_hours.toFixed(1)}h</span>
                                     <span>Actual: {item.actual_hours.toFixed(1)}h</span>
                                     <span>Rate: {item.hourly_rate} Lei/hr</span>
+                                    {item.overtime_rate && (
+                                      <span className="text-green-600">Overtime Rate: {item.overtime_rate} Lei/hr</span>
+                                    )}
                                     {item.expected_shifts_per_week && (
                                       <span>Expected: {item.expected_shifts_per_week} shifts/week</span>
                                     )}

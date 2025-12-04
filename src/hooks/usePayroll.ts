@@ -40,6 +40,7 @@ export interface DailyPayrollEntry {
   scheduled_hours: number;
   actual_hours: number;
   hourly_rate: number;
+  overtime_rate: number | null;
   daily_amount: number;
   shift_id: string;
   location_id: string;
@@ -49,6 +50,8 @@ export interface DailyPayrollEntry {
   auto_clocked_out: boolean;
   requires_checkin: boolean;
   is_missed: boolean; // True when check-in required but no attendance
+  is_extra_shift: boolean; // True when this is an extra shift (above expected)
+  expected_shifts_per_week: number | null;
 }
 
 export interface PayrollSummaryItem {
@@ -56,11 +59,13 @@ export interface PayrollSummaryItem {
   employee_name: string;
   role: string;
   hourly_rate: number;
+  overtime_rate: number | null;
   scheduled_hours: number;
   actual_hours: number;
   overtime_hours: number;
   undertime_hours: number;
   total_amount: number;
+  overtime_pay: number; // Extra pay from overtime rate on extra shifts
   days_worked: number;
   late_count: number;
   total_late_minutes: number;
@@ -71,6 +76,7 @@ export interface PayrollSummaryItem {
   // Detailed breakdown with dates
   worked_dates: string[];
   missed_dates: string[];
+  extra_shift_dates: string[]; // Dates of extra shifts
   vacation_dates: string[];
   medical_dates: string[];
   other_leave_dates: string[];
@@ -139,6 +145,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
               full_name,
               role,
               hourly_rate,
+              overtime_rate,
               expected_weekly_hours,
               expected_shifts_per_week
             )
@@ -207,6 +214,8 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           }
 
           const hourlyRate = employee.hourly_rate || 0;
+          const overtimeRate = employee.overtime_rate || null;
+          const expectedShiftsPerWeek = employee.expected_shifts_per_week || null;
           const locationData = shift.locations as any;
           const requiresCheckin = locationData?.requires_checkin || false;
           
@@ -232,6 +241,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             scheduled_hours: scheduledHours,
             actual_hours: actualHours,
             hourly_rate: hourlyRate,
+            overtime_rate: overtimeRate,
             daily_amount: dailyAmount,
             shift_id: shift.id,
             location_id: shift.location_id,
@@ -241,6 +251,8 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             auto_clocked_out: autoClockedOut,
             requires_checkin: requiresCheckin,
             is_missed: isMissed,
+            is_extra_shift: false, // Will be calculated in summary
+            expected_shifts_per_week: expectedShiftsPerWeek,
           });
         }
       }
@@ -291,20 +303,23 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         employee_name: entry.employee_name,
         role: entry.role,
         hourly_rate: entry.hourly_rate,
+        overtime_rate: entry.overtime_rate,
         scheduled_hours: entry.scheduled_hours,
         actual_hours: entry.actual_hours,
         overtime_hours: 0,
         undertime_hours: 0,
         total_amount: entry.daily_amount,
+        overtime_pay: 0,
         days_worked: wasWorked ? 1 : 0,
         late_count: entry.is_late ? 1 : 0,
         total_late_minutes: entry.late_minutes,
         expected_weekly_hours: (entry as any).expected_weekly_hours || null,
-        expected_shifts_per_week: (entry as any).expected_shifts_per_week || null,
+        expected_shifts_per_week: entry.expected_shifts_per_week || null,
         extra_shifts: 0,
         missing_shifts: 0,
         worked_dates: wasWorked ? [entry.date] : [],
         missed_dates: wasMissed ? [entry.date] : [],
+        extra_shift_dates: [],
         vacation_dates: [],
         medical_dates: [],
         other_leave_dates: [],
@@ -328,6 +343,28 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
       const shiftDiff = item.days_worked - expectedShiftsForPeriod;
       if (shiftDiff > 0) {
         item.extra_shifts = shiftDiff;
+        
+        // Mark the last N worked dates as extra shifts (most recent are considered "extra")
+        const sortedWorkedDates = [...item.worked_dates].sort();
+        item.extra_shift_dates = sortedWorkedDates.slice(-shiftDiff);
+        
+        // Calculate overtime pay for extra shifts if overtime_rate is set
+        if (item.overtime_rate && item.overtime_rate > item.hourly_rate) {
+          // Get entries for this employee's extra shift dates
+          const extraShiftEntries = entries.filter(
+            e => e.employee_id === item.employee_id && item.extra_shift_dates.includes(e.date)
+          );
+          
+          // Calculate the difference between overtime rate and regular rate for extra shifts
+          const rateDiff = item.overtime_rate - item.hourly_rate;
+          extraShiftEntries.forEach(entry => {
+            const hoursWorked = entry.actual_hours > 0 ? entry.actual_hours : entry.scheduled_hours;
+            item.overtime_pay += hoursWorked * rateDiff;
+          });
+          
+          // Add overtime pay to total amount
+          item.total_amount += item.overtime_pay;
+        }
       } else if (shiftDiff < 0) {
         item.missing_shifts = Math.abs(shiftDiff);
       }
@@ -336,6 +373,7 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     // Sort dates
     item.worked_dates.sort();
     item.missed_dates.sort();
+    item.extra_shift_dates.sort();
   });
 
   // Aggregate by location
