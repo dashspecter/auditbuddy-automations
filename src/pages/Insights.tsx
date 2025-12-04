@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download, MapPin } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download, MapPin, Users, Building2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocations } from "@/hooks/useLocations";
@@ -13,6 +13,8 @@ import { format, subDays, subWeeks, subMonths } from "date-fns";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { LocationPerformanceChart } from "@/components/dashboard/LocationPerformanceChart";
 import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerformanceTrends";
+import { WorkforceAnalytics } from "@/components/dashboard/WorkforceAnalytics";
+import { CompanyPerformanceOverview } from "@/components/dashboard/CompanyPerformanceOverview";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -128,8 +130,10 @@ const Insights = () => {
         </Card>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="company">Company</TabsTrigger>
+            <TabsTrigger value="workforce">Workforce</TabsTrigger>
             <TabsTrigger value="locations">Locations</TabsTrigger>
             <TabsTrigger value="sections">Sections</TabsTrigger>
             <TabsTrigger value="trends">Trends</TabsTrigger>
@@ -170,6 +174,17 @@ const Insights = () => {
             </div>
 
             <ComplianceChart />
+          </TabsContent>
+
+          <TabsContent value="company" className="space-y-6">
+            <CompanyPerformanceOverview />
+          </TabsContent>
+
+          <TabsContent value="workforce" className="space-y-6">
+            <WorkforceAnalytics 
+              locationId={locationFilter === "all" ? undefined : locationFilter}
+              period={period === "daily" ? "week" : period === "weekly" ? "week" : "month"}
+            />
           </TabsContent>
 
           <TabsContent value="locations" className="space-y-6">
