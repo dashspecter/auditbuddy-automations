@@ -263,8 +263,10 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
   const summary = entries.reduce((acc, entry) => {
     const existing = acc.find(e => e.employee_id === entry.employee_id);
     
-    // Determine if shift was worked (has actual hours and not missed)
-    const wasWorked = entry.actual_hours > 0 && !entry.is_missed;
+    // Determine if shift was worked:
+    // - Has actual hours (attendance recorded), OR
+    // - No actual hours but check-in wasn't required (assumed worked, paid at scheduled rate)
+    const wasWorked = !entry.is_missed && (entry.actual_hours > 0 || !entry.requires_checkin);
     const wasMissed = entry.is_missed;
     
     if (existing) {
