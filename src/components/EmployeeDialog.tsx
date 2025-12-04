@@ -49,6 +49,7 @@ export const EmployeeDialog = ({
     hire_date: "",
     base_salary: "",
     hourly_rate: "",
+    overtime_rate: "",
     expected_weekly_hours: "",
     expected_shifts_per_week: "",
     emergency_contact_name: "",
@@ -83,6 +84,7 @@ export const EmployeeDialog = ({
         hire_date: employee.hire_date || "",
         base_salary: employee.base_salary?.toString() || "",
         hourly_rate: employee.hourly_rate?.toString() || "",
+        overtime_rate: employee.overtime_rate?.toString() || "",
         expected_weekly_hours: employee.expected_weekly_hours?.toString() || "",
         expected_shifts_per_week: employee.expected_shifts_per_week?.toString() || "",
         emergency_contact_name: employee.emergency_contact_name || "",
@@ -101,6 +103,7 @@ export const EmployeeDialog = ({
         hire_date: "",
         base_salary: "",
         hourly_rate: "",
+        overtime_rate: "",
         expected_weekly_hours: "",
         expected_shifts_per_week: "",
         emergency_contact_name: "",
@@ -150,6 +153,7 @@ export const EmployeeDialog = ({
       ...formData,
       base_salary: formData.base_salary ? parseFloat(formData.base_salary) : null,
       hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+      overtime_rate: formData.overtime_rate ? parseFloat(formData.overtime_rate) : null,
       expected_weekly_hours: formData.expected_weekly_hours ? parseFloat(formData.expected_weekly_hours) : null,
       expected_shifts_per_week: formData.expected_shifts_per_week ? parseInt(formData.expected_shifts_per_week) : null,
       email: formData.email || null,
@@ -327,6 +331,18 @@ export const EmployeeDialog = ({
                 value={formData.hourly_rate}
                 onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
                 placeholder="Per hour"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="overtime_rate">Overtime Rate (Extra Shifts)</Label>
+              <Input
+                id="overtime_rate"
+                type="number"
+                step="0.01"
+                value={formData.overtime_rate}
+                onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })}
+                placeholder="Per hour for extra shifts"
               />
             </div>
           </div>

@@ -1192,6 +1192,7 @@ export type Database = {
           id: string
           location_id: string
           notes: string | null
+          overtime_rate: number | null
           phone: string | null
           role: string
           status: string
@@ -1218,6 +1219,7 @@ export type Database = {
           id?: string
           location_id: string
           notes?: string | null
+          overtime_rate?: number | null
           phone?: string | null
           role: string
           status?: string
@@ -1244,6 +1246,7 @@ export type Database = {
           id?: string
           location_id?: string
           notes?: string | null
+          overtime_rate?: number | null
           phone?: string | null
           role?: string
           status?: string
