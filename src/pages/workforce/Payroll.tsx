@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope } from "lucide-react";
+import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
@@ -141,73 +142,129 @@ const Payroll = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Period
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentPeriodTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei</div>
-            {activePeriod && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {format(new Date(activePeriod.start_date), "MMM d")} - {format(new Date(activePeriod.end_date), "MMM d")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Scheduled / Actual Hours
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalScheduledHours.toFixed(1)} / {totalActualHours.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground mt-1">hours</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Overtime
-              {totalOvertimeHours > 0 && <TrendingUp className="h-4 w-4 text-green-500" />}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalOvertimeHours > 0 ? 'text-green-600' : ''}`}>
-              +{totalOvertimeHours.toFixed(1)} hrs
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Undertime
-              {totalUndertimeHours > 0 && <TrendingDown className="h-4 w-4 text-orange-500" />}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalUndertimeHours > 0 ? 'text-orange-600' : ''}`}>
-              -{totalUndertimeHours.toFixed(1)} hrs
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Late Check-ins
-              {totalLateCount > 0 && <AlertTriangle className="h-4 w-4 text-warning" />}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalLateCount > 0 ? 'text-warning' : ''}`}>
-              {totalLateCount}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <TooltipProvider>
+        <div className="grid gap-4 md:grid-cols-5">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                Current Period
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">Total Pay Calculation</p>
+                    <p className="text-xs">Sum of all employees' pay for this period.</p>
+                    <p className="text-xs mt-1"><strong>Formula:</strong> Hours Worked × Hourly Rate + Overtime Premium</p>
+                    <p className="text-xs mt-1"><strong>Source:</strong> Shift assignments with clock-in records</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{currentPeriodTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} Lei</div>
+              {activePeriod && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {format(new Date(activePeriod.start_date), "MMM d")} - {format(new Date(activePeriod.end_date), "MMM d")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                Scheduled / Actual Hours
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">Hours Breakdown</p>
+                    <p className="text-xs"><strong>Scheduled:</strong> Total hours from all shift assignments</p>
+                    <p className="text-xs mt-1"><strong>Actual:</strong> Hours worked (only counts shifts with clock-in)</p>
+                    <p className="text-xs mt-1"><strong>Source:</strong> Shifts table + Attendance logs</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalScheduledHours.toFixed(1)} / {totalActualHours.toFixed(1)}</div>
+              <p className="text-xs text-muted-foreground mt-1">hours</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                Overtime
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">Overtime Hours</p>
+                    <p className="text-xs">Hours worked beyond expected weekly hours.</p>
+                    <p className="text-xs mt-1"><strong>Formula:</strong> Actual Hours - Expected Weekly Hours (if positive)</p>
+                    <p className="text-xs mt-1"><strong>Pay Rate:</strong> Uses overtime rate from employee profile (if set)</p>
+                  </TooltipContent>
+                </Tooltip>
+                {totalOvertimeHours > 0 && <TrendingUp className="h-4 w-4 text-green-500" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${totalOvertimeHours > 0 ? 'text-green-600' : ''}`}>
+                +{totalOvertimeHours.toFixed(1)} hrs
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                Undertime
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">Undertime Hours</p>
+                    <p className="text-xs">Hours below expected weekly hours.</p>
+                    <p className="text-xs mt-1"><strong>Formula:</strong> Expected Weekly Hours - Actual Hours (if positive)</p>
+                    <p className="text-xs mt-1"><strong>Note:</strong> Set expected hours in employee profile</p>
+                  </TooltipContent>
+                </Tooltip>
+                {totalUndertimeHours > 0 && <TrendingDown className="h-4 w-4 text-orange-500" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${totalUndertimeHours > 0 ? 'text-orange-600' : ''}`}>
+                -{totalUndertimeHours.toFixed(1)} hrs
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                Late Check-ins
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">Late Arrivals</p>
+                    <p className="text-xs">Count of shifts where employee clocked in after scheduled start time.</p>
+                    <p className="text-xs mt-1"><strong>Source:</strong> Attendance logs with is_late = true</p>
+                  </TooltipContent>
+                </Tooltip>
+                {totalLateCount > 0 && <AlertTriangle className="h-4 w-4 text-warning" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${totalLateCount > 0 ? 'text-warning' : ''}`}>
+                {totalLateCount}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </TooltipProvider>
 
       <Tabs defaultValue="current">
         <TabsList>
@@ -235,20 +292,95 @@ const Payroll = () => {
                     {[1, 2, 3].map(i => <Skeleton key={i} className="h-12" />)}
                   </div>
                 ) : payrollSummary.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-8"></TableHead>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Worked</TableHead>
-                        <TableHead>Missed</TableHead>
-                        <TableHead>Leave</TableHead>
-                        <TableHead>Hours</TableHead>
-                        <TableHead>Late</TableHead>
-                        <TableHead className="text-right">Total Pay</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-8"></TableHead>
+                          <TableHead>Employee</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              Worked
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Shifts where employee clocked in (attendance confirmed)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              Missed
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Past shifts without clock-in record (no-show)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              Leave
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Approved time-off requests (vacation, medical, etc.)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              Hours
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Actual hours from worked shifts. Green = overtime, Orange = undertime</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              Late
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Count of shifts with late clock-in</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              Total Pay
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs font-semibold mb-1">Pay Calculation</p>
+                                  <p className="text-xs">(Actual Hours × Hourly Rate) + (Overtime Hours × Overtime Rate)</p>
+                                  <p className="text-xs mt-1">Rates are from employee profile</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody>
                       {payrollSummary.map((item) => {
                         const timeOff = getEmployeeTimeOff(item.employee_id);
@@ -518,6 +650,7 @@ const Payroll = () => {
                       </TableRow>
                     </TableBody>
                   </Table>
+                  </TooltipProvider>
                 ) : (
                   <div className="text-center text-muted-foreground py-12">
                     <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
