@@ -25,7 +25,7 @@ export const PayPeriodDialog = ({ open, onOpenChange, onSubmit, isLoading }: Pay
     onSubmit({
       start_date: format(startDate, "yyyy-MM-dd"),
       end_date: format(endDate, "yyyy-MM-dd"),
-      status: "active",
+      status: "draft",
     });
   };
 
