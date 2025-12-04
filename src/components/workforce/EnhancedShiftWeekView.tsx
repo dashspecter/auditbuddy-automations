@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown } from "lucide-react";
 import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
@@ -125,6 +125,31 @@ export const EnhancedShiftWeekView = () => {
       }) &&
       req.status === "approved"
     );
+  };
+
+  // Calculate shift count for an employee for the current week
+  const getEmployeeShiftCountForWeek = (employeeId: string) => {
+    let count = 0;
+    weekDays.forEach(day => {
+      const dayShifts = getShiftsForEmployeeAndDay(employeeId, day);
+      count += dayShifts.length;
+    });
+    return count;
+  };
+
+  // Get extra/missing shifts indicator for an employee
+  const getShiftIndicator = (employee: any) => {
+    if (!employee.expected_shifts_per_week) return null;
+    
+    const actualShifts = getEmployeeShiftCountForWeek(employee.id);
+    const diff = actualShifts - employee.expected_shifts_per_week;
+    
+    if (diff > 0) {
+      return { type: 'extra', count: diff };
+    } else if (diff < 0) {
+      return { type: 'missing', count: Math.abs(diff) };
+    }
+    return null;
   };
 
   const getRoleColor = (roleName: string) => {
@@ -449,23 +474,40 @@ export const EnhancedShiftWeekView = () => {
             </div>
             
             {/* Employees in this department */}
-            {employeesByDepartment[department].map((employee) => (
-              <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                <div className="p-3 border-r flex items-center gap-3 bg-background">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={employee.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">
-                      {employee.full_name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-sm truncate">{employee.full_name}</div>
-                    <div className="text-xs text-muted-foreground">{employee.role}</div>
-                    {selectedLocation === "all" && employee.locations?.name && (
-                      <div className="text-[10px] text-muted-foreground truncate">📍 {employee.locations.name}</div>
-                    )}
+            {employeesByDepartment[department].map((employee) => {
+              const shiftIndicator = getShiftIndicator(employee);
+              
+              return (
+                <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                  <div className="p-3 border-r flex items-center gap-3 bg-background">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={employee.avatar_url || undefined} />
+                      <AvatarFallback className="text-xs">
+                        {employee.full_name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate flex items-center gap-1">
+                        {employee.full_name}
+                        {shiftIndicator?.type === 'extra' && (
+                          <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded" title={`+${shiftIndicator.count} extra shifts this week`}>
+                            <TrendingUp className="h-3 w-3" />
+                            +{shiftIndicator.count}
+                          </span>
+                        )}
+                        {shiftIndicator?.type === 'missing' && (
+                          <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded" title={`-${shiftIndicator.count} shifts below expected this week`}>
+                            <TrendingDown className="h-3 w-3" />
+                            -{shiftIndicator.count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{employee.role}</div>
+                      {selectedLocation === "all" && employee.locations?.name && (
+                        <div className="text-[10px] text-muted-foreground truncate">📍 {employee.locations.name}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
                 {weekDays.map((day) => {
                   const employeeShifts = getShiftsForEmployeeAndDay(employee.id, day);
                   const timeOff = getTimeOffForEmployeeAndDay(employee.id, day);
@@ -523,7 +565,8 @@ export const EnhancedShiftWeekView = () => {
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </div>
         ))}
 
