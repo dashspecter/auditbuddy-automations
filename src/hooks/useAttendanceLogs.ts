@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 
 export interface AttendanceLog {
   id: string;
@@ -34,12 +35,27 @@ export interface AttendanceLog {
 }
 
 export const useAttendanceLogs = (locationId?: string, date?: string) => {
+  const { company } = useCompanyContext();
+  
   return useQuery({
-    queryKey: ["attendance-logs", locationId, date],
+    queryKey: ["attendance-logs", company?.id, locationId, date],
     queryFn: async () => {
+      if (!company?.id) return [];
+      
+      // Get employee IDs for this company first
+      const { data: companyEmployees } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("company_id", company.id);
+      
+      if (!companyEmployees || companyEmployees.length === 0) return [];
+      
+      const employeeIds = companyEmployees.map(e => e.id);
+      
       let query = supabase
         .from("attendance_logs")
         .select("*, employees(full_name, role), locations(name), shifts(start_time, end_time, role)")
+        .in("staff_id", employeeIds)
         .order("check_in_at", { ascending: false });
       
       if (locationId) {
@@ -60,6 +76,7 @@ export const useAttendanceLogs = (locationId?: string, date?: string) => {
       if (error) throw error;
       return data as AttendanceLog[];
     },
+    enabled: !!company?.id,
   });
 };
 
