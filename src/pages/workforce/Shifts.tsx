@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo } from "react";
 import { ShiftDialog } from "@/components/workforce/ShiftDialog";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedShiftWeekView } from "@/components/workforce/EnhancedShiftWeekView";
 import { PendingApprovalsDialog } from "@/components/workforce/PendingApprovalsDialog";
+import { CopyScheduleDialog } from "@/components/workforce/CopyScheduleDialog";
 import { usePendingApprovals } from "@/hooks/useShiftAssignments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
@@ -17,6 +18,7 @@ const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [view, setView] = useState<"day" | "week">("week");
   const [editingShift, setEditingShift] = useState<any>(null);
   
@@ -79,6 +81,14 @@ const Shifts = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setCopyDialogOpen(true)}
+          >
+            <Copy className="h-4 w-4" />
+            <span className="hidden sm:inline">Copy Schedule</span>
+          </Button>
           <Button 
             variant="outline" 
             className="gap-2" 
@@ -274,6 +284,11 @@ const Shifts = () => {
       <PendingApprovalsDialog 
         open={pendingDialogOpen}
         onOpenChange={setPendingDialogOpen}
+      />
+
+      <CopyScheduleDialog
+        open={copyDialogOpen}
+        onOpenChange={setCopyDialogOpen}
       />
     </div>
   );
