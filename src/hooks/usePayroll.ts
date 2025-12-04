@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, parseISO, differenceInMinutes, isWithinInterval } from "date-fns";
+import { format, parseISO, differenceInMinutes, isWithinInterval, isFuture, startOfDay } from "date-fns";
 
 export interface PayrollPeriod {
   id: string;
@@ -51,6 +51,7 @@ export interface DailyPayrollEntry {
   requires_checkin: boolean;
   is_missed: boolean; // True when check-in required but no attendance
   is_extra_shift: boolean; // True when this is an extra shift (above expected)
+  is_future: boolean; // True when shift is in the future (not yet worked)
   expected_shifts_per_week: number | null;
 }
 
@@ -76,6 +77,7 @@ export interface PayrollSummaryItem {
   // Detailed breakdown with dates
   worked_dates: string[];
   missed_dates: string[];
+  future_dates: string[]; // Dates of future shifts (not yet worked)
   extra_shift_dates: string[]; // Dates of extra shifts
   vacation_dates: string[];
   medical_dates: string[];
@@ -219,13 +221,20 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           const locationData = shift.locations as any;
           const requiresCheckin = locationData?.requires_checkin || false;
           
-          // Determine if shift was missed (no attendance when check-in required)
-          const isMissed = requiresCheckin && !attendanceLog;
+          // Check if shift is in the future (hasn't happened yet)
+          const shiftDate = startOfDay(parseISO(shift.shift_date));
+          const today = startOfDay(new Date());
+          const isFutureShift = shiftDate > today;
+          
+          // Determine if shift was missed (no attendance when check-in required AND shift is in the past)
+          const isMissed = !isFutureShift && requiresCheckin && !attendanceLog;
           
           // Pay based on actual hours worked, or scheduled if no check-in required and no attendance
-          // If missed (check-in required but no attendance), pay is 0
+          // Future shifts and missed shifts have no pay yet
           let dailyAmount = 0;
-          if (isMissed) {
+          if (isFutureShift) {
+            dailyAmount = 0; // No pay for future shifts yet
+          } else if (isMissed) {
             dailyAmount = 0; // No pay for missed shifts
           } else if (actualHours > 0) {
             dailyAmount = actualHours * hourlyRate;
@@ -251,6 +260,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             auto_clocked_out: autoClockedOut,
             requires_checkin: requiresCheckin,
             is_missed: isMissed,
+            is_future: isFutureShift,
             is_extra_shift: false, // Will be calculated in summary
             expected_shifts_per_week: expectedShiftsPerWeek,
           });
@@ -276,10 +286,12 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     const existing = acc.find(e => e.employee_id === entry.employee_id);
     
     // Determine if shift was worked:
+    // - Not in the future AND
     // - Has actual hours (attendance recorded), OR
     // - No actual hours but check-in wasn't required (assumed worked, paid at scheduled rate)
-    const wasWorked = !entry.is_missed && (entry.actual_hours > 0 || !entry.requires_checkin);
+    const wasWorked = !entry.is_future && !entry.is_missed && (entry.actual_hours > 0 || !entry.requires_checkin);
     const wasMissed = entry.is_missed;
+    const isFuture = entry.is_future;
     
     if (existing) {
       existing.scheduled_hours += entry.scheduled_hours;
@@ -296,6 +308,9 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
       }
       if (wasMissed && !existing.missed_dates.includes(entry.date)) {
         existing.missed_dates.push(entry.date);
+      }
+      if (isFuture && !existing.future_dates.includes(entry.date)) {
+        existing.future_dates.push(entry.date);
       }
     } else {
       acc.push({
@@ -319,6 +334,7 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         missing_shifts: 0,
         worked_dates: wasWorked ? [entry.date] : [],
         missed_dates: wasMissed ? [entry.date] : [],
+        future_dates: isFuture ? [entry.date] : [],
         extra_shift_dates: [],
         vacation_dates: [],
         medical_dates: [],
@@ -373,6 +389,7 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     // Sort dates
     item.worked_dates.sort();
     item.missed_dates.sort();
+    item.future_dates.sort();
     item.extra_shift_dates.sort();
   });
 
