@@ -65,6 +65,7 @@ const locationSchema = z.object({
   type: z.string().optional(),
   manager_id: z.string().nullable().optional(),
   status: z.enum(["active", "inactive"]),
+  requires_checkin: z.boolean().optional(),
 });
 
 type LocationFormValues = z.infer<typeof locationSchema>;
@@ -129,6 +130,7 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
       type: "",
       manager_id: null,
       status: "active",
+      requires_checkin: false,
     },
   });
 
@@ -142,6 +144,7 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
         type: location.type || "",
         manager_id: location.manager_id || null,
         status: location.status || "active",
+        requires_checkin: (location as any).requires_checkin || false,
       });
     } else {
       form.reset({
@@ -151,6 +154,7 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
         type: "",
         manager_id: null,
         status: "active",
+        requires_checkin: false,
       });
     }
   }, [location, form, open]);
@@ -284,6 +288,27 @@ export const LocationDialog = ({ open, onOpenChange, location }: LocationDialogP
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="requires_checkin"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Require Check-in</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      When enabled, staff must check in for their shifts. Missed check-ins won't be paid.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

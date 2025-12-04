@@ -384,18 +384,23 @@ const Payroll = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              {entry.is_late && (
+                              {entry.is_missed && (
+                                <Badge variant="destructive" className="text-xs bg-red-600">
+                                  Missed
+                                </Badge>
+                              )}
+                              {entry.is_late && !entry.is_missed && (
                                 <Badge variant="destructive" className="text-xs">
                                   +{entry.late_minutes}m late
                                 </Badge>
                               )}
-                              {entry.auto_clocked_out && (
+                              {entry.auto_clocked_out && !entry.is_missed && (
                                 <Badge variant="secondary" className="text-xs">Auto</Badge>
                               )}
-                              {!entry.is_late && !entry.auto_clocked_out && entry.actual_hours > 0 && (
+                              {!entry.is_late && !entry.auto_clocked_out && entry.actual_hours > 0 && !entry.is_missed && (
                                 <Badge variant="outline" className="text-xs">OK</Badge>
                               )}
-                              {entry.actual_hours === 0 && (
+                              {entry.actual_hours === 0 && !entry.is_missed && (
                                 <Badge variant="secondary" className="text-xs">No attendance</Badge>
                               )}
                             </div>
