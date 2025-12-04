@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck } from "lucide-react";
 import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
@@ -345,6 +345,52 @@ export const EnhancedShiftWeekView = () => {
             <Plus className="h-4 w-4" />
             Add Shift
           </Button>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 px-3 py-2 bg-muted/50 rounded-lg border text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
+          <Info className="h-3.5 w-3.5" />
+          Legend:
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded bg-primary/20 border border-primary" />
+          <span>Regular Shift</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 flex items-center justify-center">
+            <Palmtree className="h-2.5 w-2.5 text-red-500" />
+          </div>
+          <span>Time Off / Vacation</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded border border-dashed border-orange-400 bg-orange-50 dark:bg-orange-900/20 opacity-70" />
+          <span>Pending Approval</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded">
+            <TrendingUp className="h-3 w-3" />
+            +N
+          </span>
+          <span>Extra Shifts</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded">
+            <TrendingDown className="h-3 w-3" />
+            -N
+          </span>
+          <span>Missing Shifts</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded bg-muted border border-border flex items-center justify-center">
+            <Calendar className="h-2.5 w-2.5 text-muted-foreground" />
+          </div>
+          <span>Open Shift</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Close</Badge>
+          <span>Closing Duty</span>
         </div>
       </div>
 
