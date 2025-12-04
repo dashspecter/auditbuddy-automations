@@ -395,9 +395,9 @@ export const EnhancedShiftWeekView = () => {
       </div>
 
       {/* Week grid with employee rows */}
-      <div className="border rounded-lg overflow-hidden bg-card">
-        <div className="grid grid-cols-8 border-b">
-          <div className="p-3 border-r bg-muted/50 font-medium">
+      <div className="border rounded-lg overflow-hidden bg-card max-h-[calc(100vh-280px)] overflow-y-auto">
+        <div className="grid grid-cols-8 border-b sticky top-0 z-10 bg-card">
+          <div className="p-3 border-r bg-muted/50 font-medium sticky left-0">
             {viewMode === "employee" ? "Employee" : "Location"}
           </div>
           {weekDays.map((day) => {
