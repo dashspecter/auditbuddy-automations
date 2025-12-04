@@ -25,7 +25,7 @@ const Payroll = () => {
   const { data: locations = [] } = useLocations();
   const createPeriod = useCreatePayrollPeriod();
 
-  const activePeriod = periods.find(p => p.status === "active");
+  const activePeriod = periods.find(p => p.status === "draft" || p.status === "calculated");
   const locationFilter = selectedLocationId === "all" ? undefined : selectedLocationId;
   
   // Use shifts-based payroll calculation with location filter
