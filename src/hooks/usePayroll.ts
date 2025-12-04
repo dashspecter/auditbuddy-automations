@@ -47,6 +47,8 @@ export interface DailyPayrollEntry {
   is_late: boolean;
   late_minutes: number;
   auto_clocked_out: boolean;
+  requires_checkin: boolean;
+  is_missed: boolean; // True when check-in required but no attendance
 }
 
 export interface PayrollSummaryItem {
@@ -121,7 +123,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           end_time,
           role,
           location_id,
-          locations(name),
+          locations(name, requires_checkin),
           shift_assignments!inner(
             id,
             staff_id,
@@ -199,8 +201,22 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           }
 
           const hourlyRate = employee.hourly_rate || 0;
-          // Pay based on actual hours worked (or scheduled if no attendance)
-          const dailyAmount = (actualHours > 0 ? actualHours : scheduledHours) * hourlyRate;
+          const locationData = shift.locations as any;
+          const requiresCheckin = locationData?.requires_checkin || false;
+          
+          // Determine if shift was missed (no attendance when check-in required)
+          const isMissed = requiresCheckin && !attendanceLog;
+          
+          // Pay based on actual hours worked, or scheduled if no check-in required and no attendance
+          // If missed (check-in required but no attendance), pay is 0
+          let dailyAmount = 0;
+          if (isMissed) {
+            dailyAmount = 0; // No pay for missed shifts
+          } else if (actualHours > 0) {
+            dailyAmount = actualHours * hourlyRate;
+          } else {
+            dailyAmount = scheduledHours * hourlyRate;
+          }
 
           payrollEntries.push({
             employee_id: employee.id,
@@ -213,10 +229,12 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             daily_amount: dailyAmount,
             shift_id: shift.id,
             location_id: shift.location_id,
-            location_name: (shift.locations as any)?.name || 'Unknown',
+            location_name: locationData?.name || 'Unknown',
             is_late: isLate,
             late_minutes: lateMinutes,
             auto_clocked_out: autoClockedOut,
+            requires_checkin: requiresCheckin,
+            is_missed: isMissed,
           });
         }
       }

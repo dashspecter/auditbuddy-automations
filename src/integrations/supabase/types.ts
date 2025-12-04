@@ -2266,6 +2266,7 @@ export type Database = {
           longitude: number | null
           manager_id: string | null
           name: string
+          requires_checkin: boolean | null
           status: string
           type: string | null
           updated_at: string
@@ -2281,6 +2282,7 @@ export type Database = {
           longitude?: number | null
           manager_id?: string | null
           name: string
+          requires_checkin?: boolean | null
           status?: string
           type?: string | null
           updated_at?: string
@@ -2296,6 +2298,7 @@ export type Database = {
           longitude?: number | null
           manager_id?: string | null
           name?: string
+          requires_checkin?: boolean | null
           status?: string
           type?: string | null
           updated_at?: string
