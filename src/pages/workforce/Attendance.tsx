@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
 import { KioskManagementDialog } from "@/components/workforce/KioskManagementDialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAttendanceLogs } from "@/hooks/useAttendanceLogs";
+import { useLocations } from "@/hooks/useLocations";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import {
   DropdownMenu,
@@ -16,11 +17,21 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Attendance = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [kioskDialogOpen, setKioskDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("today");
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+
+  const { data: locations = [] } = useLocations();
 
   const today = new Date().toISOString().split('T')[0];
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -28,8 +39,9 @@ const Attendance = () => {
   const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-  const { data: todayLogs = [], isLoading: todayLoading } = useAttendanceLogs(undefined, today);
-  const { data: allLogs = [] } = useAttendanceLogs();
+  const locationFilter = selectedLocationId === "all" ? undefined : selectedLocationId;
+  const { data: todayLogs = [], isLoading: todayLoading } = useAttendanceLogs(locationFilter, today);
+  const { data: allLogs = [] } = useAttendanceLogs(locationFilter);
 
   // Filter logs by date range
   const weekLogs = useMemo(() => 
@@ -144,6 +156,21 @@ const Attendance = () => {
             Monitor staff check-ins, check-outs, and work hours
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+            <SelectTrigger className="w-[200px]">
+              <MapPin className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations.map(location => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="gap-2">
@@ -167,6 +194,7 @@ const Attendance = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       <AttendanceQRDialog open={qrDialogOpen} onOpenChange={setQrDialogOpen} />
