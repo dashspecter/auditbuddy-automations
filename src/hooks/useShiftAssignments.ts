@@ -278,13 +278,16 @@ export const useCreateShiftAssignment = () => {
         }
       }
       
+      // When a manager assigns directly, auto-approve the assignment
       const { data, error } = await supabase
         .from("shift_assignments")
         .insert({ 
           shift_id, 
           staff_id: employee_id, 
           assigned_by: user.id,
-          status: "assigned"
+          status: "assigned",
+          approval_status: "approved",
+          approved_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -353,13 +356,16 @@ export const useAssignStaffToShift = () => {
         }
       }
       
+      // When a manager assigns directly, auto-approve the assignment
       const { data, error } = await supabase
         .from("shift_assignments")
         .insert({ 
           shift_id: shiftId, 
           staff_id: staffId, 
           assigned_by: user.id,
-          status: "assigned"
+          status: "assigned",
+          approval_status: "approved",
+          approved_at: new Date().toISOString()
         })
         .select()
         .single();
