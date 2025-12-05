@@ -9,8 +9,58 @@ import { useIndustries } from "@/hooks/useIndustries";
 import { useAvailableModules } from "@/hooks/useModules";
 import { useCompanyModules } from "@/hooks/useCompany";
 import { useToggleCompanyModule } from "@/hooks/useModules";
-import { Store, HardHat, ShoppingBag, Sparkles, Building2, ClipboardList, Users, Wrench, Bell, Briefcase } from "lucide-react";
+import { Store, HardHat, ShoppingBag, Sparkles, Building2, ClipboardList, Users, Wrench, Bell, Briefcase, BarChart, FileText, Package, Lightbulb, Link2, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Module dependencies - which modules enhance or require other modules
+const MODULE_DEPENDENCIES: Record<string, { enhances?: string[]; worksWellWith?: string[]; description?: string }> = {
+  'location_audits': {
+    worksWellWith: ['workforce', 'reports', 'notifications'],
+    description: 'Enhanced by Workforce for staff audits, Reports for analytics, and Notifications for alerts'
+  },
+  'workforce': {
+    worksWellWith: ['location_audits', 'reports', 'notifications', 'documents'],
+    description: 'Works well with Audits for staff performance, Reports for analytics, and Documents for training'
+  },
+  'equipment_management': {
+    worksWellWith: ['notifications', 'documents'],
+    description: 'Enhanced by Notifications for maintenance alerts and Documents for manuals'
+  },
+  'reports': {
+    worksWellWith: ['location_audits', 'workforce', 'equipment_management'],
+    description: 'Provides analytics across Audits, Workforce, and Equipment modules'
+  },
+  'notifications': {
+    worksWellWith: ['location_audits', 'workforce', 'equipment_management'],
+    description: 'Sends alerts for Audits, Workforce events, and Equipment maintenance'
+  },
+  'documents': {
+    worksWellWith: ['workforce', 'equipment_management'],
+    description: 'Training materials for Workforce and manuals for Equipment'
+  },
+  'inventory': {
+    worksWellWith: ['reports', 'notifications'],
+    description: 'Enhanced by Reports for stock analytics and Notifications for low stock alerts'
+  },
+  'insights': {
+    worksWellWith: ['location_audits', 'workforce', 'reports'],
+    description: 'AI-powered insights from Audits, Workforce, and Reports data'
+  }
+};
+
+const MODULE_NAMES: Record<string, string> = {
+  'location_audits': 'Location Audits',
+  'workforce': 'Workforce',
+  'equipment_management': 'Equipment',
+  'reports': 'Reports',
+  'notifications': 'Notifications',
+  'documents': 'Documents',
+  'inventory': 'Inventory',
+  'insights': 'Insights',
+  'integrations': 'Integrations'
+};
 
 export default function IndustryModuleManagement() {
   const { data: company, isLoading: companyLoading } = useCompany();
@@ -146,36 +196,82 @@ export default function IndustryModuleManagement() {
                 const IconComponent = moduleIcons[module.icon_name || ''] || ClipboardList;
                 const enabled = isModuleEnabled(module.code);
                 const isRecommended = module.industry_scope === 'INDUSTRY_SPECIFIC';
+                const dependencies = MODULE_DEPENDENCIES[module.code];
+                
+                // Find which connected modules are enabled
+                const connectedEnabledModules = dependencies?.worksWellWith?.filter(m => isModuleEnabled(m)) || [];
+                const connectedDisabledModules = dependencies?.worksWellWith?.filter(m => !isModuleEnabled(m)) || [];
 
                 return (
                   <div
                     key={module.id}
-                    className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                    className="flex flex-col gap-3 p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                   >
-                    <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                      <IconComponent className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold">{module.name}</h4>
-                        {module.industry_scope === 'GLOBAL' && (
-                          <Badge variant="secondary" className="text-xs">
-                            Global
-                          </Badge>
-                        )}
-                        {isRecommended && (
-                          <Badge variant="default" className="text-xs">
-                            Recommended
-                          </Badge>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold">{module.name}</h4>
+                          {module.industry_scope === 'GLOBAL' && (
+                            <Badge variant="secondary" className="text-xs">
+                              Global
+                            </Badge>
+                          )}
+                          {isRecommended && (
+                            <Badge variant="default" className="text-xs">
+                              Recommended
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{module.description}</p>
+                        
+                        {/* Module Dependencies */}
+                        {dependencies && (
+                          <div className="mt-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-help">
+                                    <Link2 className="h-3 w-3" />
+                                    <span>
+                                      Works with: {dependencies.worksWellWith?.map(m => MODULE_NAMES[m] || m).join(', ')}
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{dependencies.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{module.description}</p>
+                      <Switch
+                        checked={enabled}
+                        onCheckedChange={() => handleToggle(module.code, enabled)}
+                        disabled={toggleModule.isPending}
+                      />
                     </div>
-                    <Switch
-                      checked={enabled}
-                      onCheckedChange={() => handleToggle(module.code, enabled)}
-                      disabled={toggleModule.isPending}
-                    />
+                    
+                    {/* Warning when disabling a module that has connected enabled modules */}
+                    {enabled && connectedEnabledModules.length > 0 && (
+                      <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <AlertDescription className="text-xs text-amber-700 dark:text-amber-400">
+                          Disabling this module may affect functionality in: {connectedEnabledModules.map(m => MODULE_NAMES[m] || m).join(', ')}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {/* Suggestion when module could be enhanced by enabling other modules */}
+                    {enabled && connectedDisabledModules.length > 0 && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-primary" />
+                        Enable {connectedDisabledModules.slice(0, 2).map(m => MODULE_NAMES[m] || m).join(' or ')} for enhanced features
+                      </div>
+                    )}
                   </div>
                 );
               })
