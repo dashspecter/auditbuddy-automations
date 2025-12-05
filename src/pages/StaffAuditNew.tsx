@@ -305,33 +305,33 @@ const StaffAuditNew = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/audits')}
-          size="sm"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Audits
-        </Button>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card className="p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/audits')}
+            size="sm"
+            className="-ml-2"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Audits
+          </Button>
+        </div>
 
-      <div className="max-w-4xl mx-auto">
-        <Card className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">New Staff Audit</h1>
-            {selectedTemplate && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowPreview(true)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Preview Template
-              </Button>
-            )}
-          </div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">New Staff Audit</h1>
+          {selectedTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Preview Template
+            </Button>
+          )}
+        </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
@@ -499,17 +499,16 @@ const StaffAuditNew = () => {
               </div>
             </form>
           </Card>
-        </div>
 
-        {selectedTemplate && (
-          <TemplatePreviewDialog
-            templateName={selectedTemplate.name}
-            sections={selectedTemplate.sections}
-            open={showPreview}
-            onOpenChange={setShowPreview}
-          />
-        )}
-      </div>
+          {selectedTemplate && (
+            <TemplatePreviewDialog
+              templateName={selectedTemplate.name}
+              sections={selectedTemplate.sections}
+              open={showPreview}
+              onOpenChange={setShowPreview}
+            />
+          )}
+        </div>
   );
 };
 
