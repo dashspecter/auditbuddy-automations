@@ -11,11 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { Plus, FileText, Trash2, Pencil, Save, X, Megaphone, ArrowLeft } from "lucide-react";
+import { Plus, FileText, Trash2, Pencil, Megaphone, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
@@ -54,45 +53,14 @@ export default function NotificationTemplates() {
     title: "",
     message: "",
     type: "info" as "info" | "success" | "warning" | "announcement",
-    target_roles: ["checker", "manager", "admin"],
+    target_roles: [] as string[],
   });
-
-  const handleRoleToggle = (role: string, isEditing = false) => {
-    if (isEditing && editingTemplate) {
-      const template = templates.find(t => t.id === editingTemplate);
-      if (template) {
-        const newRoles = template.target_roles.includes(role)
-          ? template.target_roles.filter((r) => r !== role)
-          : [...template.target_roles, role];
-        updateTemplate({
-          id: editingTemplate,
-          target_roles: newRoles,
-        });
-      }
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        target_roles: prev.target_roles.includes(role)
-          ? prev.target_roles.filter((r) => r !== role)
-          : [...prev.target_roles, role],
-      }));
-    }
-  };
 
   const handleCreateTemplate = () => {
     if (!formData.name || !formData.title || !formData.message) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.target_roles.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one target role.",
         variant: "destructive",
       });
       return;
@@ -109,7 +77,7 @@ export default function NotificationTemplates() {
           title: "",
           message: "",
           type: "info",
-          target_roles: ["checker", "manager", "admin"],
+          target_roles: [],
         });
         setCreateDialogOpen(false);
       },
@@ -201,7 +169,7 @@ export default function NotificationTemplates() {
                   <DialogHeader>
                     <DialogTitle>Create Notification Template</DialogTitle>
                     <DialogDescription>
-                      Save a reusable template for common notifications
+                      Save a reusable template for common notifications. You'll select specific employees when sending.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -248,41 +216,9 @@ export default function NotificationTemplates() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Default Target Roles *</Label>
-                      <div className="flex gap-4">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="create-checker"
-                            checked={formData.target_roles.includes("checker")}
-                            onCheckedChange={() => handleRoleToggle("checker")}
-                          />
-                          <Label htmlFor="create-checker" className="cursor-pointer">
-                            Checkers
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="create-manager"
-                            checked={formData.target_roles.includes("manager")}
-                            onCheckedChange={() => handleRoleToggle("manager")}
-                          />
-                          <Label htmlFor="create-manager" className="cursor-pointer">
-                            Managers
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="create-admin"
-                            checked={formData.target_roles.includes("admin")}
-                            onCheckedChange={() => handleRoleToggle("admin")}
-                          />
-                          <Label htmlFor="create-admin" className="cursor-pointer">
-                            Admins
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                      Note: You'll select specific employees to notify when using this template to send a notification.
+                    </p>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -334,8 +270,7 @@ export default function NotificationTemplates() {
                           </CardTitle>
                         )}
                         <CardDescription className="mt-2">
-                          Created {format(new Date(template.created_at), "PPp")} • 
-                          Target: {template.target_roles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(", ")}
+                          Created {format(new Date(template.created_at), "PPp")}
                         </CardDescription>
                       </div>
                       {roleData?.isAdmin && (
