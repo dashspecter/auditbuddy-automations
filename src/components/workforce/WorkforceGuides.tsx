@@ -45,7 +45,7 @@ const WORKFORCE_GUIDES: WorkforceGuideStep[] = [
     title: "2. Add Staff Members",
     description: "Create profiles for all your team members with their information",
     icon: <UserPlus className="h-5 w-5" />,
-    link: "/workforce/staff/new",
+    link: "/workforce/staff",
     linkLabel: "Add Staff",
     order: 2,
     dependencies: ["Roles & Departments"],
