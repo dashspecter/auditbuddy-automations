@@ -2,6 +2,7 @@ import { Info, Check, AlertTriangle, Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface NotificationPreviewProps {
   title: string;
@@ -63,7 +64,7 @@ export const NotificationPreview = ({ title, message, type, targetRoles = [], ta
                 {message ? (
                   <div 
                     className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: message }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(message) }}
                   />
                 ) : (
                   <p className="text-xs text-muted-foreground leading-relaxed">

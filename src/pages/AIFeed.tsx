@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle, Clock, MapPin, Sparkles } from "lucide-reac
 import { useAlerts, useResolveAlert } from "@/hooks/useAlerts";
 import { useInsightSummaries } from "@/hooks/useInsightSummaries";
 import { formatDistanceToNow } from "date-fns";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 const AIFeed = () => {
   const { data: alerts, isLoading: alertsLoading } = useAlerts();
@@ -53,7 +54,7 @@ const AIFeed = () => {
             <CardContent>
               <div className="prose max-w-none">
                 {summaries[0].content_html ? (
-                  <div dangerouslySetInnerHTML={{ __html: summaries[0].content_html }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(summaries[0].content_html) }} />
                 ) : (
                   <p>{JSON.stringify(summaries[0].content)}</p>
                 )}

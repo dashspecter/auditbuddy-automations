@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -679,7 +680,7 @@ export default function Notifications() {
                           <Eye className="h-4 w-4 ml-auto text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                          <span dangerouslySetInnerHTML={{ __html: notification.message }} />
+                          <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }} />
                         </p>
                         {notification.location_audits && (
                           <div className="flex items-center gap-1 text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-md mb-2 w-fit">

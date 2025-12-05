@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface NotificationDetailDialogProps {
   notification: {
@@ -92,7 +93,7 @@ export const NotificationDetailDialog = ({
         <div className="space-y-4">
           {/* Message Content */}
           <div className="prose prose-sm max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: notification.message }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }} />
           </div>
 
           {/* Linked Audit */}

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, Eye } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface NotificationHistoryDialogProps {
   notification: {
@@ -114,7 +115,7 @@ export const NotificationHistoryDialog = ({
                       
                       <div
                         className="text-sm text-muted-foreground line-clamp-2 mb-2"
-                        dangerouslySetInnerHTML={{ __html: item.message }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.message) }}
                       />
 
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
