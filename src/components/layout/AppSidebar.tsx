@@ -99,7 +99,7 @@ const navigationItems = [
     module: "reports",
     requiresManager: true,
     subItems: [
-      { title: "Overview", url: "/reports" },
+      { title: "Location Performance", url: "/reports" },
       { title: "Employee Performance", url: "/staff-audits" },
     ]
   },
