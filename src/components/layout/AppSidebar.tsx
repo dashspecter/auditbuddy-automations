@@ -125,7 +125,6 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "All Documents", url: "/documents" },
-      { title: "Training Programs", url: "/training" },
     ]
   },
   { 
