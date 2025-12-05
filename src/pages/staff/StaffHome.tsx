@@ -315,8 +315,8 @@ const StaffHome = () => {
           </div>
         )}
 
-        {/* Pending Tests */}
-        {employee && <PendingTestsCard employeeId={employee.id} />}
+        {/* Pending Tests - Only shown when employee has a shift today */}
+        {employee && todayShift && <PendingTestsCard employeeId={employee.id} />}
 
         {/* Location Leaderboard */}
         {employee && (
