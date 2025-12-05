@@ -30,6 +30,7 @@ export const useUserRole = () => {
         isAdmin: roles.includes('admin'),
         isManager: roles.includes('manager'),
         isChecker: roles.includes('checker'),
+        isHR: roles.includes('hr'),
         roles,
       };
       

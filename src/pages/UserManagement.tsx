@@ -53,7 +53,7 @@ interface UserProfile {
 }
 
 interface UserWithRoles extends UserProfile {
-  roles: ('admin' | 'manager' | 'checker')[];
+  roles: ('admin' | 'manager' | 'checker' | 'hr')[];
 }
 
 export default function UserManagement() {
@@ -62,7 +62,7 @@ export default function UserManagement() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePassword, setInvitePassword] = useState("");
-  const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'checker'>('checker');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'checker' | 'hr'>('checker');
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; email: string } | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -99,7 +99,7 @@ export default function UserManagement() {
         ...profile,
         roles: roles
           .filter(role => role.user_id === profile.id)
-          .map(role => role.role as 'admin' | 'manager' | 'checker'),
+          .map(role => role.role as 'admin' | 'manager' | 'checker' | 'hr'),
       }));
 
       return usersWithRoles;
@@ -117,7 +117,7 @@ export default function UserManagement() {
 
   // Mutation to change user role
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'manager' | 'checker'; currentRoles: ('admin' | 'manager' | 'checker')[] }) => {
+    mutationFn: async ({ userId, newRole, currentRoles }: { userId: string; newRole: 'admin' | 'manager' | 'checker' | 'hr'; currentRoles: ('admin' | 'manager' | 'checker' | 'hr')[] }) => {
       // Get current user to prevent self-demotion
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -290,15 +290,16 @@ export default function UserManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Role</Label>
-                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'manager' | 'checker') => setInviteRole(value)}>
+                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'manager' | 'checker' | 'hr') => setInviteRole(value)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="checker">Checker - Can conduct audits only</SelectItem>
+                        <SelectItem value="checker">Checker - View/perform audits only</SelectItem>
                         {currentUserRole?.isAdmin && (
                           <>
-                            <SelectItem value="manager">Manager - Can manage audits, templates, reports & checkers</SelectItem>
+                            <SelectItem value="manager">Manager - Workforce, audits, equipment, notifications, tests</SelectItem>
+                            <SelectItem value="hr">HR - Workforce (staff, payroll, time off), audits</SelectItem>
                             <SelectItem value="admin">Admin - Full access to everything</SelectItem>
                           </>
                         )}
@@ -386,10 +387,11 @@ export default function UserManagement() {
             <Info className="h-4 w-4" />
             <AlertTitle>Role Permissions</AlertTitle>
             <AlertDescription>
-              <div className="mt-2 space-y-1 text-sm">
-                <div><strong>Admin:</strong> Full access - manage users, templates, and all audits</div>
-                <div><strong>Manager:</strong> Can add audits, create templates, generate reports, add locations, and invite checkers</div>
-                <div><strong>Checker:</strong> Can only complete/fill out audits (view and submit)</div>
+              <div className="mt-2 space-y-2 text-sm">
+                <div><strong>Admin:</strong> Full access to all features and settings</div>
+                <div><strong>Manager:</strong> Manage workforce (staff, shifts, attendance, sales, performance), audits & templates, equipment, notifications, tests. View reports & insights</div>
+                <div><strong>HR:</strong> Manage workforce (staff, shifts, attendance, time off, payroll, performance), audits & templates. View reports & insights</div>
+                <div><strong>Checker:</strong> View/perform audits and access audit templates only</div>
               </div>
             </AlertDescription>
           </Alert>
@@ -451,14 +453,14 @@ export default function UserManagement() {
                       <TableCell>
                         <Select 
                           value={user.roles[0] || 'checker'}
-                          onValueChange={(value: 'admin' | 'manager' | 'checker') => {
+                          onValueChange={(value: 'admin' | 'manager' | 'checker' | 'hr') => {
                             updateRoleMutation.mutate({
                               userId: user.id,
                               newRole: value,
                               currentRoles: user.roles
                             });
                           }}
-                          disabled={!currentUserRole?.isAdmin && (user.roles.includes('admin') || user.roles.includes('manager'))}
+                          disabled={!currentUserRole?.isAdmin && (user.roles.includes('admin') || user.roles.includes('manager') || user.roles.includes('hr'))}
                         >
                           <SelectTrigger className="w-40 min-h-[44px]">
                             <SelectValue />
@@ -474,6 +476,11 @@ export default function UserManagement() {
                                 <SelectItem value="manager" className="min-h-[44px] cursor-pointer">
                                   <div className="flex items-center gap-2">
                                     <Badge variant="outline" className="text-xs">Manager</Badge>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="hr" className="min-h-[44px] cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">HR</Badge>
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="admin" className="min-h-[44px] cursor-pointer">

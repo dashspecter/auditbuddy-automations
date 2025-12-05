@@ -59,7 +59,7 @@ export default function CompanySettings() {
     updateCompanyRole.mutate({ companyUserId, role: newRole });
   };
 
-  const handlePlatformRoleToggle = (userId: string, role: 'admin' | 'manager' | 'checker', currentlyHas: boolean) => {
+  const handlePlatformRoleToggle = (userId: string, role: 'admin' | 'manager' | 'checker' | 'hr', currentlyHas: boolean) => {
     updatePlatformRole.mutate({ 
       userId, 
       role, 
@@ -363,7 +363,7 @@ export default function CompanySettings() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-4 pt-2 border-t">
+                        <div className="flex gap-4 pt-2 border-t flex-wrap">
                           <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                             <Checkbox
                               checked={user.platform_roles?.includes('manager') || false}
@@ -375,6 +375,18 @@ export default function CompanySettings() {
                               disabled={company?.userRole !== 'company_owner'}
                             />
                             <span className="text-sm">Manager</span>
+                          </label>
+                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                            <Checkbox
+                              checked={user.platform_roles?.includes('hr') || false}
+                              onCheckedChange={() => handlePlatformRoleToggle(
+                                user.user_id, 
+                                'hr', 
+                                user.platform_roles?.includes('hr') || false
+                              )}
+                              disabled={company?.userRole !== 'company_owner'}
+                            />
+                            <span className="text-sm">HR</span>
                           </label>
                           <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
                             <Checkbox
