@@ -114,6 +114,13 @@ serve(async (req) => {
 
         console.log('Employee user created:', newUser.user.id);
         targetUserId = newUser.user.id;
+
+        // Create profile for the new user
+        await supabaseAdmin.from('profiles').upsert({
+          id: targetUserId,
+          email: email,
+          full_name: full_name,
+        }, { onConflict: 'id' });
       }
 
       // Link user to employee record
@@ -205,6 +212,13 @@ serve(async (req) => {
 
         console.log('User created:', newUser.user.id);
         targetUserId = newUser.user.id;
+
+        // Create profile for the new user
+        await supabaseAdmin.from('profiles').upsert({
+          id: targetUserId,
+          email: email,
+          full_name: full_name || null,
+        }, { onConflict: 'id' });
       }
 
       // Add user to company
@@ -331,6 +345,13 @@ serve(async (req) => {
       });
 
       if (createError) throw createError;
+
+      // Create profile for the new user
+      await supabaseAdmin.from('profiles').upsert({
+        id: newUser.user.id,
+        email: email,
+        full_name: full_name || null,
+      }, { onConflict: 'id' });
 
       // Remove the default 'checker' role added by the trigger
       await supabaseAdmin
