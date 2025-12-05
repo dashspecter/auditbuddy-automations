@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus, Briefcase } from "lucide-react";
+import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus, Briefcase, BookOpen, LayoutDashboard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGate } from "@/components/ModuleGate";
@@ -8,6 +8,8 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { EmptyState } from "@/components/EmptyState";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WorkforceGuides } from "@/components/workforce/WorkforceGuides";
 
 const Workforce = () => {
   const navigate = useNavigate();
@@ -90,86 +92,105 @@ const Workforce = () => {
           </div>
         </div>
 
-        {staffCount === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No Staff Members Yet"
-            description="Get started by adding your first staff member. You can manage their information, schedules, attendance, and payroll from here."
-            action={{
-              label: "Add Staff Member",
-              onClick: () => navigate("/workforce/staff/new")
-            }}
-          />
-        ) : (
-          <>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {modules.map((module) => (
-                <Card key={module.title} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <module.icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle className="text-lg">{module.title}</CardTitle>
-                    </div>
-                    <CardDescription>{module.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link to={module.link}>
-                      <Button variant="outline" className="w-full">
-                        {module.action}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        <Tabs defaultValue="getting-started" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="getting-started" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Getting Started
+            </TabsTrigger>
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Quick Stats */}
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Staff
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{staffCount}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active Shifts Today
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Pending Time Off
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    This Month Payroll
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">$0</div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+          <TabsContent value="getting-started">
+            <WorkforceGuides />
+          </TabsContent>
+
+          <TabsContent value="overview">
+            {staffCount === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No Staff Members Yet"
+                description="Get started by adding your first staff member. You can manage their information, schedules, attendance, and payroll from here."
+                action={{
+                  label: "Add Staff Member",
+                  onClick: () => navigate("/workforce/staff/new")
+                }}
+              />
+            ) : (
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {modules.map((module) => (
+                    <Card key={module.title} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <module.icon className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardTitle className="text-lg">{module.title}</CardTitle>
+                        </div>
+                        <CardDescription>{module.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Link to={module.link}>
+                          <Button variant="outline" className="w-full">
+                            {module.action}
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="grid gap-4 md:grid-cols-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Total Staff
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{staffCount}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Active Shifts Today
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">0</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Pending Time Off
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">0</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        This Month Payroll
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">$0</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
       <RoleManagementDialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen} />
     </ModuleGate>
