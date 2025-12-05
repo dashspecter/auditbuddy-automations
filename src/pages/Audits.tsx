@@ -200,11 +200,7 @@ const Audits = () => {
               <EmptyState
                 icon={FileEdit}
                 title={audits?.length === 0 ? "No Audits Yet" : "No Matching Audits"}
-                description={audits?.length === 0 ? "Create your first audit to get started." : "No audits match your current filters."}
-                action={audits?.length === 0 ? {
-                  label: "Create Audit",
-                  onClick: () => navigate('/location-audit')
-                } : undefined}
+                description={audits?.length === 0 ? "Create your first audit using the button above." : "No audits match your current filters."}
               />
             ) : (
               <div className="space-y-3">
