@@ -5,7 +5,6 @@ import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -140,35 +139,25 @@ export default function InterventionDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-        </main>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48 mb-6" />
+        <Card>
+          <CardContent className="p-6">
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!intervention) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <p className="text-center text-muted-foreground">Intervention not found</p>
-        </main>
-      </div>
+      <p className="text-center text-muted-foreground">Intervention not found</p>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 space-y-6">
+    <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate(`/equipment/${intervention.equipment_id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Equipment
@@ -444,7 +433,6 @@ export default function InterventionDetail() {
             </Form>
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }

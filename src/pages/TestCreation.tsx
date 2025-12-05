@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,9 +185,7 @@ const TestCreation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8 pt-safe max-w-4xl">
+    <div className="max-w-4xl mx-auto">
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Create Test</h1>
@@ -508,7 +505,6 @@ const TestCreation = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
     </div>
   );
 };

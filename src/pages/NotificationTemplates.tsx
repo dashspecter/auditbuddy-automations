@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -165,11 +164,8 @@ export default function NotificationTemplates() {
 
   return (
     <RoleGuard requireManager fallbackMessage="You don't have permission to manage notification templates.">
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 px-safe py-8 pb-safe">
-            <div className="space-y-6">
-            <div className="flex items-center justify-between">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Link to="/notifications">
                   <Button variant="ghost" size="icon">
@@ -390,8 +386,6 @@ export default function NotificationTemplates() {
               ))
             )}
           </div>
-          </div>
-        </div>
       </div>
     </RoleGuard>
   );
