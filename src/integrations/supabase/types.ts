@@ -4074,6 +4074,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_template: boolean | null
+          location_id: string | null
           passing_score: number
           scheduled_for: string | null
           time_limit_minutes: number
@@ -4090,6 +4091,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_template?: boolean | null
+          location_id?: string | null
           passing_score?: number
           scheduled_for?: string | null
           time_limit_minutes?: number
@@ -4106,6 +4108,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_template?: boolean | null
+          location_id?: string | null
           passing_score?: number
           scheduled_for?: string | null
           time_limit_minutes?: number
@@ -4132,6 +4135,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "upcoming_renewals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]

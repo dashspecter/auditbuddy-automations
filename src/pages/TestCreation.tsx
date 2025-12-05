@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Save, Sparkles, Plus, Trash2, PencilLine } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocations } from "@/hooks/useLocations";
 
 const DRAFT_STORAGE_KEY = "test_creation_draft";
 
@@ -23,6 +24,7 @@ const getInitialFormData = () => {
         title: "",
         description: "",
         documentId: "",
+        locationId: "",
         timeLimit: "30",
         passingScore: "70",
         numQuestions: "10",
@@ -37,6 +39,7 @@ const getInitialFormData = () => {
     title: "",
     description: "",
     documentId: "",
+    locationId: "",
     timeLimit: "30",
     passingScore: "70",
     numQuestions: "10",
@@ -76,6 +79,7 @@ const getInitialTab = () => {
 const TestCreation = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: locations } = useLocations();
   const [documents, setDocuments] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
   const [formData, setFormData] = useState(getInitialFormData);
@@ -207,6 +211,7 @@ const TestCreation = () => {
           title: formData.title,
           description: formData.description,
           document_id: isManual ? null : formData.documentId,
+          location_id: formData.locationId || null,
           time_limit_minutes: parseInt(formData.timeLimit),
           passing_score: parseInt(formData.passingScore),
           scheduled_for: formData.scheduledFor || null,
@@ -278,23 +283,42 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Document *</Label>
+                      <Label>Location (Optional)</Label>
                       <Select
-                        value={formData.documentId}
-                        onValueChange={(value) => setFormData({ ...formData, documentId: value })}
+                        value={formData.locationId}
+                        onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select document" />
+                          <SelectValue placeholder="All locations" />
                         </SelectTrigger>
                         <SelectContent>
-                          {documents.map((doc) => (
-                            <SelectItem key={doc.id} value={doc.id}>
-                              {doc.title} ({doc.category?.name})
+                          {locations?.map((loc) => (
+                            <SelectItem key={loc.id} value={loc.id}>
+                              {loc.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div>
+                    <Label>Document *</Label>
+                    <Select
+                      value={formData.documentId}
+                      onValueChange={(value) => setFormData({ ...formData, documentId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select document" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {documents.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id}>
+                            {doc.title} ({doc.category?.name})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
@@ -421,13 +445,33 @@ const TestCreation = () => {
             <TabsContent value="manual" className="space-y-6">
               <Card className="p-6">
                 <div className="space-y-4">
-                  <div>
-                    <Label>Test Title *</Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="e.g., Safety Training Quiz"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Test Title *</Label>
+                      <Input
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="e.g., Safety Training Quiz"
+                      />
+                    </div>
+                    <div>
+                      <Label>Location (Optional)</Label>
+                      <Select
+                        value={formData.locationId}
+                        onValueChange={(value) => setFormData({ ...formData, locationId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All locations" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations?.map((loc) => (
+                            <SelectItem key={loc.id} value={loc.id}>
+                              {loc.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div>
