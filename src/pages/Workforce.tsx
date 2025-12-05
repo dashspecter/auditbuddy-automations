@@ -83,7 +83,7 @@ const Workforce = () => {
               <Briefcase className="h-4 w-4" />
               Manage Roles
             </Button>
-            <Link to="/workforce/staff/new">
+            <Link to="/workforce/staff">
               <Button className="gap-2">
                 <UserPlus className="h-4 w-4" />
                 Add Staff Member
@@ -116,7 +116,7 @@ const Workforce = () => {
                 description="Get started by adding your first staff member. You can manage their information, schedules, attendance, and payroll from here."
                 action={{
                   label: "Add Staff Member",
-                  onClick: () => navigate("/workforce/staff/new")
+                  onClick: () => navigate("/workforce/staff")
                 }}
               />
             ) : (

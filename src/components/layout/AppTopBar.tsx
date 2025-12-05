@@ -110,7 +110,7 @@ export const AppTopBar = () => {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/workforce/staff/new" className="cursor-pointer">
+              <Link to="/workforce/staff" className="cursor-pointer">
                 <UsersIcon className="mr-2 h-4 w-4" />
                 Add Staff
               </Link>
