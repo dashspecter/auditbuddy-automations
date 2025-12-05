@@ -1,7 +1,8 @@
 import { 
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
   Wrench, Package, FileText, Lightbulb, Plug, 
-  CreditCard, Building2, ChevronDown, Bell, BarChart, Activity
+  CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
+  GraduationCap, Image, UserCog, Bug, Shield, Calendar
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -16,7 +17,7 @@ const navigationItems = [
     title: "Home", 
     url: "/dashboard", 
     icon: Home,
-    module: null // Always visible
+    module: null
   },
   { 
     title: "Workforce", 
@@ -38,7 +39,7 @@ const navigationItems = [
     title: "Locations", 
     url: "/admin/locations", 
     icon: MapPin,
-    module: null, // Always visible
+    module: null,
     requiresManager: true
   },
   { 
@@ -52,26 +53,45 @@ const navigationItems = [
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", requiresManager: true },
       { title: "Manual Metrics", url: "/manual-metrics", requiresManager: true },
+      { title: "Staff Audits", url: "/staff-audits" },
+      { title: "Photo Gallery", url: "/photos" },
     ]
   },
   { 
     title: "Tasks", 
     url: "/tasks", 
     icon: ListTodo,
-    module: null // Always visible
+    module: null,
+    subItems: [
+      { title: "All Tasks", url: "/tasks" },
+      { title: "Calendar", url: "/tasks/calendar" },
+    ]
   },
   { 
     title: "Equipment", 
     url: "/equipment", 
     icon: Wrench,
-    module: "equipment_management"
+    module: "equipment_management",
+    subItems: [
+      { title: "All Equipment", url: "/equipment" },
+      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
+      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
+      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+    ]
   },
   { 
     title: "Notifications", 
     url: "/notifications", 
     icon: Bell,
     module: "notifications",
-    requiresManager: true
+    requiresManager: true,
+    subItems: [
+      { title: "Send Notifications", url: "/notifications" },
+      { title: "Templates", url: "/notification-templates" },
+      { title: "Recurring", url: "/recurring-notifications" },
+      { title: "Analytics", url: "/notification-analytics" },
+      { title: "Audit Logs", url: "/notification-audit-logs" },
+    ]
   },
   { 
     title: "Reports", 
@@ -91,14 +111,33 @@ const navigationItems = [
     url: "/documents", 
     icon: FileText,
     module: "documents",
-    requiresManager: true
+    requiresManager: true,
+    subItems: [
+      { title: "All Documents", url: "/documents" },
+      { title: "Training Programs", url: "/training" },
+    ]
+  },
+  { 
+    title: "Tests", 
+    url: "/test-management", 
+    icon: GraduationCap,
+    module: null,
+    requiresManager: true,
+    subItems: [
+      { title: "Test Management", url: "/test-management" },
+      { title: "Create Test", url: "/test-creation" },
+    ]
   },
   { 
     title: "Insights", 
     url: "/insights", 
     icon: Lightbulb,
     module: "insights",
-    requiresManager: true
+    requiresManager: true,
+    subItems: [
+      { title: "Overview", url: "/insights" },
+      { title: "AI Feed", url: "/ai-feed" },
+    ]
   },
   { 
     title: "Integrations", 
@@ -108,7 +147,6 @@ const navigationItems = [
     requiresAdmin: true
   },
 ];
-
 const settingsItems = [
   { 
     title: "Billing & Modules", 
@@ -123,6 +161,18 @@ const settingsItems = [
     requiresOwner: true
   },
   { 
+    title: "User Management", 
+    url: "/admin/users", 
+    icon: UserCog,
+    requiresAdmin: true
+  },
+  { 
+    title: "Platform Admin", 
+    url: "/admin/platform", 
+    icon: Shield,
+    requiresAdmin: true
+  },
+  { 
     title: "System Health", 
     url: "/system-health", 
     icon: Activity,
@@ -131,7 +181,7 @@ const settingsItems = [
   { 
     title: "Debug Data", 
     url: "/debug/system-health", 
-    icon: Activity,
+    icon: Bug,
     requiresAdmin: true
   },
 ];
