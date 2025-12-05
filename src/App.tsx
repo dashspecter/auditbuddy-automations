@@ -70,6 +70,7 @@ import Attendance from "./pages/workforce/Attendance";
 import TimeOffApprovals from "./pages/workforce/TimeOffApprovals";
 import Payroll from "./pages/workforce/Payroll";
 import EmployeePerformance from "./pages/workforce/EmployeePerformance";
+import SalesManagement from "./pages/workforce/SalesManagement";
 import StaffLogin from "./pages/StaffLogin";
 import StaffHome from "./pages/staff/StaffHome";
 import StaffSchedule from "./pages/staff/StaffSchedule";
@@ -214,6 +215,7 @@ const App = () => (
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
               <Route path="/workforce/payroll" element={<ManagerRoute><Payroll /></ManagerRoute>} />
+              <Route path="/workforce/sales" element={<ManagerRoute><SalesManagement /></ManagerRoute>} />
               <Route path="/workforce/performance" element={<ManagerRoute><EmployeePerformance /></ManagerRoute>} />
               
               {/* Tasks Routes */}
