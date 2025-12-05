@@ -51,6 +51,7 @@ const navigationItems = [
       { title: "Template Library", url: "/audits/templates", requiresManager: true },
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", requiresManager: true },
+      { title: "Manual Metrics", url: "/manual-metrics", requiresManager: true },
     ]
   },
   { 
