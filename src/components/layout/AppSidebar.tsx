@@ -12,6 +12,11 @@ import { useCompany } from "@/hooks/useCompany";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useEffect } from "react";
 
+// Role-based access configuration
+// Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
+// Checker: view/perform audits, access audit templates
+// HR: workforce (staff, shifts, attendance, time off, payroll, performance), audits/templates, view reports/insights
+
 const navigationItems = [
   { 
     title: "Home", 
@@ -24,15 +29,16 @@ const navigationItems = [
     url: "/workforce", 
     icon: Users,
     module: "workforce",
+    allowedRoles: ['admin', 'manager', 'hr'], // Both manager and HR can access workforce
     subItems: [
       { title: "Overview", url: "/workforce" },
-      { title: "Staff", url: "/workforce/staff", requiresManager: true },
-      { title: "Shifts", url: "/workforce/shifts" },
-      { title: "Attendance", url: "/workforce/attendance" },
-      { title: "Time Off", url: "/workforce/time-off" },
-      { title: "Payroll", url: "/workforce/payroll", requiresManager: true },
-      { title: "Sales", url: "/workforce/sales", requiresManager: true },
-      { title: "Performance", url: "/workforce/performance", requiresManager: true },
+      { title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] }, // HR only, not manager
+      { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] }, // HR only, not manager
+      { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] }, // Manager only, not HR
+      { title: "Performance", url: "/workforce/performance", allowedRoles: ['admin', 'manager', 'hr'] },
     ]
   },
   { 
@@ -40,19 +46,20 @@ const navigationItems = [
     url: "/admin/locations", 
     icon: MapPin,
     module: null,
-    requiresManager: true
+    allowedRoles: ['admin', 'manager']
   },
   { 
     title: "Audits", 
     url: "/audits", 
     icon: ClipboardCheck,
     module: "location_audits",
+    allowedRoles: ['admin', 'manager', 'hr', 'checker'], // All roles can view audits
     subItems: [
       { title: "Perform Audit", url: "/audits" },
-      { title: "Template Library", url: "/audits/templates", requiresManager: true },
+      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'] },
       { title: "Audit Calendar", url: "/audits-calendar" },
-      { title: "Schedules", url: "/recurring-schedules", requiresManager: true },
-      { title: "Manual Metrics", url: "/manual-metrics", requiresManager: true },
+      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Manual Metrics", url: "/manual-metrics", allowedRoles: ['admin', 'manager', 'hr'] },
       { title: "Photo Gallery", url: "/photos" },
     ]
   },
@@ -71,6 +78,7 @@ const navigationItems = [
     url: "/equipment", 
     icon: Wrench,
     module: "equipment_management",
+    allowedRoles: ['admin', 'manager'], // Manager can manage equipment
     subItems: [
       { title: "All Equipment", url: "/equipment" },
       { title: "Maintenance Calendar", url: "/maintenance-calendar" },
@@ -83,7 +91,7 @@ const navigationItems = [
     url: "/notifications", 
     icon: Bell,
     module: "notifications",
-    requiresManager: true,
+    allowedRoles: ['admin', 'manager'], // Manager can manage notifications
     subItems: [
       { title: "Send Notifications", url: "/notifications" },
       { title: "Templates", url: "/notification-templates" },
@@ -97,7 +105,7 @@ const navigationItems = [
     url: "/reports", 
     icon: BarChart,
     module: "reports",
-    requiresManager: true,
+    allowedRoles: ['admin', 'manager', 'hr'], // Manager and HR can view reports
     subItems: [
       { title: "Location Performance", url: "/reports" },
       { title: "Employee Performance", url: "/staff-audits" },
@@ -114,7 +122,7 @@ const navigationItems = [
     url: "/documents", 
     icon: FileText,
     module: "documents",
-    requiresManager: true,
+    allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "All Documents", url: "/documents" },
       { title: "Training Programs", url: "/training" },
@@ -125,7 +133,7 @@ const navigationItems = [
     url: "/test-management", 
     icon: GraduationCap,
     module: null,
-    requiresManager: true,
+    allowedRoles: ['admin', 'manager'], // Manager can manage tests
     subItems: [
       { title: "Test Management", url: "/test-management" },
       { title: "Create Test", url: "/test-creation" },
@@ -136,7 +144,7 @@ const navigationItems = [
     url: "/insights", 
     icon: Lightbulb,
     module: "insights",
-    requiresManager: true,
+    allowedRoles: ['admin', 'manager', 'hr'], // Manager and HR can view insights
     subItems: [
       { title: "Overview", url: "/insights" },
       { title: "AI Feed", url: "/ai-feed" },
@@ -147,7 +155,7 @@ const navigationItems = [
     url: "/integrations", 
     icon: Plug,
     module: "integrations",
-    requiresAdmin: true
+    allowedRoles: ['admin']
   },
 ];
 const settingsItems = [
@@ -218,17 +226,28 @@ export function AppSidebar() {
     setExpandedGroups(prev => ({ ...prev, ...activeParents }));
   }, [currentPath]);
 
+  const hasAllowedRole = (allowedRoles?: string[]) => {
+    if (!allowedRoles || allowedRoles.length === 0) return true;
+    if (roleData?.isAdmin && allowedRoles.includes('admin')) return true;
+    if (roleData?.isManager && allowedRoles.includes('manager')) return true;
+    if (roleData?.isChecker && allowedRoles.includes('checker')) return true;
+    if (roleData?.isHR && allowedRoles.includes('hr')) return true;
+    return false;
+  };
+
   const shouldShowItem = (item: any) => {
     // Check module access
     if (item.module && !hasModule(item.module)) {
       return false;
     }
 
-    // Check role requirements
-    if (item.requiresAdmin && !roleData?.isAdmin) {
+    // Check role requirements using allowedRoles array
+    if (item.allowedRoles && !hasAllowedRole(item.allowedRoles)) {
       return false;
     }
-    if (item.requiresManager && !(roleData?.isAdmin || roleData?.isManager)) {
+
+    // Legacy support for requiresAdmin/requiresOwner
+    if (item.requiresAdmin && !roleData?.isAdmin) {
       return false;
     }
     if (item.requiresOwner && !isOwner) {
@@ -285,8 +304,8 @@ export function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-1 ml-3 pl-4 border-l-2 border-sidebar-border/50 space-y-0.5">
                       {item.subItems.filter((subItem: any) => {
-                        // Check if subitem has manager requirement
-                        if (subItem.requiresManager && !(roleData?.isAdmin || roleData?.isManager)) {
+                        // Check if subitem has allowedRoles requirement
+                        if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
                           return false;
                         }
                         return true;

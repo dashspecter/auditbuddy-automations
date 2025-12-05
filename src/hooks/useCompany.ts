@@ -353,7 +353,7 @@ export const useUpdatePlatformRole = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'manager' | 'checker'; action: 'add' | 'remove' }) => {
+    mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'manager' | 'checker' | 'hr'; action: 'add' | 'remove' }) => {
       if (action === 'add') {
         // Check if role already exists
         const { data: existing } = await supabase

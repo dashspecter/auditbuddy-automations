@@ -4,6 +4,7 @@ export interface RoleData {
   isAdmin: boolean;
   isManager: boolean;
   isChecker: boolean;
+  isHR: boolean;
   roles: string[];
 }
 
@@ -18,7 +19,7 @@ export interface CompanyData {
 /**
  * Check if user has a specific role
  */
-export const hasRole = (roleData: RoleData | null | undefined, role: 'admin' | 'manager' | 'checker'): boolean => {
+export const hasRole = (roleData: RoleData | null | undefined, role: 'admin' | 'manager' | 'checker' | 'hr'): boolean => {
   if (!roleData) return false;
   
   switch (role) {
@@ -28,6 +29,8 @@ export const hasRole = (roleData: RoleData | null | undefined, role: 'admin' | '
       return roleData.isManager;
     case 'checker':
       return roleData.isChecker;
+    case 'hr':
+      return roleData.isHR;
     default:
       return false;
   }
