@@ -953,25 +953,6 @@ export const EnhancedShiftDialog = ({
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id="close_duty"
-                  checked={formData.close_duty}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, close_duty: checked as boolean })
-                  }
-                />
-                <Label htmlFor="close_duty" className="cursor-pointer">Close Duty</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p>Marks this shift as a closing shift. The employee is responsible for end-of-day duties like locking up.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
                   id="is_open_shift"
                   checked={formData.is_open_shift}
                   onCheckedChange={(checked) =>
