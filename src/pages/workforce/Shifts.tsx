@@ -202,9 +202,6 @@ const Shifts = () => {
                                 ({shift.break_duration_minutes}min break)
                               </div>
                             )}
-                            {shift.close_duty && (
-                              <Badge variant="outline" className="text-xs">Close Duty</Badge>
-                            )}
                           </div>
                           
                           {/* Assigned Employees */}
