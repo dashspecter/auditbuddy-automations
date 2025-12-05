@@ -220,15 +220,15 @@ export function AppSidebar() {
                     onOpenChange={() => toggleGroup(item.title)}
                   >
                     <CollapsibleTrigger className={`
-                      w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium
+                      w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold
                       transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground
                       ${isParentActive(item) ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground'}
                     `}>
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
                       <span className="flex-1 text-left">{item.title}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="ml-7 mt-1 space-y-1">
+                    <CollapsibleContent className="mt-1 ml-3 pl-4 border-l-2 border-sidebar-border/50 space-y-0.5">
                       {item.subItems.filter((subItem: any) => {
                         // Check if subitem has manager requirement
                         if (subItem.requiresManager && !(roleData?.isAdmin || roleData?.isManager)) {
@@ -239,7 +239,7 @@ export function AppSidebar() {
                         <NavLink
                           key={subItem.url}
                           to={subItem.url}
-                          className="flex items-center px-3 py-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground"
+                          className="flex items-center px-3 py-1.5 text-xs rounded-md hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground text-sidebar-foreground/80 font-normal"
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         >
                           {subItem.title}
@@ -250,10 +250,10 @@ export function AppSidebar() {
                 ) : (
                   <NavLink
                     to={item.url}
-                    className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground"
                     activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                   >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
                     <span>{item.title}</span>
                   </NavLink>
                 )}
