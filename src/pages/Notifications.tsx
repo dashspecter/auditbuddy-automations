@@ -36,6 +36,7 @@ import { format, isFuture } from "date-fns";
 import { ModuleGate } from "@/components/ModuleGate";
 import { cn } from "@/lib/utils";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useLocations } from "@/hooks/useLocations";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,8 @@ export default function Notifications() {
   const { data: audits = [] } = useLocationAudits();
   const { markAsRead, markAllAsRead, readNotifications, isMarkingAllAsRead } = useNotifications();
   const { data: employees = [] } = useEmployees();
+  const { data: locations = [] } = useLocations();
+  const [locationFilter, setLocationFilter] = useState<string>("all");
 
   console.log('[Notifications] Loading role:', isLoadingRole, 'Role data:', roleData);
 
@@ -517,31 +520,48 @@ export default function Notifications() {
                     </div>
                   )}
                   
+                {/* Location filter */}
+                  <Select value={locationFilter} onValueChange={setLocationFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
                   {/* Employee selector */}
                   <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
                     {employees.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No employees found</p>
                     ) : (
-                      employees.map((employee) => (
-                        <div
-                          key={employee.id}
-                          className={cn(
-                            "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
-                            targetEmployeeIds.includes(employee.id) && "bg-primary/10"
-                          )}
-                          onClick={() => handleEmployeeToggle(employee.id)}
-                        >
-                          <Checkbox
-                            id={`employee-${employee.id}`}
-                            checked={targetEmployeeIds.includes(employee.id)}
-                            onCheckedChange={() => handleEmployeeToggle(employee.id)}
-                          />
-                          <Label htmlFor={`employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
-                            <span>{employee.full_name}</span>
-                            <span className="text-xs text-muted-foreground">{employee.role} • {employee.locations?.name}</span>
-                          </Label>
-                        </div>
-                      ))
+                      employees
+                        .filter((employee) => locationFilter === "all" || employee.location_id === locationFilter)
+                        .map((employee) => (
+                          <div
+                            key={employee.id}
+                            className={cn(
+                              "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
+                              targetEmployeeIds.includes(employee.id) && "bg-primary/10"
+                            )}
+                            onClick={() => handleEmployeeToggle(employee.id)}
+                          >
+                            <Checkbox
+                              id={`employee-${employee.id}`}
+                              checked={targetEmployeeIds.includes(employee.id)}
+                              onCheckedChange={() => handleEmployeeToggle(employee.id)}
+                            />
+                            <Label htmlFor={`employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
+                              <span>{employee.full_name}</span>
+                              <span className="text-xs text-muted-foreground">{employee.role} • {employee.locations?.name}</span>
+                            </Label>
+                          </div>
+                        ))
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
