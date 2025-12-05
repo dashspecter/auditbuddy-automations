@@ -407,7 +407,8 @@ const TakeTest = () => {
           <h2 className="text-xl font-semibold mb-6">{currentQ.question}</h2>
 
           <RadioGroup
-            value={answers[currentQ.id]}
+            key={currentQ.id}
+            value={answers[currentQ.id] || ""}
             onValueChange={(value) => setAnswers({ ...answers, [currentQ.id]: value })}
             disabled={submitting}
           >
@@ -415,10 +416,10 @@ const TakeTest = () => {
               <div key={index} className={`flex items-center space-x-3 p-3 rounded ${submitting ? "opacity-50 cursor-not-allowed" : "hover:bg-muted"}`}>
                 <RadioGroupItem
                   value={String.fromCharCode(65 + index)}
-                  id={`option-${index}`}
+                  id={`${currentQ.id}-option-${index}`}
                   disabled={submitting}
                 />
-                <Label htmlFor={`option-${index}`} className={`flex-1 ${submitting ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                <Label htmlFor={`${currentQ.id}-option-${index}`} className={`flex-1 ${submitting ? "cursor-not-allowed" : "cursor-pointer"}`}>
                   <span className="font-medium">{String.fromCharCode(65 + index)}.</span> {opt}
                 </Label>
               </div>
