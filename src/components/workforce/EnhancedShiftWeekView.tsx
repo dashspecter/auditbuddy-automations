@@ -90,9 +90,10 @@ export const EnhancedShiftWeekView = () => {
     return shifts.filter(shift => shift.shift_date === dateStr && !shift.is_published);
   };
 
-  // Get all unpublished shifts for the week
+  // Get all unpublished shifts for the week (only future shifts, from today onwards)
   const unpublishedWeekShiftIds = useMemo(() => {
-    return shifts.filter(shift => !shift.is_published).map(s => s.id);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return shifts.filter(shift => !shift.is_published && shift.shift_date >= today).map(s => s.id);
   }, [shifts]);
 
   // Publish all shifts for a specific day
