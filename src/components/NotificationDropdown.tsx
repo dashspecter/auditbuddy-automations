@@ -14,6 +14,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow, format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { NotificationDetailDialog } from "@/components/NotificationDetailDialog";
 import type { Notification } from "@/hooks/useNotifications";
 
@@ -135,7 +136,7 @@ export const NotificationDropdown = () => {
                         </div>
                         <div 
                           className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: notification.message }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }}
                         />
                         {notification.location_audits && (
                           <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded mt-1 w-fit">

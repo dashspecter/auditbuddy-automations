@@ -5,6 +5,7 @@ import { Bell, CheckCircle, Info, AlertTriangle, Megaphone, X } from "lucide-rea
 import { useNotifications } from "@/hooks/useNotifications";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export const StaffNotificationsCard = () => {
   const { unreadNotifications, markAsRead, isLoading } = useNotifications();
@@ -90,7 +91,7 @@ export const StaffNotificationsCard = () => {
                 </div>
                 <div 
                   className="text-sm text-muted-foreground line-clamp-2"
-                  dangerouslySetInnerHTML={{ __html: notification.message }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
                   {format(new Date(notification.created_at), "MMM d, h:mm a")}

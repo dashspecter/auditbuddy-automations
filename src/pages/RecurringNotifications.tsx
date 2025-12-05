@@ -12,6 +12,7 @@ import { EditRecurringNotificationDialog } from "@/components/EditRecurringNotif
 import { NotificationHistoryDialog } from "@/components/NotificationHistoryDialog";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useEmployees } from "@/hooks/useEmployees";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -241,7 +242,7 @@ export default function RecurringNotifications() {
                         
                         <div
                           className="text-sm text-muted-foreground line-clamp-2"
-                          dangerouslySetInnerHTML={{ __html: notification.message }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }}
                         />
 
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -383,7 +384,7 @@ export default function RecurringNotifications() {
                         
                         <div
                           className="text-sm text-muted-foreground line-clamp-2"
-                          dangerouslySetInnerHTML={{ __html: notification.message }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(notification.message) }}
                         />
 
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
