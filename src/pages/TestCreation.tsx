@@ -12,12 +12,28 @@ import { toast } from "sonner";
 import { Loader2, Save, Sparkles, Plus, Trash2, PencilLine } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const TestCreation = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [generating, setGenerating] = useState(false);
-  const [formData, setFormData] = useState({
+const DRAFT_STORAGE_KEY = "test_creation_draft";
+
+const getInitialFormData = () => {
+  try {
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.formData || {
+        title: "",
+        description: "",
+        documentId: "",
+        timeLimit: "30",
+        passingScore: "70",
+        numQuestions: "10",
+        scheduledFor: "",
+        expiresAt: "",
+      };
+    }
+  } catch (e) {
+    console.error("Error loading draft:", e);
+  }
+  return {
     title: "",
     description: "",
     documentId: "",
@@ -26,11 +42,38 @@ const TestCreation = () => {
     numQuestions: "10",
     scheduledFor: "",
     expiresAt: "",
-  });
+  };
+};
+
+const getInitialManualQuestions = () => {
+  try {
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.manualQuestions && parsed.manualQuestions.length > 0) {
+        return parsed.manualQuestions;
+      }
+    }
+  } catch (e) {
+    console.error("Error loading draft questions:", e);
+  }
+  return [{ question: "", options: ["", "", "", ""], correct_answer: "A" }];
+};
+
+const TestCreation = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [formData, setFormData] = useState(getInitialFormData);
   const [questions, setQuestions] = useState<any[]>([]);
-  const [manualQuestions, setManualQuestions] = useState<any[]>([
-    { question: "", options: ["", "", "", ""], correct_answer: "A" }
-  ]);
+  const [manualQuestions, setManualQuestions] = useState<any[]>(getInitialManualQuestions);
+
+  // Save draft to localStorage whenever form data changes
+  useEffect(() => {
+    const draft = { formData, manualQuestions };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  }, [formData, manualQuestions]);
 
   useEffect(() => {
     loadDocuments();
@@ -176,6 +219,9 @@ const TestCreation = () => {
 
       if (questionsError) throw questionsError;
 
+      // Clear draft after successful save
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      
       toast.success("Test created successfully!");
       navigate("/test-management");
     } catch (error) {
