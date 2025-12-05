@@ -49,7 +49,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Routes that don't need company data
   const isSpecialRoute = location.pathname.startsWith('/onboarding') || 
                          location.pathname === '/pending-approval' ||
-                         location.pathname.startsWith('/staff') ||
+                         location.pathname.startsWith('/staff/') ||
+                         location.pathname === '/staff' ||
                          location.pathname === '/system-health' ||
                          location.pathname === '/debug/system-health';
 
@@ -70,8 +71,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Check if this is a staff-only route (not /staff-audits which is admin/manager route)
+  const isStaffRoute = location.pathname === '/staff' || location.pathname.startsWith('/staff/');
+
   // Staff users should be on staff routes
-  if (isStaff && !location.pathname.startsWith('/staff')) {
+  if (isStaff && !isStaffRoute) {
     return <Navigate to="/staff" replace />;
   }
 
@@ -121,7 +125,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Render without layout for special routes or staff routes
-  if (isSpecialRoute || location.pathname.startsWith('/staff')) {
+  if (isSpecialRoute || isStaffRoute) {
     return <>{children}</>;
   }
 
