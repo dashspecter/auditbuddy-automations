@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { X, Users } from "lucide-react";
@@ -43,8 +44,10 @@ export const EditRecurringNotificationDialog = ({
   const queryClient = useQueryClient();
   const { data: audits = [] } = useLocationAudits();
   const { data: employees = [] } = useEmployees();
+  const { data: locations = [] } = useLocations();
   
   const [title, setTitle] = useState(notification.title);
+  const [locationFilter, setLocationFilter] = useState<string>("all");
   const [message, setMessage] = useState(notification.message);
   const [type, setType] = useState<"info" | "success" | "warning" | "announcement">(notification.type as any);
   const [targetEmployeeIds, setTargetEmployeeIds] = useState<string[]>(notification.target_employee_ids || []);
@@ -244,31 +247,48 @@ export const EditRecurringNotificationDialog = ({
               </div>
             )}
             
+            {/* Location filter */}
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             {/* Employee selector */}
             <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
               {employees.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No employees found</p>
               ) : (
-                employees.map((employee) => (
-                  <div
-                    key={employee.id}
-                    className={cn(
-                      "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
-                      targetEmployeeIds.includes(employee.id) && "bg-primary/10"
-                    )}
-                    onClick={() => handleEmployeeToggle(employee.id)}
-                  >
-                    <Checkbox
-                      id={`edit-employee-${employee.id}`}
-                      checked={targetEmployeeIds.includes(employee.id)}
-                      onCheckedChange={() => handleEmployeeToggle(employee.id)}
-                    />
-                    <Label htmlFor={`edit-employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
-                      <span>{employee.full_name}</span>
-                      <span className="text-xs text-muted-foreground">{employee.role}</span>
-                    </Label>
-                  </div>
-                ))
+                employees
+                  .filter((employee) => locationFilter === "all" || employee.location_id === locationFilter)
+                  .map((employee) => (
+                    <div
+                      key={employee.id}
+                      className={cn(
+                        "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
+                        targetEmployeeIds.includes(employee.id) && "bg-primary/10"
+                      )}
+                      onClick={() => handleEmployeeToggle(employee.id)}
+                    >
+                      <Checkbox
+                        id={`edit-employee-${employee.id}`}
+                        checked={targetEmployeeIds.includes(employee.id)}
+                        onCheckedChange={() => handleEmployeeToggle(employee.id)}
+                      />
+                      <Label htmlFor={`edit-employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
+                        <span>{employee.full_name}</span>
+                        <span className="text-xs text-muted-foreground">{employee.role} • {employee.locations?.name}</span>
+                      </Label>
+                    </div>
+                  ))
               )}
             </div>
             <p className="text-xs text-muted-foreground">
