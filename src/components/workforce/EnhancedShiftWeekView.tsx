@@ -444,10 +444,6 @@ export const EnhancedShiftWeekView = () => {
           </div>
           <span>Open Shift</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Close</Badge>
-          <span>Closing Duty</span>
-        </div>
       </div>
 
       {/* Week grid with employee rows */}
