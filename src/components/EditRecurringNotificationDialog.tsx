@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocationAudits } from "@/hooks/useAudits";
+import { useEmployees } from "@/hooks/useEmployees";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { X, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EditRecurringNotificationDialogProps {
   notification: {
@@ -19,6 +23,7 @@ interface EditRecurringNotificationDialogProps {
     message: string;
     type: string;
     target_roles: string[];
+    target_employee_ids?: string[];
     recurrence_pattern: string;
     expires_at: string | null;
     scheduled_for: string | null;
@@ -37,19 +42,32 @@ export const EditRecurringNotificationDialog = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: audits = [] } = useLocationAudits();
+  const { data: employees = [] } = useEmployees();
   
   const [title, setTitle] = useState(notification.title);
   const [message, setMessage] = useState(notification.message);
   const [type, setType] = useState<"info" | "success" | "warning" | "announcement">(notification.type as any);
-  const [targetRoles, setTargetRoles] = useState<string[]>(notification.target_roles);
+  const [targetEmployeeIds, setTargetEmployeeIds] = useState<string[]>(notification.target_employee_ids || []);
   const [recurrencePattern, setRecurrencePattern] = useState<"daily" | "weekly" | "monthly">(notification.recurrence_pattern as any);
   const [expiresAt, setExpiresAt] = useState(notification.expires_at ? notification.expires_at.slice(0, 16) : "");
   const [nextScheduledAt, setNextScheduledAt] = useState(notification.next_scheduled_at ? notification.next_scheduled_at.slice(0, 16) : "");
   const [auditId, setAuditId] = useState<string>(notification.audit_id || "");
 
-  const handleRoleToggle = (role: string) => {
-    setTargetRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+  // Reset form when notification changes
+  useEffect(() => {
+    setTitle(notification.title);
+    setMessage(notification.message);
+    setType(notification.type as any);
+    setTargetEmployeeIds(notification.target_employee_ids || []);
+    setRecurrencePattern(notification.recurrence_pattern as any);
+    setExpiresAt(notification.expires_at ? notification.expires_at.slice(0, 16) : "");
+    setNextScheduledAt(notification.next_scheduled_at ? notification.next_scheduled_at.slice(0, 16) : "");
+    setAuditId(notification.audit_id || "");
+  }, [notification]);
+
+  const handleEmployeeToggle = (employeeId: string) => {
+    setTargetEmployeeIds((prev) =>
+      prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId]
     );
   };
 
@@ -61,7 +79,8 @@ export const EditRecurringNotificationDialog = ({
           title,
           message,
           type,
-          target_roles: targetRoles,
+          target_roles: [],
+          target_employee_ids: targetEmployeeIds,
           recurrence_pattern: recurrencePattern,
           expires_at: expiresAt || null,
           next_scheduled_at: nextScheduledAt ? new Date(nextScheduledAt).toISOString() : null,
@@ -90,10 +109,10 @@ export const EditRecurringNotificationDialog = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !message || targetRoles.length === 0) {
+    if (!title || !message || targetEmployeeIds.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields and select at least one employee",
         variant: "destructive",
       });
       return;
@@ -199,39 +218,62 @@ export const EditRecurringNotificationDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Target Roles *</Label>
-            <div className="flex gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-checker"
-                  checked={targetRoles.includes("checker")}
-                  onCheckedChange={() => handleRoleToggle("checker")}
-                />
-                <Label htmlFor="edit-checker" className="cursor-pointer">
-                  Checkers
-                </Label>
+            <Label className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Target Employees *
+            </Label>
+            
+            {/* Selected employees badges */}
+            {targetEmployeeIds.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
+                {targetEmployeeIds.map((employeeId) => {
+                  const employee = employees.find(e => e.id === employeeId);
+                  return (
+                    <Badge key={employeeId} variant="secondary" className="flex items-center gap-1">
+                      {employee?.full_name || 'Unknown'}
+                      <button
+                        type="button"
+                        onClick={() => handleEmployeeToggle(employeeId)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-manager"
-                  checked={targetRoles.includes("manager")}
-                  onCheckedChange={() => handleRoleToggle("manager")}
-                />
-                <Label htmlFor="edit-manager" className="cursor-pointer">
-                  Managers
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-admin"
-                  checked={targetRoles.includes("admin")}
-                  onCheckedChange={() => handleRoleToggle("admin")}
-                />
-                <Label htmlFor="edit-admin" className="cursor-pointer">
-                  Admins
-                </Label>
-              </div>
+            )}
+            
+            {/* Employee selector */}
+            <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
+              {employees.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No employees found</p>
+              ) : (
+                employees.map((employee) => (
+                  <div
+                    key={employee.id}
+                    className={cn(
+                      "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
+                      targetEmployeeIds.includes(employee.id) && "bg-primary/10"
+                    )}
+                    onClick={() => handleEmployeeToggle(employee.id)}
+                  >
+                    <Checkbox
+                      id={`edit-employee-${employee.id}`}
+                      checked={targetEmployeeIds.includes(employee.id)}
+                      onCheckedChange={() => handleEmployeeToggle(employee.id)}
+                    />
+                    <Label htmlFor={`edit-employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
+                      <span>{employee.full_name}</span>
+                      <span className="text-xs text-muted-foreground">{employee.role}</span>
+                    </Label>
+                  </div>
+                ))
+              )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              {targetEmployeeIds.length} employee{targetEmployeeIds.length !== 1 ? 's' : ''} selected
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

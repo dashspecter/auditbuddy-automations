@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Pause, Play, Trash2, Calendar, Clock, RefreshCw, FileText, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, Pause, Play, Trash2, Calendar, Clock, RefreshCw, FileText, History as HistoryIcon, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { EditRecurringNotificationDialog } from "@/components/EditRecurringNotificationDialog";
 import { NotificationHistoryDialog } from "@/components/NotificationHistoryDialog";
 import { RoleGuard } from "@/components/RoleGuard";
+import { useEmployees } from "@/hooks/useEmployees";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ interface RecurringNotification {
   message: string;
   type: string;
   target_roles: string[];
+  target_employee_ids?: string[];
   recurrence_pattern: string;
   recurrence_enabled: boolean;
   next_scheduled_at: string | null;
@@ -60,6 +62,12 @@ export default function RecurringNotifications() {
   const queryClient = useQueryClient();
   const [editDialog, setEditDialog] = useState<{ open: boolean; notification: any | null }>({ open: false, notification: null });
   const [historyDialog, setHistoryDialog] = useState<{ open: boolean; notification: any | null }>({ open: false, notification: null });
+  const { data: employees = [] } = useEmployees();
+
+  const getEmployeeName = (employeeId: string) => {
+    const employee = employees.find(e => e.id === employeeId);
+    return employee?.full_name || 'Unknown';
+  };
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['recurring_notifications'],
@@ -253,13 +261,23 @@ export default function RecurringNotifications() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>Target Roles:</span>
-                          {notification.target_roles.map((role) => (
-                            <Badge key={role} variant="secondary" className="text-xs">
-                              {role}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                          <Users className="h-4 w-4" />
+                          <span>Target Employees:</span>
+                          {notification.target_employee_ids && notification.target_employee_ids.length > 0 ? (
+                            notification.target_employee_ids.slice(0, 3).map((empId) => (
+                              <Badge key={empId} variant="secondary" className="text-xs">
+                                {getEmployeeName(empId)}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">No employees selected</span>
+                          )}
+                          {notification.target_employee_ids && notification.target_employee_ids.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{notification.target_employee_ids.length - 3} more
                             </Badge>
-                          ))}
+                          )}
                         </div>
                       </div>
 
@@ -377,13 +395,23 @@ export default function RecurringNotifications() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>Target Roles:</span>
-                          {notification.target_roles.map((role) => (
-                            <Badge key={role} variant="secondary" className="text-xs">
-                              {role}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                          <Users className="h-4 w-4" />
+                          <span>Target Employees:</span>
+                          {notification.target_employee_ids && notification.target_employee_ids.length > 0 ? (
+                            notification.target_employee_ids.slice(0, 3).map((empId) => (
+                              <Badge key={empId} variant="secondary" className="text-xs">
+                                {getEmployeeName(empId)}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">No employees selected</span>
+                          )}
+                          {notification.target_employee_ids && notification.target_employee_ids.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{notification.target_employee_ids.length - 3} more
                             </Badge>
-                          ))}
+                          )}
                         </div>
                       </div>
 
