@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -306,34 +305,33 @@ const StaffAuditNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/staff-audits')}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Employee Performance
-          </Button>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/audits')}
+          size="sm"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Audits
+        </Button>
+      </div>
 
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">New Staff Audit</h1>
-              {selectedTemplate && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowPreview(true)}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview Template
-                </Button>
-              )}
-            </div>
+      <div className="max-w-4xl">
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">New Staff Audit</h1>
+            {selectedTemplate && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPreview(true)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Template
+              </Button>
+            )}
+          </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
@@ -494,7 +492,7 @@ const StaffAuditNew = () => {
                 <Button 
                   type="button" 
                   variant="outline"
-                  onClick={() => navigate('/staff-audits')}
+                  onClick={() => navigate('/audits')}
                 >
                   Cancel
                 </Button>
@@ -502,17 +500,16 @@ const StaffAuditNew = () => {
             </form>
           </Card>
         </div>
-      </main>
 
-      {selectedTemplate && (
-        <TemplatePreviewDialog
-          templateName={selectedTemplate.name}
-          sections={selectedTemplate.sections}
-          open={showPreview}
-          onOpenChange={setShowPreview}
-        />
-      )}
-    </div>
+        {selectedTemplate && (
+          <TemplatePreviewDialog
+            templateName={selectedTemplate.name}
+            sections={selectedTemplate.sections}
+            open={showPreview}
+            onOpenChange={setShowPreview}
+          />
+        )}
+      </div>
   );
 };
 
