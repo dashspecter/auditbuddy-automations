@@ -60,6 +60,19 @@ const getInitialManualQuestions = () => {
   return [{ question: "", options: ["", "", "", ""], correct_answer: "A" }];
 };
 
+const getInitialTab = () => {
+  try {
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.activeTab || "ai";
+    }
+  } catch (e) {
+    console.error("Error loading draft tab:", e);
+  }
+  return "ai";
+};
+
 const TestCreation = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -68,12 +81,13 @@ const TestCreation = () => {
   const [formData, setFormData] = useState(getInitialFormData);
   const [questions, setQuestions] = useState<any[]>([]);
   const [manualQuestions, setManualQuestions] = useState<any[]>(getInitialManualQuestions);
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
   // Save draft to localStorage whenever form data changes
   useEffect(() => {
-    const draft = { formData, manualQuestions };
+    const draft = { formData, manualQuestions, activeTab };
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  }, [formData, manualQuestions]);
+  }, [formData, manualQuestions, activeTab]);
 
   useEffect(() => {
     loadDocuments();
@@ -238,7 +252,7 @@ const TestCreation = () => {
             <p className="text-muted-foreground">Generate AI-powered tests or create manually</p>
           </div>
 
-          <Tabs defaultValue="ai" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ai">
                 <Sparkles className="mr-2 h-4 w-4" />
