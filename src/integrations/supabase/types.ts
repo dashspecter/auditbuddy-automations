@@ -4073,6 +4073,7 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean
+          is_template: boolean | null
           passing_score: number
           scheduled_for: string | null
           time_limit_minutes: number
@@ -4088,6 +4089,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          is_template?: boolean | null
           passing_score?: number
           scheduled_for?: string | null
           time_limit_minutes?: number
@@ -4103,6 +4105,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          is_template?: boolean | null
           passing_score?: number
           scheduled_for?: string | null
           time_limit_minutes?: number

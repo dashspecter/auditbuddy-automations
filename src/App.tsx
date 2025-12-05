@@ -37,6 +37,7 @@ import PhotoGalleryPage from "./pages/PhotoGalleryPage";
 import DocumentManagement from "./pages/DocumentManagement";
 import TestCreation from "./pages/TestCreation";
 import TestManagement from "./pages/TestManagement";
+import TestEdit from "./pages/TestEdit";
 import TakeTest from "./pages/TakeTest";
 import TestResult from "./pages/TestResult";
 import LocationsManagement from "./pages/LocationsManagement";
@@ -189,6 +190,7 @@ const App = () => (
               <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
               <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
               <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
+              <Route path="/test-edit/:id" element={<ManagerRoute><TestEdit /></ManagerRoute>} />
               <Route path="/take-test/:testId" element={<TakeTest />} />
               <Route path="/t/:shortCode" element={<TakeTest />} />
               <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
