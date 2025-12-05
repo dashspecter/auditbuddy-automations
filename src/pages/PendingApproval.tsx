@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Mail, RefreshCw } from "lucide-react";
@@ -66,10 +65,8 @@ export default function PendingApproval() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-16 max-w-2xl">
-        <Card className="border-2">
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Card className="border-2 max-w-2xl w-full">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -117,7 +114,6 @@ export default function PendingApproval() {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
   );
 }

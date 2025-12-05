@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Printer } from "lucide-react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
@@ -17,24 +16,19 @@ export default function BulkEquipmentQR() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-64" />
-            ))}
-          </div>
-        </main>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between mb-6 print:hidden">
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate("/equipment")}>
@@ -79,12 +73,11 @@ export default function BulkEquipmentQR() {
           </div>
         </div>
 
-        {(!equipment || equipment.length === 0) && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No equipment found to generate labels.</p>
-          </div>
-        )}
-      </main>
+      {(!equipment || equipment.length === 0) && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No equipment found to generate labels.</p>
+        </div>
+      )}
 
       <style>{`
         @media print {
