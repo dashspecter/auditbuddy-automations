@@ -852,6 +852,19 @@ export const EnhancedShiftWeekView = () => {
             <Card key={day.toISOString()} className={`p-2 text-center ${isToday ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}>
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
                 <span>Labor</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-left">
+                    <p className="font-semibold mb-1">Labor Cost Calculation</p>
+                    <ul className="text-xs space-y-1">
+                      <li><strong>Cost:</strong> Sum of (shift hours × employee hourly rate) for all scheduled shifts</li>
+                      <li><strong>%:</strong> Labor cost as percentage of projected sales (target: under 30%)</li>
+                      <li><strong>Hours:</strong> Total scheduled hours for the day</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="text-sm font-medium">
                 {laborCost.scheduled_cost.toFixed(2)} Lei
