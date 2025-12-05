@@ -1,21 +1,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus, Briefcase, BookOpen, LayoutDashboard } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGate } from "@/components/ModuleGate";
 import { useEmployees } from "@/hooks/useEmployees";
 import { EmptyState } from "@/components/EmptyState";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkforceGuides } from "@/components/workforce/WorkforceGuides";
 
 const Workforce = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasModule } = useCompanyContext();
   const { data: employees, isLoading } = useEmployees();
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+
+  // Check for action param to open dialogs
+  useEffect(() => {
+    if (searchParams.get('action') === 'roles') {
+      setRoleDialogOpen(true);
+      // Clear the param after opening
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const modules = [
     {
