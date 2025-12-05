@@ -2594,7 +2594,8 @@ export type Database = {
           recurrence_enabled: boolean | null
           recurrence_pattern: string
           scheduled_for: string | null
-          target_roles: string[]
+          target_employee_ids: string[] | null
+          target_roles: string[] | null
           title: string
           type: string
           updated_at: string | null
@@ -2613,7 +2614,8 @@ export type Database = {
           recurrence_enabled?: boolean | null
           recurrence_pattern?: string
           scheduled_for?: string | null
-          target_roles?: string[]
+          target_employee_ids?: string[] | null
+          target_roles?: string[] | null
           title: string
           type?: string
           updated_at?: string | null
@@ -2632,7 +2634,8 @@ export type Database = {
           recurrence_enabled?: boolean | null
           recurrence_pattern?: string
           scheduled_for?: string | null
-          target_roles?: string[]
+          target_employee_ids?: string[] | null
+          target_roles?: string[] | null
           title?: string
           type?: string
           updated_at?: string | null

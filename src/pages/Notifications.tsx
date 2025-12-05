@@ -21,7 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
-import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck, HelpCircle, Info, Shield } from "lucide-react";
+import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck, HelpCircle, Info, Shield, Users, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, isFuture } from "date-fns";
 import { ModuleGate } from "@/components/ModuleGate";
 import { cn } from "@/lib/utils";
+import { useEmployees } from "@/hooks/useEmployees";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ export default function Notifications() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"info" | "success" | "warning" | "announcement">("info");
-  const [targetRoles, setTargetRoles] = useState<string[]>(["checker", "manager", "admin"]);
+  const [targetEmployeeIds, setTargetEmployeeIds] = useState<string[]>([]);
   const [expiresAt, setExpiresAt] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -74,6 +75,7 @@ export default function Notifications() {
   const { templates } = useNotificationTemplates();
   const { data: audits = [] } = useLocationAudits();
   const { markAsRead, markAllAsRead, readNotifications, isMarkingAllAsRead } = useNotifications();
+  const { data: employees = [] } = useEmployees();
 
   console.log('[Notifications] Loading role:', isLoadingRole, 'Role data:', roleData);
 
@@ -101,18 +103,16 @@ export default function Notifications() {
     mutationFn: async () => {
       if (!user) throw new Error('User not authenticated');
 
-      // Managers can only create notifications for checkers
-      if (roleData?.isManager && !roleData?.isAdmin) {
-        if (!targetRoles.every(role => role === 'checker')) {
-          throw new Error('Managers can only create notifications for Checkers');
-        }
+      if (targetEmployeeIds.length === 0) {
+        throw new Error('Please select at least one employee');
       }
 
       const notificationData: any = {
         title,
         message,
         type,
-        target_roles: targetRoles,
+        target_roles: [],
+        target_employee_ids: targetEmployeeIds,
         created_by: user.id,
         expires_at: expiresAt || null,
         scheduled_for: scheduledFor || null,
@@ -139,7 +139,7 @@ export default function Notifications() {
       setTitle("");
       setMessage("");
       setType("info");
-      setTargetRoles(["checker", "manager", "admin"]);
+      setTargetEmployeeIds([]);
       setExpiresAt("");
       setScheduledFor("");
       setRecurrenceEnabled(false);
@@ -176,9 +176,9 @@ export default function Notifications() {
     },
   });
 
-  const handleRoleToggle = (role: string) => {
-    setTargetRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+  const handleEmployeeToggle = (employeeId: string) => {
+    setTargetEmployeeIds((prev) =>
+      prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId]
     );
   };
 
@@ -192,10 +192,10 @@ export default function Notifications() {
       });
       return;
     }
-    if (targetRoles.length === 0) {
+    if (targetEmployeeIds.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please select at least one target role.",
+        description: "Please select at least one employee.",
         variant: "destructive",
       });
       return;
@@ -297,14 +297,8 @@ export default function Notifications() {
                 <Alert className="bg-primary/5 border-primary/20">
                   <Shield className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-sm">
-                    <strong>Your notification permissions:</strong>{" "}
-                    {roleData?.isAdmin ? (
-                      <span>You can send notifications to <strong>all roles</strong> (Checkers, Managers, and Admins).</span>
-                    ) : roleData?.isManager ? (
-                      <span>You can send notifications to <strong>Checkers only</strong>. Contact an administrator to notify Managers or Admins.</span>
-                    ) : (
-                      <span>You can send notifications to <strong>Checkers only</strong>.</span>
-                    )}
+                    <strong>Notification targeting:</strong>{" "}
+                    <span>Select specific employees to receive this notification. They will see it in their notification center.</span>
                   </AlertDescription>
                 </Alert>
                 
@@ -321,7 +315,7 @@ export default function Notifications() {
                           setTitle(template.title);
                           setMessage(template.message);
                           setType(template.type);
-                          setTargetRoles(template.target_roles);
+                          // Note: Templates don't have employee targeting, so we don't set employees
                           toast({
                             title: "Template loaded",
                             description: `Loaded "${template.name}" template. You can modify it before sending.`,
@@ -486,112 +480,73 @@ export default function Notifications() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label>Target Roles *</Label>
+                    <Label className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Target Employees *
+                    </Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <div className="space-y-2">
-                            <p className="font-semibold">Role Hierarchy & Permissions:</p>
-                            <ul className="space-y-1 text-xs">
-                              <li className="flex items-start gap-1">
-                                <span className="font-semibold">Admins:</span>
-                                <span>Can send notifications to all roles (Checkers, Managers, and Admins)</span>
-                              </li>
-                              <li className="flex items-start gap-1">
-                                <span className="font-semibold">Managers:</span>
-                                <span>Can only send notifications to Checkers</span>
-                              </li>
-                              <li className="flex items-start gap-1">
-                                <span className="font-semibold">Checkers:</span>
-                                <span>Can only send notifications to Checkers</span>
-                              </li>
-                            </ul>
-                            <p className="text-xs text-muted-foreground pt-1 border-t">
-                              Select one or more target roles for your notification. Recipients will receive the notification in their notification center.
-                            </p>
-                          </div>
+                          <p>Select one or more employees to receive this notification. They will see it in their notification center.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="checker"
-                        checked={targetRoles.includes("checker")}
-                        onCheckedChange={() => handleRoleToggle("checker")}
-                      />
-                      <Label htmlFor="checker" className="cursor-pointer">
-                        Checkers
-                      </Label>
+                  
+                  {/* Selected employees badges */}
+                  {targetEmployeeIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
+                      {targetEmployeeIds.map((employeeId) => {
+                        const employee = employees.find(e => e.id === employeeId);
+                        return (
+                          <Badge key={employeeId} variant="secondary" className="flex items-center gap-1">
+                            {employee?.full_name || 'Unknown'}
+                            <button
+                              type="button"
+                              onClick={() => handleEmployeeToggle(employeeId)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="manager"
-                              checked={targetRoles.includes("manager")}
-                              onCheckedChange={() => handleRoleToggle("manager")}
-                              disabled={roleData?.isManager && !roleData?.isAdmin}
-                            />
-                            <Label 
-                              htmlFor="manager" 
-                              className={cn(
-                                roleData?.isManager && !roleData?.isAdmin 
-                                  ? "cursor-not-allowed opacity-50" 
-                                  : "cursor-pointer"
-                              )}
-                            >
-                              Managers
-                            </Label>
-                          </div>
-                        </TooltipTrigger>
-                        {roleData?.isManager && !roleData?.isAdmin && (
-                          <TooltipContent>
-                            <p>Only administrators can send notifications to managers</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="admin"
-                              checked={targetRoles.includes("admin")}
-                              onCheckedChange={() => handleRoleToggle("admin")}
-                              disabled={roleData?.isManager && !roleData?.isAdmin}
-                            />
-                            <Label 
-                              htmlFor="admin" 
-                              className={cn(
-                                roleData?.isManager && !roleData?.isAdmin 
-                                  ? "cursor-not-allowed opacity-50" 
-                                  : "cursor-pointer"
-                              )}
-                            >
-                              Admins
-                            </Label>
-                          </div>
-                        </TooltipTrigger>
-                        {roleData?.isManager && !roleData?.isAdmin && (
-                          <TooltipContent>
-                            <p>Only administrators can send notifications to other admins</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  {roleData?.isManager && !roleData?.isAdmin && (
-                    <p className="text-xs text-muted-foreground">
-                      As a Manager, you can only send notifications to Checkers
-                    </p>
                   )}
+                  
+                  {/* Employee selector */}
+                  <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {employees.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No employees found</p>
+                    ) : (
+                      employees.map((employee) => (
+                        <div
+                          key={employee.id}
+                          className={cn(
+                            "flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
+                            targetEmployeeIds.includes(employee.id) && "bg-primary/10"
+                          )}
+                          onClick={() => handleEmployeeToggle(employee.id)}
+                        >
+                          <Checkbox
+                            id={`employee-${employee.id}`}
+                            checked={targetEmployeeIds.includes(employee.id)}
+                            onCheckedChange={() => handleEmployeeToggle(employee.id)}
+                          />
+                          <Label htmlFor={`employee-${employee.id}`} className="cursor-pointer flex-1 flex items-center justify-between">
+                            <span>{employee.full_name}</span>
+                            <span className="text-xs text-muted-foreground">{employee.role} • {employee.locations?.name}</span>
+                          </Label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {targetEmployeeIds.length} employee{targetEmployeeIds.length !== 1 ? 's' : ''} selected
+                  </p>
                 </div>
 
                 <div className="flex gap-2">
@@ -629,7 +584,10 @@ export default function Notifications() {
                 title={title}
                 message={message}
                 type={type}
-                targetRoles={targetRoles}
+                targetEmployees={targetEmployeeIds.map(id => {
+                  const emp = employees.find(e => e.id === id);
+                  return { id, name: emp?.full_name || 'Unknown' };
+                })}
               />
             </DialogContent>
           </Dialog>
