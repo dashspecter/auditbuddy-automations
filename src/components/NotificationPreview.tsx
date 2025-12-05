@@ -7,7 +7,8 @@ interface NotificationPreviewProps {
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning' | 'announcement';
-  targetRoles: string[];
+  targetRoles?: string[];
+  targetEmployees?: Array<{ id: string; name: string }>;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -36,7 +37,7 @@ const getNotificationColor = (type: string) => {
   }
 };
 
-export const NotificationPreview = ({ title, message, type, targetRoles }: NotificationPreviewProps) => {
+export const NotificationPreview = ({ title, message, type, targetRoles = [], targetEmployees = [] }: NotificationPreviewProps) => {
   return (
     <div className="space-y-4">
       <div>
@@ -81,14 +82,20 @@ export const NotificationPreview = ({ title, message, type, targetRoles }: Notif
       <div>
         <h4 className="text-sm font-medium mb-2">Target Audience</h4>
         <div className="flex flex-wrap gap-2">
-          {targetRoles.length > 0 ? (
+          {targetEmployees.length > 0 ? (
+            targetEmployees.map((employee) => (
+              <Badge key={employee.id} variant="secondary">
+                {employee.name}
+              </Badge>
+            ))
+          ) : targetRoles.length > 0 ? (
             targetRoles.map((role) => (
               <Badge key={role} variant="secondary">
                 {role.charAt(0).toUpperCase() + role.slice(1)}s
               </Badge>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">No roles selected</p>
+            <p className="text-sm text-muted-foreground">No recipients selected</p>
           )}
         </div>
       </div>
