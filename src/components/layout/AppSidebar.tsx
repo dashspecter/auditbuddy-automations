@@ -53,7 +53,6 @@ const navigationItems = [
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", requiresManager: true },
       { title: "Manual Metrics", url: "/manual-metrics", requiresManager: true },
-      { title: "Staff Audits", url: "/staff-audits" },
       { title: "Photo Gallery", url: "/photos" },
     ]
   },
@@ -98,7 +97,11 @@ const navigationItems = [
     url: "/reports", 
     icon: BarChart,
     module: "reports",
-    requiresManager: true
+    requiresManager: true,
+    subItems: [
+      { title: "Overview", url: "/reports" },
+      { title: "Employee Performance", url: "/staff-audits" },
+    ]
   },
   { 
     title: "Inventory", 
