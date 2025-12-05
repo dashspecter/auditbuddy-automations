@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Save, Sparkles, Plus, Trash2, PencilLine } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocations } from "@/hooks/useLocations";
 
@@ -24,13 +25,14 @@ const getInitialFormData = () => {
         title: "",
         description: "",
         documentId: "",
-        locationId: "",
-        timeLimit: "30",
-        passingScore: "70",
-        numQuestions: "10",
-        scheduledFor: "",
-        expiresAt: "",
-      };
+    locationId: "",
+    timeLimit: "30",
+    passingScore: "70",
+    numQuestions: "10",
+    scheduledFor: "",
+    expiresAt: "",
+    isTemplate: false,
+  };
     }
   } catch (e) {
     console.error("Error loading draft:", e);
@@ -45,6 +47,7 @@ const getInitialFormData = () => {
     numQuestions: "10",
     scheduledFor: "",
     expiresAt: "",
+    isTemplate: false,
   };
 };
 
@@ -216,6 +219,7 @@ const TestCreation = () => {
           passing_score: parseInt(formData.passingScore),
           scheduled_for: formData.scheduledFor || null,
           expires_at: formData.expiresAt || null,
+          is_template: formData.isTemplate,
           created_by: user?.id,
         })
         .select()
@@ -381,6 +385,15 @@ const TestCreation = () => {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="isTemplate-ai"
+                      checked={formData.isTemplate}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isTemplate: checked })}
+                    />
+                    <Label htmlFor="isTemplate-ai" className="cursor-pointer">Save as Template</Label>
+                  </div>
+
                   <Button
                     onClick={handleGenerateQuestions}
                     disabled={generating || !formData.documentId}
@@ -522,6 +535,15 @@ const TestCreation = () => {
                         onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
                       />
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="isTemplate-manual"
+                      checked={formData.isTemplate}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isTemplate: checked })}
+                    />
+                    <Label htmlFor="isTemplate-manual" className="cursor-pointer">Save as Template</Label>
                   </div>
                 </div>
               </Card>
