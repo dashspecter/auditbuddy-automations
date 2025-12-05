@@ -16,6 +16,7 @@ import { useMyTasks } from "@/hooks/useTasks";
 import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
 import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeaderboard";
 import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
+import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
 
 const StaffHome = () => {
   const { user } = useAuth();
@@ -195,6 +196,9 @@ const StaffHome = () => {
       </div>
 
       <div className="px-4 space-y-4 pb-6 mt-4">
+        {/* Notifications for all users */}
+        <StaffNotificationsCard />
+        
         {/* Manager Dashboard */}
         {isManager && (
           <>
