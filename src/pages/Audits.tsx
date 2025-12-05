@@ -144,11 +144,11 @@ const Audits = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate('/location-audit')} className="gap-2 cursor-pointer">
+                    <DropdownMenuItem onSelect={() => navigate('/location-audit')} className="gap-2 cursor-pointer">
                       <MapPin className="h-4 w-4" />
                       Location Audit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/staff-audit/new')} className="gap-2 cursor-pointer">
+                    <DropdownMenuItem onSelect={() => navigate('/staff-audit/new')} className="gap-2 cursor-pointer">
                       <Users className="h-4 w-4" />
                       Employee Audit
                     </DropdownMenuItem>
