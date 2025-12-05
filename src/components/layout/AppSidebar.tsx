@@ -30,6 +30,7 @@ const navigationItems = [
       { title: "Attendance", url: "/workforce/attendance" },
       { title: "Time Off", url: "/workforce/time-off" },
       { title: "Payroll", url: "/workforce/payroll", requiresManager: true },
+      { title: "Sales", url: "/workforce/sales", requiresManager: true },
       { title: "Performance", url: "/workforce/performance", requiresManager: true },
     ]
   },
