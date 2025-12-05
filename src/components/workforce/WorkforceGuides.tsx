@@ -31,7 +31,7 @@ const WORKFORCE_GUIDES: WorkforceGuideStep[] = [
     title: "1. Set Up Roles & Departments",
     description: "Define the roles and departments in your organization before adding staff",
     icon: <Briefcase className="h-5 w-5" />,
-    link: "/workforce",
+    link: "/workforce?action=roles",
     linkLabel: "Manage Roles",
     order: 1,
     steps: [
