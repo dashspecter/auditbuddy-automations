@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,26 +64,23 @@ export default function NotificationAuditLogs() {
 
   return (
     <RoleGuard requireManager fallbackMessage="You don't have permission to view notification audit logs.">
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Link to="/notifications">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <FileText className="h-8 w-8" />
-                Notification Audit Logs
-              </h1>
-              <p className="text-muted-foreground">
-                Track notification history and who sent what
-              </p>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/notifications">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <FileText className="h-8 w-8" />
+              Notification Audit Logs
+            </h1>
+            <p className="text-muted-foreground">
+              Track notification history and who sent what
+            </p>
           </div>
+        </div>
 
           <Card>
             <CardHeader>
@@ -159,8 +155,6 @@ export default function NotificationAuditLogs() {
             </CardContent>
           </Card>
         </div>
-        </div>
-      </div>
     </RoleGuard>
   );
 }

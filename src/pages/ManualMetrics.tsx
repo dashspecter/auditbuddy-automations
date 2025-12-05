@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,18 +100,16 @@ export default function ManualMetrics() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <TrendingUp className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold">Manual Metrics</h1>
-            <p className="text-muted-foreground">Track custom metrics over time</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <TrendingUp className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold">Manual Metrics</h1>
+          <p className="text-muted-foreground">Track custom metrics over time</p>
         </div>
+      </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
           {/* Input Form */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -297,7 +294,6 @@ export default function ManualMetrics() {
             )}
           </Card>
         )}
-      </main>
-    </div>
+      </div>
   );
 }

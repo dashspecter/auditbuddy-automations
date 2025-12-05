@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -136,31 +135,26 @@ export default function RecurringNotifications() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <div className="flex items-center gap-4 mb-6">
-            <Link to="/notifications">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Recurring Notifications</h1>
-              <p className="text-muted-foreground">Loading schedules...</p>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/notifications">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Recurring Notifications</h1>
+            <p className="text-muted-foreground">Loading schedules...</p>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
 
   return (
     <RoleGuard requireManager fallbackMessage="You don't have permission to manage recurring notifications.">
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
           <Link to="/notifications">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
@@ -497,7 +491,6 @@ export default function RecurringNotifications() {
             onOpenChange={(open) => setHistoryDialog({ open, notification: historyDialog.notification })}
           />
         )}
-        </main>
       </div>
     </RoleGuard>
   );

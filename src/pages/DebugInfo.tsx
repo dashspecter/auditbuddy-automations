@@ -1,4 +1,3 @@
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,22 +88,19 @@ export default function DebugInfo() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Debug Information</h1>
-              <p className="text-muted-foreground">
-                Authentication and permission troubleshooting
-              </p>
-            </div>
-            <Button onClick={handleRefreshAll}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh All
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Debug Information</h1>
+          <p className="text-muted-foreground">
+            Authentication and permission troubleshooting
+          </p>
+        </div>
+        <Button onClick={handleRefreshAll}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh All
+        </Button>
+      </div>
 
           {/* User Authentication */}
           <Card>
@@ -253,7 +249,5 @@ export default function DebugInfo() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
   );
 }
