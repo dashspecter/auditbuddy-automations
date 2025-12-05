@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Edit, Calendar, FileText, Wrench, QrCode, Download, ClipboardCheck } from "lucide-react";
 import { format } from "date-fns";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,56 +72,41 @@ export default function EquipmentDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <Skeleton className="h-10 w-48 mb-6" />
-          <div className="grid gap-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </main>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48 mb-6" />
+        <div className="grid gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <div className="text-center space-y-4">
-            <p className="text-lg font-medium">Unable to load equipment</p>
-            <p className="text-muted-foreground">{error.message || "Equipment not found"}</p>
-          </div>
-        </main>
+      <div className="text-center space-y-4">
+        <p className="text-lg font-medium">Unable to load equipment</p>
+        <p className="text-muted-foreground">{error.message || "Equipment not found"}</p>
       </div>
     );
   }
 
   if (!equipment) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto p-4 md:p-6">
-          <p className="text-center text-muted-foreground">Equipment not found</p>
-        </main>
-      </div>
+      <p className="text-center text-muted-foreground">Equipment not found</p>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 space-y-6">
+    <div className="space-y-6">
         {!user && (
           <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
             <p className="text-sm text-muted-foreground">
@@ -448,7 +432,6 @@ export default function EquipmentDetail() {
             </Tabs>
           </CardContent>
         </Card>
-      </main>
 
       {isManager && (
         <>

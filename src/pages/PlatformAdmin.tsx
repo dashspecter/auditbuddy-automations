@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -305,23 +304,17 @@ export default function PlatformAdmin() {
 
   if (isLoading || usersLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Platform Administration</h1>
           <p className="text-muted-foreground">Manage company trials, subscriptions, and platform administrators</p>
@@ -562,7 +555,6 @@ export default function PlatformAdmin() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
 
       {/* Extend Trial Dialog */}
       <Dialog open={!!selectedCompany} onOpenChange={(open) => !open && setSelectedCompany(null)}>

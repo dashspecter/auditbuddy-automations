@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,11 +184,8 @@ const TestManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8 pt-safe">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Test Management</h1>
               <p className="text-muted-foreground">Manage and monitor all tests</p>
@@ -381,8 +377,6 @@ const TestManagement = () => {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
 
       {/* Assign Test Dialog */}
       {selectedTestForAssignment && (

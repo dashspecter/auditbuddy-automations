@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,11 +235,8 @@ export default function UserManagement() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               onClick={() => navigate('/dashboard')}
@@ -634,8 +630,6 @@ export default function UserManagement() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
     </div>
   );
 }

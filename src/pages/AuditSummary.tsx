@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -207,30 +206,20 @@ const AuditSummary = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
-        </main>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   if (!audit) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Audit Not Found</h2>
-            <Button onClick={() => navigate('/')}>
-              <Home className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </main>
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold mb-4">Audit Not Found</h2>
+        <Button onClick={() => navigate('/')}>
+          <Home className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
     );
   }
@@ -240,11 +229,7 @@ const AuditSummary = () => {
   const timeDiff = calculateTimeDifference();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
           {/* Success Banner */}
           <Card className={cn("border-2", statusInfo.bgColor)}>
             <CardContent className="pt-6">
@@ -414,8 +399,6 @@ const AuditSummary = () => {
               View Full Audit
             </Button>
           </div>
-        </div>
-      </main>
     </div>
   );
 };
