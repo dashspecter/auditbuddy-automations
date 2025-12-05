@@ -48,7 +48,14 @@ export const useNotifications = () => {
 
       const userCreatedAt = profile?.created_at || new Date().toISOString();
 
-      // Only fetch notifications created after user joined
+      // Get the employee record for this user to check targeted notifications
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Fetch all active notifications
       const { data, error } = await supabase
         .from('notifications')
         .select(`
@@ -63,7 +70,22 @@ export const useNotifications = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Notification[];
+
+      // Filter notifications: include if target_employee_ids is empty/null OR if employee is in the list
+      const filteredNotifications = (data || []).filter((notification: any) => {
+        const targetIds = notification.target_employee_ids;
+        // If no target_employee_ids specified, notification is for everyone
+        if (!targetIds || targetIds.length === 0) {
+          return true;
+        }
+        // If there are specific targets, check if current employee is included
+        if (employee && targetIds.includes(employee.id)) {
+          return true;
+        }
+        return false;
+      });
+
+      return filteredNotifications as Notification[];
     },
     enabled: !!user,
     staleTime: 30 * 1000, // 30 seconds
