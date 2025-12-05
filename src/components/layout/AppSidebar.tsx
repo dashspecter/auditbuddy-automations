@@ -24,6 +24,7 @@ const navigationItems = [
     icon: Users,
     module: "workforce",
     subItems: [
+      { title: "Overview", url: "/workforce" },
       { title: "Staff", url: "/workforce/staff", requiresManager: true },
       { title: "Shifts", url: "/workforce/shifts" },
       { title: "Attendance", url: "/workforce/attendance" },
