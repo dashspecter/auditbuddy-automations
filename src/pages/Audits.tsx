@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2, MapPin, Users } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useQuery } from "@tanstack/react-query";
@@ -135,12 +136,24 @@ const Audits = () => {
                     Template Library
                   </Button>
                 </Link>
-                <Link to="/location-audit" className="w-full sm:w-auto">
-                  <Button variant="default" className="gap-2 w-full" data-tour="new-audit-button">
-                    <Plus className="h-4 w-4" />
-                    New Location Audit
-                  </Button>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="default" className="gap-2 w-full sm:w-auto" data-tour="new-audit-button">
+                      <Plus className="h-4 w-4" />
+                      New Audit
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/location-audit')} className="gap-2 cursor-pointer">
+                      <MapPin className="h-4 w-4" />
+                      Location Audit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/staff-audit/new')} className="gap-2 cursor-pointer">
+                      <Users className="h-4 w-4" />
+                      Employee Audit
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
