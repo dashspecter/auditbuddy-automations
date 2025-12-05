@@ -25,6 +25,9 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
+import { LocationPerformanceCards } from "@/components/dashboard/LocationPerformanceCards";
+import { LocationTrendAnalysis } from "@/components/dashboard/LocationTrendAnalysis";
+import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerformanceTrends";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
@@ -551,6 +554,15 @@ const Reports = () => {
 
           {/* Compliance Trends Chart */}
           <ComplianceChart />
+
+          {/* Location Performance Cards with Trends */}
+          <LocationPerformanceCards />
+
+          {/* Location Trend Analysis */}
+          <LocationTrendAnalysis />
+
+          {/* Section Performance Trends */}
+          <SectionPerformanceTrends />
 
           {/* Per Location Pie Charts */}
           {reportData.length > 0 && (
