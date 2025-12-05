@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle, PlayCircle, UserPlus } from "lucide-react";
+import { Plus, Users, Link as LinkIcon, Eye, FileText, CheckCircle2, XCircle, PlayCircle, UserPlus, Pencil, BookTemplate } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ import { TestAssignmentsDialog } from "@/components/TestAssignmentsDialog";
 import { useTestAssignments } from "@/hooks/useTestAssignments";
 
 const TestManagement = () => {
+  const navigate = useNavigate();
   const [tests, setTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -34,6 +35,7 @@ const TestManagement = () => {
   const [selectedTestForAssignment, setSelectedTestForAssignment] = useState<{ id: string; title: string } | null>(null);
   const [viewAssignmentsDialogOpen, setViewAssignmentsDialogOpen] = useState(false);
   const [selectedTestForViewAssignments, setSelectedTestForViewAssignments] = useState<{ id: string; title: string } | null>(null);
+  const [filterTemplates, setFilterTemplates] = useState(false);
   
   const { data: testAssignments } = useTestAssignments();
 
@@ -200,14 +202,15 @@ const TestManagement = () => {
 
           <Tabs defaultValue="tests" className="w-full">
             <TabsList>
-              <TabsTrigger value="tests">Tests</TabsTrigger>
+              <TabsTrigger value="tests">All Tests</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="submissions">All Submissions</TabsTrigger>
             </TabsList>
             
             <TabsContent value="tests" className="space-y-4">
 
               <div className="grid gap-4">
-                {tests.map((test) => (
+                {tests.filter(t => !t.is_template).map((test) => (
               <Card key={test.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -225,7 +228,7 @@ const TestManagement = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Document</p>
-                        <p className="font-medium">{test.document?.title}</p>
+                        <p className="font-medium">{test.document?.title || "Manual"}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Time Limit</p>
@@ -250,6 +253,14 @@ const TestManagement = () => {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/test-edit/${test.id}`)}
+                      title="Edit test"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -313,6 +324,79 @@ const TestManagement = () => {
                 </div>
                   </Card>
                 ))}
+                {tests.filter(t => !t.is_template).length === 0 && (
+                  <Card className="p-8 text-center text-muted-foreground">
+                    No tests created yet. Click "Create Test" to get started.
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="templates" className="space-y-4">
+              <div className="grid gap-4">
+                {tests.filter(t => t.is_template).map((test) => (
+                  <Card key={test.id} className="p-6 border-primary/20">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-semibold">{test.title}</h3>
+                          <Badge variant="outline" className="border-primary text-primary">
+                            <BookTemplate className="h-3 w-3 mr-1" />
+                            Template
+                          </Badge>
+                        </div>
+                        {test.description && (
+                          <p className="text-muted-foreground mb-3">{test.description}</p>
+                        )}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Time Limit</p>
+                            <p className="font-medium">{test.time_limit_minutes} min</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Passing Score</p>
+                            <p className="font-medium">{test.passing_score}%</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Submissions</p>
+                            <p className="font-medium">{test.submissionCount || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/test-edit/${test.id}`)}
+                          title="Edit template"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePreview(test)}
+                          title="Preview test"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAssignTest(test)}
+                          title="Assign to employees"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {tests.filter(t => t.is_template).length === 0 && (
+                  <Card className="p-8 text-center text-muted-foreground">
+                    No templates yet. Edit any test and toggle "Save as Template" to create one.
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
