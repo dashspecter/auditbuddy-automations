@@ -27,8 +27,6 @@ import autoTable from "jspdf-autotable";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
-import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
-import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
 
@@ -318,8 +316,8 @@ const Reports = () => {
         ) : (
           <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
-            <p className="text-muted-foreground mt-1">Generate and export audit reports</p>
+            <h1 className="text-3xl font-bold text-foreground">Location Performance</h1>
+            <p className="text-muted-foreground mt-1">View audit performance reports by location</p>
           </div>
 
           <Card className="p-6">
@@ -553,12 +551,6 @@ const Reports = () => {
 
           {/* Compliance Trends Chart */}
           <ComplianceChart />
-
-          {/* Employee Performance and Leaderboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EmployeePerformanceChart />
-            <EmployeeLeaderboard />
-          </div>
 
           {/* Per Location Pie Charts */}
           {reportData.length > 0 && (
