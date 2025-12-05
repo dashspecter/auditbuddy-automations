@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
@@ -85,9 +84,7 @@ export default function StaffAudits() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto p-3 sm:p-6 space-y-3 sm:space-y-6 px-safe">
+    <div className="space-y-6">
         <div className="space-y-3">
           <div>
             <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">Employee Performance</h1>
@@ -269,7 +266,6 @@ export default function StaffAudits() {
             )}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
