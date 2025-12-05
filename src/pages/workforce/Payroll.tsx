@@ -25,11 +25,16 @@ const Payroll = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState("summary");
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const { data: periods = [], isLoading: periodsLoading } = usePayrollPeriods();
   const { data: locations = [] } = useLocations();
   const createPeriod = useCreatePayrollPeriod();
 
-  const activePeriod = periods.find(p => p.status === "draft" || p.status === "calculated");
+  // Use selected period if viewing history, otherwise use active period
+  const activePeriod = selectedPeriodId 
+    ? periods.find(p => p.id === selectedPeriodId)
+    : periods.find(p => p.status === "draft" || p.status === "calculated");
   const locationFilter = selectedLocationId === "all" ? undefined : selectedLocationId;
   
   // Use shifts-based payroll calculation with location filter
@@ -266,7 +271,7 @@ const Payroll = () => {
         </div>
       </TooltipProvider>
 
-      <Tabs defaultValue="current">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="current">Staff Summary</TabsTrigger>
           <TabsTrigger value="locations">By Location</TabsTrigger>
@@ -840,7 +845,16 @@ const Payroll = () => {
                         </TableCell>
                         <TableCell>{format(new Date(period.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPeriodId(period.id);
+                              setActiveTab("current");
+                            }}
+                          >
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
