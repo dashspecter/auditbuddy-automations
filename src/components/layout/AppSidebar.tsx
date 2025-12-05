@@ -198,10 +198,10 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           <img 
             src="/dashspect-logo-512.png" 
-            alt="DashSpect" 
+            alt="Dashspect" 
             className="h-8 w-8 rounded-lg"
           />
-          <span className="text-lg font-bold text-sidebar-foreground">DashSpect</span>
+          <span className="text-lg font-bold text-sidebar-foreground">Dashspect</span>
         </div>
       </div>
 
