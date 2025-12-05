@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -139,106 +138,94 @@ const TemplateEditor = () => {
 
   if (templateLoading || sectionsLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <div className="text-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading template...</p>
-          </div>
-        </main>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading template...</p>
+        </div>
       </div>
     );
   }
 
   if (!template) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-          <Card className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Template Not Found</h2>
-            <p className="text-muted-foreground mb-4">The requested template could not be found.</p>
-            <Button onClick={() => navigate('/admin/templates')}>Back to Templates</Button>
-          </Card>
-        </main>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Template Not Found</h2>
+          <p className="text-muted-foreground mb-4">The requested template could not be found.</p>
+          <Button onClick={() => navigate('/admin/templates')}>Back to Templates</Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 px-safe py-8 pb-safe">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => navigate('/admin/templates')}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-foreground">{template.name}</h1>
-              <p className="text-muted-foreground mt-1">Configure sections and fields</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline">{template.template_type}</Badge>
-              {template.is_global ? (
-                <Badge>Global</Badge>
-              ) : (
-                <Badge variant="secondary">{template.location}</Badge>
-              )}
-            </div>
-          </div>
-
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Sections</h2>
-              <Button onClick={openCreateDialog} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Section
-              </Button>
-            </div>
-
-            {!sections || sections.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No sections yet</p>
-                <Button onClick={openCreateDialog}>Add your first section</Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {sections.map((section) => (
-                  <SectionCard
-                    key={section.id}
-                    section={section}
-                    onEdit={() => openEditDialog(section)}
-                    onDelete={() => handleDeleteSection(section.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Save to Library Button */}
-          <Card className="p-6 bg-primary/5 border-primary/20">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">Save Template to Library</h3>
-                <p className="text-sm text-muted-foreground">
-                  Make this template available for creating audits
-                </p>
-              </div>
-              <Button 
-                onClick={handleSaveToLibrary}
-                disabled={!sections || sections.length === 0 || updateTemplate.isPending}
-                className="gap-2 min-h-[48px] w-full sm:w-auto"
-                size="lg"
-              >
-                {updateTemplate.isPending ? 'Saving...' : 'Save to Library'}
-              </Button>
-            </div>
-          </Card>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => navigate('/admin/templates')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-foreground">{template.name}</h1>
+          <p className="text-muted-foreground mt-1">Configure sections and fields</p>
         </div>
-      </main>
+        <div className="flex gap-2">
+          <Badge variant="outline">{template.template_type}</Badge>
+          {template.is_global ? (
+            <Badge>Global</Badge>
+          ) : (
+            <Badge variant="secondary">{template.location}</Badge>
+          )}
+        </div>
+      </div>
+
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-foreground">Sections</h2>
+          <Button onClick={openCreateDialog} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Section
+          </Button>
+        </div>
+
+        {!sections || sections.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">No sections yet</p>
+            <Button onClick={openCreateDialog}>Add your first section</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sections.map((section) => (
+              <SectionCard
+                key={section.id}
+                section={section}
+                onEdit={() => openEditDialog(section)}
+                onDelete={() => handleDeleteSection(section.id)}
+              />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Save to Library Button */}
+      <Card className="p-6 bg-primary/5 border-primary/20">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-foreground mb-1">Save Template to Library</h3>
+            <p className="text-sm text-muted-foreground">
+              Make this template available for creating audits
+            </p>
+          </div>
+          <Button 
+            onClick={handleSaveToLibrary}
+            disabled={!sections || sections.length === 0 || updateTemplate.isPending}
+            className="gap-2 min-h-[48px] w-full sm:w-auto"
+            size="lg"
+          >
+            {updateTemplate.isPending ? 'Saving...' : 'Save to Library'}
+          </Button>
+        </div>
+      </Card>
 
       <Dialog open={isSectionDialogOpen} onOpenChange={setIsSectionDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
