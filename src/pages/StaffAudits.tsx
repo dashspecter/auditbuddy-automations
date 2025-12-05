@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { StaffLeaderboard } from "@/components/StaffLeaderboard";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
+import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 import { useStaffAudits, useCreateStaffAudit } from "@/hooks/useStaffAudits";
 import { useEmployees } from "@/hooks/useEmployees";
 import { format } from "date-fns";
@@ -205,6 +206,9 @@ export default function StaffAudits() {
             </Card>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Employee Performance Chart */}
+        <EmployeePerformanceChart />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <EmployeeLeaderboard />
