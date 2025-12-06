@@ -774,7 +774,7 @@ export const EnhancedShiftDialog = ({
                   </p>
                 ) : (
                   availableEmployees
-                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
+                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role || selectedEmployees.includes(emp.id))
                     .map((employee) => {
                       const isSelected = selectedEmployees.includes(employee.id);
                       const times = individualTimes[employee.id] || {
@@ -942,7 +942,7 @@ export const EnhancedShiftDialog = ({
                   </p>
                 ) : (
                   availableEmployees
-                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role)
+                    .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role || selectedEmployees.includes(emp.id))
                     .map((employee) => {
                       const isDisabled = !selectedEmployees.includes(employee.id) && 
                                         !batchMode &&
