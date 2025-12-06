@@ -106,10 +106,12 @@ export const EnhancedShiftDialog = ({
     enabled: !!formData.shift_date,
   });
 
-  // Filter out employees who have conflicting shifts
-  const availableEmployees = useMemo(() => {
-    if (!formData.start_time || !formData.end_time || !formData.shift_date) {
-      return employees;
+  // Check which employees have existing shifts on this date (for warning display)
+  const employeeShiftInfo = useMemo(() => {
+    const info: Record<string, { hasShift: boolean; hasConflict: boolean; shiftTimes?: string }> = {};
+    
+    if (!formData.shift_date) {
+      return info;
     }
 
     const normalizeTime = (time: string) => {
@@ -117,28 +119,43 @@ export const EnhancedShiftDialog = ({
       return time;
     };
 
-    const newStart = normalizeTime(formData.start_time);
-    const newEnd = normalizeTime(formData.end_time);
+    const newStart = formData.start_time ? normalizeTime(formData.start_time) : null;
+    const newEnd = formData.end_time ? normalizeTime(formData.end_time) : null;
 
-    return employees.filter(employee => {
-      // Check if this employee has any conflicting assignments
-      const hasConflict = existingAssignments.some((assignment: any) => {
-        if (assignment.staff_id !== employee.id) return false;
-        
-        const existingStart = normalizeTime(assignment.shifts.start_time);
-        const existingEnd = normalizeTime(assignment.shifts.end_time);
-        
-        // Check for time overlap
-        return (
-          (newStart >= existingStart && newStart < existingEnd) ||
-          (newEnd > existingStart && newEnd <= existingEnd) ||
-          (newStart <= existingStart && newEnd >= existingEnd)
-        );
-      });
+    employees.forEach(employee => {
+      const employeeAssignments = existingAssignments.filter((a: any) => a.staff_id === employee.id);
       
-      return !hasConflict;
+      if (employeeAssignments.length > 0) {
+        const shiftTimes = employeeAssignments
+          .map((a: any) => `${a.shifts.start_time.slice(0, 5)}-${a.shifts.end_time.slice(0, 5)}`)
+          .join(', ');
+        
+        // Check for time overlap if we have the new shift times
+        let hasConflict = false;
+        if (newStart && newEnd) {
+          hasConflict = employeeAssignments.some((assignment: any) => {
+            const existingStart = normalizeTime(assignment.shifts.start_time);
+            const existingEnd = normalizeTime(assignment.shifts.end_time);
+            
+            return (
+              (newStart >= existingStart && newStart < existingEnd) ||
+              (newEnd > existingStart && newEnd <= existingEnd) ||
+              (newStart <= existingStart && newEnd >= existingEnd)
+            );
+          });
+        }
+        
+        info[employee.id] = { hasShift: true, hasConflict, shiftTimes };
+      } else {
+        info[employee.id] = { hasShift: false, hasConflict: false };
+      }
     });
+    
+    return info;
   }, [employees, existingAssignments, formData.start_time, formData.end_time, formData.shift_date]);
+
+  // Keep all employees visible (removed filtering)
+  const availableEmployees = employees;
 
   const operatingHoursInfo = useMemo(() => {
     if (!formData.location_id || !formData.shift_date || operatingSchedules.length === 0) {
@@ -791,13 +808,36 @@ export const EnhancedShiftDialog = ({
                             />
                             <Label 
                               htmlFor={`employee-batch-${employee.id}`} 
-                              className="cursor-pointer font-medium"
+                              className="cursor-pointer font-medium flex-1"
                             >
                               {employee.full_name} - {employee.role}
                               {showAllLocations && employee.locations?.name && (
                                 <span className="text-muted-foreground font-normal"> ({employee.locations.name})</span>
                               )}
                             </Label>
+                            {employeeShiftInfo[employee.id]?.hasShift && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
+                                      className="ml-2 flex items-center gap-1 text-xs"
+                                    >
+                                      <AlertTriangle className="h-3 w-3" />
+                                      {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs">
+                                    <p>
+                                      Already has shift(s) on this date: {employeeShiftInfo[employee.id]?.shiftTimes}
+                                      {employeeShiftInfo[employee.id]?.hasConflict && (
+                                        <span className="block mt-1 font-semibold text-destructive">⚠️ Time overlap with new shift!</span>
+                                      )}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                           {isSelected && (
                             <div className="ml-6 space-y-3">
@@ -930,6 +970,29 @@ export const EnhancedShiftDialog = ({
                               <span className="text-muted-foreground"> ({employee.locations.name})</span>
                             )}
                           </Label>
+                          {employeeShiftInfo[employee.id]?.hasShift && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge 
+                                    variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
+                                    className="flex items-center gap-1 text-xs"
+                                  >
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <p>
+                                    Already has shift(s) on this date: {employeeShiftInfo[employee.id]?.shiftTimes}
+                                    {employeeShiftInfo[employee.id]?.hasConflict && (
+                                      <span className="block mt-1 font-semibold text-destructive">⚠️ Time overlap with new shift!</span>
+                                    )}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                       );
                     })
