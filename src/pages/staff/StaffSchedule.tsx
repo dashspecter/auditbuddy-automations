@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ChevronLeft, ChevronRight, RefreshCw, Share, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Share, Calendar, Users } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -17,12 +17,20 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffSchedule = () => {
   const { user } = useAuth();
+  const { data: roleData } = useUserRole();
   const [employee, setEmployee] = useState<any>(null);
+  const [companyRole, setCompanyRole] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shifts, setShifts] = useState<any[]>([]);
+  const [locationShifts, setLocationShifts] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
@@ -31,10 +39,11 @@ const StaffSchedule = () => {
   const [colleagues, setColleagues] = useState<any[]>([]);
   const [selectedColleague, setSelectedColleague] = useState<string | null>(null);
   const [swapNote, setSwapNote] = useState("");
+  const [viewMode, setViewMode] = useState<"my" | "location">("my");
 
   useEffect(() => {
     if (user) loadData();
-  }, [user, weekStart]);
+  }, [user, weekStart, roleData]);
 
   const loadData = async () => {
     try {
@@ -52,13 +61,94 @@ const StaffSchedule = () => {
 
       if (empData) {
         setEmployee(empData);
+        
+        // Get company role
+        const { data: companyUserData } = await supabase
+          .from("company_users")
+          .select("company_role")
+          .eq("user_id", user?.id)
+          .maybeSingle();
+        
+        setCompanyRole(companyUserData?.company_role || null);
+        
+        // Load user's shifts
         await loadWeekShifts(empData.id);
+        
+        // Load locations for managers
+        const isManager = roleData?.isManager || roleData?.isAdmin || 
+          companyUserData?.company_role === 'company_admin' || 
+          companyUserData?.company_role === 'company_owner' ||
+          empData.role?.toLowerCase() === 'manager';
+        
+        if (isManager) {
+          const { data: locationsData } = await supabase
+            .from("locations")
+            .select("*")
+            .eq("company_id", empData.company_id);
+          
+          if (locationsData) {
+            setLocations(locationsData);
+            if (!selectedLocation && locationsData.length > 0) {
+              setSelectedLocation(empData.location_id || locationsData[0].id);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to load schedule:", error);
       toast.error("Failed to load schedule");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Load location shifts when manager switches to location view
+  useEffect(() => {
+    if (viewMode === "location" && selectedLocation && employee) {
+      loadLocationShifts();
+    }
+  }, [viewMode, selectedLocation, weekStart]);
+
+  const loadLocationShifts = async () => {
+    if (!selectedLocation) return;
+    
+    const weekEnd = addDays(weekStart, 6);
+    
+    // Load shifts for the location
+    const { data: shiftsData } = await supabase
+      .from("shifts")
+      .select(`
+        *,
+        shift_assignments(
+          id,
+          staff_id,
+          approval_status,
+          employees(
+            full_name,
+            avatar_url,
+            role
+          )
+        ),
+        locations(name)
+      `)
+      .eq("location_id", selectedLocation)
+      .gte("shift_date", format(weekStart, "yyyy-MM-dd"))
+      .lte("shift_date", format(weekEnd, "yyyy-MM-dd"))
+      .order("start_time", { ascending: true });
+
+    if (shiftsData) {
+      setLocationShifts(shiftsData);
+    }
+
+    // Load operating schedules
+    const { data: schedulesData } = await supabase
+      .from("location_operating_schedules")
+      .select("*")
+      .eq("location_id", selectedLocation)
+      .order("day_of_week", { ascending: true });
+
+    if (schedulesData) {
+      setSchedules(schedulesData);
     }
   };
 
@@ -222,6 +312,39 @@ const StaffSchedule = () => {
     }
   };
 
+  // Check if user is a manager
+  const isManager = roleData?.isManager || roleData?.isAdmin || 
+    companyRole === 'company_admin' || companyRole === 'company_owner' ||
+    employee?.role?.toLowerCase() === 'manager';
+
+  const getLocationShiftsForDay = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return locationShifts.filter((shift) => shift.shift_date === dateStr);
+  };
+
+  const getOperatingHours = (date: Date) => {
+    const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+    const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
+    
+    if (!schedule) return "24/7";
+    if (schedule.is_closed) return "Closed";
+    
+    return `${schedule.open_time?.slice(0, 5) || "00:00"} - ${schedule.close_time?.slice(0, 5) || "00:00"}`;
+  };
+
+  const getRoleColor = (role: string) => {
+    const colors: Record<string, string> = {
+      Manager: "bg-blue-500",
+      Server: "bg-teal-500",
+      Bartender: "bg-orange-500",
+      Host: "bg-purple-500",
+      Chef: "bg-yellow-500",
+      "Line Cook": "bg-pink-500",
+      Dishwasher: "bg-cyan-500",
+    };
+    return colors[role] || "bg-gray-500";
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -235,7 +358,22 @@ const StaffSchedule = () => {
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">My Schedule</h1>
+          {isManager ? (
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "my" | "location")} className="mb-3">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="my" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  My Schedule
+                </TabsTrigger>
+                <TabsTrigger value="location" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Location
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          ) : (
+            <h1 className="text-xl font-bold mb-3">My Schedule</h1>
+          )}
           
           {/* Week Navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -252,113 +390,204 @@ const StaffSchedule = () => {
             </Button>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
-              Today
-            </Button>
-            <Button variant="outline" size="sm">
-              <Share className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
+          {/* Quick Actions / Location Filter */}
+          {viewMode === "location" && isManager ? (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {locations.map((location) => (
+                <Button
+                  key={location.id}
+                  variant={selectedLocation === location.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedLocation(location.id)}
+                >
+                  {location.name}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+                Today
+              </Button>
+              <Button variant="outline" size="sm">
+                <Share className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Schedule Grid */}
-      <div className="px-4 py-4 space-y-3">
-        {daysWithShifts.length === 0 ? (
-          <Card className="p-8 text-center">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No shifts scheduled this week</p>
-            <p className="text-sm text-muted-foreground mt-1">Check back later or browse the shift pool</p>
-          </Card>
-        ) : (
-          daysWithShifts.map((day) => {
-            const dayStr = format(day, "yyyy-MM-dd");
-            const isToday = dayStr === today;
-            const dayShifts = shifts.filter(s => s.shifts.shift_date === dayStr);
-
+      {/* Content based on view mode */}
+      {viewMode === "location" && isManager ? (
+        /* Location Schedule View */
+        <div className="px-4 py-4 space-y-3">
+          {weekDays.map((day) => {
+            const dayShifts = getLocationShiftsForDay(day);
+            const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+            
             return (
-              <Card 
-                key={dayStr} 
-                className={`p-4 ${isToday ? "border-primary bg-primary/5" : ""}`}
-              >
+              <div key={day.toString()} className={isToday ? "bg-primary/5 -mx-4 px-4 py-3 rounded-lg" : ""}>
                 <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="font-semibold">{format(day, "EEEE")}</div>
-                    <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+                      {format(day, "EEE, MMM d")}
+                    </span>
+                    <Badge variant="outline" className="text-sm font-medium px-2 py-1">
+                      <Users className="h-4 w-4 mr-1" />
+                      {dayShifts.length}
+                    </Badge>
                   </div>
-                  {isToday && <Badge>Today</Badge>}
+                  <span className="text-sm text-muted-foreground font-medium">
+                    {getOperatingHours(day)}
+                  </span>
                 </div>
-
+                
                 <div className="space-y-2">
-                  {dayShifts.map((assignment: any) => (
-                    <div key={assignment.id} className="bg-muted/50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-sm">
-                          {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
-                        </span>
-                        <div className="flex gap-2">
-                          {assignment.approval_status === "pending" && (
-                            <Badge variant="outline" className="text-xs">Pending</Badge>
-                          )}
-                          {assignment.status === "offered" && (
-                            <Badge className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                              Offered
-                            </Badge>
-                          )}
-                          <Badge variant="secondary">{assignment.shifts.role}</Badge>
+                  {dayShifts.length === 0 ? (
+                    <Card className="p-3 text-center text-sm text-muted-foreground">
+                      No shifts scheduled
+                    </Card>
+                  ) : (
+                    dayShifts.map((shift) => (
+                      <Card
+                        key={shift.id}
+                        className={`p-3 ${getRoleColor(shift.role)}/10 border-l-4`}
+                        style={{ borderLeftColor: getRoleColor(shift.role).replace("bg-", "").replace("500", "#") }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            {shift.shift_assignments && shift.shift_assignments.length > 0 ? (
+                              shift.shift_assignments.map((assignment: any) => (
+                                <div key={assignment.id} className="flex items-center gap-3 mb-2">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold">
+                                      {assignment.employees?.full_name?.charAt(0)}
+                                    </div>
+                                    <span className="text-base font-semibold">
+                                      {assignment.employees?.full_name}
+                                    </span>
+                                  </div>
+                                  <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs font-medium">
+                                    {assignment.approval_status}
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-base text-muted-foreground italic font-medium">Unassigned</span>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                              <span className="font-medium">{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
+                              <Badge variant="outline" className="text-xs font-medium">
+                                {shift.role}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {assignment.shifts.locations?.name}
-                      </div>
-                      {assignment.status === "offered" && (
-                        <div className={`mt-3 p-2 border rounded text-xs ${
-                          dayStr < today 
-                            ? "bg-muted/50 border-muted text-muted-foreground"
-                            : "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400"
-                        }`}>
-                          {dayStr < today 
-                            ? "Shift expired - was not claimed"
-                            : "Waiting for someone to claim this shift"
-                          }
-                          {assignment.notes && (
-                            <div className="mt-1 text-muted-foreground">Note: {assignment.notes}</div>
-                          )}
-                        </div>
-                      )}
-                      {assignment.approval_status === "approved" && assignment.status !== "offered" && (
-                        <div className="flex gap-2 mt-3">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => handleOfferShift(assignment)}
-                          >
-                            <Share className="h-3 w-3 mr-1" />
-                            Offer
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => handleSwapShift(assignment)}
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            Swap
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                      </Card>
+                    ))
+                  )}
                 </div>
-              </Card>
+              </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : (
+        /* My Schedule View */
+        <div className="px-4 py-4 space-y-3">
+          {daysWithShifts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No shifts scheduled this week</p>
+              <p className="text-sm text-muted-foreground mt-1">Check back later or browse the shift pool</p>
+            </Card>
+          ) : (
+            daysWithShifts.map((day) => {
+              const dayStr = format(day, "yyyy-MM-dd");
+              const isToday = dayStr === today;
+              const dayShifts = shifts.filter(s => s.shifts.shift_date === dayStr);
+
+              return (
+                <Card 
+                  key={dayStr} 
+                  className={`p-4 ${isToday ? "border-primary bg-primary/5" : ""}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="font-semibold">{format(day, "EEEE")}</div>
+                      <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
+                    </div>
+                    {isToday && <Badge>Today</Badge>}
+                  </div>
+
+                  <div className="space-y-2">
+                    {dayShifts.map((assignment: any) => (
+                      <div key={assignment.id} className="bg-muted/50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm">
+                            {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
+                          </span>
+                          <div className="flex gap-2">
+                            {assignment.approval_status === "pending" && (
+                              <Badge variant="outline" className="text-xs">Pending</Badge>
+                            )}
+                            {assignment.status === "offered" && (
+                              <Badge className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                                Offered
+                              </Badge>
+                            )}
+                            <Badge variant="secondary">{assignment.shifts.role}</Badge>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {assignment.shifts.locations?.name}
+                        </div>
+                        {assignment.status === "offered" && (
+                          <div className={`mt-3 p-2 border rounded text-xs ${
+                            dayStr < today 
+                              ? "bg-muted/50 border-muted text-muted-foreground"
+                              : "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400"
+                          }`}>
+                            {dayStr < today 
+                              ? "Shift expired - was not claimed"
+                              : "Waiting for someone to claim this shift"
+                            }
+                            {assignment.notes && (
+                              <div className="mt-1 text-muted-foreground">Note: {assignment.notes}</div>
+                            )}
+                          </div>
+                        )}
+                        {assignment.approval_status === "approved" && assignment.status !== "offered" && (
+                          <div className="flex gap-2 mt-3">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => handleOfferShift(assignment)}
+                            >
+                              <Share className="h-3 w-3 mr-1" />
+                              Offer
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => handleSwapShift(assignment)}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Swap
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      )}
 
       <StaffBottomNav />
 
