@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2 } from "lucide-react";
+import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2, Bot } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AITestAgent } from "@/components/AITestAgent";
+import { AITestAgentContent } from "@/components/AITestAgent";
 
 interface Company {
   id: string;
@@ -340,6 +340,10 @@ export default function PlatformAdmin() {
               <Shield className="h-4 w-4" />
               Platform Admins
             </TabsTrigger>
+            <TabsTrigger value="ai-testing" className="gap-2">
+              <Bot className="h-4 w-4" />
+              AI Testing
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending">
@@ -555,6 +559,10 @@ export default function PlatformAdmin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="ai-testing">
+            <AITestAgentContent />
+          </TabsContent>
         </Tabs>
 
       {/* Extend Trial Dialog */}
@@ -661,8 +669,6 @@ export default function PlatformAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AITestAgent />
     </div>
   );
 }
