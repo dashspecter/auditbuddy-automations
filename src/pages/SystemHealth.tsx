@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 
 export default function SystemHealth() {
   const { user, session } = useAuth();
@@ -32,7 +33,8 @@ export default function SystemHealth() {
   );
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <ProtectedLayout>
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Activity className="h-6 w-6" />
         <h1 className="text-3xl font-bold">System Health</h1>
@@ -230,5 +232,6 @@ export default function SystemHealth() {
         </CardContent>
       </Card>
     </div>
+    </ProtectedLayout>
   );
 }
