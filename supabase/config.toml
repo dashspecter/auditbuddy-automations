@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.check-late-clockins]
 verify_jwt = false
+
+[functions.ai-guide-chat]
+verify_jwt = false
