@@ -7,18 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 
 export const AITestAgent = () => {
-  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [report, setReport] = useState<any>(null);
-
-  // Only show for alex@grecea.work
-  if (user?.email !== "alex@grecea.work") {
-    return null;
-  }
 
   const runTests = async () => {
     setTesting(true);
