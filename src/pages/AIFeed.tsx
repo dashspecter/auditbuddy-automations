@@ -110,7 +110,7 @@ const AIFeed = () => {
               <CardDescription>Latest AI-generated insights</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-lg max-w-none dark:prose-invert [&>h3]:text-lg [&>h3]:font-semibold [&>h3]:mt-4 [&>h3]:mb-2 [&>p]:text-base [&>p]:leading-relaxed [&>ul]:space-y-1 [&>ul>li]:text-base [&>strong]:font-semibold">
+              <div className="prose prose-xl max-w-none dark:prose-invert [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mt-6 [&>h3]:mb-3 [&>p]:text-lg [&>p]:leading-relaxed [&>ul]:space-y-2 [&>ul>li]:text-lg [&>strong]:font-semibold text-lg leading-relaxed">
                 {summaries[0].content_html ? (
                   <div dangerouslySetInnerHTML={{ 
                     __html: sanitizeHtml(
