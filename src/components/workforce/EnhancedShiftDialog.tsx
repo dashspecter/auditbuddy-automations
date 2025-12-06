@@ -824,27 +824,18 @@ export const EnhancedShiftDialog = ({
                               )}
                             </Label>
                             {employeeShiftInfo[employee.id]?.hasShift && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge 
-                                      variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
-                                      className="ml-2 flex items-center gap-1 text-xs"
-                                    >
-                                      <AlertTriangle className="h-3 w-3" />
-                                      {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-xs">
-                                    <p>
-                                      Already has shift(s) on this date: {employeeShiftInfo[employee.id]?.shiftTimes}
-                                      {employeeShiftInfo[employee.id]?.hasConflict && (
-                                        <span className="block mt-1 font-semibold text-destructive">⚠️ Time overlap with new shift!</span>
-                                      )}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <div className="flex items-center gap-2 ml-2">
+                                <span className="text-xs text-muted-foreground">
+                                  ({employeeShiftInfo[employee.id]?.shiftTimes})
+                                </span>
+                                <Badge 
+                                  variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
+                                  className="flex items-center gap-1 text-xs"
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
+                                </Badge>
+                              </div>
                             )}
                           </div>
                           {isSelected && (
@@ -979,27 +970,18 @@ export const EnhancedShiftDialog = ({
                             )}
                           </Label>
                           {employeeShiftInfo[employee.id]?.hasShift && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge 
-                                    variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
-                                    className="flex items-center gap-1 text-xs"
-                                  >
-                                    <AlertTriangle className="h-3 w-3" />
-                                    {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <p>
-                                    Already has shift(s) on this date: {employeeShiftInfo[employee.id]?.shiftTimes}
-                                    {employeeShiftInfo[employee.id]?.hasConflict && (
-                                      <span className="block mt-1 font-semibold text-destructive">⚠️ Time overlap with new shift!</span>
-                                    )}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                ({employeeShiftInfo[employee.id]?.shiftTimes})
+                              </span>
+                              <Badge 
+                                variant={employeeShiftInfo[employee.id]?.hasConflict ? "destructive" : "secondary"}
+                                className="flex items-center gap-1 text-xs"
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
+                              </Badge>
+                            </div>
                           )}
                         </div>
                       );
