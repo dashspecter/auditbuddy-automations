@@ -95,7 +95,9 @@ const StaffSchedule = () => {
       console.error("Error loading shifts:", error);
     }
     
-    setShifts(data || []);
+    // Filter out assignments where shifts is null (happens when date filter excludes the shift)
+    const validShifts = (data || []).filter(s => s.shifts !== null);
+    setShifts(validShifts);
   };
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -104,7 +106,7 @@ const StaffSchedule = () => {
   // Filter to only show days with shifts
   const daysWithShifts = weekDays.filter(day => {
     const dayStr = format(day, "yyyy-MM-dd");
-    return shifts.some(s => s.shifts.shift_date === dayStr);
+    return shifts.some(s => s.shifts?.shift_date === dayStr);
   });
 
   const handleOfferShift = (assignment: any) => {
