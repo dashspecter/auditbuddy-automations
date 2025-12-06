@@ -107,10 +107,15 @@ const AIFeed = () => {
                 <Sparkles className="h-5 w-5" />
                 AI Summary
               </CardTitle>
-              <CardDescription>Latest AI-generated insights</CardDescription>
+              <CardDescription className="flex items-center gap-4">
+                <span>Latest AI-generated insights</span>
+                <Badge variant="outline" className="text-xs">
+                  {new Date(summaries[0].period_start).toLocaleDateString()} - {new Date(summaries[0].period_end).toLocaleDateString()}
+                </Badge>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-xl max-w-none dark:prose-invert [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mt-6 [&>h3]:mb-3 [&>p]:text-lg [&>p]:leading-relaxed [&>ul]:space-y-2 [&>ul>li]:text-lg [&>strong]:font-semibold text-lg leading-relaxed">
+              <div className="max-w-none [&>h3]:text-2xl [&>h3]:font-bold [&>h3]:mt-8 [&>h3]:mb-4 [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-4 [&>p]:text-xl [&>p]:leading-relaxed [&>p]:mb-4 [&>ul]:space-y-3 [&>ul]:my-4 [&>ul>li]:text-xl [&>ul>li]:leading-relaxed [&>strong]:font-bold [&>b]:font-bold text-xl leading-relaxed">
                 {summaries[0].content_html ? (
                   <div dangerouslySetInnerHTML={{ 
                     __html: sanitizeHtml(
@@ -121,10 +126,10 @@ const AIFeed = () => {
                     ) 
                   }} />
                 ) : (
-                  <p className="text-base">{JSON.stringify(summaries[0].content)}</p>
+                  <p className="text-xl">{JSON.stringify(summaries[0].content)}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 mt-6 text-base text-muted-foreground border-t pt-4">
                 <Clock className="h-4 w-4" />
                 Generated {formatDistanceToNow(new Date(summaries[0].generated_at))} ago
               </div>
