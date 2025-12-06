@@ -166,10 +166,17 @@ const StaffSchedule = () => {
       // Fetch employee details separately
       let employeesMap: Record<string, any> = {};
       if (staffIds.size > 0) {
-        const { data: employeesData } = await supabase
+        console.log("Fetching employees for staff IDs:", Array.from(staffIds));
+        const { data: employeesData, error: empError } = await supabase
           .from("employees")
           .select("id, full_name, avatar_url, role")
           .in("id", Array.from(staffIds));
+        
+        if (empError) {
+          console.error("Error fetching employees:", empError);
+        }
+        
+        console.log("Employees data returned:", employeesData);
         
         if (employeesData) {
           employeesData.forEach((emp: any) => {
@@ -177,6 +184,8 @@ const StaffSchedule = () => {
           });
         }
       }
+
+      console.log("Employees map:", employeesMap);
 
       // Merge employee data into shifts
       const enrichedShifts = shiftsData.map((shift: any) => ({
@@ -187,6 +196,7 @@ const StaffSchedule = () => {
         }))
       }));
 
+      console.log("Enriched shifts sample:", enrichedShifts[0]);
       setLocationShifts(enrichedShifts);
     }
 
@@ -512,10 +522,10 @@ const StaffSchedule = () => {
                                 <div key={assignment.id} className="flex items-center gap-3 mb-2">
                                   <div className="flex items-center gap-3 flex-1">
                                     <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold">
-                                      {assignment.employees?.full_name?.charAt(0)}
+                                      {assignment.employees?.full_name?.charAt(0) || "?"}
                                     </div>
                                     <span className="text-base font-semibold">
-                                      {assignment.employees?.full_name}
+                                      {assignment.employees?.full_name || `Staff ID: ${assignment.staff_id?.substring(0, 8)}...`}
                                     </span>
                                   </div>
                                   <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs font-medium">
