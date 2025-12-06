@@ -264,9 +264,9 @@ export const AIGuideChat = () => {
   const triggerButton = (
     <Button
       size="lg"
-      className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
+      className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-xl z-[100] bg-primary hover:bg-primary/90 print:hidden"
     >
-      <MessageCircleQuestion className="h-6 w-6" />
+      <MessageCircleQuestion className="h-5 w-5" />
     </Button>
   );
 
