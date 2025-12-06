@@ -1,18 +1,69 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Clock, MapPin, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Loader2, MapPin, Sparkles } from "lucide-react";
 import { useAlerts, useResolveAlert } from "@/hooks/useAlerts";
 import { useInsightSummaries } from "@/hooks/useInsightSummaries";
+import { useCompany } from "@/hooks/useCompany";
 import { formatDistanceToNow } from "date-fns";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AIFeed = () => {
+  const { data: company } = useCompany();
   const { data: alerts, isLoading: alertsLoading } = useAlerts();
   const { data: summaries, isLoading: summariesLoading } = useInsightSummaries();
   const resolveAlert = useResolveAlert();
+  const queryClient = useQueryClient();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const unresolvedAlerts = alerts?.filter(a => !a.resolved) || [];
+
+  const handleGenerateSummary = async () => {
+    if (!company?.id) {
+      toast.error("Company not found");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-insight-summary", {
+        body: { 
+          companyId: company.id, 
+          alerts: unresolvedAlerts.map(a => ({
+            severity: a.severity,
+            title: a.title,
+            message: a.message,
+            category: a.category,
+          }))
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        if (data.error.includes("Rate limit")) {
+          toast.error("Rate limit exceeded. Please try again later.");
+        } else if (data.error.includes("credits")) {
+          toast.error("AI credits exhausted. Please add funds.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
+
+      toast.success("AI Summary generated successfully!");
+      queryClient.invalidateQueries({ queryKey: ["insight_summaries"] });
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      toast.error("Failed to generate summary");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -33,9 +84,18 @@ const AIFeed = () => {
               Real-time alerts and AI-generated insights
             </p>
           </div>
-          <Button variant="outline" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Generate Summary
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={handleGenerateSummary}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isGenerating ? "Generating..." : "Generate Summary"}
           </Button>
         </div>
 
