@@ -57,11 +57,12 @@ export const ManagerDashboardStats = () => {
       
       if (!empData) return null;
 
-      // Get total team members
+      // Get total team members for manager's location only
       const { count: totalStaff } = await supabase
         .from("employees")
         .select("*", { count: 'exact', head: true })
         .eq("company_id", empData.company_id)
+        .eq("location_id", empData.location_id)
         .eq("status", "active");
 
       // Get upcoming shifts count
