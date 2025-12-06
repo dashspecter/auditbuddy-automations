@@ -74,22 +74,39 @@ const StaffSchedule = () => {
         // Load user's shifts
         await loadWeekShifts(empData.id);
         
-        // Load locations for managers
-        const isManager = roleData?.isManager || roleData?.isAdmin || 
+        // Check if user is a company admin/owner (can see all locations) or employee manager (sees only their location)
+        const isCompanyAdmin = roleData?.isAdmin || 
           companyUserData?.company_role === 'company_admin' || 
-          companyUserData?.company_role === 'company_owner' ||
-          empData.role?.toLowerCase() === 'manager';
+          companyUserData?.company_role === 'company_owner';
+        const isEmployeeManager = empData.role?.toLowerCase() === 'manager';
+        const isManager = isCompanyAdmin || roleData?.isManager || isEmployeeManager;
         
         if (isManager) {
-          const { data: locationsData } = await supabase
-            .from("locations")
-            .select("*")
-            .eq("company_id", empData.company_id);
-          
-          if (locationsData) {
-            setLocations(locationsData);
-            if (!selectedLocation && locationsData.length > 0) {
-              setSelectedLocation(empData.location_id || locationsData[0].id);
+          if (isCompanyAdmin || roleData?.isManager) {
+            // Company admins and app managers can see all company locations
+            const { data: locationsData } = await supabase
+              .from("locations")
+              .select("*")
+              .eq("company_id", empData.company_id);
+            
+            if (locationsData) {
+              setLocations(locationsData);
+              if (!selectedLocation && locationsData.length > 0) {
+                setSelectedLocation(empData.location_id || locationsData[0].id);
+              }
+            }
+          } else if (isEmployeeManager) {
+            // Employee managers only see their assigned location(s)
+            const { data: locationsData } = await supabase
+              .from("locations")
+              .select("*")
+              .eq("id", empData.location_id);
+            
+            if (locationsData) {
+              setLocations(locationsData);
+              if (!selectedLocation && locationsData.length > 0) {
+                setSelectedLocation(locationsData[0].id);
+              }
             }
           }
         }
