@@ -115,7 +115,7 @@ const StaffSchedule = () => {
     const weekEnd = addDays(weekStart, 6);
     
     // Load shifts for the location
-    const { data: shiftsData } = await supabase
+    const { data: shiftsData, error } = await supabase
       .from("shifts")
       .select(`
         *,
@@ -136,7 +136,14 @@ const StaffSchedule = () => {
       .lte("shift_date", format(weekEnd, "yyyy-MM-dd"))
       .order("start_time", { ascending: true });
 
+    if (error) {
+      console.error("Error loading location shifts:", error);
+    }
+
     if (shiftsData) {
+      // Debug: log a sample shift with assignments
+      const shiftWithAssignments = shiftsData.find((s: any) => s.shift_assignments?.length > 0);
+      console.log("Sample shift with assignments:", shiftWithAssignments);
       setLocationShifts(shiftsData);
     }
 
