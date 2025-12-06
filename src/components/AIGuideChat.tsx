@@ -129,7 +129,7 @@ export const AIGuideChat = () => {
               <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <Sparkles className="h-8 w-8 text-primary" />
                 <div>
-                  <h3 className="font-semibold text-foreground">Welcome to DashSpect AI Guide!</h3>
+                  <h3 className="font-semibold text-foreground">Welcome to Dashspect AI Guide!</h3>
                   <p className="text-sm text-muted-foreground">
                     I'm here to help you navigate and understand the platform. Ask me anything!
                   </p>
@@ -195,7 +195,7 @@ export const AIGuideChat = () => {
 
       <div className="flex gap-2 pt-4 border-t">
         <Input
-          placeholder="Ask about DashSpect features..."
+          placeholder="Ask about Dashspect features..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -240,10 +240,10 @@ export const AIGuideChat = () => {
       <DialogTrigger asChild>{TriggerButton}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
-            DashSpect AI Guide
-          </DialogTitle>
+        <DialogTitle className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-primary" />
+          Dashspect AI Guide
+        </DialogTitle>
         </DialogHeader>
         <ChatContent />
       </DialogContent>
