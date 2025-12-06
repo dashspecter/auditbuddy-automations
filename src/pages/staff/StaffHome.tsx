@@ -35,9 +35,10 @@ const StaffHome = () => {
   // Count active (non-completed) tasks
   const activeTaskCount = myTasks.filter(t => t.status !== 'completed').length;
 
-  // Check both platform role and company role for manager access
+  // Check platform role, company role, and employee role for manager access
   const isManager = roleData?.isManager || roleData?.isAdmin || 
-    companyRole === 'company_admin' || companyRole === 'company_owner';
+    companyRole === 'company_admin' || companyRole === 'company_owner' ||
+    employee?.role?.toLowerCase() === 'manager';
 
   useEffect(() => {
     if (!user) {
