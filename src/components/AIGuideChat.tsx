@@ -171,7 +171,7 @@ export const AIGuideChat = () => {
     }
   };
 
-  const ChatContent = () => (
+  const chatContent = (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
@@ -252,6 +252,7 @@ export const AIGuideChat = () => {
           onKeyDown={handleKeyDown}
           disabled={isLoading}
           className="flex-1"
+          autoComplete="off"
         />
         <Button size="icon" onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -260,7 +261,7 @@ export const AIGuideChat = () => {
     </div>
   );
 
-  const TriggerButton = (
+  const triggerButton = (
     <Button
       size="lg"
       className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
@@ -272,7 +273,7 @@ export const AIGuideChat = () => {
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>{TriggerButton}</SheetTrigger>
+        <SheetTrigger asChild>{triggerButton}</SheetTrigger>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2">
@@ -280,7 +281,7 @@ export const AIGuideChat = () => {
               AI Guide
             </SheetTitle>
           </SheetHeader>
-          <ChatContent />
+          {chatContent}
         </SheetContent>
       </Sheet>
     );
@@ -288,7 +289,7 @@ export const AIGuideChat = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{TriggerButton}</DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -296,7 +297,7 @@ export const AIGuideChat = () => {
             Dashspect AI Guide
           </DialogTitle>
         </DialogHeader>
-        <ChatContent />
+        {chatContent}
       </DialogContent>
     </Dialog>
   );
