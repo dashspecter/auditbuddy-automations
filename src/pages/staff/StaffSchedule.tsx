@@ -114,7 +114,7 @@ const StaffSchedule = () => {
     
     const weekEnd = addDays(weekStart, 6);
     
-    // Load shifts for the location
+    // Load shifts for the location with assignments
     const { data: shiftsData, error } = await supabase
       .from("shifts")
       .select(`
@@ -122,12 +122,7 @@ const StaffSchedule = () => {
         shift_assignments(
           id,
           staff_id,
-          approval_status,
-          employees(
-            full_name,
-            avatar_url,
-            role
-          )
+          approval_status
         ),
         locations(name)
       `)
@@ -141,10 +136,41 @@ const StaffSchedule = () => {
     }
 
     if (shiftsData) {
-      // Debug: log a sample shift with assignments
-      const shiftWithAssignments = shiftsData.find((s: any) => s.shift_assignments?.length > 0);
-      console.log("Sample shift with assignments:", shiftWithAssignments);
-      setLocationShifts(shiftsData);
+      // Get all unique staff IDs from assignments
+      const staffIds = new Set<string>();
+      shiftsData.forEach((shift: any) => {
+        shift.shift_assignments?.forEach((assignment: any) => {
+          if (assignment.staff_id) {
+            staffIds.add(assignment.staff_id);
+          }
+        });
+      });
+
+      // Fetch employee details separately
+      let employeesMap: Record<string, any> = {};
+      if (staffIds.size > 0) {
+        const { data: employeesData } = await supabase
+          .from("employees")
+          .select("id, full_name, avatar_url, role")
+          .in("id", Array.from(staffIds));
+        
+        if (employeesData) {
+          employeesData.forEach((emp: any) => {
+            employeesMap[emp.id] = emp;
+          });
+        }
+      }
+
+      // Merge employee data into shifts
+      const enrichedShifts = shiftsData.map((shift: any) => ({
+        ...shift,
+        shift_assignments: shift.shift_assignments?.map((assignment: any) => ({
+          ...assignment,
+          employees: employeesMap[assignment.staff_id] || null
+        }))
+      }));
+
+      setLocationShifts(enrichedShifts);
     }
 
     // Load operating schedules
