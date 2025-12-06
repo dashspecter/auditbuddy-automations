@@ -6,26 +6,61 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MessageCircleQuestion, Send, Loader2, Bot, User, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAllModules } from "@/hooks/useModules";
 import { cn } from "@/lib/utils";
 
 type Message = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-guide-chat`;
 
-const SUGGESTED_QUESTIONS = [
-  "How do I create an audit template?",
-  "How can I manage staff schedules?",
-  "What is equipment maintenance tracking?",
-  "How do I assign tests to employees?",
-];
+const SUGGESTED_QUESTIONS_BY_ROLE: Record<string, string[]> = {
+  admin: [
+    "How do I add a new user?",
+    "How can I create an audit template?",
+    "How do I view company-wide reports?",
+    "How can I manage locations?",
+  ],
+  manager: [
+    "How do I create shifts for my team?",
+    "How can I approve time-off requests?",
+    "How do I perform an audit?",
+    "How can I check team performance?",
+  ],
+  checker: [
+    "How do I perform an audit?",
+    "How can I check equipment?",
+    "Where can I see my tasks?",
+    "How do I add photos to an audit?",
+  ],
+  staff: [
+    "How do I clock in?",
+    "Where can I see my schedule?",
+    "How do I request time off?",
+    "How can I swap a shift?",
+  ],
+};
 
 export const AIGuideChat = () => {
   const isMobile = useIsMobile();
+  const { data: roleData } = useUserRole();
+  const { data: allModules } = useAllModules();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Determine user's primary role
+  const getUserRole = () => {
+    if (roleData?.isAdmin) return "admin";
+    if (roleData?.isManager) return "manager";
+    if (roleData?.isChecker) return "checker";
+    return "staff";
+  };
+
+  const userRole = getUserRole();
+  const suggestedQuestions = SUGGESTED_QUESTIONS_BY_ROLE[userRole] || SUGGESTED_QUESTIONS_BY_ROLE.staff;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,13 +69,20 @@ export const AIGuideChat = () => {
   }, [messages]);
 
   const streamChat = async (userMessages: Message[]) => {
+    const activeModules = allModules?.filter(m => m.is_active) || [];
+    const moduleNames = activeModules.map(m => m.name);
+    
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: userMessages }),
+      body: JSON.stringify({ 
+        messages: userMessages,
+        role: userRole,
+        modules: moduleNames,
+      }),
     });
 
     if (!resp.ok || !resp.body) {
@@ -120,6 +162,15 @@ export const AIGuideChat = () => {
     }
   };
 
+  const getRoleLabel = () => {
+    switch (userRole) {
+      case "admin": return "Administrator";
+      case "manager": return "Manager";
+      case "checker": return "Checker";
+      default: return "Staff";
+    }
+  };
+
   const ChatContent = () => (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
@@ -131,14 +182,14 @@ export const AIGuideChat = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">Welcome to Dashspect AI Guide!</h3>
                   <p className="text-sm text-muted-foreground">
-                    I'm here to help you navigate and understand the platform. Ask me anything!
+                    Hi {getRoleLabel()}! I'm here to help you navigate and use the platform effectively.
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Suggested questions:</p>
+                <p className="text-sm font-medium text-muted-foreground">Suggested for you:</p>
                 <div className="grid gap-2">
-                  {SUGGESTED_QUESTIONS.map((q, i) => (
+                  {suggestedQuestions.map((q, i) => (
                     <Button
                       key={i}
                       variant="outline"
@@ -240,10 +291,10 @@ export const AIGuideChat = () => {
       <DialogTrigger asChild>{TriggerButton}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
         <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          Dashspect AI Guide
-        </DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            Dashspect AI Guide
+          </DialogTitle>
         </DialogHeader>
         <ChatContent />
       </DialogContent>
