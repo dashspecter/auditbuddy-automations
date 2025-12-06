@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AITestAgent } from "@/components/AITestAgent";
 
 interface Company {
   id: string;
@@ -660,6 +661,8 @@ export default function PlatformAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AITestAgent />
     </div>
   );
 }
