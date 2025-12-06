@@ -33,22 +33,34 @@ const TeamView = () => {
 
   const loadTeam = async () => {
     try {
-      // Get manager's company
+      // Get current employee's info including role and location
       const { data: empData } = await supabase
         .from("employees")
-        .select("company_id, location_id")
+        .select("company_id, location_id, role")
         .eq("user_id", user?.id)
         .single();
 
       if (!empData) return;
 
-      // Get all team members in the same company
-      const { data: members, error } = await supabase
+      // Check if user is a manager - if so, only show team members from their location
+      const isManager = empData.role?.toLowerCase().includes('manager') || 
+                        empData.role?.toLowerCase().includes('supervisor') ||
+                        empData.role?.toLowerCase().includes('lead');
+
+      // Build query for team members
+      let query = supabase
         .from("employees")
         .select("*, locations(name)")
         .eq("company_id", empData.company_id)
         .eq("status", "active")
         .order("full_name");
+
+      // If manager, filter by their location only
+      if (isManager && empData.location_id) {
+        query = query.eq("location_id", empData.location_id);
+      }
+
+      const { data: members, error } = await query;
 
       if (error) throw error;
       
