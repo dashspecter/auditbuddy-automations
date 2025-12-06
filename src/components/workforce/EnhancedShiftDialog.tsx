@@ -87,18 +87,26 @@ export const EnhancedShiftDialog = ({
 
   // Fetch existing shift assignments for the selected date to filter out unavailable employees
   const { data: existingAssignments = [] } = useQuery({
-    queryKey: ["shift-assignments-for-date", formData.shift_date],
+    queryKey: ["shift-assignments-for-date", formData.shift_date, shift?.id],
     queryFn: async () => {
       if (!formData.shift_date) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("shift_assignments")
         .select(`
           staff_id,
-          shifts!inner(shift_date, start_time, end_time)
+          shift_id,
+          shifts!inner(id, shift_date, start_time, end_time)
         `)
         .eq("shifts.shift_date", formData.shift_date)
         .neq("approval_status", "rejected");
+      
+      // When editing an existing shift, exclude assignments for THIS shift
+      if (shift?.id) {
+        query = query.neq("shift_id", shift.id);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data || [];
