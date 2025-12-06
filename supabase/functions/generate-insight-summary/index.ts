@@ -35,18 +35,18 @@ serve(async (req) => {
       ? alerts.map((a: any) => `- ${a.severity.toUpperCase()}: ${a.title} - ${a.message}`).join("\n")
       : "No active alerts.";
 
-    const prompt = `You are an AI assistant for a business management platform. Analyze the following active alerts and provide a concise executive summary with actionable insights.
+    const prompt = `Analyze the following active alerts and provide a concise executive summary with actionable insights.
 
 Active Alerts:
 ${alertSummary}
 
 Please provide:
 1. A brief overview of the current situation
-2. Key areas requiring attention
+2. Key areas requiring attention  
 3. Recommended actions to address the issues
 4. Any patterns or trends you notice
 
-Format your response in HTML with appropriate headings and bullet points for readability.`;
+IMPORTANT: Return ONLY clean HTML content. Do NOT wrap in code blocks or markdown. Do NOT include \`\`\`html tags. Just return the raw HTML starting with your content directly.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -57,7 +57,7 @@ Format your response in HTML with appropriate headings and bullet points for rea
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a helpful business analyst AI. Provide clear, actionable insights in HTML format." },
+          { role: "system", content: "You are a helpful business analyst AI. Provide clear, actionable insights using clean HTML with h3 headings, paragraphs, and ul/li lists. Never use markdown code blocks or backticks. Output raw HTML only." },
           { role: "user", content: prompt },
         ],
       }),
@@ -82,7 +82,13 @@ Format your response in HTML with appropriate headings and bullet points for rea
     }
 
     const aiResponse = await response.json();
-    const summaryContent = aiResponse.choices?.[0]?.message?.content || "Unable to generate summary.";
+    let summaryContent = aiResponse.choices?.[0]?.message?.content || "Unable to generate summary.";
+    
+    // Clean up any markdown code blocks
+    summaryContent = summaryContent
+      .replace(/```html\n?/gi, '')
+      .replace(/```\n?/g, '')
+      .trim();
 
     // Save the summary to the database
     const now = new Date();
