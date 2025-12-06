@@ -139,6 +139,9 @@ export default function PricingPlans() {
                   </div>
                   <CardDescription>{tier.description}</CardDescription>
                   <div className="mt-4">
+                    {tier.id === 'enterprise' && (
+                      <span className="text-sm text-muted-foreground">Starting from </span>
+                    )}
                     <span className="text-4xl font-bold">${tier.price}</span>
                     <span className="text-muted-foreground">/{tier.billingPeriod}</span>
                   </div>
