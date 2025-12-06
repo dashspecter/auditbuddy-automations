@@ -198,7 +198,7 @@ const settingsItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { hasModule } = useCompanyContext();
+  const { hasModule, canAccessModule } = useCompanyContext();
   const { data: roleData } = useUserRole();
   const { data: company } = useCompany();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -235,8 +235,8 @@ export function AppSidebar() {
   };
 
   const shouldShowItem = (item: any) => {
-    // Check module access
-    if (item.module && !hasModule(item.module)) {
+    // Check module access (includes tier check)
+    if (item.module && !canAccessModule(item.module)) {
       return false;
     }
 
