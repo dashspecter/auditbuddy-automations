@@ -45,8 +45,8 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
     icon: Briefcase,
     color: 'hsl(var(--chart-2))',
     features: [
-      'Up to 25 users',
-      'Unlimited locations',
+      'Up to 100 users',
+      'Up to 3 locations',
       'All Starter features',
       'Staff performance tracking',
       'Equipment management',
@@ -65,10 +65,9 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'workforce',
       'documents',
       'inventory',
-      'insights',
-      'integrations',
     ],
-    maxUsers: 25,
+    maxUsers: 100,
+    maxLocations: 3,
   },
   enterprise: {
     id: 'enterprise',
