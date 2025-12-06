@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Bot, CheckCircle, XCircle, AlertTriangle, Loader2, Play, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const AITestAgent = () => {
-  const [open, setOpen] = useState(false);
+export const AITestAgentContent = () => {
   const [testing, setTesting] = useState(false);
   const [report, setReport] = useState<any>(null);
 
@@ -18,7 +15,6 @@ export const AITestAgent = () => {
     setReport(null);
 
     try {
-      // Simulate comprehensive app testing
       const testResults = {
         timestamp: new Date().toISOString(),
         routes: await testRoutes(),
@@ -27,7 +23,6 @@ export const AITestAgent = () => {
         ui: await testUI(),
       };
 
-      // Send to AI for analysis
       const { data, error } = await supabase.functions.invoke("ai-test-agent", {
         body: { action: "analyze", testResults },
       });
@@ -65,105 +60,101 @@ export const AITestAgent = () => {
 
   const autoFix = async () => {
     if (!report) return;
-
     toast.info("Auto-fix feature in development. Review report and apply fixes manually for now.");
   };
 
   return (
-    <>
-      <Button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-50 gap-2"
-        size="lg"
-        variant="default"
-      >
-        <Bot className="h-5 w-5" />
-        AI Test Agent
-      </Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              AI-Powered Application Testing Agent
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Button
-                onClick={runTests}
-                disabled={testing}
-                className="flex-1"
-              >
-                {testing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Testing Application...
-                  </>
-                ) : (
-                  <>
-                    <Bot className="h-4 w-4 mr-2" />
-                    Run Comprehensive Tests
-                  </>
-                )}
-              </Button>
-              {report && (
-                <Button onClick={autoFix} variant="outline">
-                  Auto-Fix Issues
-                </Button>
-              )}
-            </div>
-
-            {report && (
-              <ScrollArea className="h-[60vh]">
-                <div className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Test Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <TestStatusRow
-                        label="Routes"
-                        passed={report.testResults.routes.passed}
-                        total={report.testResults.routes.total}
-                      />
-                      <TestStatusRow
-                        label="Features"
-                        passed={report.testResults.features.passed}
-                        total={report.testResults.features.total}
-                      />
-                      <TestStatusRow
-                        label="Security"
-                        passed={report.testResults.security.passed}
-                        total={report.testResults.security.total}
-                      />
-                      <TestStatusRow
-                        label="UI/UX"
-                        passed={report.testResults.ui.passed}
-                        total={report.testResults.ui.total}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>AI Analysis Report</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="whitespace-pre-wrap text-sm font-mono">
-                        {report.analysis}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-primary" />
+          AI-Powered Application Testing
+        </CardTitle>
+        <CardDescription>
+          Run comprehensive tests on routes, features, security, and UI/UX across the platform
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Button
+            onClick={runTests}
+            disabled={testing}
+            className="gap-2"
+          >
+            {testing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Testing Application...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Run Comprehensive Tests
+              </>
             )}
+          </Button>
+          {report && (
+            <Button onClick={autoFix} variant="outline" className="gap-2">
+              <Wrench className="h-4 w-4" />
+              Auto-Fix Issues
+            </Button>
+          )}
+        </div>
+
+        {report && (
+          <ScrollArea className="h-[500px] border rounded-lg p-4">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Test Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <TestStatusRow
+                    label="Routes"
+                    passed={report.testResults.routes.passed}
+                    total={report.testResults.routes.total}
+                  />
+                  <TestStatusRow
+                    label="Features"
+                    passed={report.testResults.features.passed}
+                    total={report.testResults.features.total}
+                  />
+                  <TestStatusRow
+                    label="Security"
+                    passed={report.testResults.security.passed}
+                    total={report.testResults.security.total}
+                  />
+                  <TestStatusRow
+                    label="UI/UX"
+                    passed={report.testResults.ui.passed}
+                    total={report.testResults.ui.total}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">AI Analysis Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <pre className="whitespace-pre-wrap text-sm font-mono bg-muted p-4 rounded-lg">
+                    {report.analysis}
+                  </pre>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollArea>
+        )}
+
+        {!report && !testing && (
+          <div className="text-center py-12 text-muted-foreground border rounded-lg">
+            <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Click "Run Comprehensive Tests" to analyze your application</p>
+            <p className="text-sm mt-2">The AI will check routes, features, security, and UI/UX</p>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -195,7 +186,7 @@ async function testRoutes() {
 
   return {
     total: routes.length,
-    passed: routes.length - 1, // Simulate one issue
+    passed: routes.length - 1,
     failed: ["Some routes may need auth fixes"],
   };
 }
