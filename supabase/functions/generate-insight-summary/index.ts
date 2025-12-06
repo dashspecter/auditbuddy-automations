@@ -91,7 +91,7 @@ Format your response in HTML with appropriate headings and bullet points for rea
 
     const { error: insertError } = await supabase.from("insight_summaries").insert({
       company_id: companyId,
-      summary_type: "alerts",
+      summary_type: "weekly",
       period_start: periodStart,
       period_end: periodEnd,
       content: { raw: summaryContent },
