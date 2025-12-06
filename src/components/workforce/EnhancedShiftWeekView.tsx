@@ -736,31 +736,26 @@ export const EnhancedShiftWeekView = () => {
                         🕐 {operatingHours}
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-1 items-center justify-center">
+                    <div className="flex flex-wrap gap-0.5 items-center justify-center max-w-full">
                       {totalStaff > 0 ? (
                         <>
-                          {Object.entries(roleCounts).slice(0, 3).map(([role, count]) => (
+                          {Object.entries(roleCounts).map(([role, count]) => (
                             <Badge 
                               key={role} 
                               variant="secondary" 
-                              className="text-xs font-semibold px-2 py-0.5 shadow-sm border"
+                              className="text-[10px] font-medium px-1 py-0 shadow-sm border whitespace-nowrap"
                               style={{ 
                                 backgroundColor: `${getRoleColor(role)}25`,
                                 borderColor: `${getRoleColor(role)}50`,
                                 color: getRoleColor(role)
                               }}
                             >
-                              {count} {role.length > 7 ? role.slice(0, 6) + '..' : role}
+                              {count} {role}
                             </Badge>
                           ))}
-                          {Object.keys(roleCounts).length > 3 && (
-                            <Badge variant="outline" className="text-xs font-medium px-2 py-0.5">
-                              +{Object.keys(roleCounts).length - 3}
-                            </Badge>
-                          )}
                         </>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-[10px] text-muted-foreground">—</span>
                       )}
                     </div>
                   </div>
