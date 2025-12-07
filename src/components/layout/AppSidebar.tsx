@@ -209,7 +209,7 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
   const isParentActive = (item: any) => {
     if (item.subItems) {
-      return item.subItems.some((sub: any) => currentPath.startsWith(sub.url));
+      return item.subItems.some((sub: any) => currentPath === sub.url || currentPath.startsWith(sub.url + '/'));
     }
     return false;
   };
