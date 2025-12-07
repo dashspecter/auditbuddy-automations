@@ -214,15 +214,16 @@ export function AppSidebar() {
     return false;
   };
 
-  // Initialize expanded groups based on active parent
+  // Initialize expanded groups based on active parent - only expand, never collapse
   useEffect(() => {
-    const activeParents: Record<string, boolean> = {};
     navigationItems.forEach((item) => {
       if (item.subItems && isParentActive(item)) {
-        activeParents[item.title] = true;
+        setExpandedGroups(prev => {
+          if (prev[item.title]) return prev; // Already expanded, skip
+          return { ...prev, [item.title]: true };
+        });
       }
     });
-    setExpandedGroups(prev => ({ ...prev, ...activeParents }));
   }, [currentPath]);
 
   const hasAllowedRole = (allowedRoles?: string[]) => {
