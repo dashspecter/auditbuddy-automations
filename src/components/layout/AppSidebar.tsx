@@ -335,7 +335,7 @@ export function AppSidebar() {
                     to={item.url}
                     end={item.url === "/dashboard"}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground group"
-                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20 [&>div]:bg-white/20 [&>div]:text-white"
                   >
                     <div className="p-1.5 rounded-lg transition-colors duration-200 bg-sidebar-muted group-hover:bg-sidebar-border">
                       <item.icon className="h-4 w-4 flex-shrink-0" />
