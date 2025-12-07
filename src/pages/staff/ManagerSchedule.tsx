@@ -13,7 +13,7 @@ const ManagerSchedule = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | "all">("all");
   const [locations, setLocations] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -49,14 +49,11 @@ const ManagerSchedule = () => {
 
       if (locationsData) {
         setLocations(locationsData);
-        if (!selectedLocation && locationsData.length > 0) {
-          setSelectedLocation(locationsData[0].id);
-        }
       }
 
       // Load shifts for selected week
       const weekEnd = addDays(weekStart, 6);
-      const { data: shiftsData } = await supabase
+      let shiftsQuery = supabase
         .from("shifts")
         .select(`
           *,
@@ -72,24 +69,35 @@ const ManagerSchedule = () => {
           ),
           locations(name)
         `)
-        .eq("location_id", selectedLocation || empData.location_id)
+        .eq("company_id", empData.company_id)
         .gte("shift_date", format(weekStart, "yyyy-MM-dd"))
         .lte("shift_date", format(weekEnd, "yyyy-MM-dd"))
         .order("start_time", { ascending: true });
+      
+      // Filter by location if not "all"
+      if (selectedLocation !== "all") {
+        shiftsQuery = shiftsQuery.eq("location_id", selectedLocation);
+      }
+      
+      const { data: shiftsData } = await shiftsQuery;
 
       if (shiftsData) {
         setShifts(shiftsData);
       }
 
-      // Load location operating schedules
-      const { data: schedulesData } = await supabase
-        .from("location_operating_schedules")
-        .select("*")
-        .eq("location_id", selectedLocation || empData.location_id)
-        .order("day_of_week", { ascending: true });
+      // Load location operating schedules (only if specific location selected)
+      if (selectedLocation !== "all") {
+        const { data: schedulesData } = await supabase
+          .from("location_operating_schedules")
+          .select("*")
+          .eq("location_id", selectedLocation)
+          .order("day_of_week", { ascending: true });
 
-      if (schedulesData) {
-        setSchedules(schedulesData);
+        if (schedulesData) {
+          setSchedules(schedulesData);
+        }
+      } else {
+        setSchedules([]);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -171,6 +179,15 @@ const ManagerSchedule = () => {
 
           {/* Location Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button
+              key="all"
+              variant={selectedLocation === "all" ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setSelectedLocation("all")}
+              className={selectedLocation === "all" ? "" : "bg-white/10 border-white/20 text-primary-foreground hover:bg-white/20"}
+            >
+              All Locations
+            </Button>
             {locations.map((location) => (
               <Button
                 key={location.id}
@@ -247,6 +264,11 @@ const ManagerSchedule = () => {
                             <Badge variant="outline" className="text-xs font-medium">
                               {shift.role}
                             </Badge>
+                            {selectedLocation === "all" && shift.locations?.name && (
+                              <Badge variant="secondary" className="text-xs font-medium">
+                                {shift.locations.name}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
