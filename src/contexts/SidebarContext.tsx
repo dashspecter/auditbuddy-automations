@@ -4,12 +4,15 @@ interface SidebarContextType {
   expandedGroups: Record<string, boolean>;
   toggleGroup: (title: string) => void;
   expandGroup: (title: string) => void;
+  isCollapsed: boolean;
+  toggleCollapsed: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleGroup = useCallback((title: string) => {
     setExpandedGroups(prev => ({
@@ -25,8 +28,12 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
+
   return (
-    <SidebarContext.Provider value={{ expandedGroups, toggleGroup, expandGroup }}>
+    <SidebarContext.Provider value={{ expandedGroups, toggleGroup, expandGroup, isCollapsed, toggleCollapsed }}>
       {children}
     </SidebarContext.Provider>
   );
