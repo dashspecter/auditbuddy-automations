@@ -312,7 +312,7 @@ export function AppSidebar() {
                       <span className="flex-1 text-left">{item.title}</span>
                       <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 animate-accordion-down">
+                    <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 overflow-hidden">
                       {item.subItems.filter((subItem: any) => {
                         if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
                           return false;
@@ -333,6 +333,7 @@ export function AppSidebar() {
                 ) : (
                   <NavLink
                     to={item.url}
+                    end={item.url === "/dashboard"}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground group"
                     activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20"
                   >
