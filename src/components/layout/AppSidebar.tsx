@@ -201,8 +201,7 @@ export function AppSidebar() {
   const { hasModule, canAccessModule } = useCompanyContext();
   const { data: roleData } = useUserRole();
   const { data: company } = useCompany();
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-
+  
   const currentPath = location.pathname;
   const isOwner = company?.userRole === 'company_owner';
 
@@ -214,12 +213,25 @@ export function AppSidebar() {
     return false;
   };
 
-  // Initialize expanded groups based on active parent - only expand, never collapse
+  // Initialize expanded groups with lazy initializer - runs only on first mount
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    navigationItems.forEach((item) => {
+      if (item.subItems && item.subItems.some((sub: any) => 
+        location.pathname === sub.url || location.pathname.startsWith(sub.url + '/')
+      )) {
+        initial[item.title] = true;
+      }
+    });
+    return initial;
+  });
+
+  // Only expand new groups when navigating - never collapse
   useEffect(() => {
     navigationItems.forEach((item) => {
       if (item.subItems && isParentActive(item)) {
         setExpandedGroups(prev => {
-          if (prev[item.title]) return prev; // Already expanded, skip
+          if (prev[item.title]) return prev;
           return { ...prev, [item.title]: true };
         });
       }
