@@ -322,7 +322,8 @@ export function AppSidebar() {
                         <NavLink
                           key={subItem.url}
                           to={subItem.url}
-                          className="flex items-center px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
+                          end
+                          className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                           activeClassName="text-primary font-medium bg-primary/10"
                         >
                           {subItem.title}
