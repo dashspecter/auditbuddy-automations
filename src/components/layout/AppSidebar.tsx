@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, Image, UserCog, Bug, Shield, Calendar,
-  PanelLeftClose, PanelLeft
+  PanelLeftClose, PanelLeft, ChevronRight
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -14,6 +14,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
@@ -352,16 +353,55 @@ export function AppSidebar() {
                         ))}
                       </CollapsibleContent>
                     </Collapsible>
+                  ) : isCollapsed && item.subItems ? (
+                    // Collapsed state with sub-items - show popover
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={`w-full flex items-center justify-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground group ${
+                            isParentActive(item) ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20' : ''
+                          }`}
+                        >
+                          <div className={`p-1.5 rounded-lg transition-colors duration-200 ${
+                            isParentActive(item) ? 'bg-white/20' : 'bg-sidebar-muted group-hover:bg-sidebar-border'
+                          }`}>
+                            <item.icon className="h-4 w-4 flex-shrink-0" />
+                          </div>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="right" align="start" className="w-48 p-2 bg-popover border shadow-lg">
+                        <div className="font-medium text-sm mb-2 px-2 text-foreground">{item.title}</div>
+                        <div className="space-y-0.5">
+                          {item.subItems.filter((subItem: any) => {
+                            if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
+                              return false;
+                            }
+                            return true;
+                          }).map((subItem: any) => (
+                            <NavLink
+                              key={subItem.url}
+                              to={subItem.url}
+                              end
+                              className="block px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              activeClassName="text-primary font-medium bg-primary/10"
+                            >
+                              {subItem.title}
+                            </NavLink>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   ) : (
+                    // Regular item or expanded state without sub-items
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <NavLink
-                          to={item.subItems ? item.subItems[0].url : item.url}
+                          to={item.url}
                           end={item.url === "/dashboard"}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground group ${isCollapsed ? 'justify-center' : ''}`}
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20 [&>div]:bg-white/20 [&>div]:text-white"
                         >
-                          <div className={`p-1.5 rounded-lg transition-colors duration-200 bg-sidebar-muted group-hover:bg-sidebar-border ${isParentActive(item) || isActive(item.url) ? 'bg-white/20' : ''}`}>
+                          <div className={`p-1.5 rounded-lg transition-colors duration-200 bg-sidebar-muted group-hover:bg-sidebar-border ${isActive(item.url) ? 'bg-white/20' : ''}`}>
                             <item.icon className="h-4 w-4 flex-shrink-0" />
                           </div>
                           {!isCollapsed && <span>{item.title}</span>}
