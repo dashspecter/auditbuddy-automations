@@ -48,59 +48,61 @@ const StaffEarnings = () => {
     const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
+    const hourlyRate = emp.hourly_rate || 15;
 
-    // Get shift assignments with attendance logs
+    // Get this week's approved shift assignments
     const { data: weekAssignments } = await supabase
       .from("shift_assignments")
       .select(`
-        *,
-        shifts!inner(
+        shifts:shift_id (
           shift_date,
           start_time,
           end_time
-        ),
-        attendance_logs!left(check_in_at)
+        )
       `)
       .eq("staff_id", emp.id)
-      .gte("shifts.shift_date", format(weekStart, "yyyy-MM-dd"))
-      .lte("shifts.shift_date", format(weekEnd, "yyyy-MM-dd"));
+      .eq("approval_status", "approved");
 
-    const { data: monthAssignments } = await supabase
-      .from("shift_assignments")
-      .select(`
-        *,
-        shifts!inner(
-          shift_date,
-          start_time,
-          end_time
-        ),
-        attendance_logs!left(check_in_at)
-      `)
-      .eq("staff_id", emp.id)
-      .gte("shifts.shift_date", format(monthStart, "yyyy-MM-dd"))
-      .lte("shifts.shift_date", format(monthEnd, "yyyy-MM-dd"));
-
-    const calculateShiftHours = (assignments: any[]) => {
-      return assignments?.reduce((total, assignment) => {
-        // Only count shifts where staff clocked in
-        const hasClockIn = assignment.attendance_logs && 
-                          assignment.attendance_logs.length > 0 && 
-                          assignment.attendance_logs[0].check_in_at;
-        
-        if (hasClockIn && assignment.shifts) {
-          // Calculate hours based on scheduled shift duration
+    // Filter week assignments by date and calculate hours
+    let hoursWeek = 0;
+    weekAssignments?.forEach((assignment: any) => {
+      if (assignment.shifts) {
+        const shiftDate = new Date(assignment.shifts.shift_date);
+        if (shiftDate >= weekStart && shiftDate <= weekEnd) {
           const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
           const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
           const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
-          return total + hours;
+          hoursWeek += hours;
         }
-        return total;
-      }, 0) || 0;
-    };
+      }
+    });
 
-    const hoursWeek = calculateShiftHours(weekAssignments || []);
-    const hoursMonth = calculateShiftHours(monthAssignments || []);
-    const hourlyRate = emp.hourly_rate || 15;
+    // Get this month's approved shift assignments
+    const { data: monthAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        shifts:shift_id (
+          shift_date,
+          start_time,
+          end_time
+        )
+      `)
+      .eq("staff_id", emp.id)
+      .eq("approval_status", "approved");
+
+    // Filter month assignments by date and calculate hours
+    let hoursMonth = 0;
+    monthAssignments?.forEach((assignment: any) => {
+      if (assignment.shifts) {
+        const shiftDate = new Date(assignment.shifts.shift_date);
+        if (shiftDate >= monthStart && shiftDate <= monthEnd) {
+          const [startHour, startMin] = assignment.shifts.start_time.split(':').map(Number);
+          const [endHour, endMin] = assignment.shifts.end_time.split(':').map(Number);
+          const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
+          hoursMonth += hours;
+        }
+      }
+    });
 
     setEarnings({
       thisWeek: hoursWeek * hourlyRate,
