@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ManagerRoute } from "@/components/ManagerRoute";
@@ -128,6 +129,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <CompanyProvider>
+              <SidebarProvider>
               <PWAInstallPrompt />
               <Routes>
               <Route path="/" element={<Index />} />
@@ -248,6 +250,7 @@ const App = () => (
               
               <Route path="*" element={<NotFound />} />
             </Routes>
+              </SidebarProvider>
           </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>
