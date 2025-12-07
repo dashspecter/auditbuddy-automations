@@ -9,6 +9,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isStaff: boolean | null;
+  staffCheckComplete: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -21,6 +23,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isStaff, setIsStaff] = useState<boolean | null>(null);
+  const [staffCheckComplete, setStaffCheckComplete] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,6 +85,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
+  // Check if user is a staff member - runs once when user changes
+  useEffect(() => {
+    const checkStaffStatus = async () => {
+      if (!user) {
+        setIsStaff(null);
+        setStaffCheckComplete(true);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setIsStaff(!!data);
+      } catch (error) {
+        console.error('Error checking staff status:', error);
+        setIsStaff(false);
+      } finally {
+        setStaffCheckComplete(true);
+      }
+    };
+
+    setStaffCheckComplete(false);
+    checkStaffStatus();
+  }, [user]);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -112,6 +145,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (event === 'SIGNED_OUT') {
           queryClient.clear();
+          setIsStaff(null);
+          setStaffCheckComplete(false);
         }
         
         // Clear timer when user logs out
@@ -175,7 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isStaff, staffCheckComplete, signOut }}>
       {children}
     </AuthContext.Provider>
   );
