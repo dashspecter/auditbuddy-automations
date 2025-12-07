@@ -7,10 +7,11 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
@@ -199,6 +200,7 @@ const settingsItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { hasModule, canAccessModule } = useCompanyContext();
+  const { expandedGroups, toggleGroup, expandGroup } = useSidebarContext();
   const { data: roleData } = useUserRole();
   const { data: company } = useCompany();
   
@@ -213,30 +215,14 @@ export function AppSidebar() {
     return false;
   };
 
-  // Initialize expanded groups with lazy initializer - runs only on first mount
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    navigationItems.forEach((item) => {
-      if (item.subItems && item.subItems.some((sub: any) => 
-        location.pathname === sub.url || location.pathname.startsWith(sub.url + '/')
-      )) {
-        initial[item.title] = true;
-      }
-    });
-    return initial;
-  });
-
-  // Only expand new groups when navigating - never collapse
+  // Auto-expand parent groups when navigating to a child route
   useEffect(() => {
     navigationItems.forEach((item) => {
       if (item.subItems && isParentActive(item)) {
-        setExpandedGroups(prev => {
-          if (prev[item.title]) return prev;
-          return { ...prev, [item.title]: true };
-        });
+        expandGroup(item.title);
       }
     });
-  }, [currentPath]);
+  }, [currentPath, expandGroup]);
 
   const hasAllowedRole = (allowedRoles?: string[]) => {
     if (!allowedRoles || allowedRoles.length === 0) return true;
@@ -267,13 +253,6 @@ export function AppSidebar() {
     }
 
     return true;
-  };
-
-  const toggleGroup = (title: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [title]: !prev[title]
-    }));
   };
 
   return (
