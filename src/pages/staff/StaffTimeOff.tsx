@@ -33,6 +33,7 @@ const StaffTimeOff = () => {
   const [balance, setBalance] = useState({ total: 25, used: 0, remaining: 25 });
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rejectionDialog, setRejectionDialog] = useState<{ open: boolean; reason: string | null }>({ open: false, reason: null });
   const [formData, setFormData] = useState({
     start_date: "",
     end_date: "",
@@ -228,9 +229,19 @@ const StaffTimeOff = () => {
                     {format(new Date(request.start_date), "MMM d")} - {format(new Date(request.end_date), "MMM d, yyyy")}
                   </div>
                 </div>
-                <Badge variant={getStatusColor(request.status) as any}>
-                  {request.status}
-                </Badge>
+                {request.status === "rejected" && request.rejection_reason ? (
+                  <Badge 
+                    variant="destructive" 
+                    className="cursor-pointer hover:opacity-80"
+                    onClick={() => setRejectionDialog({ open: true, reason: request.rejection_reason })}
+                  >
+                    {request.status}
+                  </Badge>
+                ) : (
+                  <Badge variant={getStatusColor(request.status) as any}>
+                    {request.status}
+                  </Badge>
+                )}
               </div>
               {request.reason && (
                 <p className="text-sm text-muted-foreground">{request.reason}</p>
@@ -239,6 +250,16 @@ const StaffTimeOff = () => {
           ))}
         </div>
       </div>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={rejectionDialog.open} onOpenChange={(open) => setRejectionDialog({ ...rejectionDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejection Reason</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">{rejectionDialog.reason || "No reason provided."}</p>
+        </DialogContent>
+      </Dialog>
 
       <StaffBottomNav />
     </div>
