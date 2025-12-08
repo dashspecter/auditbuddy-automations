@@ -171,6 +171,15 @@ export function GenerateContractDialog({
         linebreaks: true,
         delimiters: { start: "{{", end: "}}" },
         nullGetter: () => "", // Return empty string for undefined values
+        parser: (tag: string) => {
+          return {
+            get: (scope: any) => {
+              // Try to get the value, return empty string if not found
+              const value = scope[tag];
+              return value !== undefined && value !== null ? value : "";
+            }
+          };
+        },
       });
 
       // Format dates if they're date strings
@@ -239,10 +248,17 @@ export function GenerateContractDialog({
       } catch (renderError: any) {
         console.error("Render error details:", renderError);
         if (renderError.properties && renderError.properties.errors) {
-          const errorMessages = renderError.properties.errors
-            .map((e: any) => `${e.properties?.id || 'Unknown'}: ${e.message}`)
+          const errors = renderError.properties.errors;
+          console.error("Template errors:", errors);
+          const errorMessages = errors
+            .slice(0, 3) // Show first 3 errors
+            .map((e: any) => {
+              const id = e.properties?.id || e.properties?.xtag || 'Unknown placeholder';
+              return `"${id}"`;
+            })
             .join(", ");
-          throw new Error(`Template errors: ${errorMessages}`);
+          const moreCount = errors.length > 3 ? ` (+${errors.length - 3} more)` : "";
+          throw new Error(`Template has invalid placeholders: ${errorMessages}${moreCount}`);
         }
         throw renderError;
       }
