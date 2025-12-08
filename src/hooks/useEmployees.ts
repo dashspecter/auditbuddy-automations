@@ -28,6 +28,14 @@ export interface Employee {
   numar_id: string | null;
   valabilitate_id: string | null;
   cnp: string | null;
+  // Additional contract fields
+  domiciliu: string | null;
+  emisa_de: string | null;
+  valabila_de_la: string | null;
+  ocupatia: string | null;
+  cod_cor: string | null;
+  valoare_tichet: number | null;
+  perioada_proba_end: string | null;
   locations?: {
     name: string;
   };

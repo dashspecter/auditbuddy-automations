@@ -43,6 +43,14 @@ interface Employee {
   numar_id?: string;
   valabilitate_id?: string;
   cnp?: string;
+  // Additional contract fields
+  domiciliu?: string;
+  emisa_de?: string;
+  valabila_de_la?: string;
+  ocupatia?: string;
+  cod_cor?: string;
+  valoare_tichet?: number;
+  perioada_proba_end?: string;
 }
 
 interface ContractTemplate {
@@ -122,7 +130,12 @@ export function GenerateContractDialog({
       // Refetch employee data to ensure we have all fields
       const { data: freshEmployee, error: employeeError } = await supabase
         .from("employees")
-        .select("full_name, localitate, serie_id, numar_id, valabilitate_id, cnp")
+        .select(`
+          full_name, localitate, serie_id, numar_id, valabilitate_id, cnp,
+          domiciliu, emisa_de, valabila_de_la, ocupatia, cod_cor, 
+          valoare_tichet, perioada_proba_end, hire_date,
+          locations(name)
+        `)
         .eq("id", employee.id)
         .single();
 
@@ -146,20 +159,50 @@ export function GenerateContractDialog({
         delimiters: { start: "{{", end: "}}" },
       });
 
-      // Format valabilitate_id if it's a date string
-      const valabilitate = freshEmployee.valabilitate_id 
-        ? (typeof freshEmployee.valabilitate_id === 'string' && freshEmployee.valabilitate_id.includes('-')
-            ? format(new Date(freshEmployee.valabilitate_id), "dd.MM.yyyy")
-            : String(freshEmployee.valabilitate_id))
-        : "";
+      // Format dates if they're date strings
+      const formatDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return "";
+        if (dateStr.includes('-')) {
+          return format(new Date(dateStr), "dd.MM.yyyy");
+        }
+        return String(dateStr);
+      };
 
       const data = {
+        // Employee name variants used in the document
+        "nume angajat": freshEmployee.full_name ?? "",
+        "nume salariat": freshEmployee.full_name ?? "",
         "nume complet": freshEmployee.full_name ?? "",
-        localitate: freshEmployee.localitate ?? "",
+        
+        // Address and location
+        "domiciliu": freshEmployee.domiciliu ?? "",
+        "localitate": freshEmployee.localitate ?? "",
+        "punct de lucru": (freshEmployee.locations as any)?.name ?? "",
+        
+        // ID Document fields
+        "seria ci": freshEmployee.serie_id ?? "",
+        "nr ci": freshEmployee.numar_id ?? "",
+        "emisa de": freshEmployee.emisa_de ?? "",
+        "valabila de la": formatDate(freshEmployee.valabila_de_la),
+        "pana la": formatDate(freshEmployee.valabilitate_id),
+        "CNP": freshEmployee.cnp ?? "",
+        "cnp": freshEmployee.cnp ?? "",
+        
+        // Job details
+        "ocupatia": freshEmployee.ocupatia ?? "",
+        "cod cor": freshEmployee.cod_cor ?? "",
+        
+        // Dates
+        "data incepere activitate": formatDate(freshEmployee.hire_date),
+        "perioada de proba": formatDate(freshEmployee.perioada_proba_end),
+        
+        // Salary details
+        "valoare tichet": freshEmployee.valoare_tichet?.toString() ?? "",
+        
+        // Legacy field names for compatibility
         "serie id": freshEmployee.serie_id ?? "",
         "numar id": freshEmployee.numar_id ?? "",
-        "valabilitate id": valabilitate,
-        cnp: freshEmployee.cnp ?? "",
+        "valabilitate id": formatDate(freshEmployee.valabilitate_id),
       };
 
       console.log("Template data being used:", data);
@@ -245,14 +288,20 @@ export function GenerateContractDialog({
               </div>
 
               <div className="p-3 bg-muted rounded-lg text-sm">
-                <p className="font-medium mb-1">Employee Info Preview:</p>
-                <div className="text-muted-foreground text-xs space-y-0.5">
-                  <p>Nume Complet: {employee.full_name}</p>
-                  <p>Localitate: {employee.localitate || "N/A"}</p>
-                  <p>Serie ID: {employee.serie_id || "N/A"}</p>
-                  <p>Numar ID: {employee.numar_id || "N/A"}</p>
-                  <p>Valabilitate ID: {employee.valabilitate_id || "N/A"}</p>
-                  <p>CNP: {employee.cnp || "N/A"}</p>
+                <p className="font-medium mb-2">Date Angajat:</p>
+                <div className="text-muted-foreground text-xs grid grid-cols-2 gap-x-4 gap-y-1">
+                  <p><span className="font-medium">Nume:</span> {employee.full_name}</p>
+                  <p><span className="font-medium">CNP:</span> {employee.cnp || "N/A"}</p>
+                  <p><span className="font-medium">Domiciliu:</span> {employee.domiciliu || "N/A"}</p>
+                  <p><span className="font-medium">Localitate:</span> {employee.localitate || "N/A"}</p>
+                  <p><span className="font-medium">Serie CI:</span> {employee.serie_id || "N/A"}</p>
+                  <p><span className="font-medium">Număr CI:</span> {employee.numar_id || "N/A"}</p>
+                  <p><span className="font-medium">Emisă de:</span> {employee.emisa_de || "N/A"}</p>
+                  <p><span className="font-medium">Valabilă de la:</span> {employee.valabila_de_la || "N/A"}</p>
+                  <p><span className="font-medium">Până la:</span> {employee.valabilitate_id || "N/A"}</p>
+                  <p><span className="font-medium">Ocupația:</span> {employee.ocupatia || "N/A"}</p>
+                  <p><span className="font-medium">Cod COR:</span> {employee.cod_cor || "N/A"}</p>
+                  <p><span className="font-medium">Valoare tichet:</span> {employee.valoare_tichet || "N/A"}</p>
                 </div>
               </div>
 
