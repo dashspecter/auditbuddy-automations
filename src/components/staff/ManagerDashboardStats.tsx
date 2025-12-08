@@ -119,7 +119,7 @@ export const ManagerDashboardStats = () => {
         </Card>
         <Card 
           className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/tasks")}
+          onClick={() => navigate("/staff/tasks")}
         >
           <ListTodo className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{taskStats?.pending || 0}</div>
