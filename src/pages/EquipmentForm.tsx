@@ -54,9 +54,24 @@ export default function EquipmentForm() {
   const deleteDocument = useDeleteEquipmentDocument();
   const createIntervention = useCreateEquipmentIntervention();
 
+  const DRAFT_KEY = "equipment_form_draft";
+
+  // Load saved draft for new equipment
+  const getSavedDraft = () => {
+    if (isEditing) return null;
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const savedDraft = getSavedDraft();
+
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentSchema),
-    defaultValues: {
+    defaultValues: savedDraft || {
       location_id: "",
       name: "",
       model_type: "",
@@ -69,6 +84,22 @@ export default function EquipmentForm() {
       status: "active",
     },
   });
+
+  // Auto-save draft to localStorage (only for new equipment)
+  useEffect(() => {
+    if (isEditing) return;
+    
+    const subscription = form.watch((values) => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form, isEditing]);
+
+  // Clear draft on successful submit
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+  };
 
   useEffect(() => {
     if (equipment) {
@@ -145,6 +176,7 @@ export default function EquipmentForm() {
         });
       }
 
+      clearDraft();
       navigate("/equipment");
     } catch (error) {
       console.error("Error saving equipment:", error);
