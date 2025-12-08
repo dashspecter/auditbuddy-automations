@@ -154,11 +154,11 @@ export function GenerateContractDialog({
         : "";
 
       const data = {
-        nume_complet: freshEmployee.full_name ?? "",
+        "nume complet": freshEmployee.full_name ?? "",
         localitate: freshEmployee.localitate ?? "",
-        serie_id: freshEmployee.serie_id ?? "",
-        numar_id: freshEmployee.numar_id ?? "",
-        valabilitate_id: valabilitate,
+        "serie id": freshEmployee.serie_id ?? "",
+        "numar id": freshEmployee.numar_id ?? "",
+        "valabilitate id": valabilitate,
         cnp: freshEmployee.cnp ?? "",
       };
 
