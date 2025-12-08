@@ -339,25 +339,14 @@ export const EmployeeDialog = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="localitate">Localitate</Label>
-                <Input
-                  id="localitate"
-                  value={formData.localitate}
-                  onChange={(e) => setFormData({ ...formData, localitate: e.target.value })}
-                  placeholder="e.g., București"
-                />
-              </div>
-              <div>
-                <Label htmlFor="emisa_de">Emisă de</Label>
-                <Input
-                  id="emisa_de"
-                  value={formData.emisa_de}
-                  onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })}
-                  placeholder="e.g., SPCEP Sector 1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="emisa_de">Emisă de</Label>
+              <Input
+                id="emisa_de"
+                value={formData.emisa_de}
+                onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })}
+                placeholder="e.g., SPCEP Sector 1"
+              />
             </div>
 
             {/* ID Card Details */}
