@@ -22,6 +22,12 @@ export interface Employee {
   created_at: string;
   updated_at: string;
   created_by: string;
+  // ID Document fields
+  localitate: string | null;
+  serie_id: string | null;
+  numar_id: string | null;
+  valabilitate_id: string | null;
+  cnp: string | null;
   locations?: {
     name: string;
   };
