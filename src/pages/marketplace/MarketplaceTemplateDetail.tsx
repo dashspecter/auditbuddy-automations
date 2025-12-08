@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import TemplateContentPreview from "@/components/marketplace/TemplateContentPreview";
 
 const templateTypeIcons = {
   audit: BookOpen,
@@ -277,11 +278,10 @@ export default function MarketplaceTemplateDetail() {
                   <CardTitle>Template Preview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="bg-muted/50 rounded-lg p-4 max-h-96 overflow-auto">
-                    <pre className="text-sm whitespace-pre-wrap">
-                      {JSON.stringify(template.content, null, 2)}
-                    </pre>
-                  </div>
+                  <TemplateContentPreview 
+                    content={template.content as { sections?: Array<{ name: string; description?: string; fields: Array<{ name: string; type: string; options?: string[]; required?: boolean }> }> }}
+                    templateType={template.template_type}
+                  />
                 </CardContent>
               </Card>
             )}
