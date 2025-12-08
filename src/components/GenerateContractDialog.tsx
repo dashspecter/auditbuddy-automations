@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { saveAs } from "file-saver";
+import expressions from "angular-expressions";
 
 interface Employee {
   id: string;
@@ -165,21 +166,41 @@ export function GenerateContractDialog({
       const arrayBuffer = await response.arrayBuffer();
       const zip = new PizZip(arrayBuffer);
       
+      // Create angular-expressions parser that handles missing values gracefully
+      const angularParser = (tag: string) => {
+        // Check if tag is empty or only whitespace
+        if (!tag || tag.trim() === '') {
+          return {
+            get: () => ""
+          };
+        }
+        
+        try {
+          const expr = expressions.compile(tag.replace(/'/g, "'"));
+          return {
+            get: (scope: any) => {
+              try {
+                const result = expr(scope);
+                return result !== undefined && result !== null ? result : "";
+              } catch {
+                return "";
+              }
+            }
+          };
+        } catch {
+          // If expression compilation fails, return empty string
+          return {
+            get: () => ""
+          };
+        }
+      };
+
       // Configure docxtemplater with error handling for missing placeholders
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
         delimiters: { start: "{{", end: "}}" },
-        nullGetter: () => "", // Return empty string for undefined values
-        parser: (tag: string) => {
-          return {
-            get: (scope: any) => {
-              // Try to get the value, return empty string if not found
-              const value = scope[tag];
-              return value !== undefined && value !== null ? value : "";
-            }
-          };
-        },
+        parser: angularParser,
       });
 
       // Format dates if they're date strings
