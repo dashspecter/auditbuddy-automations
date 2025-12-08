@@ -118,9 +118,9 @@ export function ContractTemplateDialog({
               <div className="text-sm">
                 <p className="font-medium mb-1">Available Placeholders:</p>
                 <div className="grid grid-cols-2 gap-1 text-muted-foreground text-xs">
-                  <span>{"{{full_name}}"}</span>
-                  <span>{"{{location}}"}</span>
-                  <span>{"{{seria}}"}</span>
+                  <span>{"{{nume_complet}}"}</span>
+                  <span>{"{{localitate}}"}</span>
+                  <span>{"{{serie_id}}"}</span>
                   <span>{"{{numar_id}}"}</span>
                   <span>{"{{valabilitate_id}}"}</span>
                   <span>{"{{cnp}}"}</span>

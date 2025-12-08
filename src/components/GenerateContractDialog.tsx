@@ -63,7 +63,7 @@ export function GenerateContractDialog({
   const [loading, setLoading] = useState(true);
 
   // Extra contract fields for ID document
-  const [seria, setSeria] = useState("");
+  const [serieId, setSerieId] = useState("");
   const [numarId, setNumarId] = useState("");
   const [valabilitateId, setValabilitateId] = useState("");
   const [cnp, setCnp] = useState("");
@@ -131,9 +131,9 @@ export function GenerateContractDialog({
 
       // Prepare data for placeholders
       const data = {
-        full_name: employee.full_name || "",
-        location: employee.locations?.name || "",
-        seria: seria || "",
+        nume_complet: employee.full_name || "",
+        localitate: employee.locations?.name || "",
+        serie_id: serieId || "",
         numar_id: numarId || "",
         valabilitate_id: valabilitateId || "",
         cnp: cnp || "",
@@ -213,11 +213,11 @@ export function GenerateContractDialog({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="seria">Seria</Label>
+                    <Label htmlFor="serieId">Serie ID</Label>
                     <Input
-                      id="seria"
-                      value={seria}
-                      onChange={(e) => setSeria(e.target.value)}
+                      id="serieId"
+                      value={serieId}
+                      onChange={(e) => setSerieId(e.target.value)}
                       placeholder="e.g., XY"
                     />
                   </div>
