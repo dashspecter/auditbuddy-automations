@@ -119,6 +119,19 @@ export function GenerateContractDialog({
 
     setGenerating(true);
     try {
+      // Refetch employee data to ensure we have all fields
+      const { data: freshEmployee, error: employeeError } = await supabase
+        .from("employees")
+        .select("full_name, localitate, serie_id, numar_id, valabilitate_id, cnp")
+        .eq("id", employee.id)
+        .single();
+
+      if (employeeError || !freshEmployee) {
+        throw new Error("Failed to fetch employee data");
+      }
+
+      console.log("Fresh employee data from DB:", freshEmployee);
+
       // Fetch the template file
       const response = await fetch(selectedTemplate.file_url);
       if (!response.ok) throw new Error("Failed to fetch template");
@@ -133,24 +146,20 @@ export function GenerateContractDialog({
         delimiters: { start: "{{", end: "}}" },
       });
 
-      // Log raw employee data for debugging
-      console.log("Raw employee data:", JSON.stringify(employee, null, 2));
-
-      // Prepare data for placeholders using employee's stored data
-      // Handle both string and date formats for valabilitate_id
-      const valabilitate = employee.valabilitate_id 
-        ? (typeof employee.valabilitate_id === 'string' && employee.valabilitate_id.includes('-')
-            ? format(new Date(employee.valabilitate_id), "dd.MM.yyyy")
-            : String(employee.valabilitate_id))
+      // Format valabilitate_id if it's a date string
+      const valabilitate = freshEmployee.valabilitate_id 
+        ? (typeof freshEmployee.valabilitate_id === 'string' && freshEmployee.valabilitate_id.includes('-')
+            ? format(new Date(freshEmployee.valabilitate_id), "dd.MM.yyyy")
+            : String(freshEmployee.valabilitate_id))
         : "";
 
       const data = {
-        nume_complet: employee.full_name ?? "",
-        localitate: employee.localitate ?? "",
-        serie_id: employee.serie_id ?? "",
-        numar_id: employee.numar_id ?? "",
+        nume_complet: freshEmployee.full_name ?? "",
+        localitate: freshEmployee.localitate ?? "",
+        serie_id: freshEmployee.serie_id ?? "",
+        numar_id: freshEmployee.numar_id ?? "",
         valabilitate_id: valabilitate,
-        cnp: employee.cnp ?? "",
+        cnp: freshEmployee.cnp ?? "",
       };
 
       console.log("Template data being used:", data);
@@ -176,8 +185,8 @@ export function GenerateContractDialog({
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      // Save as DOCX (for now, PDF conversion requires server-side processing)
-      const fileName = `Contract_${employee.full_name.replace(/\s+/g, "_")}_${format(new Date(), "yyyy-MM-dd")}.docx`;
+      // Save as DOCX
+      const fileName = `Contract_${freshEmployee.full_name?.replace(/\s+/g, "_") || "Employee"}_${format(new Date(), "yyyy-MM-dd")}.docx`;
       saveAs(out, fileName);
 
       toast.success("Contract generated and downloaded!");
