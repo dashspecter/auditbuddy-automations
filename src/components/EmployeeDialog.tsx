@@ -55,6 +55,12 @@ export const EmployeeDialog = ({
     emergency_contact_name: "",
     emergency_contact_phone: "",
     notes: "",
+    // ID Document fields
+    localitate: "",
+    serie_id: "",
+    numar_id: "",
+    valabilitate_id: "",
+    cnp: "",
   });
   const [additionalLocations, setAdditionalLocations] = useState<string[]>([]);
   const [selectedLocationToAdd, setSelectedLocationToAdd] = useState("");
@@ -90,6 +96,12 @@ export const EmployeeDialog = ({
         emergency_contact_name: employee.emergency_contact_name || "",
         emergency_contact_phone: employee.emergency_contact_phone || "",
         notes: employee.notes || "",
+        // ID Document fields
+        localitate: employee.localitate || "",
+        serie_id: employee.serie_id || "",
+        numar_id: employee.numar_id || "",
+        valabilitate_id: employee.valabilitate_id || "",
+        cnp: employee.cnp || "",
       });
     } else {
       setFormData({
@@ -109,6 +121,12 @@ export const EmployeeDialog = ({
         emergency_contact_name: "",
         emergency_contact_phone: "",
         notes: "",
+        // ID Document fields
+        localitate: "",
+        serie_id: "",
+        numar_id: "",
+        valabilitate_id: "",
+        cnp: "",
       });
       setAdditionalLocations([]);
     }
@@ -164,6 +182,12 @@ export const EmployeeDialog = ({
       notes: formData.notes || null,
       avatar_url: null,
       user_id: employee?.user_id || null,
+      // ID Document fields
+      localitate: formData.localitate || null,
+      serie_id: formData.serie_id || null,
+      numar_id: formData.numar_id || null,
+      valabilitate_id: formData.valabilitate_id || null,
+      cnp: formData.cnp || null,
     };
     
     let employeeId: string;
@@ -398,6 +422,65 @@ export const EmployeeDialog = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional information"
             />
+          </div>
+
+          {/* ID Document Section */}
+          <div className="border-t pt-4 space-y-4">
+            <Label className="text-sm font-medium">ID Document Details</Label>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="localitate">Localitate</Label>
+                <Input
+                  id="localitate"
+                  value={formData.localitate}
+                  onChange={(e) => setFormData({ ...formData, localitate: e.target.value })}
+                  placeholder="e.g., București"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cnp">CNP</Label>
+                <Input
+                  id="cnp"
+                  value={formData.cnp}
+                  onChange={(e) => setFormData({ ...formData, cnp: e.target.value })}
+                  placeholder="e.g., 1234567890123"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="serie_id">Serie ID</Label>
+                <Input
+                  id="serie_id"
+                  value={formData.serie_id}
+                  onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
+                  placeholder="e.g., XY"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="numar_id">Numar ID</Label>
+                <Input
+                  id="numar_id"
+                  value={formData.numar_id}
+                  onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
+                  placeholder="e.g., 123456"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="valabilitate_id">Valabilitate ID</Label>
+                <Input
+                  id="valabilitate_id"
+                  type="date"
+                  value={formData.valabilitate_id}
+                  onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">

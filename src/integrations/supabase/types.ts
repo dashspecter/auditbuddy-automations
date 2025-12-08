@@ -1177,6 +1177,7 @@ export type Database = {
           annual_vacation_days: number | null
           avatar_url: string | null
           base_salary: number | null
+          cnp: string | null
           company_id: string
           contract_type: string | null
           created_at: string
@@ -1190,20 +1191,25 @@ export type Database = {
           hire_date: string | null
           hourly_rate: number | null
           id: string
+          localitate: string | null
           location_id: string
           notes: string | null
+          numar_id: string | null
           overtime_rate: number | null
           phone: string | null
           role: string
+          serie_id: string | null
           status: string
           updated_at: string
           user_id: string | null
           vacation_year_start_month: number | null
+          valabilitate_id: string | null
         }
         Insert: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
+          cnp?: string | null
           company_id: string
           contract_type?: string | null
           created_at?: string
@@ -1217,20 +1223,25 @@ export type Database = {
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
+          localitate?: string | null
           location_id: string
           notes?: string | null
+          numar_id?: string | null
           overtime_rate?: number | null
           phone?: string | null
           role: string
+          serie_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
           vacation_year_start_month?: number | null
+          valabilitate_id?: string | null
         }
         Update: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
+          cnp?: string | null
           company_id?: string
           contract_type?: string | null
           created_at?: string
@@ -1244,15 +1255,19 @@ export type Database = {
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
+          localitate?: string | null
           location_id?: string
           notes?: string | null
+          numar_id?: string | null
           overtime_rate?: number | null
           phone?: string | null
           role?: string
+          serie_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
           vacation_year_start_month?: number | null
+          valabilitate_id?: string | null
         }
         Relationships: [
           {
