@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound, FileText, Upload } from "lucide-react";
 import { useEmployees, useDeleteEmployee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
@@ -19,6 +19,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
+import { ContractTemplateDialog } from "@/components/ContractTemplateDialog";
+import { GenerateContractDialog } from "@/components/GenerateContractDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +41,9 @@ export default function EmployeeManagement() {
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [employeeForContract, setEmployeeForContract] = useState<any>(null);
   const [employeeToResetPassword, setEmployeeToResetPassword] = useState<any>(null);
 
   const { data: employees, isLoading } = useEmployees(
@@ -82,6 +87,11 @@ export default function EmployeeManagement() {
     setResetPasswordDialogOpen(true);
   };
 
+  const handleGenerateContract = (employee: any) => {
+    setEmployeeForContract(employee);
+    setContractDialogOpen(true);
+  };
+
   const handleCreateAccount = async (employee: any) => {
     if (!employee.email) {
       toast.error("Employee must have an email address");
@@ -122,13 +132,19 @@ export default function EmployeeManagement() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
             <p className="text-muted-foreground mt-2">
-              Manage your team members, reset passwords, and view performance
+              Manage your team members, reset passwords, and generate contracts
             </p>
           </div>
-          <Button onClick={handleAddNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Employee
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Template
+            </Button>
+            <Button onClick={handleAddNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Employee
+            </Button>
+          </div>
         </div>
 
         <Card className="p-6">
@@ -198,6 +214,14 @@ export default function EmployeeManagement() {
                             Create Account
                           </Button>
                         ) : null}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleGenerateContract(employee)}
+                          title="Generate Contract"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -302,6 +326,18 @@ export default function EmployeeManagement() {
           open={resetPasswordDialogOpen}
           onOpenChange={setResetPasswordDialogOpen}
           employee={employeeToResetPassword}
+        />
+
+        <ContractTemplateDialog
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
+          onTemplateUploaded={() => {}}
+        />
+
+        <GenerateContractDialog
+          open={contractDialogOpen}
+          onOpenChange={setContractDialogOpen}
+          employee={employeeForContract}
         />
       </div>
   );
