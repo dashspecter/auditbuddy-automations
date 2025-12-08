@@ -65,12 +65,12 @@ export const ManagerDashboardStats = () => {
         .eq("location_id", empData.location_id)
         .eq("status", "active");
 
-      // Get upcoming shifts count
+      // Get upcoming shifts count for ALL company locations
       const today = new Date().toISOString().split('T')[0];
       const { count: upcomingShifts } = await supabase
         .from("shifts")
         .select("*", { count: 'exact', head: true })
-        .eq("location_id", empData.location_id)
+        .eq("company_id", empData.company_id)
         .gte("shift_date", today);
 
       return {
