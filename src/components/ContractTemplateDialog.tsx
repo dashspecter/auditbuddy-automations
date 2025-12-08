@@ -119,19 +119,11 @@ export function ContractTemplateDialog({
                 <p className="font-medium mb-1">Available Placeholders:</p>
                 <div className="grid grid-cols-2 gap-1 text-muted-foreground text-xs">
                   <span>{"{{full_name}}"}</span>
-                  <span>{"{{email}}"}</span>
-                  <span>{"{{phone}}"}</span>
-                  <span>{"{{role}}"}</span>
                   <span>{"{{location}}"}</span>
-                  <span>{"{{hire_date}}"}</span>
-                  <span>{"{{contract_type}}"}</span>
-                  <span>{"{{base_salary}}"}</span>
-                  <span>{"{{hourly_rate}}"}</span>
-                  <span>{"{{start_date}}"}</span>
-                  <span>{"{{working_days}}"}</span>
-                  <span>{"{{working_hours}}"}</span>
-                  <span>{"{{current_date}}"}</span>
-                  <span>{"{{vacation_days}}"}</span>
+                  <span>{"{{seria}}"}</span>
+                  <span>{"{{numar_id}}"}</span>
+                  <span>{"{{valabilitate_id}}"}</span>
+                  <span>{"{{cnp}}"}</span>
                 </div>
               </div>
             </div>

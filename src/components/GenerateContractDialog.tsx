@@ -62,10 +62,11 @@ export function GenerateContractDialog({
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Extra contract fields
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [workingDays, setWorkingDays] = useState("Monday - Friday");
-  const [workingHours, setWorkingHours] = useState("9:00 AM - 5:00 PM");
+  // Extra contract fields for ID document
+  const [seria, setSeria] = useState("");
+  const [numarId, setNumarId] = useState("");
+  const [valabilitateId, setValabilitateId] = useState("");
+  const [cnp, setCnp] = useState("");
 
   useEffect(() => {
     if (open && user) {
@@ -131,25 +132,11 @@ export function GenerateContractDialog({
       // Prepare data for placeholders
       const data = {
         full_name: employee.full_name || "",
-        email: employee.email || "",
-        phone: employee.phone || "",
-        role: employee.role || "",
         location: employee.locations?.name || "",
-        hire_date: employee.hire_date
-          ? format(new Date(employee.hire_date), "MMMM dd, yyyy")
-          : "",
-        contract_type: employee.contract_type || "Full-time",
-        base_salary: employee.base_salary
-          ? `$${employee.base_salary.toLocaleString()}`
-          : "",
-        hourly_rate: employee.hourly_rate
-          ? `$${employee.hourly_rate.toFixed(2)}/hour`
-          : "",
-        vacation_days: employee.annual_vacation_days?.toString() || "25",
-        start_date: format(new Date(startDate), "MMMM dd, yyyy"),
-        working_days: workingDays,
-        working_hours: workingHours,
-        current_date: format(new Date(), "MMMM dd, yyyy"),
+        seria: seria || "",
+        numar_id: numarId || "",
+        valabilitate_id: valabilitateId || "",
+        cnp: cnp || "",
       };
 
       // Render the document
@@ -222,35 +209,47 @@ export function GenerateContractDialog({
               </div>
 
               <div className="border-t pt-4 space-y-4">
-                <h4 className="font-medium text-sm">Contract Details</h4>
+                <h4 className="font-medium text-sm">ID Document Details</h4>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="seria">Seria</Label>
+                    <Input
+                      id="seria"
+                      value={seria}
+                      onChange={(e) => setSeria(e.target.value)}
+                      placeholder="e.g., XY"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="numarId">Numar ID</Label>
+                    <Input
+                      id="numarId"
+                      value={numarId}
+                      onChange={(e) => setNumarId(e.target.value)}
+                      placeholder="e.g., 123456"
+                    />
+                  </div>
+                </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label htmlFor="valabilitateId">Valabilitate ID</Label>
                   <Input
-                    id="startDate"
+                    id="valabilitateId"
                     type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    value={valabilitateId}
+                    onChange={(e) => setValabilitateId(e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="workingDays">Working Days</Label>
+                  <Label htmlFor="cnp">CNP</Label>
                   <Input
-                    id="workingDays"
-                    value={workingDays}
-                    onChange={(e) => setWorkingDays(e.target.value)}
-                    placeholder="e.g., Monday - Friday"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="workingHours">Working Hours</Label>
-                  <Input
-                    id="workingHours"
-                    value={workingHours}
-                    onChange={(e) => setWorkingHours(e.target.value)}
-                    placeholder="e.g., 9:00 AM - 5:00 PM"
+                    id="cnp"
+                    value={cnp}
+                    onChange={(e) => setCnp(e.target.value)}
+                    placeholder="e.g., 1234567890123"
                   />
                 </div>
               </div>
