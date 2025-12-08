@@ -108,6 +108,11 @@ import SystemHealth from "./pages/SystemHealth";
 import SystemHealthData from "./pages/debug/SystemHealthData";
 import AttendanceKiosk from "./pages/AttendanceKiosk";
 import StaffScanAttendance from "./pages/staff/StaffScanAttendance";
+import MarketplaceBrowse from "./pages/marketplace/MarketplaceBrowse";
+import MarketplaceTemplateDetail from "./pages/marketplace/MarketplaceTemplateDetail";
+import MarketplacePublish from "./pages/marketplace/MarketplacePublish";
+import MyMarketplaceTemplates from "./pages/marketplace/MyMarketplaceTemplates";
+import MarketplaceShare from "./pages/marketplace/MarketplaceShare";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -238,6 +243,13 @@ const App = () => (
               {/* Integrations Routes */}
               <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
               <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
+              
+              {/* Marketplace Routes - Public */}
+              <Route path="/marketplace" element={<MarketplaceBrowse />} />
+              <Route path="/marketplace/template/:slug" element={<MarketplaceTemplateDetail />} />
+              <Route path="/marketplace/share/:token" element={<MarketplaceShare />} />
+              <Route path="/marketplace/publish" element={<ProtectedRoute><MarketplacePublish /></ProtectedRoute>} />
+              <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               

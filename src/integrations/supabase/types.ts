@@ -2433,6 +2433,223 @@ export type Database = {
           },
         ]
       }
+      marketplace_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_downloads: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          installed_template_id: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          installed_template_id?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          installed_template_id?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_downloads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_downloads_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          rating: number
+          review: string | null
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rating: number
+          review?: string | null
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rating?: number
+          review?: string | null
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_ratings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_templates: {
+        Row: {
+          author_company_name: string | null
+          author_id: string
+          author_name: string
+          average_rating: number | null
+          category_id: string | null
+          content: Json
+          created_at: string
+          description: string | null
+          download_count: number
+          id: string
+          industry_id: string | null
+          is_ai_generated: boolean
+          is_featured: boolean
+          is_published: boolean
+          preview_image_url: string | null
+          published_at: string | null
+          rating_count: number
+          rating_sum: number
+          share_token: string
+          slug: string
+          template_type: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          author_company_name?: string | null
+          author_id: string
+          author_name: string
+          average_rating?: number | null
+          category_id?: string | null
+          content?: Json
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          id?: string
+          industry_id?: string | null
+          is_ai_generated?: boolean
+          is_featured?: boolean
+          is_published?: boolean
+          preview_image_url?: string | null
+          published_at?: string | null
+          rating_count?: number
+          rating_sum?: number
+          share_token?: string
+          slug: string
+          template_type: string
+          title: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          author_company_name?: string | null
+          author_id?: string
+          author_name?: string
+          average_rating?: number | null
+          category_id?: string | null
+          content?: Json
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          id?: string
+          industry_id?: string | null
+          is_ai_generated?: boolean
+          is_featured?: boolean
+          is_published?: boolean
+          preview_image_url?: string | null
+          published_at?: string | null
+          rating_count?: number
+          rating_sum?: number
+          share_token?: string
+          slug?: string
+          template_type?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_templates_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_industries: {
         Row: {
           created_at: string
