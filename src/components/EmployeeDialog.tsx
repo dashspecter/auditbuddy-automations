@@ -281,6 +281,61 @@ export const EmployeeDialog = ({
             />
           </div>
 
+          {/* ID Document Section - moved after Full Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="localitate">Localitate</Label>
+              <Input
+                id="localitate"
+                value={formData.localitate}
+                onChange={(e) => setFormData({ ...formData, localitate: e.target.value })}
+                placeholder="e.g., București"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="cnp">CNP</Label>
+              <Input
+                id="cnp"
+                value={formData.cnp}
+                onChange={(e) => setFormData({ ...formData, cnp: e.target.value })}
+                placeholder="e.g., 1234567890123"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="serie_id">Serie ID</Label>
+              <Input
+                id="serie_id"
+                value={formData.serie_id}
+                onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
+                placeholder="e.g., XY"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="numar_id">Numar ID</Label>
+              <Input
+                id="numar_id"
+                value={formData.numar_id}
+                onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
+                placeholder="e.g., 123456"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="valabilitate_id">Valabilitate ID</Label>
+              <Input
+                id="valabilitate_id"
+                type="date"
+                value={formData.valabilitate_id}
+                onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
@@ -422,65 +477,6 @@ export const EmployeeDialog = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional information"
             />
-          </div>
-
-          {/* ID Document Section */}
-          <div className="border-t pt-4 space-y-4">
-            <Label className="text-sm font-medium">ID Document Details</Label>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="localitate">Localitate</Label>
-                <Input
-                  id="localitate"
-                  value={formData.localitate}
-                  onChange={(e) => setFormData({ ...formData, localitate: e.target.value })}
-                  placeholder="e.g., București"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="cnp">CNP</Label>
-                <Input
-                  id="cnp"
-                  value={formData.cnp}
-                  onChange={(e) => setFormData({ ...formData, cnp: e.target.value })}
-                  placeholder="e.g., 1234567890123"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="serie_id">Serie ID</Label>
-                <Input
-                  id="serie_id"
-                  value={formData.serie_id}
-                  onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
-                  placeholder="e.g., XY"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="numar_id">Numar ID</Label>
-                <Input
-                  id="numar_id"
-                  value={formData.numar_id}
-                  onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
-                  placeholder="e.g., 123456"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="valabilitate_id">Valabilitate ID</Label>
-                <Input
-                  id="valabilitate_id"
-                  type="date"
-                  value={formData.valabilitate_id}
-                  onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
-                />
-              </div>
-            </div>
           </div>
 
           <div className="space-y-3">
