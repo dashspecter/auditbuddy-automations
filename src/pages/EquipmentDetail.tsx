@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit, Calendar, FileText, Wrench, QrCode, Download, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, Edit, FileText, Wrench, QrCode, Download, ClipboardCheck, ExternalLink, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +43,6 @@ export default function EquipmentDetail() {
   const { data: statusHistory } = useEquipmentStatusHistory(id);
   
   // For QR codes to work, they must use the published app URL
-  // When viewing in editor, use window.location.origin which will be correct when scanned from published app
   const equipmentUrl = `${window.location.origin}/equipment/${id}`;
 
   const downloadQRCode = () => {
@@ -72,91 +71,102 @@ export default function EquipmentDetail() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-48 mb-6" />
-        <div className="grid gap-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="min-h-screen bg-background p-4 space-y-4">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center space-y-4">
-        <p className="text-lg font-medium">Unable to load equipment</p>
-        <p className="text-muted-foreground">{error.message || "Equipment not found"}</p>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-lg font-medium">Unable to load equipment</p>
+          <p className="text-muted-foreground">{error.message || "Equipment not found"}</p>
+        </div>
       </div>
     );
   }
 
   if (!equipment) {
     return (
-      <p className="text-center text-muted-foreground">Equipment not found</p>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <p className="text-center text-muted-foreground">Equipment not found</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-background">
+      {/* Company Branding Header */}
+      <div className="bg-card border-b border-border sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {equipment.companies?.logo_url ? (
+              <img 
+                src={equipment.companies.logo_url} 
+                alt={equipment.companies.name || "Company"} 
+                className="h-10 w-10 object-contain rounded"
+              />
+            ) : (
+              <div className="h-10 w-10 bg-primary/10 rounded flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+            )}
+            <span className="font-semibold text-foreground">
+              {equipment.companies?.name || "Equipment Profile"}
+            </span>
+          </div>
+          {!user && (
+            <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+              Sign in
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+        {/* Public notice for unauthenticated users */}
         {!user && (
-          <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
+          <div className="bg-muted/50 border border-border rounded-lg p-3 text-center">
             <p className="text-sm text-muted-foreground">
-              You're viewing public equipment details.{" "}
-              <Button variant="link" className="h-auto p-0 text-sm" onClick={() => navigate("/auth")}>
-                Sign in
-              </Button>
-              {" "}to access full features and intervention history.
+              You're viewing public equipment details. Sign in to access full features.
             </p>
           </div>
         )}
         
-        <div className="flex items-center justify-between">
-          {isManager ? (
-            <Button variant="ghost" onClick={() => navigate("/equipment")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Equipment List
-            </Button>
-          ) : (
-            <div />
+        {/* Action buttons - mobile optimized */}
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={() => setShowQRDialog(true)}>
+            <QrCode className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">QR Code</span>
+          </Button>
+          {isManager && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowCheckDialog(true)}>
+                <ClipboardCheck className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Log Check</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowMaintenanceDialog(true)}>
+                <Wrench className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Maintenance</span>
+              </Button>
+              <Button size="sm" onClick={() => navigate(`/equipment/${id}/edit`)}>
+                <Edit className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
+            </>
           )}
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowQRDialog(true)}>
-              <QrCode className="mr-2 h-4 w-4" />
-              QR Code
-            </Button>
-            {isManager && (
-              <>
-                <Button variant="outline" onClick={() => setShowCheckDialog(true)}>
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  Log Check
-                </Button>
-                <Button variant="outline" onClick={() => setShowMaintenanceDialog(true)}>
-                  <Wrench className="mr-2 h-4 w-4" />
-                  Log Maintenance
-                </Button>
-                <Button onClick={() => navigate(`/equipment/${id}/edit`)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-              </>
-            )}
-          </div>
         </div>
 
-        <div>
-          <h1 className="text-3xl font-bold">{equipment.name}</h1>
-          <p className="text-muted-foreground">
+        {/* Equipment Title */}
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">{equipment.name}</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             {equipment.locations?.name}
-            {equipment.locations?.city && ` - ${equipment.locations.city}`}
+            {equipment.locations?.city && ` • ${equipment.locations.city}`}
           </p>
         </div>
 
@@ -433,56 +443,57 @@ export default function EquipmentDetail() {
           </CardContent>
         </Card>
 
-      {isManager && (
-        <>
-          <ScheduleInterventionDialog
-            open={showScheduleDialog}
-            onOpenChange={setShowScheduleDialog}
-            equipmentId={id!}
-            equipmentName={equipment.name}
-            locationId={equipment.location_id}
-          />
-          <EquipmentCheckDialog
-            open={showCheckDialog}
-            onOpenChange={setShowCheckDialog}
-            equipmentId={id!}
-          />
-          <MaintenanceEventDialog
-            open={showMaintenanceDialog}
-            onOpenChange={setShowMaintenanceDialog}
-            equipmentId={id!}
-          />
-        </>
-      )}
+        {isManager && (
+          <>
+            <ScheduleInterventionDialog
+              open={showScheduleDialog}
+              onOpenChange={setShowScheduleDialog}
+              equipmentId={id!}
+              equipmentName={equipment.name}
+              locationId={equipment.location_id}
+            />
+            <EquipmentCheckDialog
+              open={showCheckDialog}
+              onOpenChange={setShowCheckDialog}
+              equipmentId={id!}
+            />
+            <MaintenanceEventDialog
+              open={showMaintenanceDialog}
+              onOpenChange={setShowMaintenanceDialog}
+              equipmentId={id!}
+            />
+          </>
+        )}
 
-      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Equipment QR Code</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-4 rounded-lg">
-              <QRCodeSVG
-                id="equipment-qr-code"
-                value={equipmentUrl}
-                size={256}
-                level="H"
-                includeMargin
-              />
+        <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Equipment QR Code</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="bg-white p-4 rounded-lg">
+                <QRCodeSVG
+                  id="equipment-qr-code"
+                  value={equipmentUrl}
+                  size={256}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm font-medium">{equipment.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  Scan to view equipment details
+                </p>
+              </div>
+              <Button onClick={downloadQRCode} className="w-full">
+                <Download className="mr-2 h-4 w-4" />
+                Download QR Code
+              </Button>
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-sm font-medium">{equipment.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Scan to view equipment details
-              </p>
-            </div>
-            <Button onClick={downloadQRCode} className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Download QR Code
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
