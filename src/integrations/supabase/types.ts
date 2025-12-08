@@ -1176,6 +1176,8 @@ export type Database = {
         Row: {
           annual_vacation_days: number | null
           avatar_url: string | null
+          aviz_data_eliberare: string | null
+          aviz_institutie: string | null
           base_salary: number | null
           cnp: string | null
           cod_cor: string | null
@@ -1194,16 +1196,23 @@ export type Database = {
           hire_date: string | null
           hourly_rate: number | null
           id: string
+          is_foreign: boolean | null
           localitate: string | null
           location_id: string
           notes: string | null
+          nr_permis_sedere: string | null
+          numar_aviz: string | null
           numar_id: string | null
           ocupatia: string | null
           overtime_rate: number | null
           perioada_proba_end: string | null
+          permis_data_eliberare: string | null
+          permis_data_expirare: string | null
+          permis_institutie_emitenta: string | null
           phone: string | null
           role: string
           serie_id: string | null
+          spor_weekend: number | null
           status: string
           updated_at: string
           user_id: string | null
@@ -1215,6 +1224,8 @@ export type Database = {
         Insert: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
+          aviz_data_eliberare?: string | null
+          aviz_institutie?: string | null
           base_salary?: number | null
           cnp?: string | null
           cod_cor?: string | null
@@ -1233,16 +1244,23 @@ export type Database = {
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
+          is_foreign?: boolean | null
           localitate?: string | null
           location_id: string
           notes?: string | null
+          nr_permis_sedere?: string | null
+          numar_aviz?: string | null
           numar_id?: string | null
           ocupatia?: string | null
           overtime_rate?: number | null
           perioada_proba_end?: string | null
+          permis_data_eliberare?: string | null
+          permis_data_expirare?: string | null
+          permis_institutie_emitenta?: string | null
           phone?: string | null
           role: string
           serie_id?: string | null
+          spor_weekend?: number | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -1254,6 +1272,8 @@ export type Database = {
         Update: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
+          aviz_data_eliberare?: string | null
+          aviz_institutie?: string | null
           base_salary?: number | null
           cnp?: string | null
           cod_cor?: string | null
@@ -1272,16 +1292,23 @@ export type Database = {
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
+          is_foreign?: boolean | null
           localitate?: string | null
           location_id?: string
           notes?: string | null
+          nr_permis_sedere?: string | null
+          numar_aviz?: string | null
           numar_id?: string | null
           ocupatia?: string | null
           overtime_rate?: number | null
           perioada_proba_end?: string | null
+          permis_data_eliberare?: string | null
+          permis_data_expirare?: string | null
+          permis_institutie_emitenta?: string | null
           phone?: string | null
           role?: string
           serie_id?: string | null
+          spor_weekend?: number | null
           status?: string
           updated_at?: string
           user_id?: string | null

@@ -37,7 +37,7 @@ interface Employee {
   hourly_rate?: number;
   annual_vacation_days?: number;
   locations?: { name: string };
-  // ID Document fields
+  // ID Document fields (Romanian)
   localitate?: string;
   serie_id?: string;
   numar_id?: string;
@@ -51,6 +51,16 @@ interface Employee {
   cod_cor?: string;
   valoare_tichet?: number;
   perioada_proba_end?: string;
+  // Foreign employee fields
+  is_foreign?: boolean;
+  nr_permis_sedere?: string;
+  permis_institutie_emitenta?: string;
+  permis_data_eliberare?: string;
+  permis_data_expirare?: string;
+  numar_aviz?: string;
+  aviz_data_eliberare?: string;
+  aviz_institutie?: string;
+  spor_weekend?: number;
 }
 
 interface ContractTemplate {
@@ -133,7 +143,10 @@ export function GenerateContractDialog({
         .select(`
           full_name, localitate, serie_id, numar_id, valabilitate_id, cnp,
           domiciliu, emisa_de, valabila_de_la, ocupatia, cod_cor, 
-          valoare_tichet, perioada_proba_end, hire_date,
+          valoare_tichet, perioada_proba_end, hire_date, base_salary,
+          is_foreign, nr_permis_sedere, permis_institutie_emitenta,
+          permis_data_eliberare, permis_data_expirare, numar_aviz,
+          aviz_data_eliberare, aviz_institutie, spor_weekend,
           locations(name)
         `)
         .eq("id", employee.id)
@@ -180,7 +193,7 @@ export function GenerateContractDialog({
         "localitate": freshEmployee.localitate ?? "",
         "punct de lucru": (freshEmployee.locations as any)?.name ?? "",
         
-        // ID Document fields
+        // ID Document fields (Romanian)
         "seria ci": freshEmployee.serie_id ?? "",
         "nr ci": freshEmployee.numar_id ?? "",
         "emisa de": freshEmployee.emisa_de ?? "",
@@ -188,6 +201,16 @@ export function GenerateContractDialog({
         "pana la": formatDate(freshEmployee.valabilitate_id),
         "CNP": freshEmployee.cnp ?? "",
         "cnp": freshEmployee.cnp ?? "",
+        
+        // Foreign employee - Residence Permit
+        "nr permis sedere": freshEmployee.nr_permis_sedere ?? "",
+        "institutie emitenta": freshEmployee.permis_institutie_emitenta ?? "",
+        "data eliberare": formatDate(freshEmployee.permis_data_eliberare),
+        "data expirare": formatDate(freshEmployee.permis_data_expirare),
+        
+        // Foreign employee - Work Permit (Aviz)
+        "numar aviz": freshEmployee.numar_aviz ?? "",
+        "institutie": freshEmployee.aviz_institutie ?? "",
         
         // Job details
         "ocupatia": freshEmployee.ocupatia ?? "",
@@ -198,6 +221,8 @@ export function GenerateContractDialog({
         "perioada de proba": formatDate(freshEmployee.perioada_proba_end),
         
         // Salary details
+        "valoare salariu": freshEmployee.base_salary?.toString() ?? "",
+        "valoare spor weekend": freshEmployee.spor_weekend?.toString() ?? "",
         "valoare tichet": freshEmployee.valoare_tichet?.toString() ?? "",
         
         // Legacy field names for compatibility
