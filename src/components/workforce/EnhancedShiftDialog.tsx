@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -336,6 +337,20 @@ export const EnhancedShiftDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.location_id) {
+      toast.error("Please select a location");
+      return;
+    }
+    if (!formData.role) {
+      toast.error("Please select a role");
+      return;
+    }
+    if (!formData.shift_date) {
+      toast.error("Please select a date");
+      return;
+    }
     
     if (shift) {
       // Update existing shift
