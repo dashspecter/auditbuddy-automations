@@ -182,29 +182,12 @@ const ManagerSchedule = () => {
             </div>
           </Card>
 
-          {/* Location Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <Button
-              key="all"
-              variant={selectedLocation === "all" ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setSelectedLocation("all")}
-              className={selectedLocation === "all" ? "" : "bg-white/10 border-white/20 text-primary-foreground hover:bg-white/20"}
-            >
-              All Locations
-            </Button>
-            {locations.map((location) => (
-              <Button
-                key={location.id}
-                variant={selectedLocation === location.id ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setSelectedLocation(location.id)}
-                className={selectedLocation === location.id ? "" : "bg-white/10 border-white/20 text-primary-foreground hover:bg-white/20"}
-              >
-                {location.name}
-              </Button>
-            ))}
-          </div>
+          {/* Location Name */}
+          {locations.find(l => l.id === selectedLocation)?.name && (
+            <div className="text-sm opacity-90 text-center">
+              {locations.find(l => l.id === selectedLocation)?.name}
+            </div>
+          )}
         </div>
       </div>
 
