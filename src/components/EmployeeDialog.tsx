@@ -340,7 +340,7 @@ export const EmployeeDialog = ({
             </div>
 
             <div>
-              <Label htmlFor="emisa_de">Emisă de</Label>
+              <Label htmlFor="emisa_de">CI Emis de</Label>
               <Input
                 id="emisa_de"
                 value={formData.emisa_de}
