@@ -22,7 +22,7 @@ export interface Employee {
   created_at: string;
   updated_at: string;
   created_by: string;
-  // ID Document fields
+  // ID Document fields (Romanian)
   localitate: string | null;
   serie_id: string | null;
   numar_id: string | null;
@@ -36,6 +36,16 @@ export interface Employee {
   cod_cor: string | null;
   valoare_tichet: number | null;
   perioada_proba_end: string | null;
+  // Foreign employee fields
+  is_foreign: boolean | null;
+  nr_permis_sedere: string | null;
+  permis_institutie_emitenta: string | null;
+  permis_data_eliberare: string | null;
+  permis_data_expirare: string | null;
+  numar_aviz: string | null;
+  aviz_data_eliberare: string | null;
+  aviz_institutie: string | null;
+  spor_weekend: number | null;
   locations?: {
     name: string;
   };

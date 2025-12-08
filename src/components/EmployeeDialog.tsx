@@ -55,7 +55,7 @@ export const EmployeeDialog = ({
     emergency_contact_name: "",
     emergency_contact_phone: "",
     notes: "",
-    // ID Document fields
+    // ID Document fields (Romanian)
     localitate: "",
     serie_id: "",
     numar_id: "",
@@ -69,6 +69,16 @@ export const EmployeeDialog = ({
     cod_cor: "",
     valoare_tichet: "",
     perioada_proba_end: "",
+    // Foreign employee fields
+    is_foreign: false,
+    nr_permis_sedere: "",
+    permis_institutie_emitenta: "",
+    permis_data_eliberare: "",
+    permis_data_expirare: "",
+    numar_aviz: "",
+    aviz_data_eliberare: "",
+    aviz_institutie: "",
+    spor_weekend: "",
   });
   const [additionalLocations, setAdditionalLocations] = useState<string[]>([]);
   const [selectedLocationToAdd, setSelectedLocationToAdd] = useState("");
@@ -118,6 +128,16 @@ export const EmployeeDialog = ({
         cod_cor: employee.cod_cor || "",
         valoare_tichet: employee.valoare_tichet?.toString() || "",
         perioada_proba_end: employee.perioada_proba_end || "",
+        // Foreign employee fields
+        is_foreign: employee.is_foreign || false,
+        nr_permis_sedere: employee.nr_permis_sedere || "",
+        permis_institutie_emitenta: employee.permis_institutie_emitenta || "",
+        permis_data_eliberare: employee.permis_data_eliberare || "",
+        permis_data_expirare: employee.permis_data_expirare || "",
+        numar_aviz: employee.numar_aviz || "",
+        aviz_data_eliberare: employee.aviz_data_eliberare || "",
+        aviz_institutie: employee.aviz_institutie || "",
+        spor_weekend: employee.spor_weekend?.toString() || "",
       });
     } else {
       setFormData({
@@ -151,6 +171,16 @@ export const EmployeeDialog = ({
         cod_cor: "",
         valoare_tichet: "",
         perioada_proba_end: "",
+        // Foreign employee fields
+        is_foreign: false,
+        nr_permis_sedere: "",
+        permis_institutie_emitenta: "",
+        permis_data_eliberare: "",
+        permis_data_expirare: "",
+        numar_aviz: "",
+        aviz_data_eliberare: "",
+        aviz_institutie: "",
+        spor_weekend: "",
       });
       setAdditionalLocations([]);
     }
@@ -220,6 +250,16 @@ export const EmployeeDialog = ({
       cod_cor: formData.cod_cor || null,
       valoare_tichet: formData.valoare_tichet ? parseFloat(formData.valoare_tichet) : null,
       perioada_proba_end: formData.perioada_proba_end || null,
+      // Foreign employee fields
+      is_foreign: formData.is_foreign,
+      nr_permis_sedere: formData.nr_permis_sedere || null,
+      permis_institutie_emitenta: formData.permis_institutie_emitenta || null,
+      permis_data_eliberare: formData.permis_data_eliberare || null,
+      permis_data_expirare: formData.permis_data_expirare || null,
+      numar_aviz: formData.numar_aviz || null,
+      aviz_data_eliberare: formData.aviz_data_eliberare || null,
+      aviz_institutie: formData.aviz_institutie || null,
+      spor_weekend: formData.spor_weekend ? parseFloat(formData.spor_weekend) : null,
     };
     
     let employeeId: string;
@@ -313,11 +353,33 @@ export const EmployeeDialog = ({
             />
           </div>
 
+          {/* Employee Type Toggle */}
+          <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg border border-border">
+            <Checkbox 
+              id="is_foreign" 
+              checked={formData.is_foreign}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_foreign: checked as boolean })}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label
+                htmlFor="is_foreign"
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                Angajat Străin
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Bifați pentru angajați care nu sunt cetățeni români
+              </p>
+            </div>
+          </div>
+
           {/* Contract Document Section */}
           <div className="border border-border rounded-lg p-4 space-y-4 bg-muted/30">
-            <h3 className="font-medium text-sm text-foreground">Date Contract / Buletin</h3>
+            <h3 className="font-medium text-sm text-foreground">
+              {formData.is_foreign ? "Date Contract / Permis Ședere" : "Date Contract / Buletin"}
+            </h3>
             
-            {/* Personal Identification */}
+            {/* Personal Identification - Common fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="cnp">CNP</Label>
@@ -339,55 +401,139 @@ export const EmployeeDialog = ({
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="emisa_de">CI Emis de</Label>
-              <Input
-                id="emisa_de"
-                value={formData.emisa_de}
-                onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })}
-                placeholder="e.g., SPCEP Sector 1"
-              />
-            </div>
+            {/* Romanian Employee ID Card Details */}
+            {!formData.is_foreign && (
+              <>
+                <div>
+                  <Label htmlFor="emisa_de">CI Emis de</Label>
+                  <Input
+                    id="emisa_de"
+                    value={formData.emisa_de}
+                    onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })}
+                    placeholder="e.g., SPCEP Sector 1"
+                  />
+                </div>
 
-            {/* ID Card Details */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="serie_id">Serie CI</Label>
-                <Input
-                  id="serie_id"
-                  value={formData.serie_id}
-                  onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
-                  placeholder="e.g., XY"
-                />
-              </div>
-              <div>
-                <Label htmlFor="numar_id">Număr CI</Label>
-                <Input
-                  id="numar_id"
-                  value={formData.numar_id}
-                  onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
-                  placeholder="e.g., 123456"
-                />
-              </div>
-              <div>
-                <Label htmlFor="valabila_de_la">Valabilă de la</Label>
-                <Input
-                  id="valabila_de_la"
-                  type="date"
-                  value={formData.valabila_de_la}
-                  onChange={(e) => setFormData({ ...formData, valabila_de_la: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="valabilitate_id">Până la</Label>
-                <Input
-                  id="valabilitate_id"
-                  type="date"
-                  value={formData.valabilitate_id}
-                  onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="serie_id">Serie CI</Label>
+                    <Input
+                      id="serie_id"
+                      value={formData.serie_id}
+                      onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
+                      placeholder="e.g., XY"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="numar_id">Număr CI</Label>
+                    <Input
+                      id="numar_id"
+                      value={formData.numar_id}
+                      onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
+                      placeholder="e.g., 123456"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="valabila_de_la">Valabilă de la</Label>
+                    <Input
+                      id="valabila_de_la"
+                      type="date"
+                      value={formData.valabila_de_la}
+                      onChange={(e) => setFormData({ ...formData, valabila_de_la: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="valabilitate_id">Până la</Label>
+                    <Input
+                      id="valabilitate_id"
+                      type="date"
+                      value={formData.valabilitate_id}
+                      onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Foreign Employee Residence Permit Details */}
+            {formData.is_foreign && (
+              <>
+                <h4 className="font-medium text-sm text-muted-foreground pt-2">Permis de Ședere</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nr_permis_sedere">Nr. Permis Ședere</Label>
+                    <Input
+                      id="nr_permis_sedere"
+                      value={formData.nr_permis_sedere}
+                      onChange={(e) => setFormData({ ...formData, nr_permis_sedere: e.target.value })}
+                      placeholder="Numărul permisului"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="permis_institutie_emitenta">Instituție Emitentă</Label>
+                    <Input
+                      id="permis_institutie_emitenta"
+                      value={formData.permis_institutie_emitenta}
+                      onChange={(e) => setFormData({ ...formData, permis_institutie_emitenta: e.target.value })}
+                      placeholder="e.g., IGI"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="permis_data_eliberare">Data Eliberare Permis</Label>
+                    <Input
+                      id="permis_data_eliberare"
+                      type="date"
+                      value={formData.permis_data_eliberare}
+                      onChange={(e) => setFormData({ ...formData, permis_data_eliberare: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="permis_data_expirare">Data Expirare Permis</Label>
+                    <Input
+                      id="permis_data_expirare"
+                      type="date"
+                      value={formData.permis_data_expirare}
+                      onChange={(e) => setFormData({ ...formData, permis_data_expirare: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <h4 className="font-medium text-sm text-muted-foreground pt-2">Aviz de Muncă</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="numar_aviz">Număr Aviz</Label>
+                    <Input
+                      id="numar_aviz"
+                      value={formData.numar_aviz}
+                      onChange={(e) => setFormData({ ...formData, numar_aviz: e.target.value })}
+                      placeholder="Numărul avizului de muncă"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="aviz_institutie">Instituție Aviz</Label>
+                    <Input
+                      id="aviz_institutie"
+                      value={formData.aviz_institutie}
+                      onChange={(e) => setFormData({ ...formData, aviz_institutie: e.target.value })}
+                      placeholder="e.g., ITM București"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="aviz_data_eliberare">Data Eliberare Aviz</Label>
+                  <Input
+                    id="aviz_data_eliberare"
+                    type="date"
+                    value={formData.aviz_data_eliberare}
+                    onChange={(e) => setFormData({ ...formData, aviz_data_eliberare: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
 
             {/* Job Details for Contract */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -411,7 +557,7 @@ export const EmployeeDialog = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="valoare_tichet">Valoare Tichet Masă (lei/zi)</Label>
                 <Input
@@ -421,6 +567,17 @@ export const EmployeeDialog = ({
                   value={formData.valoare_tichet}
                   onChange={(e) => setFormData({ ...formData, valoare_tichet: e.target.value })}
                   placeholder="e.g., 40"
+                />
+              </div>
+              <div>
+                <Label htmlFor="spor_weekend">Spor Weekend (lei)</Label>
+                <Input
+                  id="spor_weekend"
+                  type="number"
+                  step="0.01"
+                  value={formData.spor_weekend}
+                  onChange={(e) => setFormData({ ...formData, spor_weekend: e.target.value })}
+                  placeholder="e.g., 100"
                 />
               </div>
               <div>
