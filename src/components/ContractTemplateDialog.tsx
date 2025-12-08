@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, Info, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Upload, FileText, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -251,23 +251,6 @@ export function ContractTemplateDialog({
           {/* Upload New Template Section */}
           <div className="space-y-4">
             <Label className="text-sm font-medium">Upload New Template</Label>
-            
-            <div className="p-3 bg-muted rounded-lg">
-              <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 mt-0.5 text-primary" />
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Available Placeholders:</p>
-                  <div className="grid grid-cols-2 gap-1 text-muted-foreground text-xs">
-                    <span>{"{{nume_complet}}"}</span>
-                    <span>{"{{localitate}}"}</span>
-                    <span>{"{{serie_id}}"}</span>
-                    <span>{"{{numar_id}}"}</span>
-                    <span>{"{{valabilitate_id}}"}</span>
-                    <span>{"{{cnp}}"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="templateName">Template Name</Label>
