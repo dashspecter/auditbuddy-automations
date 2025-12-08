@@ -37,6 +37,12 @@ interface Employee {
   hourly_rate?: number;
   annual_vacation_days?: number;
   locations?: { name: string };
+  // ID Document fields
+  localitate?: string;
+  serie_id?: string;
+  numar_id?: string;
+  valabilitate_id?: string;
+  cnp?: string;
 }
 
 interface ContractTemplate {
@@ -62,11 +68,6 @@ export function GenerateContractDialog({
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Extra contract fields for ID document
-  const [serieId, setSerieId] = useState("");
-  const [numarId, setNumarId] = useState("");
-  const [valabilitateId, setValabilitateId] = useState("");
-  const [cnp, setCnp] = useState("");
 
   useEffect(() => {
     if (open && user) {
@@ -129,14 +130,14 @@ export function GenerateContractDialog({
         linebreaks: true,
       });
 
-      // Prepare data for placeholders
+      // Prepare data for placeholders using employee's stored data
       const data = {
         nume_complet: employee.full_name || "",
-        localitate: employee.locations?.name || "",
-        serie_id: serieId || "",
-        numar_id: numarId || "",
-        valabilitate_id: valabilitateId || "",
-        cnp: cnp || "",
+        localitate: employee.localitate || "",
+        serie_id: employee.serie_id || "",
+        numar_id: employee.numar_id || "",
+        valabilitate_id: employee.valabilitate_id || "",
+        cnp: employee.cnp || "",
       };
 
       // Render the document
@@ -208,61 +209,15 @@ export function GenerateContractDialog({
                 </Select>
               </div>
 
-              <div className="border-t pt-4 space-y-4">
-                <h4 className="font-medium text-sm">ID Document Details</h4>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="serieId">Serie ID</Label>
-                    <Input
-                      id="serieId"
-                      value={serieId}
-                      onChange={(e) => setSerieId(e.target.value)}
-                      placeholder="e.g., XY"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="numarId">Numar ID</Label>
-                    <Input
-                      id="numarId"
-                      value={numarId}
-                      onChange={(e) => setNumarId(e.target.value)}
-                      placeholder="e.g., 123456"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="valabilitateId">Valabilitate ID</Label>
-                  <Input
-                    id="valabilitateId"
-                    type="date"
-                    value={valabilitateId}
-                    onChange={(e) => setValabilitateId(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cnp">CNP</Label>
-                  <Input
-                    id="cnp"
-                    value={cnp}
-                    onChange={(e) => setCnp(e.target.value)}
-                    placeholder="e.g., 1234567890123"
-                  />
-                </div>
-              </div>
-
               <div className="p-3 bg-muted rounded-lg text-sm">
                 <p className="font-medium mb-1">Employee Info Preview:</p>
                 <div className="text-muted-foreground text-xs space-y-0.5">
-                  <p>Name: {employee.full_name}</p>
-                  <p>Role: {employee.role}</p>
-                  <p>Location: {employee.locations?.name || "N/A"}</p>
-                  {employee.base_salary && (
-                    <p>Salary: ${employee.base_salary.toLocaleString()}</p>
-                  )}
+                  <p>Nume Complet: {employee.full_name}</p>
+                  <p>Localitate: {employee.localitate || "N/A"}</p>
+                  <p>Serie ID: {employee.serie_id || "N/A"}</p>
+                  <p>Numar ID: {employee.numar_id || "N/A"}</p>
+                  <p>Valabilitate ID: {employee.valabilitate_id || "N/A"}</p>
+                  <p>CNP: {employee.cnp || "N/A"}</p>
                 </div>
               </div>
 
