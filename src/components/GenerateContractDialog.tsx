@@ -24,7 +24,7 @@ import { format } from "date-fns";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { saveAs } from "file-saver";
-import expressions from "angular-expressions";
+
 
 interface Employee {
   id: string;
@@ -166,41 +166,24 @@ export function GenerateContractDialog({
       const arrayBuffer = await response.arrayBuffer();
       const zip = new PizZip(arrayBuffer);
       
-      // Create angular-expressions parser that handles missing values gracefully
-      const angularParser = (tag: string) => {
-        // Check if tag is empty or only whitespace
-        if (!tag || tag.trim() === '') {
-          return {
-            get: () => ""
-          };
-        }
-        
-        try {
-          const expr = expressions.compile(tag.replace(/'/g, "'"));
-          return {
-            get: (scope: any) => {
-              try {
-                const result = expr(scope);
-                return result !== undefined && result !== null ? result : "";
-              } catch {
-                return "";
-              }
-            }
-          };
-        } catch {
-          // If expression compilation fails, return empty string
-          return {
-            get: () => ""
-          };
-        }
+      // Simple parser that just looks up values by key
+      const simpleParser = (tag: string) => {
+        return {
+          get: (scope: any) => {
+            if (!tag || tag.trim() === '') return "";
+            const trimmedTag = tag.trim();
+            const value = scope[trimmedTag];
+            return value !== undefined && value !== null ? String(value) : "";
+          }
+        };
       };
 
-      // Configure docxtemplater with error handling for missing placeholders
+      // Configure docxtemplater with simple parser
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
         delimiters: { start: "{{", end: "}}" },
-        parser: angularParser,
+        parser: simpleParser,
       });
 
       // Format dates if they're date strings
