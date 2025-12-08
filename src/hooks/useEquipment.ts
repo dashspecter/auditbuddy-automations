@@ -116,13 +116,13 @@ export const useEquipmentById = (id: string) => {
           )
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching equipment:", error);
         throw error;
       }
-      return data as Equipment;
+      return data as Equipment | null;
     },
     enabled: !!id,
     retry: 1,
