@@ -439,6 +439,16 @@ export function useInstallMarketplaceTemplate() {
       if (fetchError) throw fetchError;
       if (!marketplaceTemplate) throw new Error("Template not found");
 
+      // Map marketplace template types to valid audit_templates types
+      // audit_templates only accepts 'location' or 'staff'
+      const templateTypeMap: Record<string, string> = {
+        'audit': 'location',
+        'sop': 'location',
+        'maintenance': 'location',
+        'training': 'staff',
+      };
+      const mappedTemplateType = templateTypeMap[marketplaceTemplate.template_type] || 'location';
+
       // Create the audit template in the company's templates
       const { data: newTemplate, error: templateError } = await supabase
         .from("audit_templates")
@@ -447,7 +457,7 @@ export function useInstallMarketplaceTemplate() {
           created_by: user.id,
           name: marketplaceTemplate.title,
           description: marketplaceTemplate.description,
-          template_type: marketplaceTemplate.template_type || 'location',
+          template_type: mappedTemplateType,
           is_active: true,
           is_global: false,
         })
