@@ -356,15 +356,34 @@ export function GenerateContractDialog({
                   <p><span className="font-medium">Nume:</span> {employee.full_name}</p>
                   <p><span className="font-medium">CNP:</span> {employee.cnp || "N/A"}</p>
                   <p><span className="font-medium">Domiciliu:</span> {employee.domiciliu || "N/A"}</p>
-                  <p><span className="font-medium">Localitate:</span> {employee.localitate || "N/A"}</p>
-                  <p><span className="font-medium">Serie CI:</span> {employee.serie_id || "N/A"}</p>
-                  <p><span className="font-medium">Număr CI:</span> {employee.numar_id || "N/A"}</p>
-                  <p><span className="font-medium">Emisă de:</span> {employee.emisa_de || "N/A"}</p>
-                  <p><span className="font-medium">Valabilă de la:</span> {employee.valabila_de_la || "N/A"}</p>
-                  <p><span className="font-medium">Până la:</span> {employee.valabilitate_id || "N/A"}</p>
                   <p><span className="font-medium">Ocupația:</span> {employee.ocupatia || "N/A"}</p>
                   <p><span className="font-medium">Cod COR:</span> {employee.cod_cor || "N/A"}</p>
                   <p><span className="font-medium">Valoare tichet:</span> {employee.valoare_tichet || "N/A"}</p>
+                  {employee.spor_weekend && (
+                    <p><span className="font-medium">Spor Weekend:</span> {employee.spor_weekend}</p>
+                  )}
+                  {employee.is_foreign ? (
+                    <>
+                      <p className="col-span-2 font-medium mt-2 text-foreground">Permis Ședere:</p>
+                      <p><span className="font-medium">Nr. Permis:</span> {employee.nr_permis_sedere || "N/A"}</p>
+                      <p><span className="font-medium">Instituție:</span> {employee.permis_institutie_emitenta || "N/A"}</p>
+                      <p><span className="font-medium">Data eliberare:</span> {employee.permis_data_eliberare || "N/A"}</p>
+                      <p><span className="font-medium">Data expirare:</span> {employee.permis_data_expirare || "N/A"}</p>
+                      <p className="col-span-2 font-medium mt-2 text-foreground">Aviz de Muncă:</p>
+                      <p><span className="font-medium">Nr. Aviz:</span> {employee.numar_aviz || "N/A"}</p>
+                      <p><span className="font-medium">Instituție:</span> {employee.aviz_institutie || "N/A"}</p>
+                      <p><span className="font-medium">Data eliberare:</span> {employee.aviz_data_eliberare || "N/A"}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p><span className="font-medium">Localitate:</span> {employee.localitate || "N/A"}</p>
+                      <p><span className="font-medium">Serie CI:</span> {employee.serie_id || "N/A"}</p>
+                      <p><span className="font-medium">Număr CI:</span> {employee.numar_id || "N/A"}</p>
+                      <p><span className="font-medium">Emisă de:</span> {employee.emisa_de || "N/A"}</p>
+                      <p><span className="font-medium">Valabilă de la:</span> {employee.valabila_de_la || "N/A"}</p>
+                      <p><span className="font-medium">Până la:</span> {employee.valabilitate_id || "N/A"}</p>
+                    </>
+                  )}
                 </div>
               </div>
 
