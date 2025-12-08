@@ -347,6 +347,22 @@ export const EnhancedShiftDialog = ({
         breaks: breaks,
       };
       await updateShift.mutateAsync({ id: shift.id, ...submitData });
+      
+      // Handle assignment changes
+      const existingAssignedIds = shift.shift_assignments?.map((sa: any) => sa.staff_id) || [];
+      const newlySelectedIds = selectedEmployees;
+      
+      // Find employees to add (in new selection but not in existing)
+      const toAdd = newlySelectedIds.filter((id: string) => !existingAssignedIds.includes(id));
+      
+      // Create new assignments
+      for (const employeeId of toAdd) {
+        await createAssignment.mutateAsync({
+          shift_id: shift.id,
+          employee_id: employeeId,
+        });
+      }
+      
       onOpenChange(false);
     } else if (batchMode && selectedEmployees.length > 0) {
       // Batch mode: Create individual shifts for each employee
