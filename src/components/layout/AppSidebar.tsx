@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, Image, UserCog, Bug, Shield, Calendar,
-  PanelLeftClose, PanelLeft, ChevronRight
+  PanelLeftClose, PanelLeft, ChevronRight, Store
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -159,6 +159,12 @@ const navigationItems = [
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
+  },
+  { 
+    title: "Template Marketplace", 
+    url: "/marketplace", 
+    icon: Store,
+    module: null,
   },
 ];
 const settingsItems = [
