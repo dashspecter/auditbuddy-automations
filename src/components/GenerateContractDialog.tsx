@@ -157,6 +157,7 @@ export function GenerateContractDialog({
         paragraphLoop: true,
         linebreaks: true,
         delimiters: { start: "{{", end: "}}" },
+        nullGetter: () => "", // Return empty string for undefined values
       });
 
       // Format dates if they're date strings
