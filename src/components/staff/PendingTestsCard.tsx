@@ -68,7 +68,7 @@ export const PendingTestsCard = ({ employeeId }: PendingTestsCardProps) => {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => navigate(`/take-test/code/${assignment.short_code}`)}
+                  onClick={() => navigate(`/t/${assignment.short_code}`)}
                 >
                   Take Test
                   <ArrowRight className="h-3 w-3 ml-1" />
