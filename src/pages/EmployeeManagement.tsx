@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, KeyRound, FileText, Upload } from "lucide-react";
-import { useEmployees, useDeleteEmployee } from "@/hooks/useEmployees";
+import { Plus, Pencil, Trash2, KeyRound, FileText, Upload, UserX, UserCheck } from "lucide-react";
+import { useEmployees, useDeleteEmployee, useUpdateEmployee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useStaffAudits } from "@/hooks/useStaffAudits";
 import { format } from "date-fns";
@@ -52,6 +52,15 @@ export default function EmployeeManagement() {
   const { data: locations } = useLocations();
   const { data: audits, isLoading: auditsLoading } = useStaffAudits();
   const deleteEmployee = useDeleteEmployee();
+  const updateEmployee = useUpdateEmployee();
+
+  const handleToggleStatus = (employee: any) => {
+    const newStatus = employee.status === "active" ? "inactive" : "active";
+    updateEmployee.mutate({
+      id: employee.id,
+      status: newStatus
+    });
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500";
@@ -221,6 +230,18 @@ export default function EmployeeManagement() {
                           title="Generate Contract"
                         >
                           <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleStatus(employee)}
+                          title={employee.status === "active" ? "Deactivate Employee" : "Activate Employee"}
+                        >
+                          {employee.status === "active" ? (
+                            <UserX className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <UserCheck className="h-4 w-4 text-green-600" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

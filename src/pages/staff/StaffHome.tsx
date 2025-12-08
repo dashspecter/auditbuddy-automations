@@ -64,6 +64,14 @@ const StaffHome = () => {
       }
 
       if (empData) {
+        // Check if employee is deactivated
+        if (empData.status === "inactive") {
+          toast.error("Your account has been deactivated. Please contact your manager.");
+          await supabase.auth.signOut();
+          navigate("/staff-login");
+          return;
+        }
+        
         setEmployee(empData);
         await loadShifts(empData.id);
         
