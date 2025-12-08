@@ -13,7 +13,7 @@ const ManagerSchedule = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedLocation, setSelectedLocation] = useState<string | "all">("all");
+  const [selectedLocation, setSelectedLocation] = useState<string | "all" | null>(null);
   const [locations, setLocations] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -40,6 +40,11 @@ const ManagerSchedule = () => {
         .maybeSingle();
 
       if (!empData) return;
+
+      // Set default location to manager's location on first load
+      if (selectedLocation === null) {
+        setSelectedLocation(empData.location_id);
+      }
 
       // Load locations
       const { data: locationsData } = await supabase
