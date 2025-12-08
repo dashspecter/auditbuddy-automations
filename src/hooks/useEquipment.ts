@@ -5,6 +5,7 @@ import { toast } from "sonner";
 export interface Equipment {
   id: string;
   location_id: string;
+  company_id: string;
   name: string;
   model_type: string | null;
   power_supply_type: string | null;
@@ -20,6 +21,10 @@ export interface Equipment {
   locations?: {
     name: string;
     city: string | null;
+  };
+  companies?: {
+    name: string;
+    logo_url: string | null;
   };
 }
 
@@ -113,6 +118,10 @@ export const useEquipmentById = (id: string) => {
           locations (
             name,
             city
+          ),
+          companies (
+            name,
+            logo_url
           )
         `)
         .eq("id", id)
