@@ -1,10 +1,11 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 const TestResult = () => {
   const { testId, score, passed } = useParams();
+  const navigate = useNavigate();
   const isPassed = passed === "true";
   const scoreValue = parseInt(score || "0");
 
@@ -36,8 +37,8 @@ const TestResult = () => {
             : "Please review the material and try again."}
         </p>
 
-        <Button onClick={() => window.close()} variant="outline" className="w-full">
-          Close
+        <Button onClick={() => navigate("/staff")} variant="outline" className="w-full">
+          Back to Home
         </Button>
       </Card>
     </div>
