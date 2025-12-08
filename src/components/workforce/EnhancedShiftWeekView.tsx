@@ -145,6 +145,17 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
+  // Get unassigned draft shifts - shifts that exist but have no approved assignments
+  const getUnassignedDraftShiftsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return shifts.filter(shift => 
+      shift.shift_date === dateStr &&
+      !shift.is_open_shift &&
+      !shift.is_published &&
+      (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
+    );
+  };
+
   const getTimeOffForEmployeeAndDay = (employeeId: string, date: Date) => {
     return timeOffRequests.find(req =>
       req.employee_id === employeeId &&
@@ -597,6 +608,54 @@ export const EnhancedShiftWeekView = () => {
             );
           })}
         </div>
+
+        {/* Unassigned Draft Shifts Row */}
+        {weekDays.some(day => getUnassignedDraftShiftsForDay(day).length > 0) && (
+          <div className="grid grid-cols-8 border-b bg-orange-50/50 dark:bg-orange-950/20">
+            <div className="p-3 border-r font-medium flex items-center gap-2 text-orange-600 dark:text-orange-400">
+              <EyeOff className="h-4 w-4" />
+              <span className="text-sm">Draft (Unassigned)</span>
+            </div>
+            {weekDays.map((day) => {
+              const draftShifts = getUnassignedDraftShiftsForDay(day);
+              const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+              return (
+                <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
+                  {draftShifts.map((shift) => (
+                    <div
+                      key={shift.id}
+                      onClick={() => handleEditShift(shift)}
+                      style={{
+                        backgroundColor: `${getRoleColor(shift.role)}10`,
+                        borderColor: `${getRoleColor(shift.role)}60`
+                      }}
+                      className="text-xs p-1.5 rounded border border-dashed cursor-pointer hover:shadow-md transition-shadow mb-1 opacity-70"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{shift.role}</div>
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
+                          Draft
+                        </Badge>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                      </div>
+                      {selectedLocation === "all" && shift.locations?.name && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          📍 {shift.locations.name}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
+                        <UserCheck className="h-3 w-3" />
+                        No staff assigned
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Employee Rows - Grouped by Department */}
         {viewMode === "employee" && departments.map((department) => (
