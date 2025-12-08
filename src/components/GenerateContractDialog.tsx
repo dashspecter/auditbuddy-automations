@@ -133,17 +133,27 @@ export function GenerateContractDialog({
         delimiters: { start: "{{", end: "}}" },
       });
 
+      // Log raw employee data for debugging
+      console.log("Raw employee data:", JSON.stringify(employee, null, 2));
+
       // Prepare data for placeholders using employee's stored data
+      // Handle both string and date formats for valabilitate_id
+      const valabilitate = employee.valabilitate_id 
+        ? (typeof employee.valabilitate_id === 'string' && employee.valabilitate_id.includes('-')
+            ? format(new Date(employee.valabilitate_id), "dd.MM.yyyy")
+            : String(employee.valabilitate_id))
+        : "";
+
       const data = {
-        nume_complet: employee.full_name || "",
-        localitate: employee.localitate || "",
-        serie_id: employee.serie_id || "",
-        numar_id: employee.numar_id || "",
-        valabilitate_id: employee.valabilitate_id || "",
-        cnp: employee.cnp || "",
+        nume_complet: employee.full_name ?? "",
+        localitate: employee.localitate ?? "",
+        serie_id: employee.serie_id ?? "",
+        numar_id: employee.numar_id ?? "",
+        valabilitate_id: valabilitate,
+        cnp: employee.cnp ?? "",
       };
 
-      console.log("Template data:", data);
+      console.log("Template data being used:", data);
 
       // Render the document
       try {
