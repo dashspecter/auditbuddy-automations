@@ -125,9 +125,12 @@ export function GenerateContractDialog({
 
       const arrayBuffer = await response.arrayBuffer();
       const zip = new PizZip(arrayBuffer);
+      
+      // Configure docxtemplater with error handling for missing placeholders
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        delimiters: { start: "{{", end: "}}" },
       });
 
       // Prepare data for placeholders using employee's stored data
@@ -140,8 +143,21 @@ export function GenerateContractDialog({
         cnp: employee.cnp || "",
       };
 
+      console.log("Template data:", data);
+
       // Render the document
-      doc.render(data);
+      try {
+        doc.render(data);
+      } catch (renderError: any) {
+        console.error("Render error details:", renderError);
+        if (renderError.properties && renderError.properties.errors) {
+          const errorMessages = renderError.properties.errors
+            .map((e: any) => `${e.properties?.id || 'Unknown'}: ${e.message}`)
+            .join(", ");
+          throw new Error(`Template errors: ${errorMessages}`);
+        }
+        throw renderError;
+      }
 
       // Generate the output
       const out = doc.getZip().generate({
