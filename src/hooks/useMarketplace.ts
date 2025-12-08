@@ -427,6 +427,78 @@ export function useInstallMarketplaceTemplate() {
   return useMutation({
     mutationFn: async ({ templateId, companyId }: { templateId: string; companyId?: string }) => {
       if (!user) throw new Error("Must be logged in");
+      if (!companyId) throw new Error("Company ID required");
+
+      // First, fetch the marketplace template details
+      const { data: marketplaceTemplate, error: fetchError } = await supabase
+        .from("marketplace_templates")
+        .select("*")
+        .eq("id", templateId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!marketplaceTemplate) throw new Error("Template not found");
+
+      // Create the audit template in the company's templates
+      const { data: newTemplate, error: templateError } = await supabase
+        .from("audit_templates")
+        .insert({
+          company_id: companyId,
+          created_by: user.id,
+          name: marketplaceTemplate.title,
+          description: marketplaceTemplate.description,
+          template_type: marketplaceTemplate.template_type || 'location',
+          is_active: true,
+          is_global: false,
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      // Parse the content and create sections/fields
+      const content = marketplaceTemplate.content as { sections?: Array<{ name: string; description?: string; fields?: Array<{ name: string; type: string; options?: string[]; required?: boolean }> }> };
+      
+      if (content?.sections) {
+        for (let sectionIndex = 0; sectionIndex < content.sections.length; sectionIndex++) {
+          const section = content.sections[sectionIndex];
+          
+          // Create section
+          const { data: newSection, error: sectionError } = await supabase
+            .from("audit_sections")
+            .insert({
+              template_id: newTemplate.id,
+              name: section.name,
+              description: section.description || null,
+              display_order: sectionIndex,
+            })
+            .select()
+            .single();
+
+          if (sectionError) {
+            console.error("Error creating section:", sectionError);
+            continue;
+          }
+
+          // Create fields for this section
+          if (section.fields && newSection) {
+            for (let fieldIndex = 0; fieldIndex < section.fields.length; fieldIndex++) {
+              const field = section.fields[fieldIndex];
+              
+              await supabase
+                .from("audit_fields")
+                .insert({
+                  section_id: newSection.id,
+                  name: field.name,
+                  field_type: field.type || 'yes_no',
+                  display_order: fieldIndex,
+                  is_required: field.required || false,
+                  options: field.options ? { choices: field.options } : null,
+                });
+            }
+          }
+        }
+      }
 
       // Record the download
       const { data, error } = await supabase
@@ -435,16 +507,19 @@ export function useInstallMarketplaceTemplate() {
           template_id: templateId,
           user_id: user.id,
           company_id: companyId,
+          installed_template_id: newTemplate.id,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return { download: data, template: newTemplate };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketplace-templates"] });
-      toast.success("Template installed successfully!");
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      toast.success("Template installed successfully! Check your Audit Templates.");
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to install template");
