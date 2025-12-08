@@ -161,7 +161,13 @@ export default function MarketplacePublish() {
 
     try {
       await createTemplate.mutateAsync({
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        template_type: formData.template_type as 'audit' | 'sop' | 'maintenance' | 'training',
+        category_id: formData.category_id || undefined,
+        industry_id: formData.industry_id || undefined,
+        author_name: formData.author_name,
+        author_company_name: formData.author_company_name,
         content: { sections },
         is_published: false,
       });
@@ -184,7 +190,13 @@ export default function MarketplacePublish() {
 
     try {
       const result = await createTemplate.mutateAsync({
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        template_type: formData.template_type as 'audit' | 'sop' | 'maintenance' | 'training',
+        category_id: formData.category_id || undefined,
+        industry_id: formData.industry_id || undefined,
+        author_name: formData.author_name,
+        author_company_name: formData.author_company_name,
         content: { sections },
         is_published: false,
       });
@@ -213,7 +225,7 @@ export default function MarketplacePublish() {
                     ? 'border-primary ring-2 ring-primary/20' 
                     : 'hover:border-primary/50'
                 }`}
-                onClick={() => setFormData({ ...formData, template_type: type.id })}
+                onClick={() => setFormData({ ...formData, template_type: type.id as 'audit' | 'sop' | 'maintenance' | 'training' })}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-3">
