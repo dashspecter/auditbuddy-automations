@@ -244,9 +244,9 @@ const App = () => (
               <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
               <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
               
-              {/* Marketplace Routes - Public */}
-              <Route path="/marketplace" element={<MarketplaceBrowse />} />
-              <Route path="/marketplace/template/:slug" element={<MarketplaceTemplateDetail />} />
+              {/* Marketplace Routes */}
+              <Route path="/marketplace" element={<ProtectedRoute><MarketplaceBrowse /></ProtectedRoute>} />
+              <Route path="/marketplace/template/:slug" element={<ProtectedRoute><MarketplaceTemplateDetail /></ProtectedRoute>} />
               <Route path="/marketplace/share/:token" element={<MarketplaceShare />} />
               <Route path="/marketplace/publish" element={<ProtectedRoute><MarketplacePublish /></ProtectedRoute>} />
               <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
