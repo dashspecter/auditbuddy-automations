@@ -1178,13 +1178,16 @@ export type Database = {
           avatar_url: string | null
           base_salary: number | null
           cnp: string | null
+          cod_cor: string | null
           company_id: string
           contract_type: string | null
           created_at: string
           created_by: string
+          domiciliu: string | null
           email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
+          emisa_de: string | null
           expected_shifts_per_week: number | null
           expected_weekly_hours: number | null
           full_name: string
@@ -1195,7 +1198,9 @@ export type Database = {
           location_id: string
           notes: string | null
           numar_id: string | null
+          ocupatia: string | null
           overtime_rate: number | null
+          perioada_proba_end: string | null
           phone: string | null
           role: string
           serie_id: string | null
@@ -1203,20 +1208,25 @@ export type Database = {
           updated_at: string
           user_id: string | null
           vacation_year_start_month: number | null
+          valabila_de_la: string | null
           valabilitate_id: string | null
+          valoare_tichet: number | null
         }
         Insert: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
           cnp?: string | null
+          cod_cor?: string | null
           company_id: string
           contract_type?: string | null
           created_at?: string
           created_by: string
+          domiciliu?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          emisa_de?: string | null
           expected_shifts_per_week?: number | null
           expected_weekly_hours?: number | null
           full_name: string
@@ -1227,7 +1237,9 @@ export type Database = {
           location_id: string
           notes?: string | null
           numar_id?: string | null
+          ocupatia?: string | null
           overtime_rate?: number | null
+          perioada_proba_end?: string | null
           phone?: string | null
           role: string
           serie_id?: string | null
@@ -1235,20 +1247,25 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           vacation_year_start_month?: number | null
+          valabila_de_la?: string | null
           valabilitate_id?: string | null
+          valoare_tichet?: number | null
         }
         Update: {
           annual_vacation_days?: number | null
           avatar_url?: string | null
           base_salary?: number | null
           cnp?: string | null
+          cod_cor?: string | null
           company_id?: string
           contract_type?: string | null
           created_at?: string
           created_by?: string
+          domiciliu?: string | null
           email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          emisa_de?: string | null
           expected_shifts_per_week?: number | null
           expected_weekly_hours?: number | null
           full_name?: string
@@ -1259,7 +1276,9 @@ export type Database = {
           location_id?: string
           notes?: string | null
           numar_id?: string | null
+          ocupatia?: string | null
           overtime_rate?: number | null
+          perioada_proba_end?: string | null
           phone?: string | null
           role?: string
           serie_id?: string | null
@@ -1267,7 +1286,9 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           vacation_year_start_month?: number | null
+          valabila_de_la?: string | null
           valabilitate_id?: string | null
+          valoare_tichet?: number | null
         }
         Relationships: [
           {
