@@ -40,7 +40,6 @@ export interface EquipmentIntervention {
 export const useEquipmentInterventions = (equipmentId?: string, locationId?: string, userId?: string, status?: string) => {
   return useQuery({
     queryKey: ["equipment-interventions", equipmentId, locationId, userId, status],
-    enabled: !!equipmentId,
     queryFn: async () => {
       let query = supabase
         .from("equipment_interventions")
