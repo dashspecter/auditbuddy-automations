@@ -119,15 +119,30 @@ export default function EquipmentDetail() {
               {equipment.companies?.name || "Equipment Profile"}
             </span>
           </div>
-          {!user && (
-            <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
-              Sign in
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {!user && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+      {/* Dashspect Branding Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border z-10">
+        <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-center gap-2">
+          <span className="text-xs text-muted-foreground">Powered by</span>
+          <img 
+            src="/dashspect-logo-512.png" 
+            alt="Dashspect" 
+            className="h-5 w-auto"
+          />
+          <span className="text-xs font-medium text-primary">Dashspect</span>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-4 pb-16 space-y-4">
         {/* Public notice for unauthenticated users */}
         {!user && (
           <div className="bg-muted/50 border border-border rounded-lg p-3 text-center">
