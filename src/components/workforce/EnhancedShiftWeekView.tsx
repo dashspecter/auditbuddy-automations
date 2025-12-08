@@ -146,12 +146,12 @@ export const EnhancedShiftWeekView = () => {
   };
 
   // Get unassigned draft shifts - shifts that exist but have no approved assignments
+  // Also include published shifts that have pending assignments (not yet showing under any employee)
   const getUnassignedDraftShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
       !shift.is_open_shift &&
-      !shift.is_published &&
       (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
     );
   };
