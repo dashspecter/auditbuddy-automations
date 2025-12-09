@@ -29,7 +29,9 @@ export const PendingTestsCard = ({ employeeId }: PendingTestsCardProps) => {
     );
   }
 
-  const pendingTests = assignments.filter((a) => !a.completed);
+  // Filter out assignments that have submissions (already completed)
+  const submittedTestIds = new Set(submissions.map((s: any) => s.test_id));
+  const pendingTests = assignments.filter((a: any) => !a.completed && !submittedTestIds.has(a.test_id));
   const recentSubmissions = submissions.slice(0, 3);
 
   if (pendingTests.length === 0 && recentSubmissions.length === 0) {
