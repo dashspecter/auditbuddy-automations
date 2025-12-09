@@ -21,7 +21,7 @@ import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
 
 const StaffHome = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
   const { data: myTasks = [] } = useMyTasks();
@@ -41,19 +41,17 @@ const StaffHome = () => {
     employee?.role?.toLowerCase() === 'manager';
 
   useEffect(() => {
-    // Only redirect if we're certain there's no user after auth has loaded
-    // Don't redirect during token refresh
-    if (user === null) {
-      // Small delay to avoid race conditions with auth state
-      const timeout = setTimeout(() => {
-        if (!user) {
-          navigate("/staff-login");
-        }
-      }, 100);
-      return () => clearTimeout(timeout);
+    // Only redirect if auth is fully loaded AND there's no user
+    // This prevents premature redirects during token refresh or QR scanning
+    if (!loading && user === null) {
+      navigate("/staff-login");
+      return;
     }
-    loadData();
-  }, [user, navigate]);
+    
+    if (user) {
+      loadData();
+    }
+  }, [user, loading, navigate]);
 
   const loadData = async () => {
     try {
