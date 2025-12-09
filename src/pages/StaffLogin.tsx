@@ -39,14 +39,18 @@ const StaffLogin = () => {
   const checkIfStaff = async () => {
     if (!user) return;
     
-    const { data } = await supabase
-      .from("employees")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
+    try {
+      const { data } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    if (data) {
-      navigate("/staff");
+      if (data) {
+        navigate("/staff");
+      }
+    } catch (error) {
+      console.error("Error checking staff status:", error);
     }
   };
 
@@ -73,7 +77,7 @@ const StaffLogin = () => {
         .from("employees")
         .select("id")
         .eq("user_id", data.user.id)
-        .single();
+        .maybeSingle();
 
       if (empError || !employeeData) {
         await supabase.auth.signOut();
