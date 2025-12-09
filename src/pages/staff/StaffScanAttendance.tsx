@@ -20,6 +20,16 @@ import { validateQRToken } from "@/hooks/useAttendanceKiosks";
 import { QRScanner } from "@/components/QRScanner";
 import { useNavigate } from "react-router-dom";
 
+// Safe time formatter that won't crash
+const safeFormatTime = (dateString: string | null): string => {
+  if (!dateString) return "";
+  try {
+    return format(new Date(dateString), "h:mm a");
+  } catch {
+    return dateString;
+  }
+};
+
 const StaffScanAttendance = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -400,12 +410,12 @@ const StaffScanAttendance = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <LogIn className="h-4 w-4 text-green-500" />
-                  <span>Check In: {format(new Date(todayStatus.checkInTime), "h:mm a")}</span>
+                  <span>Check In: {safeFormatTime(todayStatus.checkInTime)}</span>
                 </div>
                 {todayStatus.checkOutTime && (
                   <div className="flex items-center gap-2">
                     <LogOut className="h-4 w-4 text-orange-500" />
-                    <span>Check Out: {format(new Date(todayStatus.checkOutTime), "h:mm a")}</span>
+                    <span>Check Out: {safeFormatTime(todayStatus.checkOutTime)}</span>
                   </div>
                 )}
                 {todayStatus.locationName && (
@@ -429,7 +439,7 @@ const StaffScanAttendance = () => {
                   You're Clocked In!
                 </h2>
                 <p className="text-green-600 dark:text-green-500 mb-4">
-                  Since {todayStatus.checkInTime ? format(new Date(todayStatus.checkInTime), "h:mm a") : ""}
+                  Since {safeFormatTime(todayStatus.checkInTime)}
                   {todayStatus.locationName ? ` at ${todayStatus.locationName}` : ""}
                 </p>
                 <Button
