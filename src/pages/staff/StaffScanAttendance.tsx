@@ -156,18 +156,31 @@ const StaffScanAttendance = () => {
     setShowScanner(false);
     
     // Small delay to let scanner cleanup complete
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
-    // Then process
-    await processQRCode(qrData);
+    // Then process with error boundary
+    try {
+      await processQRCode(qrData);
+    } catch (error: any) {
+      console.error("Scan result processing error:", error);
+      toast.error("Failed to process scan. Please try again.");
+      setProcessing(false);
+    }
   };
 
   const processQRCode = async (rawData: string) => {
+    console.log("=== processQRCode START ===");
+    
+    // Safety check - make sure component is still mounted
+    if (!user) {
+      console.log("No user, aborting processQRCode");
+      return;
+    }
+    
     setProcessing(true);
     
     try {
       console.log("Processing QR code:", rawData);
-      
       // Parse QR data
       let parsed;
       try {
@@ -267,21 +280,31 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        // Update local state immediately
-        setTodayStatus(prev => ({
-          ...prev,
-          checkedIn: false,
-          checkOutTime
-        }));
-        todayStatusRef.current = {
-          ...todayStatusRef.current,
-          checkedIn: false,
-          checkOutTime
-        };
+        console.log("Checkout successful, updating state...");
+        
+        // Update local state immediately - wrapped in try-catch for safety
+        try {
+          const checkOutTime = new Date().toISOString();
+          setTodayStatus(prev => ({
+            ...prev,
+            checkedIn: false,
+            checkOutTime
+          }));
+          todayStatusRef.current = {
+            ...todayStatusRef.current,
+            checkedIn: false,
+            checkOutTime
+          };
+          console.log("State updated successfully");
+        } catch (stateError) {
+          console.error("Error updating state:", stateError);
+        }
         
         toast.success("Checked out successfully!");
+        console.log("=== processQRCode CHECKOUT COMPLETE ===");
       } else {
         // Check in - create new log
+        console.log("Creating check-in record...");
         const { error } = await supabase
           .from("attendance_logs")
           .insert({
@@ -297,18 +320,24 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        // Update local state immediately
-        const checkInTime = new Date().toISOString();
-        const newStatus = {
-          checkedIn: true,
-          checkInTime,
-          checkOutTime: null,
-          locationName: locationData?.name || null
-        };
-        setTodayStatus(newStatus);
-        todayStatusRef.current = newStatus;
+        console.log("Check-in successful, updating state...");
+        try {
+          const checkInTime = new Date().toISOString();
+          const newStatus = {
+            checkedIn: true,
+            checkInTime,
+            checkOutTime: null,
+            locationName: locationData?.name || null
+          };
+          setTodayStatus(newStatus);
+          todayStatusRef.current = newStatus;
+          console.log("State updated successfully");
+        } catch (stateError) {
+          console.error("Error updating state:", stateError);
+        }
         
         toast.success("Checked in successfully!");
+        console.log("=== processQRCode CHECKIN COMPLETE ===");
       }
       
     } catch (error: any) {
