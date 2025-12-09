@@ -241,13 +241,12 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        setLastAction({
-          type: "checkout",
-          time: new Date(),
-          location: locationData?.name || "Unknown",
-        });
-        
         toast.success("Checked out successfully!");
+        
+        // Navigate back to staff home after successful checkout
+        setTimeout(() => {
+          navigate("/staff");
+        }, 1500);
       } else {
         // Check in - create new log
         const { error } = await supabase
@@ -265,19 +264,13 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        setLastAction({
-          type: "checkin",
-          time: new Date(),
-          location: locationData?.name || "Unknown",
-        });
-        
         toast.success("Checked in successfully!");
+        
+        // Navigate back to staff home after successful checkin
+        setTimeout(() => {
+          navigate("/staff");
+        }, 1500);
       }
-
-      // Reload status with delay to ensure DB is updated
-      setTimeout(() => {
-        loadTodayStatus();
-      }, 500);
       
     } catch (error: any) {
       console.error("Process error:", error);
