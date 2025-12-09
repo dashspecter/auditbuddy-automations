@@ -23,11 +23,10 @@ const ManagerSchedule = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   useEffect(() => {
-    if (!user) {
-      navigate("/staff-login");
-      return;
+    // ProtectedRoute handles auth - just load data when user exists
+    if (user) {
+      loadData();
     }
-    loadData();
   }, [user, selectedDate, selectedLocation]);
 
   const loadData = async () => {

@@ -19,13 +19,11 @@ const StaffDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/staff-login");
-      return;
+    // ProtectedRoute handles auth - just load data when user exists
+    if (user) {
+      loadEmployeeData();
     }
-
-    loadEmployeeData();
-  }, [user, navigate]);
+  }, [user]);
 
   const loadEmployeeData = async () => {
     try {

@@ -30,29 +30,12 @@ const StaffLogin = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
-    // If already logged in, redirect to dashboard
+    // If already logged in, redirect to staff dashboard
     if (user) {
-      checkIfStaff();
+      // Direct redirect without async call - the ProtectedRoute will handle the rest
+      navigate("/staff", { replace: true });
     }
-  }, [user]);
-
-  const checkIfStaff = async () => {
-    if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (data) {
-        navigate("/staff");
-      }
-    } catch (error) {
-      console.error("Error checking staff status:", error);
-    }
-  };
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
