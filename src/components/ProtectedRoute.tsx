@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
@@ -15,6 +15,33 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading: authLoading, isStaff, staffCheckComplete } = useAuth();
   const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
   const location = useLocation();
+  
+  // Track if we've ever had a valid user to prevent redirect during transient null states
+  const hadUserRef = useRef(false);
+  const [stableNoUser, setStableNoUser] = useState(false);
+  
+  useEffect(() => {
+    if (user) {
+      hadUserRef.current = true;
+      setStableNoUser(false);
+    }
+  }, [user]);
+  
+  // Only mark as stable no-user after a delay when we haven't had a user
+  useEffect(() => {
+    if (!authLoading && !user && !hadUserRef.current) {
+      // Immediate redirect for fresh page loads with no user
+      setStableNoUser(true);
+    } else if (!authLoading && !user && hadUserRef.current) {
+      // If we had a user but now don't, wait a bit to confirm it's real
+      const timeout = setTimeout(() => {
+        if (!user) {
+          setStableNoUser(true);
+        }
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [user, authLoading]);
 
   // Routes that don't need company data
   const isSpecialRoute = location.pathname.startsWith('/onboarding') || 
@@ -36,9 +63,21 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
+  // Redirect to auth if confirmed no user (not a transient state)
+  if (!user && stableNoUser) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  // Still loading/checking if we have no user but not yet stable
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Verifying session...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check if this is a staff-only route (not /staff-audits which is admin/manager route)
