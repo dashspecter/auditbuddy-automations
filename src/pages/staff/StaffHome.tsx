@@ -21,7 +21,7 @@ import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
 
 const StaffHome = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
   const { data: myTasks = [] } = useMyTasks();
@@ -41,17 +41,11 @@ const StaffHome = () => {
     employee?.role?.toLowerCase() === 'manager';
 
   useEffect(() => {
-    // Only redirect if auth is fully loaded AND there's no user
-    // This prevents premature redirects during token refresh or QR scanning
-    if (!loading && user === null) {
-      navigate("/staff-login");
-      return;
-    }
-    
+    // ProtectedRoute handles auth redirects - just load data when user is present
     if (user) {
       loadData();
     }
-  }, [user, loading, navigate]);
+  }, [user]);
 
   const loadData = async () => {
     try {
