@@ -132,7 +132,7 @@ const StaffScanAttendance = () => {
         .from("locations")
         .select("name")
         .eq("id", locationId)
-        .single();
+        .maybeSingle();
 
       if (isCheckOut) {
         // Check out - update existing log
