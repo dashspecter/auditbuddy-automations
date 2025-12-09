@@ -193,10 +193,20 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           const scheduledMinutes = differenceInMinutes(endTime, startTime);
           const scheduledHours = scheduledMinutes / 60;
           
-          // Find matching attendance log
-          const attendanceLog = attendanceLogs?.find(
+          // Find matching attendance log - first try by shift_id, then by date
+          let attendanceLog = attendanceLogs?.find(
             log => log.staff_id === employee.id && log.shift_id === shift.id
           );
+          
+          // If no shift_id match, try to find by employee and date (for QR-scanned entries without shift_id)
+          if (!attendanceLog) {
+            attendanceLog = attendanceLogs?.find(log => {
+              if (log.staff_id !== employee.id) return false;
+              if (log.shift_id) return false; // Skip if already linked to another shift
+              const logDate = format(new Date(log.check_in_at), 'yyyy-MM-dd');
+              return logDate === shift.shift_date;
+            });
+          }
 
           let actualHours = 0;
           let isLate = false;
