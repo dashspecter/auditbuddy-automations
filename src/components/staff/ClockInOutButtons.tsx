@@ -39,17 +39,22 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
   }, [todayShift, employee]);
 
   const checkExistingLog = async () => {
-    if (!todayShift?.shifts?.id || !employee?.id) {
+    if (!employee?.id) {
       setIsLoading(false);
       return;
     }
 
     try {
+      // Check for any attendance log today (not just by shift_id since QR scan may not link shift)
+      const today = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await supabase
         .from("attendance_logs")
         .select("*")
         .eq("staff_id", employee.id)
-        .eq("shift_id", todayShift.shifts.id)
+        .gte("check_in_at", `${today}T00:00:00`)
+        .order("check_in_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!error && data) {
