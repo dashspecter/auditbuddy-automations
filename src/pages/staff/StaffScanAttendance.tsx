@@ -92,16 +92,20 @@ const StaffScanAttendance = () => {
     setShowScanner(false);
   };
 
-  const handleScanResult = useCallback(async (qrData: string) => {
+  const handleScanResult = async (qrData: string) => {
     setShowScanner(false);
     await processQRCode(qrData);
-  }, [employee, todayStatus]);
+  };
 
   const processQRCode = async (rawData: string) => {
     setProcessing(true);
+    console.log("Processing QR code:", rawData);
+    console.log("Current employee:", employee);
+    console.log("Current todayStatus:", todayStatus);
     
     try {
       const parsed = JSON.parse(rawData);
+      console.log("Parsed QR data:", parsed);
       
       // Check if this is a dynamic QR (v2)
       if (parsed.v !== 2) {
@@ -111,6 +115,7 @@ const StaffScanAttendance = () => {
 
       // Validate the time-based token
       const validation = validateQRToken(parsed.t);
+      console.log("Token validation:", validation);
       
       if (!validation.valid) {
         toast.error("QR code has expired. Please scan the current code.");
@@ -118,6 +123,7 @@ const StaffScanAttendance = () => {
       }
 
       const locationId = parsed.l;
+      console.log("Location ID from QR:", locationId);
       
       if (!employee) {
         toast.error("Employee profile not found");
@@ -126,6 +132,7 @@ const StaffScanAttendance = () => {
 
       // Determine if this is check-in or check-out
       const isCheckOut = todayStatus.checkedIn;
+      console.log("Is checkout:", isCheckOut);
       
       // Get location name
       const { data: locationData } = await supabase
