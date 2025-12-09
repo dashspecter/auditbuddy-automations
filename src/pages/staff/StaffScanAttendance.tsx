@@ -241,12 +241,20 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        toast.success("Checked out successfully!");
+        // Update local state immediately
+        const checkOutTime = new Date().toISOString();
+        setTodayStatus(prev => ({
+          ...prev,
+          checkedIn: false,
+          checkOutTime
+        }));
+        todayStatusRef.current = {
+          ...todayStatusRef.current,
+          checkedIn: false,
+          checkOutTime
+        };
         
-        // Navigate back to staff home after successful checkout
-        setTimeout(() => {
-          navigate("/staff");
-        }, 1500);
+        toast.success("Checked out successfully!");
       } else {
         // Check in - create new log
         const { error } = await supabase
@@ -264,12 +272,18 @@ const StaffScanAttendance = () => {
           return;
         }
 
-        toast.success("Checked in successfully!");
+        // Update local state immediately
+        const checkInTime = new Date().toISOString();
+        const newStatus = {
+          checkedIn: true,
+          checkInTime,
+          checkOutTime: null,
+          locationName: locationData?.name || null
+        };
+        setTodayStatus(newStatus);
+        todayStatusRef.current = newStatus;
         
-        // Navigate back to staff home after successful checkin
-        setTimeout(() => {
-          navigate("/staff");
-        }, 1500);
+        toast.success("Checked in successfully!");
       }
       
     } catch (error: any) {
@@ -317,11 +331,14 @@ const StaffScanAttendance = () => {
           </div>
 
           {/* Current Status Card */}
-          <Card className="p-6">
+          <Card className={`p-6 ${todayStatus.checkedIn ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-muted-foreground">Today's Status</span>
-              <Badge variant={todayStatus.checkedIn ? "default" : "secondary"}>
-                {todayStatus.checkedIn ? "Checked In" : "Not Checked In"}
+              <Badge 
+                variant={todayStatus.checkedIn ? "default" : "secondary"}
+                className={todayStatus.checkedIn ? "bg-green-500 hover:bg-green-600" : ""}
+              >
+                {todayStatus.checkedIn ? "✓ Clocked In" : "Not Checked In"}
               </Badge>
             </div>
             
@@ -347,53 +364,92 @@ const StaffScanAttendance = () => {
             )}
           </Card>
 
-          {/* Scan Button */}
-          <Card className="p-8">
-            <div className="text-center">
-              <Button
-                size="lg"
-                className="w-full h-32 text-lg gap-3"
-                onClick={handleStartScan}
-                disabled={processing || !employee}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-8 w-8" />
-                    {todayStatus.checkedIn ? "Scan to Check Out" : "Scan to Check In"}
-                  </>
-                )}
-              </Button>
-              
-              {!employee && (
-                <p className="text-sm text-destructive mt-4">
-                  Employee profile not found. Please contact your manager.
-                </p>
-              )}
-              
-              <p className="text-sm text-muted-foreground mt-4">
-                Point your camera at the QR code displayed on the location kiosk
-              </p>
-            </div>
-          </Card>
-
-          {/* Last Action */}
-          {lastAction && (
-            <Card className="p-4 border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
-                <div>
-                  <div className="font-medium">
-                    {lastAction.type === "checkin" ? "Checked In" : "Checked Out"} Successfully
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {format(lastAction.time, "h:mm a")} at {lastAction.location}
-                  </div>
+          {/* Clocked In Status - Show when checked in */}
+          {todayStatus.checkedIn && !todayStatus.checkOutTime && (
+            <Card className="p-8 border-green-500 bg-green-50 dark:bg-green-950/30">
+              <div className="text-center">
+                <div className="h-20 w-20 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="h-12 w-12 text-white" />
                 </div>
+                <h2 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">
+                  You're Clocked In!
+                </h2>
+                <p className="text-green-600 dark:text-green-500 mb-4">
+                  Since {todayStatus.checkInTime ? format(new Date(todayStatus.checkInTime), "h:mm a") : ""}
+                  {todayStatus.locationName ? ` at ${todayStatus.locationName}` : ""}
+                </p>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-16 text-lg gap-3 border-green-500 text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50"
+                  onClick={handleStartScan}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-6 w-6" />
+                      Scan to Clock Out
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* Scan to Check In - Only show when NOT checked in */}
+          {!todayStatus.checkedIn && (
+            <Card className="p-8">
+              <div className="text-center">
+                <Button
+                  size="lg"
+                  className="w-full h-32 text-lg gap-3"
+                  onClick={handleStartScan}
+                  disabled={processing || !employee}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-8 w-8" />
+                      Scan to Check In
+                    </>
+                  )}
+                </Button>
+                
+                {!employee && (
+                  <p className="text-sm text-destructive mt-4">
+                    Employee profile not found. Please contact your manager.
+                  </p>
+                )}
+                
+                <p className="text-sm text-muted-foreground mt-4">
+                  Point your camera at the QR code displayed on the location kiosk
+                </p>
+              </div>
+            </Card>
+          )}
+
+          {/* Already Checked Out Today */}
+          {todayStatus.checkOutTime && (
+            <Card className="p-6 border-muted">
+              <div className="text-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h2 className="text-lg font-semibold text-muted-foreground mb-2">
+                  Shift Complete
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  You clocked out at {format(new Date(todayStatus.checkOutTime), "h:mm a")}
+                </p>
               </div>
             </Card>
           )}
