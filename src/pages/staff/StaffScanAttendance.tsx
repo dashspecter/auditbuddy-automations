@@ -315,6 +315,23 @@ const StaffScanAttendance = () => {
       } else {
         // Check in - create new log
         console.log("Creating check-in record...");
+        
+        // Find the employee's assigned shift for today at this location
+        const today = format(new Date(), "yyyy-MM-dd");
+        const { data: todayShift } = await supabase
+          .from("shift_assignments")
+          .select(`
+            shift_id,
+            shifts!inner(id, shift_date, location_id)
+          `)
+          .eq("staff_id", currentEmployee.id)
+          .eq("shifts.shift_date", today)
+          .eq("shifts.location_id", locationId)
+          .eq("approval_status", "approved")
+          .maybeSingle();
+        
+        console.log("Found shift for today:", todayShift);
+        
         const { error } = await supabase
           .from("attendance_logs")
           .insert({
@@ -322,6 +339,7 @@ const StaffScanAttendance = () => {
             location_id: locationId,
             check_in_at: new Date().toISOString(),
             method: "app",
+            shift_id: todayShift?.shift_id || null,
           });
 
         if (error) {
