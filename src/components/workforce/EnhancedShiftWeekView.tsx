@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut } from "lucide-react";
 import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
@@ -11,6 +11,7 @@ import { useLaborCosts } from "@/hooks/useLaborCosts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useWeather } from "@/hooks/useWeather";
+import { useAttendanceLogs } from "@/hooks/useAttendanceLogs";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isWithinInterval, parseISO } from "date-fns";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
@@ -66,6 +67,12 @@ export const EnhancedShiftWeekView = () => {
   const { data: allSchedules = [] } = useLocationSchedules(undefined, true); // Fetch all schedules for all locations
   const { data: departmentsList = [] } = useDepartments();
   const bulkPublish = useBulkPublishShifts();
+  
+  // Fetch attendance logs for the week to show check-in/out indicators
+  const { data: attendanceLogs = [] } = useAttendanceLogs(
+    selectedLocation === "all" ? undefined : selectedLocation,
+    format(currentWeekStart, 'yyyy-MM-dd')
+  );
 
   // Get selected location's coordinates for weather
   const selectedLocationData = selectedLocation !== "all" 
@@ -79,6 +86,16 @@ export const EnhancedShiftWeekView = () => {
 
   const [weatherPopoverOpen, setWeatherPopoverOpen] = useState(false);
   const [selectedWeatherDate, setSelectedWeatherDate] = useState<string | null>(null);
+
+  // Get attendance for a specific employee on a specific date
+  const getAttendanceForEmployeeAndDate = (employeeId: string, date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return attendanceLogs.find(log => {
+      if (log.staff_id !== employeeId) return false;
+      const logDate = log.check_in_at.split('T')[0];
+      return logDate === dateStr;
+    });
+  };
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -721,6 +738,7 @@ export const EnhancedShiftWeekView = () => {
                           );
                           const isPending = assignment?.approval_status === 'pending';
                           const isUnpublished = !shift.is_published;
+                          const attendance = getAttendanceForEmployeeAndDate(employee.id, day);
                           
                           return (
                             <div
@@ -736,16 +754,36 @@ export const EnhancedShiftWeekView = () => {
                             >
                               <div className="flex items-center justify-between">
                                 <div className="font-medium">{shift.role}</div>
-                                {isUnpublished && !isPending && (
-                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
-                                    Draft
-                                  </Badge>
-                                )}
-                                {isPending && (
-                                  <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
-                                    Pending
-                                  </Badge>
-                                )}
+                                <div className="flex items-center gap-1">
+                                  {attendance && (
+                                    <div className="flex items-center gap-0.5">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <LogIn className="h-3 w-3 text-green-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Checked in: {format(new Date(attendance.check_in_at), 'HH:mm')}</TooltipContent>
+                                      </Tooltip>
+                                      {attendance.check_out_at && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <LogOut className="h-3 w-3 text-blue-600" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>Checked out: {format(new Date(attendance.check_out_at), 'HH:mm')}</TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+                                  )}
+                                  {isUnpublished && !isPending && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
+                                      Draft
+                                    </Badge>
+                                  )}
+                                  {isPending && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
+                                      Pending
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-muted-foreground">
                                 {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
@@ -870,9 +908,28 @@ export const EnhancedShiftWeekView = () => {
                           </div>
                           {approvedAssignments.map((sa: any) => {
                             const emp = employees.find(e => e.id === sa.staff_id);
+                            const empAttendance = emp ? getAttendanceForEmployeeAndDate(emp.id, day) : null;
                             return emp ? (
-                              <div key={sa.id} className="text-[11px] font-medium mt-1">
+                              <div key={sa.id} className="text-[11px] font-medium mt-1 flex items-center gap-1">
                                 {emp.full_name}
+                                {empAttendance && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <LogIn className="h-3 w-3 text-green-600" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>Checked in: {format(new Date(empAttendance.check_in_at), 'HH:mm')}</TooltipContent>
+                                    </Tooltip>
+                                    {empAttendance.check_out_at && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <LogOut className="h-3 w-3 text-blue-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Checked out: {format(new Date(empAttendance.check_out_at), 'HH:mm')}</TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </span>
+                                )}
                               </div>
                             ) : null;
                           })}
