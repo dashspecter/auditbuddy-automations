@@ -20,7 +20,7 @@ import {
 
 const StaffLogin = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,11 +31,35 @@ const StaffLogin = () => {
 
   useEffect(() => {
     // If already logged in, redirect to staff dashboard
-    if (user) {
-      // Direct redirect without async call - the ProtectedRoute will handle the rest
+    // Wait for loading to complete to avoid race conditions
+    if (!loading && user) {
       navigate("/staff", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
+
+  // Show loading while auth is initializing to prevent errors
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is already logged in, show loading while redirecting
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
