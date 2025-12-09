@@ -225,24 +225,49 @@ const StaffScanAttendance = () => {
         .maybeSingle();
 
       if (isCheckOut) {
-        // Check out - update existing log
+        // Check out - first find the open attendance log
         const today = format(new Date(), "yyyy-MM-dd");
         
-        const { error } = await supabase
+        // First, find the attendance log to update
+        const { data: openLog, error: findError } = await supabase
           .from("attendance_logs")
-          .update({ check_out_at: new Date().toISOString() })
+          .select("id")
           .eq("staff_id", currentEmployee.id)
           .is("check_out_at", null)
-          .gte("check_in_at", `${today}T00:00:00`);
+          .gte("check_in_at", `${today}T00:00:00`)
+          .order("check_in_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (error) {
-          console.error("Checkout error:", error);
-          toast.error(error.message || "Failed to check out");
+        if (findError) {
+          console.error("Error finding open log:", findError);
+          toast.error("Failed to find open attendance record");
+          return;
+        }
+
+        if (!openLog) {
+          console.error("No open attendance log found");
+          toast.error("No open clock-in record found for today");
+          // Reset local state since there's no open record
+          setTodayStatus(prev => ({ ...prev, checkedIn: false }));
+          todayStatusRef.current = { ...todayStatusRef.current, checkedIn: false };
+          return;
+        }
+
+        // Now update by specific ID
+        const checkOutTime = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from("attendance_logs")
+          .update({ check_out_at: checkOutTime })
+          .eq("id", openLog.id);
+
+        if (updateError) {
+          console.error("Checkout error:", updateError);
+          toast.error(updateError.message || "Failed to check out");
           return;
         }
 
         // Update local state immediately
-        const checkOutTime = new Date().toISOString();
         setTodayStatus(prev => ({
           ...prev,
           checkedIn: false,
