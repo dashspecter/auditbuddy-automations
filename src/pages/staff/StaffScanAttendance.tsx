@@ -21,7 +21,7 @@ import { QRScanner } from "@/components/QRScanner";
 import { useNavigate } from "react-router-dom";
 
 const StaffScanAttendance = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [showScanner, setShowScanner] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -52,18 +52,13 @@ const StaffScanAttendance = () => {
   }, [todayStatus]);
 
   useEffect(() => {
-    // Redirect if auth is done loading and no user
-    if (!authLoading && !user) {
-      navigate("/staff-login");
+    // ProtectedRoute handles auth redirects - just load data when user is present
+    if (!user) {
+      setIsLoading(false);
       return;
     }
     
     const loadData = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-      
       try {
         await Promise.all([loadEmployee(), loadTodayStatus()]);
       } catch (error) {
@@ -74,7 +69,7 @@ const StaffScanAttendance = () => {
     };
     
     loadData();
-  }, [user, authLoading, navigate]);
+  }, [user]);
 
   const loadEmployee = async () => {
     if (!user) return;
