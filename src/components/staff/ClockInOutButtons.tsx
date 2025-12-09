@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut as LogOutIcon, Loader2, AlertTriangle } from "lucide-react";
+import { LogIn, LogOut as LogOutIcon, Loader2, AlertTriangle, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,6 +13,7 @@ interface ClockInOutButtonsProps {
 }
 
 export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOutButtonsProps) {
+  const navigate = useNavigate();
   const [isClocking, setIsClocking] = useState(false);
   const [currentLog, setCurrentLog] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,76 +62,9 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
     }
   };
 
-  const handleClockIn = async () => {
-    if (!todayShift || !employee) return;
-
-    setIsClocking(true);
-    try {
-      const now = new Date();
-      const shiftStartTime = todayShift.shifts.start_time;
-      const [hours, minutes] = shiftStartTime.split(':').map(Number);
-      
-      // Create shift start datetime
-      const shiftStart = new Date();
-      shiftStart.setHours(hours, minutes, 0, 0);
-
-      // Calculate if late
-      const isLate = now > shiftStart;
-      const lateMinutes = isLate ? Math.floor((now.getTime() - shiftStart.getTime()) / 60000) : 0;
-
-      const { data, error } = await supabase
-        .from("attendance_logs")
-        .insert({
-          staff_id: employee.id,
-          location_id: todayShift.shifts.location_id,
-          shift_id: todayShift.shifts.id,
-          check_in_at: now.toISOString(),
-          method: "app",
-          is_late: isLate,
-          late_minutes: lateMinutes,
-          expected_clock_in: shiftStartTime,
-          notes: isLate ? `Clocked in ${lateMinutes} minutes late` : null
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setCurrentLog(data);
-      toast.success(isLate 
-        ? `Clocked in (${lateMinutes}min late)` 
-        : "Clocked in successfully"
-      );
-      onRefresh();
-    } catch (error: any) {
-      console.error("Clock in error:", error);
-      toast.error("Failed to clock in: " + error.message);
-    } finally {
-      setIsClocking(false);
-    }
-  };
-
-  const handleClockOut = async () => {
-    if (!currentLog) return;
-
-    setIsClocking(true);
-    try {
-      const { error } = await supabase
-        .from("attendance_logs")
-        .update({ check_out_at: new Date().toISOString() })
-        .eq("id", currentLog.id);
-
-      if (error) throw error;
-
-      setCurrentLog({ ...currentLog, check_out_at: new Date().toISOString() });
-      toast.success("Clocked out successfully");
-      onRefresh();
-    } catch (error: any) {
-      console.error("Clock out error:", error);
-      toast.error("Failed to clock out: " + error.message);
-    } finally {
-      setIsClocking(false);
-    }
+  const handleClockAction = () => {
+    // Navigate to the QR scan attendance page
+    navigate("/staff/scan-attendance");
   };
 
   if (isLoading) {
@@ -164,15 +99,10 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
           variant="default" 
           className="flex-1 touch-target" 
           size="sm"
-          onClick={handleClockOut}
-          disabled={isClocking}
+          onClick={handleClockAction}
         >
-          {isClocking ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <LogOutIcon className="h-4 w-4 mr-2" />
-          )}
-          Clock Out
+          <QrCode className="h-4 w-4 mr-2" />
+          Scan to Clock Out
         </Button>
       </div>
     );
@@ -193,15 +123,10 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
         <Button 
           className="flex-1 touch-target" 
           size="sm"
-          onClick={handleClockIn}
-          disabled={isClocking}
+          onClick={handleClockAction}
         >
-          {isClocking ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <LogIn className="h-4 w-4 mr-2" />
-          )}
-          Clock In {lateInfo?.isLate ? '(Late)' : ''}
+          <QrCode className="h-4 w-4 mr-2" />
+          Scan to Clock In {lateInfo?.isLate ? '(Late)' : ''}
         </Button>
         <Button variant="outline" className="flex-1 touch-target" size="sm" disabled>
           <LogOutIcon className="h-4 w-4 mr-2" />
