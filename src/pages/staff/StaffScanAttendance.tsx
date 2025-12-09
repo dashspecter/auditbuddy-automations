@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Camera, 
   CheckCircle2, 
-  XCircle, 
   Clock, 
   MapPin,
   LogIn,
@@ -17,10 +16,11 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { validateQRToken } from "@/hooks/useAttendanceKiosks";
+import { QRScanner } from "@/components/QRScanner";
 
 const StaffScanAttendance = () => {
   const { user } = useAuth();
-  const [scanning, setScanning] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
@@ -84,27 +84,18 @@ const StaffScanAttendance = () => {
     }
   };
 
-  const handleScan = async () => {
-    setScanning(true);
-    
-    try {
-      // Use the native camera/barcode scanner if available
-      // For now, we'll use a simple prompt (in production, use a proper QR scanner library)
-      const qrData = prompt("Paste the scanned QR code data (for testing):");
-      
-      if (!qrData) {
-        setScanning(false);
-        return;
-      }
-
-      await processQRCode(qrData);
-    } catch (error) {
-      console.error("Scan error:", error);
-      toast.error("Failed to scan QR code");
-    } finally {
-      setScanning(false);
-    }
+  const handleStartScan = () => {
+    setShowScanner(true);
   };
+
+  const handleCloseScan = () => {
+    setShowScanner(false);
+  };
+
+  const handleScanResult = useCallback(async (qrData: string) => {
+    setShowScanner(false);
+    await processQRCode(qrData);
+  }, [employee, todayStatus]);
 
   const processQRCode = async (rawData: string) => {
     setProcessing(true);
@@ -197,6 +188,11 @@ const StaffScanAttendance = () => {
   };
 
   return (
+    <>
+      {showScanner && (
+        <QRScanner onScan={handleScanResult} onClose={handleCloseScan} />
+      )}
+      
     <div className="min-h-screen bg-background p-4 pb-24">
       <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
@@ -242,18 +238,13 @@ const StaffScanAttendance = () => {
             <Button
               size="lg"
               className="w-full h-32 text-lg gap-3"
-              onClick={handleScan}
-              disabled={scanning || processing}
+              onClick={handleStartScan}
+              disabled={processing}
             >
               {processing ? (
                 <>
                   <Loader2 className="h-8 w-8 animate-spin" />
                   Processing...
-                </>
-              ) : scanning ? (
-                <>
-                  <Camera className="h-8 w-8 animate-pulse" />
-                  Scanning...
                 </>
               ) : (
                 <>
@@ -293,6 +284,7 @@ const StaffScanAttendance = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
