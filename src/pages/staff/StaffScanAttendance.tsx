@@ -47,7 +47,7 @@ const StaffScanAttendance = () => {
       .from("employees")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
     
     setEmployee(data);
   };
@@ -61,7 +61,7 @@ const StaffScanAttendance = () => {
       .from("employees")
       .select("id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
     
     if (!empData) return;
 
