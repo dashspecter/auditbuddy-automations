@@ -162,7 +162,7 @@ const StaffScanAttendance = () => {
             staff_id: employee.id,
             location_id: locationId,
             check_in_at: new Date().toISOString(),
-            method: "qr_dynamic",
+            method: "app",
           });
 
         if (error) throw error;
