@@ -25,6 +25,72 @@ const OPERATORS = [
   { value: "not_contains", label: "Not contains" },
 ];
 
+// Predefined condition fields per agent type
+const CONDITION_FIELDS: Record<string, Array<{ value: string; label: string; description: string }>> = {
+  operations: [
+    { value: "late_minutes", label: "Late Minutes", description: "Minutes employee is late to clock in" },
+    { value: "inventory_level", label: "Inventory Level", description: "Current stock level of an item" },
+    { value: "audit_score", label: "Audit Score", description: "Score from completed audit (0-100)" },
+    { value: "equipment_status", label: "Equipment Status", description: "Status of equipment (operational, needs_maintenance, etc.)" },
+    { value: "task_priority", label: "Task Priority", description: "Priority level of a task (low, medium, high, urgent)" },
+    { value: "temperature", label: "Temperature", description: "Recorded temperature reading" },
+  ],
+  workforce: [
+    { value: "overtime_hours", label: "Overtime Hours", description: "Weekly overtime hours worked" },
+    { value: "consecutive_days", label: "Consecutive Days", description: "Days worked in a row without break" },
+    { value: "shift_coverage", label: "Shift Coverage", description: "Percentage of shift positions filled" },
+    { value: "absence_count", label: "Absence Count", description: "Number of absences in period" },
+    { value: "performance_score", label: "Performance Score", description: "Employee performance rating" },
+    { value: "hours_this_week", label: "Hours This Week", description: "Total hours scheduled this week" },
+  ],
+  compliance: [
+    { value: "audit_score", label: "Audit Score", description: "Compliance audit score (0-100)" },
+    { value: "days_since_audit", label: "Days Since Audit", description: "Days since last compliance audit" },
+    { value: "document_expiry_days", label: "Document Expiry Days", description: "Days until document expires" },
+    { value: "training_completion", label: "Training Completion", description: "Training completion percentage" },
+    { value: "violation_count", label: "Violation Count", description: "Number of violations recorded" },
+  ],
+  insights: [
+    { value: "trend_direction", label: "Trend Direction", description: "Direction of metric trend (up, down, stable)" },
+    { value: "anomaly_score", label: "Anomaly Score", description: "Deviation from normal pattern" },
+    { value: "data_freshness_hours", label: "Data Freshness", description: "Hours since last data update" },
+  ],
+};
+
+// Predefined actions per agent type
+const ACTION_OPTIONS: Record<string, Array<{ value: string; label: string; description: string }>> = {
+  operations: [
+    { value: "send_alert", label: "Send Alert", description: "Send notification to managers" },
+    { value: "create_task", label: "Create Task", description: "Auto-create a task for follow-up" },
+    { value: "escalate", label: "Escalate Issue", description: "Escalate to higher management" },
+    { value: "log_event", label: "Log Event", description: "Record event in activity log" },
+    { value: "update_status", label: "Update Status", description: "Change equipment/item status" },
+    { value: "schedule_intervention", label: "Schedule Intervention", description: "Create maintenance intervention" },
+  ],
+  workforce: [
+    { value: "send_alert", label: "Send Alert", description: "Notify managers about workforce issue" },
+    { value: "create_task", label: "Create Task", description: "Create HR-related task" },
+    { value: "block_scheduling", label: "Block Scheduling", description: "Prevent further shift assignments" },
+    { value: "notify_employee", label: "Notify Employee", description: "Send notification to employee" },
+    { value: "request_approval", label: "Request Approval", description: "Trigger approval workflow" },
+    { value: "adjust_schedule", label: "Adjust Schedule", description: "Suggest schedule modifications" },
+  ],
+  compliance: [
+    { value: "send_alert", label: "Send Alert", description: "Alert about compliance issue" },
+    { value: "create_task", label: "Create Task", description: "Create remediation task" },
+    { value: "schedule_audit", label: "Schedule Audit", description: "Auto-schedule new audit" },
+    { value: "flag_location", label: "Flag Location", description: "Mark location for review" },
+    { value: "generate_report", label: "Generate Report", description: "Create compliance report" },
+    { value: "suspend_operations", label: "Suspend Operations", description: "Trigger operational pause" },
+  ],
+  insights: [
+    { value: "generate_summary", label: "Generate Summary", description: "Create AI insight summary" },
+    { value: "send_report", label: "Send Report", description: "Email report to stakeholders" },
+    { value: "trigger_analysis", label: "Trigger Analysis", description: "Run deeper data analysis" },
+    { value: "create_recommendation", label: "Create Recommendation", description: "Generate action recommendations" },
+  ],
+};
+
 interface PolicyFormData {
   agent_type: string;
   policy_name: string;
@@ -312,82 +378,161 @@ const AgentPolicies = () => {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Conditions</Label>
+                <div>
+                  <Label>Conditions</Label>
+                  <p className="text-xs text-muted-foreground">When these conditions are met, actions will trigger</p>
+                </div>
                 <Button type="button" variant="outline" size="sm" onClick={addCondition}>
                   <Plus className="h-4 w-4 mr-1" /> Add Condition
                 </Button>
               </div>
-              <div className="space-y-2">
-                {formData.conditions_json.map((condition, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <Input
-                      placeholder="Field name"
-                      value={condition.field}
-                      onChange={(e) => updateCondition(index, "field", e.target.value)}
-                      className="flex-1"
-                    />
-                    <Select
-                      value={condition.operator}
-                      onValueChange={(value) => updateCondition(index, "operator", value)}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OPERATORS.map((op) => (
-                          <SelectItem key={op.value} value={op.value}>
-                            {op.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="Value"
-                      value={condition.value}
-                      onChange={(e) => updateCondition(index, "value", e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeCondition(index)}
-                      disabled={formData.conditions_json.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {formData.conditions_json.map((condition, index) => {
+                  const availableFields = CONDITION_FIELDS[formData.agent_type] || [];
+                  const selectedField = availableFields.find(f => f.value === condition.field);
+                  
+                  return (
+                    <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Field</Label>
+                          {formData.agent_type && availableFields.length > 0 ? (
+                            <Select
+                              value={condition.field}
+                              onValueChange={(value) => updateCondition(index, "field", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select field to monitor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableFields.map((field) => (
+                                  <SelectItem key={field.value} value={field.value}>
+                                    <div className="flex flex-col">
+                                      <span>{field.label}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              placeholder="Select agent type first"
+                              value={condition.field}
+                              onChange={(e) => updateCondition(index, "field", e.target.value)}
+                              disabled={!formData.agent_type}
+                            />
+                          )}
+                        </div>
+                        <div className="w-40">
+                          <Label className="text-xs text-muted-foreground">Operator</Label>
+                          <Select
+                            value={condition.operator}
+                            onValueChange={(value) => updateCondition(index, "operator", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {OPERATORS.map((op) => (
+                                <SelectItem key={op.value} value={op.value}>
+                                  {op.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Value</Label>
+                          <Input
+                            placeholder="Threshold value"
+                            value={condition.value}
+                            onChange={(e) => updateCondition(index, "value", e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-5"
+                          onClick={() => removeCondition(index)}
+                          disabled={formData.conditions_json.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {selectedField && (
+                        <p className="text-xs text-muted-foreground pl-1">{selectedField.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Actions</Label>
+                <div>
+                  <Label>Actions</Label>
+                  <p className="text-xs text-muted-foreground">What happens when conditions are met</p>
+                </div>
                 <Button type="button" variant="outline" size="sm" onClick={addAction}>
                   <Plus className="h-4 w-4 mr-1" /> Add Action
                 </Button>
               </div>
-              <div className="space-y-2">
-                {formData.actions_json.map((action, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <Input
-                      placeholder="Action name (e.g., send_alert, create_task)"
-                      value={action.action}
-                      onChange={(e) => updateAction(index, e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeAction(index)}
-                      disabled={formData.actions_json.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {formData.actions_json.map((action, index) => {
+                  const availableActions = ACTION_OPTIONS[formData.agent_type] || [];
+                  const selectedAction = availableActions.find(a => a.value === action.action);
+                  
+                  return (
+                    <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground">Action Type</Label>
+                          {formData.agent_type && availableActions.length > 0 ? (
+                            <Select
+                              value={action.action}
+                              onValueChange={(value) => updateAction(index, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select action to perform" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableActions.map((act) => (
+                                  <SelectItem key={act.value} value={act.value}>
+                                    <div className="flex flex-col">
+                                      <span>{act.label}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              placeholder="Select agent type first"
+                              value={action.action}
+                              onChange={(e) => updateAction(index, e.target.value)}
+                              disabled={!formData.agent_type}
+                            />
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-5"
+                          onClick={() => removeAction(index)}
+                          disabled={formData.actions_json.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {selectedAction && (
+                        <p className="text-xs text-muted-foreground pl-1">{selectedAction.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
