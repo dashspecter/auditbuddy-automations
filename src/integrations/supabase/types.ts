@@ -398,6 +398,67 @@ export type Database = {
           },
         ]
       }
+      attendance_alerts: {
+        Row: {
+          alert_type: string
+          company_id: string
+          created_at: string
+          date: string
+          details_json: Json | null
+          employee_id: string | null
+          id: string
+          location_id: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          alert_type: string
+          company_id: string
+          created_at?: string
+          date: string
+          details_json?: Json | null
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          alert_type?: string
+          company_id?: string
+          created_at?: string
+          date?: string
+          details_json?: Json | null
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_alerts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_alerts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_alerts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_kiosks: {
         Row: {
           company_id: string
@@ -2501,6 +2562,60 @@ export type Database = {
           },
         ]
       }
+      location_daily_ops: {
+        Row: {
+          checklist_json: Json
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          issues_found_json: Json | null
+          location_health_score: number | null
+          location_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          checklist_json?: Json
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          issues_found_json?: Json | null
+          location_health_score?: number | null
+          location_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist_json?: Json
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          issues_found_json?: Json | null
+          location_health_score?: number | null
+          location_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_daily_ops_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_daily_ops_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_operating_schedules: {
         Row: {
           close_time: string
@@ -2538,6 +2653,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "location_operating_schedules_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_sla_configs: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          location_id: string | null
+          rules_json: Json
+          sla_name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_id?: string | null
+          rules_json?: Json
+          sla_name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_id?: string | null
+          rules_json?: Json
+          sla_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_sla_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_sla_configs_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -2600,6 +2766,73 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_tasks: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by_agent: boolean
+          equipment_id: string | null
+          id: string
+          location_id: string
+          notes: string | null
+          scheduled_for: string
+          status: string
+          task_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by_agent?: boolean
+          equipment_id?: string | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          scheduled_for: string
+          status?: string
+          task_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by_agent?: boolean
+          equipment_id?: string | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          scheduled_for?: string
+          status?: string
+          task_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
@@ -3155,6 +3388,50 @@ export type Database = {
           },
           {
             foreignKeyName: "notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_batches: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by_agent: boolean
+          id: string
+          period_end: string
+          period_start: string
+          status: string
+          summary_json: Json | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by_agent?: boolean
+          id?: string
+          period_end: string
+          period_start: string
+          status?: string
+          summary_json?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by_agent?: boolean
+          id?: string
+          period_end?: string
+          period_start?: string
+          status?: string
+          summary_json?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_batches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -3842,6 +4119,61 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          details_json: Json | null
+          id: string
+          location_id: string
+          occurred_at: string
+          sla_config_id: string
+          status: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          details_json?: Json | null
+          id?: string
+          location_id: string
+          occurred_at?: string
+          sla_config_id: string
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          details_json?: Json | null
+          id?: string
+          location_id?: string
+          occurred_at?: string
+          sla_config_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_events_sla_config_id_fkey"
+            columns: ["sla_config_id"]
+            isOneToOne: false
+            referencedRelation: "location_sla_configs"
             referencedColumns: ["id"]
           },
         ]
@@ -4710,6 +5042,76 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timesheets: {
+        Row: {
+          anomalies_json: Json | null
+          company_id: string
+          created_at: string
+          date: string
+          employee_id: string
+          hours_worked: number | null
+          id: string
+          location_id: string
+          overtime_hours: number | null
+          shift_end: string | null
+          shift_start: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          anomalies_json?: Json | null
+          company_id: string
+          created_at?: string
+          date: string
+          employee_id: string
+          hours_worked?: number | null
+          id?: string
+          location_id: string
+          overtime_hours?: number | null
+          shift_end?: string | null
+          shift_start?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          anomalies_json?: Json | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          hours_worked?: number | null
+          id?: string
+          location_id?: string
+          overtime_hours?: number | null
+          shift_end?: string | null
+          shift_start?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]

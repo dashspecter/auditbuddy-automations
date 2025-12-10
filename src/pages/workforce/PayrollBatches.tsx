@@ -1,0 +1,310 @@
+import { useState } from "react";
+import { format } from "date-fns";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
+import { Plus, Eye, DollarSign, Clock, CheckCircle2, Bot, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  draft: { label: "Draft", color: "secondary" },
+  pending_approval: { label: "Pending Approval", color: "bg-yellow-500/10 text-yellow-500" },
+  approved: { label: "Approved", color: "bg-blue-500/10 text-blue-500" },
+  processed: { label: "Processed", color: "bg-purple-500/10 text-purple-500" },
+  paid: { label: "Paid", color: "bg-green-500/10 text-green-500" },
+};
+
+export default function PayrollBatches() {
+  const navigate = useNavigate();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<PayrollBatch | null>(null);
+  const [newPeriod, setNewPeriod] = useState({ start: "", end: "" });
+
+  const { data: batches, isLoading, refetch } = usePayrollBatches();
+  const updateBatch = useUpdatePayrollBatch();
+  const preparePayroll = usePreparePayroll();
+
+  const handlePreparePayroll = async () => {
+    if (!newPeriod.start || !newPeriod.end) {
+      toast.error("Please select start and end dates");
+      return;
+    }
+
+    try {
+      await preparePayroll.mutateAsync({
+        periodStart: newPeriod.start,
+        periodEnd: newPeriod.end,
+      });
+      toast.success("Payroll batch prepared");
+      setIsDialogOpen(false);
+      setNewPeriod({ start: "", end: "" });
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to prepare payroll");
+    }
+  };
+
+  const handleStatusChange = async (batchId: string, newStatus: string) => {
+    try {
+      await updateBatch.mutateAsync({
+        id: batchId,
+        status: newStatus as any,
+      });
+      toast.success("Batch status updated");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update status");
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const config = STATUS_LABELS[status] || { label: status, color: "secondary" };
+    return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Payroll Batches</h1>
+          <p className="text-muted-foreground">Manage payroll processing and employee payments</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Prepare Payroll
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Prepare Payroll Batch</DialogTitle>
+              <DialogDescription>
+                The Workforce Agent will analyze attendance and generate a payroll batch
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Period Start</Label>
+                  <Input
+                    type="date"
+                    value={newPeriod.start}
+                    onChange={(e) => setNewPeriod({ ...newPeriod, start: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Period End</Label>
+                  <Input
+                    type="date"
+                    value={newPeriod.end}
+                    onChange={(e) => setNewPeriod({ ...newPeriod, end: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handlePreparePayroll} disabled={preparePayroll.isPending}>
+                <Bot className="h-4 w-4 mr-2" />
+                Prepare with Agent
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payroll History</CardTitle>
+          <CardDescription>All payroll batches and their current status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : batches && batches.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Employees</TableHead>
+                  <TableHead>Total Hours</TableHead>
+                  <TableHead>Overtime</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {batches.map((batch) => {
+                  const summary = batch.summary_json;
+                  return (
+                    <TableRow key={batch.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <span className="font-medium">
+                              {format(new Date(batch.period_start), "MMM d")} - {format(new Date(batch.period_end), "MMM d, yyyy")}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              Created {format(new Date(batch.created_at), "MMM d, HH:mm")}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          {summary.employee_count || 0}
+                        </div>
+                      </TableCell>
+                      <TableCell>{summary.total_regular_hours?.toFixed(1) || 0}h</TableCell>
+                      <TableCell>
+                        {(summary.total_overtime_hours || 0) > 0 ? (
+                          <Badge variant="outline">{summary.total_overtime_hours?.toFixed(1)}h OT</Badge>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(batch.status)}</TableCell>
+                      <TableCell>
+                        {batch.created_by_agent ? (
+                          <Badge variant="outline" className="gap-1">
+                            <Bot className="h-3 w-3" /> Agent
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Manual</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedBatch(batch)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Details
+                          </Button>
+                          {batch.status === "draft" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleStatusChange(batch.id, "pending_approval")}
+                            >
+                              Submit
+                            </Button>
+                          )}
+                          {batch.status === "pending_approval" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleStatusChange(batch.id, "approved")}
+                            >
+                              Approve
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12">
+              <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">No payroll batches found</p>
+              <p className="text-sm text-muted-foreground">Prepare a payroll batch to get started</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Batch Detail Dialog */}
+      <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Payroll Batch Details</DialogTitle>
+            <DialogDescription>
+              {selectedBatch && `${format(new Date(selectedBatch.period_start), "MMM d")} - ${format(new Date(selectedBatch.period_end), "MMM d, yyyy")}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBatch && (
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-2xl font-bold">{selectedBatch.summary_json.employee_count || 0}</p>
+                    <p className="text-sm text-muted-foreground">Employees</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-2xl font-bold">{selectedBatch.summary_json.total_regular_hours?.toFixed(1) || 0}h</p>
+                    <p className="text-sm text-muted-foreground">Regular Hours</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-2xl font-bold">{selectedBatch.summary_json.total_overtime_hours?.toFixed(1) || 0}h</p>
+                    <p className="text-sm text-muted-foreground">Overtime</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-2xl font-bold">{selectedBatch.summary_json.total_anomalies || 0}</p>
+                    <p className="text-sm text-muted-foreground">Anomalies</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <h4 className="font-medium mt-6">Employee Breakdown</h4>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Days Worked</TableHead>
+                    <TableHead>Regular</TableHead>
+                    <TableHead>Overtime</TableHead>
+                    <TableHead>Anomalies</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(selectedBatch.summary_json.employee_summaries || []).map((emp) => (
+                    <TableRow key={emp.employee_id}>
+                      <TableCell className="font-medium">{emp.employee_name}</TableCell>
+                      <TableCell>{emp.days_worked}</TableCell>
+                      <TableCell>{emp.regular_hours?.toFixed(1)}h</TableCell>
+                      <TableCell>
+                        {emp.overtime_hours > 0 ? (
+                          <Badge variant="outline">{emp.overtime_hours.toFixed(1)}h</Badge>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {emp.anomalies.length > 0 ? (
+                          <Badge variant="destructive">{emp.anomalies.length}</Badge>
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
