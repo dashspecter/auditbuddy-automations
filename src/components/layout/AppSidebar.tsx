@@ -168,6 +168,7 @@ const navigationItems = [
     url: "/marketplace", 
     icon: Store,
     module: null,
+    allowedRoles: ['admin', 'manager', 'hr', 'checker'] // Show to all authenticated users
   },
   { 
     title: "Operations", 
