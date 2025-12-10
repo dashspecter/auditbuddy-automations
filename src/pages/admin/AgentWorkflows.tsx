@@ -103,14 +103,14 @@ const WorkflowList = () => {
             <div className="w-48">
               <Label>Agent Type</Label>
               <Select
-                value={filters.agentType || ""}
-                onValueChange={(value) => setFilters({ ...filters, agentType: value || undefined })}
+                value={filters.agentType || "all"}
+                onValueChange={(value) => setFilters({ ...filters, agentType: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All agents" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All agents</SelectItem>
+                  <SelectItem value="all">All agents</SelectItem>
                   {AGENT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -123,14 +123,14 @@ const WorkflowList = () => {
             <div className="w-48">
               <Label>Status</Label>
               <Select
-                value={filters.status || ""}
-                onValueChange={(value) => setFilters({ ...filters, status: value || undefined })}
+                value={filters.status || "all"}
+                onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
