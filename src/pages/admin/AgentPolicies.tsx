@@ -182,12 +182,12 @@ const AgentPolicies = () => {
           <div className="flex gap-4">
             <div className="w-64">
               <Label>Agent Type</Label>
-              <Select value={selectedAgentType} onValueChange={setSelectedAgentType}>
+              <Select value={selectedAgentType || "all"} onValueChange={(val) => setSelectedAgentType(val === "all" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All agents" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All agents</SelectItem>
+                  <SelectItem value="all">All agents</SelectItem>
                   {AGENT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
