@@ -44,6 +44,231 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_logs: {
+        Row: {
+          agent_type: string
+          company_id: string
+          details_json: Json
+          event_type: string
+          id: string
+          occurred_at: string
+          task_id: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          agent_type: string
+          company_id: string
+          details_json?: Json
+          event_type: string
+          id?: string
+          occurred_at?: string
+          task_id?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          agent_type?: string
+          company_id?: string
+          details_json?: Json
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          task_id?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_logs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "agent_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_memory: {
+        Row: {
+          agent_type: string
+          company_id: string
+          content_json: Json
+          created_at: string
+          id: string
+          memory_type: string
+        }
+        Insert: {
+          agent_type: string
+          company_id: string
+          content_json?: Json
+          created_at?: string
+          id?: string
+          memory_type: string
+        }
+        Update: {
+          agent_type?: string
+          company_id?: string
+          content_json?: Json
+          created_at?: string
+          id?: string
+          memory_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_memory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_policies: {
+        Row: {
+          actions_json: Json
+          active: boolean
+          agent_type: string
+          company_id: string
+          conditions_json: Json
+          created_at: string
+          description: string | null
+          id: string
+          policy_name: string
+          updated_at: string
+        }
+        Insert: {
+          actions_json?: Json
+          active?: boolean
+          agent_type: string
+          company_id: string
+          conditions_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          policy_name: string
+          updated_at?: string
+        }
+        Update: {
+          actions_json?: Json
+          active?: boolean
+          agent_type?: string
+          company_id?: string
+          conditions_json?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          policy_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_tasks: {
+        Row: {
+          agent_type: string
+          company_id: string
+          created_at: string
+          goal: string
+          id: string
+          input_json: Json
+          result_json: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_type: string
+          company_id: string
+          created_at?: string
+          goal: string
+          id?: string
+          input_json?: Json
+          result_json?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: string
+          company_id?: string
+          created_at?: string
+          goal?: string
+          id?: string
+          input_json?: Json
+          result_json?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_workflows: {
+        Row: {
+          agent_type: string
+          company_id: string
+          created_at: string
+          current_step: number
+          goal: string
+          id: string
+          plan_json: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_type: string
+          company_id: string
+          created_at?: string
+          current_step?: number
+          goal: string
+          id?: string
+          plan_json?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: string
+          company_id?: string
+          created_at?: string
+          current_step?: number
+          goal?: string
+          id?: string
+          plan_json?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           category: string

@@ -113,6 +113,11 @@ import MarketplaceTemplateDetail from "./pages/marketplace/MarketplaceTemplateDe
 import MarketplacePublish from "./pages/marketplace/MarketplacePublish";
 import MyMarketplaceTemplates from "./pages/marketplace/MyMarketplaceTemplates";
 import MarketplaceShare from "./pages/marketplace/MarketplaceShare";
+import AgentsDashboard from "./pages/admin/AgentsDashboard";
+import AgentPolicies from "./pages/admin/AgentPolicies";
+import AgentLogs from "./pages/admin/AgentLogs";
+import AgentWorkflows from "./pages/admin/AgentWorkflows";
+import RunAgent from "./pages/admin/RunAgent";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -259,6 +264,14 @@ const App = () => (
               {/* System Health - Internal Diagnostics */}
               <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
               <Route path="/debug/system-health" element={<AdminRoute><SystemHealthData /></AdminRoute>} />
+              
+              {/* Agent Admin Routes */}
+              <Route path="/admin/agents" element={<AdminRoute><AgentsDashboard /></AdminRoute>} />
+              <Route path="/admin/agents/policies" element={<AdminRoute><AgentPolicies /></AdminRoute>} />
+              <Route path="/admin/agents/logs" element={<AdminRoute><AgentLogs /></AdminRoute>} />
+              <Route path="/admin/agents/workflows" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
+              <Route path="/admin/agents/workflows/:id" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
+              <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
