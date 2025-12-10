@@ -320,16 +320,27 @@ export function useRunOperationsAgent() {
 
   return useMutation({
     mutationFn: async ({ locationId, goal, mode }: { locationId: string; goal?: string; mode?: string }) => {
-      const { data, error } = await supabase.functions.invoke("operations-agent", {
-        body: {
-          company_id: company?.id,
-          location_id: locationId,
-          goal,
-          mode: mode || "simulate",
-        },
-      });
-      if (error) throw error;
-      return data;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/operations-agent/run`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            company_id: company?.id,
+            location_id: locationId,
+            goal,
+            mode: mode || "simulate",
+          }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to run agent");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily-ops"] });
@@ -345,15 +356,26 @@ export function useGenerateDailyOps() {
 
   return useMutation({
     mutationFn: async ({ locationId, date }: { locationId: string; date: string }) => {
-      const { data, error } = await supabase.functions.invoke("operations-agent", {
-        body: {
-          company_id: company?.id,
-          location_id: locationId,
-          date,
-        },
-      });
-      if (error) throw error;
-      return data;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/operations-agent/generate-daily-ops`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            company_id: company?.id,
+            location_id: locationId,
+            date,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate daily ops");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily-ops"] });
