@@ -41,7 +41,7 @@ const AgentLogs = () => {
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["agent-logs"] });
+    queryClient.invalidateQueries({ queryKey: ["agent-logs"], refetchType: "all" });
   };
 
   return (
