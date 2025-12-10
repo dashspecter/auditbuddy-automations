@@ -174,10 +174,10 @@ const AgentLogs = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
-                      {log.details_json?.message || 
+                      {String(log.details_json?.message || 
                        log.details_json?.action || 
                        log.details_json?.goal ||
-                       JSON.stringify(log.details_json).slice(0, 50) + "..."}
+                       JSON.stringify(log.details_json).slice(0, 50) + "...")}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {log.task_id ? `Task: ${log.task_id.slice(0, 8)}...` : ""}
