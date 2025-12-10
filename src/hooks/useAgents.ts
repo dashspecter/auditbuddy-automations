@@ -117,9 +117,19 @@ export const useCreateAgentPolicy = () => {
     mutationFn: async (policy: Omit<AgentPolicy, "id" | "company_id" | "created_at" | "updated_at">) => {
       if (!company?.id) throw new Error("No company selected");
 
+      const insertPayload = {
+        agent_type: policy.agent_type,
+        policy_name: policy.policy_name,
+        description: policy.description,
+        conditions_json: policy.conditions_json,
+        actions_json: policy.actions_json,
+        active: policy.active,
+        company_id: company.id,
+      };
+
       const { data, error } = await supabase
         .from("agent_policies")
-        .insert({ ...policy, company_id: company.id })
+        .insert(insertPayload as never)
         .select()
         .single();
 
@@ -142,9 +152,17 @@ export const useUpdateAgentPolicy = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<AgentPolicy> & { id: string }) => {
+      const updatePayload: Record<string, unknown> = {};
+      if (updates.agent_type !== undefined) updatePayload.agent_type = updates.agent_type;
+      if (updates.policy_name !== undefined) updatePayload.policy_name = updates.policy_name;
+      if (updates.description !== undefined) updatePayload.description = updates.description;
+      if (updates.conditions_json !== undefined) updatePayload.conditions_json = updates.conditions_json;
+      if (updates.actions_json !== undefined) updatePayload.actions_json = updates.actions_json;
+      if (updates.active !== undefined) updatePayload.active = updates.active;
+
       const { data, error } = await supabase
         .from("agent_policies")
-        .update(updates)
+        .update(updatePayload)
         .eq("id", id)
         .select()
         .single();

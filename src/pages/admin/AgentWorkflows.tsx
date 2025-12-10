@@ -340,7 +340,7 @@ const WorkflowDetail = () => {
                       </Badge>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate">
-                          {log.details_json?.action || log.details_json?.message || "Event logged"}
+                          {String(log.details_json?.action || log.details_json?.message || "Event logged")}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(log.occurred_at), "HH:mm:ss")}

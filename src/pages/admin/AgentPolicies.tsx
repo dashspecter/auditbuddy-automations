@@ -79,10 +79,23 @@ const AgentPolicies = () => {
   };
 
   const handleSubmit = async () => {
+    const conditions = formData.conditions_json
+      .filter(c => c.field && c.value)
+      .map(c => ({
+        field: c.field,
+        operator: c.operator as ">" | "<" | "=" | ">=" | "<=" | "!=" | "contains" | "not_contains",
+        value: c.value as unknown,
+      }));
+
+    const actions = formData.actions_json.filter(a => a.action);
+
     const payload = {
-      ...formData,
-      conditions_json: formData.conditions_json.filter(c => c.field && c.value),
-      actions_json: formData.actions_json.filter(a => a.action),
+      agent_type: formData.agent_type,
+      policy_name: formData.policy_name,
+      description: formData.description,
+      conditions_json: conditions,
+      actions_json: actions,
+      active: formData.active,
     };
 
     if (editingPolicy) {
