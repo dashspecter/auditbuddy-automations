@@ -180,12 +180,12 @@ export default function SLAManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label>Location (optional)</Label>
-                  <Select value={formData.location_id} onValueChange={(v) => setFormData({ ...formData, location_id: v })}>
+                  <Select value={formData.location_id || "all"} onValueChange={(v) => setFormData({ ...formData, location_id: v === "all" ? "" : v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="All locations" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Locations</SelectItem>
+                      <SelectItem value="all">All Locations</SelectItem>
                       {locations?.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
