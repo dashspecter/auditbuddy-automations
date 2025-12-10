@@ -118,6 +118,13 @@ import AgentPolicies from "./pages/admin/AgentPolicies";
 import AgentLogs from "./pages/admin/AgentLogs";
 import AgentWorkflows from "./pages/admin/AgentWorkflows";
 import RunAgent from "./pages/admin/RunAgent";
+import DailyOps from "./pages/operations/DailyOps";
+import DailyOpsDetail from "./pages/operations/DailyOpsDetail";
+import MaintenanceTasks from "./pages/operations/MaintenanceTasks";
+import SLAManagement from "./pages/operations/SLAManagement";
+import PayrollBatches from "./pages/workforce/PayrollBatches";
+import AttendanceAlerts from "./pages/workforce/AttendanceAlerts";
+import SchedulingInsights from "./pages/workforce/SchedulingInsights";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -272,6 +279,17 @@ const App = () => (
               <Route path="/admin/agents/workflows" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
               <Route path="/admin/agents/workflows/:id" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
               <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
+              
+              {/* Operations Agent Routes */}
+              <Route path="/operations/daily" element={<ManagerRoute><DailyOps /></ManagerRoute>} />
+              <Route path="/operations/daily/:id" element={<ManagerRoute><DailyOpsDetail /></ManagerRoute>} />
+              <Route path="/operations/maintenance" element={<ManagerRoute><MaintenanceTasks /></ManagerRoute>} />
+              <Route path="/operations/slas" element={<ManagerRoute><SLAManagement /></ManagerRoute>} />
+              
+              {/* Workforce Agent Routes */}
+              <Route path="/workforce/payroll-batches" element={<ManagerRoute><PayrollBatches /></ManagerRoute>} />
+              <Route path="/workforce/attendance-alerts" element={<ManagerRoute><AttendanceAlerts /></ManagerRoute>} />
+              <Route path="/workforce/scheduling-insights" element={<ManagerRoute><SchedulingInsights /></ManagerRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

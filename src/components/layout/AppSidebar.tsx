@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, Image, UserCog, Bug, Shield, Calendar,
-  PanelLeftClose, PanelLeft, ChevronRight, Store
+  PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2, AlertTriangle
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -43,6 +43,9 @@ const navigationItems = [
       { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] }, // HR only, not manager
       { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] }, // Manager only, not HR
       { title: "Performance", url: "/workforce/performance", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
+      { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'] },
     ]
   },
   { 
@@ -166,6 +169,18 @@ const navigationItems = [
     icon: Store,
     module: null,
   },
+  { 
+    title: "Operations", 
+    url: "/operations/daily", 
+    icon: Settings2,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { title: "Daily Ops", url: "/operations/daily" },
+      { title: "Maintenance Tasks", url: "/operations/maintenance" },
+      { title: "SLA Management", url: "/operations/slas" },
+    ]
+  },
 ];
 const settingsItems = [
   { 
@@ -202,6 +217,12 @@ const settingsItems = [
     title: "Debug Data", 
     url: "/debug/system-health", 
     icon: Bug,
+    requiresAdmin: true
+  },
+  { 
+    title: "AI Agents", 
+    url: "/admin/agents", 
+    icon: Bot,
     requiresAdmin: true
   },
 ];
