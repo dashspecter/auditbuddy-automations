@@ -163,12 +163,12 @@ export default function SLAManagement() {
               New SLA
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>{editingId ? "Edit SLA" : "Create SLA"}</DialogTitle>
               <DialogDescription>Define rules that the Operations Agent will monitor</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4 py-4 overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>SLA Name *</Label>
