@@ -75,14 +75,14 @@ const AgentLogs = () => {
             <div className="w-48">
               <Label>Agent Type</Label>
               <Select
-                value={filters.agentType || ""}
-                onValueChange={(value) => setFilters({ ...filters, agentType: value || undefined })}
+                value={filters.agentType || "all"}
+                onValueChange={(value) => setFilters({ ...filters, agentType: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All agents" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All agents</SelectItem>
+                  <SelectItem value="all">All agents</SelectItem>
                   {AGENT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -95,14 +95,14 @@ const AgentLogs = () => {
             <div className="w-48">
               <Label>Event Type</Label>
               <Select
-                value={filters.eventType || ""}
-                onValueChange={(value) => setFilters({ ...filters, eventType: value || undefined })}
+                value={filters.eventType || "all"}
+                onValueChange={(value) => setFilters({ ...filters, eventType: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All events" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All events</SelectItem>
+                  <SelectItem value="all">All events</SelectItem>
                   {EVENT_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
