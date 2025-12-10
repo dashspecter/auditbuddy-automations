@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Bot, FileText, ListChecks, Activity, Zap, Settings, Brain, Shield } from "lucide-react";
 import { useAgentStats, useAgentTasks, useAgentWorkflows, AGENT_TYPES } from "@/hooks/useAgents";
 import { format } from "date-fns";
@@ -79,35 +79,41 @@ const AgentsDashboard = () => {
 
       {/* Quick Navigation */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/admin/agents/policies")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Policy Manager
-            </CardTitle>
-            <CardDescription>Create and manage agent policies and rules</CardDescription>
-          </CardHeader>
-        </Card>
+        <Link to="/admin/agents/policies">
+          <Card className="cursor-pointer hover:border-primary transition-colors h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Policy Manager
+              </CardTitle>
+              <CardDescription>Create and manage agent policies and rules</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/admin/agents/logs")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Agent Logs
-            </CardTitle>
-            <CardDescription>View detailed event logs and decisions</CardDescription>
-          </CardHeader>
-        </Card>
+        <Link to="/admin/agents/logs">
+          <Card className="cursor-pointer hover:border-primary transition-colors h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Agent Logs
+              </CardTitle>
+              <CardDescription>View detailed event logs and decisions</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/admin/agents/workflows")}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Workflow Inspector
-            </CardTitle>
-            <CardDescription>Monitor and manage agent workflows</CardDescription>
-          </CardHeader>
-        </Card>
+        <Link to="/admin/agents/workflows">
+          <Card className="cursor-pointer hover:border-primary transition-colors h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Workflow Inspector
+              </CardTitle>
+              <CardDescription>Monitor and manage agent workflows</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
 
       {/* Agent Types */}
