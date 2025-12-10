@@ -71,7 +71,8 @@ export const EnhancedShiftWeekView = () => {
   // Fetch attendance logs for the week to show check-in/out indicators
   const { data: attendanceLogs = [] } = useAttendanceLogs(
     selectedLocation === "all" ? undefined : selectedLocation,
-    format(currentWeekStart, 'yyyy-MM-dd')
+    format(currentWeekStart, 'yyyy-MM-dd'),
+    format(weekEnd, 'yyyy-MM-dd')
   );
 
   // Get selected location's coordinates for weather
