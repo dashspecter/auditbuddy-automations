@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All Statuses" },
+  { value: "all", label: "All Statuses" },
   { value: "pending", label: "Pending" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
@@ -26,8 +26,8 @@ const STATUS_OPTIONS = [
 ];
 
 export default function MaintenanceTasks() {
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     location_id: "",
@@ -40,8 +40,8 @@ export default function MaintenanceTasks() {
   const { data: locations } = useLocations();
   const { data: equipment } = useEquipment();
   const { data: tasks, isLoading, refetch } = useMaintenanceTasks({
-    locationId: selectedLocation || undefined,
-    status: selectedStatus || undefined,
+    locationId: selectedLocation !== "all" ? selectedLocation : undefined,
+    status: selectedStatus !== "all" ? selectedStatus : undefined,
   });
   const updateTask = useUpdateMaintenanceTask();
   const createTask = useCreateMaintenanceTask();
@@ -113,7 +113,7 @@ export default function MaintenanceTasks() {
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locations</SelectItem>
+              <SelectItem value="all">All Locations</SelectItem>
               {locations?.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
               ))}
