@@ -34,11 +34,11 @@ export interface AttendanceLog {
   };
 }
 
-export const useAttendanceLogs = (locationId?: string, date?: string) => {
+export const useAttendanceLogs = (locationId?: string, date?: string, endDate?: string) => {
   const { company } = useCompanyContext();
   
   return useQuery({
-    queryKey: ["attendance-logs", company?.id, locationId, date],
+    queryKey: ["attendance-logs", company?.id, locationId, date, endDate],
     queryFn: async () => {
       if (!company?.id) return [];
       
@@ -64,12 +64,22 @@ export const useAttendanceLogs = (locationId?: string, date?: string) => {
       if (date) {
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
         
-        query = query
-          .gte("check_in_at", startOfDay.toISOString())
-          .lte("check_in_at", endOfDay.toISOString());
+        if (endDate) {
+          // Date range query
+          const endOfRange = new Date(endDate);
+          endOfRange.setHours(23, 59, 59, 999);
+          query = query
+            .gte("check_in_at", startOfDay.toISOString())
+            .lte("check_in_at", endOfRange.toISOString());
+        } else {
+          // Single date query
+          const endOfDay = new Date(date);
+          endOfDay.setHours(23, 59, 59, 999);
+          query = query
+            .gte("check_in_at", startOfDay.toISOString())
+            .lte("check_in_at", endOfDay.toISOString());
+        }
       }
       
       const { data, error } = await query;
