@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   useMysteryShopperTemplate, 
@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useMysteryShopperTemplates";
 import { useLocations } from "@/hooks/useLocations";
 import { useCompany } from "@/hooks/useCompany";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Trash2, GripVertical, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Loader2, Save, Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface QuestionFormData {
@@ -73,6 +74,58 @@ export default function MysteryShopperTemplateEditor() {
 
   const [questions, setQuestions] = useState<QuestionFormData[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `brand-logos/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('public-assets')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public-assets')
+        .getPublicUrl(fileName);
+
+      setTemplateData(prev => ({ ...prev, brand_logo_url: publicUrl }));
+      toast.success("Logo uploaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeLogo = () => {
+    setTemplateData(prev => ({ ...prev, brand_logo_url: "" }));
+  };
 
   useEffect(() => {
     if (existingTemplate) {
@@ -244,13 +297,54 @@ export default function MysteryShopperTemplateEditor() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="brandLogo">Brand Logo URL</Label>
-              <Input
-                id="brandLogo"
-                value={templateData.brand_logo_url}
-                onChange={(e) => setTemplateData(prev => ({ ...prev, brand_logo_url: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Label>Brand Logo</Label>
+              <div className="flex items-center gap-4">
+                {templateData.brand_logo_url ? (
+                  <div className="relative">
+                    <img
+                      src={templateData.brand_logo_url}
+                      alt="Brand logo"
+                      className="h-16 w-16 object-contain rounded-lg border bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={removeLogo}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="h-16 w-16 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/50">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {templateData.brand_logo_url ? "Change Logo" : "Upload Logo"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 2MB</p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="space-y-2">
