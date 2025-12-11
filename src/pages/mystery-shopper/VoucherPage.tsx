@@ -104,15 +104,18 @@ export default function VoucherPage() {
               </p>
             </div>
 
-            {/* QR Code */}
+            {/* QR Code - Contains just the voucher code for staff scanner */}
             {isActive && (
               <div className="flex justify-center">
                 <div className="p-4 bg-white rounded-lg">
                   <QRCodeSVG 
-                    value={voucher.code} 
+                    value={`VOUCHER:${voucher.code}`} 
                     size={150}
                     level="H"
                   />
+                  <p className="text-xs text-center mt-2 text-muted-foreground">
+                    Staff: Use in-app scanner
+                  </p>
                 </div>
               </div>
             )}
