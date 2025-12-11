@@ -3218,6 +3218,189 @@ export type Database = {
         }
         Relationships: []
       }
+      mystery_shopper_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          rating_scale: Json | null
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          order_index?: number
+          question_text: string
+          question_type: string
+          rating_scale?: Json | null
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          rating_scale?: Json | null
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mystery_shopper_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "mystery_shopper_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mystery_shopper_submissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          location_id: string | null
+          overall_score: number | null
+          raw_answers: Json
+          submitted_at: string
+          template_id: string
+          voucher_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          location_id?: string | null
+          overall_score?: number | null
+          raw_answers?: Json
+          submitted_at?: string
+          template_id: string
+          voucher_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          location_id?: string | null
+          overall_score?: number | null
+          raw_answers?: Json
+          submitted_at?: string
+          template_id?: string
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mystery_shopper_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mystery_shopper_submissions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mystery_shopper_submissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "mystery_shopper_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mystery_shopper_submissions_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mystery_shopper_templates: {
+        Row: {
+          brand_logo_url: string | null
+          company_id: string
+          created_at: string
+          default_location_ids: string[] | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          public_token: string
+          require_contact: boolean
+          updated_at: string
+          voucher_currency: string
+          voucher_expiry_days: number
+          voucher_terms_text: string | null
+          voucher_value: number
+        }
+        Insert: {
+          brand_logo_url?: string | null
+          company_id: string
+          created_at?: string
+          default_location_ids?: string[] | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          public_token?: string
+          require_contact?: boolean
+          updated_at?: string
+          voucher_currency?: string
+          voucher_expiry_days?: number
+          voucher_terms_text?: string | null
+          voucher_value?: number
+        }
+        Update: {
+          brand_logo_url?: string | null
+          company_id?: string
+          created_at?: string
+          default_location_ids?: string[] | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          public_token?: string
+          require_contact?: boolean
+          updated_at?: string
+          voucher_currency?: string
+          voucher_expiry_days?: number
+          voucher_terms_text?: string | null
+          voucher_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mystery_shopper_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_audit_logs: {
         Row: {
           action: string
@@ -5382,6 +5565,75 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vouchers: {
+        Row: {
+          brand_logo_url: string | null
+          code: string
+          company_id: string
+          created_at: string
+          currency: string
+          customer_name: string
+          expires_at: string
+          id: string
+          linked_submission_id: string | null
+          location_ids: string[] | null
+          redeemed_at: string | null
+          status: string
+          terms_text: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          brand_logo_url?: string | null
+          code?: string
+          company_id: string
+          created_at?: string
+          currency?: string
+          customer_name: string
+          expires_at: string
+          id?: string
+          linked_submission_id?: string | null
+          location_ids?: string[] | null
+          redeemed_at?: string | null
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          brand_logo_url?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          currency?: string
+          customer_name?: string
+          expires_at?: string
+          id?: string
+          linked_submission_id?: string | null
+          location_ids?: string[] | null
+          redeemed_at?: string | null
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_linked_submission_id_fkey"
+            columns: ["linked_submission_id"]
+            isOneToOne: false
+            referencedRelation: "mystery_shopper_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_logs: {
         Row: {
