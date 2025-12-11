@@ -36,6 +36,45 @@ const ACTION_OPTIONS = [
   { value: "notify_manager", label: "Notify Manager" },
 ];
 
+const SLA_TEMPLATES = [
+  {
+    name: "Equipment Uptime SLA",
+    description: "Ensure equipment uptime stays above 95%",
+    rules: [{ metric: "equipment_uptime", operator: "<", threshold: 95, action: "alert" }],
+  },
+  {
+    name: "Maintenance Response SLA",
+    description: "Alert when overdue maintenance items exceed 3",
+    rules: [{ metric: "overdue_maintenance", operator: ">", threshold: 3, action: "notify_manager" }],
+  },
+  {
+    name: "Issue Resolution SLA",
+    description: "Create task when open issues exceed 5",
+    rules: [{ metric: "issue_count", operator: ">", threshold: 5, action: "create_maintenance_task" }],
+  },
+  {
+    name: "Checklist Compliance SLA",
+    description: "Ensure daily checklists are 100% completed",
+    rules: [{ metric: "checklist_completion", operator: "<", threshold: 100, action: "alert" }],
+  },
+  {
+    name: "Critical Equipment SLA",
+    description: "Multi-rule SLA for critical equipment monitoring",
+    rules: [
+      { metric: "equipment_uptime", operator: "<", threshold: 99, action: "notify_manager" },
+      { metric: "overdue_maintenance", operator: ">", threshold: 0, action: "create_maintenance_task" },
+    ],
+  },
+  {
+    name: "Zero Tolerance SLA",
+    description: "No overdue maintenance or issues allowed",
+    rules: [
+      { metric: "overdue_maintenance", operator: ">", threshold: 0, action: "alert" },
+      { metric: "issue_count", operator: ">", threshold: 0, action: "notify_manager" },
+    ],
+  },
+];
+
 export default function SLAManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,6 +101,15 @@ export default function SLAManagement() {
       rules_json: [{ metric: "", operator: "<", threshold: 0, action: "alert" }],
     });
     setEditingId(null);
+  };
+
+  const applyTemplate = (template: typeof SLA_TEMPLATES[0]) => {
+    setFormData({
+      ...formData,
+      sla_name: template.name,
+      description: template.description,
+      rules_json: template.rules.map(r => ({ ...r })) as SLARule[],
+    });
   };
 
   const handleEdit = (sla: any) => {
@@ -168,7 +216,31 @@ export default function SLAManagement() {
               <DialogTitle>{editingId ? "Edit SLA" : "Create SLA"}</DialogTitle>
               <DialogDescription>Define rules that the Operations Agent will monitor</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4 overflow-y-auto pr-2">
+            <div className="space-y-4 py-4 overflow-y-auto pr-2 max-h-[60vh]">
+              {/* Template Selection */}
+              {!editingId && (
+                <div className="space-y-2">
+                  <Label>Quick Start - Use a Template</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {SLA_TEMPLATES.map((template) => (
+                      <Button
+                        key={template.name}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="justify-start text-left h-auto py-2 px-3"
+                        onClick={() => applyTemplate(template)}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{template.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{template.description}</p>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>SLA Name *</Label>
