@@ -67,7 +67,7 @@ serve(async (req) => {
     if (existingSubmission) {
       console.log('Duplicate submission detected');
       return new Response(
-        JSON.stringify({ error: 'You have already submitted this survey today. Please try again tomorrow.' }),
+        JSON.stringify({ error: 'You have already submitted this survey today. Please try again with your next order.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
