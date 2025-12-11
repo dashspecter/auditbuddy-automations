@@ -37,7 +37,7 @@ export const ManagerAuditStats = () => {
         .from("location_audits")
         .select("*", { count: "exact", head: true })
         .eq("status", "completed")
-        .gte("completed_at", startOfMonth.toISOString());
+        .gte("updated_at", startOfMonth.toISOString());
 
       // Get overdue audits
       const now = new Date().toISOString();
@@ -73,7 +73,7 @@ export const ManagerAuditStats = () => {
         .select("overall_score")
         .eq("status", "completed")
         .not("overall_score", "is", null)
-        .order("completed_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(20);
 
       const avgScore = recentAudits && recentAudits.length > 0
