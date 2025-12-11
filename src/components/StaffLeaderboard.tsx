@@ -7,14 +7,18 @@ import { useEmployeeScore } from "@/hooks/useStaffAudits";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { LocationSelector } from "@/components/LocationSelector";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { EmployeePerformanceDetail } from "@/components/EmployeePerformanceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { subMonths, format, startOfDay, endOfDay } from "date-fns";
 
 export const StaffLeaderboard = () => {
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subMonths(new Date(), 1));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<{
     id: string;
     name: string;
@@ -47,6 +51,13 @@ export const StaffLeaderboard = () => {
   const leaderboardData = useMemo(() => {
     if (!audits || !employees) return [];
 
+    // Filter data by date range
+    const filterByDateRange = (date: Date) => {
+      if (dateFrom && date < startOfDay(dateFrom)) return false;
+      if (dateTo && date > endOfDay(dateTo)) return false;
+      return true;
+    };
+
     // Group employees by location
     const locationGroups = new Map<string, any[]>();
 
@@ -55,15 +66,15 @@ export const StaffLeaderboard = () => {
       .forEach((employee) => {
         const locationName = employee.locations?.name || "Unknown";
         
-        // Get employee's staff audits
+        // Get employee's staff audits filtered by date
         const employeeAudits = audits
-          .filter((a) => a.employee_id === employee.id)
+          .filter((a) => a.employee_id === employee.id && filterByDateRange(new Date(a.audit_date)))
           .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime())
           .map(a => ({ score: a.score, date: new Date(a.audit_date) }));
 
-        // Get employee's test submissions
+        // Get employee's test submissions filtered by date
         const employeeTests = (testSubmissions || [])
-          .filter((t) => t.employee_id === employee.id)
+          .filter((t) => t.employee_id === employee.id && t.completed_at && filterByDateRange(new Date(t.completed_at)))
           .map(t => ({ score: t.score!, date: new Date(t.completed_at!) }));
 
         // Combine and sort all scores by date
@@ -120,7 +131,7 @@ export const StaffLeaderboard = () => {
     locationArray.sort((a, b) => b.locationAvg - a.locationAvg);
 
     return locationArray;
-  }, [audits, employees, testSubmissions]);
+  }, [audits, employees, testSubmissions, dateFrom, dateTo]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -176,10 +187,10 @@ export const StaffLeaderboard = () => {
 
   return (
     <Card className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold">Location Leaderboard</h2>
-          <p className="text-muted-foreground mt-1">Rankings based on last 5 performance records (audits & tests)</p>
+          <h2 className="text-2xl font-bold">Employee Performance</h2>
+          <p className="text-muted-foreground mt-1">Rankings based on performance records (audits & tests)</p>
         </div>
         <Button onClick={generatePDF} variant="outline">
           <Download className="mr-2 h-4 w-4" />
@@ -187,12 +198,18 @@ export const StaffLeaderboard = () => {
         </Button>
       </div>
 
-      <div className="mb-4">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <LocationSelector
           value={filterLocationId}
           onValueChange={setFilterLocationId}
           placeholder="All Locations"
           allowAll
+        />
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
         />
       </div>
 

@@ -10,6 +10,7 @@ import { LocationTrendAnalysis } from "./LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
 import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { MaintenanceInterventions } from "./MaintenanceInterventions";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,10 +19,13 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { subMonths } from "date-fns";
 
 export const AdminDashboard = () => {
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subMonths(new Date(), 1));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
-  const dashboardStats = useDashboardStats();
+  const dashboardStats = useDashboardStats({ dateFrom, dateTo });
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -99,6 +103,13 @@ export const AdminDashboard = () => {
           <Badge variant="default" className="text-sm">Administrator</Badge>
         </div>
       </div>
+
+      <DateRangeFilter
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+      />
 
       <DashboardGreeting />
 
