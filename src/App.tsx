@@ -108,6 +108,7 @@ import SystemHealth from "./pages/SystemHealth";
 import SystemHealthData from "./pages/debug/SystemHealthData";
 import AttendanceKiosk from "./pages/AttendanceKiosk";
 import StaffScanAttendance from "./pages/staff/StaffScanAttendance";
+import StaffScanVoucher from "./pages/staff/StaffScanVoucher";
 import MarketplaceBrowse from "./pages/marketplace/MarketplaceBrowse";
 import MarketplaceTemplateDetail from "./pages/marketplace/MarketplaceTemplateDetail";
 import MarketplacePublish from "./pages/marketplace/MarketplacePublish";
@@ -171,6 +172,7 @@ const App = () => (
               <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
               <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
               <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
+              <Route path="/staff/scan-voucher" element={<ProtectedRoute><StaffScanVoucher /></ProtectedRoute>} />
               {/* Legacy route - redirect to new path */}
               <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
