@@ -115,12 +115,15 @@ export const useCreateMysteryShopperSubmission = () => {
         body: params,
       });
       
-      if (error) {
-        throw new Error(error.message || 'Failed to submit');
-      }
-      
+      // Check for error in response data first (edge function returns error in body)
       if (data?.error) {
         throw new Error(data.error);
+      }
+      
+      if (error) {
+        // Try to parse error message from the response
+        const errorMessage = error.message || 'Failed to submit survey';
+        throw new Error(errorMessage);
       }
       
       return { submission: data.submission, voucher: data.voucher };
@@ -130,7 +133,8 @@ export const useCreateMysteryShopperSubmission = () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
     },
     onError: (error) => {
-      toast.error("Failed to submit: " + error.message);
+      // Don't add "Failed to submit" prefix if the error already has a clear message
+      toast.error(error.message);
     },
   });
 };
