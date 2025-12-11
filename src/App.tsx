@@ -291,6 +291,9 @@ const App = () => (
               <Route path="/workforce/attendance-alerts" element={<ManagerRoute><AttendanceAlerts /></ManagerRoute>} />
               <Route path="/workforce/scheduling-insights" element={<ManagerRoute><SchedulingInsights /></ManagerRoute>} />
               
+              {/* Company Admin Routes */}
+              <Route path="/company/admin" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
               </SidebarProvider>
