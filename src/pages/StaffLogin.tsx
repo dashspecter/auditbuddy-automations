@@ -33,11 +33,15 @@ const StaffLogin = () => {
     // If already logged in and NOT showing password change dialog, redirect to staff dashboard
     // Wait for loading to complete to avoid race conditions
     if (!loading && user && !showPasswordChange) {
-      navigate("/staff", { replace: true });
+      // Use timeout to ensure state is stable before navigating
+      const timer = setTimeout(() => {
+        navigate("/staff", { replace: true });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [user, loading, navigate, showPasswordChange]);
 
-  // Show loading while auth is initializing to prevent errors
+  // Show loading while auth is initializing
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
@@ -49,13 +53,13 @@ const StaffLogin = () => {
     );
   }
 
-  // If user is already logged in, show loading while redirecting
-  if (user) {
+  // If user is already logged in and not showing password change, show redirecting
+  if (user && !showPasswordChange) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Redirecting...</p>
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
         </div>
       </div>
     );
