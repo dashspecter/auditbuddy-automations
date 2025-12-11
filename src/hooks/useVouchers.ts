@@ -114,6 +114,7 @@ export const useRedeemVoucher = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       queryClient.invalidateQueries({ queryKey: ["voucher"] });
+      queryClient.invalidateQueries({ queryKey: ["voucher-code"] });
       toast.success("Voucher redeemed");
     },
     onError: (error) => {

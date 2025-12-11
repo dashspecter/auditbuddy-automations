@@ -6,7 +6,6 @@ import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { QRScanner } from "@/components/QRScanner";
 import { useVoucherByCode, useRedeemVoucher } from "@/hooks/useVouchers";
-import { useLocations } from "@/hooks/useLocations";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -18,27 +17,46 @@ const StaffScanVoucher = () => {
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   
   const { data: voucher, isLoading: voucherLoading, error: voucherError } = useVoucherByCode(scannedCode || undefined);
-  const { data: locations = [] } = useLocations();
   const redeemMutation = useRedeemVoucher();
 
   const handleScan = (data: string) => {
-    setShowScanner(false);
-    
-    // The QR code contains the voucher code
-    // It might be a URL like /voucher/CODE or just the code itself
-    let code = data;
-    
-    // Extract code from URL if needed
-    if (data.includes('/voucher/')) {
-      const parts = data.split('/voucher/');
-      code = parts[parts.length - 1];
+    try {
+      console.log("QR Scanned raw data:", data);
+      setShowScanner(false);
+      
+      // The QR code contains the voucher code
+      // It might be a URL like /voucher/CODE or just the code itself
+      let code = data;
+      
+      // Check if data looks like a URL and extract the voucher code
+      if (data.includes('/voucher/')) {
+        const parts = data.split('/voucher/');
+        code = parts[parts.length - 1];
+      } else if (data.startsWith('http')) {
+        // If it's a URL but doesn't contain /voucher/, try to extract path
+        try {
+          const url = new URL(data);
+          const pathParts = url.pathname.split('/').filter(Boolean);
+          code = pathParts[pathParts.length - 1] || data;
+        } catch {
+          // Not a valid URL, use as-is
+        }
+      }
+      
+      // Clean up the code - remove any trailing slashes or query params
+      code = code.split('?')[0].split('#')[0].trim().toUpperCase();
+      console.log("Extracted voucher code:", code);
+      
+      if (code) {
+        setScannedCode(code);
+        setRedeemSuccess(false);
+      } else {
+        toast.error("Could not extract voucher code from QR");
+      }
+    } catch (error) {
+      console.error("Error processing scanned data:", error);
+      toast.error("Error processing QR code");
     }
-    
-    // Clean up the code
-    code = code.trim().toUpperCase();
-    
-    setScannedCode(code);
-    setRedeemSuccess(false);
   };
 
   const handleRedeem = async () => {
@@ -59,16 +77,12 @@ const StaffScanVoucher = () => {
     setShowScanner(true);
   };
 
-  const getLocationNames = (locationIds: string[]) => {
+  const getLocationNames = (locationIds: string[] | null | undefined) => {
     if (!locationIds || locationIds.length === 0) return "All locations";
-    const names = locationIds.map(id => {
-      const loc = locations.find(l => l.id === id);
-      return loc?.name || id;
-    });
-    return names.join(", ");
+    return locationIds.join(", ");
   };
 
-  const isExpired = voucher && new Date(voucher.expires_at) < new Date();
+  const isExpired = voucher ? new Date(voucher.expires_at) < new Date() : false;
   const isRedeemed = voucher?.status === 'redeemed';
   const canRedeem = voucher && !isExpired && !isRedeemed && voucher.status === 'active';
 
