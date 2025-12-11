@@ -123,18 +123,52 @@ export const useTogglePermission = () => {
   });
 };
 
-export const useHasPermission = (permission: CompanyPermission) => {
+// Hook to check if the current user has a specific permission
+export const useHasPermission = (permission: CompanyPermission): boolean => {
   const { user } = useAuth();
-  const { data: company } = useCompany();
-  const { data: permissions = [] } = useCompanyPermissions();
+  const { data: company, isLoading: companyLoading } = useCompany();
+  const { data: permissions = [], isLoading: permissionsLoading } = useCompanyPermissions();
 
-  if (!user || !company) return false;
+  // While loading, assume access to prevent flicker
+  if (!user || companyLoading || permissionsLoading) return true;
+  if (!company) return false;
   
-  // Owners have all permissions
-  if (company.userRole === 'company_owner') return true;
+  // Owners and admins have all permissions
+  if (company.userRole === 'company_owner' || company.userRole === 'company_admin') return true;
   
-  // Check if user's role has the permission
+  // Check if user's role (company_member) has the permission
   return permissions.some(
     p => p.company_role === company.userRole && p.permission === permission
   );
+};
+
+// Hook to check multiple permissions at once
+export const usePermissions = () => {
+  const { user } = useAuth();
+  const { data: company, isLoading: companyLoading } = useCompany();
+  const { data: permissions = [], isLoading: permissionsLoading } = useCompanyPermissions();
+
+  const isLoading = companyLoading || permissionsLoading;
+  const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+
+  const hasPermission = (permission: CompanyPermission): boolean => {
+    // While loading, assume access to prevent flicker
+    if (!user || isLoading) return true;
+    if (!company) return false;
+    
+    // Owners and admins have all permissions
+    if (isOwnerOrAdmin) return true;
+    
+    // Check if user's role has the permission
+    return permissions.some(
+      p => p.company_role === company.userRole && p.permission === permission
+    );
+  };
+
+  return {
+    hasPermission,
+    isLoading,
+    isOwnerOrAdmin,
+    userRole: company?.userRole,
+  };
 };
