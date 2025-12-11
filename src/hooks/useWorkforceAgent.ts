@@ -187,7 +187,7 @@ export function useUpdatePayrollBatch() {
 }
 
 // Attendance Alerts Hooks
-export function useAttendanceAlerts(filters?: { status?: string; employeeId?: string }) {
+export function useAttendanceAlerts(filters?: { status?: string; employeeId?: string; locationId?: string; startDate?: string; endDate?: string }) {
   const { company } = useCompanyContext();
 
   return useQuery({
@@ -204,6 +204,15 @@ export function useAttendanceAlerts(filters?: { status?: string; employeeId?: st
       }
       if (filters?.employeeId) {
         query = query.eq("employee_id", filters.employeeId);
+      }
+      if (filters?.locationId) {
+        query = query.eq("location_id", filters.locationId);
+      }
+      if (filters?.startDate) {
+        query = query.gte("date", filters.startDate);
+      }
+      if (filters?.endDate) {
+        query = query.lte("date", filters.endDate);
       }
 
       const { data, error } = await query;
