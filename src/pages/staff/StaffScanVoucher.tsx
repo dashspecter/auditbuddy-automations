@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift, AlertCircle } from "lucide-react";
+import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { QRScanner } from "@/components/QRScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface Voucher {
   id: string;
@@ -26,7 +25,6 @@ interface Voucher {
 const StaffScanVoucher = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<Voucher | null>(null);
@@ -35,14 +33,23 @@ const StaffScanVoucher = () => {
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
 
-  // Check for URL error parameter (from auth redirect)
+  // Check for URL error parameter (from auth redirect) or code parameter
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const urlError = searchParams.get('error');
+    const codeParam = searchParams.get('code');
+    
     if (urlError) {
       console.error("Auth error from URL:", urlError);
       // Clear the error from URL
       navigate('/staff/scan-voucher', { replace: true });
+    }
+    
+    // If code is passed via URL, look it up directly
+    if (codeParam && !scannedCode) {
+      const cleanCode = codeParam.replace(/^VOUCHER:/i, '').toUpperCase();
+      setScannedCode(cleanCode);
+      lookupVoucher(cleanCode);
     }
   }, [location, navigate]);
 
@@ -90,7 +97,10 @@ const StaffScanVoucher = () => {
       // Extract voucher code from various formats
       let code = data;
       
-      if (data.includes('/voucher/')) {
+      // Handle "VOUCHER:CODE" format
+      if (data.toUpperCase().startsWith('VOUCHER:')) {
+        code = data.substring(8); // Remove "VOUCHER:" prefix
+      } else if (data.includes('/voucher/')) {
         const parts = data.split('/voucher/');
         code = parts[parts.length - 1];
       } else if (data.startsWith('http')) {
@@ -98,6 +108,11 @@ const StaffScanVoucher = () => {
           const url = new URL(data);
           const pathParts = url.pathname.split('/').filter(Boolean);
           code = pathParts[pathParts.length - 1] || data;
+          // Also check for ?code= parameter
+          const codeParam = url.searchParams.get('code');
+          if (codeParam) {
+            code = codeParam.replace(/^VOUCHER:/i, '');
+          }
         } catch {
           // Not a valid URL, use as-is
         }
