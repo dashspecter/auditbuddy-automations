@@ -191,6 +191,14 @@ serve(async (req) => {
         if (existingCompanyUser) {
           throw new Error('User is already a member of this company');
         }
+
+        // Ensure profile exists and is updated for existing users
+        await supabaseAdmin.from('profiles').upsert({
+          id: targetUserId,
+          email: email,
+          full_name: full_name || existingUser.user_metadata?.full_name || null,
+        }, { onConflict: 'id' });
+        console.log('Ensured profile for existing user');
       } else {
         // Generate a temporary password
         const tempPassword = crypto.randomUUID();
