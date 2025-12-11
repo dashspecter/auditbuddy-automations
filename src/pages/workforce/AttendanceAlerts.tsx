@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, subMonths } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAttendanceAlerts, useUpdateAttendanceAlert, useDetectAttendanceRisks } from "@/hooks/useWorkforceAgent";
+import { useLocations } from "@/hooks/useLocations";
 import { AlertTriangle, Clock, CheckCircle2, Eye, Bot, RefreshCw, UserX, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,10 +31,17 @@ const STATUS_OPTIONS = [
 
 export default function AttendanceAlerts() {
   const [selectedStatus, setSelectedStatus] = useState<string>("open");
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>(format(subMonths(new Date(), 1), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [selectedAlert, setSelectedAlert] = useState<any>(null);
 
+  const { data: locations } = useLocations();
   const { data: alerts, isLoading, refetch } = useAttendanceAlerts({
     status: selectedStatus === "all" ? undefined : selectedStatus,
+    locationId: selectedLocation === "all" ? undefined : selectedLocation,
+    startDate,
+    endDate,
   });
   const updateAlert = useUpdateAttendanceAlert();
   const detectRisks = useDetectAttendanceRisks();
@@ -104,6 +114,44 @@ export default function AttendanceAlerts() {
           </Button>
         </div>
       </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations?.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>End Date</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-4 gap-4">
         <Card>
