@@ -51,6 +51,7 @@ export default function CompanySettings() {
   const [deletingUser, setDeletingUser] = useState<any>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFullName, setInviteFullName] = useState("");
   const [inviteRole, setInviteRole] = useState<'company_member' | 'company_admin'>('company_member');
   
   const { toast } = useToast();
@@ -137,7 +138,7 @@ export default function CompanySettings() {
 
   // Mutation to invite user to company
   const inviteUserMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: 'company_member' | 'company_admin' }) => {
+    mutationFn: async ({ email, fullName, role }: { email: string; fullName: string; role: 'company_member' | 'company_admin' }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
@@ -150,6 +151,7 @@ export default function CompanySettings() {
           },
           body: JSON.stringify({ 
             email, 
+            full_name: fullName,
             companyRole: role,
             companyId: company?.id 
           }),
@@ -168,6 +170,7 @@ export default function CompanySettings() {
       });
       setInviteDialogOpen(false);
       setInviteEmail("");
+      setInviteFullName("");
       setInviteRole('company_member');
     },
     onError: (error) => {
@@ -515,6 +518,16 @@ export default function CompanySettings() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
+                <Label htmlFor="invite-fullname">Full Name</Label>
+                <Input
+                  id="invite-fullname"
+                  type="text"
+                  value={inviteFullName}
+                  onChange={(e) => setInviteFullName(e.target.value)}
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="invite-email">Email Address</Label>
                 <Input
                   id="invite-email"
@@ -546,11 +559,11 @@ export default function CompanySettings() {
               </Button>
               <Button
                 onClick={() => {
-                  if (inviteEmail) {
-                    inviteUserMutation.mutate({ email: inviteEmail, role: inviteRole });
+                  if (inviteEmail && inviteFullName) {
+                    inviteUserMutation.mutate({ email: inviteEmail, fullName: inviteFullName, role: inviteRole });
                   }
                 }}
-                disabled={!inviteEmail || inviteUserMutation.isPending}
+                disabled={!inviteEmail || !inviteFullName || inviteUserMutation.isPending}
               >
                 {inviteUserMutation.isPending ? 'Inviting...' : 'Invite User'}
               </Button>
