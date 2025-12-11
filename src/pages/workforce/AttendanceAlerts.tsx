@@ -19,7 +19,7 @@ const ALERT_TYPE_LABELS: Record<string, { label: string; icon: any; color: strin
 };
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All Statuses" },
+  { value: "all", label: "All Statuses" },
   { value: "open", label: "Open" },
   { value: "acknowledged", label: "Acknowledged" },
   { value: "resolved", label: "Resolved" },
@@ -31,7 +31,7 @@ export default function AttendanceAlerts() {
   const [selectedAlert, setSelectedAlert] = useState<any>(null);
 
   const { data: alerts, isLoading, refetch } = useAttendanceAlerts({
-    status: selectedStatus || undefined,
+    status: selectedStatus === "all" ? undefined : selectedStatus,
   });
   const updateAlert = useUpdateAttendanceAlert();
   const detectRisks = useDetectAttendanceRisks();
