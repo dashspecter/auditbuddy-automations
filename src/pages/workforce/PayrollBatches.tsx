@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
-import { Plus, Eye, DollarSign, Clock, CheckCircle2, Bot, Users } from "lucide-react";
+import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -152,7 +152,7 @@ export default function PayrollBatches() {
                     <TableRow key={batch.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <Receipt className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <span className="font-medium">
                               {format(new Date(batch.period_start), "MMM d")} - {format(new Date(batch.period_end), "MMM d, yyyy")}
@@ -222,7 +222,7 @@ export default function PayrollBatches() {
             </Table>
           ) : (
             <div className="text-center py-12">
-              <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-muted-foreground">No payroll batches found</p>
               <p className="text-sm text-muted-foreground">Prepare a payroll batch to get started</p>
             </div>
