@@ -46,7 +46,7 @@ export const useCompany = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      console.log('[useCompany] Fetching company for user:', user.id);
+      
 
       // Get user's company
       const { data: companyUser, error: cuError } = await supabase
@@ -61,11 +61,11 @@ export const useCompany = () => {
       }
 
       if (!companyUser) {
-        console.log('[useCompany] No company_users record found for user:', user.id);
+        
         throw new Error('No company association found');
       }
 
-      console.log('[useCompany] Found company_users record:', companyUser);
+      
 
       // Get company details
       const { data: company, error: companyError } = await supabase
@@ -84,7 +84,7 @@ export const useCompany = () => {
         throw new Error('Company not found');
       }
 
-      console.log('[useCompany] Successfully fetched company:', company.name);
+      
 
       return {
         ...company,
@@ -106,7 +106,7 @@ export const useCompanyUsers = () => {
     queryKey: ['company_users', user?.id],
     queryFn: async () => {
       if (!user) {
-        console.log('[useCompanyUsers] No user');
+        
         return [];
       }
 
@@ -123,11 +123,11 @@ export const useCompanyUsers = () => {
       }
 
       if (!companyUser) {
-        console.log('[useCompanyUsers] No company found');
+        
         return [];
       }
 
-      console.log('[useCompanyUsers] Fetching users for company:', companyUser.company_id);
+      
 
       // Get all users from the same company
       const { data, error } = await supabase
@@ -169,7 +169,7 @@ export const useCompanyUsers = () => {
         platform_roles: rolesByUser[cu.user_id] || [],
       })) as CompanyUser[];
       
-      console.log('[useCompanyUsers] Loaded users:', result.length);
+      
       return result;
     },
     enabled: !!user,

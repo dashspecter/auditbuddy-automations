@@ -1,10 +1,9 @@
 import { ReactNode } from "react";
-import { Header } from "@/components/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useUserRole } from "@/hooks/useUserRole";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface RoleGuardProps {
@@ -14,6 +13,10 @@ interface RoleGuardProps {
   fallbackMessage?: string;
 }
 
+/**
+ * RoleGuard checks user roles and displays access denied if not permitted.
+ * Used inside pages that are already wrapped in ProtectedLayout.
+ */
 export const RoleGuard = ({
   children,
   requireAdmin = false,
@@ -31,7 +34,7 @@ export const RoleGuard = ({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -40,21 +43,18 @@ export const RoleGuard = ({
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error Loading Permissions</AlertTitle>
-            <AlertDescription className="space-y-2">
-              <p>We couldn't verify your access permissions. Please try again.</p>
-              <Button onClick={handleRetry} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Permissions</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>We couldn't verify your access permissions. Please try again.</p>
+            <Button onClick={handleRetry} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -67,16 +67,14 @@ export const RoleGuard = ({
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>{fallbackMessage}</CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center">
+        <ShieldAlert className="h-16 w-16 text-muted-foreground" />
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>{fallbackMessage}</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }

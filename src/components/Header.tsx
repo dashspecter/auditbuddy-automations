@@ -39,15 +39,7 @@ export const Header = () => {
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Debug logging
-  console.log('[Header] Role data:', {
-    roleData,
-    isLoading,
-    isAdmin: roleData?.isAdmin,
-    isManager: roleData?.isManager,
-    userId: user?.id,
-    email: user?.email
-  });
+  // Role data is available via roleData object
 
   const handleInstallApp = async () => {
     const success = await promptInstall();

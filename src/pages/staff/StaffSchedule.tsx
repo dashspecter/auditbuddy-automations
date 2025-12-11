@@ -166,7 +166,7 @@ const StaffSchedule = () => {
       // Fetch employee details separately
       let employeesMap: Record<string, any> = {};
       if (staffIds.size > 0) {
-        console.log("Fetching employees for staff IDs:", Array.from(staffIds));
+        
         const { data: employeesData, error: empError } = await supabase
           .from("employees")
           .select("id, full_name, avatar_url, role")
@@ -176,7 +176,7 @@ const StaffSchedule = () => {
           console.error("Error fetching employees:", empError);
         }
         
-        console.log("Employees data returned:", employeesData);
+        
         
         if (employeesData) {
           employeesData.forEach((emp: any) => {
@@ -185,7 +185,7 @@ const StaffSchedule = () => {
         }
       }
 
-      console.log("Employees map:", employeesMap);
+      
 
       // Merge employee data into shifts
       const enrichedShifts = shiftsData.map((shift: any) => ({
@@ -196,7 +196,7 @@ const StaffSchedule = () => {
         }))
       }));
 
-      console.log("Enriched shifts sample:", enrichedShifts[0]);
+      
       setLocationShifts(enrichedShifts);
     }
 
@@ -292,7 +292,7 @@ const StaffSchedule = () => {
     if (!selectedShift) return;
     
     try {
-      console.log("Offering shift with ID:", selectedShift.id);
+      
       
       // Update shift assignment to mark it as offered
       const { data, error } = await supabase
@@ -304,7 +304,7 @@ const StaffSchedule = () => {
         .eq("id", selectedShift.id)
         .select();
 
-      console.log("Update result:", { data, error });
+      
 
       if (error) throw error;
       

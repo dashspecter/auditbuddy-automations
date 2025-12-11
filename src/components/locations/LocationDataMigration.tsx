@@ -56,7 +56,7 @@ export const LocationDataMigration = () => {
         throw new Error(error.message || "Migration failed");
       }
 
-      console.log("Migration result:", data);
+      
 
       if (data.success) {
         setStats(data.stats);
