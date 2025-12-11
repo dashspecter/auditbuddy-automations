@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 export interface LocationAudit {
   id: string;
@@ -54,6 +55,32 @@ export interface LocationAudit {
 
 export const useLocationAudits = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Set up realtime subscription for location_audits
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('location_audits_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'location_audits'
+        },
+        () => {
+          // Invalidate queries to refetch data
+          queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
   
   return useQuery({
     queryKey: ['location_audits'],
