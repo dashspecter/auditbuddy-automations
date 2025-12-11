@@ -1159,6 +1159,41 @@ export type Database = {
           },
         ]
       }
+      company_role_permissions: {
+        Row: {
+          company_id: string
+          company_role: string
+          granted_at: string
+          granted_by: string
+          id: string
+          permission: Database["public"]["Enums"]["company_permission"]
+        }
+        Insert: {
+          company_id: string
+          company_role: string
+          granted_at?: string
+          granted_by: string
+          id?: string
+          permission: Database["public"]["Enums"]["company_permission"]
+        }
+        Update: {
+          company_id?: string
+          company_role?: string
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["company_permission"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_role_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_users: {
         Row: {
           company_id: string
@@ -5492,6 +5527,13 @@ export type Database = {
         Returns: string
       }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
+      has_company_permission: {
+        Args: {
+          _permission: Database["public"]["Enums"]["company_permission"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_company_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
@@ -5526,6 +5568,16 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "checker" | "manager" | "hr"
+      company_permission:
+        | "manage_users"
+        | "manage_settings"
+        | "manage_billing"
+        | "manage_modules"
+        | "view_reports"
+        | "manage_locations"
+        | "manage_employees"
+        | "manage_shifts"
+        | "manage_audits"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5654,6 +5706,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "checker", "manager", "hr"],
+      company_permission: [
+        "manage_users",
+        "manage_settings",
+        "manage_billing",
+        "manage_modules",
+        "view_reports",
+        "manage_locations",
+        "manage_employees",
+        "manage_shifts",
+        "manage_audits",
+      ],
     },
   },
 } as const
