@@ -618,26 +618,33 @@ const StaffSchedule = () => {
                           </div>
                         )}
                         {assignment.approval_status === "approved" && assignment.status !== "offered" && (
-                          <div className="flex gap-2 mt-3">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex-1"
-                              onClick={() => handleOfferShift(assignment)}
-                            >
-                              <Share className="h-3 w-3 mr-1" />
-                              Offer
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex-1"
-                              onClick={() => handleSwapShift(assignment)}
-                            >
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                              Swap
-                            </Button>
-                          </div>
+                          dayStr < today ? (
+                            <div className="mt-3 p-2 border rounded text-xs bg-muted/50 border-muted text-muted-foreground flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">Completed</Badge>
+                              <span>This shift has ended</span>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2 mt-3">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleOfferShift(assignment)}
+                              >
+                                <Share className="h-3 w-3 mr-1" />
+                                Offer
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleSwapShift(assignment)}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Swap
+                              </Button>
+                            </div>
+                          )
                         )}
                       </div>
                     ))}
