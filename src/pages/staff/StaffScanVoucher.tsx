@@ -1,39 +1,99 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift } from "lucide-react";
+import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift, AlertCircle } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { QRScanner } from "@/components/QRScanner";
-import { useVoucherByCode, useRedeemVoucher } from "@/hooks/useVouchers";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Voucher {
+  id: string;
+  code: string;
+  value: number;
+  currency: string;
+  customer_name: string;
+  expires_at: string;
+  status: string;
+  redeemed_at: string | null;
+  location_ids: string[] | null;
+}
 
 const StaffScanVoucher = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
+  const [voucher, setVoucher] = useState<Voucher | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
-  
-  const { data: voucher, isLoading: voucherLoading, error: voucherError } = useVoucherByCode(scannedCode || undefined);
-  const redeemMutation = useRedeemVoucher();
+  const [isRedeeming, setIsRedeeming] = useState(false);
+
+  // Check for URL error parameter (from auth redirect)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      console.error("Auth error from URL:", urlError);
+      // Clear the error from URL
+      navigate('/staff/scan-voucher', { replace: true });
+    }
+  }, [location, navigate]);
+
+  const lookupVoucher = async (code: string) => {
+    setIsLoading(true);
+    setError(null);
+    setVoucher(null);
+    
+    try {
+      console.log("Looking up voucher with code:", code);
+      
+      const { data, error: queryError } = await supabase
+        .from("vouchers")
+        .select("*")
+        .eq("code", code.toUpperCase())
+        .maybeSingle();
+      
+      if (queryError) {
+        console.error("Voucher lookup error:", queryError);
+        setError("Failed to look up voucher: " + queryError.message);
+        return;
+      }
+      
+      if (!data) {
+        setError("Voucher not found");
+        return;
+      }
+      
+      console.log("Voucher found:", data);
+      setVoucher(data as Voucher);
+    } catch (err: any) {
+      console.error("Unexpected error looking up voucher:", err);
+      setError("An error occurred: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleScan = (data: string) => {
     try {
       console.log("QR Scanned raw data:", data);
       setShowScanner(false);
+      setRedeemSuccess(false);
       
-      // The QR code contains the voucher code
-      // It might be a URL like /voucher/CODE or just the code itself
+      // Extract voucher code from various formats
       let code = data;
       
-      // Check if data looks like a URL and extract the voucher code
       if (data.includes('/voucher/')) {
         const parts = data.split('/voucher/');
         code = parts[parts.length - 1];
       } else if (data.startsWith('http')) {
-        // If it's a URL but doesn't contain /voucher/, try to extract path
         try {
           const url = new URL(data);
           const pathParts = url.pathname.split('/').filter(Boolean);
@@ -43,18 +103,18 @@ const StaffScanVoucher = () => {
         }
       }
       
-      // Clean up the code - remove any trailing slashes or query params
+      // Clean up the code
       code = code.split('?')[0].split('#')[0].trim().toUpperCase();
       console.log("Extracted voucher code:", code);
       
       if (code) {
         setScannedCode(code);
-        setRedeemSuccess(false);
+        lookupVoucher(code);
       } else {
         toast.error("Could not extract voucher code from QR");
       }
-    } catch (error) {
-      console.error("Error processing scanned data:", error);
+    } catch (err) {
+      console.error("Error processing scanned data:", err);
       toast.error("Error processing QR code");
     }
   };
@@ -62,17 +122,42 @@ const StaffScanVoucher = () => {
   const handleRedeem = async () => {
     if (!voucher) return;
     
+    setIsRedeeming(true);
     try {
-      await redeemMutation.mutateAsync(voucher.id);
+      console.log("Redeeming voucher:", voucher.id);
+      
+      const { data, error: updateError } = await supabase
+        .from("vouchers")
+        .update({
+          status: 'redeemed',
+          redeemed_at: new Date().toISOString(),
+        })
+        .eq("id", voucher.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Redeem error:", updateError);
+        toast.error("Failed to redeem voucher: " + updateError.message);
+        return;
+      }
+      
+      console.log("Voucher redeemed successfully:", data);
+      setVoucher(data as Voucher);
       setRedeemSuccess(true);
       toast.success("Voucher redeemed successfully!");
-    } catch (error) {
-      console.error("Failed to redeem voucher:", error);
+    } catch (err: any) {
+      console.error("Unexpected error redeeming voucher:", err);
+      toast.error("Error: " + err.message);
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
   const handleScanAgain = () => {
     setScannedCode(null);
+    setVoucher(null);
+    setError(null);
     setRedeemSuccess(false);
     setShowScanner(true);
   };
@@ -126,13 +211,13 @@ const StaffScanVoucher = () => {
               Open Scanner
             </Button>
           </Card>
-        ) : voucherLoading ? (
+        ) : isLoading ? (
           // Loading state
           <Card className="p-8 text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">Looking up voucher...</p>
           </Card>
-        ) : voucherError || !voucher ? (
+        ) : error || !voucher ? (
           // Error state - voucher not found
           <Card className="p-8 text-center">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -143,7 +228,7 @@ const StaffScanVoucher = () => {
               Code: <span className="font-mono font-semibold">{scannedCode}</span>
             </p>
             <p className="text-sm text-muted-foreground mb-6">
-              This voucher code is invalid or doesn't exist in the system
+              {error || "This voucher code is invalid or doesn't exist in the system"}
             </p>
             <Button onClick={handleScanAgain} variant="outline" className="w-full">
               Try Again
@@ -241,9 +326,9 @@ const StaffScanVoucher = () => {
                     onClick={handleRedeem} 
                     className="w-full" 
                     size="lg"
-                    disabled={redeemMutation.isPending}
+                    disabled={isRedeeming}
                   >
-                    {redeemMutation.isPending ? (
+                    {isRedeeming ? (
                       <>
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
                         Redeeming...
