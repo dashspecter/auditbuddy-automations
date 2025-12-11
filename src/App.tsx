@@ -192,6 +192,17 @@ const App = () => (
               <Route path="/audits/report/:id" element={<ProtectedRoute><AuditReport /></ProtectedRoute>} />
               <Route path="/audits/list" element={<ProtectedRoute><AuditsList /></ProtectedRoute>} />
               
+              {/* Mystery Shopper Routes */}
+              <Route path="/audits/mystery-shopper" element={<ManagerRoute><MysteryShopperTemplates /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper/new" element={<ManagerRoute><MysteryShopperTemplateEditor /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper/:templateId" element={<ManagerRoute><MysteryShopperTemplateEditor /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper-results" element={<ManagerRoute><MysteryShopperResults /></ManagerRoute>} />
+              <Route path="/audits/vouchers" element={<ManagerRoute><VouchersManagement /></ManagerRoute>} />
+              
+              {/* Public Mystery Shopper Routes (no auth required) */}
+              <Route path="/mystery/:token" element={<MysteryShopperForm />} />
+              <Route path="/voucher/:code" element={<VoucherPage />} />
+              
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

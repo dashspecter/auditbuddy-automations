@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2, MapPin, Users } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2, MapPin, Users, UserSearch, Gift } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
@@ -130,10 +130,28 @@ const Audits = () => {
                 <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Link to="/admin/template-library" className="w-full sm:w-auto" data-tour="templates-menu">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2 w-full sm:w-auto" data-tour="templates-menu">
+                      <Library className="h-4 w-4" />
+                      Templates
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => navigate('/admin/template-library')} className="gap-2 cursor-pointer">
+                      <Library className="h-4 w-4" />
+                      Template Library
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/audits/mystery-shopper')} className="gap-2 cursor-pointer">
+                      <UserSearch className="h-4 w-4" />
+                      Mystery Shopper
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Link to="/audits/vouchers" className="w-full sm:w-auto">
                   <Button variant="outline" className="gap-2 w-full">
-                    <Library className="h-4 w-4" />
-                    Template Library
+                    <Gift className="h-4 w-4" />
+                    Vouchers
                   </Button>
                 </Link>
                 <DropdownMenu>
