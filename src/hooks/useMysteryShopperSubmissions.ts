@@ -110,63 +110,20 @@ export const useCreateMysteryShopperSubmission = () => {
   
   return useMutation({
     mutationFn: async (params: CreateSubmissionParams) => {
-      // First create the submission
-      const { data: submission, error: submissionError } = await supabase
-        .from("mystery_shopper_submissions")
-        .insert({
-          template_id: params.template_id,
-          company_id: params.company_id,
-          location_id: params.location_id,
-          customer_name: params.customer_name,
-          customer_email: params.customer_email,
-          customer_phone: params.customer_phone,
-          raw_answers: params.raw_answers,
-          overall_score: params.overall_score,
-        })
-        .select()
-        .single();
+      // Use edge function to bypass RLS for public submissions
+      const { data, error } = await supabase.functions.invoke('submit-mystery-shopper', {
+        body: params,
+      });
       
-      if (submissionError) throw submissionError;
+      if (error) {
+        throw new Error(error.message || 'Failed to submit');
+      }
       
-      // Get template to create voucher
-      const { data: template, error: templateError } = await supabase
-        .from("mystery_shopper_templates")
-        .select("*")
-        .eq("id", params.template_id)
-        .single();
+      if (data?.error) {
+        throw new Error(data.error);
+      }
       
-      if (templateError) throw templateError;
-      
-      // Calculate expiry date
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + template.voucher_expiry_days);
-      
-      // Create voucher
-      const { data: voucher, error: voucherError } = await supabase
-        .from("vouchers")
-        .insert({
-          company_id: params.company_id,
-          location_ids: template.default_location_ids || [],
-          customer_name: params.customer_name,
-          value: template.voucher_value,
-          currency: template.voucher_currency,
-          brand_logo_url: template.brand_logo_url,
-          terms_text: template.voucher_terms_text,
-          expires_at: expiresAt.toISOString(),
-          linked_submission_id: submission.id,
-        })
-        .select()
-        .single();
-      
-      if (voucherError) throw voucherError;
-      
-      // Update submission with voucher_id
-      await supabase
-        .from("mystery_shopper_submissions")
-        .update({ voucher_id: voucher.id })
-        .eq("id", submission.id);
-      
-      return { submission, voucher };
+      return { submission: data.submission, voucher: data.voucher };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mystery-shopper-submissions"] });
