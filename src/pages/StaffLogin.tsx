@@ -30,12 +30,12 @@ const StaffLogin = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
-    // If already logged in, redirect to staff dashboard
+    // If already logged in and NOT showing password change dialog, redirect to staff dashboard
     // Wait for loading to complete to avoid race conditions
-    if (!loading && user) {
+    if (!loading && user && !showPasswordChange) {
       navigate("/staff", { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, showPasswordChange]);
 
   // Show loading while auth is initializing to prevent errors
   if (loading) {
