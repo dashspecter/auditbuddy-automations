@@ -257,11 +257,13 @@ export function AppSidebar() {
 
   const hasAllowedRole = (allowedRoles?: string[]) => {
     if (!allowedRoles || allowedRoles.length === 0) return true;
+    // If roleData is still loading, show items to prevent flickering
+    if (!roleData) return true;
     // Admins always have access to everything
-    if (roleData?.isAdmin) return true;
-    if (roleData?.isManager && allowedRoles.includes('manager')) return true;
-    if (roleData?.isChecker && allowedRoles.includes('checker')) return true;
-    if (roleData?.isHR && allowedRoles.includes('hr')) return true;
+    if (roleData.isAdmin) return true;
+    if (roleData.isManager && allowedRoles.includes('manager')) return true;
+    if (roleData.isChecker && allowedRoles.includes('checker')) return true;
+    if (roleData.isHR && allowedRoles.includes('hr')) return true;
     return false;
   };
 
