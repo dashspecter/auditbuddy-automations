@@ -403,39 +403,51 @@ const StaffSwapRequests = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {outgoingRequests.map((request) => (
-                <Card key={request.id} className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Badge variant={
-                      request.status === "pending_manager_approval" ? "outline" :
-                      request.status === "manager_approved" ? "default" : "secondary"
-                    }>
-                      {request.status === "pending_manager_approval" ? "Pending Manager" :
-                       request.status === "manager_approved" ? "Approved - Waiting for colleague" :
-                       "Pending"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => cancelRequest(request.id)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+              {outgoingRequests.map((request) => {
+                const shiftDate = request.requester_assignment.shifts.shift_date;
+                const today = format(new Date(), "yyyy-MM-dd");
+                const isPast = shiftDate < today;
+                
+                return (
+                  <Card key={request.id} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      {isPast ? (
+                        <Badge variant="secondary" className="text-xs">Expired</Badge>
+                      ) : (
+                        <Badge variant={
+                          request.status === "pending_manager_approval" ? "outline" :
+                          request.status === "manager_approved" ? "default" : "secondary"
+                        }>
+                          {request.status === "pending_manager_approval" ? "Pending Manager" :
+                           request.status === "manager_approved" ? "Approved - Waiting for colleague" :
+                           "Pending"}
+                        </Badge>
+                      )}
+                      {!isPast && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelRequest(request.id)}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
 
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <div className="font-medium">
-                      {format(new Date(request.requester_assignment.shifts.shift_date), "EEEE, MMMM d")}
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="font-medium">
+                        {format(new Date(shiftDate), "EEEE, MMMM d")}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {request.requester_assignment.shifts.start_time.slice(0, 5)} - {request.requester_assignment.shifts.end_time.slice(0, 5)}
+                      </div>
+                      <Badge variant="secondary" className="mt-2">
+                        {request.requester_assignment.shifts.role}
+                      </Badge>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {request.requester_assignment.shifts.start_time.slice(0, 5)} - {request.requester_assignment.shifts.end_time.slice(0, 5)}
-                    </div>
-                    <Badge variant="secondary" className="mt-2">
-                      {request.requester_assignment.shifts.role}
-                    </Badge>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
