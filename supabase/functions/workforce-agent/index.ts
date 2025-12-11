@@ -513,10 +513,24 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const path = url.pathname.replace("/workforce-agent", "");
+    let path = url.pathname.replace("/workforce-agent", "");
+    
+    // Parse body for action-based routing (when using supabase.functions.invoke)
+    let body: any = {};
+    if (req.method === "POST") {
+      try {
+        body = await req.json();
+        // Support action-based routing
+        if (body.action && !path) {
+          path = "/" + body.action;
+        }
+      } catch {
+        body = {};
+      }
+    }
 
     if (req.method === "POST" && path === "/prepare-payroll") {
-      const { company_id, period_start, period_end } = await req.json();
+      const { company_id, period_start, period_end } = body;
       
       if (!company_id || !period_start || !period_end) {
         return new Response(
@@ -533,7 +547,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST" && path === "/analyze-scheduling") {
-      const { company_id, location_id, start_date, end_date } = await req.json();
+      const { company_id, location_id, start_date, end_date } = body;
       
       if (!company_id || !location_id || !start_date || !end_date) {
         return new Response(
@@ -550,7 +564,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST" && path === "/detect-attendance-risks") {
-      const { company_id, lookback_days = 30 } = await req.json();
+      const { company_id, lookback_days = 30 } = body;
       
       if (!company_id) {
         return new Response(
@@ -567,7 +581,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST" && path === "/run") {
-      const { company_id, location_id, goal, mode = "simulate" } = await req.json();
+      const { company_id, location_id, goal, mode = "simulate" } = body;
       
       if (!company_id) {
         return new Response(
