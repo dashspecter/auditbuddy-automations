@@ -11,6 +11,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
+import { usePermissions, CompanyPermission } from "@/hooks/useCompanyPermissions";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,19 +34,20 @@ const navigationItems = [
     url: "/workforce", 
     icon: Users,
     module: "workforce",
-    allowedRoles: ['admin', 'manager', 'hr'], // Both manager and HR can access workforce
+    allowedRoles: ['admin', 'manager', 'hr'],
+    companyPermission: 'manage_shifts' as CompanyPermission, // Members need manage_shifts
     subItems: [
       { title: "Overview", url: "/workforce" },
-      { title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'] },
-      { title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'] },
-      { title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'] },
-      { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] }, // HR only, not manager
-      { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] }, // HR only, not manager
-      { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] }, // Manager only, not HR
-      { title: "Performance", url: "/workforce/performance", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
+      { title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
+      { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
+      { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] },
+      { title: "Performance", url: "/workforce/performance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
       { title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
-      { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'] },
-      { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -53,20 +55,22 @@ const navigationItems = [
     url: "/admin/locations", 
     icon: MapPin,
     module: null,
-    allowedRoles: ['admin', 'manager']
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_locations' as CompanyPermission
   },
   { 
     title: "Audits", 
     url: "/audits", 
     icon: ClipboardCheck,
     module: "location_audits",
-    allowedRoles: ['admin', 'manager', 'hr', 'checker'], // All roles can view audits
+    allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+    companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
       { title: "Perform Audit", url: "/audits" },
-      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'] },
+      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Audit Calendar", url: "/audits-calendar" },
-      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'] },
-      { title: "Manual Metrics", url: "/manual-metrics", allowedRoles: ['admin', 'manager', 'hr'] },
+      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "Manual Metrics", url: "/manual-metrics", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Photo Gallery", url: "/photos" },
     ]
   },
@@ -85,7 +89,7 @@ const navigationItems = [
     url: "/equipment", 
     icon: Wrench,
     module: "equipment_management",
-    allowedRoles: ['admin', 'manager'], // Manager can manage equipment
+    allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "All Equipment", url: "/equipment" },
       { title: "Maintenance Calendar", url: "/maintenance-calendar" },
@@ -98,7 +102,7 @@ const navigationItems = [
     url: "/notifications", 
     icon: Bell,
     module: "notifications",
-    allowedRoles: ['admin', 'manager'], // Manager can manage notifications
+    allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "Send Notifications", url: "/notifications" },
       { title: "Templates", url: "/notification-templates" },
@@ -112,10 +116,11 @@ const navigationItems = [
     url: "/reports", 
     icon: BarChart,
     module: "reports",
-    allowedRoles: ['admin', 'manager', 'hr'], // Manager and HR can view reports
+    allowedRoles: ['admin', 'manager', 'hr'],
+    companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "Location Performance", url: "/reports" },
-      { title: "Employee Performance", url: "/staff-audits" },
+      { title: "Location Performance", url: "/reports", companyPermission: 'view_reports' as CompanyPermission },
+      { title: "Employee Performance", url: "/staff-audits", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -139,7 +144,7 @@ const navigationItems = [
     url: "/test-management", 
     icon: GraduationCap,
     module: null,
-    allowedRoles: ['admin', 'manager'], // Manager can manage tests
+    allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "Test Management", url: "/test-management" },
       { title: "Create Test", url: "/test-creation" },
@@ -150,10 +155,11 @@ const navigationItems = [
     url: "/insights", 
     icon: Lightbulb,
     module: "insights",
-    allowedRoles: ['admin', 'manager', 'hr'], // Manager and HR can view insights
+    allowedRoles: ['admin', 'manager', 'hr'],
+    companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "Overview", url: "/insights" },
-      { title: "AI Feed", url: "/ai-feed" },
+      { title: "Overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
+      { title: "AI Feed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -168,7 +174,7 @@ const navigationItems = [
     url: "/marketplace", 
     icon: Store,
     module: null,
-    allowedRoles: ['admin', 'manager', 'hr', 'checker'] // Show to all authenticated users
+    allowedRoles: ['admin', 'manager', 'hr', 'checker']
   },
   { 
     title: "Operations", 
@@ -234,9 +240,12 @@ export function AppSidebar() {
   const { expandedGroups, toggleGroup, expandGroup, isCollapsed, toggleCollapsed } = useSidebarContext();
   const { data: roleData } = useUserRole();
   const { data: company } = useCompany();
+  const { hasPermission } = usePermissions();
   
   const currentPath = location.pathname;
   const isOwner = company?.userRole === 'company_owner';
+  const isCompanyAdmin = company?.userRole === 'company_admin';
+  const isMember = company?.userRole === 'company_member';
 
   const isActive = (path: string) => currentPath === path;
   const isParentActive = (item: any) => {
@@ -278,6 +287,11 @@ export function AppSidebar() {
       return false;
     }
 
+    // For company members, check company permissions
+    if (isMember && item.companyPermission && !hasPermission(item.companyPermission)) {
+      return false;
+    }
+
     // Legacy support for requiresAdmin/requiresOwner
     if (item.requiresAdmin && !roleData?.isAdmin) {
       return false;
@@ -286,6 +300,17 @@ export function AppSidebar() {
       return false;
     }
 
+    return true;
+  };
+
+  const shouldShowSubItem = (subItem: any) => {
+    if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
+      return false;
+    }
+    // For company members, check company permissions on sub-items too
+    if (isMember && subItem.companyPermission && !hasPermission(subItem.companyPermission)) {
+      return false;
+    }
     return true;
   };
 
@@ -366,12 +391,7 @@ export function AppSidebar() {
                         <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 overflow-hidden">
-                        {item.subItems.filter((subItem: any) => {
-                          if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
-                            return false;
-                          }
-                          return true;
-                        }).map((subItem: any) => (
+                        {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                           <NavLink
                             key={subItem.url}
                             to={subItem.url}
@@ -402,12 +422,7 @@ export function AppSidebar() {
                       <PopoverContent side="right" align="start" className="w-48 p-2 bg-popover border shadow-lg">
                         <div className="font-medium text-sm mb-2 px-2 text-foreground">{item.title}</div>
                         <div className="space-y-0.5">
-                          {item.subItems.filter((subItem: any) => {
-                            if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
-                              return false;
-                            }
-                            return true;
-                          }).map((subItem: any) => (
+                          {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                             <NavLink
                               key={subItem.url}
                               to={subItem.url}
