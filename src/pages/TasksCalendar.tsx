@@ -218,8 +218,7 @@ const TasksCalendar = () => {
   };
 
   const handleSelectEvent = (event: any) => {
-    // Could open a task detail modal here
-    console.log("Selected task:", event.resource);
+    // Task detail modal could be implemented here
   };
 
   if (isLoading) {

@@ -60,10 +60,7 @@ export const useApproveShiftAssignment = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
-      console.log("[Approve] Starting approval process for assignment:", assignmentId);
-      
       // Call the database function to approve the shift assignment
-      console.log("[Approve] Calling approve_shift_assignment function");
       const { data, error: rpcError } = await supabase.rpc('approve_shift_assignment', {
         assignment_id: assignmentId
       });
@@ -73,7 +70,7 @@ export const useApproveShiftAssignment = () => {
         throw rpcError;
       }
       
-      console.log("[Approve] Function call SUCCESS. Returned data:", data);
+      
       const result = data as { status: string; message: string };
       
       // Create alert for conflict if needed
@@ -85,7 +82,7 @@ export const useApproveShiftAssignment = () => {
       return result;
     },
     onSuccess: (result) => {
-      console.log("[Approve] onSuccess - result:", result);
+      
       // Use Promise.all to ensure all invalidations complete together
       Promise.all([
         queryClient.resetQueries({ queryKey: ["pending-approvals"] }),
@@ -94,7 +91,7 @@ export const useApproveShiftAssignment = () => {
         queryClient.invalidateQueries({ queryKey: ["today-working-staff"] }),
         queryClient.invalidateQueries({ queryKey: ["team-stats"] })
       ]).then(() => {
-        console.log("[Approve] All queries invalidated");
+        
       });
       
       if (result?.status === 'rejected_conflict') {

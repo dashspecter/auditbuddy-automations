@@ -157,7 +157,7 @@ export function GenerateContractDialog({
         throw new Error("Failed to fetch employee data");
       }
 
-      console.log("Fresh employee data from DB:", freshEmployee);
+      
 
       // Fetch the template file
       const response = await fetch(selectedTemplate.file_url);
@@ -244,7 +244,7 @@ export function GenerateContractDialog({
         "valabilitate id": formatDate(freshEmployee.valabilitate_id),
       };
 
-      console.log("Template data being used:", data);
+      
 
       // Render the document
       try {

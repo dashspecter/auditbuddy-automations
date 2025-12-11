@@ -53,8 +53,6 @@ const TakeTest = () => {
   const checkAssignment = async () => {
     if (!shortCode) return;
     
-    console.log("Checking assignment with short code:", shortCode);
-    
     try {
       // Load assignment details using the short code from URL
       const { data: assignment, error } = await supabase
@@ -74,8 +72,6 @@ const TakeTest = () => {
         `)
         .eq("short_code", shortCode)
         .maybeSingle();
-
-      console.log("Assignment query result:", { assignment, error });
 
       if (error) {
         console.error("Assignment query error:", error);
@@ -100,7 +96,6 @@ const TakeTest = () => {
           toast.info("This test has already been completed");
         }
         
-        console.log("Loading test with ID:", assignment.test_id);
         // Load the test using the test_id from the assignment
         await loadTestById(assignment.test_id);
       } else {
@@ -115,7 +110,6 @@ const TakeTest = () => {
   };
 
   const loadTestById = async (id: string) => {
-    console.log("Loading test by ID:", id);
     try {
       const { data: testData, error: testError } = await supabase
         .from("tests")
@@ -123,8 +117,6 @@ const TakeTest = () => {
         .eq("id", id)
         .eq("is_active", true)
         .maybeSingle();
-
-      console.log("Test query result:", { testData, testError });
 
       if (testError) {
         console.error("Test query error:", testError);
@@ -142,8 +134,6 @@ const TakeTest = () => {
         .select("*")
         .eq("test_id", id)
         .order("display_order");
-
-      console.log("Questions query result:", { questionsData, questionsError });
 
       if (questionsError) {
         console.error("Questions query error:", questionsError);

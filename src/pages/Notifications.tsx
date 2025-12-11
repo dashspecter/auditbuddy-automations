@@ -81,7 +81,7 @@ export default function Notifications() {
   const { data: locations = [] } = useLocations();
   const [locationFilter, setLocationFilter] = useState<string>("all");
 
-  console.log('[Notifications] Loading role:', isLoadingRole, 'Role data:', roleData);
+  
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['all_notifications'],
