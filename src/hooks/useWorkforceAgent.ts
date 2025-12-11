@@ -248,6 +248,7 @@ export function useRunWorkforceAgent() {
     mutationFn: async ({ locationId, goal, mode }: { locationId?: string; goal?: string; mode?: string }) => {
       const { data, error } = await supabase.functions.invoke("workforce-agent", {
         body: {
+          action: "run",
           company_id: company?.id,
           location_id: locationId,
           goal,
@@ -272,6 +273,7 @@ export function usePreparePayroll() {
     mutationFn: async ({ periodStart, periodEnd }: { periodStart: string; periodEnd: string }) => {
       const { data, error } = await supabase.functions.invoke("workforce-agent", {
         body: {
+          action: "prepare-payroll",
           company_id: company?.id,
           period_start: periodStart,
           period_end: periodEnd,
@@ -294,6 +296,7 @@ export function useAnalyzeScheduling() {
     mutationFn: async ({ locationId, startDate, endDate }: { locationId: string; startDate: string; endDate: string }) => {
       const { data, error } = await supabase.functions.invoke("workforce-agent", {
         body: {
+          action: "analyze-scheduling",
           company_id: company?.id,
           location_id: locationId,
           start_date: startDate,
@@ -314,6 +317,7 @@ export function useDetectAttendanceRisks() {
     mutationFn: async ({ lookbackDays = 30 }: { lookbackDays?: number } = {}) => {
       const { data, error } = await supabase.functions.invoke("workforce-agent", {
         body: {
+          action: "detect-attendance-risks",
           company_id: company?.id,
           lookback_days: lookbackDays,
         },
