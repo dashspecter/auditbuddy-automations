@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfDay, differenceInDays } from "date-fns";
+import { startOfDay } from "date-fns";
+import { useEffect } from "react";
 
 export interface EmployeePerformanceScore {
   employee_id: string;
@@ -37,6 +38,50 @@ export const useEmployeePerformance = (
   endDate?: string,
   locationId?: string
 ) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscriptions for performance-related tables
+  useEffect(() => {
+    if (!startDate || !endDate) return;
+
+    const channels = [
+      supabase
+        .channel('attendance_logs_performance')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'attendance_logs' },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
+          }
+        )
+        .subscribe(),
+      supabase
+        .channel('tasks_performance')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tasks' },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
+          }
+        )
+        .subscribe(),
+      supabase
+        .channel('test_submissions_performance')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'test_submissions' },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
+          }
+        )
+        .subscribe(),
+    ];
+
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [startDate, endDate, queryClient]);
+
   return useQuery({
     queryKey: ["employee-performance", startDate, endDate, locationId],
     queryFn: async () => {
