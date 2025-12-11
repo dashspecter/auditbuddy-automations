@@ -515,16 +515,21 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     let path = url.pathname.replace("/workforce-agent", "");
     
+    console.log("workforce-agent called with path:", path, "method:", req.method);
+    
     // Parse body for action-based routing (when using supabase.functions.invoke)
     let body: any = {};
     if (req.method === "POST") {
       try {
         body = await req.json();
-        // Support action-based routing
-        if (body.action && !path) {
+        console.log("workforce-agent body action:", body.action);
+        // Support action-based routing - check for empty path or just "/"
+        if (body.action && (!path || path === "/")) {
           path = "/" + body.action;
+          console.log("workforce-agent routing to path:", path);
         }
-      } catch {
+      } catch (e) {
+        console.error("Error parsing body:", e);
         body = {};
       }
     }
