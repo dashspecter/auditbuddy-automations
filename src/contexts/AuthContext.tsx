@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
-  // Check if user is a staff member - runs once when user changes
+  // Check if user is a staff member (but NOT a company admin/owner) - runs once when user changes
   useEffect(() => {
     const checkStaffStatus = async () => {
       if (!user) {
@@ -95,13 +95,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const { data } = await supabase
+        // First check if user is a company admin or owner - they should NOT be treated as staff
+        const { data: companyUser } = await supabase
+          .from('company_users')
+          .select('company_role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        // Company admins and owners should access the admin dashboard, not staff
+        if (companyUser?.company_role === 'company_owner' || companyUser?.company_role === 'company_admin') {
+          setIsStaff(false);
+          setStaffCheckComplete(true);
+          return;
+        }
+
+        // Also check platform admin role
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userRole?.role === 'admin') {
+          setIsStaff(false);
+          setStaffCheckComplete(true);
+          return;
+        }
+
+        // Now check if they have an employee record (for actual staff members)
+        const { data: employee } = await supabase
           .from('employees')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        setIsStaff(!!data);
+        setIsStaff(!!employee);
       } catch (error) {
         console.error('Error checking staff status:', error);
         setIsStaff(false);
