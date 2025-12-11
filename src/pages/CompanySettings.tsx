@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
-import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock } from "lucide-react";
+import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock, Shield } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
 import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
+import { RolePermissionsManager } from "@/components/settings/RolePermissionsManager";
 import {
   Select,
   SelectContent,
@@ -219,6 +220,12 @@ export default function CompanySettings() {
               <CreditCard className="h-4 w-4" />
               Billing
             </TabsTrigger>
+            {company?.userRole === 'company_owner' && (
+              <TabsTrigger value="permissions" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Permissions
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="general">
@@ -437,6 +444,12 @@ export default function CompanySettings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {company?.userRole === 'company_owner' && (
+            <TabsContent value="permissions">
+              <RolePermissionsManager />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Edit User Dialog */}
