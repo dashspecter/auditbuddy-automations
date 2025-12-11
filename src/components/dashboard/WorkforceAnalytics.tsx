@@ -5,8 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Medal, Users, Clock, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, MapPin, Calendar, FileText } from "lucide-react";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { usePayrollSummary } from "@/hooks/usePayroll";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, subWeeks } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { useState } from "react";
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -38,32 +40,31 @@ const getRankIcon = (rank: number) => {
 interface WorkforceAnalyticsProps {
   locationId?: string;
   period?: "week" | "month" | "quarter";
+  showDateFilter?: boolean;
 }
 
-export const WorkforceAnalytics = ({ locationId, period = "month" }: WorkforceAnalyticsProps) => {
-  // Calculate date range based on period
-  const getDateRange = () => {
+export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true }: WorkforceAnalyticsProps) => {
+  // Initialize date range based on period prop
+  const getInitialDateRange = () => {
     const now = new Date();
     switch (period) {
       case "week":
-        return {
-          start: format(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"),
-          end: format(now, "yyyy-MM-dd"),
-        };
+        return { from: subWeeks(now, 1), to: now };
       case "month":
-        return {
-          start: format(startOfMonth(now), "yyyy-MM-dd"),
-          end: format(endOfMonth(now), "yyyy-MM-dd"),
-        };
+        return { from: startOfMonth(now), to: endOfMonth(now) };
       case "quarter":
-        return {
-          start: format(subMonths(now, 3), "yyyy-MM-dd"),
-          end: format(now, "yyyy-MM-dd"),
-        };
+        return { from: subMonths(now, 3), to: now };
+      default:
+        return { from: subMonths(now, 1), to: now };
     }
   };
 
-  const { start: startDate, end: endDate } = getDateRange();
+  const initialRange = getInitialDateRange();
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(initialRange.from);
+  const [dateTo, setDateTo] = useState<Date | undefined>(initialRange.to);
+
+  const startDate = dateFrom ? format(dateFrom, "yyyy-MM-dd") : format(subMonths(new Date(), 1), "yyyy-MM-dd");
+  const endDate = dateTo ? format(dateTo, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
   
   const { leaderboard, allScores, isLoading: performanceLoading } = usePerformanceLeaderboard(
     startDate,
@@ -127,6 +128,15 @@ export const WorkforceAnalytics = ({ locationId, period = "month" }: WorkforceAn
 
   return (
     <div className="space-y-6">
+      {showDateFilter && (
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+        />
+      )}
+      
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
