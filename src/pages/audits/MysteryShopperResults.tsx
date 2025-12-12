@@ -22,12 +22,17 @@ export default function MysteryShopperResults() {
 
   const { data: templates } = useMysteryShopperTemplates();
   const { data: locations } = useLocations();
-  const { data: submissions, isLoading } = useMysteryShopperSubmissions({
+  const { data: submissions, isLoading, error } = useMysteryShopperSubmissions({
     templateId: templateFilter || undefined,
     locationId: locationFilter || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   });
+
+  // Debug logging
+  console.log("MysteryShopperResults - submissions:", submissions);
+  console.log("MysteryShopperResults - isLoading:", isLoading);
+  console.log("MysteryShopperResults - error:", error);
 
   const selectedSubmission = submissions?.find(s => s.id === selectedSubmissionId);
   const { data: selectedQuestions } = useMysteryShopperQuestions(selectedSubmission?.template_id);
@@ -104,7 +109,11 @@ export default function MysteryShopperResults() {
           <CardTitle>Submissions ({submissions?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {error ? (
+            <div className="text-center py-8 text-destructive">
+              Error loading submissions: {error.message}
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
