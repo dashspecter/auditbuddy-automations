@@ -103,7 +103,7 @@ export default function NotificationAnalytics() {
   }
 
   return (
-    <RoleGuard requireManager fallbackMessage="You don't have permission to view notification analytics.">
+    <RoleGuard requiredPermission="manage_notifications" fallbackMessage="You don't have permission to view notification analytics.">
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/notifications">
