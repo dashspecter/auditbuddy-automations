@@ -52,12 +52,12 @@ export default function MysteryShopperResults() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Template</Label>
-              <Select value={templateFilter} onValueChange={setTemplateFilter}>
+              <Select value={templateFilter || "all"} onValueChange={(v) => setTemplateFilter(v === "all" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All templates" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All templates</SelectItem>
+                  <SelectItem value="all">All templates</SelectItem>
                   {templates?.map(t => (
                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                   ))}
@@ -66,12 +66,12 @@ export default function MysteryShopperResults() {
             </div>
             <div className="space-y-2">
               <Label>Location</Label>
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <Select value={locationFilter || "all"} onValueChange={(v) => setLocationFilter(v === "all" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All locations" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All locations</SelectItem>
+                  <SelectItem value="all">All locations</SelectItem>
                   {locations?.map(l => (
                     <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
                   ))}
