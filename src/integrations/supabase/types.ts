@@ -5765,6 +5765,15 @@ export type Database = {
       }
       generate_short_code: { Args: never; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
+      get_mystery_shopper_template_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          description: string
+          id: string
+          name: string
+        }[]
+      }
       get_next_revision_number: {
         Args: { p_audit_id: string }
         Returns: number
