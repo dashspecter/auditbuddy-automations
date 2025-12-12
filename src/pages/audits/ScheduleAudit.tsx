@@ -9,6 +9,7 @@ import { useAuditTemplates } from "@/hooks/useAuditTemplates";
 import { useLocations } from "@/hooks/useLocations";
 import { useCreateScheduledAudit } from "@/hooks/useScheduledAuditsNew";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ScheduleAudit = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const ScheduleAudit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data: { user } } = await (await import("@/integrations/supabase/client")).supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await createScheduled.mutateAsync({
