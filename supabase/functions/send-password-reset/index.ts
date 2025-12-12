@@ -26,10 +26,14 @@ const handler = async (req: Request): Promise<Response> => {
     const { email }: PasswordResetRequest = await req.json();
 
     if (!email || !email.includes("@")) {
+      // SECURITY FIX: Return same response regardless of validation to prevent enumeration
       return new Response(
-        JSON.stringify({ error: "Valid email is required" }),
+        JSON.stringify({ 
+          success: true, 
+          message: "If an account with this email exists, a password reset link has been sent." 
+        }),
         {
-          status: 400,
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
@@ -40,102 +44,130 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Generate password reset link using Supabase
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: 'https://dashspect.com/reset-password',
-      },
-    });
+    try {
+      // Generate password reset link using Supabase
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: 'https://dashspect.com/reset-password',
+        },
+      });
 
-    if (error) {
-      console.error("Error generating reset link:", error);
-      throw error;
-    }
+      if (error) {
+        // SECURITY FIX: Log error but don't expose whether email exists
+        console.log("Error generating reset link (user may not exist):", error.message);
+        // Return success to prevent email enumeration
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "If an account with this email exists, a password reset link has been sent." 
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
 
-    const resetLink = data.properties?.action_link;
+      const resetLink = data.properties?.action_link;
 
-    if (!resetLink) {
-      throw new Error("Failed to generate reset link");
-    }
+      if (!resetLink) {
+        console.log("Failed to generate reset link for:", email);
+        // Return success to prevent enumeration
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "If an account with this email exists, a password reset link has been sent." 
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
 
-    console.log(`Sending password reset email to ${email}`);
+      console.log(`Sending password reset email to ${email}`);
 
-    // Send email using Resend
-    const emailResponse = await resend.emails.send({
-      from: "Dashspect <onboarding@resend.dev>",
-      to: [email],
-      subject: "Reset Your Password - Dashspect",
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reset Your Password</title>
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #5EEAD4 0%, #0891B2 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">Reset Your Password</h1>
-            </div>
-            
-            <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-              <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
-              
-              <p style="font-size: 16px; margin-bottom: 20px;">
-                We received a request to reset your password for your Dashspect account.
-              </p>
-              
-              <p style="font-size: 16px; margin-bottom: 30px;">
-                Click the button below to reset your password. This link will expire in 1 hour.
-              </p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetLink}" 
-                   style="background: linear-gradient(135deg, #5EEAD4 0%, #0891B2 100%); 
-                          color: white; 
-                          padding: 14px 32px; 
-                          text-decoration: none; 
-                          border-radius: 6px; 
-                          font-weight: 600;
-                          font-size: 16px;
-                          display: inline-block;">
-                  Reset Password
-                </a>
+      // Send email using Resend
+      await resend.emails.send({
+        from: "Dashspect <onboarding@resend.dev>",
+        to: [email],
+        subject: "Reset Your Password - Dashspect",
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Reset Your Password</title>
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: linear-gradient(135deg, #5EEAD4 0%, #0891B2 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">Reset Your Password</h1>
               </div>
               
-              <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-                Or copy and paste this link into your browser:
-              </p>
-              <p style="font-size: 14px; color: #0891B2; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 4px;">
-                ${resetLink}
-              </p>
+              <div style="background: #ffffff; padding: 40px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
+                
+                <p style="font-size: 16px; margin-bottom: 20px;">
+                  We received a request to reset your password for your Dashspect account.
+                </p>
+                
+                <p style="font-size: 16px; margin-bottom: 30px;">
+                  Click the button below to reset your password. This link will expire in 1 hour.
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetLink}" 
+                     style="background: linear-gradient(135deg, #5EEAD4 0%, #0891B2 100%); 
+                            color: white; 
+                            padding: 14px 32px; 
+                            text-decoration: none; 
+                            border-radius: 6px; 
+                            font-weight: 600;
+                            font-size: 16px;
+                            display: inline-block;">
+                    Reset Password
+                  </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+                  Or copy and paste this link into your browser:
+                </p>
+                <p style="font-size: 14px; color: #0891B2; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 4px;">
+                  ${resetLink}
+                </p>
+                
+                <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+                </p>
+                
+                <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+                  Best regards,<br>
+                  The Dashspect Team
+                </p>
+              </div>
               
-              <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-              </p>
-              
-              <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
-                Best regards,<br>
-                The Dashspect Team
-              </p>
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
-              <p>© ${new Date().getFullYear()} Dashspect. All rights reserved.</p>
-            </div>
-          </body>
-        </html>
-      `,
-    });
+              <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
+                <p>© ${new Date().getFullYear()} Dashspect. All rights reserved.</p>
+              </div>
+            </body>
+          </html>
+        `,
+      });
 
-    console.log("Password reset email sent successfully:", emailResponse);
+      console.log("Password reset email sent successfully");
+    } catch (innerError: any) {
+      // SECURITY FIX: Log error but return success to prevent enumeration
+      console.log("Error in password reset process:", innerError.message);
+    }
 
+    // SECURITY FIX: Always return the same success message regardless of outcome
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Password reset email sent successfully" 
+        message: "If an account with this email exists, a password reset link has been sent." 
       }),
       {
         status: 200,
@@ -147,12 +179,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: any) {
     console.error("Error in send-password-reset function:", error);
+    // SECURITY FIX: Even on errors, return generic success to prevent enumeration
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send password reset email" 
+        success: true, 
+        message: "If an account with this email exists, a password reset link has been sent." 
       }),
       {
-        status: 500,
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
