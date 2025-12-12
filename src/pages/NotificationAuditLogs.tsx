@@ -63,7 +63,7 @@ export default function NotificationAuditLogs() {
   };
 
   return (
-    <RoleGuard requireManager fallbackMessage="You don't have permission to view notification audit logs.">
+    <RoleGuard requiredPermission="manage_notifications" fallbackMessage="You don't have permission to view notification audit logs.">
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/notifications">

@@ -3,6 +3,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useCompany } from "@/hooks/useCompany";
+import { usePermissions, CompanyPermission } from "@/hooks/useCompanyPermissions";
 import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -10,29 +12,34 @@ interface RoleGuardProps {
   children: ReactNode;
   requireAdmin?: boolean;
   requireManager?: boolean;
+  requiredPermission?: CompanyPermission;
   fallbackMessage?: string;
 }
 
 /**
- * RoleGuard checks user roles and displays access denied if not permitted.
+ * RoleGuard checks user roles and company permissions, displays access denied if not permitted.
  * Used inside pages that are already wrapped in ProtectedLayout.
  */
 export const RoleGuard = ({
   children,
   requireAdmin = false,
   requireManager = false,
+  requiredPermission,
   fallbackMessage = "You don't have permission to access this page.",
 }: RoleGuardProps) => {
   const { data: roleData, isLoading, error, refetch } = useUserRole();
+  const { data: company, isLoading: companyLoading } = useCompany();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const queryClient = useQueryClient();
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: ['user_role'] });
+    queryClient.invalidateQueries({ queryKey: ['company_role_permissions'] });
     refetch();
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || companyLoading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -59,11 +66,23 @@ export const RoleGuard = ({
     );
   }
 
-  // Check permissions
-  const hasAccess =
+  // Check if user is company owner or admin - they always have access
+  const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  
+  // Check platform roles
+  const hasPlatformAccess =
     (requireAdmin && roleData?.isAdmin) ||
-    (requireManager && (roleData?.isManager || roleData?.isAdmin)) ||
-    (!requireAdmin && !requireManager);
+    (requireManager && (roleData?.isManager || roleData?.isAdmin));
+  
+  // Check company permission if specified
+  const hasCompanyPermission = requiredPermission ? hasPermission(requiredPermission) : false;
+
+  // Determine overall access
+  const hasAccess =
+    isOwnerOrAdmin ||
+    hasPlatformAccess ||
+    hasCompanyPermission ||
+    (!requireAdmin && !requireManager && !requiredPermission);
 
   if (!hasAccess) {
     return (

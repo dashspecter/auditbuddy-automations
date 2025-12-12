@@ -161,7 +161,7 @@ export default function RecurringNotifications() {
   }
 
   return (
-    <RoleGuard requireManager fallbackMessage="You don't have permission to manage recurring notifications.">
+    <RoleGuard requiredPermission="manage_notifications" fallbackMessage="You don't have permission to manage recurring notifications.">
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/notifications">
