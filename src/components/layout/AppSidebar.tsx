@@ -205,7 +205,7 @@ const settingsItems = [
     title: "Company Settings", 
     url: "/settings/company", 
     icon: Building2,
-    requiresOwner: true
+    requiresOwnerOrAdmin: true
   },
   { 
     title: "User Management", 
@@ -295,6 +295,11 @@ export function AppSidebar() {
     // Check legacy requiresOwner - MUST be company owner
     if (item.requiresOwner) {
       return isOwner === true;
+    }
+
+    // Check requiresOwnerOrAdmin - MUST be company owner OR company admin
+    if (item.requiresOwnerOrAdmin) {
+      return isOwner === true || isCompanyAdmin === true;
     }
 
     // Company owners and admins always have access to other items
