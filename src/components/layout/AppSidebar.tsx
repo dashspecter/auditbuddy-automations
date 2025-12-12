@@ -287,43 +287,37 @@ export function AppSidebar() {
       return false;
     }
 
-    // Company owners and admins always have access
+    // Check legacy requiresAdmin - MUST have platform admin role
+    if (item.requiresAdmin) {
+      return roleData?.isAdmin === true;
+    }
+
+    // Check legacy requiresOwner - MUST be company owner
+    if (item.requiresOwner) {
+      return isOwner === true;
+    }
+
+    // Company owners and admins always have access to other items
     if (isOwner || isCompanyAdmin) {
-      // Still check legacy admin requirements
-      if (item.requiresAdmin && !roleData?.isAdmin) {
-        return false;
-      }
-      if (item.requiresOwner && !isOwner) {
-        return false;
-      }
       return true;
     }
 
     // Check role requirements using allowedRoles array
     // If user has an allowed platform role, grant access
-    if (hasAllowedRole(item.allowedRoles)) {
-      return true;
-    }
-
-    // For company members (or users without platform roles), check company permissions as fallback
-    if (item.companyPermission && hasPermission(item.companyPermission)) {
-      return true;
+    if (item.allowedRoles && item.allowedRoles.length > 0) {
+      if (hasAllowedRole(item.allowedRoles)) {
+        return true;
+      }
+      // For users without matching platform roles, check company permissions as fallback
+      if (item.companyPermission && hasPermission(item.companyPermission)) {
+        return true;
+      }
+      // User doesn't have required role or permission
+      return false;
     }
 
     // If no allowedRoles restriction, allow access
-    if (!item.allowedRoles || item.allowedRoles.length === 0) {
-      return true;
-    }
-
-    // Legacy support for requiresAdmin/requiresOwner
-    if (item.requiresAdmin && !roleData?.isAdmin) {
-      return false;
-    }
-    if (item.requiresOwner && !isOwner) {
-      return false;
-    }
-
-    return false;
+    return true;
   };
 
   const shouldShowSubItem = (subItem: any) => {
