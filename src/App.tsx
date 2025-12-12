@@ -186,20 +186,20 @@ const App = () => (
               <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
               
               {/* New Audit System Routes */}
-              <Route path="/audits/templates" element={<ManagerRoute><Templates /></ManagerRoute>} />
-              <Route path="/audits/templates/new" element={<ManagerRoute><TemplateBuilder /></ManagerRoute>} />
-              <Route path="/audits/templates/:id" element={<ManagerRoute><TemplateBuilder /></ManagerRoute>} />
-              <Route path="/audits/schedule" element={<ManagerRoute><ScheduleAudit /></ManagerRoute>} />
+              <Route path="/audits/templates" element={<ManagerRoute requiredPermission="manage_audits"><Templates /></ManagerRoute>} />
+              <Route path="/audits/templates/new" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
+              <Route path="/audits/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
+              <Route path="/audits/schedule" element={<ManagerRoute requiredPermission="manage_audits"><ScheduleAudit /></ManagerRoute>} />
               <Route path="/audits/perform/:id" element={<ProtectedRoute><PerformAudit /></ProtectedRoute>} />
               <Route path="/audits/report/:id" element={<ProtectedRoute><AuditReport /></ProtectedRoute>} />
               <Route path="/audits/list" element={<ProtectedRoute><AuditsList /></ProtectedRoute>} />
               
               {/* Mystery Shopper Routes */}
-              <Route path="/audits/mystery-shopper" element={<ManagerRoute><MysteryShopperTemplates /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper/new" element={<ManagerRoute><MysteryShopperTemplateEditor /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper/:templateId" element={<ManagerRoute><MysteryShopperTemplateEditor /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper-results" element={<ManagerRoute><MysteryShopperResults /></ManagerRoute>} />
-              <Route path="/audits/vouchers" element={<ManagerRoute><VouchersManagement /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplates /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper/new" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper/:templateId" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
+              <Route path="/audits/mystery-shopper-results" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperResults /></ManagerRoute>} />
+              <Route path="/audits/vouchers" element={<ManagerRoute requiredPermission="manage_audits"><VouchersManagement /></ManagerRoute>} />
               
               {/* Public Mystery Shopper Routes (no auth required) */}
               <Route path="/mystery/:token" element={<MysteryShopperForm />} />
@@ -216,47 +216,47 @@ const App = () => (
               <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
               <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
-              <Route path="/notifications" element={<ManagerRoute><Notifications /></ManagerRoute>} />
-              <Route path="/notification-templates" element={<ManagerRoute><NotificationTemplates /></ManagerRoute>} />
-              <Route path="/notification-audit-logs" element={<ManagerRoute><NotificationAuditLogs /></ManagerRoute>} />
-              <Route path="/notification-analytics" element={<ManagerRoute><NotificationAnalytics /></ManagerRoute>} />
-              <Route path="/recurring-notifications" element={<ManagerRoute><RecurringNotifications /></ManagerRoute>} />
+              <Route path="/notifications" element={<ManagerRoute requiredPermission="manage_employees"><Notifications /></ManagerRoute>} />
+              <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_employees"><NotificationTemplates /></ManagerRoute>} />
+              <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_employees"><NotificationAuditLogs /></ManagerRoute>} />
+              <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_employees"><NotificationAnalytics /></ManagerRoute>} />
+              <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_employees"><RecurringNotifications /></ManagerRoute>} />
               <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
-              <Route path="/documents" element={<ManagerRoute><DocumentManagement /></ManagerRoute>} />
+              <Route path="/documents" element={<ManagerRoute requiredPermission="view_reports"><DocumentManagement /></ManagerRoute>} />
               <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />
               <Route path="/training" element={<ProtectedRoute><TrainingPrograms /></ProtectedRoute>} />
               <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
-              <Route path="/test-creation" element={<ManagerRoute><TestCreation /></ManagerRoute>} />
-              <Route path="/test-management" element={<ManagerRoute><TestManagement /></ManagerRoute>} />
-              <Route path="/test-edit/:id" element={<ManagerRoute><TestEdit /></ManagerRoute>} />
+              <Route path="/test-creation" element={<ManagerRoute requiredPermission="manage_employees"><TestCreation /></ManagerRoute>} />
+              <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_employees"><TestManagement /></ManagerRoute>} />
+              <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_employees"><TestEdit /></ManagerRoute>} />
               <Route path="/take-test/:testId" element={<TakeTest />} />
               <Route path="/t/:shortCode" element={<TakeTest />} />
               <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
               <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
               <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
-              <Route path="/recurring-schedules" element={<ManagerRoute><RecurringAuditSchedules /></ManagerRoute>} />
+              <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
               <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
               <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
-              <Route path="/manual-metrics" element={<ManagerRoute><ManualMetrics /></ManagerRoute>} />
-              <Route path="/equipment" element={<ManagerRoute><EquipmentList /></ManagerRoute>} />
-              <Route path="/equipment/bulk-qr" element={<ManagerRoute><BulkEquipmentQR /></ManagerRoute>} />
-              <Route path="/equipment/new" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+              <Route path="/manual-metrics" element={<ManagerRoute requiredPermission="view_reports"><ManualMetrics /></ManagerRoute>} />
+              <Route path="/equipment" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentList /></ManagerRoute>} />
+              <Route path="/equipment/bulk-qr" element={<ManagerRoute requiredPermission="manage_audits"><BulkEquipmentQR /></ManagerRoute>} />
+              <Route path="/equipment/new" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentForm /></ManagerRoute>} />
               <Route path="/equipment/:id" element={<EquipmentDetail />} />
-              <Route path="/equipment/:id/edit" element={<ManagerRoute><EquipmentForm /></ManagerRoute>} />
+              <Route path="/equipment/:id/edit" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentForm /></ManagerRoute>} />
               <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
-              <Route path="/maintenance-calendar" element={<ManagerRoute><MaintenanceCalendar /></ManagerRoute>} />
-              <Route path="/recurring-maintenance" element={<ManagerRoute><RecurringMaintenanceSchedules /></ManagerRoute>} />
+              <Route path="/maintenance-calendar" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceCalendar /></ManagerRoute>} />
+              <Route path="/recurring-maintenance" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
               
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
-              <Route path="/workforce/staff" element={<ManagerRoute><EmployeeManagement /></ManagerRoute>} />
+              <Route path="/workforce/staff" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
               <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
               <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
-              <Route path="/workforce/payroll" element={<ManagerRoute><Payroll /></ManagerRoute>} />
-              <Route path="/workforce/sales" element={<ManagerRoute><SalesManagement /></ManagerRoute>} />
-              <Route path="/workforce/performance" element={<ManagerRoute><EmployeePerformance /></ManagerRoute>} />
+              <Route path="/workforce/payroll" element={<ManagerRoute requiredPermission="manage_employees"><Payroll /></ManagerRoute>} />
+              <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
+              <Route path="/workforce/performance" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
               
               {/* Tasks Routes */}
               <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
@@ -265,11 +265,11 @@ const App = () => (
               <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
               
               {/* Inventory Routes */}
-              <Route path="/inventory" element={<ManagerRoute><Inventory /></ManagerRoute>} />
+              <Route path="/inventory" element={<ManagerRoute requiredPermission="manage_audits"><Inventory /></ManagerRoute>} />
               
               {/* Insights Routes */}
-              <Route path="/insights" element={<ManagerRoute><Insights /></ManagerRoute>} />
-              <Route path="/ai-feed" element={<ManagerRoute><AIFeed /></ManagerRoute>} />
+              <Route path="/insights" element={<ManagerRoute requiredPermission="view_reports"><Insights /></ManagerRoute>} />
+              <Route path="/ai-feed" element={<ManagerRoute requiredPermission="view_reports"><AIFeed /></ManagerRoute>} />
               
               {/* Integrations Routes */}
               <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
@@ -300,15 +300,15 @@ const App = () => (
               <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
               
               {/* Operations Agent Routes */}
-              <Route path="/operations/daily" element={<ManagerRoute><DailyOps /></ManagerRoute>} />
-              <Route path="/operations/daily/:id" element={<ManagerRoute><DailyOpsDetail /></ManagerRoute>} />
-              <Route path="/operations/maintenance" element={<ManagerRoute><MaintenanceTasks /></ManagerRoute>} />
-              <Route path="/operations/slas" element={<ManagerRoute><SLAManagement /></ManagerRoute>} />
+              <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
+              <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
+              <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
+              <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
               
               {/* Workforce Agent Routes */}
-              <Route path="/workforce/payroll-batches" element={<ManagerRoute><PayrollBatches /></ManagerRoute>} />
-              <Route path="/workforce/attendance-alerts" element={<ManagerRoute><AttendanceAlerts /></ManagerRoute>} />
-              <Route path="/workforce/scheduling-insights" element={<ManagerRoute><SchedulingInsights /></ManagerRoute>} />
+              <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
+              <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
+              <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
               
               {/* Company Admin Routes */}
               <Route path="/company/admin" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
