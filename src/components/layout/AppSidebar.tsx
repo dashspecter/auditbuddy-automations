@@ -302,18 +302,19 @@ export function AppSidebar() {
       return true;
     }
 
-    // Check role requirements using allowedRoles array
-    // If user has an allowed platform role, grant access
+    // For company members, ONLY check company permissions (not platform roles)
+    if (isMember) {
+      // If item requires a company permission, check if user has it
+      if (item.companyPermission) {
+        return hasPermission(item.companyPermission);
+      }
+      // No permission requirement means accessible
+      return true;
+    }
+
+    // For platform users (manager, checker, hr, admin), check role requirements
     if (item.allowedRoles && item.allowedRoles.length > 0) {
-      if (hasAllowedRole(item.allowedRoles)) {
-        return true;
-      }
-      // For users without matching platform roles, check company permissions as fallback
-      if (item.companyPermission && hasPermission(item.companyPermission)) {
-        return true;
-      }
-      // User doesn't have required role or permission
-      return false;
+      return hasAllowedRole(item.allowedRoles);
     }
 
     // If no allowedRoles restriction, allow access
@@ -321,11 +322,22 @@ export function AppSidebar() {
   };
 
   const shouldShowSubItem = (subItem: any) => {
-    if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
-      return false;
+    // Company owners and admins always have access
+    if (isOwner || isCompanyAdmin) {
+      return true;
     }
-    // For company members, check company permissions on sub-items too
-    if (isMember && subItem.companyPermission && !hasPermission(subItem.companyPermission)) {
+
+    // For company members, check company permissions
+    if (isMember) {
+      if (subItem.companyPermission) {
+        return hasPermission(subItem.companyPermission);
+      }
+      // No permission requirement means accessible
+      return true;
+    }
+
+    // For platform users, check allowed roles
+    if (subItem.allowedRoles && !hasAllowedRole(subItem.allowedRoles)) {
       return false;
     }
     return true;
