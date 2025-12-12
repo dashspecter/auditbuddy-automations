@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, QrCode } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -343,8 +343,8 @@ const StaffHome = () => {
           <h2 className="font-semibold mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/scan-voucher")}>
-              <QrCode className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Scan Voucher</span>
+              <Gift className="h-6 w-6 mb-2 text-primary" />
+              <span className="text-xs">Enter Voucher</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/shift-pool")}>
               <Clock className="h-6 w-6 mb-2 text-primary" />
