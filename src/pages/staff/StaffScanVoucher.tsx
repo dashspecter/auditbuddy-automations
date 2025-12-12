@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, QrCode, CheckCircle, XCircle, Gift } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Search, CheckCircle, XCircle, Gift, QrCode } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { QRScanner } from "@/components/QRScanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,34 +27,33 @@ const StaffScanVoucher = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showScanner, setShowScanner] = useState(false);
-  const [scannedCode, setScannedCode] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState("");
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
 
-  // Check for URL error parameter (from auth redirect) or code parameter
+  // Check for URL code parameter
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const urlError = searchParams.get('error');
     const codeParam = searchParams.get('code');
     
-    if (urlError) {
-      console.error("Auth error from URL:", urlError);
-      // Clear the error from URL
-      navigate('/staff/scan-voucher', { replace: true });
-    }
-    
-    // If code is passed via URL, look it up directly
-    if (codeParam && !scannedCode) {
+    if (codeParam) {
       const cleanCode = codeParam.replace(/^VOUCHER:/i, '').toUpperCase();
-      setScannedCode(cleanCode);
+      setCodeInput(cleanCode);
       lookupVoucher(cleanCode);
+      // Clear the URL parameter
+      navigate('/staff/scan-voucher', { replace: true });
     }
   }, [location, navigate]);
 
   const lookupVoucher = async (code: string) => {
+    if (!code.trim()) {
+      setError("Please enter a voucher code");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setVoucher(null);
@@ -64,7 +64,7 @@ const StaffScanVoucher = () => {
       const { data, error: queryError } = await supabase
         .from("vouchers")
         .select("*")
-        .eq("code", code.toUpperCase())
+        .eq("code", code.toUpperCase().trim())
         .maybeSingle();
       
       if (queryError) {
@@ -74,7 +74,7 @@ const StaffScanVoucher = () => {
       }
       
       if (!data) {
-        setError("Voucher not found");
+        setError("Voucher not found. Please check the code and try again.");
         return;
       }
       
@@ -88,6 +88,11 @@ const StaffScanVoucher = () => {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    lookupVoucher(codeInput);
+  };
+
   const handleScan = (data: string) => {
     try {
       console.log("QR Scanned raw data:", data);
@@ -99,23 +104,10 @@ const StaffScanVoucher = () => {
       
       // Handle "VOUCHER:CODE" format
       if (data.toUpperCase().startsWith('VOUCHER:')) {
-        code = data.substring(8); // Remove "VOUCHER:" prefix
+        code = data.substring(8);
       } else if (data.includes('/voucher/')) {
         const parts = data.split('/voucher/');
         code = parts[parts.length - 1];
-      } else if (data.startsWith('http')) {
-        try {
-          const url = new URL(data);
-          const pathParts = url.pathname.split('/').filter(Boolean);
-          code = pathParts[pathParts.length - 1] || data;
-          // Also check for ?code= parameter
-          const codeParam = url.searchParams.get('code');
-          if (codeParam) {
-            code = codeParam.replace(/^VOUCHER:/i, '');
-          }
-        } catch {
-          // Not a valid URL, use as-is
-        }
       }
       
       // Clean up the code
@@ -123,7 +115,7 @@ const StaffScanVoucher = () => {
       console.log("Extracted voucher code:", code);
       
       if (code) {
-        setScannedCode(code);
+        setCodeInput(code);
         lookupVoucher(code);
       } else {
         toast.error("Could not extract voucher code from QR");
@@ -169,12 +161,11 @@ const StaffScanVoucher = () => {
     }
   };
 
-  const handleScanAgain = () => {
-    setScannedCode(null);
+  const handleReset = () => {
+    setCodeInput("");
     setVoucher(null);
     setError(null);
     setRedeemSuccess(false);
-    setShowScanner(true);
   };
 
   const getLocationNames = (locationIds: string[] | null | undefined) => {
@@ -204,52 +195,83 @@ const StaffScanVoucher = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">Scan Voucher</h1>
-            <p className="text-sm opacity-90">Scan customer voucher QR code to redeem</p>
+            <h1 className="text-xl font-bold">Redeem Voucher</h1>
+            <p className="text-sm opacity-90">Enter customer voucher code to redeem</p>
           </div>
         </div>
       </div>
 
       <div className="px-4 py-6 space-y-4">
-        {!scannedCode ? (
-          // Initial state - show scan button
-          <Card className="p-8 text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <QrCode className="h-10 w-10 text-primary" />
+        {!voucher && !redeemSuccess ? (
+          // Initial state - show code input form
+          <Card className="p-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <Gift className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Ready to Scan</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Scan the customer's voucher QR code to verify and redeem it
+            <h2 className="text-lg font-semibold text-center mb-2">Enter Voucher Code</h2>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              Ask the customer for their voucher code shown on their voucher
             </p>
-            <Button onClick={() => setShowScanner(true)} size="lg" className="w-full">
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="e.g. F5E1923860D5"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                  className="text-center text-lg font-mono tracking-wider uppercase pr-10"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                />
+              </div>
+              
+              {error && (
+                <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full"
+                disabled={isLoading || !codeInput.trim()}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                    Looking up...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-5 w-5 mr-2" />
+                    Look Up Voucher
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full"
+              onClick={() => setShowScanner(true)}
+            >
               <QrCode className="h-5 w-5 mr-2" />
-              Open Scanner
+              Scan QR Code
             </Button>
           </Card>
-        ) : isLoading ? (
-          // Loading state
-          <Card className="p-8 text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">Looking up voucher...</p>
-          </Card>
-        ) : error || !voucher ? (
-          // Error state - voucher not found
-          <Card className="p-8 text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-              <XCircle className="h-10 w-10 text-destructive" />
-            </div>
-            <h2 className="text-lg font-semibold mb-2">Voucher Not Found</h2>
-            <p className="text-sm text-muted-foreground mb-2">
-              Code: <span className="font-mono font-semibold">{scannedCode}</span>
-            </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              {error || "This voucher code is invalid or doesn't exist in the system"}
-            </p>
-            <Button onClick={handleScanAgain} variant="outline" className="w-full">
-              Try Again
-            </Button>
-          </Card>
-        ) : redeemSuccess ? (
+        ) : redeemSuccess && voucher ? (
           // Success state - voucher redeemed
           <Card className="p-8 text-center">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -267,11 +289,11 @@ const StaffScanVoucher = () => {
                 Code: {voucher.code}
               </div>
             </div>
-            <Button onClick={handleScanAgain} className="w-full">
-              Scan Another Voucher
+            <Button onClick={handleReset} className="w-full">
+              Redeem Another Voucher
             </Button>
           </Card>
-        ) : (
+        ) : voucher ? (
           // Voucher found - show details and redeem option
           <Card className="overflow-hidden">
             {/* Voucher header */}
@@ -360,13 +382,13 @@ const StaffScanVoucher = () => {
                     {isRedeemed ? "Already Redeemed" : "Cannot Redeem"}
                   </Button>
                 )}
-                <Button onClick={handleScanAgain} variant="outline" className="w-full">
-                  Scan Another
+                <Button onClick={handleReset} variant="outline" className="w-full">
+                  Enter Different Code
                 </Button>
               </div>
             </div>
           </Card>
-        )}
+        ) : null}
       </div>
 
       <StaffBottomNav />
