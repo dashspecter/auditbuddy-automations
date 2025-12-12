@@ -204,24 +204,24 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                       key={role.id}
                       className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                         <div
                           className="w-4 h-4 rounded-full flex-shrink-0"
                           style={{ backgroundColor: role.color }}
                         />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{role.name}</p>
-                              <Badge variant="secondary" className="text-xs">
-                                {role.department?.name || 'General'}
-                              </Badge>
-                            </div>
-                            {role.description && (
-                              <p className="text-sm text-muted-foreground truncate">
-                                {role.description}
-                              </p>
-                            )}
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium break-words">{role.name}</span>
+                            <Badge variant="secondary" className="text-xs flex-shrink-0">
+                              {role.department?.name || 'General'}
+                            </Badge>
                           </div>
+                          {role.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 break-words">
+                              {role.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
