@@ -90,6 +90,7 @@ const navigationItems = [
     icon: Wrench,
     module: "equipment_management",
     allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission, // Members with manage_audits can access equipment
     subItems: [
       { title: "All Equipment", url: "/equipment" },
       { title: "Maintenance Calendar", url: "/maintenance-calendar" },
@@ -103,6 +104,7 @@ const navigationItems = [
     icon: Bell,
     module: "notifications",
     allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_employees' as CompanyPermission, // Members with manage_employees can send notifications
     subItems: [
       { title: "Send Notifications", url: "/notifications" },
       { title: "Templates", url: "/notification-templates" },
@@ -135,6 +137,7 @@ const navigationItems = [
     icon: FileText,
     module: "documents",
     allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports' as CompanyPermission, // Members with view_reports can access documents
     subItems: [
       { title: "All Documents", url: "/documents" },
     ]
@@ -145,6 +148,7 @@ const navigationItems = [
     icon: GraduationCap,
     module: null,
     allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_employees' as CompanyPermission, // Members with manage_employees can manage tests
     subItems: [
       { title: "Test Management", url: "/test-management" },
       { title: "Create Test", url: "/test-creation" },
@@ -182,6 +186,7 @@ const navigationItems = [
     icon: Settings2,
     module: null,
     allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission, // Members with manage_audits can access operations
     subItems: [
       { title: "Daily Ops", url: "/operations/daily" },
       { title: "Maintenance Tasks", url: "/operations/maintenance" },
@@ -282,14 +287,32 @@ export function AppSidebar() {
       return false;
     }
 
-    // Check role requirements using allowedRoles array
-    if (item.allowedRoles && !hasAllowedRole(item.allowedRoles)) {
-      return false;
+    // Company owners and admins always have access
+    if (isOwner || isCompanyAdmin) {
+      // Still check legacy admin requirements
+      if (item.requiresAdmin && !roleData?.isAdmin) {
+        return false;
+      }
+      if (item.requiresOwner && !isOwner) {
+        return false;
+      }
+      return true;
     }
 
-    // For company members, check company permissions
-    if (isMember && item.companyPermission && !hasPermission(item.companyPermission)) {
-      return false;
+    // Check role requirements using allowedRoles array
+    // If user has an allowed platform role, grant access
+    if (hasAllowedRole(item.allowedRoles)) {
+      return true;
+    }
+
+    // For company members (or users without platform roles), check company permissions as fallback
+    if (item.companyPermission && hasPermission(item.companyPermission)) {
+      return true;
+    }
+
+    // If no allowedRoles restriction, allow access
+    if (!item.allowedRoles || item.allowedRoles.length === 0) {
+      return true;
     }
 
     // Legacy support for requiresAdmin/requiresOwner
@@ -300,7 +323,7 @@ export function AppSidebar() {
       return false;
     }
 
-    return true;
+    return false;
   };
 
   const shouldShowSubItem = (subItem: any) => {
