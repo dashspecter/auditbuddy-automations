@@ -232,7 +232,7 @@ const App = () => (
               <Route path="/take-test/:testId" element={<TakeTest />} />
               <Route path="/t/:shortCode" element={<TakeTest />} />
               <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
-              <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
+              <Route path="/admin/locations" element={<ManagerRoute requiredPermission="manage_locations"><LocationsManagement /></ManagerRoute>} />
               <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
               <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
               <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />

@@ -50,22 +50,28 @@ export const ManagerRoute = ({ children, requiredPermission }: ManagerRouteProps
   const hasPlatformRole = roleData?.isManager || roleData?.isAdmin;
   
   // Check if user has the required company permission (if specified)
-  const hasRequiredPermission = requiredPermission ? hasPermission(requiredPermission) : false;
+  // For company members, use permission check; for others, check platform roles
+  const isMember = company?.userRole === 'company_member';
+  const hasRequiredPermission = requiredPermission && isMember ? hasPermission(requiredPermission) : false;
 
   // Allow access if:
   // 1. User is company owner or admin
   // 2. User has platform manager/admin role
-  // 3. User has the required company permission (when specified)
+  // 3. User is a company member with the required permission
   const hasAccess = isOwnerOrAdmin || hasPlatformRole || hasRequiredPermission;
 
   // Show access denied if no access
   if (!hasAccess) {
+    const permissionLabel = requiredPermission ? 
+      `You don't have the "${requiredPermission.replace(/_/g, ' ')}" permission.` :
+      "You need administrator privileges to access this page.";
+      
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Access Denied</h1>
           <p className="text-muted-foreground">
-            You need administrator privileges to access this page.
+            {permissionLabel}
           </p>
           <div className="flex gap-2 justify-center">
             <Button onClick={handleRefresh} variant="outline">
