@@ -27,7 +27,7 @@ import { toast } from "sonner";
 interface QuestionFormData {
   id?: string;
   question_text: string;
-  question_type: 'multiple_choice' | 'rating' | 'text';
+  question_type: 'multiple_choice' | 'rating' | 'text' | 'photo';
   options: string[];
   rating_scale: { min: number; max: number };
   is_required: boolean;
@@ -468,7 +468,7 @@ export default function MysteryShopperTemplateEditor() {
                       <Badge variant="outline">Q{index + 1}</Badge>
                       <Select
                         value={question.question_type}
-                        onValueChange={(value: 'multiple_choice' | 'rating' | 'text') => 
+                        onValueChange={(value: 'multiple_choice' | 'rating' | 'text' | 'photo') => 
                           updateQuestionData(index, 'question_type', value)
                         }
                       >
@@ -479,6 +479,7 @@ export default function MysteryShopperTemplateEditor() {
                           <SelectItem value="rating">Rating (1-5)</SelectItem>
                           <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
                           <SelectItem value="text">Text Answer</SelectItem>
+                          <SelectItem value="photo">Photo Upload</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="flex items-center gap-2 ml-auto">
@@ -512,6 +513,13 @@ export default function MysteryShopperTemplateEditor() {
                     {question.question_type === 'rating' && (
                       <div className="flex items-center gap-4 pl-4 text-sm text-muted-foreground">
                         <span>Scale: {question.rating_scale.min} to {question.rating_scale.max}</span>
+                      </div>
+                    )}
+
+                    {question.question_type === 'photo' && (
+                      <div className="flex items-center gap-4 pl-4 text-sm text-muted-foreground">
+                        <ImageIcon className="h-4 w-4" />
+                        <span>Customer will upload a photo</span>
                       </div>
                     )}
                   </div>

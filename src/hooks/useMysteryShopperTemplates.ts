@@ -25,7 +25,7 @@ export interface MysteryShopperQuestion {
   template_id: string;
   order_index: number;
   question_text: string;
-  question_type: 'multiple_choice' | 'rating' | 'text';
+  question_type: 'multiple_choice' | 'rating' | 'text' | 'photo';
   options: string[];
   rating_scale: { min: number; max: number; labels?: string[] };
   is_required: boolean;

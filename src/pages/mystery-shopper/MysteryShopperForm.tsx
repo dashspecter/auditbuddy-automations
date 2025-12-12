@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMysteryShopperTemplateByToken, useMysteryShopperQuestions, MysteryShopperQuestion } from "@/hooks/useMysteryShopperTemplates";
 import { useCreateMysteryShopperSubmission } from "@/hooks/useMysteryShopperSubmissions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Star, AlertCircle } from "lucide-react";
+import { Loader2, Star, AlertCircle, Upload, X, Camera } from "lucide-react";
+import { toast } from "sonner";
 
 const RatingInput = ({ 
   question, 
@@ -41,6 +43,118 @@ const RatingInput = ({
           </div>
         </button>
       ))}
+    </div>
+  );
+};
+
+const PhotoInput = ({
+  questionId,
+  value,
+  onChange,
+  error,
+}: {
+  questionId: string;
+  value: string | undefined;
+  onChange: (val: string) => void;
+  error?: string;
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `mystery-shopper-photos/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('public-assets')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public-assets')
+        .getPublicUrl(fileName);
+
+      onChange(publicUrl);
+      toast.success("Photo uploaded");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload photo");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removePhoto = () => {
+    onChange("");
+  };
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
+      {value ? (
+        <div className="relative inline-block">
+          <img 
+            src={value} 
+            alt="Uploaded photo" 
+            className="max-h-48 rounded-lg border object-cover"
+          />
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-6 w-6"
+            onClick={removePhoto}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className={`w-full h-24 border-dashed ${error ? 'border-destructive' : ''}`}
+        >
+          {uploading ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Camera className="h-6 w-6" />
+              <span>Tap to take or upload photo</span>
+            </div>
+          )}
+        </Button>
+      )}
     </div>
   );
 };
@@ -270,6 +384,15 @@ export default function MysteryShopperForm() {
                         onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                         placeholder="Your answer..."
                         rows={3}
+                      />
+                    )}
+                    
+                    {question.question_type === 'photo' && (
+                      <PhotoInput
+                        questionId={question.id}
+                        value={answers[question.id]}
+                        onChange={(val) => handleAnswerChange(question.id, val)}
+                        error={errors[question.id]}
                       />
                     )}
                     
