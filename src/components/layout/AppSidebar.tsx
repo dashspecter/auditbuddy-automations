@@ -104,7 +104,7 @@ const navigationItems = [
     icon: Bell,
     module: "notifications",
     allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees' as CompanyPermission, // Members with manage_employees can send notifications
+    companyPermission: 'manage_notifications' as CompanyPermission,
     subItems: [
       { title: "Send Notifications", url: "/notifications" },
       { title: "Templates", url: "/notification-templates" },

@@ -216,11 +216,11 @@ const App = () => (
               <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
               <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
-              <Route path="/notifications" element={<ManagerRoute requiredPermission="manage_employees"><Notifications /></ManagerRoute>} />
-              <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_employees"><NotificationTemplates /></ManagerRoute>} />
-              <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_employees"><NotificationAuditLogs /></ManagerRoute>} />
-              <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_employees"><NotificationAnalytics /></ManagerRoute>} />
-              <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_employees"><RecurringNotifications /></ManagerRoute>} />
+              <Route path="/notifications" element={<ManagerRoute requiredPermission="manage_notifications"><Notifications /></ManagerRoute>} />
+              <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationTemplates /></ManagerRoute>} />
+              <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAuditLogs /></ManagerRoute>} />
+              <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAnalytics /></ManagerRoute>} />
+              <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_notifications"><RecurringNotifications /></ManagerRoute>} />
               <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
               <Route path="/documents" element={<ManagerRoute requiredPermission="view_reports"><DocumentManagement /></ManagerRoute>} />
               <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />

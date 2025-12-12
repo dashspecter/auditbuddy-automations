@@ -13,7 +13,8 @@ export type CompanyPermission =
   | 'manage_locations'
   | 'manage_employees'
   | 'manage_shifts'
-  | 'manage_audits';
+  | 'manage_audits'
+  | 'manage_notifications';
 
 export const PERMISSION_LABELS: Record<CompanyPermission, { label: string; description: string }> = {
   manage_users: { label: 'Manage Users', description: 'Invite, edit, and remove company users' },
@@ -25,6 +26,7 @@ export const PERMISSION_LABELS: Record<CompanyPermission, { label: string; descr
   manage_employees: { label: 'Manage Employees', description: 'Add, edit, and remove employees' },
   manage_shifts: { label: 'Manage Shifts', description: 'Create and manage work shifts' },
   manage_audits: { label: 'Manage Audits', description: 'Create and manage audit templates' },
+  manage_notifications: { label: 'Manage Notifications', description: 'Send and manage notifications' },
 };
 
 export const ALL_PERMISSIONS: CompanyPermission[] = [
@@ -37,6 +39,7 @@ export const ALL_PERMISSIONS: CompanyPermission[] = [
   'manage_employees',
   'manage_shifts',
   'manage_audits',
+  'manage_notifications',
 ];
 
 interface RolePermission {
