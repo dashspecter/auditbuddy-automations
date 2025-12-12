@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useVouchers, useUpdateVoucherStatus } from "@/hooks/useVouchers";
 import { useLocations } from "@/hooks/useLocations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Gift, Calendar, MapPin, Check, Search } from "lucide-react";
+import { Loader2, Gift, Calendar, MapPin, Check, Search, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -50,9 +51,17 @@ export default function VouchersManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Vouchers</h2>
-        <p className="text-muted-foreground">Manage customer reward vouchers from mystery shopper surveys</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Vouchers</h2>
+          <p className="text-muted-foreground">Manage customer reward vouchers from mystery shopper surveys</p>
+        </div>
+        <Button asChild variant="outline">
+          <Link to="/audits/mystery-shopper-results">
+            <ClipboardList className="h-4 w-4 mr-2" />
+            View Survey Results
+          </Link>
+        </Button>
       </div>
 
       {/* Stats */}
