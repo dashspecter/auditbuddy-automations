@@ -75,8 +75,13 @@ export const useCreateEmployeeRole = () => {
       queryClient.invalidateQueries({ queryKey: ['employee_roles'] });
       toast.success('Role created successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to create role: ${error.message}`);
+    onError: (error: any) => {
+      // Handle unique constraint violation with user-friendly message
+      if (error?.code === '23505' || error?.message?.includes('duplicate key') || error?.message?.includes('unique constraint')) {
+        toast.error('A role with this name already exists. Please choose a different name.');
+      } else {
+        toast.error(`Failed to create role: ${error.message}`);
+      }
     },
   });
 };
