@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Gift, Calendar, MapPin, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
-import { QRCodeSVG } from "qrcode.react";
 
 export default function VoucherPage() {
   const { code } = useParams<{ code: string }>();
@@ -104,19 +103,12 @@ export default function VoucherPage() {
               </p>
             </div>
 
-            {/* QR Code - Contains just the voucher code for staff scanner */}
+            {/* Instructions for redemption */}
             {isActive && (
-              <div className="flex justify-center">
-                <div className="p-4 bg-white rounded-lg">
-                  <QRCodeSVG 
-                    value={`VOUCHER:${voucher.code}`} 
-                    size={150}
-                    level="H"
-                  />
-                  <p className="text-xs text-center mt-2 text-muted-foreground">
-                    Staff: Use in-app scanner
-                  </p>
-                </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Show the voucher code above to staff for redemption
+                </p>
               </div>
             )}
 

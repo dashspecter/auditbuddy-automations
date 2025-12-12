@@ -3,9 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, CheckCircle, XCircle, Gift, QrCode } from "lucide-react";
+import { ArrowLeft, Search, CheckCircle, XCircle, Gift } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { QRScanner } from "@/components/QRScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -26,7 +25,6 @@ interface Voucher {
 const StaffScanVoucher = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showScanner, setShowScanner] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +41,6 @@ const StaffScanVoucher = () => {
       const cleanCode = codeParam.replace(/^VOUCHER:/i, '').toUpperCase();
       setCodeInput(cleanCode);
       lookupVoucher(cleanCode);
-      // Clear the URL parameter
       navigate('/staff/scan-voucher', { replace: true });
     }
   }, [location, navigate]);
@@ -91,39 +88,6 @@ const StaffScanVoucher = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     lookupVoucher(codeInput);
-  };
-
-  const handleScan = (data: string) => {
-    try {
-      console.log("QR Scanned raw data:", data);
-      setShowScanner(false);
-      setRedeemSuccess(false);
-      
-      // Extract voucher code from various formats
-      let code = data;
-      
-      // Handle "VOUCHER:CODE" format
-      if (data.toUpperCase().startsWith('VOUCHER:')) {
-        code = data.substring(8);
-      } else if (data.includes('/voucher/')) {
-        const parts = data.split('/voucher/');
-        code = parts[parts.length - 1];
-      }
-      
-      // Clean up the code
-      code = code.split('?')[0].split('#')[0].trim().toUpperCase();
-      console.log("Extracted voucher code:", code);
-      
-      if (code) {
-        setCodeInput(code);
-        lookupVoucher(code);
-      } else {
-        toast.error("Could not extract voucher code from QR");
-      }
-    } catch (err) {
-      console.error("Error processing scanned data:", err);
-      toast.error("Error processing QR code");
-    }
   };
 
   const handleRedeem = async () => {
@@ -176,10 +140,6 @@ const StaffScanVoucher = () => {
   const isExpired = voucher ? new Date(voucher.expires_at) < new Date() : false;
   const isRedeemed = voucher?.status === 'redeemed';
   const canRedeem = voucher && !isExpired && !isRedeemed && voucher.status === 'active';
-
-  if (showScanner) {
-    return <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />;
-  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -251,25 +211,6 @@ const StaffScanVoucher = () => {
                 )}
               </Button>
             </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="w-full"
-              onClick={() => setShowScanner(true)}
-            >
-              <QrCode className="h-5 w-5 mr-2" />
-              Scan QR Code
-            </Button>
           </Card>
         ) : redeemSuccess && voucher ? (
           // Success state - voucher redeemed
