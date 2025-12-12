@@ -188,6 +188,23 @@ export default function MysteryShopperTemplateEditor() {
     }));
   };
 
+  const addOption = (questionIndex: number) => {
+    setQuestions(prev => prev.map((q, i) => {
+      if (i !== questionIndex) return q;
+      const newOptions = [...q.options, `Option ${String.fromCharCode(65 + q.options.length)}`];
+      return { ...q, options: newOptions };
+    }));
+  };
+
+  const removeOption = (questionIndex: number, optionIndex: number) => {
+    setQuestions(prev => prev.map((q, i) => {
+      if (i !== questionIndex) return q;
+      if (q.options.length <= 2) return q; // Minimum 2 options
+      const newOptions = q.options.filter((_, idx) => idx !== optionIndex);
+      return { ...q, options: newOptions };
+    }));
+  };
+
   const handleSave = async () => {
     if (!templateData.name.trim()) {
       toast.error("Template name is required");
@@ -500,13 +517,36 @@ export default function MysteryShopperTemplateEditor() {
                     {question.question_type === 'multiple_choice' && (
                       <div className="space-y-2 pl-4">
                         {question.options.map((option, optIndex) => (
-                          <Input
-                            key={optIndex}
-                            value={option}
-                            onChange={(e) => updateOption(index, optIndex, e.target.value)}
-                            placeholder={`Option ${String.fromCharCode(65 + optIndex)}`}
-                          />
+                          <div key={optIndex} className="flex items-center gap-2">
+                            <Input
+                              value={option}
+                              onChange={(e) => updateOption(index, optIndex, e.target.value)}
+                              placeholder={`Option ${String.fromCharCode(65 + optIndex)}`}
+                              className="flex-1"
+                            />
+                            {question.options.length > 2 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeOption(index, optIndex)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addOption(index)}
+                          className="mt-2"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Option
+                        </Button>
                       </div>
                     )}
 
