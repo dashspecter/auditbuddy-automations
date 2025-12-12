@@ -64,7 +64,11 @@ export const useMysteryShopperSubmissions = (filters?: {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching mystery shopper submissions:", error);
+        throw error;
+      }
+      console.log("Mystery shopper submissions fetched:", data?.length, data);
       return data as MysteryShopperSubmission[];
     },
   });
