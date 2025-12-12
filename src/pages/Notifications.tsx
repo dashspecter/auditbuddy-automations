@@ -20,6 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePermissions } from "@/hooks/useCompanyPermissions";
+import { useCompany } from "@/hooks/useCompany";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { Plus, Megaphone, Trash2, Clock, Calendar as CalendarIcon, FileText, Eye, History, BarChart3, RefreshCw, MapPin, CheckCheck, HelpCircle, Info, Shield, Users, X } from "lucide-react";
@@ -60,6 +62,8 @@ import {
 export default function Notifications() {
   const { user } = useAuth();
   const { data: roleData, isLoading: isLoadingRole } = useUserRole();
+  const { data: company, isLoading: companyLoading } = useCompany();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
@@ -223,7 +227,7 @@ export default function Notifications() {
     createNotificationMutation.mutate();
   };
 
-  if (isLoadingRole) {
+  if (isLoadingRole || companyLoading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -231,7 +235,13 @@ export default function Notifications() {
     );
   }
 
-  if (!roleData?.isAdmin && !roleData?.isManager) {
+  // Check access: platform admin/manager, company owner/admin, or has manage_notifications permission
+  const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  const hasPlatformRole = roleData?.isAdmin || roleData?.isManager;
+  const hasNotificationPermission = hasPermission('manage_notifications');
+  const hasAccess = isOwnerOrAdmin || hasPlatformRole || hasNotificationPermission;
+
+  if (!hasAccess) {
     return (
       <Card>
           <CardHeader>
