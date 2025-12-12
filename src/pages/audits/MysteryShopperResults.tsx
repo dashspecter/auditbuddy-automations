@@ -35,16 +35,41 @@ export default function MysteryShopperResults() {
   const selectedSubmission = submissions?.find(s => s.id === selectedSubmissionId);
   const { data: selectedQuestions } = useMysteryShopperQuestions(selectedSubmission?.template_id);
   
-  // Get questions for the filtered template (for template analysis)
-  const { data: templateQuestions } = useMysteryShopperQuestions(templateFilter || undefined);
+  // Auto-detect template from submissions if not explicitly selected
+  const effectiveTemplateId = useMemo(() => {
+    if (templateFilter) return templateFilter;
+    // If no filter, find the most common template in submissions
+    if (!submissions || submissions.length === 0) return undefined;
+    
+    const templateCounts = submissions.reduce((acc, s) => {
+      acc[s.template_id] = (acc[s.template_id] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const mostUsedTemplateId = Object.entries(templateCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    
+    return mostUsedTemplateId;
+  }, [templateFilter, submissions]);
+  
+  // Get questions for the effective template (for template analysis)
+  const { data: templateQuestions } = useMysteryShopperQuestions(effectiveTemplateId);
+  
+  // Get the template name for display
+  const effectiveTemplateName = useMemo(() => {
+    if (!effectiveTemplateId) return null;
+    return templates?.find(t => t.id === effectiveTemplateId)?.name || null;
+  }, [effectiveTemplateId, templates]);
 
   // Calculate question statistics for template analysis
   const questionStats = useMemo(() => {
-    if (!templateFilter || !templateQuestions || !submissions || submissions.length === 0) return null;
+    if (!effectiveTemplateId || !templateQuestions || !submissions || submissions.length === 0) return null;
+
+    const filteredSubmissions = submissions.filter(s => s.template_id === effectiveTemplateId);
+    if (filteredSubmissions.length === 0) return null;
 
     const stats = templateQuestions.map((question) => {
-      const answers = submissions
-        .filter(s => s.template_id === templateFilter)
+      const answers = filteredSubmissions
         .map(s => s.raw_answers?.[question.id])
         .filter(a => a !== undefined && a !== null);
 
@@ -94,7 +119,7 @@ export default function MysteryShopperResults() {
     });
 
     return stats;
-  }, [templateFilter, templateQuestions, submissions]);
+  }, [effectiveTemplateId, templateQuestions, submissions]);
 
   // Collect all photos from submissions for the photo gallery
   const allPhotos = useMemo(() => {
@@ -205,7 +230,7 @@ export default function MysteryShopperResults() {
             <Calendar className="h-4 w-4" />
             Submissions
           </TabsTrigger>
-          <TabsTrigger value="analysis" className="flex items-center gap-2" disabled={!templateFilter}>
+          <TabsTrigger value="analysis" className="flex items-center gap-2" disabled={!effectiveTemplateId}>
             <BarChart3 className="h-4 w-4" />
             Question Analysis
           </TabsTrigger>
@@ -296,10 +321,10 @@ export default function MysteryShopperResults() {
 
         {/* Question Analysis Tab */}
         <TabsContent value="analysis">
-          {!templateFilter ? (
+          {!effectiveTemplateId ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                Select a template to view question analysis
+                No submissions found. Submit some surveys to see question analysis.
               </CardContent>
             </Card>
           ) : !questionStats ? (
@@ -313,13 +338,20 @@ export default function MysteryShopperResults() {
               {/* Overall Summary Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Template Summary</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Template Summary
+                    {effectiveTemplateName && !templateFilter && (
+                      <Badge variant="secondary" className="font-normal">
+                        {effectiveTemplateName}
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Submissions</p>
-                      <p className="text-2xl font-bold">{submissions?.filter(s => s.template_id === templateFilter).length || 0}</p>
+                      <p className="text-2xl font-bold">{submissions?.filter(s => s.template_id === effectiveTemplateId).length || 0}</p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">Questions</p>
@@ -329,7 +361,7 @@ export default function MysteryShopperResults() {
                       <p className="text-sm text-muted-foreground">Avg Overall Score</p>
                       <p className="text-2xl font-bold">
                         {(() => {
-                          const filtered = submissions?.filter(s => s.template_id === templateFilter && s.overall_score !== null);
+                          const filtered = submissions?.filter(s => s.template_id === effectiveTemplateId && s.overall_score !== null);
                           if (!filtered || filtered.length === 0) return "-";
                           const avg = filtered.reduce((sum, s) => sum + (s.overall_score || 0), 0) / filtered.length;
                           return `${Math.round(avg)}%`;
