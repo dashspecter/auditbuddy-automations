@@ -178,7 +178,7 @@ const App = () => (
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
               <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
               <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
-              <Route path="/settings/company" element={<CompanyOwnerRoute><CompanySettings /></CompanyOwnerRoute>} />
+              <Route path="/settings/company" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
               <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
