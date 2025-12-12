@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateEquipmentCheck } from "@/hooks/useEquipmentChecks";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EquipmentCheckDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export const EquipmentCheckDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { data: { user } } = await (await import("@/integrations/supabase/client")).supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await createCheck.mutateAsync({
