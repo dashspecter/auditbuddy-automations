@@ -45,7 +45,7 @@ export const useMysteryShopperSubmissions = (filters?: {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers(code, value, currency, status)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status)
         `)
         .order("submitted_at", { ascending: false });
       
@@ -86,7 +86,7 @@ export const useMysteryShopperSubmission = (submissionId?: string) => {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers(code, value, currency, status, expires_at)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, expires_at)
         `)
         .eq("id", submissionId)
         .single();
