@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
-import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock, Shield } from "lucide-react";
+import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock, Shield, Key } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
@@ -53,6 +53,10 @@ export default function CompanySettings() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFullName, setInviteFullName] = useState("");
   const [inviteRole, setInviteRole] = useState<'company_member' | 'company_admin'>('company_member');
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -177,6 +181,46 @@ export default function CompanySettings() {
       toast({
         title: "Error",
         description: `Failed to invite user: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to reset user password
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, password }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "User password has been changed successfully.",
+      });
+      setPasswordDialogOpen(false);
+      setPasswordUser(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update password: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -332,8 +376,22 @@ export default function CompanySettings() {
                                     setEditFullName(user.profiles?.full_name || '');
                                     setEditDialogOpen(true);
                                   }}
+                                  title="Edit user"
                                 >
                                   <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setPasswordUser(user);
+                                    setNewPassword("");
+                                    setConfirmPassword("");
+                                    setPasswordDialogOpen(true);
+                                  }}
+                                  title="Set password"
+                                >
+                                  <Key className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -343,6 +401,7 @@ export default function CompanySettings() {
                                     setDeletingUser(user);
                                     setDeleteDialogOpen(true);
                                   }}
+                                  title="Remove user"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -594,6 +653,66 @@ export default function CompanySettings() {
                 disabled={removeUserMutation.isPending}
               >
                 {removeUserMutation.isPending ? 'Removing...' : 'Remove User'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Set Password Dialog */}
+        <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Set User Password</DialogTitle>
+              <DialogDescription>
+                Set a new password for {passwordUser?.profiles?.full_name || passwordUser?.profiles?.email}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  autoComplete="new-password"
+                />
+              </div>
+              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-sm text-destructive">Passwords do not match</p>
+              )}
+              {newPassword && newPassword.length < 6 && (
+                <p className="text-sm text-destructive">Password must be at least 6 characters</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (passwordUser && newPassword && newPassword === confirmPassword && newPassword.length >= 6) {
+                    resetPasswordMutation.mutate({
+                      userId: passwordUser.user_id,
+                      password: newPassword,
+                    });
+                  }
+                }}
+                disabled={!newPassword || newPassword !== confirmPassword || newPassword.length < 6 || resetPasswordMutation.isPending}
+              >
+                {resetPasswordMutation.isPending ? 'Updating...' : 'Set Password'}
               </Button>
             </DialogFooter>
           </DialogContent>
