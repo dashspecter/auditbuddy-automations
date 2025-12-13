@@ -13,6 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
 import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
 import { ManagerAuditStats } from "@/components/staff/ManagerAuditStats";
+import { ManagerAuditsCard } from "@/components/staff/ManagerAuditsCard";
 import { OfferedShiftsCard } from "@/components/staff/OfferedShiftsCard";
 import { useMyTasks } from "@/hooks/useTasks";
 import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
@@ -212,6 +213,7 @@ const StaffHome = () => {
         {/* Manager Dashboard */}
         {isManager && (
           <>
+            <ManagerAuditsCard />
             <ManagerDashboardStats />
             <ManagerAuditStats />
             <ManagerApprovalsSection />
