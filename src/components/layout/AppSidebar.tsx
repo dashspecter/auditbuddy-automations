@@ -130,8 +130,8 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "Location Performance", url: "/reports", companyPermission: 'view_reports' as CompanyPermission },
-      { title: "Employee Performance", url: "/staff-audits", companyPermission: 'view_reports' as CompanyPermission },
+      { title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
+      { title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 

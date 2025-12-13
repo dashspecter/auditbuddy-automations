@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
@@ -91,6 +92,9 @@ const COLORS = {
 const COMPLIANCE_THRESHOLD = 80; // Scores >= 80 are compliant
 
 const Reports = () => {
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') === 'employee' ? 'employee' : 'location';
+  
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -328,7 +332,7 @@ const Reports = () => {
             <p className="text-muted-foreground mt-1">View performance reports by location and employee</p>
           </div>
 
-          <Tabs defaultValue="location" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList>
               <TabsTrigger value="location">Location Performance</TabsTrigger>
               <TabsTrigger value="employee">Employee Performance</TabsTrigger>
