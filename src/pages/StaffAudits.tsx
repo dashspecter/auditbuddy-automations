@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
@@ -10,7 +10,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
@@ -22,9 +22,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 export default function StaffAudits() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data: audits, isLoading } = useStaffAudits();
   const createStaffAudit = useCreateStaffAudit();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  // Open form automatically if review=new query param is present
+  useEffect(() => {
+    if (searchParams.get('review') === 'new') {
+      setIsFormOpen(true);
+    }
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     location_id: "",
     employee_id: "",
