@@ -78,7 +78,6 @@ const navigationItems = [
         nestedItems: [
           { title: "New Staff Audit", url: "/staff-audit/new" },
           { title: "New Performance Review", url: "/staff-audits?review=new" },
-          { title: "View All", url: "/staff-audits/all" },
         ]
       },
       { title: "Photo Gallery", url: "/photos" },
