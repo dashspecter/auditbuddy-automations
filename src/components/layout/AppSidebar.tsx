@@ -35,7 +35,7 @@ const navigationItems = [
     icon: Users,
     module: "workforce",
     allowedRoles: ['admin', 'manager', 'hr'],
-    companyPermission: 'manage_shifts' as CompanyPermission, // Members need manage_shifts
+    companyPermission: 'manage_shifts' as CompanyPermission,
     subItems: [
       { title: "Overview", url: "/workforce" },
       { title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
@@ -51,12 +51,14 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Locations", 
-    url: "/admin/locations", 
-    icon: MapPin,
+    title: "Tasks", 
+    url: "/tasks", 
+    icon: ListTodo,
     module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_locations' as CompanyPermission
+    subItems: [
+      { title: "All Tasks", url: "/tasks" },
+      { title: "Calendar", url: "/tasks/calendar" },
+    ]
   },
   { 
     title: "Audits", 
@@ -85,27 +87,26 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Tasks", 
-    url: "/tasks", 
-    icon: ListTodo,
+    title: "Tests", 
+    url: "/test-management", 
+    icon: GraduationCap,
     module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_employees' as CompanyPermission,
     subItems: [
-      { title: "All Tasks", url: "/tasks" },
-      { title: "Calendar", url: "/tasks/calendar" },
+      { title: "Test Management", url: "/test-management" },
+      { title: "Create Test", url: "/test-creation" },
     ]
   },
   { 
-    title: "Equipment", 
-    url: "/equipment", 
-    icon: Wrench,
-    module: "equipment_management",
+    title: "Documents", 
+    url: "/documents", 
+    icon: FileText,
+    module: "documents",
     allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_audits' as CompanyPermission, // Members with manage_audits can access equipment
+    companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "All Equipment", url: "/equipment" },
-      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
-      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
-      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+      { title: "All Documents", url: "/documents" },
     ]
   },
   { 
@@ -124,6 +125,28 @@ const navigationItems = [
     ]
   },
   { 
+    title: "Locations", 
+    url: "/admin/locations", 
+    icon: MapPin,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_locations' as CompanyPermission
+  },
+  { 
+    title: "Equipment", 
+    url: "/equipment", 
+    icon: Wrench,
+    module: "equipment_management",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission,
+    subItems: [
+      { title: "All Equipment", url: "/equipment" },
+      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
+      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
+      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+    ]
+  },
+  { 
     title: "Reports", 
     url: "/reports", 
     icon: BarChart,
@@ -134,35 +157,6 @@ const navigationItems = [
       { title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
       { title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
-    ]
-  },
-  { 
-    title: "Inventory", 
-    url: "/inventory", 
-    icon: Package,
-    module: "inventory"
-  },
-  { 
-    title: "Documents", 
-    url: "/documents", 
-    icon: FileText,
-    module: "documents",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'view_reports' as CompanyPermission, // Members with view_reports can access documents
-    subItems: [
-      { title: "All Documents", url: "/documents" },
-    ]
-  },
-  { 
-    title: "Tests", 
-    url: "/test-management", 
-    icon: GraduationCap,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees' as CompanyPermission, // Members with manage_employees can manage tests
-    subItems: [
-      { title: "Test Management", url: "/test-management" },
-      { title: "Create Test", url: "/test-creation" },
     ]
   },
   { 
@@ -178,11 +172,10 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Integrations", 
-    url: "/integrations", 
-    icon: Plug,
-    module: "integrations",
-    allowedRoles: ['admin']
+    title: "Inventory", 
+    url: "/inventory", 
+    icon: Package,
+    module: "inventory"
   },
   { 
     title: "Template Marketplace", 
@@ -197,14 +190,22 @@ const navigationItems = [
     icon: Settings2,
     module: null,
     allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_audits' as CompanyPermission, // Members with manage_audits can access operations
+    companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
       { title: "Daily Ops", url: "/operations/daily" },
       { title: "Maintenance Tasks", url: "/operations/maintenance" },
       { title: "SLA Management", url: "/operations/slas" },
     ]
   },
+  { 
+    title: "Integrations", 
+    url: "/integrations", 
+    icon: Plug,
+    module: "integrations",
+    allowedRoles: ['admin']
+  },
 ];
+
 const settingsItems = [
   { 
     title: "Billing & Modules", 
@@ -222,31 +223,31 @@ const settingsItems = [
     title: "User Management", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresOwner: true  // Only company owners can access user management
+    requiresOwner: true
   },
   { 
     title: "Platform Admin", 
     url: "/admin/platform", 
     icon: Shield,
-    requiresPlatformAdmin: true  // NEW: Only platform admins (user_roles.role = 'admin')
+    requiresPlatformAdmin: true
   },
   { 
     title: "System Health", 
     url: "/system-health", 
     icon: Activity,
-    requiresPlatformAdmin: true  // NEW: Only platform admins
+    requiresPlatformAdmin: true
   },
   { 
     title: "Debug Data", 
     url: "/debug/system-health", 
     icon: Bug,
-    requiresPlatformAdmin: true  // NEW: Only platform admins
+    requiresPlatformAdmin: true
   },
   { 
     title: "AI Agents", 
     url: "/admin/agents", 
     icon: Bot,
-    requiresPlatformAdmin: true  // NEW: Only platform admins
+    requiresPlatformAdmin: true
   },
 ];
 
