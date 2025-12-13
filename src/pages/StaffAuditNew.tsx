@@ -310,7 +310,7 @@ const StaffAuditNew = () => {
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/audits')}
+            onClick={() => navigate('/staff-audits')}
             size="sm"
             className="-ml-2"
           >
@@ -492,7 +492,7 @@ const StaffAuditNew = () => {
                 <Button 
                   type="button" 
                   variant="outline"
-                  onClick={() => navigate('/audits')}
+                  onClick={() => navigate('/staff-audits')}
                 >
                   Cancel
                 </Button>
