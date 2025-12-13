@@ -366,10 +366,6 @@ const StaffHome = () => {
               <Calendar className="h-6 w-6 mb-2 text-primary" />
               <span className="text-xs">Request Time Off</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/messages")}>
-              <MessageSquare className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Messages</span>
-            </Button>
             <Button 
               variant="outline" 
               className={`h-auto py-4 flex-col touch-target relative ${activeTaskCount > 0 ? "border-primary bg-primary/5" : ""}`}
