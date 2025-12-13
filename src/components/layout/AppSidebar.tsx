@@ -287,9 +287,13 @@ export function AppSidebar() {
       return false;
     }
 
-    // Check legacy requiresAdmin - MUST have platform admin role
+    // Check legacy requiresAdmin - MUST have platform admin role (user_roles.role = 'admin')
+    // Company admins (company_users.company_role) should NOT see these items
     if (item.requiresAdmin) {
-      return roleData?.isAdmin === true;
+      // Only show if roleData is loaded AND user has platform admin role
+      // Hide if roleData is not loaded yet (don't default to showing admin items!)
+      if (!roleData) return false;
+      return roleData.isAdmin === true;
     }
 
     // Check legacy requiresOwner - MUST be company owner
