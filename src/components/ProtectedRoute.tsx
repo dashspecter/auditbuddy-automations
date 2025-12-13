@@ -83,8 +83,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Check if this is a staff-only route (not /staff-audits which is admin/manager route)
   const isStaffRoute = location.pathname === '/staff' || location.pathname.startsWith('/staff/');
 
-  // Staff users should be on staff routes
-  if (isStaff && !isStaffRoute) {
+  // Staff-only users (not managers/admins) should be on staff routes
+  // But staff who are also managers/admins can access non-staff routes
+  if (isStaff && !isStaffRoute && !company) {
     return <Navigate to="/staff" replace />;
   }
 
