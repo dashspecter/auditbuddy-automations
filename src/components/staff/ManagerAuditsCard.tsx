@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ClipboardCheck, Users, MapPin, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,10 +14,11 @@ export const ManagerAuditsCard = () => {
 
       <div className="space-y-3">
         {/* Location Audit */}
-        <Button
-          variant="outline"
-          className="w-full justify-between h-auto py-3 px-4"
+        <div
+          className="w-full flex items-center justify-between h-auto py-3 px-4 border rounded-md cursor-pointer hover:bg-accent transition-colors"
           onClick={() => navigate("/location-audit")}
+          role="button"
+          tabIndex={0}
         >
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -30,13 +30,14 @@ export const ManagerAuditsCard = () => {
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        </Button>
+        </div>
 
         {/* Staff/Employee Audit */}
-        <Button
-          variant="outline"
-          className="w-full justify-between h-auto py-3 px-4"
+        <div
+          className="w-full flex items-center justify-between h-auto py-3 px-4 border rounded-md cursor-pointer hover:bg-accent transition-colors"
           onClick={() => navigate("/staff-audit/new")}
+          role="button"
+          tabIndex={0}
         >
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-secondary/50 flex items-center justify-center">
@@ -48,7 +49,7 @@ export const ManagerAuditsCard = () => {
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        </Button>
+        </div>
       </div>
     </Card>
   );
