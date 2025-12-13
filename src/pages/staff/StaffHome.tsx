@@ -32,6 +32,7 @@ const StaffHome = () => {
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [companyRole, setCompanyRole] = useState<string | null>(null);
+  const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
 
   // Count active (non-completed) tasks
   const activeTaskCount = myTasks.filter(t => t.status !== 'completed').length;
@@ -75,6 +76,13 @@ const StaffHome = () => {
         setEmployee(empData);
         await loadShifts(empData.id);
         
+        // Check additional locations count
+        const { count: additionalCount } = await supabase
+          .from("staff_locations")
+          .select("*", { count: 'exact', head: true })
+          .eq("staff_id", empData.id);
+        
+        setAdditionalLocationsCount(additionalCount || 0);
         // Check company role for manager features
         const { data: companyUserData } = await supabase
           .from("company_users")
@@ -202,7 +210,9 @@ const StaffHome = () => {
           <h1 className="text-2xl font-bold mb-1">
             {greeting()}, {employee?.full_name.split(' ')[0]}
           </h1>
-          <p className="text-sm opacity-90">{employee?.role} • {employee?.locations?.name}</p>
+          <p className="text-sm opacity-90">
+            {employee?.role} • {additionalLocationsCount > 0 ? "All Locations" : employee?.locations?.name}
+          </p>
         </div>
       </div>
 
