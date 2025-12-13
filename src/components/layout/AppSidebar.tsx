@@ -22,6 +22,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 // Checker: view/perform audits, access audit templates
 // HR: workforce (staff, shifts, attendance, time off, payroll, performance), audits/templates, view reports/insights
 
+/**
+ * NAVIGATION MENU ORDER (do not reorder without updating this comment):
+ * 1. Home
+ * 2. Workforce
+ * 3. Locations (with Auto Clock-Out & Shift Presets sub-items)
+ * 4. Audits
+ * 5. Tasks
+ * 6. Equipment
+ * 7. Notifications
+ * 8. Reports
+ * 9. Inventory
+ * 10. Documents
+ * 11. Tests
+ * 12. Insights
+ * 13. Integrations
+ * 14. Template Marketplace
+ * 15. Operations
+ */
 const navigationItems = [
   { 
     title: "Home", 
