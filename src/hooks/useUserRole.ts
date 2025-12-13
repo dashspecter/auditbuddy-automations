@@ -65,6 +65,7 @@ export const useUserRole = () => {
     enabled: !!user,
     retry: 1,
     retryDelay: 500,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always refetch to ensure fresh role data
+    gcTime: 60 * 1000, // Keep in cache for 1 minute
   });
 };
