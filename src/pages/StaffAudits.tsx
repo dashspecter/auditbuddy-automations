@@ -101,23 +101,6 @@ export default function StaffAudits() {
               Track and evaluate employee performance
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              onClick={() => navigate('/staff-audit/new')} 
-              className="gap-1.5 w-full sm:w-auto text-sm h-9"
-            >
-              <Plus className="h-4 w-4" />
-              New Staff Audit
-            </Button>
-            <Button 
-              onClick={() => setIsFormOpen(!isFormOpen)} 
-              variant="outline" 
-              className="gap-1.5 w-full sm:w-auto text-sm h-9"
-            >
-              {isFormOpen ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              New Performance Review
-            </Button>
-          </div>
         </div>
 
         <Collapsible open={isFormOpen} onOpenChange={setIsFormOpen}>
