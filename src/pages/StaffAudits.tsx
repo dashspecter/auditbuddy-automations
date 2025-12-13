@@ -96,16 +96,18 @@ export default function StaffAudits() {
 
   return (
     <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
-              {isNewReviewMode ? "New Performance Review" : "Employee Performance"}
-            </h1>
-            <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
-              {isNewReviewMode ? "Submit a new employee performance review" : "Track and evaluate employee performance"}
-            </p>
+        {isNewReviewMode && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
+                New Performance Review
+              </h1>
+              <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
+                Submit a new employee performance review
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {isNewReviewMode ? (
           <Card>
