@@ -50,13 +50,16 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Tasks", 
-    url: "/tasks", 
-    icon: ListTodo,
+    title: "Locations", 
+    url: "/admin/locations", 
+    icon: MapPin,
     module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_locations' as CompanyPermission,
     subItems: [
-      { title: "All Tasks", url: "/tasks" },
-      { title: "Calendar", url: "/tasks/calendar" },
+      { title: "All Locations", url: "/admin/locations" },
+      { title: "Auto Clock-Out", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Shift Presets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
     ]
   },
   { 
@@ -86,26 +89,27 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Tests", 
-    url: "/test-management", 
-    icon: GraduationCap,
+    title: "Tasks", 
+    url: "/tasks", 
+    icon: ListTodo,
     module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees' as CompanyPermission,
     subItems: [
-      { title: "Test Management", url: "/test-management" },
-      { title: "Create Test", url: "/test-creation" },
+      { title: "All Tasks", url: "/tasks" },
+      { title: "Calendar", url: "/tasks/calendar" },
     ]
   },
   { 
-    title: "Documents", 
-    url: "/documents", 
-    icon: FileText,
-    module: "documents",
+    title: "Equipment", 
+    url: "/equipment", 
+    icon: Wrench,
+    module: "equipment_management",
     allowedRoles: ['admin', 'manager'],
-    companyPermission: 'view_reports' as CompanyPermission,
+    companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
-      { title: "All Documents", url: "/documents" },
+      { title: "All Equipment", url: "/equipment" },
+      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
+      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
+      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
     ]
   },
   { 
@@ -124,33 +128,6 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Locations", 
-    url: "/admin/locations", 
-    icon: MapPin,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_locations' as CompanyPermission,
-    subItems: [
-      { title: "All Locations", url: "/admin/locations" },
-      { title: "Auto Clock-Out", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { title: "Shift Presets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
-    ]
-  },
-  { 
-    title: "Equipment", 
-    url: "/equipment", 
-    icon: Wrench,
-    module: "equipment_management",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_audits' as CompanyPermission,
-    subItems: [
-      { title: "All Equipment", url: "/equipment" },
-      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
-      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
-      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
-    ]
-  },
-  { 
     title: "Reports", 
     url: "/reports", 
     icon: BarChart,
@@ -161,6 +138,35 @@ const navigationItems = [
       { title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
       { title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
+    ]
+  },
+  { 
+    title: "Inventory", 
+    url: "/inventory", 
+    icon: Package,
+    module: "inventory"
+  },
+  { 
+    title: "Documents", 
+    url: "/documents", 
+    icon: FileText,
+    module: "documents",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports' as CompanyPermission,
+    subItems: [
+      { title: "All Documents", url: "/documents" },
+    ]
+  },
+  { 
+    title: "Tests", 
+    url: "/test-management", 
+    icon: GraduationCap,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_employees' as CompanyPermission,
+    subItems: [
+      { title: "Test Management", url: "/test-management" },
+      { title: "Create Test", url: "/test-creation" },
     ]
   },
   { 
@@ -176,10 +182,11 @@ const navigationItems = [
     ]
   },
   { 
-    title: "Inventory", 
-    url: "/inventory", 
-    icon: Package,
-    module: "inventory"
+    title: "Integrations", 
+    url: "/integrations", 
+    icon: Plug,
+    module: "integrations",
+    allowedRoles: ['admin']
   },
   { 
     title: "Template Marketplace", 
@@ -200,13 +207,6 @@ const navigationItems = [
       { title: "Maintenance Tasks", url: "/operations/maintenance" },
       { title: "SLA Management", url: "/operations/slas" },
     ]
-  },
-  { 
-    title: "Integrations", 
-    url: "/integrations", 
-    icon: Plug,
-    module: "integrations",
-    allowedRoles: ['admin']
   },
 ];
 
