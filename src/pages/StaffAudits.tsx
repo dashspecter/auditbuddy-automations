@@ -295,14 +295,6 @@ export default function StaffAudits() {
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Employee Performance Chart */}
-            <EmployeePerformanceChart />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <EmployeeLeaderboard />
-              <StaffLeaderboard />
-            </div>
-
             <Card>
               <CardHeader>
                 <CardTitle>All Staff Performance Records</CardTitle>
