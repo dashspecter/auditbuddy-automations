@@ -2,8 +2,8 @@ import {
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
-  GraduationCap, Image, UserCog, Bug, Shield, Calendar,
-  PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2, AlertTriangle, Clock
+  GraduationCap, UserCog, Bug, Shield,
+  PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
