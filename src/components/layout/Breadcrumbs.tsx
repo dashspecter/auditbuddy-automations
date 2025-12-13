@@ -31,6 +31,8 @@ const routeNameMap: Record<string, string> = {
   pricing: "Billing & Modules",
   new: "New",
   edit: "Edit",
+  "staff-audits": "Reports",
+  reports: "Reports",
 };
 
 export const Breadcrumbs = () => {
