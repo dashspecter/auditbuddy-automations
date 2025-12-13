@@ -67,9 +67,6 @@ const navigationItems = [
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
       { title: "Location Audits", url: "/audits" },
-      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Audit Calendar", url: "/audits-calendar" },
-      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { 
         title: "Employee Audits", 
         url: "/staff-audits", 
@@ -80,6 +77,9 @@ const navigationItems = [
           { title: "New Performance Review", url: "/staff-audits?review=new" },
         ]
       },
+      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "Audit Calendar", url: "/audits-calendar" },
+      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Photo Gallery", url: "/photos" },
     ]
   },
