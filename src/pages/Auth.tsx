@@ -8,10 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClipboardCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Header } from '@/components/Header';
 
 const authSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -225,7 +224,24 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <Header />
+      {/* Use same header style as Landing page, without Sign In button */}
+      <nav className="border-b border-border pt-safe bg-background">
+        <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <img 
+              src="/dashspect-logo-512.png?v=2" 
+              alt="DashSpect" 
+              className="h-8 w-8 rounded-xl bg-primary p-1"
+            />
+            <span className="text-xl font-bold text-foreground">Dashspect</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/">
+              <Button variant="outline">Home</Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
       <div className="flex items-center justify-center p-4 px-safe py-safe min-h-[calc(100vh-4rem)]">
         <Card className="w-full max-w-md p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
