@@ -257,7 +257,7 @@ const App = () => (
               <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
               <Route path="/workforce/payroll" element={<ManagerRoute requiredPermission="manage_employees"><Payroll /></ManagerRoute>} />
-              <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
+              <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
               <Route path="/workforce/performance" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
               
               {/* Tasks Routes */}
