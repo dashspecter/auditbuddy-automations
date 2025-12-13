@@ -32,6 +32,10 @@ import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 import { SectionScoreBreakdown } from "@/components/SectionScoreBreakdown";
+import { useStaffAudits } from "@/hooks/useStaffAudits";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Wrapper component to fetch sections for the breakdown
 const SectionScoreBreakdownWrapper = ({ 
@@ -97,6 +101,7 @@ const Reports = () => {
   const [dialogTitle, setDialogTitle] = useState("");
 
   const { data: audits, isLoading } = useLocationAudits();
+  const { data: staffAudits, isLoading: isLoadingStaffAudits } = useStaffAudits();
   const { data: locations } = useLocations(false);
   const { data: templates } = useTemplates();
   
@@ -319,9 +324,17 @@ const Reports = () => {
         ) : (
           <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Location Performance</h1>
-            <p className="text-muted-foreground mt-1">View audit performance reports by location</p>
+            <h1 className="text-3xl font-bold text-foreground">Reports</h1>
+            <p className="text-muted-foreground mt-1">View performance reports by location and employee</p>
           </div>
+
+          <Tabs defaultValue="location" className="w-full">
+            <TabsList>
+              <TabsTrigger value="location">Location Performance</TabsTrigger>
+              <TabsTrigger value="employee">Employee Performance</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="location" className="space-y-6 mt-6">
 
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Filter Reports</h3>
@@ -753,6 +766,57 @@ const Reports = () => {
               </DialogContent>
             </Dialog>
           )}
+            </TabsContent>
+
+            <TabsContent value="employee" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>All Staff Performance Records</CardTitle>
+                  <CardDescription>Complete history of all staff performance audits</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingStaffAudits ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    </div>
+                  ) : !staffAudits || staffAudits.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No staff performance records found.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Employee</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Score</TableHead>
+                            <TableHead>Notes</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {staffAudits.map((audit) => (
+                            <TableRow key={audit.id}>
+                              <TableCell className="font-medium">{audit.employees?.full_name || "Unknown"}</TableCell>
+                              <TableCell>{audit.employees?.role || "-"}</TableCell>
+                              <TableCell>{audit.locations?.name || "-"}</TableCell>
+                              <TableCell>{format(new Date(audit.audit_date), "PPP")}</TableCell>
+                              <TableCell>
+                                <Badge variant={audit.score >= 80 ? "default" : audit.score >= 60 ? "secondary" : "destructive"}>
+                                  {audit.score}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">{audit.notes || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
         )}
         </div>
