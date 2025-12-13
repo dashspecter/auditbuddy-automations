@@ -70,9 +70,16 @@ const navigationItems = [
       { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Employee Audits", url: "/staff-audits", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "New Staff Audit", url: "/staff-audit/new", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Manual Metrics", url: "/manual-metrics", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { 
+        title: "Employee Audits", 
+        url: "/staff-audits", 
+        allowedRoles: ['admin', 'manager', 'hr'], 
+        companyPermission: 'manage_audits' as CompanyPermission,
+        nestedItems: [
+          { title: "New Staff Audit", url: "/staff-audit/new" },
+          { title: "New Performance Review", url: "/manual-metrics" },
+        ]
+      },
       { title: "Photo Gallery", url: "/photos" },
     ]
   },
@@ -437,14 +444,42 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 overflow-hidden">
                         {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
-                          <NavLink
-                            key={subItem.url}
-                            to={subItem.url}
-                            className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
-                            activeClassName="text-primary font-medium bg-primary/10"
-                          >
-                            {subItem.title}
-                          </NavLink>
+                          subItem.nestedItems ? (
+                            <Collapsible key={subItem.url}>
+                              <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted group">
+                                <span>{subItem.title}</span>
+                                <ChevronRight className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="ml-3 pl-3 border-l border-sidebar-border/40 space-y-0.5 mt-1">
+                                <NavLink
+                                  to={subItem.url}
+                                  className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
+                                  activeClassName="text-primary font-medium bg-primary/10"
+                                >
+                                  View All
+                                </NavLink>
+                                {subItem.nestedItems.map((nestedItem: any) => (
+                                  <NavLink
+                                    key={nestedItem.url}
+                                    to={nestedItem.url}
+                                    className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
+                                    activeClassName="text-primary font-medium bg-primary/10"
+                                  >
+                                    {nestedItem.title}
+                                  </NavLink>
+                                ))}
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ) : (
+                            <NavLink
+                              key={subItem.url}
+                              to={subItem.url}
+                              className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
+                              activeClassName="text-primary font-medium bg-primary/10"
+                            >
+                              {subItem.title}
+                            </NavLink>
+                          )
                         ))}
                       </CollapsibleContent>
                     </Collapsible>
