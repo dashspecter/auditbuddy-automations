@@ -87,6 +87,9 @@ import StaffEarnings from "./pages/staff/StaffEarnings";
 import StaffTasks from "./pages/staff/StaffTasks";
 import ManagerSchedule from "./pages/staff/ManagerSchedule";
 import StaffLocationAudit from "./pages/staff/StaffLocationAudit";
+import StaffEmployeeAudit from "./pages/staff/StaffEmployeeAudit";
+import StaffStaffAudit from "./pages/staff/StaffStaffAudit";
+import StaffPerformanceReview from "./pages/staff/StaffPerformanceReview";
 import TeamView from "./pages/staff/TeamView";
 import Tasks from "./pages/Tasks";
 import TaskNew from "./pages/TaskNew";
@@ -176,6 +179,9 @@ const App = () => (
               <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
               <Route path="/staff/scan-voucher" element={<ProtectedRoute><StaffScanVoucher /></ProtectedRoute>} />
               <Route path="/staff/location-audit" element={<ProtectedRoute><StaffLocationAudit /></ProtectedRoute>} />
+              <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
+              <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
+              <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
               {/* Legacy route - redirect to new path */}
               <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />

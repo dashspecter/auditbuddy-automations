@@ -35,7 +35,7 @@ export const ManagerAuditsCard = () => {
         {/* Staff/Employee Audit */}
         <div
           className="w-full flex items-center justify-between h-auto py-3 px-4 border rounded-md cursor-pointer hover:bg-accent transition-colors"
-          onClick={() => navigate("/staff-audit/new")}
+          onClick={() => navigate("/staff/employee-audit")}
           role="button"
           tabIndex={0}
         >
