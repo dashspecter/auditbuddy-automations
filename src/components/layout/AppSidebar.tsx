@@ -77,7 +77,7 @@ const navigationItems = [
         companyPermission: 'manage_audits' as CompanyPermission,
         nestedItems: [
           { title: "New Staff Audit", url: "/staff-audit/new" },
-          { title: "New Performance Review", url: "/manual-metrics" },
+          { title: "New Performance Review", url: "/staff-audits?review=new" },
         ]
       },
       { title: "Photo Gallery", url: "/photos" },
