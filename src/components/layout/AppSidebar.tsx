@@ -44,7 +44,6 @@ const navigationItems = [
       { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
       { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
       { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] },
-      { title: "Performance", url: "/workforce/performance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
       { title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
       { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
