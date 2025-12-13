@@ -133,6 +133,7 @@ const navigationItems = [
     subItems: [
       { title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
+      { title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
