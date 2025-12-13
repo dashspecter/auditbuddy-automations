@@ -267,6 +267,12 @@ const StaffLocationAudit = () => {
         status: "draft",
       };
 
+      if (currentDraftId) {
+        const { error } = await supabase
+          .from("location_audits")
+          .update(auditPayload)
+          .eq("id", currentDraftId);
+
         if (error) throw error;
         toast.success("Draft saved");
       } else {
