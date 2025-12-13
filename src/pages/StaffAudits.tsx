@@ -204,9 +204,9 @@ export default function StaffAudits() {
           <>
             <Card>
               <CardHeader>
-                <CardTitle>All Staff Performance Records</CardTitle>
+                <CardTitle>All Employee Audits</CardTitle>
                 <CardDescription>
-                  Complete history of all staff performance audits
+                  Complete history of all employee audits
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -252,7 +252,7 @@ export default function StaffAudits() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    No staff performance records found.
+                    No employee audits found.
                   </div>
                 )}
               </CardContent>
