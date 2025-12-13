@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
+
 import { LocationSelector } from "@/components/LocationSelector";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -160,16 +160,16 @@ export default function StaffAudits() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Performance Score: {formData.score}%</Label>
-                  <Slider
-                    value={[formData.score]}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, score: value[0] })
-                    }
+                  <Label htmlFor="score">Performance Score (%)</Label>
+                  <Input
+                    type="number"
+                    id="score"
                     min={0}
                     max={100}
-                    step={1}
-                    className="w-full"
+                    value={formData.score}
+                    onChange={(e) =>
+                      setFormData({ ...formData, score: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })
+                    }
                   />
                 </div>
 
