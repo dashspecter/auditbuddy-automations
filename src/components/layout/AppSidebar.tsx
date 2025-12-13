@@ -211,31 +211,31 @@ const settingsItems = [
     title: "User Management", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresAdmin: true
+    requiresOwnerOrAdmin: true  // Changed from requiresAdmin - company admins can manage users
   },
   { 
     title: "Platform Admin", 
     url: "/admin/platform", 
     icon: Shield,
-    requiresAdmin: true
+    requiresPlatformAdmin: true  // NEW: Only platform admins (user_roles.role = 'admin')
   },
   { 
     title: "System Health", 
     url: "/system-health", 
     icon: Activity,
-    requiresAdmin: true
+    requiresPlatformAdmin: true  // NEW: Only platform admins
   },
   { 
     title: "Debug Data", 
     url: "/debug/system-health", 
     icon: Bug,
-    requiresAdmin: true
+    requiresPlatformAdmin: true  // NEW: Only platform admins
   },
   { 
     title: "AI Agents", 
     url: "/admin/agents", 
     icon: Bot,
-    requiresAdmin: true
+    requiresPlatformAdmin: true  // NEW: Only platform admins
   },
 ];
 
@@ -287,13 +287,18 @@ export function AppSidebar() {
       return false;
     }
 
-    // Check legacy requiresAdmin - MUST have platform admin role (user_roles.role = 'admin')
-    // Company admins (company_users.company_role) should NOT see these items
+    // Check requiresPlatformAdmin - ONLY users with 'admin' role in user_roles table
+    // This is for Platform Admin, System Health, Debug Data, AI Agents
+    if (item.requiresPlatformAdmin) {
+      // Must have platform admin role - NOT company admin
+      const hasPlatformAdminRole = roleData?.roles?.includes('admin') === true;
+      return hasPlatformAdminRole;
+    }
+
+    // Legacy check for requiresAdmin (same as requiresPlatformAdmin for backward compatibility)
     if (item.requiresAdmin) {
-      // Only show if roleData is loaded AND user has platform admin role
-      // Hide if roleData is not loaded yet (don't default to showing admin items!)
-      if (!roleData) return false;
-      return roleData.isAdmin === true;
+      const hasPlatformAdminRole = roleData?.roles?.includes('admin') === true;
+      return hasPlatformAdminRole;
     }
 
     // Check legacy requiresOwner - MUST be company owner
