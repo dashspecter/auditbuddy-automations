@@ -70,6 +70,8 @@ const navigationItems = [
       { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "Employee Audits", url: "/staff-audits", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "New Staff Audit", url: "/staff-audit/new", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Manual Metrics", url: "/manual-metrics", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Photo Gallery", url: "/photos" },
     ]
