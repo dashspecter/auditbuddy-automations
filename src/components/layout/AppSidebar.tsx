@@ -132,7 +132,8 @@ const navigationItems = [
     companyPermission: 'manage_locations' as CompanyPermission,
     subItems: [
       { title: "All Locations", url: "/admin/locations" },
-      { title: "Shift Presets", url: "/settings/company?tab=workforce", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Auto Clock-Out", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { title: "Shift Presets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
     ]
   },
   { 

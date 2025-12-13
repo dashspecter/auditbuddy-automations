@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -26,21 +27,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, MapPin } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, Trash2, MapPin, Clock } from "lucide-react";
 import { useLocations, useDeleteLocation, Location } from "@/hooks/useLocations";
 import { LocationDialog } from "@/components/locations/LocationDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationDataMigration } from "@/components/locations/LocationDataMigration";
 import { EmptyState } from "@/components/EmptyState";
+import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
+import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
+import { useCompany } from "@/hooks/useCompany";
 
 const LocationsManagement = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "locations";
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<string | null>(null);
 
+  const { data: company } = useCompany();
   const { data: locations, isLoading } = useLocations(true);
   const deleteLocation = useDeleteLocation();
+
+  const handleTabChange = (value: string) => {
+    if (value === "locations") {
+      setSearchParams({});
+    } else {
+      setSearchParams({ tab: value });
+    }
+  };
 
   const handleEdit = (location: Location) => {
     setSelectedLocation(location);
@@ -67,24 +84,44 @@ const LocationsManagement = () => {
 
   return (
     <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold">Locations Management</h1>
-              <p className="text-muted-foreground">
-                Manage your business locations and their details
-              </p>
-            </div>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">Locations Management</h1>
+            <p className="text-muted-foreground">
+              Manage your business locations and their settings
+            </p>
           </div>
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Location
-          </Button>
         </div>
+      </div>
 
-        {/* Migration Tool */}
-        <LocationDataMigration />
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="locations" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Locations
+          </TabsTrigger>
+          <TabsTrigger value="auto-clockout" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Auto Clock-Out
+          </TabsTrigger>
+          <TabsTrigger value="shift-presets" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Shift Presets
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="locations" className="space-y-6 mt-6">
+          <div className="flex justify-end">
+            <Button onClick={handleAddNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Location
+            </Button>
+          </div>
+
+          {/* Migration Tool */}
+          <LocationDataMigration />
 
         <Card>
           <CardHeader>
@@ -185,7 +222,17 @@ const LocationsManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="auto-clockout" className="mt-6">
+          {company && <AutoClockoutSettings company={company} />}
+        </TabsContent>
+
+        <TabsContent value="shift-presets" className="mt-6">
+          <ShiftPresetsManagement />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
