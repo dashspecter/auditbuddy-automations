@@ -29,6 +29,9 @@ import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { LocationPerformanceCards } from "@/components/dashboard/LocationPerformanceCards";
 import { LocationTrendAnalysis } from "@/components/dashboard/LocationTrendAnalysis";
 import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerformanceTrends";
+import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
+import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
+import { StaffLeaderboard } from "@/components/StaffLeaderboard";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
@@ -773,6 +776,14 @@ const Reports = () => {
             </TabsContent>
 
             <TabsContent value="employee" className="space-y-6 mt-6">
+              {/* Employee Performance Charts */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <EmployeePerformanceChart />
+                <EmployeeLeaderboard />
+              </div>
+              
+              <StaffLeaderboard />
+
               <Card>
                 <CardHeader>
                   <CardTitle>All Staff Performance Records</CardTitle>
