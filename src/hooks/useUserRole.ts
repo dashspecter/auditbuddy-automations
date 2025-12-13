@@ -6,7 +6,7 @@ export const useUserRole = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['user_role', user?.id],
+    queryKey: ['user_role', user?.id, 'v2'], // Added version to bust cache
     queryFn: async () => {
       if (!user) {
         console.log('[useUserRole] No user, returning null');
