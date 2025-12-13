@@ -48,6 +48,7 @@ import RecurringAuditSchedules from "./pages/RecurringAuditSchedules";
 import RecurringMaintenanceSchedules from "./pages/RecurringMaintenanceSchedules";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import StaffAudits from "./pages/StaffAudits";
+import StaffAuditsViewAll from "./pages/StaffAuditsViewAll";
 import StaffAuditNew from "./pages/StaffAuditNew";
 import ManualMetrics from "./pages/ManualMetrics";
 import EquipmentList from "./pages/EquipmentList";
@@ -236,6 +237,7 @@ const App = () => (
               <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
               <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
               <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
+              <Route path="/staff-audits/all" element={<ProtectedRoute><StaffAuditsViewAll /></ProtectedRoute>} />
               <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
               <Route path="/manual-metrics" element={<ManagerRoute requiredPermission="view_reports"><ManualMetrics /></ManagerRoute>} />
               <Route path="/equipment" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentList /></ManagerRoute>} />
