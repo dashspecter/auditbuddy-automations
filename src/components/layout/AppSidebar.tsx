@@ -211,7 +211,7 @@ const settingsItems = [
     title: "User Management", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresOwnerOrAdmin: true  // Changed from requiresAdmin - company admins can manage users
+    requiresOwner: true  // Only company owners can access user management
   },
   { 
     title: "Platform Admin", 
