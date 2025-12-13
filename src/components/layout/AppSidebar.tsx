@@ -61,7 +61,6 @@ const navigationItems = [
       { title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
       { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
-      { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] },
       { title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
       { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
@@ -76,6 +75,7 @@ const navigationItems = [
     companyPermission: 'manage_locations' as CompanyPermission,
     subItems: [
       { title: "All Locations", url: "/admin/locations" },
+      { title: "Sales", url: "/workforce/sales", allowedRoles: ['admin', 'manager'] },
       { title: "Auto Clock-Out", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
       { title: "Shift Presets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
     ]
