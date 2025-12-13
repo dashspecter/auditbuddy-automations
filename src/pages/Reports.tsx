@@ -32,6 +32,7 @@ import { SectionPerformanceTrends } from "@/components/dashboard/SectionPerforma
 import { EmployeePerformanceChart } from "@/components/dashboard/EmployeePerformanceChart";
 import { EmployeeLeaderboard } from "@/components/dashboard/EmployeeLeaderboard";
 import { StaffLeaderboard } from "@/components/StaffLeaderboard";
+import { EmployeePerformanceDashboard } from "@/components/reports/EmployeePerformanceDashboard";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
@@ -776,6 +777,9 @@ const Reports = () => {
             </TabsContent>
 
             <TabsContent value="employee" className="space-y-6 mt-6">
+              {/* Employee Performance Dashboard with Stats and Leaderboard */}
+              <EmployeePerformanceDashboard />
+
               {/* Employee Performance Charts */}
               <div className="grid gap-6 md:grid-cols-2">
                 <EmployeePerformanceChart />
