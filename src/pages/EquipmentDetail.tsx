@@ -104,6 +104,16 @@ export default function EquipmentDetail() {
       <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => navigate(-1)}
+                className="mr-1"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
             {equipment.companies?.logo_url ? (
               <img 
                 src={equipment.companies.logo_url} 
@@ -123,6 +133,11 @@ export default function EquipmentDetail() {
             {!user && (
               <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
                 Sign in
+              </Button>
+            )}
+            {user && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/equipment")}>
+                All Equipment
               </Button>
             )}
           </div>
