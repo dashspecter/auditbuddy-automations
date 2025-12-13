@@ -224,7 +224,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-background">
       <Header />
       <div className="flex items-center justify-center p-4 px-safe py-safe min-h-[calc(100vh-4rem)]">
         <Card className="w-full max-w-md p-8">
