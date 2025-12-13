@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, Image, UserCog, Bug, Shield, Calendar,
-  PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2, AlertTriangle
+  PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2, AlertTriangle, Clock
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -129,7 +129,11 @@ const navigationItems = [
     icon: MapPin,
     module: null,
     allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_locations' as CompanyPermission
+    companyPermission: 'manage_locations' as CompanyPermission,
+    subItems: [
+      { title: "All Locations", url: "/admin/locations" },
+      { title: "Shift Presets", url: "/settings/company?tab=workforce", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+    ]
   },
   { 
     title: "Equipment", 
