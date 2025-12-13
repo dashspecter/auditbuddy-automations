@@ -48,8 +48,8 @@ Brand color: Orange (hue 25) - No blue colors used.
 
     --radius: 0.5rem;
 
-    --header: 222 47% 11%;
-    --header-foreground: 0 0% 100%;
+    --header: 0 0% 100%;
+    --header-foreground: 222 47% 11%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
@@ -113,8 +113,8 @@ Brand color: Orange (hue 25) - No blue colors used.
     --input: 217 33% 17%;
     --ring: 25 95% 53%;
 
-    --header: 222 47% 11%;
-    --header-foreground: 0 0% 100%;
+    --header: 222 47% 15%;
+    --header-foreground: 210 40% 98%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
