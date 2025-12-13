@@ -77,6 +77,7 @@ const navigationItems = [
           { title: "New Performance Review", url: "/staff-audits?review=new" },
         ]
       },
+      { title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Audit Calendar", url: "/audits-calendar" },
       { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
