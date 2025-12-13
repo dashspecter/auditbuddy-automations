@@ -31,7 +31,7 @@ const routeNameMap: Record<string, string> = {
   pricing: "Billing & Modules",
   new: "New",
   edit: "Edit",
-  "staff-audits": "Reports",
+  "staff-audits": "Employee Audits",
   reports: "Reports",
 };
 
