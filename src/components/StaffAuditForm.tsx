@@ -99,14 +99,15 @@ export const StaffAuditForm = ({ onSuccess }: StaffAuditFormProps) => {
       </div>
 
       <div>
-        <Label>Performance Score: {score}%</Label>
-        <Slider
-          value={[score]}
-          onValueChange={([value]) => setScore(value)}
+        <Label htmlFor="score">Performance Score (%)</Label>
+        <Input
+          id="score"
+          type="number"
           min={0}
           max={100}
-          step={5}
-          className="mt-2"
+          value={score}
+          onChange={(e) => setScore(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+          placeholder="Enter score (0-100)"
         />
       </div>
 
