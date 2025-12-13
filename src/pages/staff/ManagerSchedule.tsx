@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, ChevronLeft, ChevronRight, Filter, Plus, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, ChevronLeft, ChevronRight, MapPin, Plus, Users } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format, addDays, startOfWeek } from "date-fns";
 
@@ -13,8 +14,8 @@ const ManagerSchedule = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedLocation, setSelectedLocation] = useState<string | "all" | null>(null);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [managerLocations, setManagerLocations] = useState<any[]>([]);
   const [shifts, setShifts] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,28 +32,43 @@ const ManagerSchedule = () => {
 
   const loadData = async () => {
     try {
-      // Get employee to get company_id
+      // Get employee to get company_id and primary location
       const { data: empData } = await supabase
         .from("employees")
-        .select("company_id, location_id")
+        .select("id, company_id, location_id, locations(id, name)")
         .eq("user_id", user?.id)
         .maybeSingle();
 
       if (!empData) return;
 
-      // Set default location to manager's location on first load
-      if (selectedLocation === null) {
-        setSelectedLocation(empData.location_id);
+      // Load manager's assigned locations (primary + additional)
+      const { data: additionalLocations } = await supabase
+        .from("staff_locations")
+        .select("location_id, locations(id, name)")
+        .eq("staff_id", empData.id);
+
+      // Combine primary and additional locations
+      const allLocations: any[] = [];
+      
+      // Add primary location
+      if (empData.locations) {
+        allLocations.push({ id: empData.locations.id, name: empData.locations.name });
       }
+      
+      // Add additional locations
+      if (additionalLocations) {
+        additionalLocations.forEach((loc: any) => {
+          if (loc.locations && !allLocations.find(l => l.id === loc.locations.id)) {
+            allLocations.push({ id: loc.locations.id, name: loc.locations.name });
+          }
+        });
+      }
+      
+      setManagerLocations(allLocations);
 
-      // Load locations
-      const { data: locationsData } = await supabase
-        .from("locations")
-        .select("*")
-        .eq("company_id", empData.company_id);
-
-      if (locationsData) {
-        setLocations(locationsData);
+      // Set default location to manager's primary location on first load
+      if (selectedLocation === null && empData.location_id) {
+        setSelectedLocation(empData.location_id);
       }
 
       // Load shifts for selected week
@@ -181,10 +197,30 @@ const ManagerSchedule = () => {
             </div>
           </Card>
 
-          {/* Location Name */}
-          {locations.find(l => l.id === selectedLocation)?.name && (
-            <div className="text-sm opacity-90 text-center">
-              {locations.find(l => l.id === selectedLocation)?.name}
+          {/* Location Selector */}
+          {managerLocations.length > 1 ? (
+            <Select
+              value={selectedLocation || ""}
+              onValueChange={(value) => setSelectedLocation(value)}
+            >
+              <SelectTrigger className="bg-white/10 border-white/20 text-primary-foreground">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <SelectValue placeholder="Select location" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {managerLocations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="text-sm opacity-90 text-center flex items-center justify-center gap-2">
+              <MapPin className="h-4 w-4" />
+              {managerLocations.find(l => l.id === selectedLocation)?.name}
             </div>
           )}
         </div>
