@@ -1068,6 +1068,107 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          event_type: string
+          id: string
+          netopia_ntp_id: string | null
+          netopia_order_id: string | null
+          payload_json: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          netopia_ntp_id?: string | null
+          netopia_order_id?: string | null
+          payload_json?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          netopia_ntp_id?: string | null
+          netopia_order_id?: string | null
+          payload_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_invoices: {
+        Row: {
+          amount: number
+          attempt_count: number
+          company_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          is_card_setup: boolean
+          netopia_ntp_id: string | null
+          netopia_order_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attempt_count?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_card_setup?: boolean
+          netopia_ntp_id?: string | null
+          netopia_order_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attempt_count?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_card_setup?: boolean
+          netopia_ntp_id?: string | null
+          netopia_order_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           approved_at: string | null
@@ -1076,8 +1177,11 @@ export type Database = {
           created_at: string
           id: string
           industry_id: string | null
+          is_paused: boolean
           logo_url: string | null
           name: string
+          pause_reason: string | null
+          paused_at: string | null
           slug: string
           status: string
           subscription_tier: string
@@ -1091,8 +1195,11 @@ export type Database = {
           created_at?: string
           id?: string
           industry_id?: string | null
+          is_paused?: boolean
           logo_url?: string | null
           name: string
+          pause_reason?: string | null
+          paused_at?: string | null
           slug: string
           status?: string
           subscription_tier?: string
@@ -1106,8 +1213,11 @@ export type Database = {
           created_at?: string
           id?: string
           industry_id?: string | null
+          is_paused?: boolean
           logo_url?: string | null
           name?: string
+          pause_reason?: string | null
+          paused_at?: string | null
           slug?: string
           status?: string
           subscription_tier?: string
@@ -1120,6 +1230,59 @@ export type Database = {
             columns: ["industry_id"]
             isOneToOne: false
             referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_billing: {
+        Row: {
+          card_brand: string | null
+          card_last_four: string | null
+          company_id: string
+          created_at: string
+          current_period_end: string | null
+          current_plan_id: string | null
+          grace_period_ends_at: string | null
+          id: string
+          last_payment_error: string | null
+          netopia_binding_token: string | null
+          status: Database["public"]["Enums"]["billing_status"]
+          updated_at: string
+        }
+        Insert: {
+          card_brand?: string | null
+          card_last_four?: string | null
+          company_id: string
+          created_at?: string
+          current_period_end?: string | null
+          current_plan_id?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          last_payment_error?: string | null
+          netopia_binding_token?: string | null
+          status?: Database["public"]["Enums"]["billing_status"]
+          updated_at?: string
+        }
+        Update: {
+          card_brand?: string | null
+          card_last_four?: string | null
+          company_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_plan_id?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          last_payment_error?: string | null
+          netopia_binding_token?: string | null
+          status?: Database["public"]["Enums"]["billing_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_billing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -4597,6 +4760,50 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          next_charge_at: string | null
+          plan_id: string
+          price_amount: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          next_charge_at?: string | null
+          plan_id: string
+          price_amount: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          next_charge_at?: string | null
+          plan_id?: string
+          price_amount?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -5829,6 +6036,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "checker" | "manager" | "hr"
+      billing_status: "active" | "past_due" | "paused"
       company_permission:
         | "manage_users"
         | "manage_settings"
@@ -5840,6 +6048,8 @@ export type Database = {
         | "manage_shifts"
         | "manage_audits"
         | "manage_notifications"
+      invoice_status: "open" | "paid" | "failed"
+      subscription_status: "active" | "past_due" | "paused" | "canceled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5968,6 +6178,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "checker", "manager", "hr"],
+      billing_status: ["active", "past_due", "paused"],
       company_permission: [
         "manage_users",
         "manage_settings",
@@ -5980,6 +6191,8 @@ export const Constants = {
         "manage_audits",
         "manage_notifications",
       ],
+      invoice_status: ["open", "paid", "failed"],
+      subscription_status: ["active", "past_due", "paused", "canceled"],
     },
   },
 } as const
