@@ -76,10 +76,12 @@ export const Header = () => {
     return email.substring(0, 2).toUpperCase();
   };
 
+  const isAuthPage = location.pathname === '/auth';
+
   // Simplified public header for landing and auth pages
   if (isPublicPage) {
     return (
-      <header className="bg-header text-header-foreground border-b border-border sticky top-0 z-50 pt-safe">
+      <header className="bg-background text-foreground border-b border-border sticky top-0 z-50 pt-safe">
         <div className="container mx-auto px-4 px-safe py-2.5 md:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
             <img 
@@ -108,10 +110,16 @@ export const Header = () => {
                   </Button>
                 </Link>
               </>
-            ) : (
+            ) : !isAuthPage ? (
               <Link to="/auth">
                 <Button className="min-h-[44px]">
                   Sign In
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/">
+                <Button variant="outline" className="min-h-[44px]">
+                  Home
                 </Button>
               </Link>
             )}
