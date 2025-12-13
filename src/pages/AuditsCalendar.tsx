@@ -115,7 +115,7 @@ const AuditsCalendar = () => {
             location: audit.locations?.name || 'Unknown Location',
             template: audit.audit_templates?.name || 'Unknown Template',
             templateType: 'location',
-            assignedTo: 'Assigned',
+            assignedTo: audit.profiles?.full_name || audit.profiles?.email || 'Unassigned',
             assignedUserId: audit.assigned_to,
             isOwnAudit: audit.assigned_to === user?.id,
             source: 'scheduled_audits' as const,

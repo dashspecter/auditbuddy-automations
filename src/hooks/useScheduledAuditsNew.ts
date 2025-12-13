@@ -19,6 +19,10 @@ export interface ScheduledAudit {
   locations?: {
     name: string;
   };
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 export const useScheduledAuditsNew = (locationId?: string) => {
@@ -40,7 +44,33 @@ export const useScheduledAuditsNew = (locationId?: string) => {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data as ScheduledAudit[];
+      
+      // Fetch assignee profiles separately
+      const assignedUserIds = [...new Set((data || []).map(a => a.assigned_to).filter(Boolean))];
+      
+      let profilesMap: Record<string, { full_name: string | null; email: string | null }> = {};
+      
+      if (assignedUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", assignedUserIds);
+        
+        if (profiles) {
+          profilesMap = profiles.reduce((acc, p) => {
+            acc[p.id] = { full_name: p.full_name, email: p.email };
+            return acc;
+          }, {} as Record<string, { full_name: string | null; email: string | null }>);
+        }
+      }
+      
+      // Attach profile data to each audit
+      const auditsWithProfiles = (data || []).map(audit => ({
+        ...audit,
+        profiles: profilesMap[audit.assigned_to] || null
+      }));
+      
+      return auditsWithProfiles as ScheduledAudit[];
     },
   });
 };
