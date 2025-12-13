@@ -92,119 +92,218 @@ export default function StaffAudits() {
     return "bg-red-500";
   };
 
+  const isNewReviewMode = searchParams.get('review') === 'new';
+
   return (
     <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">Employee Performance</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
+              {isNewReviewMode ? "New Performance Review" : "Employee Performance"}
+            </h1>
             <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
-              Track and evaluate employee performance
+              {isNewReviewMode ? "Submit a new employee performance review" : "Track and evaluate employee performance"}
             </p>
           </div>
         </div>
 
-        <Collapsible open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <CollapsibleContent>
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Submit Performance Review</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <LocationSelector
-                      id="location"
-                      value={formData.location_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, location_id: value, employee_id: "" })
-                      }
-                    />
-                  </div>
+        {isNewReviewMode ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Submit Performance Review</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <LocationSelector
+                    id="location"
+                    value={formData.location_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, location_id: value, employee_id: "" })
+                    }
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="employee">Employee</Label>
-                    <Select
-                      value={formData.employee_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, employee_id: value })
-                      }
-                      disabled={!formData.location_id || !employees || employees.length === 0}
-                    >
-                      <SelectTrigger id="employee">
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees?.map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
-                            {employee.full_name} - {employee.role}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="employee">Employee</Label>
+                  <Select
+                    value={formData.employee_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, employee_id: value })
+                    }
+                    disabled={!formData.location_id || !employees || employees.length === 0}
+                  >
+                    <SelectTrigger id="employee">
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees?.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.full_name} - {employee.role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="audit_date">Review Date</Label>
-                    <Input
-                      type="date"
-                      id="audit_date"
-                      value={formData.audit_date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, audit_date: e.target.value })
-                      }
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="audit_date">Review Date</Label>
+                  <Input
+                    type="date"
+                    id="audit_date"
+                    value={formData.audit_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, audit_date: e.target.value })
+                    }
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Performance Score: {formData.score}%</Label>
-                    <Slider
-                      value={[formData.score]}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, score: value[0] })
-                      }
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Performance Score: {formData.score}%</Label>
+                  <Slider
+                    value={[formData.score]}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, score: value[0] })
+                    }
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Add any observations or comments..."
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      rows={6}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Add any observations or comments..."
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    rows={6}
+                  />
+                </div>
 
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={createStaffAudit.isPending}
-                      className="w-full sm:w-auto"
-                    >
-                      {createStaffAudit.isPending ? "Submitting..." : "Submit Review"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </CollapsibleContent>
-        </Collapsible>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={createStaffAudit.isPending}
+                    className="w-full sm:w-auto"
+                  >
+                    {createStaffAudit.isPending ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Collapsible open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <CollapsibleContent>
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Submit Performance Review</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Location</Label>
+                        <LocationSelector
+                          id="location"
+                          value={formData.location_id}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, location_id: value, employee_id: "" })
+                          }
+                        />
+                      </div>
 
-        {/* Employee Performance Chart */}
-        <EmployeePerformanceChart />
+                      <div className="space-y-2">
+                        <Label htmlFor="employee">Employee</Label>
+                        <Select
+                          value={formData.employee_id}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, employee_id: value })
+                          }
+                          disabled={!formData.location_id || !employees || employees.length === 0}
+                        >
+                          <SelectTrigger id="employee">
+                            <SelectValue placeholder="Select employee" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees?.map((employee) => (
+                              <SelectItem key={employee.id} value={employee.id}>
+                                {employee.full_name} - {employee.role}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <EmployeeLeaderboard />
-          <StaffLeaderboard />
-        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="audit_date">Review Date</Label>
+                        <Input
+                          type="date"
+                          id="audit_date"
+                          value={formData.audit_date}
+                          onChange={(e) =>
+                            setFormData({ ...formData, audit_date: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Performance Score: {formData.score}%</Label>
+                        <Slider
+                          value={[formData.score]}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, score: value[0] })
+                          }
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">Notes (Optional)</Label>
+                        <Textarea
+                          id="notes"
+                          placeholder="Add any observations or comments..."
+                          value={formData.notes}
+                          onChange={(e) =>
+                            setFormData({ ...formData, notes: e.target.value })
+                          }
+                          rows={6}
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={createStaffAudit.isPending}
+                          className="w-full sm:w-auto"
+                        >
+                          {createStaffAudit.isPending ? "Submitting..." : "Submit Review"}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Employee Performance Chart */}
+            <EmployeePerformanceChart />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <EmployeeLeaderboard />
+              <StaffLeaderboard />
+            </div>
+          </>
+        )}
 
         <Card>
           <CardHeader>
