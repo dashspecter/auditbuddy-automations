@@ -189,12 +189,10 @@ export default function EmployeeManagement() {
               </TableHeader>
               <TableBody>
                 {employees.map((employee) => {
-                  // Get all locations from staff_locations, fallback to primary location
-                  const allLocations = employee.staff_locations && employee.staff_locations.length > 0
-                    ? employee.staff_locations.map(sl => sl.locations?.name).filter(Boolean)
-                    : [employee.locations?.name].filter(Boolean);
-                  
-                  const hasMultipleLocations = allLocations.length > 1;
+                  // Check if employee has additional locations beyond primary
+                  const additionalLocationsCount = employee.staff_locations?.length || 0;
+                  const hasMultipleLocations = additionalLocationsCount > 0;
+                  const totalLocationsCount = additionalLocationsCount + 1; // +1 for primary
                   
                   return (
                   <TableRow key={employee.id}>
@@ -202,10 +200,10 @@ export default function EmployeeManagement() {
                     <TableCell>
                       {hasMultipleLocations ? (
                         <Badge variant="secondary" className="text-xs">
-                          All Locations ({allLocations.length})
+                          All Locations ({totalLocationsCount})
                         </Badge>
                       ) : (
-                        allLocations[0] || employee.locations?.name || '-'
+                        employee.locations?.name || '-'
                       )}
                     </TableCell>
                     <TableCell>{employee.role}</TableCell>
