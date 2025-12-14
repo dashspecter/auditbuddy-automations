@@ -8,11 +8,13 @@ import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedShiftWeekView } from "@/components/workforce/EnhancedShiftWeekView";
+import { MobileShiftDayView } from "@/components/workforce/MobileShiftDayView";
 import { PendingApprovalsDialog } from "@/components/workforce/PendingApprovalsDialog";
 import { CopyScheduleDialog } from "@/components/workforce/CopyScheduleDialog";
 import { usePendingApprovals } from "@/hooks/useShiftAssignments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Shifts = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -21,6 +23,7 @@ const Shifts = () => {
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [view, setView] = useState<"day" | "week">("week");
   const [editingShift, setEditingShift] = useState<any>(null);
+  const isMobile = useIsMobile();
   
   const dateStr = date ? date.toISOString().split('T')[0] : "";
   const { data: shifts = [], isLoading } = useShifts(undefined, dateStr, dateStr);
@@ -58,6 +61,58 @@ const Shifts = () => {
     const pending = assignments.filter((a: any) => a.approval_status === 'pending');
     return { approved, pending, total: assignments.length };
   };
+
+  // On mobile, show the mobile-optimized day view
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Shift Scheduling</h1>
+              <p className="text-muted-foreground text-sm">
+                Create and manage shifts for your team
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 flex-1"
+              onClick={() => setCopyDialogOpen(true)}
+            >
+              <Copy className="h-4 w-4" />
+              Copy
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-1 flex-1" 
+              onClick={() => setPendingDialogOpen(true)}
+            >
+              <Badge variant="destructive" className="mr-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                {pendingCount || 0}
+              </Badge>
+              Pending
+            </Button>
+          </div>
+        </div>
+
+        <MobileShiftDayView />
+
+        <PendingApprovalsDialog 
+          open={pendingDialogOpen}
+          onOpenChange={setPendingDialogOpen}
+        />
+
+        <CopyScheduleDialog
+          open={copyDialogOpen}
+          onOpenChange={setCopyDialogOpen}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
