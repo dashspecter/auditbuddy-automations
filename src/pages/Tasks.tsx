@@ -174,25 +174,54 @@ const Tasks = () => {
 
   const hasTasks = tasks.length > 0;
 
+  const taskSubItems = [
+    { title: "All Tasks", url: "/tasks", icon: ListTodo, description: "View all tasks" },
+    { title: "Calendar", url: "/tasks/calendar", icon: Calendar, description: "Calendar view" },
+    { title: "New Task", url: "/tasks/new", icon: Plus, description: "Create task" },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-3xl font-bold">Tasks</h1>
           <p className="text-muted-foreground mt-1">
             Manage daily operations and follow-up actions
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/tasks/calendar")}>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/tasks/calendar")}>
             <Calendar className="h-4 w-4 mr-2" />
             Calendar
           </Button>
-          <Button onClick={() => navigate("/tasks/new")}>
+          <Button className="w-full sm:w-auto" onClick={() => navigate("/tasks/new")}>
             <Plus className="h-4 w-4 mr-2" />
             Create Task
           </Button>
         </div>
+      </div>
+
+      {/* Mobile-first quick navigation to subitems */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:hidden">
+        {taskSubItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card 
+              key={item.url} 
+              className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full"
+              onClick={() => navigate(item.url)}
+            >
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{item.title}</div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Quick Stats */}

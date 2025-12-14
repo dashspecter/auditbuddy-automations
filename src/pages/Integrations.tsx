@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIntegrations, useCreateIntegration } from "@/hooks/useIntegrations";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Plus, Settings, Plug, ShoppingCart, FileText, Users, Mail, Eye, Calendar, ChevronRight } from "lucide-react";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
@@ -88,63 +88,93 @@ const Integrations = () => {
     return config?.color || "text-gray-500";
   };
 
+  const integrationSubItems = [
+    { title: "All", url: "/integrations", icon: Plug, description: "All integrations" },
+    { title: "POS", url: "/integrations?type=pos", icon: ShoppingCart, description: "Point of Sale" },
+    { title: "Invoicing", url: "/integrations?type=invoicing", icon: FileText, description: "Invoicing" },
+    { title: "Workforce", url: "/integrations?type=workforce", icon: Users, description: "Workforce" },
+  ];
+
   return (
     <ModuleGate module="integrations">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-3xl font-bold">Integrations</h1>
             <p className="text-muted-foreground mt-1">
               Connect external systems and APIs
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Integration
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Integration</DialogTitle>
-                <DialogDescription>Select an integration type and configure it</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Integration Type</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {INTEGRATION_TYPES.map((type) => {
-                      const Icon = type.icon;
-                      return (
-                        <button
-                          key={type.type}
-                          onClick={() => setSelectedType(type.type)}
-                          className={`p-3 border rounded-lg text-left hover:bg-accent transition-colors ${
-                            selectedType === type.type ? "border-primary bg-accent" : ""
-                          }`}
-                        >
-                          <Icon className={`h-5 w-5 mb-2 ${type.color}`} />
-                          <div className="font-medium text-sm">{type.name}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Integration Name</Label>
-                  <Input
-                    placeholder="My POS System"
-                    value={integrationName}
-                    onChange={(e) => setIntegrationName(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleCreateIntegration} disabled={!selectedType || !integrationName}>
-                  Create Integration
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 w-full sm:w-auto">
+                  <Plus className="h-4 w-4" />
+                  Add Integration
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Integration</DialogTitle>
+                  <DialogDescription>Select an integration type and configure it</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Integration Type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {INTEGRATION_TYPES.map((type) => {
+                        const Icon = type.icon;
+                        return (
+                          <button
+                            key={type.type}
+                            onClick={() => setSelectedType(type.type)}
+                            className={`p-3 border rounded-lg text-left hover:bg-accent transition-colors ${
+                              selectedType === type.type ? "border-primary bg-accent" : ""
+                            }`}
+                          >
+                            <Icon className={`h-5 w-5 mb-2 ${type.color}`} />
+                            <div className="font-medium text-sm">{type.name}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Integration Name</Label>
+                    <Input
+                      placeholder="My POS System"
+                      value={integrationName}
+                      onChange={(e) => setIntegrationName(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleCreateIntegration} disabled={!selectedType || !integrationName}>
+                    Create Integration
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Mobile-first quick navigation to subitems */}
+        <div className="grid grid-cols-2 gap-3 sm:hidden">
+          {integrationSubItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.url} to={item.url}>
+                <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                  <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{item.title}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Available Integration Types */}

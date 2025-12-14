@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Calendar as CalendarIcon, FileSpreadsheet, FileText, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
@@ -319,6 +319,12 @@ const Reports = () => {
     }
   };
 
+  const reportSubItems = [
+    { title: "Location", url: "/reports?tab=location", icon: MapPin, description: "Location performance" },
+    { title: "Employee", url: "/reports?tab=employee", icon: Clock, description: "Employee performance" },
+    { title: "Vouchers", url: "/audits/vouchers", icon: FileSpreadsheet, description: "Manage vouchers" },
+  ];
+
   return (
     <ModuleGate module="reports">
       <div className="space-y-6">
@@ -336,8 +342,29 @@ const Reports = () => {
             <p className="text-muted-foreground mt-1">View performance reports by location and employee</p>
           </div>
 
+          {/* Mobile-first quick navigation to subitems */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:hidden">
+            {reportSubItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.url} to={item.url}>
+                  <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{item.title}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="location">Location Performance</TabsTrigger>
               <TabsTrigger value="employee">Employee Performance</TabsTrigger>
             </TabsList>

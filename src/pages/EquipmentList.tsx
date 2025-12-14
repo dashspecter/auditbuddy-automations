@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, QrCode, AlertTriangle, Wrench } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Plus, QrCode, AlertTriangle, Wrench, Calendar, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
 import { EquipmentListTable } from "@/components/equipment/EquipmentListTable";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+
+const equipmentSubItems = [
+  { title: "All Equipment", url: "/equipment", icon: Wrench, description: "View equipment" },
+  { title: "Calendar", url: "/maintenance-calendar", icon: Calendar, description: "Maintenance calendar" },
+  { title: "Recurring", url: "/recurring-maintenance", icon: RefreshCw, description: "Recurring schedules" },
+  { title: "QR Codes", url: "/equipment/bulk-qr", icon: QrCode, description: "Bulk QR codes" },
+];
 
 export default function EquipmentList() {
   const navigate = useNavigate();
@@ -48,7 +55,28 @@ export default function EquipmentList() {
                 <Plus className="mr-2 h-4 w-4" />
                 Add Equipment
               </Button>
-            </div>
+          </div>
+
+          {/* Mobile-first quick navigation to subitems */}
+          <div className="grid grid-cols-2 gap-3 sm:hidden">
+            {equipmentSubItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.url} to={item.url}>
+                  <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{item.title}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
           </div>
 
           {equipmentCount === 0 ? (
