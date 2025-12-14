@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface Document {
   id: string;
@@ -140,7 +141,8 @@ export const useUploadDocument = () => {
       toast.success("Document uploaded successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Failed to upload document: ${error.message}`);
+      const friendly = getToastError(error, 'documents');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -162,7 +164,8 @@ export const useDeleteDocument = () => {
       toast.success("Document deleted successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Failed to delete document: ${error.message}`);
+      const friendly = getToastError(error, 'documents');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface AuditTemplate {
   id: string;
@@ -93,7 +94,8 @@ export const useCreateAuditTemplate = () => {
       toast.success("Template created successfully");
     },
     onError: (error) => {
-      toast.error("Failed to create template: " + error.message);
+      const friendly = getToastError(error, 'templates');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -119,7 +121,8 @@ export const useUpdateAuditTemplate = () => {
       toast.success("Template updated successfully");
     },
     onError: (error) => {
-      toast.error("Failed to update template: " + error.message);
+      const friendly = getToastError(error, 'templates');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -142,7 +145,8 @@ export const useDeleteAuditTemplate = () => {
       toast.success("Template deleted successfully");
     },
     onError: (error) => {
-      toast.error("Failed to delete template: " + error.message);
+      const friendly = getToastError(error, 'templates');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

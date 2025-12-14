@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "./useCompany";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export const useIntegrations = () => {
   const { data: company } = useCompany();
@@ -55,8 +56,8 @@ export const useCreateIntegration = () => {
       toast.success("Integration created");
     },
     onError: (error) => {
-      toast.error("Failed to create integration");
-      console.error("Error creating integration:", error);
+      const friendly = getToastError(error, 'integrations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -86,8 +87,8 @@ export const useUpdateIntegration = () => {
       toast.success("Integration updated");
     },
     onError: (error) => {
-      toast.error("Failed to update integration");
-      console.error("Error updating integration:", error);
+      const friendly = getToastError(error, 'integrations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -109,8 +110,8 @@ export const useDeleteIntegration = () => {
       toast.success("Integration deleted");
     },
     onError: (error) => {
-      toast.error("Failed to delete integration");
-      console.error("Error deleting integration:", error);
+      const friendly = getToastError(error, 'integrations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
