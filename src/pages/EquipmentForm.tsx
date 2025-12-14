@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -558,14 +559,14 @@ export default function EquipmentForm() {
               </Card>
             )}
 
-            <div className="flex gap-4">
-              <Button type="submit" disabled={createEquipment.isPending || updateEquipment.isPending}>
-                {isEditing ? "Update Equipment" : "Add Equipment"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate("/equipment")}>
+            <StickyActionBar className="justify-end">
+              <Button type="button" variant="outline" onClick={() => navigate("/equipment")} className="flex-1 sm:flex-none">
                 Cancel
               </Button>
-            </div>
+              <Button type="submit" disabled={createEquipment.isPending || updateEquipment.isPending} className="flex-1 sm:flex-none">
+                {isEditing ? "Update Equipment" : "Add Equipment"}
+              </Button>
+            </StickyActionBar>
           </form>
         </Form>
     </div>
