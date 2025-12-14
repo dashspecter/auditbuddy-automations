@@ -26,19 +26,19 @@ const AuditsList = () => {
 
   return (
     <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Audits</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Audits</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               View and manage all audits
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/audits/templates")}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/audits/templates")}>
               <Calendar className="mr-2 h-4 w-4" />
               Manage Templates
             </Button>
-            <Button onClick={() => navigate("/audits/schedule")}>
+            <Button className="w-full sm:w-auto" onClick={() => navigate("/audits/schedule")}>
               <Plus className="mr-2 h-4 w-4" />
               Schedule Audit
             </Button>

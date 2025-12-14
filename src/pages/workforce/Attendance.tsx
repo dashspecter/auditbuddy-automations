@@ -149,16 +149,16 @@ const Attendance = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Attendance Tracking</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Attendance Tracking</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Monitor staff check-ins, check-outs, and work hours
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
@@ -173,7 +173,7 @@ const Attendance = () => {
           </Select>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full sm:w-auto">
               <QrCode className="h-4 w-4" />
               Generate QR Code
             </Button>
