@@ -66,7 +66,7 @@ export const useEmployees = (locationId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("employees")
-        .select("*, locations(name)")
+        .select("*, locations(name), staff_locations(id, location_id, is_primary, locations(name))")
         .order("full_name");
       
       if (locationId) {
