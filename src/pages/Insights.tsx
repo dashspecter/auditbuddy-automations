@@ -9,6 +9,7 @@ import { useLocationTrends } from "@/hooks/useLocationTrends";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { useInsightSummaries, useSaveInsightSummary } from "@/hooks/useInsightSummaries";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { format, subDays, subWeeks, subMonths } from "date-fns";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { LocationPerformanceChart } from "@/components/dashboard/LocationPerformanceChart";
@@ -71,22 +72,48 @@ const Insights = () => {
     }
   };
 
+  const insightSubItems = [
+    { title: "Overview", url: "/insights", icon: Sparkles, description: "Analytics overview" },
+    { title: "AI Feed", url: "/ai-feed", icon: TrendingUp, description: "AI-powered insights" },
+  ];
+
   return (
     <ModuleGate module="reports">
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-3xl font-bold">Insights</h1>
             <p className="text-muted-foreground mt-1">
               Analytics and performance trends
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2" onClick={handleSaveSummary}>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={handleSaveSummary}>
               <Download className="h-4 w-4" />
               Save Summary
             </Button>
           </div>
+        </div>
+
+        {/* Mobile-first quick navigation to subitems */}
+        <div className="grid grid-cols-2 gap-3 sm:hidden">
+          {insightSubItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.url} to={item.url}>
+                <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                  <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{item.title}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Filters */}

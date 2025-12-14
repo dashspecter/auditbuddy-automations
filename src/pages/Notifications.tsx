@@ -254,10 +254,18 @@ export default function Notifications() {
     );
   }
 
+  const notificationSubItems = [
+    { title: "Send", url: "/notifications", icon: Megaphone, description: "Send notifications" },
+    { title: "Templates", url: "/notification-templates", icon: FileText, description: "Manage templates" },
+    { title: "Recurring", url: "/recurring-notifications", icon: RefreshCw, description: "Recurring schedules" },
+    { title: "Analytics", url: "/notification-analytics", icon: BarChart3, description: "View analytics" },
+    { title: "Logs", url: "/notification-audit-logs", icon: History, description: "Audit logs" },
+  ];
+
   return (
     <ModuleGate module="notifications">
       <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4">
               <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                   <Megaphone className="h-8 w-8" />
@@ -268,34 +276,57 @@ export default function Notifications() {
                 </p>
               </div>
               {roleData?.isAdmin && (
-                <div className="flex gap-2 flex-wrap">
-                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:hidden-flex-wrap">
+                  <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto hidden sm:flex" asChild>
                     <Link to="/recurring-notifications">
                       <RefreshCw className="h-4 w-4" />
-                      <span className="hidden sm:inline">Recurring</span>
+                      <span>Recurring</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto hidden sm:flex" asChild>
                     <Link to="/notification-analytics">
                       <BarChart3 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Analytics</span>
+                      <span>Analytics</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto hidden sm:flex" asChild>
                     <Link to="/notification-audit-logs">
                       <History className="h-4 w-4" />
-                      <span className="hidden sm:inline">Logs</span>
+                      <span>Logs</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3" asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto hidden sm:flex" asChild>
                     <Link to="/notification-templates">
                       <FileText className="h-4 w-4" />
-                      <span className="hidden sm:inline">Templates</span>
+                      <span>Templates</span>
                     </Link>
                   </Button>
                 </div>
               )}
             </div>
+
+            {/* Mobile-first quick navigation to subitems */}
+            {roleData?.isAdmin && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:hidden">
+                {notificationSubItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link key={item.url} to={item.url}>
+                      <Card className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full">
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Icon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{item.title}</div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
           <Card>
             <CardHeader>
