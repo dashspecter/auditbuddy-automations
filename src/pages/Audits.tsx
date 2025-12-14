@@ -152,10 +152,6 @@ const Audits = () => {
                       <Library className="h-4 w-4" />
                       Template Library
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/audits/mystery-shopper')} className="gap-2 cursor-pointer">
-                      <UserSearch className="h-4 w-4" />
-                      Mystery Shopper
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Link to="/audits/vouchers" className="w-full sm:w-auto">
