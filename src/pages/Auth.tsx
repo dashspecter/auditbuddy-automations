@@ -11,8 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Header } from '@/components/Header';
-
 const authSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -224,9 +222,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="flex items-center justify-center p-4 px-safe py-safe min-h-[calc(100vh-4rem)]">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 px-safe py-safe">
         <Card className="w-full max-w-md p-8">
           <div className="flex items-center justify-center gap-3 mb-8">
             <img 
@@ -408,7 +404,6 @@ const Auth = () => {
           </TabsContent>
         </Tabs>
       </Card>
-      </div>
     </div>
   );
 };
