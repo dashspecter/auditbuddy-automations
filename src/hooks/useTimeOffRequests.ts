@@ -50,7 +50,15 @@ export const useCreateTimeOffRequest = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (request: Omit<TimeOffRequest, "id" | "created_at" | "updated_at" | "company_id" | "approved_by" | "approved_at">) => {
+    mutationFn: async (request: {
+      employee_id: string;
+      start_date: string;
+      end_date: string;
+      status: string;
+      reason: string | null;
+      request_type: string | null;
+      rejection_reason: string | null;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
@@ -62,9 +70,20 @@ export const useCreateTimeOffRequest = () => {
 
       if (!companyUser) throw new Error("No company found for user");
       
+      // If status is approved, include approved_by and approved_at
+      const insertData: any = { 
+        ...request, 
+        company_id: companyUser.company_id 
+      };
+      
+      if (request.status === 'approved') {
+        insertData.approved_by = user.id;
+        insertData.approved_at = new Date().toISOString();
+      }
+      
       const { data, error } = await supabase
         .from("time_off_requests")
-        .insert({ ...request, company_id: companyUser.company_id })
+        .insert(insertData)
         .select()
         .single();
       

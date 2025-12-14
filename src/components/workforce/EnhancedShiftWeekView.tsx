@@ -15,6 +15,7 @@ import { useAttendanceLogs } from "@/hooks/useAttendanceLogs";
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isWithinInterval, parseISO } from "date-fns";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
+import { AddTimeOffDialog } from "./AddTimeOffDialog";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
 import {
@@ -37,6 +38,9 @@ export const EnhancedShiftWeekView = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [timeOffDialogOpen, setTimeOffDialogOpen] = useState(false);
+  const [selectedTimeOffEmployee, setSelectedTimeOffEmployee] = useState<string | undefined>();
+  const [selectedTimeOffDate, setSelectedTimeOffDate] = useState<Date | undefined>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedShift, setSelectedShift] = useState<any>(null);
@@ -422,6 +426,19 @@ export const EnhancedShiftWeekView = () => {
               </Tooltip>
             </TooltipProvider>
           )}
+
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setSelectedTimeOffEmployee(undefined);
+              setSelectedTimeOffDate(undefined);
+              setTimeOffDialogOpen(true);
+            }} 
+            className="gap-2"
+          >
+            <Palmtree className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Time Off</span>
+          </Button>
 
           <Button onClick={() => handleAddShift(new Date())} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -1017,6 +1034,20 @@ export const EnhancedShiftWeekView = () => {
           locationId={selectedLocation}
         />
       )}
+
+      <AddTimeOffDialog
+        open={timeOffDialogOpen}
+        onOpenChange={(open) => {
+          setTimeOffDialogOpen(open);
+          if (!open) {
+            setSelectedTimeOffEmployee(undefined);
+            setSelectedTimeOffDate(undefined);
+          }
+        }}
+        employees={employees}
+        defaultEmployeeId={selectedTimeOffEmployee}
+        defaultDate={selectedTimeOffDate}
+      />
     </div>
   );
 };
