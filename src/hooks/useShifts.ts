@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface Shift {
   id: string;
@@ -104,7 +105,8 @@ export const useCreateShift = () => {
       toast.success("Shift created successfully");
     },
     onError: (error) => {
-      toast.error("Failed to create shift: " + error.message);
+      const friendly = getToastError(error, 'shifts');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -129,7 +131,8 @@ export const useUpdateShift = () => {
       toast.success("Shift updated successfully");
     },
     onError: (error) => {
-      toast.error("Failed to update shift: " + error.message);
+      const friendly = getToastError(error, 'shifts');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -151,7 +154,8 @@ export const useDeleteShift = () => {
       toast.success("Shift deleted successfully");
     },
     onError: (error) => {
-      toast.error("Failed to delete shift: " + error.message);
+      const friendly = getToastError(error, 'shifts');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -176,7 +180,8 @@ export const useBulkPublishShifts = () => {
       toast.success(`${variables.shiftIds.length} shift(s) ${action} successfully`);
     },
     onError: (error) => {
-      toast.error("Failed to publish shifts: " + error.message);
+      const friendly = getToastError(error, 'shifts');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

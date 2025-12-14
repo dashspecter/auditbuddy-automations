@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface AttendanceLog {
   id: string;
@@ -109,7 +110,8 @@ export const useCreateAttendanceLog = () => {
       toast.success("Attendance logged successfully");
     },
     onError: (error) => {
-      toast.error("Failed to log attendance: " + error.message);
+      const friendly = getToastError(error);
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -134,7 +136,8 @@ export const useCheckOut = () => {
       toast.success("Checked out successfully");
     },
     onError: (error) => {
-      toast.error("Failed to check out: " + error.message);
+      const friendly = getToastError(error);
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

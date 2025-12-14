@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface Employee {
   id: string;
@@ -141,7 +142,8 @@ export const useCreateEmployee = () => {
       toast.success("Employee added successfully");
     },
     onError: (error) => {
-      toast.error("Failed to add employee: " + error.message);
+      const friendly = getToastError(error, 'employees');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -167,7 +169,8 @@ export const useUpdateEmployee = () => {
       toast.success("Employee updated successfully");
     },
     onError: (error) => {
-      toast.error("Failed to update employee: " + error.message);
+      const friendly = getToastError(error, 'employees');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -190,7 +193,8 @@ export const useDeleteEmployee = () => {
       toast.success("Employee deleted successfully");
     },
     onError: (error) => {
-      toast.error("Failed to delete employee: " + error.message);
+      const friendly = getToastError(error, 'employees');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

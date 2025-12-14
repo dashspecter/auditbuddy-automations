@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getToastError } from '@/lib/errorMessages';
 
 export interface Location {
   id: string;
@@ -67,7 +68,8 @@ export const useCreateLocation = () => {
       toast.success('Location created successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to create location: ${error.message}`);
+      const friendly = getToastError(error, 'locations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -92,7 +94,8 @@ export const useUpdateLocation = () => {
       toast.success('Location updated successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update location: ${error.message}`);
+      const friendly = getToastError(error, 'locations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -114,7 +117,8 @@ export const useDeleteLocation = () => {
       toast.success('Location deleted successfully');
     },
     onError: (error: Error) => {
-      toast.error(`Failed to delete location: ${error.message}`);
+      const friendly = getToastError(error, 'locations');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };

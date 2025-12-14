@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getToastError } from "@/lib/errorMessages";
 
 export interface Equipment {
   id: string;
@@ -170,7 +171,8 @@ export const useCreateEquipment = () => {
       toast.success("Equipment added successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Failed to add equipment: ${error.message}`);
+      const friendly = getToastError(error, 'equipment');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
@@ -196,7 +198,8 @@ export const useUpdateEquipment = () => {
       toast.success("Equipment updated successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Failed to update equipment: ${error.message}`);
+      const friendly = getToastError(error, 'equipment');
+      toast.error(friendly.title, { description: friendly.description });
     },
   });
 };
