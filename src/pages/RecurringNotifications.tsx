@@ -163,15 +163,15 @@ export default function RecurringNotifications() {
   return (
     <RoleGuard requiredPermission="manage_notifications" fallbackMessage="You don't have permission to manage recurring notifications.">
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Link to="/notifications">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground">Recurring Notifications</h1>
-            <p className="text-muted-foreground">Manage automated notification schedules</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Recurring Notifications</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage automated notification schedules</p>
           </div>
         </div>
 

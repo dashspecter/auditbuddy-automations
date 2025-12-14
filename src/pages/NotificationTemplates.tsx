@@ -133,24 +133,24 @@ export default function NotificationTemplates() {
   return (
     <RoleGuard requiredPermission="manage_notifications" fallbackMessage="You don't have permission to manage notification templates.">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-4">
                 <Link to="/notifications">
                   <Button variant="ghost" size="icon">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </Link>
                 <div>
-                  <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <FileText className="h-8 w-8" />
+                  <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                    <FileText className="h-6 sm:h-8 w-6 sm:w-8" />
                     Notification Templates
                   </h1>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground text-sm sm:text-base">
                     Create reusable templates for common announcements
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto" asChild>
                   <Link to="/notifications">
                     <Megaphone className="h-4 w-4" />

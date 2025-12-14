@@ -118,16 +118,16 @@ const Payroll = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Payroll Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Payroll Management</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Calculate pay from shifts with attendance tracking
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
@@ -140,7 +140,7 @@ const Payroll = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+          <Button className="gap-2 w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
             <Calendar className="h-4 w-4" />
             Create Pay Period
           </Button>
