@@ -9,23 +9,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
-  Building2, ChevronDown, MapPin, User, LogOut, 
+  Building2, ChevronDown, User, LogOut, 
   Plus, ClipboardCheck, ListTodo, Users as UsersIcon, Wrench
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
-import { useLocations } from "@/hooks/useLocations";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 
 export const AppTopBar = () => {
   const { user, signOut } = useAuth();
   const { data: company } = useCompany();
-  const { data: locations } = useLocations();
   const navigate = useNavigate();
-  const [selectedLocation, setSelectedLocation] = useState<string>("all");
 
   const getInitials = (email: string) => {
     return email?.substring(0, 2).toUpperCase() || "U";
@@ -54,36 +50,7 @@ export const AppTopBar = () => {
             <DropdownMenuItem>
               <Badge variant="secondary">{company?.subscription_tier}</Badge>
             </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Location Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {selectedLocation === "all" ? "All Locations" : 
-                  locations?.find(l => l.id === selectedLocation)?.name || "Location"}
-              </span>
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 bg-background">
-            <DropdownMenuLabel>Filter by Location</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setSelectedLocation("all")}>
-              All Locations
-            </DropdownMenuItem>
-            {locations?.map((location) => (
-              <DropdownMenuItem 
-                key={location.id} 
-                onClick={() => setSelectedLocation(location.id)}
-              >
-                {location.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
+        </DropdownMenuContent>
         </DropdownMenu>
 
         {/* Quick Actions */}
