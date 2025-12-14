@@ -724,24 +724,24 @@ export const EnhancedShiftWeekView = () => {
               
               return (
                 <div key={employee.id} className="grid grid-cols-8 border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                  <div className="p-3 border-r flex items-center gap-3 bg-background">
-                    <Avatar className="h-8 w-8">
+                  <div className="p-3 border-r flex items-center gap-3 bg-background overflow-visible">
+                    <Avatar className="h-8 w-8 shrink-0">
                       <AvatarImage src={employee.avatar_url || undefined} />
                       <AvatarFallback className="text-xs">
                         {employee.full_name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm truncate flex items-center gap-1">
-                        {employee.full_name}
+                    <div className="min-w-0 flex-1 overflow-visible">
+                      <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
+                        <span className="truncate max-w-[120px]" title={employee.full_name}>{employee.full_name}</span>
                         {shiftIndicator?.type === 'extra' && (
-                          <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded" title={`+${shiftIndicator.count} extra shifts this week`}>
+                          <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded shrink-0" title={`+${shiftIndicator.count} extra shifts this week`}>
                             <TrendingUp className="h-3 w-3" />
                             +{shiftIndicator.count}
                           </span>
                         )}
                         {shiftIndicator?.type === 'missing' && (
-                          <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded" title={`-${shiftIndicator.count} shifts below expected this week`}>
+                          <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded shrink-0" title={`-${shiftIndicator.count} shifts below expected this week`}>
                             <TrendingDown className="h-3 w-3" />
                             -{shiftIndicator.count}
                           </span>
