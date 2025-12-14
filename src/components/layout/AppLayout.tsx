@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopBar } from "@/components/layout/AppTopBar";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { AIGuideChat } from "@/components/AIGuideChat";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -31,8 +30,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         {/* Mobile Bottom Navigation */}
         {isMobile && <MobileBottomNav />}
       </div>
-      
-      <AIGuideChat />
     </div>
   );
 };
