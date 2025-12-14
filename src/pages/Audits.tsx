@@ -185,9 +185,9 @@ const Audits = () => {
                       <MapPin className="h-4 w-4" />
                       Location Audit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/staff-audit/new')} className="gap-2 cursor-pointer">
+                    <DropdownMenuItem onSelect={() => navigate('/staff-audits')} className="gap-2 cursor-pointer">
                       <Users className="h-4 w-4" />
-                      Employee Audit
+                      Employee Audits
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
