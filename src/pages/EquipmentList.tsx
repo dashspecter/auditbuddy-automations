@@ -32,19 +32,19 @@ export default function EquipmentList() {
   return (
     <ModuleGate module="equipment_management">
       <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4">
             <div>
               <h1 className="text-3xl font-bold">Equipment Management</h1>
               <p className="text-muted-foreground">Track and maintain your equipment</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {equipmentCount > 0 && (
-                <Button variant="outline" onClick={() => navigate("/equipment/bulk-qr")}>
+                <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/equipment/bulk-qr")}>
                   <QrCode className="mr-2 h-4 w-4" />
                   Print QR Labels
                 </Button>
               )}
-              <Button onClick={() => navigate("/equipment/new")}>
+              <Button className="w-full sm:w-auto" onClick={() => navigate("/equipment/new")}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Equipment
               </Button>
