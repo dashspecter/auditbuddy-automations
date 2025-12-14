@@ -50,6 +50,14 @@ export interface Employee {
   locations?: {
     name: string;
   };
+  staff_locations?: Array<{
+    id: string;
+    location_id: string;
+    is_primary: boolean;
+    locations?: {
+      name: string;
+    };
+  }>;
 }
 
 export const useEmployees = (locationId?: string) => {
@@ -90,7 +98,7 @@ export const useEmployeesPaginated = (options?: UseEmployeesPaginatedOptions) =>
       
       let query = supabase
         .from("employees")
-        .select("*, locations(name)", { count: 'exact' })
+        .select("*, locations(name), staff_locations(id, location_id, is_primary, locations(name))", { count: 'exact' })
         .order("full_name")
         .range(from, to);
       
