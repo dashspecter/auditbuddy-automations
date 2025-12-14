@@ -92,7 +92,7 @@ export default function StaffAuditDetail() {
   if (error || !audit) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+        <Button variant="ghost" onClick={() => navigate('/staff-audits')} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
@@ -110,7 +110,7 @@ export default function StaffAuditDetail() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+          <Button variant="ghost" onClick={() => navigate('/staff-audits')} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>

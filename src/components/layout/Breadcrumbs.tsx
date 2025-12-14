@@ -43,17 +43,25 @@ export const Breadcrumbs = () => {
     return null; // Don't show breadcrumbs on home page
   }
 
-  const breadcrumbItems = pathSegments.map((segment, index) => {
-    const path = `/${pathSegments.slice(0, index + 1).join("/")}`;
-    const isLast = index === pathSegments.length - 1;
-    const name = routeNameMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+  const breadcrumbItems = pathSegments
+    .filter((segment, index) => {
+      // Hide UUID segments (staff-audits/:id pattern)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+      return !isUUID;
+    })
+    .map((segment, index, filteredSegments) => {
+      // Build path from original segments up to this filtered segment
+      const originalIndex = pathSegments.indexOf(segment);
+      const path = `/${pathSegments.slice(0, originalIndex + 1).join("/")}`;
+      const isLast = index === filteredSegments.length - 1;
+      const name = routeNameMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
 
-    return {
-      name,
-      path,
-      isLast,
-    };
-  });
+      return {
+        name,
+        path,
+        isLast,
+      };
+    });
 
   return (
     <Breadcrumb>
