@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ const auditsSubItems = [
 
 const Audits = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { data: audits, isLoading, refetch } = useLocationAudits();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -140,20 +142,29 @@ const Audits = () => {
                 <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2 w-full sm:w-auto" data-tour="templates-menu">
+                {isMobile ? (
+                  <Link to="/admin/template-library" className="w-full">
+                    <Button variant="outline" className="gap-2 w-full" data-tour="templates-menu">
                       <Library className="h-4 w-4" />
                       Templates
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => navigate('/admin/template-library')} className="gap-2 cursor-pointer">
-                      <Library className="h-4 w-4" />
-                      Template Library
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </Link>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2 w-full sm:w-auto" data-tour="templates-menu">
+                        <Library className="h-4 w-4" />
+                        Templates
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => navigate('/admin/template-library')} className="gap-2 cursor-pointer">
+                        <Library className="h-4 w-4" />
+                        Template Library
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Link to="/audits/vouchers" className="w-full sm:w-auto">
                   <Button variant="outline" className="gap-2 w-full">
                     <Gift className="h-4 w-4" />
