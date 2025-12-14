@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Clock, DollarSign, UserPlus, CalendarPlus, Briefcase, ChevronRight, AlertTriangle, BarChart, CalendarClock } from "lucide-react";
+import { Users, Calendar, Clock, DollarSign, UserPlus, Briefcase, AlertTriangle, BarChart, CalendarClock } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGate } from "@/components/ModuleGate";
 import { useEmployees } from "@/hooks/useEmployees";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
 import { useState, useEffect } from "react";
-import { WorkforceGuides } from "@/components/workforce/WorkforceGuides";
 import { Card, CardContent } from "@/components/ui/card";
 
 const workforceSubItems = [
@@ -93,8 +92,6 @@ const Workforce = () => {
             );
           })}
         </div>
-
-        <WorkforceGuides />
       </div>
       <RoleManagementDialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen} />
     </ModuleGate>
