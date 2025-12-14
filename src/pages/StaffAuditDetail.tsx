@@ -44,18 +44,26 @@ export default function StaffAuditDetail() {
       // Fetch field names for custom_data UUIDs
       let fieldNames: Record<string, string> = {};
       if (data.custom_data && typeof data.custom_data === 'object') {
-        const fieldIds = Object.keys(data.custom_data).filter(key => 
+        const customDataObj = data.custom_data as Record<string, any>;
+        const fieldIds = Object.keys(customDataObj).filter(key => 
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)
         );
         
         if (fieldIds.length > 0) {
+          // Normalize to lowercase for the query
+          const normalizedIds = fieldIds.map(id => id.toLowerCase());
           const { data: fields } = await supabase
             .from("audit_fields")
             .select("id, name")
-            .in("id", fieldIds);
+            .in("id", normalizedIds);
           
-          if (fields) {
-            fieldNames = Object.fromEntries(fields.map(f => [f.id, f.name]));
+          if (fields && fields.length > 0) {
+            // Map both original case and lowercase for lookup
+            fields.forEach(f => {
+              fieldNames[f.id] = f.name;
+              fieldNames[f.id.toLowerCase()] = f.name;
+              fieldNames[f.id.toUpperCase()] = f.name;
+            });
           }
         }
       }
@@ -244,8 +252,9 @@ export default function StaffAuditDetail() {
               {Object.entries(audit.custom_data).map(([key, value]: [string, any]) => {
                 // Use field name from lookup, or format the key if it's not a UUID
                 const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
+                const fieldNamesMap = (audit as any).fieldNames || {};
                 const displayName = isUUID 
-                  ? ((audit as any).fieldNames?.[key] || 'Unknown Field')
+                  ? (fieldNamesMap[key] || fieldNamesMap[key.toLowerCase()] || fieldNamesMap[key.toUpperCase()] || 'Unknown Field')
                   : key.replace(/_/g, ' ');
                 
                 return (
