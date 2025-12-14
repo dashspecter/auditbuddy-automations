@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
 export const StaffTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +22,7 @@ export const StaffTable = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const pageSize = 20;
+  const isMobile = useIsMobile();
   
   const { data: employeesData, isLoading } = useEmployeesPaginated({ 
     locationId: locationFilter || undefined,
@@ -63,12 +66,114 @@ export const StaffTable = () => {
   const totalPages = employeesData?.pageCount || 1;
   const totalCount = employeesData?.count || 0;
 
+  const renderMobileCard = (member: Employee) => {
+    const roleData = roleMap.get(member.role);
+    const additionalLocationsCount = member.staff_locations?.length || 0;
+    const hasMultipleLocations = additionalLocationsCount > 0;
+    const totalLocationsCount = additionalLocationsCount + 1;
+
+    return (
+      <MobileCard key={member.id}>
+        <MobileCardHeader
+          title={member.full_name}
+          badge={
+            roleData ? (
+              <Badge 
+                variant="outline" 
+                style={{ 
+                  backgroundColor: `${roleData.color}20`,
+                  borderColor: roleData.color,
+                  color: roleData.color
+                }}
+                className="text-xs"
+              >
+                {member.role}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs">{member.role}</Badge>
+            )
+          }
+          actions={
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-9 w-9 p-0"
+                onClick={() => {
+                  setSelectedEmployee(member);
+                  setEditDialogOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Link to={`/workforce/staff/${member.id}`}>
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          }
+        />
+        <div className="space-y-1 border-t pt-3">
+          <MobileCardRow
+            label="Status"
+            value={
+              <Badge variant={member.status === "active" ? "default" : "secondary"} className="text-xs">
+                {member.status}
+              </Badge>
+            }
+          />
+          <MobileCardRow
+            label="Location"
+            value={
+              hasMultipleLocations ? (
+                <Badge variant="secondary" className="text-xs">
+                  All ({totalLocationsCount})
+                </Badge>
+              ) : (
+                <span className="flex items-center gap-1 text-xs">
+                  <MapPin className="h-3 w-3" />
+                  {member.locations?.name || '-'}
+                </span>
+              )
+            }
+          />
+          {member.contract_type && (
+            <MobileCardRow label="Contract" value={member.contract_type} />
+          )}
+          {member.email && (
+            <MobileCardRow
+              label="Email"
+              value={
+                <span className="flex items-center gap-1 text-xs truncate max-w-[150px]">
+                  <Mail className="h-3 w-3 flex-shrink-0" />
+                  {member.email}
+                </span>
+              }
+            />
+          )}
+          {member.phone && (
+            <MobileCardRow
+              label="Phone"
+              value={
+                <span className="flex items-center gap-1 text-xs">
+                  <Phone className="h-3 w-3" />
+                  {member.phone}
+                </span>
+              }
+            />
+          )}
+        </div>
+      </MobileCard>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         {/* Filter Controls Row */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, role, or email..."
@@ -78,10 +183,10 @@ export const StaffTable = () => {
             />
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="All Locations" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations</SelectItem>
@@ -94,8 +199,8 @@ export const StaffTable = () => {
             </Select>
 
             <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="All Roles" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
@@ -108,7 +213,7 @@ export const StaffTable = () => {
             </Select>
 
             <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-              <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -147,98 +252,102 @@ export const StaffTable = () => {
         <div className="text-center py-8 text-muted-foreground">Loading staff...</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
         <>
-          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden sm:table-cell">Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Contract</TableHead>
-                  <TableHead className="hidden lg:table-cell">Contact</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStaff.map((member) => {
-                  const roleData = roleMap.get(member.role);
-                  
-                  // Check if employee has additional locations beyond primary
-                  const additionalLocationsCount = member.staff_locations?.length || 0;
-                  const hasMultipleLocations = additionalLocationsCount > 0;
-                  const totalLocationsCount = additionalLocationsCount + 1; // +1 for primary
-                  
-                  return (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.full_name}</TableCell>
-                    <TableCell>
-                      {roleData ? (
-                        <Badge 
-                          variant="outline" 
-                          style={{ 
-                            backgroundColor: `${roleData.color}20`,
-                            borderColor: roleData.color,
-                            color: roleData.color
-                          }}
-                        >
-                          {member.role}
-                        </Badge>
-                      ) : (
-                        <span>{member.role}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {hasMultipleLocations ? (
-                        <Badge variant="secondary" className="text-xs">
-                          All Locations ({totalLocationsCount})
-                        </Badge>
-                      ) : (
-                        member.locations?.name || '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                        {member.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
-                    <TableCell className="text-sm hidden lg:table-cell">
-                      {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
-                      {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedEmployee(member);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Edit</span>
-                        </Button>
-                        <Link to={`/workforce/staff/${member.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">View</span>
-                          </Button>
-                        </Link>
-                      </div>
-                    </TableCell>
+          {isMobile ? (
+            <div className="space-y-3">
+              {filteredStaff.map(renderMobileCard)}
+            </div>
+          ) : (
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="hidden sm:table-cell">Location</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Contract</TableHead>
+                    <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredStaff.map((member) => {
+                    const roleData = roleMap.get(member.role);
+                    const additionalLocationsCount = member.staff_locations?.length || 0;
+                    const hasMultipleLocations = additionalLocationsCount > 0;
+                    const totalLocationsCount = additionalLocationsCount + 1;
+                    
+                    return (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">{member.full_name}</TableCell>
+                      <TableCell>
+                        {roleData ? (
+                          <Badge 
+                            variant="outline" 
+                            style={{ 
+                              backgroundColor: `${roleData.color}20`,
+                              borderColor: roleData.color,
+                              color: roleData.color
+                            }}
+                          >
+                            {member.role}
+                          </Badge>
+                        ) : (
+                          <span>{member.role}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {hasMultipleLocations ? (
+                          <Badge variant="secondary" className="text-xs">
+                            All Locations ({totalLocationsCount})
+                          </Badge>
+                        ) : (
+                          member.locations?.name || '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={member.status === "active" ? "default" : "secondary"}>
+                          {member.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
+                      <TableCell className="text-sm hidden lg:table-cell">
+                        {member.email && <div className="truncate max-w-[150px]">{member.email}</div>}
+                        {member.phone && <div className="text-muted-foreground truncate max-w-[150px]">{member.phone}</div>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedEmployee(member);
+                              setEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Link to={`/workforce/staff/${member.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4 sm:mr-2" />
+                              <span className="hidden sm:inline">View</span>
+                            </Button>
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
           
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} staff members
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -246,21 +355,23 @@ export const StaffTable = () => {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="h-10 sm:h-9"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Previous</span>
                 </Button>
-                <div className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
+                <div className="text-sm text-muted-foreground px-2">
+                  {currentPage} / {totalPages}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="h-10 sm:h-9"
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline mr-1">Next</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
