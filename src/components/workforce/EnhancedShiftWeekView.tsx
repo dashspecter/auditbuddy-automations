@@ -718,9 +718,9 @@ export const EnhancedShiftWeekView = () => {
                       <div className="text-xs text-muted-foreground">{employee.role}</div>
                       {selectedLocation === "all" && (
                         <div className="text-[10px] text-muted-foreground truncate">
-                          📍 {employee.staff_locations && employee.staff_locations.length > 1 
-                            ? `All Locations (${employee.staff_locations.length})` 
-                            : employee.locations?.name}
+                          📍 {employee.staff_locations && employee.staff_locations.length > 0 
+                            ? `All Locations (${employee.staff_locations.length + 1})` 
+                            : employee.locations?.name || 'No location'}
                         </div>
                       )}
                     </div>
