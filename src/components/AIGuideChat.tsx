@@ -41,7 +41,11 @@ const SUGGESTED_QUESTIONS_BY_ROLE: Record<string, string[]> = {
   ],
 };
 
-export const AIGuideChat = () => {
+interface AIGuideChatProps {
+  trigger?: React.ReactNode;
+}
+
+export const AIGuideChat = ({ trigger }: AIGuideChatProps) => {
   const isMobile = useIsMobile();
   const { data: roleData } = useUserRole();
   const { data: allModules } = useAllModules();
@@ -261,19 +265,20 @@ export const AIGuideChat = () => {
     </div>
   );
 
-  const triggerButton = (
-    <Button
-      size="lg"
-      className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-xl z-[100] bg-primary hover:bg-primary/90 print:hidden"
-    >
-      <MessageCircleQuestion className="h-5 w-5" />
+  // Default trigger if none provided
+  const defaultTrigger = (
+    <Button variant="ghost" size="sm" className="gap-2">
+      <MessageCircleQuestion className="h-4 w-4" />
+      <span>AI Guide</span>
     </Button>
   );
+
+  const triggerElement = trigger || defaultTrigger;
 
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>{triggerButton}</SheetTrigger>
+        <SheetTrigger asChild>{triggerElement}</SheetTrigger>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2">
@@ -289,7 +294,7 @@ export const AIGuideChat = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+      <DialogTrigger asChild>{triggerElement}</DialogTrigger>
       <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
