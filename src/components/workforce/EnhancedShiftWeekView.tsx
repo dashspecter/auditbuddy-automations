@@ -16,8 +16,11 @@ import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isWithinIn
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
 import { AddTimeOffDialog } from "./AddTimeOffDialog";
+import { SchedulePresenceIndicator } from "./SchedulePresenceIndicator";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
+import { useSchedulePresence } from "@/hooks/useSchedulePresence";
+import { useRealtimeShifts } from "@/hooks/useRealtimeShifts";
 import {
   Select,
   SelectContent,
@@ -49,6 +52,15 @@ export const EnhancedShiftWeekView = () => {
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  
+  // Create a unique key for this week for presence tracking
+  const weekKey = format(currentWeekStart, 'yyyy-MM-dd');
+  
+  // Enable realtime updates for shifts
+  useRealtimeShifts();
+  
+  // Track who else is viewing this schedule
+  const { activeUsers } = useSchedulePresence(weekKey, selectedLocation === "all" ? undefined : selectedLocation);
   
   const { data: locations = [] } = useLocations();
   const { data: shifts = [], isLoading } = useShifts(
@@ -351,7 +363,7 @@ export const EnhancedShiftWeekView = () => {
     <div className="space-y-4">
       {/* Header with week navigation */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -361,6 +373,9 @@ export const EnhancedShiftWeekView = () => {
           <Button variant="outline" size="icon" onClick={goToNextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          
+          {/* Presence indicator - show who else is viewing */}
+          <SchedulePresenceIndicator activeUsers={activeUsers} locations={locations} />
           <Button variant="outline" onClick={goToToday}>
             Today
           </Button>
