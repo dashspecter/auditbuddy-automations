@@ -165,12 +165,14 @@ const Audits = () => {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <Link to="/audits/vouchers" className="w-full sm:w-auto">
-                  <Button variant="outline" className="gap-2 w-full">
-                    <Gift className="h-4 w-4" />
-                    Vouchers
-                  </Button>
-                </Link>
+                {!isMobile && (
+                  <Link to="/audits/vouchers" className="w-full sm:w-auto">
+                    <Button variant="outline" className="gap-2 w-full">
+                      <Gift className="h-4 w-4" />
+                      Vouchers
+                    </Button>
+                  </Link>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="default" className="gap-2 w-full sm:w-auto" data-tour="new-audit-button">
