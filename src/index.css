@@ -208,4 +208,31 @@ Brand color: Orange (hue 25) - No blue colors used.
   [data-radix-popper-content-wrapper] {
     z-index: 100 !important;
   }
+  
+  /* Safe area padding for iOS devices with notch/home indicator */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  /* Mobile touch targets - ensure minimum 44px height */
+  @media (max-width: 768px) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Prevent horizontal scroll on mobile */
+    body {
+      overflow-x: hidden;
+    }
+    
+    /* Full-width cards on mobile */
+    .card-responsive {
+      @apply w-full;
+    }
+  }
 }
