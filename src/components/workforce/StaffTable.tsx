@@ -163,6 +163,14 @@ export const StaffTable = () => {
               <TableBody>
                 {filteredStaff.map((member) => {
                   const roleData = roleMap.get(member.role);
+                  
+                  // Get all locations from staff_locations, fallback to primary location
+                  const allLocations = member.staff_locations && member.staff_locations.length > 0
+                    ? member.staff_locations.map(sl => sl.locations?.name).filter(Boolean)
+                    : [member.locations?.name].filter(Boolean);
+                  
+                  const hasMultipleLocations = allLocations.length > 1;
+                  
                   return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">{member.full_name}</TableCell>
@@ -182,7 +190,15 @@ export const StaffTable = () => {
                         <span>{member.role}</span>
                       )}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{member.locations?.name}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {hasMultipleLocations ? (
+                        <Badge variant="secondary" className="text-xs">
+                          All Locations ({allLocations.length})
+                        </Badge>
+                      ) : (
+                        allLocations[0] || member.locations?.name || '-'
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={member.status === "active" ? "default" : "secondary"}>
                         {member.status}
