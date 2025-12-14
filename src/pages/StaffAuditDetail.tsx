@@ -25,22 +25,42 @@ export default function StaffAuditDetail() {
           locations(name, address)
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
+      if (!data) return null;
       
       // Get auditor profile separately
+      let auditorProfile = null;
       if (data?.auditor_id) {
-        const { data: auditorProfile } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, email")
           .eq("id", data.auditor_id)
-          .single();
-        
-        return { ...data, auditor_profile: auditorProfile };
+          .maybeSingle();
+        auditorProfile = profile;
       }
       
-      return data;
+      // Fetch field names for custom_data UUIDs
+      let fieldNames: Record<string, string> = {};
+      if (data.custom_data && typeof data.custom_data === 'object') {
+        const fieldIds = Object.keys(data.custom_data).filter(key => 
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)
+        );
+        
+        if (fieldIds.length > 0) {
+          const { data: fields } = await supabase
+            .from("audit_fields")
+            .select("id, name")
+            .in("id", fieldIds);
+          
+          if (fields) {
+            fieldNames = Object.fromEntries(fields.map(f => [f.id, f.name]));
+          }
+        }
+      }
+      
+      return { ...data, auditor_profile: auditorProfile, fieldNames };
     },
     enabled: !!id,
   });
@@ -221,18 +241,26 @@ export default function StaffAuditDetail() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(audit.custom_data).map(([key, value]: [string, any]) => (
-                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}</span>
-                  {typeof value === 'number' ? (
-                    <Badge variant={value >= 80 ? "default" : value >= 60 ? "secondary" : "destructive"}>
-                      {value}%
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">{String(value)}</span>
-                  )}
-                </div>
-              ))}
+              {Object.entries(audit.custom_data).map(([key, value]: [string, any]) => {
+                // Use field name from lookup, or format the key if it's not a UUID
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key);
+                const displayName = isUUID 
+                  ? ((audit as any).fieldNames?.[key] || 'Unknown Field')
+                  : key.replace(/_/g, ' ');
+                
+                return (
+                  <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="font-medium capitalize">{displayName}</span>
+                    {typeof value === 'number' ? (
+                      <Badge variant={value >= 4 ? "default" : value >= 3 ? "secondary" : "destructive"}>
+                        {value}/5
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">{String(value)}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
