@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag } from "lucide-react";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -421,29 +422,31 @@ const TaskNew = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-between gap-3 pt-4">
+        <StickyActionBar className="justify-between sm:justify-end flex-wrap">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate("/tasks/calendar")}
+            className="hidden sm:flex"
           >
             <Calendar className="h-4 w-4 mr-2" />
             View Calendar
           </Button>
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate("/tasks")}
+              className="flex-1 sm:flex-none"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createTask.isPending}>
+            <Button type="submit" disabled={createTask.isPending} className="flex-1 sm:flex-none">
               <Save className="h-4 w-4 mr-2" />
               {createTask.isPending ? "Creating..." : "Create Task"}
             </Button>
           </div>
-        </div>
+        </StickyActionBar>
       </form>
     </div>
   );
