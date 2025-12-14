@@ -221,7 +221,8 @@ export default function StaffAudits() {
                     {audits.map((audit) => (
                       <div
                         key={audit.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                        onClick={() => navigate(`/staff-audits/${audit.id}`)}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
