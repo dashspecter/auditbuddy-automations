@@ -188,10 +188,26 @@ export default function EmployeeManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
+                {employees.map((employee) => {
+                  // Get all locations from staff_locations, fallback to primary location
+                  const allLocations = employee.staff_locations && employee.staff_locations.length > 0
+                    ? employee.staff_locations.map(sl => sl.locations?.name).filter(Boolean)
+                    : [employee.locations?.name].filter(Boolean);
+                  
+                  const hasMultipleLocations = allLocations.length > 1;
+                  
+                  return (
                   <TableRow key={employee.id}>
                     <TableCell className="font-medium">{employee.full_name}</TableCell>
-                    <TableCell>{employee.locations?.name}</TableCell>
+                    <TableCell>
+                      {hasMultipleLocations ? (
+                        <Badge variant="secondary" className="text-xs">
+                          All Locations ({allLocations.length})
+                        </Badge>
+                      ) : (
+                        allLocations[0] || employee.locations?.name || '-'
+                      )}
+                    </TableCell>
                     <TableCell>{employee.role}</TableCell>
                     <TableCell>
                       <Badge
@@ -260,7 +276,8 @@ export default function EmployeeManagement() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
