@@ -22,8 +22,7 @@ export default function StaffAuditDetail() {
         .select(`
           *,
           employees(full_name, role, avatar_url, email, phone),
-          locations(name, address),
-          auditor:auditor_id(id)
+          locations(name, address)
         `)
         .eq("id", id)
         .single();
