@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2, MapPin, Users, UserSearch, Gift } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Search, Plus, ChevronRight, Library, FileEdit, Trash2, MapPin, Users, UserSearch, Gift, Calendar, CalendarClock, Image } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useLocationAudits } from "@/hooks/useAudits";
@@ -19,6 +19,16 @@ import ModuleTourWrapper from "@/components/onboarding/ModuleTourWrapper";
 import { MODULE_TOURS } from "@/config/moduleTours";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+
+const auditsSubItems = [
+  { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
+  { title: "Employee Audits", url: "/staff-audits", icon: Users, description: "Staff audits" },
+  { title: "Mystery Shopper", url: "/audits/mystery-shopper", icon: UserSearch, description: "Mystery visits" },
+  { title: "Templates", url: "/audits/templates", icon: Library, description: "Audit templates" },
+  { title: "Calendar", url: "/audits-calendar", icon: Calendar, description: "Audit calendar" },
+  { title: "Schedules", url: "/recurring-schedules", icon: CalendarClock, description: "Recurring audits" },
+  { title: "Photo Gallery", url: "/photos", icon: Image, description: "All photos" },
+];
 
 const Audits = () => {
   const navigate = useNavigate();
@@ -126,7 +136,7 @@ const Audits = () => {
         <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">All Audits</h1>
+                <h1 className="text-3xl font-bold text-foreground">Audits</h1>
                 <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -173,6 +183,25 @@ const Audits = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+            </div>
+
+            {/* Mobile-first quick navigation to subitems */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {auditsSubItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.url} to={item.url}>
+                    <Card className={`hover:border-primary/50 hover:shadow-md transition-all cursor-pointer h-full ${item.isCurrent ? 'border-primary bg-primary/5' : ''}`}>
+                      <CardContent className="p-3 flex flex-col items-center text-center gap-2">
+                        <div className={`p-2 rounded-lg ${item.isCurrent ? 'bg-primary/20' : 'bg-primary/10'}`}>
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="font-medium text-xs">{item.title}</div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
 
           <Card className="p-6">
