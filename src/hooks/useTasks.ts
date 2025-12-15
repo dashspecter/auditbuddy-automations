@@ -295,6 +295,7 @@ interface CreateTaskData {
   recurrence_type?: string;
   recurrence_interval?: number;
   recurrence_end_date?: string;
+  is_individual?: boolean;
 }
 
 export const useCreateTask = () => {

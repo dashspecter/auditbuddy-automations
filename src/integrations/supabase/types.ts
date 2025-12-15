@@ -5073,6 +5073,7 @@ export type Database = {
           due_at: string | null
           duration_minutes: number | null
           id: string
+          is_individual: boolean
           is_recurring_instance: boolean | null
           location_id: string | null
           parent_task_id: string | null
@@ -5100,6 +5101,7 @@ export type Database = {
           due_at?: string | null
           duration_minutes?: number | null
           id?: string
+          is_individual?: boolean
           is_recurring_instance?: boolean | null
           location_id?: string | null
           parent_task_id?: string | null
@@ -5127,6 +5129,7 @@ export type Database = {
           due_at?: string | null
           duration_minutes?: number | null
           id?: string
+          is_individual?: boolean
           is_recurring_instance?: boolean | null
           location_id?: string | null
           parent_task_id?: string | null
