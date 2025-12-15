@@ -119,25 +119,56 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
         }
       })();
 
-      // First try to find by custom_slug (friendly URL)
-      let { data, error } = await supabase
-        .from("attendance_kiosks")
-        .select(`*, locations:location_id(name, address), custom_slug`)
-        .eq("custom_slug", normalizedToken)
-        .eq("is_active", true)
-        .maybeSingle();
+      // Some users may type an apostrophe as a dash (e.g. "bab-s") instead of removing it ("babs").
+      // Try a small set of safe fallbacks.
+      const slugCandidates = Array.from(
+        new Set([
+          normalizedToken,
+          normalizedToken.replace(/-s-/g, "s-"),
+        ])
+      ).filter(Boolean);
 
-      // If not found by slug (case issues), try case-insensitive match
-      if (!data && !error) {
+      let data: any = null;
+      let error: any = null;
+
+      // First try to find by custom_slug (friendly URL) - exact match
+      for (const candidate of slugCandidates) {
         const result = await supabase
           .from("attendance_kiosks")
           .select(`*, locations:location_id(name, address), custom_slug`)
-          .ilike("custom_slug", normalizedToken)
+          .eq("custom_slug", candidate)
           .eq("is_active", true)
           .maybeSingle();
 
-        data = result.data;
-        error = result.error;
+        if (result.error) {
+          error = result.error;
+          break;
+        }
+        if (result.data) {
+          data = result.data;
+          break;
+        }
+      }
+
+      // If not found by slug (case issues), try case-insensitive match
+      if (!data && !error) {
+        for (const candidate of slugCandidates) {
+          const result = await supabase
+            .from("attendance_kiosks")
+            .select(`*, locations:location_id(name, address), custom_slug`)
+            .ilike("custom_slug", candidate)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (result.error) {
+            error = result.error;
+            break;
+          }
+          if (result.data) {
+            data = result.data;
+            break;
+          }
+        }
       }
 
       // If not found by slug, try by device_token (UUID)
