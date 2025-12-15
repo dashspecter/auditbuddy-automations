@@ -107,32 +107,41 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
 
 export const useMyTasks = () => {
   const { user } = useAuth();
-  // Try to get company from context, but we'll also fallback to employee's company
-  let company: { id: string } | null = null;
-  try {
-    const context = useCompanyContext();
-    company = context.company;
-  } catch {
-    // Staff app may not have CompanyProvider, we'll get company from employee
-  }
 
   return useQuery({
     queryKey: ["my-tasks", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // First get the employee record for the current user
-      const { data: employee } = await supabase
+      // Get the employee record for the current user - this gives us company_id
+      const { data: employee, error: empError } = await supabase
         .from("employees")
         .select("id, role, location_id, company_id")
         .eq("user_id", user.id)
         .single();
 
-      if (!employee) return [];
+      if (empError) {
+        console.error("[useMyTasks] Error fetching employee:", empError);
+        return [];
+      }
+
+      if (!employee) {
+        console.log("[useMyTasks] No employee record found for user:", user.id);
+        return [];
+      }
       
-      // Get company ID from either context or employee record
-      const companyId = company?.id || employee.company_id;
-      if (!companyId) return [];
+      const companyId = employee.company_id;
+      if (!companyId) {
+        console.log("[useMyTasks] No company_id for employee");
+        return [];
+      }
+      
+      console.log("[useMyTasks] Loading tasks for employee:", { 
+        employeeId: employee.id, 
+        role: employee.role, 
+        locationId: employee.location_id,
+        companyId 
+      });
 
       // Get today's date for shift checking
       const today = new Date().toISOString().split('T')[0];
@@ -150,6 +159,13 @@ export const useMyTasks = () => {
 
       const hasShiftToday = (todayShifts && todayShifts.length > 0);
       const shiftLocationIds = todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
+      
+      console.log("[useMyTasks] Shift check:", { 
+        today, 
+        hasShiftToday, 
+        shiftCount: todayShifts?.length || 0,
+        shiftLocationIds 
+      });
 
       // Fetch tasks directly assigned to this employee (including completed so they can revisit)
       const { data: directTasks, error: directError } = await supabase
@@ -184,12 +200,18 @@ export const useMyTasks = () => {
       let roleTasks: any[] = [];
       if (hasShiftToday && employee.role) {
         // Get the role ID that matches employee's role name
-        const { data: matchingRole } = await supabase
+        const { data: matchingRole, error: roleMatchError } = await supabase
           .from("employee_roles")
-          .select("id")
+          .select("id, name")
           .eq("company_id", companyId)
           .eq("name", employee.role)
           .single();
+
+        console.log("[useMyTasks] Role matching:", { 
+          employeeRole: employee.role, 
+          matchingRole, 
+          roleMatchError 
+        });
 
         if (matchingRole) {
           // Fetch tasks assigned to this role at locations where employee has shift today (exclude completed)
@@ -207,10 +229,22 @@ export const useMyTasks = () => {
             .neq("status", "completed") // Exclude completed - shared tasks disappear when done
             .order("due_at", { ascending: true, nullsFirst: false });
 
+          console.log("[useMyTasks] Role tasks query:", { 
+            roleTasksData, 
+            roleError,
+            query: {
+              companyId,
+              roleId: matchingRole.id,
+              locationIds: shiftLocationIds
+            }
+          });
+
           if (!roleError && roleTasksData) {
             roleTasks = roleTasksData;
           }
         }
+      } else {
+        console.log("[useMyTasks] Skipping role tasks:", { hasShiftToday, role: employee.role });
       }
 
       // Combine and deduplicate tasks
@@ -218,6 +252,13 @@ export const useMyTasks = () => {
       const uniqueTasks = allTasks.filter((task, index, self) => 
         index === self.findIndex(t => t.id === task.id)
       );
+      
+      console.log("[useMyTasks] Final task counts:", { 
+        directTasks: directTasks?.length || 0, 
+        completedByMe: completedByMeTasks?.length || 0,
+        roleTasks: roleTasks.length,
+        uniqueTotal: uniqueTasks.length 
+      });
 
       // Add employee info
       const { data: emp } = await supabase
@@ -231,7 +272,7 @@ export const useMyTasks = () => {
         assigned_employee: task.assigned_to ? emp : null,
       })) as Task[];
     },
-    enabled: !!company?.id && !!user?.id,
+    enabled: !!user?.id,
   });
 };
 
