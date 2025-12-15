@@ -93,14 +93,21 @@ const StaffHome = () => {
         setAdditionalLocationsCount(additionalCount || 0);
         
         // Check company settings for hiding earnings
-        const { data: companyData } = await supabase
+        const { data: companyData, error: companyError } = await supabase
           .from("companies")
           .select("hide_earnings_from_staff")
           .eq("id", empData.company_id)
           .maybeSingle();
         
+        console.log("[StaffHome] Company settings check:", {
+          companyId: empData.company_id,
+          companyData,
+          companyError,
+          hide_earnings_from_staff: companyData?.hide_earnings_from_staff
+        });
+        
         if (companyData) {
-          setHideEarnings(companyData.hide_earnings_from_staff || false);
+          setHideEarnings(companyData.hide_earnings_from_staff === true);
         }
         
         // Check company role for manager features
