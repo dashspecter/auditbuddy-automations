@@ -252,9 +252,12 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     });
   });
 
+  // Filter employees to only those with shifts today
+  const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
+
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
-  const checkedInCount = employees.filter((e) => {
+  const checkedInCount = todaysTeam.filter((e) => {
     const status = attendanceMap.get(e.id);
     return status?.checkedIn && !status?.checkedOut;
   }).length;
@@ -304,12 +307,12 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Today's Team ({employees.length})
+                Today's Team ({todaysTeam.length})
               </h3>
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
-                {employees.map((employee) => {
+                {todaysTeam.map((employee) => {
                   const status = attendanceMap.get(employee.id);
                   const isIn = status?.checkedIn && !status?.checkedOut;
                   const isOut = status?.checkedOut;
@@ -358,9 +361,9 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                     </div>
                   );
                 })}
-                {employees.length === 0 && (
+                {todaysTeam.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    No staff assigned to this location
+                    No shifts scheduled for today
                   </div>
                 )}
               </div>
