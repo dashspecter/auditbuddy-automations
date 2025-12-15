@@ -110,30 +110,57 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
     queryKey: ["kiosk-by-token", tokenOrSlug],
     queryFn: async () => {
       if (!tokenOrSlug) return null;
-      
+
+      const normalizedToken = (() => {
+        try {
+          return decodeURIComponent(tokenOrSlug).trim();
+        } catch {
+          return tokenOrSlug.trim();
+        }
+      })();
+
       // First try to find by custom_slug (friendly URL)
       let { data, error } = await supabase
         .from("attendance_kiosks")
         .select(`*, locations:location_id(name, address), custom_slug`)
-        .eq("custom_slug", tokenOrSlug)
+        .eq("custom_slug", normalizedToken)
         .eq("is_active", true)
         .maybeSingle();
-      
+
+      // If not found by slug (case issues), try case-insensitive match
+      if (!data && !error) {
+        const result = await supabase
+          .from("attendance_kiosks")
+          .select(`*, locations:location_id(name, address), custom_slug`)
+          .ilike("custom_slug", normalizedToken)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        data = result.data;
+        error = result.error;
+      }
+
       // If not found by slug, try by device_token (UUID)
       if (!data && !error) {
         const result = await supabase
           .from("attendance_kiosks")
           .select(`*, locations:location_id(name, address), custom_slug`)
-          .eq("device_token", tokenOrSlug)
+          .eq("device_token", normalizedToken)
           .eq("is_active", true)
           .maybeSingle();
-        
+
         data = result.data;
         error = result.error;
       }
-      
+
       if (error) throw error;
-      return data as (AttendanceKiosk & { locations: { name: string; address: string | null }; custom_slug: string | null }) | null;
+      return data as (
+        | (AttendanceKiosk & {
+            locations: { name: string; address: string | null };
+            custom_slug: string | null;
+          })
+        | null
+      );
     },
     enabled: !!tokenOrSlug,
     // Keep refreshing to maintain connection
