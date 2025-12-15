@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -163,16 +163,26 @@ const StaffScanAttendance = () => {
   };
 
   const handleStartScan = () => {
+    if (!isMountedRef.current) return;
+    console.log("Starting scanner...");
     setShowScanner(true);
   };
 
-  const handleCloseScan = () => {
-    setShowScanner(false);
-  };
+  const handleCloseScan = useCallback(() => {
+    console.log("Closing scanner...");
+    if (isMountedRef.current) {
+      setShowScanner(false);
+    }
+  }, []);
 
-  const handleScanResult = async (qrData: string) => {
+  const handleScanResult = useCallback(async (qrData: string) => {
+    console.log("=== handleScanResult called ===", qrData);
+    
     // Close scanner first - check if still mounted
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current) {
+      console.log("Component not mounted, ignoring scan result");
+      return;
+    }
     
     setShowScanner(false);
     
@@ -209,7 +219,8 @@ const StaffScanAttendance = () => {
         setProcessing(false);
       }
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, navigate]);
 
   const processQRCode = async (rawData: string) => {
     console.log("=== processQRCode START ===");
