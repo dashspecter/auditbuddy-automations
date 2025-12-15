@@ -18,6 +18,7 @@ import { OfferedShiftsCard } from "@/components/staff/OfferedShiftsCard";
 import { useMyTasks } from "@/hooks/useTasks";
 import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
 import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeaderboard";
+import { ActiveTasksCard } from "@/components/staff/ActiveTasksCard";
 import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
@@ -275,6 +276,9 @@ const StaffHome = () => {
           </>
         )}
         
+        {/* Active Tasks - Prominent display for non-managers */}
+        {!isManager && <ActiveTasksCard />}
+
         {/* Today's Shift Card - Only for non-managers */}
         {!isManager && todayShift ? (
           <Card className="p-4 shadow-lg border-primary/20">
