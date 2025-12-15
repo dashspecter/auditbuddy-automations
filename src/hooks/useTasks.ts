@@ -157,15 +157,24 @@ export const useMyTasks = () => {
         .eq("approval_status", "approved")
         .eq("shifts.shift_date", today);
 
-      const hasShiftToday = (todayShifts && todayShifts.length > 0);
-      const shiftLocationIds = todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
-      
-      console.log("[useMyTasks] Shift check:", { 
-        today, 
-        hasShiftToday, 
-        shiftCount: todayShifts?.length || 0,
-        shiftLocationIds 
-      });
+      const hasShiftToday = !!(todayShifts && todayShifts.length > 0);
+      const shiftLocationIds =
+        todayShifts?.map((s: any) => s.shifts?.location_id).filter(Boolean) || [];
+
+      // Always include employee's primary location as a fallback
+      const activeLocationIds = Array.from(
+        new Set([...(shiftLocationIds || []), employee.location_id].filter(Boolean))
+      );
+
+      if (import.meta.env.DEV) {
+        console.log("[useMyTasks] Shift check:", {
+          today,
+          hasShiftToday,
+          shiftCount: todayShifts?.length || 0,
+          shiftLocationIds,
+          activeLocationIds,
+        });
+      }
 
       // Fetch tasks directly assigned to this employee (including completed so they can revisit)
       const { data: directTasks, error: directError } = await supabase
@@ -199,52 +208,125 @@ export const useMyTasks = () => {
       // Fetch tasks assigned to employee's role (only if has shift today)
       let roleTasks: any[] = [];
       if (hasShiftToday && employee.role) {
-        // Get the role ID that matches employee's role name
-        const { data: matchingRole, error: roleMatchError } = await supabase
+        // Fetch roles for the company and match in JS (avoids .single() 406 + handles case/whitespace)
+        const { data: rolesForCompany, error: rolesError } = await supabase
           .from("employee_roles")
           .select("id, name")
-          .eq("company_id", companyId)
-          .eq("name", employee.role)
-          .single();
+          .eq("company_id", companyId);
 
-        console.log("[useMyTasks] Role matching:", { 
-          employeeRole: employee.role, 
-          matchingRole, 
-          roleMatchError 
-        });
+        if (rolesError) {
+          if (import.meta.env.DEV) console.error("[useMyTasks] employee_roles error:", rolesError);
+        }
+
+        const normalizedEmployeeRole = String(employee.role).trim().toLowerCase();
+        const matchingRole = (rolesForCompany || []).find(
+          (r) => String(r.name).trim().toLowerCase() === normalizedEmployeeRole
+        );
+
+        if (import.meta.env.DEV) {
+          console.log("[useMyTasks] Role matching:", {
+            employeeRole: employee.role,
+            normalizedEmployeeRole,
+            matchingRole,
+            rolesCount: rolesForCompany?.length || 0,
+          });
+        }
 
         if (matchingRole) {
-          // Fetch tasks assigned to this role at locations where employee has shift today (exclude completed)
-          const { data: roleTasksData, error: roleError } = await supabase
+          // Multi-location support: tasks can be attached via task_locations
+          const { data: taskLocationRows, error: taskLocError } = await supabase
+            .from("task_locations")
+            .select("task_id")
+            .in("location_id", activeLocationIds);
+
+          if (taskLocError && import.meta.env.DEV) {
+            console.error("[useMyTasks] task_locations error:", taskLocError);
+          }
+
+          const locationTaskIds = Array.from(
+            new Set((taskLocationRows || []).map((r) => r.task_id).filter(Boolean))
+          );
+
+          const baseRoleTaskSelect = `
+            *,
+            location:locations(id, name),
+            assigned_role:employee_roles(id, name)
+          `;
+
+          // 1) Tasks where primary location matches
+          const { data: roleTasksPrimary, error: rolePrimaryError } = await supabase
             .from("tasks")
-            .select(`
-              *,
-              location:locations(id, name),
-              assigned_role:employee_roles(id, name)
-            `)
+            .select(baseRoleTaskSelect)
             .eq("company_id", companyId)
             .eq("assigned_role_id", matchingRole.id)
-            .in("location_id", shiftLocationIds)
-            .is("assigned_to", null) // Only role-assigned, not individually assigned
-            .neq("status", "completed") // Exclude completed - shared tasks disappear when done
+            .in("location_id", activeLocationIds)
+            .is("assigned_to", null)
+            .neq("status", "completed")
             .order("due_at", { ascending: true, nullsFirst: false });
 
-          console.log("[useMyTasks] Role tasks query:", { 
-            roleTasksData, 
-            roleError,
-            query: {
-              companyId,
-              roleId: matchingRole.id,
-              locationIds: shiftLocationIds
-            }
-          });
+          if (rolePrimaryError && import.meta.env.DEV) {
+            console.error("[useMyTasks] Role tasks (primary) error:", rolePrimaryError);
+          }
 
-          if (!roleError && roleTasksData) {
-            roleTasks = roleTasksData;
+          // 2) Tasks where location is attached via task_locations
+          let roleTasksViaLocations: any[] = [];
+          if (locationTaskIds.length > 0) {
+            const { data: roleTasksLocData, error: roleLocError } = await supabase
+              .from("tasks")
+              .select(baseRoleTaskSelect)
+              .eq("company_id", companyId)
+              .eq("assigned_role_id", matchingRole.id)
+              .in("id", locationTaskIds)
+              .is("assigned_to", null)
+              .neq("status", "completed")
+              .order("due_at", { ascending: true, nullsFirst: false });
+
+            if (roleLocError && import.meta.env.DEV) {
+              console.error("[useMyTasks] Role tasks (task_locations) error:", roleLocError);
+            }
+
+            roleTasksViaLocations = roleTasksLocData || [];
+          }
+
+          // 3) Optional: global role tasks (no location)
+          const { data: roleTasksGlobal, error: roleGlobalError } = await supabase
+            .from("tasks")
+            .select(baseRoleTaskSelect)
+            .eq("company_id", companyId)
+            .eq("assigned_role_id", matchingRole.id)
+            .is("location_id", null)
+            .is("assigned_to", null)
+            .neq("status", "completed")
+            .order("due_at", { ascending: true, nullsFirst: false });
+
+          if (roleGlobalError && import.meta.env.DEV) {
+            console.error("[useMyTasks] Role tasks (global) error:", roleGlobalError);
+          }
+
+          const mergedRoleTasks = [
+            ...(roleTasksPrimary || []),
+            ...roleTasksViaLocations,
+            ...(roleTasksGlobal || []),
+          ];
+
+          roleTasks = mergedRoleTasks.filter(
+            (task, index, self) => index === self.findIndex((t) => t.id === task.id)
+          );
+
+          if (import.meta.env.DEV) {
+            console.log("[useMyTasks] Role task counts:", {
+              primary: roleTasksPrimary?.length || 0,
+              viaTaskLocations: roleTasksViaLocations.length,
+              global: roleTasksGlobal?.length || 0,
+              merged: roleTasks.length,
+            });
           }
         }
-      } else {
-        console.log("[useMyTasks] Skipping role tasks:", { hasShiftToday, role: employee.role });
+      } else if (import.meta.env.DEV) {
+        console.log("[useMyTasks] Skipping role tasks:", {
+          hasShiftToday,
+          role: employee.role,
+        });
       }
 
       // Combine and deduplicate tasks
