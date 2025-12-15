@@ -53,15 +53,31 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
             
             console.log("QR scanned:", decodedText);
             
-            // Stop scanner first
+            // Store the callback to call outside the scanner context
+            const callback = onScanRef.current;
+            const scannedData = decodedText;
+            
+            // Stop scanner first, then call callback in a safe way
             scanner.stop().then(() => {
               console.log("Scanner stopped after scan");
-              // Then call callback
-              onScanRef.current(decodedText);
+              // Use setTimeout to ensure we're outside the scanner callback context
+              setTimeout(() => {
+                try {
+                  callback(scannedData);
+                } catch (err) {
+                  console.error("Error in scan callback:", err);
+                }
+              }, 50);
             }).catch((err) => {
               console.error("Error stopping scanner:", err);
               // Still call callback even if stop fails
-              onScanRef.current(decodedText);
+              setTimeout(() => {
+                try {
+                  callback(scannedData);
+                } catch (err) {
+                  console.error("Error in scan callback:", err);
+                }
+              }, 50);
             });
           },
           () => {
