@@ -4963,6 +4963,42 @@ export type Database = {
           },
         ]
       }
+      task_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "employee_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_roles_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_templates: {
         Row: {
           assigned_role: string | null
