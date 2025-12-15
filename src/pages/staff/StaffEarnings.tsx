@@ -5,11 +5,13 @@ import { Card } from "@/components/ui/card";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { Wallet, TrendingUp, Clock, Calendar, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const StaffEarnings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState<any>(null);
   const [earnings, setEarnings] = useState({
     thisWeek: 0,
@@ -33,6 +35,19 @@ const StaffEarnings = () => {
         .single();
 
       if (empData) {
+        // Check if earnings are hidden for this company
+        const { data: companyData } = await supabase
+          .from("companies")
+          .select("hide_earnings_from_staff")
+          .eq("id", empData.company_id)
+          .maybeSingle();
+        
+        if (companyData?.hide_earnings_from_staff) {
+          toast.error("Earnings information is not available");
+          navigate("/staff");
+          return;
+        }
+        
         setEmployee(empData);
         await calculateEarnings(empData);
       }
