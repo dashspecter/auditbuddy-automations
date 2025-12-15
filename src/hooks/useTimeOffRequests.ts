@@ -124,3 +124,25 @@ export const useUpdateTimeOffRequest = () => {
     },
   });
 };
+
+export const useDeleteTimeOffRequest = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("time_off_requests")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["time-off-requests"] });
+      toast.success("Time off removed successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to remove time off: " + error.message);
+    },
+  });
+};

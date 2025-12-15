@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2 } from "lucide-react";
 import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
-import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
+import { useTimeOffRequests, useDeleteTimeOffRequest } from "@/hooks/useTimeOffRequests";
 import { useLaborCosts } from "@/hooks/useLaborCosts";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useDepartments } from "@/hooks/useDepartments";
@@ -33,6 +33,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -49,6 +59,9 @@ export const EnhancedShiftWeekView = () => {
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [view, setView] = useState<"day" | "week">("week");
   const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
+  const [timeOffToDelete, setTimeOffToDelete] = useState<{ id: string; employeeName: string } | null>(null);
+  
+  const deleteTimeOff = useDeleteTimeOffRequest();
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -765,8 +778,13 @@ export const EnhancedShiftWeekView = () => {
                   return (
                     <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 min-h-[80px] ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
                       {timeOff ? (
-                        <div className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center">
-                          TIME OFF
+                        <div 
+                          className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors group relative"
+                          onClick={() => setTimeOffToDelete({ id: timeOff.id, employeeName: employee.full_name })}
+                          title="Click to remove time off"
+                        >
+                          <span>TIME OFF</span>
+                          <Trash2 className="h-3 w-3 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       ) : (
                         employeeShifts.map((shift) => {
@@ -1063,6 +1081,32 @@ export const EnhancedShiftWeekView = () => {
         defaultEmployeeId={selectedTimeOffEmployee}
         defaultDate={selectedTimeOffDate}
       />
+
+      {/* Delete Time Off Confirmation Dialog */}
+      <AlertDialog open={!!timeOffToDelete} onOpenChange={(open) => !open && setTimeOffToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Time Off</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the time off for {timeOffToDelete?.employeeName}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (timeOffToDelete) {
+                  deleteTimeOff.mutate(timeOffToDelete.id);
+                  setTimeOffToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
