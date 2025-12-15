@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ManagerApprovalsSection } from "@/components/staff/ManagerApprovalsSection";
 import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats";
@@ -36,8 +36,17 @@ const StaffHome = () => {
   const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
   const [hideEarnings, setHideEarnings] = useState(false);
   
-  // Get performance data
-  const { data: performanceScores } = useEmployeePerformance();
+  // Date range for performance - this month
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    return {
+      start: format(startOfMonth(now), 'yyyy-MM-dd'),
+      end: format(endOfMonth(now), 'yyyy-MM-dd')
+    };
+  }, []);
+  
+  // Get performance data for this month
+  const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
   const myPerformanceScore = employee && performanceScores 
     ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
     : null;
@@ -133,6 +142,7 @@ const StaffHome = () => {
   const loadShifts = async (employeeId: string) => {
     const today = new Date().toISOString().split('T')[0];
     
+    // First get assignments for this employee
     const { data: assignmentsData, error } = await supabase
       .from("shift_assignments")
       .select(`
@@ -153,22 +163,29 @@ const StaffHome = () => {
         )
       `)
       .eq("staff_id", employeeId)
-      .in("approval_status", ["approved", "pending"])
-      .gte("shifts.shift_date", today)
-      .order("shift_date", { foreignTable: "shifts", ascending: true })
-      .limit(10);
+      .in("approval_status", ["approved", "pending"]);
 
     if (error) {
       console.error("Error loading shifts:", error);
       return;
     }
 
-    if (assignmentsData && assignmentsData.length > 0) {
-      const todayShiftData = assignmentsData.find((s: any) => s.shifts?.shift_date === today);
-      const upcomingShiftsData = assignmentsData.filter((s: any) => s.shifts?.shift_date > today);
+    // Filter client-side for today and upcoming shifts
+    const validAssignments = (assignmentsData || []).filter(
+      (a: any) => a.shifts && a.shifts.shift_date >= today
+    );
+    
+    // Sort by shift date
+    validAssignments.sort((a: any, b: any) => 
+      a.shifts.shift_date.localeCompare(b.shifts.shift_date)
+    );
+
+    if (validAssignments.length > 0) {
+      const todayShiftData = validAssignments.find((s: any) => s.shifts?.shift_date === today);
+      const upcomingShiftsData = validAssignments.filter((s: any) => s.shifts?.shift_date > today);
       
-      setTodayShift(todayShiftData);
-      setUpcomingShifts(upcomingShiftsData);
+      setTodayShift(todayShiftData || null);
+      setUpcomingShifts(upcomingShiftsData.slice(0, 10));
       
       // Calculate earnings for this week
       await calculateWeeklyEarnings(employeeId);
