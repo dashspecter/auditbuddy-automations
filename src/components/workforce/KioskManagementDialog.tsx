@@ -69,19 +69,21 @@ export const KioskManagementDialog = ({
     setDeviceName("Attendance Kiosk");
   };
 
-  const getKioskUrl = (token: string) => {
-    return `${window.location.origin}/kiosk/${token}`;
+  const getKioskUrl = (kiosk: any) => {
+    // Prefer custom_slug over device_token for cleaner URLs
+    const identifier = kiosk.custom_slug || kiosk.device_token;
+    return `${window.location.origin}/kiosk/${identifier}`;
   };
 
-  const copyUrl = (token: string) => {
-    navigator.clipboard.writeText(getKioskUrl(token));
-    setCopiedId(token);
+  const copyUrl = (kiosk: any) => {
+    navigator.clipboard.writeText(getKioskUrl(kiosk));
+    setCopiedId(kiosk.id);
     toast.success("URL copied to clipboard");
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const openKiosk = (token: string) => {
-    window.open(getKioskUrl(token), "_blank");
+  const openKiosk = (kiosk: any) => {
+    window.open(getKioskUrl(kiosk), "_blank");
   };
 
   return (
@@ -162,10 +164,15 @@ export const KioskManagementDialog = ({
                             {kiosk.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                           <MapPin className="h-3 w-3" />
                           {kiosk.locations?.name}
                         </div>
+                        {(kiosk as any).custom_slug && (
+                          <div className="text-xs font-mono text-primary/70 mb-2">
+                            /kiosk/{(kiosk as any).custom_slug}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground">
                           Registered: {format(new Date(kiosk.registered_at), "MMM d, yyyy")}
                           {kiosk.last_active_at && (
@@ -177,9 +184,9 @@ export const KioskManagementDialog = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => copyUrl(kiosk.device_token)}
+                          onClick={() => copyUrl(kiosk)}
                         >
-                          {copiedId === kiosk.device_token ? (
+                          {copiedId === kiosk.id ? (
                             <Check className="h-4 w-4" />
                           ) : (
                             <Copy className="h-4 w-4" />
@@ -188,7 +195,7 @@ export const KioskManagementDialog = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openKiosk(kiosk.device_token)}
+                          onClick={() => openKiosk(kiosk)}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>

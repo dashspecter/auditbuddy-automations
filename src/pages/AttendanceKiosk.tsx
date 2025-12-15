@@ -1,18 +1,58 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { MapPin, Clock, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { MapPin, RefreshCw, Wifi, WifiOff, Monitor } from "lucide-react";
 import { format } from "date-fns";
 import { useKioskByToken, generateQRToken } from "@/hooks/useAttendanceKiosks";
 import { supabase } from "@/integrations/supabase/client";
 
 const AttendanceKiosk = () => {
   const { token } = useParams<{ token: string }>();
-  const { data: kiosk, isLoading, error } = useKioskByToken(token);
+  const { data: kiosk, isLoading, error, refetch } = useKioskByToken(token);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [qrData, setQrData] = useState("");
   const [countdown, setCountdown] = useState(30);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  // Request wake lock to prevent screen sleep (kiosk mode)
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          setWakeLockActive(true);
+          console.log('Wake lock acquired');
+          
+          wakeLockRef.current.addEventListener('release', () => {
+            setWakeLockActive(false);
+            console.log('Wake lock released');
+          });
+        }
+      } catch (err) {
+        console.log('Wake lock not available:', err);
+      }
+    };
+
+    requestWakeLock();
+
+    // Re-acquire wake lock when page becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !wakeLockRef.current) {
+        requestWakeLock();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, []);
 
   // Update current time every second
   useEffect(() => {
@@ -27,9 +67,9 @@ const AttendanceKiosk = () => {
     if (!kiosk) return;
     
     const timestamp = Date.now();
-    const token = generateQRToken(kiosk.location_id, timestamp);
+    const qrToken = generateQRToken(kiosk.location_id, timestamp);
     const qrPayload = JSON.stringify({
-      t: token,
+      t: qrToken,
       l: kiosk.location_id,
       v: 2, // Version for dynamic QR
     });
@@ -55,26 +95,35 @@ const AttendanceKiosk = () => {
     return () => clearInterval(countdownTimer);
   }, []);
 
-  // Update last_active_at periodically
+  // Update last_active_at periodically (keep-alive)
   useEffect(() => {
     if (!kiosk) return;
     
     const updateActivity = async () => {
-      await supabase
-        .from("attendance_kiosks")
-        .update({ last_active_at: new Date().toISOString() })
-        .eq("id", kiosk.id);
+      try {
+        await supabase
+          .from("attendance_kiosks")
+          .update({ last_active_at: new Date().toISOString() })
+          .eq("id", kiosk.id);
+      } catch (err) {
+        console.log('Activity update failed:', err);
+      }
     };
     
     updateActivity();
-    const activityTimer = setInterval(updateActivity, 60000); // Every minute
+    // Update every 30 seconds to keep connection alive
+    const activityTimer = setInterval(updateActivity, 30000);
     
     return () => clearInterval(activityTimer);
   }, [kiosk]);
 
-  // Online/offline detection
+  // Online/offline detection with auto-reconnect
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Refetch kiosk data when coming back online
+      refetch();
+    };
     const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
@@ -84,6 +133,19 @@ const AttendanceKiosk = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, [refetch]);
+
+  // Prevent page from timing out - periodic ping
+  useEffect(() => {
+    // Click handler to keep page active on touch devices
+    const keepAlive = () => {
+      console.log('Keep-alive ping');
+    };
+    
+    // Ping every 2 minutes
+    const keepAliveTimer = setInterval(keepAlive, 2 * 60 * 1000);
+    
+    return () => clearInterval(keepAliveTimer);
   }, []);
 
   if (isLoading) {
@@ -173,17 +235,25 @@ const AttendanceKiosk = () => {
 
       {/* Footer status */}
       <div className="p-4 border-t bg-card flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          {isOnline ? (
-            <>
-              <Wifi className="h-4 w-4 text-green-500" />
-              <span className="text-green-600">Connected</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">Offline</span>
-            </>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <>
+                <Wifi className="h-4 w-4 text-green-500" />
+                <span className="text-green-600">Connected</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4 text-destructive" />
+                <span className="text-destructive">Offline</span>
+              </>
+            )}
+          </div>
+          {wakeLockActive && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Monitor className="h-3 w-3" />
+              <span className="text-xs">Kiosk Mode</span>
+            </div>
           )}
         </div>
         <div className="text-muted-foreground">

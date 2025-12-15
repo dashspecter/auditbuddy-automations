@@ -105,23 +105,40 @@ export const useDeleteKiosk = () => {
   });
 };
 
-export const useKioskByToken = (token: string | undefined) => {
+export const useKioskByToken = (tokenOrSlug: string | undefined) => {
   return useQuery({
-    queryKey: ["kiosk-by-token", token],
+    queryKey: ["kiosk-by-token", tokenOrSlug],
     queryFn: async () => {
-      if (!token) return null;
+      if (!tokenOrSlug) return null;
       
-      const { data, error } = await supabase
+      // First try to find by custom_slug (friendly URL)
+      let { data, error } = await supabase
         .from("attendance_kiosks")
-        .select(`*, locations:location_id(name, address)`)
-        .eq("device_token", token)
+        .select(`*, locations:location_id(name, address), custom_slug`)
+        .eq("custom_slug", tokenOrSlug)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
+      
+      // If not found by slug, try by device_token (UUID)
+      if (!data && !error) {
+        const result = await supabase
+          .from("attendance_kiosks")
+          .select(`*, locations:location_id(name, address), custom_slug`)
+          .eq("device_token", tokenOrSlug)
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        data = result.data;
+        error = result.error;
+      }
       
       if (error) throw error;
-      return data as AttendanceKiosk & { locations: { name: string; address: string | null } };
+      return data as (AttendanceKiosk & { locations: { name: string; address: string | null }; custom_slug: string | null }) | null;
     },
-    enabled: !!token,
+    enabled: !!tokenOrSlug,
+    // Keep refreshing to maintain connection
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    staleTime: 4 * 60 * 1000, // Data is fresh for 4 minutes
   });
 };
 

@@ -463,6 +463,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          custom_slug: string | null
           device_name: string
           device_token: string
           id: string
@@ -476,6 +477,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          custom_slug?: string | null
           device_name?: string
           device_token: string
           id?: string
@@ -489,6 +491,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          custom_slug?: string | null
           device_name?: string
           device_token?: string
           id?: string
@@ -6011,6 +6014,10 @@ export type Database = {
       employee_has_time_off: {
         Args: { _check_date: string; _employee_id: string }
         Returns: boolean
+      }
+      generate_kiosk_slug: {
+        Args: { location_id: string; location_name: string }
+        Returns: string
       }
       generate_short_code: { Args: never; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
