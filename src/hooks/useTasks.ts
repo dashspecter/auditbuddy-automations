@@ -107,21 +107,32 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
 
 export const useMyTasks = () => {
   const { user } = useAuth();
-  const { company } = useCompanyContext();
+  // Try to get company from context, but we'll also fallback to employee's company
+  let company: { id: string } | null = null;
+  try {
+    const context = useCompanyContext();
+    company = context.company;
+  } catch {
+    // Staff app may not have CompanyProvider, we'll get company from employee
+  }
 
   return useQuery({
-    queryKey: ["my-tasks", company?.id, user?.id],
+    queryKey: ["my-tasks", user?.id],
     queryFn: async () => {
-      if (!company?.id || !user?.id) return [];
+      if (!user?.id) return [];
 
       // First get the employee record for the current user
       const { data: employee } = await supabase
         .from("employees")
-        .select("id, role, location_id")
+        .select("id, role, location_id, company_id")
         .eq("user_id", user.id)
         .single();
 
       if (!employee) return [];
+      
+      // Get company ID from either context or employee record
+      const companyId = company?.id || employee.company_id;
+      if (!companyId) return [];
 
       // Get today's date for shift checking
       const today = new Date().toISOString().split('T')[0];
@@ -148,7 +159,7 @@ export const useMyTasks = () => {
           location:locations(id, name),
           assigned_role:employee_roles(id, name)
         `)
-        .eq("company_id", company.id)
+        .eq("company_id", companyId)
         .eq("assigned_to", employee.id)
         .order("due_at", { ascending: true, nullsFirst: false });
 
@@ -162,7 +173,7 @@ export const useMyTasks = () => {
           location:locations(id, name),
           assigned_role:employee_roles(id, name)
         `)
-        .eq("company_id", company.id)
+        .eq("company_id", companyId)
         .eq("completed_by", employee.id)
         .eq("status", "completed")
         .order("completed_at", { ascending: false });
@@ -176,7 +187,7 @@ export const useMyTasks = () => {
         const { data: matchingRole } = await supabase
           .from("employee_roles")
           .select("id")
-          .eq("company_id", company.id)
+          .eq("company_id", companyId)
           .eq("name", employee.role)
           .single();
 
@@ -189,7 +200,7 @@ export const useMyTasks = () => {
               location:locations(id, name),
               assigned_role:employee_roles(id, name)
             `)
-            .eq("company_id", company.id)
+            .eq("company_id", companyId)
             .eq("assigned_role_id", matchingRole.id)
             .in("location_id", shiftLocationIds)
             .is("assigned_to", null) // Only role-assigned, not individually assigned
