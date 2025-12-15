@@ -166,14 +166,31 @@ const StaffScanAttendance = () => {
     setShowScanner(false);
     
     // Small delay to let scanner cleanup complete
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Then process with error boundary
+    // Then process with comprehensive error handling
     try {
+      // Validate we have a user before proceeding
+      if (!user) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/staff/login");
+        return;
+      }
+      
+      // Ensure we have employee data
+      if (!employeeRef.current) {
+        // Try to reload employee data
+        await loadEmployee();
+        if (!employeeRef.current) {
+          toast.error("Could not find your employee profile. Please contact your manager.");
+          return;
+        }
+      }
+      
       await processQRCode(qrData);
     } catch (error: any) {
       console.error("Scan result processing error:", error);
-      toast.error("Failed to process scan. Please try again.");
+      toast.error(error?.message || "Failed to process scan. Please try again.");
       setProcessing(false);
     }
   };
@@ -228,10 +245,22 @@ const StaffScanAttendance = () => {
       const locationId = parsed.l;
       console.log("Location ID from QR:", locationId);
       
+      // Validate location ID exists
+      if (!locationId) {
+        toast.error("Invalid QR code - missing location information");
+        return;
+      }
+      
       // Use ref to get current employee
       const currentEmployee = employeeRef.current;
       if (!currentEmployee) {
         toast.error("Employee profile not found. Please go back and try again.");
+        return;
+      }
+      
+      // Validate employee has an ID
+      if (!currentEmployee.id) {
+        toast.error("Invalid employee data. Please log out and log in again.");
         return;
       }
 
@@ -241,11 +270,15 @@ const StaffScanAttendance = () => {
       console.log("Is checkout:", isCheckOut, "Status:", currentStatus);
       
       // Get location name
-      const { data: locationData } = await supabase
+      const { data: locationData, error: locationError } = await supabase
         .from("locations")
         .select("name")
         .eq("id", locationId)
         .maybeSingle();
+      
+      if (locationError) {
+        console.error("Error fetching location:", locationError);
+      }
 
       if (isCheckOut) {
         // Check out - first find the open attendance log
