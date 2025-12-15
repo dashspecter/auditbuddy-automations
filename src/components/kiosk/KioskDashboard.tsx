@@ -135,13 +135,13 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       const taskIds = taskLocations.map((tl) => tl.task_id);
 
-      // Then get the tasks
-      const { data, error } = await supabase
-        .from("tasks")
+      // Then get the tasks for today (using start_at timestamp)
+      const { data, error } = await (supabase
+        .from("tasks") as any)
         .select("id, title, status, assigned_to, priority")
         .in("id", taskIds)
-        .gte("due_date", format(today, "yyyy-MM-dd"))
-        .lte("due_date", format(today, "yyyy-MM-dd"));
+        .gte("start_at", todayStart)
+        .lte("start_at", todayEnd);
 
       if (error) throw error;
       return data as Task[];
