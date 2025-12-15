@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { useKioskByToken, generateQRToken } from "@/hooks/useAttendanceKiosks";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { KioskDashboard } from "@/components/kiosk/KioskDashboard";
 
 const AttendanceKiosk = () => {
   const { token } = useParams<{ token: string }>();
@@ -222,66 +223,78 @@ const AttendanceKiosk = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
       {/* Header */}
-      <div className="p-6 text-center border-b bg-card">
-        <div className="flex items-center justify-center gap-2 text-primary mb-2">
+      <div className="p-4 text-center border-b bg-card flex items-center justify-between">
+        <div className="flex items-center gap-2 text-primary">
           <MapPin className="h-5 w-5" />
           <span className="font-semibold text-lg">{kiosk.locations?.name}</span>
         </div>
-        <div className="text-4xl font-bold tracking-tight">
-          {format(currentTime, "HH:mm:ss")}
-        </div>
-        <div className="text-muted-foreground">
-          {format(currentTime, "EEEE, MMMM d, yyyy")}
+        <div className="text-right">
+          <div className="text-3xl font-bold tracking-tight">
+            {format(currentTime, "HH:mm:ss")}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {format(currentTime, "EEEE, MMMM d, yyyy")}
+          </div>
         </div>
       </div>
 
-      {/* Main QR Display */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="bg-card rounded-3xl shadow-2xl p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold text-center mb-6">
-            Scan to Check In/Out
-          </h2>
-          
-          <div className="bg-white p-6 rounded-2xl flex items-center justify-center mb-6">
-            {qrData && (
-              <QRCodeSVG
-                value={qrData}
-                size={280}
-                level="H"
-                includeMargin
-                className="w-full h-auto max-w-[280px]"
+      {/* Main Content - Split View */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Side - QR Code */}
+        <div className="w-[400px] flex-shrink-0 flex flex-col items-center justify-center p-6 border-r bg-card/50">
+          <div className="bg-card rounded-3xl shadow-2xl p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold text-center mb-4">
+              Scan to Check In/Out
+            </h2>
+            
+            <div className="bg-white p-4 rounded-2xl flex items-center justify-center mb-4">
+              {qrData && (
+                <QRCodeSVG
+                  value={qrData}
+                  size={220}
+                  level="H"
+                  includeMargin
+                  className="w-full h-auto max-w-[220px]"
+                />
+              )}
+            </div>
+
+            {/* Countdown indicator */}
+            <div className="flex items-center justify-center gap-3 text-muted-foreground">
+              <RefreshCw className={`h-4 w-4 ${countdown <= 5 ? 'animate-spin text-primary' : ''}`} />
+              <span className="text-sm">
+                New code in <span className="font-mono font-bold text-foreground">{countdown}s</span>
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-1000 ease-linear"
+                style={{ width: `${(countdown / 30) * 100}%` }}
               />
-            )}
+            </div>
           </div>
 
-          {/* Countdown indicator */}
-          <div className="flex items-center justify-center gap-3 text-muted-foreground">
-            <RefreshCw className={`h-4 w-4 ${countdown <= 5 ? 'animate-spin text-primary' : ''}`} />
-            <span className="text-sm">
-              New code in <span className="font-mono font-bold text-foreground">{countdown}s</span>
-            </span>
-          </div>
-
-          {/* Progress bar */}
-          <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-1000 ease-linear"
-              style={{ width: `${(countdown / 30) * 100}%` }}
-            />
+          {/* Instructions */}
+          <div className="mt-4 text-center max-w-sm">
+            <p className="text-sm text-muted-foreground">
+              Scan with your staff app to record attendance
+            </p>
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="mt-8 text-center max-w-md">
-          <p className="text-muted-foreground">
-            Open your staff app and scan this QR code to record your attendance.
-            The code refreshes every 30 seconds for security.
-          </p>
+        {/* Right Side - Dashboard */}
+        <div className="flex-1 overflow-hidden">
+          <KioskDashboard 
+            locationId={kiosk.location_id} 
+            companyId={kiosk.company_id} 
+          />
         </div>
       </div>
 
       {/* Footer status */}
-      <div className="p-4 border-t bg-card flex items-center justify-between text-sm">
+      <div className="p-3 border-t bg-card flex items-center justify-between text-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             {isOnline ? (
