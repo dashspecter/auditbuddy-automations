@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -20,6 +20,7 @@ import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
 import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeaderboard";
 import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
+import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 
 const StaffHome = () => {
   const { user } = useAuth();
@@ -33,6 +34,13 @@ const StaffHome = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [companyRole, setCompanyRole] = useState<string | null>(null);
   const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
+  const [hideEarnings, setHideEarnings] = useState(false);
+  
+  // Get performance data
+  const { data: performanceScores } = useEmployeePerformance();
+  const myPerformanceScore = employee && performanceScores 
+    ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
+    : null;
 
   // Count active (non-completed) tasks
   const activeTaskCount = myTasks.filter(t => t.status !== 'completed').length;
@@ -83,6 +91,18 @@ const StaffHome = () => {
           .eq("staff_id", empData.id);
         
         setAdditionalLocationsCount(additionalCount || 0);
+        
+        // Check company settings for hiding earnings
+        const { data: companyData } = await supabase
+          .from("companies")
+          .select("hide_earnings_from_staff")
+          .eq("id", empData.company_id)
+          .maybeSingle();
+        
+        if (companyData) {
+          setHideEarnings(companyData.hide_earnings_from_staff || false);
+        }
+        
         // Check company role for manager features
         const { data: companyUserData } = await supabase
           .from("company_users")
@@ -290,16 +310,23 @@ const StaffHome = () => {
 
         {/* Quick Stats Grid - Only for non-managers */}
         {!isManager && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${hideEarnings ? 'grid-cols-2' : 'grid-cols-3'}`}>
             <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/schedule")}>
               <Calendar className="h-5 w-5 text-primary mb-2" />
               <div className="text-2xl font-bold">{upcomingShifts.length}</div>
               <div className="text-xs text-muted-foreground">Upcoming Shifts</div>
             </Card>
-            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
-              <Wallet className="h-5 w-5 text-primary mb-2" />
-              <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
-              <div className="text-xs text-muted-foreground">This Week</div>
+            {!hideEarnings && (
+              <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
+                <Wallet className="h-5 w-5 text-primary mb-2" />
+                <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
+                <div className="text-xs text-muted-foreground">This Week</div>
+              </Card>
+            )}
+            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors">
+              <Trophy className="h-5 w-5 text-primary mb-2" />
+              <div className="text-2xl font-bold">{myPerformanceScore !== null ? Math.round(myPerformanceScore) : '--'}</div>
+              <div className="text-xs text-muted-foreground">My Score</div>
             </Card>
           </div>
         )}
