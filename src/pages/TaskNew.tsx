@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck } from "lucide-react";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -33,6 +33,7 @@ const TaskNew = () => {
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
+  const [isIndividual, setIsIndividual] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -67,6 +68,7 @@ const TaskNew = () => {
         assigned_role_ids: assignmentType === 'role' && formData.assigned_role_ids.length > 0 ? formData.assigned_role_ids : undefined,
         location_ids: formData.location_ids.length > 0 ? formData.location_ids : undefined,
         source: "manual",
+        is_individual: assignmentType === 'role' ? isIndividual : false,
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : undefined,
         recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
@@ -325,6 +327,59 @@ const TaskNew = () => {
                         </Button>
                       ))}
                     </div>
+                  </div>
+                )}
+                
+                {/* Shared vs Individual toggle - only show when role is selected */}
+                {assignmentType === 'role' && formData.assigned_role_ids.length > 0 && (
+                  <div className="pt-3 border-t border-border mt-3">
+                    <Label className="text-sm font-medium mb-2 block">Completion Type</Label>
+                    <div className="flex gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant={!isIndividual ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setIsIndividual(false)}
+                              className="flex-1"
+                            >
+                              <Share2 className="h-4 w-4 mr-1" />
+                              Shared
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                            <p className="text-sm">Any employee can complete - done for everyone once completed</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant={isIndividual ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setIsIndividual(true)}
+                              className="flex-1"
+                            >
+                              <UserCheck className="h-4 w-4 mr-1" />
+                              Individual
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                            <p className="text-sm">Each employee must complete the task themselves</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {isIndividual 
+                        ? "Each employee with the selected role(s) will need to complete this task individually"
+                        : "The task is shared - any employee can complete it for everyone"
+                      }
+                    </p>
                   </div>
                 )}
               </div>
