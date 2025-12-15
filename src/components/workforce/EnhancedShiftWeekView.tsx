@@ -783,7 +783,7 @@ export const EnhancedShiftWeekView = () => {
                           onClick={() => setTimeOffToDelete({ id: timeOff.id, employeeName: employee.full_name })}
                           title="Click to remove time off"
                         >
-                          <span>TIME OFF</span>
+                          <span className="capitalize">{timeOff.request_type || 'Time Off'}</span>
                           <Trash2 className="h-3 w-3 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       ) : (
