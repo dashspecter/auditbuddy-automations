@@ -158,7 +158,35 @@ const AttendanceKiosk = () => {
   }
 
   if (error || !kiosk) {
-    const message = error instanceof Error ? error.message : "Unable to load kiosk";
+    const rawToken = token ?? "";
+    const normalizedToken = (() => {
+      try {
+        return decodeURIComponent(rawToken).trim();
+      } catch {
+        return rawToken.trim();
+      }
+    })();
+
+    const message = (() => {
+      if (!error) return `No active kiosk found for: ${normalizedToken || "(empty)"}`;
+      if (typeof error === "string") return error;
+      if (error instanceof Error) return error.message;
+
+      const e = error as any;
+      return (
+        e?.message ||
+        e?.error_description ||
+        e?.details ||
+        e?.hint ||
+        (() => {
+          try {
+            return JSON.stringify(e);
+          } catch {
+            return String(e);
+          }
+        })()
+      );
+    })();
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-6">
@@ -180,8 +208,10 @@ const AttendanceKiosk = () => {
 
           <details className="mt-4 text-left">
             <summary className="cursor-pointer text-sm text-muted-foreground">Details</summary>
-            <div className="mt-2 rounded-md bg-muted p-3 text-xs font-mono text-muted-foreground break-words">
-              {message}
+            <div className="mt-2 rounded-md bg-muted p-3 text-xs font-mono text-muted-foreground break-words space-y-1">
+              <div>token: {rawToken || "(empty)"}</div>
+              <div>normalized: {normalizedToken || "(empty)"}</div>
+              <div>error: {message}</div>
             </div>
           </details>
         </div>
