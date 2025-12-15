@@ -99,7 +99,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
         .from("shifts") as any)
         .select("id, start_time, end_time")
         .eq("location_id", locationId)
-        .eq("date", todayStr);
+        .eq("shift_date", todayStr);
       if (shiftsError) throw shiftsError;
       if (!shiftsList?.length) return [];
       
