@@ -27,6 +27,13 @@ interface Employee {
   role: string;
 }
 
+interface Shift {
+  id: string;
+  start_time: string;
+  end_time: string;
+  shift_assignments: { staff_id: string }[];
+}
+
 interface AttendanceLog {
   id: string;
   staff_id: string;
@@ -79,6 +86,38 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
       return data as AttendanceLog[];
     },
     refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  // Fetch today's shifts at this location
+  const { data: shifts = [] } = useQuery({
+    queryKey: ["kiosk-shifts", locationId, format(today, "yyyy-MM-dd")],
+    queryFn: async (): Promise<Shift[]> => {
+      const todayStr = format(today, "yyyy-MM-dd");
+      
+      // Get shifts for this location and date
+      const { data: shiftsList, error: shiftsError } = await (supabase
+        .from("shifts") as any)
+        .select("id, start_time, end_time")
+        .eq("location_id", locationId)
+        .eq("date", todayStr);
+      if (shiftsError) throw shiftsError;
+      if (!shiftsList?.length) return [];
+      
+      // Get assignments for those shifts
+      const shiftIds = shiftsList.map((s: any) => s.id);
+      const { data: assignments, error: assignError } = await (supabase
+        .from("shift_assignments") as any)
+        .select("shift_id, staff_id")
+        .in("shift_id", shiftIds);
+      if (assignError) throw assignError;
+      
+      // Combine
+      return shiftsList.map((shift: any) => ({
+        ...shift,
+        shift_assignments: (assignments || []).filter((a: any) => a.shift_id === shift.id)
+      }));
+    },
+    refetchInterval: 60000,
   });
 
   // Fetch today's tasks for this location
@@ -202,6 +241,17 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     });
   });
 
+  // Create shift map for employees
+  const employeeShiftMap = new Map<string, { start: string; end: string }>();
+  shifts.forEach((shift) => {
+    shift.shift_assignments?.forEach((assignment) => {
+      employeeShiftMap.set(assignment.staff_id, {
+        start: shift.start_time,
+        end: shift.end_time,
+      });
+    });
+  });
+
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
   const checkedInCount = employees.filter((e) => {
@@ -263,20 +313,31 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                   const status = attendanceMap.get(employee.id);
                   const isIn = status?.checkedIn && !status?.checkedOut;
                   const isOut = status?.checkedOut;
+                    const employeeShift = employeeShiftMap.get(employee.id);
 
-                  return (
-                    <div
-                      key={employee.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          {employee.full_name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">{employee.full_name}</div>
-                          <div className="text-xs text-muted-foreground">{employee.role}</div>
-                        </div>
+                    return (
+                      <div
+                        key={employee.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                            {employee.full_name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{employee.full_name}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span>{employee.role}</span>
+                              {employeeShift && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span className="text-primary/80">
+                                    {employeeShift.start.slice(0, 5)} - {employeeShift.end.slice(0, 5)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                       </div>
                       {isIn ? (
                         <Badge variant="default" className="bg-green-500 text-white">
