@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp } from "lucide-react";
+import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 
 const StaffProfile = () => {
   const { user } = useAuth();
@@ -15,6 +16,13 @@ const StaffProfile = () => {
   const [employee, setEmployee] = useState<any>(null);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [hideEarnings, setHideEarnings] = useState(false);
+
+  // Get performance data
+  const { data: performanceScores } = useEmployeePerformance();
+  const myPerformanceScore = employee && performanceScores 
+    ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
+    : null;
 
   useEffect(() => {
     if (user) loadData();
@@ -32,6 +40,17 @@ const StaffProfile = () => {
       
       if (empData) {
         await calculateEarnings(empData.id, empData.hourly_rate || 15);
+        
+        // Check company settings for hiding earnings
+        const { data: companyData } = await supabase
+          .from("companies")
+          .select("hide_earnings_from_staff")
+          .eq("id", empData.company_id)
+          .maybeSingle();
+        
+        if (companyData) {
+          setHideEarnings(companyData.hide_earnings_from_staff || false);
+        }
       }
     } catch (error) {
       toast.error("Failed to load profile");
@@ -111,8 +130,9 @@ const StaffProfile = () => {
     );
   }
 
+  // Only show earnings in menu if not hidden
   const menuItems = [
-    { icon: Wallet, label: "My Earnings", path: "/staff/earnings" },
+    ...(!hideEarnings ? [{ icon: Wallet, label: "My Earnings", path: "/staff/earnings" }] : []),
     { icon: Calendar, label: "My Availability", path: "/staff/availability" },
     { icon: User, label: "Personal Information", path: "/staff/profile/edit" },
     { icon: MapPin, label: "Emergency Contacts", path: "/staff/profile/emergency" },
@@ -137,32 +157,47 @@ const StaffProfile = () => {
       </div>
 
       <div className="px-4 -mt-4 space-y-4 pb-6">
-        {/* Earnings Card */}
+        {/* Score Card */}
         <Card className="p-4 shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-primary" />
-              Earnings Overview
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-accent/10 rounded-lg p-3">
-              <div className="text-xs text-muted-foreground mb-1">This Week</div>
-              <div className="text-2xl font-bold">{earnings.thisWeek.toFixed(0)} Lei</div>
-            </div>
-            <div className="bg-accent/10 rounded-lg p-3">
-              <div className="text-xs text-muted-foreground mb-1">This Month</div>
-              <div className="text-2xl font-bold">{earnings.thisMonth.toFixed(0)} Lei</div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trophy className="h-6 w-6 text-primary" />
+              <div>
+                <div className="text-sm text-muted-foreground">My Performance Score</div>
+                <div className="text-2xl font-bold">{myPerformanceScore !== null ? Math.round(myPerformanceScore) : '--'}</div>
+              </div>
             </div>
           </div>
-          <Button 
-            variant="link" 
-            className="w-full mt-3 text-sm"
-            onClick={() => navigate("/staff/earnings")}
-          >
-            View Detailed Earnings <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
         </Card>
+
+        {/* Earnings Card - Only show if not hidden */}
+        {!hideEarnings && (
+          <Card className="p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-primary" />
+                Earnings Overview
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-accent/10 rounded-lg p-3">
+                <div className="text-xs text-muted-foreground mb-1">This Week</div>
+                <div className="text-2xl font-bold">{earnings.thisWeek.toFixed(0)} Lei</div>
+              </div>
+              <div className="bg-accent/10 rounded-lg p-3">
+                <div className="text-xs text-muted-foreground mb-1">This Month</div>
+                <div className="text-2xl font-bold">{earnings.thisMonth.toFixed(0)} Lei</div>
+              </div>
+            </div>
+            <Button 
+              variant="link" 
+              className="w-full mt-3 text-sm"
+              onClick={() => navigate("/staff/earnings")}
+            >
+              View Detailed Earnings <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </Card>
+        )}
 
         {/* Contact Info Card */}
         <Card className="p-4 shadow-lg">

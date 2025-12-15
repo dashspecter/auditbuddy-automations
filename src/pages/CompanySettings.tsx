@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
 import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
+import { StaffVisibilitySettings } from "@/components/settings/StaffVisibilitySettings";
 import { RolePermissionsManager } from "@/components/settings/RolePermissionsManager";
 import {
   Select,
@@ -324,6 +325,7 @@ export default function CompanySettings() {
           </TabsContent>
 
           <TabsContent value="workforce" className="space-y-6">
+            <StaffVisibilitySettings company={company} />
             <AutoClockoutSettings company={company} />
             <ShiftPresetsManagement />
           </TabsContent>
