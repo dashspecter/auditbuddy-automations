@@ -12,7 +12,7 @@ import { useScheduledAuditsNew } from '@/hooks/useScheduledAuditsNew';
 import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List, MapPin } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List, MapPin, Trash2, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -30,6 +30,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -72,6 +82,8 @@ const AuditsCalendar = () => {
   const [dismissedPrompt, setDismissedPrompt] = useState(false);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdminOrManager = roleData?.isAdmin || roleData?.isManager;
 
@@ -302,6 +314,57 @@ const AuditsCalendar = () => {
     if (!selectedEvent) return false;
     return isAdminOrManager || selectedEvent.resource.isOwnAudit;
   }, [selectedEvent, isAdminOrManager]);
+
+  const handleDeleteAudit = async () => {
+    if (!selectedEvent) return;
+    
+    setIsDeleting(true);
+    try {
+      const isScheduledAudit = selectedEvent.resource.source === 'scheduled_audits';
+      const actualId = isScheduledAudit 
+        ? selectedEvent.id.replace(/^scheduled-/, '').split('-').slice(0, 5).join('-')
+        : selectedEvent.id;
+      
+      const table = isScheduledAudit ? 'scheduled_audits' : 'location_audits';
+      
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', actualId);
+      
+      if (error) throw error;
+      
+      toast.success('Audit deleted successfully');
+      setDeleteDialogOpen(false);
+      setDetailsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['scheduled_audits'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduled-audits-new'] });
+      queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+    } catch (error) {
+      console.error('Error deleting audit:', error);
+      toast.error('Failed to delete audit');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditAudit = () => {
+    if (!selectedEvent) return;
+    
+    const isScheduledAudit = selectedEvent.resource.source === 'scheduled_audits';
+    const actualId = isScheduledAudit 
+      ? selectedEvent.id.replace(/^scheduled-/, '').split('-').slice(0, 5).join('-')
+      : selectedEvent.id;
+    
+    if (isScheduledAudit) {
+      // Navigate to recurring schedules page to edit
+      navigate('/recurring-audit-schedules');
+    } else {
+      // Navigate to edit the location audit
+      navigate(`/location-audit?draft=${actualId}`);
+    }
+    setDetailsDialogOpen(false);
+  };
 
   // Check if we need to regenerate audits (when furthest audit is within 2 weeks)
   useEffect(() => {
@@ -633,29 +696,78 @@ const AuditsCalendar = () => {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-4">
-                {canAccessAudit && (
-                  <>
-                    {selectedEvent.resource.status === 'scheduled' && (
-                      <Button onClick={handleStartAudit} className="flex-1">
-                        Start Audit
-                      </Button>
-                    )}
-                    {selectedEvent.resource.status !== 'scheduled' && (
-                      <Button onClick={handleOpenAudit} className="flex-1">
-                        Open Audit
-                      </Button>
-                    )}
-                  </>
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex gap-2">
+                  {canAccessAudit && (
+                    <>
+                      {selectedEvent.resource.status === 'scheduled' && (
+                        <Button onClick={handleStartAudit} className="flex-1">
+                          Start Audit
+                        </Button>
+                      )}
+                      {selectedEvent.resource.status !== 'scheduled' && (
+                        <Button onClick={handleOpenAudit} className="flex-1">
+                          Open Audit
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+                
+                {isAdminOrManager && (
+                  <div className="flex gap-2 border-t pt-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleEditAudit}
+                      className="flex-1"
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="flex-1"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 )}
-                <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
-                  Close
-                </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Audit</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this audit? This action cannot be undone.
+              {selectedEvent?.resource.source === 'scheduled_audits' && (
+                <span className="block mt-2 text-destructive">
+                  Note: This will delete the recurring schedule and all future occurrences.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAudit}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
