@@ -13,15 +13,18 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const [isStarting, setIsStarting] = useState(true);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasScannedRef = useRef(false);
+  const isMountedRef = useRef(true);
   const onScanRef = useRef(onScan);
+  const onCloseRef = useRef(onClose);
 
-  // Keep onScan ref updated
+  // Keep refs updated
   useEffect(() => {
     onScanRef.current = onScan;
-  }, [onScan]);
+    onCloseRef.current = onClose;
+  }, [onScan, onClose]);
 
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
     const startScanner = async () => {
       try {
@@ -31,9 +34,14 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         // Wait for element to be in DOM
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        if (!isMountedRef.current) {
+          console.log("Component unmounted before scanner started");
+          return;
+        }
+        
         const element = document.getElementById(scannerId);
-        if (!element || !isMounted) {
-          console.log("Scanner element not found or unmounted");
+        if (!element) {
+          console.log("Scanner element not found");
           return;
         }
 
@@ -47,37 +55,37 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
             qrbox: { width: 250, height: 250 },
           },
           (decodedText) => {
-            // Prevent double scanning
-            if (hasScannedRef.current) return;
+            // Prevent double scanning and check if still mounted
+            if (hasScannedRef.current || !isMountedRef.current) return;
             hasScannedRef.current = true;
             
             console.log("QR scanned:", decodedText);
             
-            // Store the callback to call outside the scanner context
-            const callback = onScanRef.current;
+            // Store the data and callback
             const scannedData = decodedText;
             
             // Stop scanner first, then call callback in a safe way
+            const safeCallback = () => {
+              // Double-check mounted state before calling
+              if (!isMountedRef.current) {
+                console.log("Component unmounted, skipping callback");
+                return;
+              }
+              try {
+                onScanRef.current(scannedData);
+              } catch (err) {
+                console.error("Error in scan callback:", err);
+              }
+            };
+            
             scanner.stop().then(() => {
               console.log("Scanner stopped after scan");
               // Use setTimeout to ensure we're outside the scanner callback context
-              setTimeout(() => {
-                try {
-                  callback(scannedData);
-                } catch (err) {
-                  console.error("Error in scan callback:", err);
-                }
-              }, 50);
+              setTimeout(safeCallback, 100);
             }).catch((err) => {
               console.error("Error stopping scanner:", err);
               // Still call callback even if stop fails
-              setTimeout(() => {
-                try {
-                  callback(scannedData);
-                } catch (err) {
-                  console.error("Error in scan callback:", err);
-                }
-              }, 50);
+              setTimeout(safeCallback, 100);
             });
           },
           () => {
@@ -85,12 +93,12 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           }
         );
         
-        if (isMounted) {
+        if (isMountedRef.current) {
           setIsStarting(false);
         }
       } catch (err: any) {
         console.error("Camera error:", err);
-        if (isMounted) {
+        if (isMountedRef.current) {
           setIsStarting(false);
           setError(err.message || "Failed to access camera. Please allow camera permissions.");
         }
@@ -100,11 +108,17 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     startScanner();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      hasScannedRef.current = true; // Prevent any pending scans from triggering callback
+      
       if (scannerRef.current) {
-        scannerRef.current.stop().catch((err) => {
-          console.log("Cleanup stop error (expected):", err);
-        });
+        try {
+          scannerRef.current.stop().catch((err) => {
+            console.log("Cleanup stop error (expected):", err);
+          });
+        } catch (e) {
+          console.log("Error during cleanup:", e);
+        }
         scannerRef.current = null;
       }
     };
@@ -112,10 +126,14 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
 
   const handleClose = useCallback(() => {
     if (scannerRef.current) {
-      scannerRef.current.stop().catch(console.error);
+      try {
+        scannerRef.current.stop().catch(console.error);
+      } catch (e) {
+        console.log("Error stopping scanner on close:", e);
+      }
     }
-    onClose();
-  }, [onClose]);
+    onCloseRef.current();
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">

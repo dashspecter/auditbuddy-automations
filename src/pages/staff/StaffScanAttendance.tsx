@@ -49,9 +49,18 @@ const StaffScanAttendance = () => {
   const [employee, setEmployee] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use refs to avoid stale closures in callbacks
+  // Use refs to avoid stale closures in callbacks and track mounted state
+  const isMountedRef = useRef(true);
   const employeeRef = useRef<any>(null);
   const todayStatusRef = useRef(todayStatus);
+  
+  // Track mounted state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   useEffect(() => {
     employeeRef.current = employee;
@@ -162,11 +171,16 @@ const StaffScanAttendance = () => {
   };
 
   const handleScanResult = async (qrData: string) => {
-    // Close scanner first
+    // Close scanner first - check if still mounted
+    if (!isMountedRef.current) return;
+    
     setShowScanner(false);
     
     // Small delay to let scanner cleanup complete
     await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Check if still mounted after delay
+    if (!isMountedRef.current) return;
     
     // Then process with comprehensive error handling
     try {
@@ -191,16 +205,18 @@ const StaffScanAttendance = () => {
     } catch (error: any) {
       console.error("Scan result processing error:", error);
       toast.error(error?.message || "Failed to process scan. Please try again.");
-      setProcessing(false);
+      if (isMountedRef.current) {
+        setProcessing(false);
+      }
     }
   };
 
   const processQRCode = async (rawData: string) => {
     console.log("=== processQRCode START ===");
     
-    // Safety check - make sure component is still mounted
-    if (!user) {
-      console.log("No user, aborting processQRCode");
+    // Safety check - make sure component is still mounted and user exists
+    if (!isMountedRef.current || !user) {
+      console.log("Component unmounted or no user, aborting processQRCode");
       return;
     }
     
@@ -325,22 +341,24 @@ const StaffScanAttendance = () => {
 
         console.log("Checkout successful, updating state...");
         
-        // Update local state immediately - wrapped in try-catch for safety
-        try {
-          const checkOutTime = new Date().toISOString();
-          setTodayStatus(prev => ({
-            ...prev,
-            checkedIn: false,
-            checkOutTime
-          }));
-          todayStatusRef.current = {
-            ...todayStatusRef.current,
-            checkedIn: false,
-            checkOutTime
-          };
-          console.log("State updated successfully");
-        } catch (stateError) {
-          console.error("Error updating state:", stateError);
+        // Update local state immediately - check if still mounted
+        if (isMountedRef.current) {
+          try {
+            const checkOutTime = new Date().toISOString();
+            setTodayStatus(prev => ({
+              ...prev,
+              checkedIn: false,
+              checkOutTime
+            }));
+            todayStatusRef.current = {
+              ...todayStatusRef.current,
+              checkedIn: false,
+              checkOutTime
+            };
+            console.log("State updated successfully");
+          } catch (stateError) {
+            console.error("Error updating state:", stateError);
+          }
         }
         
         toast.success("Checked out successfully!");
@@ -382,19 +400,21 @@ const StaffScanAttendance = () => {
         }
 
         console.log("Check-in successful, updating state...");
-        try {
-          const checkInTime = new Date().toISOString();
-          const newStatus = {
-            checkedIn: true,
-            checkInTime,
-            checkOutTime: null,
-            locationName: locationData?.name || null
-          };
-          setTodayStatus(newStatus);
-          todayStatusRef.current = newStatus;
-          console.log("State updated successfully");
-        } catch (stateError) {
-          console.error("Error updating state:", stateError);
+        if (isMountedRef.current) {
+          try {
+            const checkInTime = new Date().toISOString();
+            const newStatus = {
+              checkedIn: true,
+              checkInTime,
+              checkOutTime: null,
+              locationName: locationData?.name || null
+            };
+            setTodayStatus(newStatus);
+            todayStatusRef.current = newStatus;
+            console.log("State updated successfully");
+          } catch (stateError) {
+            console.error("Error updating state:", stateError);
+          }
         }
         
         toast.success("Checked in successfully!");
@@ -405,7 +425,9 @@ const StaffScanAttendance = () => {
       console.error("Process error:", error);
       toast.error(error.message || "Failed to process attendance");
     } finally {
-      setProcessing(false);
+      if (isMountedRef.current) {
+        setProcessing(false);
+      }
     }
   };
 
