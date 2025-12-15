@@ -137,12 +137,12 @@ const StaffProfile = () => {
     );
   }
 
-  // Only show earnings in menu if not hidden
+  // Menu items - only navigate to pages that exist
   const menuItems = [
     ...(!hideEarnings ? [{ icon: Wallet, label: "My Earnings", path: "/staff/earnings" }] : []),
-    { icon: Calendar, label: "My Availability", path: "/staff/availability" },
-    { icon: User, label: "Personal Information", path: "/staff/profile/edit" },
-    { icon: MapPin, label: "Emergency Contacts", path: "/staff/profile/emergency" },
+    { icon: Calendar, label: "My Availability", action: () => toast.info("Availability settings coming soon") },
+    { icon: User, label: "Personal Information", action: () => toast.info("Personal information editing coming soon") },
+    { icon: MapPin, label: "Emergency Contacts", action: () => toast.info("Emergency contacts editing coming soon") },
   ];
 
   return (
@@ -240,7 +240,13 @@ const StaffProfile = () => {
             {menuItems.map((item, index) => (
               <button
                 key={index}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if ('path' in item && item.path) {
+                    navigate(item.path);
+                  } else if ('action' in item && item.action) {
+                    item.action();
+                  }
+                }}
                 className="w-full px-4 py-4 flex items-center justify-between hover:bg-accent/5 transition-colors touch-target"
               >
                 <div className="flex items-center gap-3">
