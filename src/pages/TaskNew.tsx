@@ -41,7 +41,7 @@ const TaskNew = () => {
     start_at: "",
     duration_minutes: 30,
     assigned_to: "",
-    assigned_role_id: "",
+    assigned_role_ids: [] as string[],
     location_ids: [] as string[],
     recurrence_type: "none",
     recurrence_interval: 1,
@@ -64,7 +64,7 @@ const TaskNew = () => {
         start_at: formData.start_at ? new Date(formData.start_at).toISOString() : undefined,
         duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : undefined,
-        assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : undefined,
+        assigned_role_ids: assignmentType === 'role' && formData.assigned_role_ids.length > 0 ? formData.assigned_role_ids : undefined,
         location_ids: formData.location_ids.length > 0 ? formData.location_ids : undefined,
         source: "manual",
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
@@ -224,7 +224,7 @@ const TaskNew = () => {
                           size="sm"
                           onClick={() => {
                             setAssignmentType('employee');
-                            setFormData(prev => ({ ...prev, assigned_role_id: '' }));
+                            setFormData(prev => ({ ...prev, assigned_role_ids: [] }));
                           }}
                           className="flex-1"
                         >
@@ -280,24 +280,52 @@ const TaskNew = () => {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Select
-                    value={formData.assigned_role_id || "unassigned"}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, assigned_role_id: value === "unassigned" ? "" : value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {roles.filter(role => role.id).map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2 min-h-[38px] p-2 border rounded-md bg-background">
+                      {formData.assigned_role_ids.length === 0 ? (
+                        <span className="text-muted-foreground text-sm">Select roles...</span>
+                      ) : (
+                        formData.assigned_role_ids.map(roleId => {
+                          const role = roles.find(r => r.id === roleId);
+                          return role ? (
+                            <span
+                              key={roleId}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                            >
+                              {role.name}
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  assigned_role_ids: prev.assigned_role_ids.filter(id => id !== roleId)
+                                }))}
+                                className="hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ) : null;
+                        })
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
+                      {roles.filter(role => role.id && !formData.assigned_role_ids.includes(role.id)).map((role) => (
+                        <Button
+                          key={role.id}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="justify-start text-sm h-8"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            assigned_role_ids: [...prev.assigned_role_ids, role.id]
+                          }))}
+                        >
+                          + {role.name}
+                        </Button>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  </div>
                 )}
               </div>
 

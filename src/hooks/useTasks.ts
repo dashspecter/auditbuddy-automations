@@ -288,6 +288,7 @@ interface CreateTaskData {
   duration_minutes?: number;
   assigned_to?: string;
   assigned_role_id?: string;
+  assigned_role_ids?: string[];
   location_ids?: string[];
   source?: string;
   source_reference_id?: string;
@@ -305,9 +306,10 @@ export const useCreateTask = () => {
     mutationFn: async (data: CreateTaskData) => {
       if (!company?.id || !user?.id) throw new Error("Not authenticated");
 
-      const { location_ids, ...taskData } = data;
+      const { location_ids, assigned_role_ids, ...taskData } = data;
 
       // Create the task (use first location as primary for backward compatibility)
+      // Use first role as primary for backward compatibility
       const { data: task, error } = await supabase
         .from("tasks")
         .insert({
@@ -315,6 +317,7 @@ export const useCreateTask = () => {
           company_id: company.id,
           created_by: user.id,
           location_id: location_ids?.[0] || null,
+          assigned_role_id: assigned_role_ids?.[0] || taskData.assigned_role_id || null,
         })
         .select()
         .single();
@@ -334,6 +337,22 @@ export const useCreateTask = () => {
 
         if (locError) {
           console.error("Error creating task locations:", locError);
+        }
+      }
+
+      // Insert into task_roles junction table for all roles
+      if (assigned_role_ids && assigned_role_ids.length > 0) {
+        const taskRoles = assigned_role_ids.map(roleId => ({
+          task_id: task.id,
+          role_id: roleId,
+        }));
+
+        const { error: roleError } = await supabase
+          .from("task_roles")
+          .insert(taskRoles);
+
+        if (roleError) {
+          console.error("Error creating task roles:", roleError);
         }
       }
 
