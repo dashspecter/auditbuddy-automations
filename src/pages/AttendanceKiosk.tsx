@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { MapPin, RefreshCw, Wifi, WifiOff, Monitor } from "lucide-react";
+import { MapPin, RefreshCw, Wifi, WifiOff, Monitor, TriangleAlert } from "lucide-react";
 import { format } from "date-fns";
 import { useKioskByToken, generateQRToken } from "@/hooks/useAttendanceKiosks";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const AttendanceKiosk = () => {
   const { token } = useParams<{ token: string }>();
@@ -157,16 +158,32 @@ const AttendanceKiosk = () => {
   }
 
   if (error || !kiosk) {
+    const message = error instanceof Error ? error.message : "Unable to load kiosk";
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-6">
         <div className="text-center max-w-md">
           <div className="h-24 w-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <WifiOff className="h-12 w-12 text-destructive" />
+            <TriangleAlert className="h-12 w-12 text-destructive" />
           </div>
           <h1 className="text-2xl font-bold mb-2">Invalid Kiosk</h1>
           <p className="text-muted-foreground">
-            This kiosk link is invalid or has been deactivated. Please contact your manager.
+            This kiosk link is invalid or temporarily unavailable. If this keeps happening, please contact your manager.
           </p>
+
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+
+          <details className="mt-4 text-left">
+            <summary className="cursor-pointer text-sm text-muted-foreground">Details</summary>
+            <div className="mt-2 rounded-md bg-muted p-3 text-xs font-mono text-muted-foreground break-words">
+              {message}
+            </div>
+          </details>
         </div>
       </div>
     );
