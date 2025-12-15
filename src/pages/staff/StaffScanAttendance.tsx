@@ -224,6 +224,9 @@ const StaffScanAttendance = () => {
 
   const processQRCode = async (rawData: string) => {
     console.log("=== processQRCode START ===");
+    console.log("Raw QR data received:", rawData);
+    console.log("Raw data type:", typeof rawData);
+    console.log("Raw data length:", rawData?.length);
     
     // Safety check - make sure component is still mounted and user exists
     if (!isMountedRef.current || !user) {
@@ -234,21 +237,40 @@ const StaffScanAttendance = () => {
     setProcessing(true);
     
     try {
-      console.log("Processing QR code:", rawData);
-      // Parse QR data
+      // Clean up the raw data - trim whitespace and handle potential encoding issues
+      const cleanedData = rawData?.trim();
+      
+      if (!cleanedData) {
+        console.error("Empty QR data received");
+        toast.error("Could not read QR code. Please try again.");
+        return;
+      }
+      
+      console.log("Cleaned QR data:", cleanedData);
+      
+      // Parse QR data - handle potential edge cases
       let parsed;
       try {
-        parsed = JSON.parse(rawData);
+        parsed = JSON.parse(cleanedData);
       } catch (e) {
-        toast.error("Invalid QR code format");
+        console.error("JSON parse error:", e);
+        console.error("Failed to parse:", cleanedData);
+        
+        // Check if it's a URL that contains the data
+        if (cleanedData.startsWith('http')) {
+          toast.error("Please scan the QR code displayed on the kiosk, not a URL.");
+        } else {
+          toast.error("Invalid QR code format. Please scan the kiosk QR code.");
+        }
         return;
       }
       
       console.log("Parsed QR data:", parsed);
       
-      // Check if this is a dynamic QR (v2)
-      if (parsed.v !== 2) {
-        toast.error("Invalid QR code format. Please use the location kiosk.");
+      // Check if this is a dynamic QR (v2) - be flexible with type checking
+      if (!parsed || parsed.v !== 2) {
+        console.error("Invalid QR version:", parsed?.v);
+        toast.error("Invalid QR code. Please scan the current kiosk QR code.");
         return;
       }
 
