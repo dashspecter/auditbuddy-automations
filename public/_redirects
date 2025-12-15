@@ -1,0 +1,3 @@
+# SPA fallback (enable direct deep links like /kiosk/slug)
+/kiosk/*  /index.html  200
+/*       /index.html  200
