@@ -46,11 +46,16 @@ serve(async (req) => {
       .eq('user_id', user.id);
 
     const isAdmin = roles?.some(r => r.role === 'admin');
-    const isCompanyOwner = companyRoles?.some(r => r.company_role === 'company_owner');
+    const isCompanyOwnerOrAdmin = companyRoles?.some(r => 
+      r.company_role === 'company_owner' || r.company_role === 'company_admin'
+    );
 
-    if (!isAdmin && !isCompanyOwner) {
+    if (!isAdmin && !isCompanyOwnerOrAdmin) {
+      console.error('Insufficient permissions for user:', user.id, 'roles:', roles, 'companyRoles:', companyRoles);
       throw new Error('Insufficient permissions');
     }
+
+    console.log('User authorized:', user.id, 'isAdmin:', isAdmin, 'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin);
 
     const { userId, email, fullName, password } = await req.json();
 
