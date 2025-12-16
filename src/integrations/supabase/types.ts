@@ -1448,6 +1448,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          visible_to_roles: string[] | null
         }
         Insert: {
           company_id: string
@@ -1457,6 +1458,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          visible_to_roles?: string[] | null
         }
         Update: {
           company_id?: string
@@ -1466,6 +1468,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          visible_to_roles?: string[] | null
         }
         Relationships: [
           {

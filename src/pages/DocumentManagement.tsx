@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink, FolderOpen, ArrowLeft, Folder, MoreVertical, Pencil } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink, FolderOpen, ArrowLeft, Folder, MoreVertical, Pencil, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
@@ -19,14 +20,16 @@ import { format, differenceInDays } from "date-fns";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { Badge } from "@/components/ui/badge";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 
 const DocumentManagement = () => {
   const { user } = useAuth();
+  const { data: employeeRoles = [] } = useEmployeeRoles();
   const [categories, setCategories] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [upcomingRenewals, setUpcomingRenewals] = useState<any[]>([]);
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+  const [newCategory, setNewCategory] = useState({ name: "", description: "", visibleToRoles: [] as string[] });
   const [newDocument, setNewDocument] = useState({ 
     title: "", 
     description: "", 
@@ -134,7 +137,13 @@ const DocumentManagement = () => {
 
     const { error } = await supabase
       .from("document_categories")
-      .insert({ ...newCategory, created_by: user?.id, company_id: companyUser.company_id });
+      .insert({ 
+        name: newCategory.name, 
+        description: newCategory.description, 
+        visible_to_roles: newCategory.visibleToRoles,
+        created_by: user?.id, 
+        company_id: companyUser.company_id 
+      });
 
     if (error) {
       console.error("Error creating category:", error);
@@ -143,7 +152,7 @@ const DocumentManagement = () => {
     }
 
     toast.success("Category created successfully");
-    setNewCategory({ name: "", description: "" });
+    setNewCategory({ name: "", description: "", visibleToRoles: [] });
     setCategoryDialogOpen(false);
     loadCategories();
   };
@@ -156,7 +165,11 @@ const DocumentManagement = () => {
 
     const { error } = await supabase
       .from("document_categories")
-      .update({ name: editingCategory.name, description: editingCategory.description })
+      .update({ 
+        name: editingCategory.name, 
+        description: editingCategory.description,
+        visible_to_roles: editingCategory.visible_to_roles || []
+      })
       .eq("id", editingCategory.id);
 
     if (error) {
@@ -438,6 +451,44 @@ const DocumentManagement = () => {
                         placeholder="Optional description"
                       />
                     </div>
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Visible to Roles
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Leave empty to make visible to all employees
+                      </p>
+                      <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                        {employeeRoles.map((role) => (
+                          <div key={role.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`new-role-${role.id}`}
+                              checked={newCategory.visibleToRoles.includes(role.name)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setNewCategory({ 
+                                    ...newCategory, 
+                                    visibleToRoles: [...newCategory.visibleToRoles, role.name] 
+                                  });
+                                } else {
+                                  setNewCategory({ 
+                                    ...newCategory, 
+                                    visibleToRoles: newCategory.visibleToRoles.filter(r => r !== role.name) 
+                                  });
+                                }
+                              }}
+                            />
+                            <label htmlFor={`new-role-${role.id}`} className="text-sm cursor-pointer">
+                              {role.name}
+                            </label>
+                          </div>
+                        ))}
+                        {employeeRoles.length === 0 && (
+                          <p className="text-sm text-muted-foreground">No roles defined yet</p>
+                        )}
+                      </div>
+                    </div>
                     <Button onClick={handleCreateCategory} className="w-full">Create</Button>
                   </div>
                 </DialogContent>
@@ -465,6 +516,45 @@ const DocumentManagement = () => {
                         onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
                         placeholder="Optional description"
                       />
+                    </div>
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Visible to Roles
+                      </Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Leave empty to make visible to all employees
+                      </p>
+                      <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                        {employeeRoles.map((role) => (
+                          <div key={role.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-role-${role.id}`}
+                              checked={(editingCategory?.visible_to_roles || []).includes(role.name)}
+                              onCheckedChange={(checked) => {
+                                const currentRoles = editingCategory?.visible_to_roles || [];
+                                if (checked) {
+                                  setEditingCategory({ 
+                                    ...editingCategory, 
+                                    visible_to_roles: [...currentRoles, role.name] 
+                                  });
+                                } else {
+                                  setEditingCategory({ 
+                                    ...editingCategory, 
+                                    visible_to_roles: currentRoles.filter((r: string) => r !== role.name) 
+                                  });
+                                }
+                              }}
+                            />
+                            <label htmlFor={`edit-role-${role.id}`} className="text-sm cursor-pointer">
+                              {role.name}
+                            </label>
+                          </div>
+                        ))}
+                        {employeeRoles.length === 0 && (
+                          <p className="text-sm text-muted-foreground">No roles defined yet</p>
+                        )}
+                      </div>
                     </div>
                     <Button onClick={handleEditCategory} className="w-full">Save Changes</Button>
                   </div>
@@ -716,9 +806,17 @@ const DocumentManagement = () => {
                               {cat.description && (
                                 <p className="text-sm text-muted-foreground line-clamp-2">{cat.description}</p>
                               )}
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {docCount} {docCount === 1 ? 'document' : 'documents'}
-                              </p>
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <p className="text-xs text-muted-foreground">
+                                  {docCount} {docCount === 1 ? 'document' : 'documents'}
+                                </p>
+                                {cat.visible_to_roles && cat.visible_to_roles.length > 0 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Users className="h-3 w-3 mr-1" />
+                                    {cat.visible_to_roles.length} role{cat.visible_to_roles.length !== 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

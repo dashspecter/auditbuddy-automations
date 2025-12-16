@@ -138,7 +138,7 @@ import VouchersManagement from "./pages/audits/VouchersManagement";
 import PayrollBatches from "./pages/workforce/PayrollBatches";
 import AttendanceAlerts from "./pages/workforce/AttendanceAlerts";
 import SchedulingInsights from "./pages/workforce/SchedulingInsights";
-
+import StaffDocuments from "./pages/staff/StaffDocuments";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -183,6 +183,7 @@ const App = () => (
               <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
               <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
               <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
+              <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
               {/* Legacy route - redirect to new path */}
               <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
               <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
