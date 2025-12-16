@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink, FolderOpen, ArrowLeft, Folder } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink, FolderOpen, ArrowLeft, Folder, MoreVertical, Pencil } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
 import { LocationSelector } from "@/components/LocationSelector";
@@ -41,6 +42,8 @@ const DocumentManagement = () => {
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("knowledge");
   const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editCategoryDialogOpen, setEditCategoryDialogOpen] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -142,6 +145,57 @@ const DocumentManagement = () => {
     toast.success("Category created successfully");
     setNewCategory({ name: "", description: "" });
     setCategoryDialogOpen(false);
+    loadCategories();
+  };
+
+  const handleEditCategory = async () => {
+    if (!editingCategory?.name) {
+      toast.error("Category name is required");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("document_categories")
+      .update({ name: editingCategory.name, description: editingCategory.description })
+      .eq("id", editingCategory.id);
+
+    if (error) {
+      console.error("Error updating category:", error);
+      toast.error("Failed to update category");
+      return;
+    }
+
+    toast.success("Category updated successfully");
+    setEditingCategory(null);
+    setEditCategoryDialogOpen(false);
+    loadCategories();
+    if (selectedCategory?.id === editingCategory.id) {
+      setSelectedCategory({ ...selectedCategory, name: editingCategory.name, description: editingCategory.description });
+    }
+  };
+
+  const handleDeleteCategory = async (category: any) => {
+    const docCount = documents.filter(d => d.category_id === category.id).length;
+    
+    if (docCount > 0) {
+      toast.error(`Cannot delete category with ${docCount} document(s). Move or delete documents first.`);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the category "${category.name}"?`)) return;
+
+    const { error } = await supabase
+      .from("document_categories")
+      .delete()
+      .eq("id", category.id);
+
+    if (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Failed to delete category");
+      return;
+    }
+
+    toast.success("Category deleted successfully");
     loadCategories();
   };
 
@@ -389,6 +443,34 @@ const DocumentManagement = () => {
                 </DialogContent>
               </Dialog>
 
+              {/* Edit Category Dialog */}
+              <Dialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Category</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name *</Label>
+                      <Input
+                        value={editingCategory?.name || ""}
+                        onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                        placeholder="Category name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea
+                        value={editingCategory?.description || ""}
+                        onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <Button onClick={handleEditCategory} className="w-full">Save Changes</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-1.5 px-2 sm:px-3">
@@ -619,12 +701,17 @@ const DocumentManagement = () => {
                       return (
                         <Card 
                           key={cat.id} 
-                          className="p-4 cursor-pointer hover:border-primary transition-colors"
-                          onClick={() => setSelectedCategory(cat)}
+                          className="p-4 hover:border-primary transition-colors"
                         >
                           <div className="flex items-start gap-3">
-                            <Folder className="h-8 w-8 text-primary" />
-                            <div className="flex-1 min-w-0">
+                            <Folder 
+                              className="h-8 w-8 text-primary cursor-pointer" 
+                              onClick={() => setSelectedCategory(cat)}
+                            />
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setSelectedCategory(cat)}
+                            >
                               <h3 className="font-semibold">{cat.name}</h3>
                               {cat.description && (
                                 <p className="text-sm text-muted-foreground line-clamp-2">{cat.description}</p>
@@ -633,6 +720,29 @@ const DocumentManagement = () => {
                                 {docCount} {docCount === 1 ? 'document' : 'documents'}
                               </p>
                             </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  setEditingCategory({ ...cat });
+                                  setEditCategoryDialogOpen(true);
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteCategory(cat)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </Card>
                       );
