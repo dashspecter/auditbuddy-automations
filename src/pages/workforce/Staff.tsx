@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Info } from "lucide-react";
 import { StaffTable } from "@/components/workforce/StaffTable";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { useLocations } from "@/hooks/useLocations";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Staff = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -25,6 +26,17 @@ const Staff = () => {
         </Button>
       </div>
 
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Job Titles (Workforce Management)</AlertTitle>
+        <AlertDescription>
+          <p className="text-sm text-muted-foreground">
+            Staff members here have <strong>job titles</strong> (e.g., Chef, Server, Manager) used for scheduling, payroll, and workforce management. 
+            This is separate from <strong>platform roles</strong> (Admin, Manager, HR, Checker) which control dashboard access. 
+            A person can be both a staff member with a job title AND a platform user with dashboard access.
+          </p>
+        </AlertDescription>
+      </Alert>
       <Card>
         <CardHeader>
           <CardTitle>All Staff Members</CardTitle>

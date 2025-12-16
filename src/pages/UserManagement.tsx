@@ -385,13 +385,21 @@ export default function UserManagement() {
 
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertTitle>Role Permissions</AlertTitle>
+            <AlertTitle>Platform Roles (Dashboard Access)</AlertTitle>
             <AlertDescription>
               <div className="mt-2 space-y-2 text-sm">
+                <p className="text-muted-foreground mb-3">
+                  These roles control <strong>dashboard access</strong> and administrative permissions. They are separate from employee job titles used in workforce scheduling.
+                </p>
                 <div><strong>Admin:</strong> Full access to all features and settings</div>
                 <div><strong>Manager:</strong> Manage workforce (staff, shifts, attendance, sales, performance), audits & templates, equipment, notifications, tests. View reports & insights</div>
                 <div><strong>HR:</strong> Manage workforce (staff, shifts, attendance, time off, payroll, performance), audits & templates. View reports & insights</div>
                 <div><strong>Checker:</strong> View/perform audits and access audit templates only</div>
+                <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Note:</strong> A user can have a platform role here AND also be added as a Staff Member with a job title (e.g., "Chef", "Server") for scheduling and payroll purposes. The platform role controls what they can do in the dashboard, while the job title is used for workforce management.
+                  </p>
+                </div>
               </div>
             </AlertDescription>
           </Alert>
