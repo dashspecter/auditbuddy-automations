@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { validateQRToken } from "@/hooks/useAttendanceKiosks";
 import { QRScanner } from "@/components/QRScanner";
 import { useNavigate } from "react-router-dom";
+import { WelcomeClockInDialog } from "@/components/staff/WelcomeClockInDialog";
+import { useStaffClockInReminders } from "@/hooks/useClockInReminders";
 
 // Safe time formatter that won't crash
 const safeFormatTime = (dateString: string | null): string => {
@@ -33,8 +35,10 @@ const safeFormatTime = (dateString: string | null): string => {
 const StaffScanAttendance = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: reminders = [] } = useStaffClockInReminders();
   const [showScanner, setShowScanner] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
     time: Date;
@@ -445,6 +449,9 @@ const StaffScanAttendance = () => {
             setTodayStatus(newStatus);
             todayStatusRef.current = newStatus;
             console.log("State updated successfully");
+            
+            // Show welcome dialog after successful check-in
+            setShowWelcomeDialog(true);
           } catch (stateError) {
             console.error("Error updating state:", stateError);
           }
@@ -480,6 +487,13 @@ const StaffScanAttendance = () => {
       {showScanner && (
         <QRScanner onScan={handleScanResult} onClose={handleCloseScan} />
       )}
+      
+      <WelcomeClockInDialog
+        open={showWelcomeDialog}
+        onClose={() => setShowWelcomeDialog(false)}
+        employeeName={employee?.full_name?.split(" ")[0] || ""}
+        reminders={reminders.map(r => r.message)}
+      />
       
       <div className="min-h-screen bg-background p-4 pb-24">
         <div className="max-w-md mx-auto space-y-6">

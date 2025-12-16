@@ -1172,6 +1172,47 @@ export type Database = {
           },
         ]
       }
+      clock_in_reminders: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          message: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clock_in_reminders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           approved_at: string | null
