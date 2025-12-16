@@ -51,6 +51,8 @@ const TaskEdit = () => {
     recurrence_type: "none",
     recurrence_interval: 1,
     recurrence_end_date: "",
+    recurrence_days_of_week: [] as number[],
+    recurrence_days_of_month: [] as number[],
   });
 
   // Initialize form with task data
@@ -70,6 +72,8 @@ const TaskEdit = () => {
         recurrence_end_date: task.recurrence_end_date 
           ? format(new Date(task.recurrence_end_date), "yyyy-MM-dd") 
           : "",
+        recurrence_days_of_week: task.recurrence_days_of_week || [],
+        recurrence_days_of_month: task.recurrence_days_of_month || [],
       });
       setAssignmentType(task.assigned_to ? 'employee' : 'role');
       setIsInitialized(true);
@@ -101,6 +105,12 @@ const TaskEdit = () => {
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : null,
         recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
           ? new Date(formData.recurrence_end_date).toISOString()
+          : null,
+        recurrence_days_of_week: formData.recurrence_type === "weekly" && formData.recurrence_days_of_week.length > 0
+          ? formData.recurrence_days_of_week
+          : null,
+        recurrence_days_of_month: formData.recurrence_type === "monthly" && formData.recurrence_days_of_month.length > 0
+          ? formData.recurrence_days_of_month
           : null,
       });
 
@@ -413,6 +423,71 @@ const TaskEdit = () => {
                 </>
               )}
             </div>
+
+            {/* Day of Week Selection for Weekly */}
+            {formData.recurrence_type === "weekly" && (
+              <div className="space-y-2">
+                <Label>On these days</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                    <Button
+                      key={day}
+                      type="button"
+                      variant={formData.recurrence_days_of_week.includes(index) ? "default" : "outline"}
+                      size="sm"
+                      className="w-12"
+                      onClick={() => {
+                        const days = formData.recurrence_days_of_week.includes(index)
+                          ? formData.recurrence_days_of_week.filter(d => d !== index)
+                          : [...formData.recurrence_days_of_week, index].sort((a, b) => a - b);
+                        setFormData({ ...formData, recurrence_days_of_week: days });
+                      }}
+                    >
+                      {day}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.recurrence_days_of_week.length === 0 
+                    ? "Select at least one day" 
+                    : `Repeats on ${formData.recurrence_days_of_week.map(d => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d]).join(", ")}`}
+                </p>
+              </div>
+            )}
+
+            {/* Day of Month Selection for Monthly */}
+            {formData.recurrence_type === "monthly" && (
+              <div className="space-y-2">
+                <Label>On these dates</Label>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <Button
+                      key={day}
+                      type="button"
+                      variant={formData.recurrence_days_of_month.includes(day) ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0 text-xs"
+                      onClick={() => {
+                        const days = formData.recurrence_days_of_month.includes(day)
+                          ? formData.recurrence_days_of_month.filter(d => d !== day)
+                          : [...formData.recurrence_days_of_month, day].sort((a, b) => a - b);
+                        setFormData({ ...formData, recurrence_days_of_month: days });
+                      }}
+                    >
+                      {day}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.recurrence_days_of_month.length === 0 
+                    ? "Select at least one date" 
+                    : `Repeats on the ${formData.recurrence_days_of_month.map(d => {
+                        const suffix = d === 1 || d === 21 || d === 31 ? "st" : d === 2 || d === 22 ? "nd" : d === 3 || d === 23 ? "rd" : "th";
+                        return `${d}${suffix}`;
+                      }).join(", ")}`}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
