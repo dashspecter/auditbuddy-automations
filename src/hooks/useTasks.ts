@@ -517,9 +517,12 @@ export const useCreateTask = () => {
       return task;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
+        }
+      });
     },
   });
 };
@@ -540,9 +543,12 @@ export const useUpdateTask = () => {
       return task;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
+        }
+      });
     },
   });
 };
@@ -596,9 +602,12 @@ export const useCompleteTask = () => {
       return task;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
+        }
+      });
     },
   });
 };
@@ -613,9 +622,13 @@ export const useDeleteTask = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["my-tasks"] });
+      // Use predicate to match all task-related queries regardless of filters
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
+        }
+      });
     },
   });
 };
