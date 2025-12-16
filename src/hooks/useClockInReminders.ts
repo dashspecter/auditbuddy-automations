@@ -10,6 +10,7 @@ export interface ClockInReminder {
   message: string;
   is_active: boolean;
   display_order: number;
+  target_roles: string[];
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -58,7 +59,7 @@ export const useAllClockInReminders = () => {
   });
 };
 
-// For staff app - fetch reminders by employee's company
+// For staff app - fetch reminders by employee's company and role
 export const useStaffClockInReminders = () => {
   const { user } = useAuth();
 
@@ -67,10 +68,10 @@ export const useStaffClockInReminders = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Get employee's company_id
+      // Get employee's company_id and role
       const { data: employee } = await supabase
         .from("employees")
-        .select("company_id")
+        .select("company_id, role")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -84,7 +85,16 @@ export const useStaffClockInReminders = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      return data as ClockInReminder[];
+      
+      // Filter reminders by role - show if no target_roles or employee's role is in target_roles
+      const reminders = (data as ClockInReminder[]).filter((reminder) => {
+        if (!reminder.target_roles || reminder.target_roles.length === 0) {
+          return true; // Show to all if no specific roles set
+        }
+        return reminder.target_roles.includes(employee.role);
+      });
+      
+      return reminders;
     },
     enabled: !!user?.id,
   });
@@ -96,7 +106,7 @@ export const useCreateClockInReminder = () => {
   const { company } = useCompanyContext();
 
   return useMutation({
-    mutationFn: async (message: string) => {
+    mutationFn: async ({ message, target_roles }: { message: string; target_roles: string[] }) => {
       if (!company?.id || !user?.id) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
@@ -104,6 +114,7 @@ export const useCreateClockInReminder = () => {
         .insert({
           company_id: company.id,
           message,
+          target_roles,
           created_by: user.id,
         })
         .select()
