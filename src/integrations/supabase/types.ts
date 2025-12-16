@@ -5084,6 +5084,8 @@ export type Database = {
           location_id: string | null
           parent_task_id: string | null
           priority: string
+          recurrence_days_of_month: number[] | null
+          recurrence_days_of_week: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
@@ -5112,6 +5114,8 @@ export type Database = {
           location_id?: string | null
           parent_task_id?: string | null
           priority?: string
+          recurrence_days_of_month?: number[] | null
+          recurrence_days_of_week?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
@@ -5140,6 +5144,8 @@ export type Database = {
           location_id?: string | null
           parent_task_id?: string | null
           priority?: string
+          recurrence_days_of_month?: number[] | null
+          recurrence_days_of_week?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
