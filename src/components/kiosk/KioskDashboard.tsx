@@ -272,6 +272,17 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     return status?.checkedIn && !status?.checkedOut;
   }).length;
 
+  // Get unassigned tasks
+  const unassignedTasks = useMemo(() => {
+    return tasks
+      .filter(t => t.status !== "completed" && !t.assigned_to)
+      .sort((a, b) => {
+        const timeA = a.start_at || a.due_at || "";
+        const timeB = b.start_at || b.due_at || "";
+        return timeA.localeCompare(timeB);
+      });
+  }, [tasks]);
+
   // Group tasks by employee role for the enhanced view
   const tasksByRole = useMemo(() => {
     const roleGroups: Record<string, { 
@@ -539,7 +550,47 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                   </div>
                 ))}
 
-                {tasksByRole.length === 0 && (
+                {/* Unassigned Tasks Section */}
+                {unassignedTasks.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-2 py-1">
+                      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Unassigned
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    {unassignedTasks.map((task) => {
+                      const isOverdue = task.due_at && isPast(new Date(task.due_at));
+                      return (
+                        <div
+                          key={task.id}
+                          className="rounded-lg bg-muted/30 p-2 flex items-center gap-2"
+                        >
+                          {isOverdue ? (
+                            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                          ) : (
+                            <Timer className="h-4 w-4 text-primary flex-shrink-0" />
+                          )}
+                          <span className={`text-sm truncate flex-1 ${isOverdue ? 'text-destructive font-medium' : ''}`}>
+                            {task.title}
+                          </span>
+                          {isOverdue ? (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                              OVERDUE
+                            </Badge>
+                          ) : task.start_at ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                              {formatCountdown(task.start_at)}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {tasksByRole.length === 0 && unassignedTasks.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     No tasks scheduled for today
                   </div>
