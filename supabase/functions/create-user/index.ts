@@ -62,14 +62,21 @@ serve(async (req) => {
         throw new Error('Missing required fields: email, full_name');
       }
 
-      // Check if requesting user is a manager or admin
+      // Check if requesting user is a manager, admin, or company admin/owner
       const { data: roles } = await supabaseAdmin
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
-      const hasPermission = roles?.some(r => r.role === 'admin' || r.role === 'manager');
-      if (!hasPermission) {
+      const { data: companyRoles } = await supabaseAdmin
+        .from('company_users')
+        .select('company_role')
+        .eq('user_id', user.id);
+
+      const hasPlatformPermission = roles?.some(r => r.role === 'admin' || r.role === 'manager');
+      const hasCompanyPermission = companyRoles?.some(r => r.company_role === 'company_owner' || r.company_role === 'company_admin');
+      
+      if (!hasPlatformPermission && !hasCompanyPermission) {
         throw new Error('Insufficient permissions');
       }
 
