@@ -26,6 +26,7 @@ interface Employee {
   full_name: string;
   avatar_url: string | null;
   role: string;
+  user_id: string | null;
 }
 
 interface Shift {
@@ -67,7 +68,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, avatar_url, role")
+        .select("id, full_name, avatar_url, role, user_id")
         .eq("location_id", locationId)
         .eq("status", "active")
         .order("full_name");
@@ -211,7 +212,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("assigned_to, status, completed_at")
+        .select("completed_by, status, completed_at")
         .in("id", taskIds)
         .eq("status", "completed")
         .gte("completed_at", weekStart)
@@ -219,11 +220,11 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       if (error) throw error;
 
-      // Aggregate by employee
+      // Aggregate by employee who completed the task
       const stats: Record<string, number> = {};
-      (data || []).forEach((task) => {
-        if (task.assigned_to) {
-          stats[task.assigned_to] = (stats[task.assigned_to] || 0) + 1;
+      (data || []).forEach((task: any) => {
+        if (task.completed_by) {
+          stats[task.completed_by] = (stats[task.completed_by] || 0) + 1;
         }
       });
 
@@ -252,7 +253,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       const { data, error } = await supabase
         .from("tasks")
-        .select("assigned_to, status, completed_at")
+        .select("completed_by, status, completed_at")
         .in("id", taskIds)
         .eq("status", "completed")
         .gte("completed_at", todayStart)
@@ -260,10 +261,11 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       if (error) throw error;
 
+      // Aggregate by employee who completed the task
       const stats: Record<string, number> = {};
-      (data || []).forEach((task) => {
-        if (task.assigned_to) {
-          stats[task.assigned_to] = (stats[task.assigned_to] || 0) + 1;
+      (data || []).forEach((task: any) => {
+        if (task.completed_by) {
+          stats[task.completed_by] = (stats[task.completed_by] || 0) + 1;
         }
       });
 
@@ -274,8 +276,13 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     refetchInterval: 30000,
   });
 
-  // Create a map for quick employee lookup
+  // Create a map for quick employee lookup by id
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
+  
+  // Create a map for quick employee lookup by user_id (for completed_by lookups)
+  const userIdToEmployeeMap = new Map(
+    employees.filter(e => e.user_id).map((e) => [e.user_id!, e])
+  );
 
   // Create attendance status map
   const attendanceMap = new Map<string, { checkedIn: boolean; checkedOut: boolean }>();
@@ -574,7 +581,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
                 {dailyStats.map((stat, index) => {
-                  const employee = employeeMap.get(stat.employeeId);
+                  const employee = userIdToEmployeeMap.get(stat.employeeId);
                   if (!employee) return null;
 
                   return (
@@ -623,7 +630,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
                 {weeklyStats.map((stat, index) => {
-                  const employee = employeeMap.get(stat.employeeId);
+                  const employee = userIdToEmployeeMap.get(stat.employeeId);
                   if (!employee) return null;
 
                   return (
