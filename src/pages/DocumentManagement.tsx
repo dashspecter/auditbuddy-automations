@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Calendar as CalendarIcon, MapPin, AlertTriangle, Clock, BookOpen, FileCheck, ScrollText, ExternalLink, FolderOpen, ArrowLeft, Folder } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeFile } from "@/lib/fileOptimization";
 import { LocationSelector } from "@/components/LocationSelector";
@@ -40,6 +40,7 @@ const DocumentManagement = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("knowledge");
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -532,77 +533,124 @@ const DocumentManagement = () => {
             </TabsList>
 
             <TabsContent value="knowledge" className="space-y-6">
-              {/* Categories Section */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Categories ({categories.length})</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {categories.map((cat) => (
-                    <Card key={cat.id} className="p-4">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold">{cat.name}</h3>
-                        {cat.description && (
-                          <p className="text-sm text-muted-foreground">{cat.description}</p>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                {categories.length === 0 && (
-                  <EmptyState
-                    icon={FileText}
-                    title="No Categories"
-                    description="No categories yet. Create one to get started."
-                    action={{
-                      label: "Create Category",
-                      onClick: () => setCategoryDialogOpen(true)
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Knowledge Documents */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Documents</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {knowledgeDocuments.map((doc) => (
-                    <Card key={doc.id} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <FileText className="h-8 w-8 text-primary" />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">{doc.title}</h3>
-                            <p className="text-sm text-muted-foreground">{doc.category?.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {Math.round(doc.file_size / 1024)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                      {doc.description && (
-                        <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
+              {selectedCategory ? (
+                /* Documents inside selected category */
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setSelectedCategory(null)}
+                      className="gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back to Categories
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className="h-6 w-6 text-primary" />
+                    <div>
+                      <h2 className="text-xl font-semibold">{selectedCategory.name}</h2>
+                      {selectedCategory.description && (
+                        <p className="text-sm text-muted-foreground">{selectedCategory.description}</p>
                       )}
-                    </Card>
-                  ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {knowledgeDocuments
+                      .filter(doc => doc.category_id === selectedCategory.id)
+                      .map((doc) => (
+                        <Card key={doc.id} className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <FileText className="h-8 w-8 text-primary" />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold truncate">{doc.title}</h3>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {Math.round(doc.file_size / 1024)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => window.open(doc.file_url, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteDocument(doc.id, doc.file_url)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                          {doc.description && (
+                            <p className="text-sm text-muted-foreground mt-2">{doc.description}</p>
+                          )}
+                        </Card>
+                      ))}
+                  </div>
+                  {knowledgeDocuments.filter(doc => doc.category_id === selectedCategory.id).length === 0 && (
+                    <EmptyState
+                      icon={FileText}
+                      title="No Documents in this Category"
+                      description="This category is empty. Upload a document to get started."
+                      action={{
+                        label: "Upload Document",
+                        onClick: () => {
+                          setNewDocument({ ...newDocument, categoryId: selectedCategory.id });
+                          setDocumentDialogOpen(true);
+                        }
+                      }}
+                    />
+                  )}
                 </div>
-                {knowledgeDocuments.length === 0 && (
-                  <EmptyState
-                    icon={FileText}
-                    title="No Documents"
-                    description="No knowledge documents yet. Upload one to get started."
-                    action={{
-                      label: "Upload Document",
-                      onClick: () => setDocumentDialogOpen(true)
-                    }}
-                  />
-                )}
-              </div>
+              ) : (
+                /* Categories grid view */
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Categories ({categories.length})</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {categories.map((cat) => {
+                      const docCount = knowledgeDocuments.filter(d => d.category_id === cat.id).length;
+                      return (
+                        <Card 
+                          key={cat.id} 
+                          className="p-4 cursor-pointer hover:border-primary transition-colors"
+                          onClick={() => setSelectedCategory(cat)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Folder className="h-8 w-8 text-primary" />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold">{cat.name}</h3>
+                              {cat.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">{cat.description}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {docCount} {docCount === 1 ? 'document' : 'documents'}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                  {categories.length === 0 && (
+                    <EmptyState
+                      icon={FileText}
+                      title="No Categories"
+                      description="No categories yet. Create one to organize your documents."
+                      action={{
+                        label: "Create Category",
+                        onClick: () => setCategoryDialogOpen(true)
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="contracts" className="space-y-6">
