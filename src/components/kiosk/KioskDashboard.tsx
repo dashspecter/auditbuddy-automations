@@ -50,6 +50,8 @@ interface Task {
   priority: string;
   start_at: string | null;
   due_at: string | null;
+  role_ids?: string[];
+  role_names?: string[];
 }
 
 export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) => {
@@ -123,7 +125,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     refetchInterval: 60000,
   });
 
-  // Fetch today's tasks for this location (including future tasks)
+  // Fetch today's tasks for this location (including future tasks) with their assigned roles
   const { data: tasks = [] } = useQuery({
     queryKey: ["kiosk-tasks", locationId, format(today, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -146,7 +148,40 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
         .or(`and(start_at.gte.${todayStart},start_at.lte.${todayEnd}),and(due_at.lt.${new Date().toISOString()},status.neq.completed)`);
 
       if (error) throw error;
-      return (data || []) as Task[];
+      if (!data?.length) return [];
+
+      // Get role assignments for these tasks
+      const { data: taskRoles, error: trError } = await supabase
+        .from("task_roles")
+        .select("task_id, role_id")
+        .in("task_id", data.map((t: any) => t.id));
+
+      if (trError) throw trError;
+
+      // Get role names
+      const roleIds = [...new Set((taskRoles || []).map((tr: any) => tr.role_id))];
+      let roleMap: Record<string, string> = {};
+      
+      if (roleIds.length > 0) {
+        const { data: roles, error: rolesError } = await supabase
+          .from("employee_roles")
+          .select("id, name")
+          .in("id", roleIds);
+        
+        if (!rolesError && roles) {
+          roleMap = Object.fromEntries(roles.map((r: any) => [r.id, r.name]));
+        }
+      }
+
+      // Attach role info to tasks
+      return data.map((task: any) => {
+        const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
+        return {
+          ...task,
+          role_ids: taskRoleEntries.map((tr: any) => tr.role_id),
+          role_names: taskRoleEntries.map((tr: any) => roleMap[tr.role_id]).filter(Boolean)
+        };
+      }) as Task[];
     },
     refetchInterval: 10000, // Refresh every 10 seconds for countdown accuracy
   });
@@ -272,78 +307,61 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     return status?.checkedIn && !status?.checkedOut;
   }).length;
 
-  // Get unassigned tasks
-  const unassignedTasks = useMemo(() => {
-    return tasks
-      .filter(t => t.status !== "completed" && !t.assigned_to)
-      .sort((a, b) => {
-        const timeA = a.start_at || a.due_at || "";
-        const timeB = b.start_at || b.due_at || "";
-        return timeA.localeCompare(timeB);
-      });
-  }, [tasks]);
-
-  // Group tasks by employee role for the enhanced view
+  // Group tasks by their assigned roles and find employees on shift with those roles
   const tasksByRole = useMemo(() => {
     const roleGroups: Record<string, { 
-      employees: { 
-        employee: Employee; 
-        overdueTask: Task | null; 
-        nextTask: Task | null;
-      }[] 
+      tasks: Task[];
+      employees: Employee[];
     }> = {};
 
     // Get all pending/in-progress tasks
     const pendingTasks = tasks.filter(t => t.status !== "completed");
     
-    // Group tasks by assigned employee
-    const tasksByEmployee: Record<string, Task[]> = {};
+    // Group tasks by their assigned role names
     pendingTasks.forEach(task => {
-      if (task.assigned_to) {
-        if (!tasksByEmployee[task.assigned_to]) {
-          tasksByEmployee[task.assigned_to] = [];
+      const roleNames = task.role_names || [];
+      
+      if (roleNames.length === 0) {
+        // Unassigned to any role - put in "Unassigned" group
+        if (!roleGroups["Unassigned"]) {
+          roleGroups["Unassigned"] = { tasks: [], employees: [] };
         }
-        tasksByEmployee[task.assigned_to].push(task);
+        roleGroups["Unassigned"].tasks.push(task);
+      } else {
+        // Add task to each of its assigned roles
+        roleNames.forEach(roleName => {
+          if (!roleGroups[roleName]) {
+            roleGroups[roleName] = { tasks: [], employees: [] };
+          }
+          roleGroups[roleName].tasks.push(task);
+        });
       }
     });
 
-    // For each employee with tasks, find their overdue and next task
-    Object.entries(tasksByEmployee).forEach(([empId, empTasks]) => {
-      const employee = employeeMap.get(empId);
-      if (!employee) return;
-
-      const role = employee.role || "Other";
-      if (!roleGroups[role]) {
-        roleGroups[role] = { employees: [] };
+    // For each role group, find employees on shift today with that role
+    Object.keys(roleGroups).forEach(roleName => {
+      if (roleName !== "Unassigned") {
+        roleGroups[roleName].employees = todaysTeam.filter(e => e.role === roleName);
       }
+    });
 
-      // Sort tasks by start_at/due_at
-      const sortedTasks = [...empTasks].sort((a, b) => {
+    // Sort tasks within each group by start_at
+    Object.values(roleGroups).forEach(group => {
+      group.tasks.sort((a, b) => {
         const timeA = a.start_at || a.due_at || "";
         const timeB = b.start_at || b.due_at || "";
         return timeA.localeCompare(timeB);
       });
-
-      // Find overdue task (due_at in the past and not completed)
-      const overdueTask = sortedTasks.find(t => 
-        t.due_at && isPast(new Date(t.due_at)) && t.status !== "completed"
-      ) || null;
-
-      // Find next task (start_at in the future or the first non-overdue task)
-      const nextTask = sortedTasks.find(t => 
-        t !== overdueTask && (
-          (t.start_at && !isPast(new Date(t.start_at))) ||
-          (t.due_at && !isPast(new Date(t.due_at)))
-        )
-      ) || (sortedTasks.find(t => t !== overdueTask) || null);
-
-      roleGroups[role].employees.push({ employee, overdueTask, nextTask });
     });
 
-    // Sort roles alphabetically
+    // Sort roles alphabetically, but put "Unassigned" last
     return Object.entries(roleGroups)
-      .sort(([a], [b]) => a.localeCompare(b));
-  }, [tasks, employeeMap, now]);
+      .sort(([a], [b]) => {
+        if (a === "Unassigned") return 1;
+        if (b === "Unassigned") return -1;
+        return a.localeCompare(b);
+      });
+  }, [tasks, todaysTeam, now]);
 
   // Format countdown
   const formatCountdown = (targetDate: string) => {
@@ -486,81 +504,24 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-3">
-                {tasksByRole.map(([role, { employees: empList }]) => (
+                {tasksByRole.map(([role, { tasks: roleTasks, employees: roleEmployees }]) => (
                   <div key={role} className="space-y-1">
                     {/* Role Header */}
                     <div className="flex items-center gap-2 px-2 py-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <div className={`h-1.5 w-1.5 rounded-full ${role === "Unassigned" ? "bg-muted-foreground" : "bg-primary"}`} />
                       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         {role}
                       </span>
+                      {roleEmployees.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          ({roleEmployees.map(e => e.full_name.split(' ')[0]).join(', ')})
+                        </span>
+                      )}
                       <div className="flex-1 h-px bg-border" />
                     </div>
 
-                    {/* Employees with tasks in this role */}
-                    {empList.map(({ employee, overdueTask, nextTask }) => (
-                      <div
-                        key={employee.id}
-                        className="rounded-lg bg-muted/30 p-2 space-y-1.5"
-                      >
-                        {/* Employee name */}
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                            {employee.full_name.charAt(0)}
-                          </div>
-                          <span className="font-medium text-sm">{employee.full_name}</span>
-                        </div>
-
-                        {/* Overdue Task */}
-                        {overdueTask && (
-                          <div className="flex items-center gap-2 pl-8 text-xs">
-                            <AlertTriangle className="h-3 w-3 text-destructive flex-shrink-0" />
-                            <span className="text-destructive font-medium truncate flex-1">
-                              {overdueTask.title}
-                            </span>
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                              OVERDUE
-                            </Badge>
-                          </div>
-                        )}
-
-                        {/* Next Task with Countdown */}
-                        {nextTask && nextTask !== overdueTask && (
-                          <div className="flex items-center gap-2 pl-8 text-xs">
-                            <Timer className="h-3 w-3 text-primary flex-shrink-0" />
-                            <span className="truncate flex-1 text-muted-foreground">
-                              {nextTask.title}
-                            </span>
-                            {nextTask.start_at && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
-                                {formatCountdown(nextTask.start_at)}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Show single task if no overdue and no separate next */}
-                        {!overdueTask && !nextTask && (
-                          <div className="pl-8 text-xs text-muted-foreground">
-                            No pending tasks
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-
-                {/* Unassigned Tasks Section */}
-                {unassignedTasks.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-2 py-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Unassigned
-                      </span>
-                      <div className="flex-1 h-px bg-border" />
-                    </div>
-                    {unassignedTasks.map((task) => {
+                    {/* Tasks for this role */}
+                    {roleTasks.map((task) => {
                       const isOverdue = task.due_at && isPast(new Date(task.due_at));
                       return (
                         <div
@@ -588,9 +549,9 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                       );
                     })}
                   </div>
-                )}
+                ))}
 
-                {tasksByRole.length === 0 && unassignedTasks.length === 0 && (
+                {tasksByRole.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     No tasks scheduled for today
                   </div>
