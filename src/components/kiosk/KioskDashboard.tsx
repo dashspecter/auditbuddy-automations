@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfWeek, endOfWeek, startOfDay, endOfDay } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +12,8 @@ import {
   ListTodo,
   Trophy,
   XCircle,
-  Timer
+  Timer,
+  AlertTriangle
 } from "lucide-react";
 
 interface KioskDashboardProps {
@@ -47,6 +48,8 @@ interface Task {
   status: string;
   assigned_to: string | null;
   priority: string;
+  start_at: string | null;
+  due_at: string | null;
 }
 
 export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) => {
@@ -120,7 +123,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     refetchInterval: 60000,
   });
 
-  // Fetch today's tasks for this location
+  // Fetch today's tasks for this location (including future tasks)
   const { data: tasks = [] } = useQuery({
     queryKey: ["kiosk-tasks", locationId, format(today, "yyyy-MM-dd")],
     queryFn: async () => {
@@ -135,19 +138,26 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       const taskIds = taskLocations.map((tl) => tl.task_id);
 
-      // Then get the tasks for today (using start_at timestamp)
+      // Get all non-completed tasks for today and overdue tasks
       const { data, error } = await (supabase
         .from("tasks") as any)
-        .select("id, title, status, assigned_to, priority")
+        .select("id, title, status, assigned_to, priority, start_at, due_at")
         .in("id", taskIds)
-        .gte("start_at", todayStart)
-        .lte("start_at", todayEnd);
+        .or(`and(start_at.gte.${todayStart},start_at.lte.${todayEnd}),and(due_at.lt.${new Date().toISOString()},status.neq.completed)`);
 
       if (error) throw error;
-      return data as Task[];
+      return (data || []) as Task[];
     },
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Refresh every 10 seconds for countdown accuracy
   });
+
+  // Countdown timer state
+  const [now, setNow] = useState(new Date());
+  
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch weekly task completion stats for leaderboard
   const { data: weeklyStats = [] } = useQuery({
@@ -262,8 +272,87 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     return status?.checkedIn && !status?.checkedOut;
   }).length;
 
+  // Group tasks by employee role for the enhanced view
+  const tasksByRole = useMemo(() => {
+    const roleGroups: Record<string, { 
+      employees: { 
+        employee: Employee; 
+        overdueTask: Task | null; 
+        nextTask: Task | null;
+      }[] 
+    }> = {};
+
+    // Get all pending/in-progress tasks
+    const pendingTasks = tasks.filter(t => t.status !== "completed");
+    
+    // Group tasks by assigned employee
+    const tasksByEmployee: Record<string, Task[]> = {};
+    pendingTasks.forEach(task => {
+      if (task.assigned_to) {
+        if (!tasksByEmployee[task.assigned_to]) {
+          tasksByEmployee[task.assigned_to] = [];
+        }
+        tasksByEmployee[task.assigned_to].push(task);
+      }
+    });
+
+    // For each employee with tasks, find their overdue and next task
+    Object.entries(tasksByEmployee).forEach(([empId, empTasks]) => {
+      const employee = employeeMap.get(empId);
+      if (!employee) return;
+
+      const role = employee.role || "Other";
+      if (!roleGroups[role]) {
+        roleGroups[role] = { employees: [] };
+      }
+
+      // Sort tasks by start_at/due_at
+      const sortedTasks = [...empTasks].sort((a, b) => {
+        const timeA = a.start_at || a.due_at || "";
+        const timeB = b.start_at || b.due_at || "";
+        return timeA.localeCompare(timeB);
+      });
+
+      // Find overdue task (due_at in the past and not completed)
+      const overdueTask = sortedTasks.find(t => 
+        t.due_at && isPast(new Date(t.due_at)) && t.status !== "completed"
+      ) || null;
+
+      // Find next task (start_at in the future or the first non-overdue task)
+      const nextTask = sortedTasks.find(t => 
+        t !== overdueTask && (
+          (t.start_at && !isPast(new Date(t.start_at))) ||
+          (t.due_at && !isPast(new Date(t.due_at)))
+        )
+      ) || (sortedTasks.find(t => t !== overdueTask) || null);
+
+      roleGroups[role].employees.push({ employee, overdueTask, nextTask });
+    });
+
+    // Sort roles alphabetically
+    return Object.entries(roleGroups)
+      .sort(([a], [b]) => a.localeCompare(b));
+  }, [tasks, employeeMap, now]);
+
+  // Format countdown
+  const formatCountdown = (targetDate: string) => {
+    const target = new Date(targetDate);
+    const diffMins = differenceInMinutes(target, now);
+    const diffSecs = differenceInSeconds(target, now) % 60;
+
+    if (diffMins < 0) return "Overdue";
+    if (diffMins === 0) return `${diffSecs}s`;
+    if (diffMins < 60) return `${diffMins}m ${Math.abs(diffSecs)}s`;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    return `${hours}h ${mins}m`;
+  };
+
   const completedTasksCount = tasks.filter((t) => t.status === "completed").length;
   const pendingTasksCount = tasks.filter((t) => t.status !== "completed").length;
+  const overdueTasksCount = tasks.filter((t) => 
+    t.status !== "completed" && t.due_at && isPast(new Date(t.due_at))
+  ).length;
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
@@ -370,60 +459,87 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             </ScrollArea>
           </Card>
 
-          {/* Tasks List */}
+          {/* Enhanced Tasks List - Grouped by Role */}
           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
                 <ListTodo className="h-4 w-4" />
-                Today's Tasks ({tasks.length})
+                Today's Tasks ({pendingTasksCount})
+                {overdueTasksCount > 0 && (
+                  <Badge variant="destructive" className="ml-auto">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {overdueTasksCount} Overdue
+                  </Badge>
+                )}
               </h3>
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
-              <div className="p-2 space-y-1">
-                {tasks.map((task) => {
-                  const assignee = task.assigned_to ? employeeMap.get(task.assigned_to) : null;
-                  const isComplete = task.status === "completed";
-
-                  return (
-                    <div
-                      key={task.id}
-                      className={`flex items-center justify-between p-2 rounded-lg ${
-                        isComplete ? "bg-green-500/10" : "bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isComplete ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <div className="h-4 w-4 rounded-full border-2 border-muted-foreground flex-shrink-0" />
-                        )}
-                        <div className="min-w-0">
-                          <div className={`text-sm truncate ${isComplete ? "line-through text-muted-foreground" : "font-medium"}`}>
-                            {task.title}
-                          </div>
-                          {assignee && (
-                            <div className="text-xs text-muted-foreground">
-                              {assignee.full_name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          task.priority === "high"
-                            ? "destructive"
-                            : task.priority === "medium"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className="text-xs flex-shrink-0"
-                      >
-                        {task.priority}
-                      </Badge>
+              <div className="p-2 space-y-3">
+                {tasksByRole.map(([role, { employees: empList }]) => (
+                  <div key={role} className="space-y-1">
+                    {/* Role Header */}
+                    <div className="flex items-center gap-2 px-2 py-1">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {role}
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
                     </div>
-                  );
-                })}
-                {tasks.length === 0 && (
+
+                    {/* Employees with tasks in this role */}
+                    {empList.map(({ employee, overdueTask, nextTask }) => (
+                      <div
+                        key={employee.id}
+                        className="rounded-lg bg-muted/30 p-2 space-y-1.5"
+                      >
+                        {/* Employee name */}
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                            {employee.full_name.charAt(0)}
+                          </div>
+                          <span className="font-medium text-sm">{employee.full_name}</span>
+                        </div>
+
+                        {/* Overdue Task */}
+                        {overdueTask && (
+                          <div className="flex items-center gap-2 pl-8 text-xs">
+                            <AlertTriangle className="h-3 w-3 text-destructive flex-shrink-0" />
+                            <span className="text-destructive font-medium truncate flex-1">
+                              {overdueTask.title}
+                            </span>
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                              OVERDUE
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Next Task with Countdown */}
+                        {nextTask && nextTask !== overdueTask && (
+                          <div className="flex items-center gap-2 pl-8 text-xs">
+                            <Timer className="h-3 w-3 text-primary flex-shrink-0" />
+                            <span className="truncate flex-1 text-muted-foreground">
+                              {nextTask.title}
+                            </span>
+                            {nextTask.start_at && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                                {formatCountdown(nextTask.start_at)}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Show single task if no overdue and no separate next */}
+                        {!overdueTask && !nextTask && (
+                          <div className="pl-8 text-xs text-muted-foreground">
+                            No pending tasks
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+                {tasksByRole.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     No tasks scheduled for today
                   </div>
