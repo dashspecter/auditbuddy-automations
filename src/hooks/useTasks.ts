@@ -16,6 +16,7 @@ export interface Task {
   start_at: string | null;
   duration_minutes: number | null;
   completed_at: string | null;
+  completed_by: string | null;
   completed_late: boolean | null;
   status: string;
   priority: string;
@@ -29,8 +30,14 @@ export interface Task {
   recurrence_end_date: string | null;
   parent_task_id: string | null;
   is_recurring_instance: boolean | null;
+  is_individual: boolean | null;
   // Joined data
   assigned_employee?: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  } | null;
+  completed_employee?: {
     id: string;
     full_name: string;
     avatar_url: string | null;
@@ -83,10 +90,12 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
 
       if (error) throw error;
 
-      // Fetch assigned employees separately
+      // Fetch assigned and completed employees separately
       const tasksWithAssignees = await Promise.all(
         (tasks || []).map(async (task) => {
           let assigned_employee = null;
+          let completed_employee = null;
+          
           if (task.assigned_to) {
             const { data: emp } = await supabase
               .from("employees")
@@ -95,7 +104,17 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
               .single();
             assigned_employee = emp;
           }
-          return { ...task, assigned_employee } as Task;
+          
+          if (task.completed_by) {
+            const { data: emp } = await supabase
+              .from("employees")
+              .select("id, full_name, avatar_url")
+              .eq("id", task.completed_by)
+              .single();
+            completed_employee = emp;
+          }
+          
+          return { ...task, assigned_employee, completed_employee } as Task;
         })
       );
 
