@@ -83,16 +83,23 @@ const StaffLogin = () => {
 
       if (error) throw error;
 
-      // Check if user is an employee
+      // Check if user is an employee and their status
       const { data: employeeData, error: empError } = await supabase
         .from("employees")
-        .select("id")
+        .select("id, status")
         .eq("user_id", data.user.id)
         .maybeSingle();
 
       if (empError || !employeeData) {
         await supabase.auth.signOut();
         toast.error("This account is not registered as staff");
+        return;
+      }
+
+      // Block inactive employees from logging in
+      if (employeeData.status === "inactive" || employeeData.status === "terminated") {
+        await supabase.auth.signOut();
+        toast.error("Your account has been deactivated. Please contact your manager.");
         return;
       }
 
