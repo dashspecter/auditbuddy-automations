@@ -106,8 +106,8 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
           size="sm"
           onClick={handleClockAction}
         >
-          <QrCode className="h-4 w-4 mr-2" />
-          Scan to Clock Out
+          <QrCode className="h-4 w-4 mr-1" />
+          Clock Out
         </Button>
       </div>
     );
@@ -130,11 +130,11 @@ export function ClockInOutButtons({ todayShift, employee, onRefresh }: ClockInOu
           size="sm"
           onClick={handleClockAction}
         >
-          <QrCode className="h-4 w-4 mr-2" />
-          Scan to Clock In {lateInfo?.isLate ? '(Late)' : ''}
+          <QrCode className="h-4 w-4 mr-1" />
+          {lateInfo?.isLate ? 'Clock In (Late)' : 'Clock In'}
         </Button>
         <Button variant="outline" className="flex-1 touch-target" size="sm" disabled>
-          <LogOutIcon className="h-4 w-4 mr-2" />
+          <LogOutIcon className="h-4 w-4 mr-1" />
           Clock Out
         </Button>
       </div>
