@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
 const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -40,7 +41,8 @@ const statusColors: Record<string, string> = {
 };
 
 const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComplete: () => void; onEdit: () => void; onDelete: () => void }) => {
-  // Calculate deadline from start_at + duration_minutes, or fallback to due_at
+  const { t } = useTranslation();
+  
   const getDeadline = () => {
     if (task.start_at && task.duration_minutes) {
       return new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
@@ -71,15 +73,15 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
             )}
             {task.completed_late && (
-              <Badge variant="destructive" className="text-xs">Late</Badge>
+              <Badge variant="destructive" className="text-xs">{t('tasks.late')}</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Badge className={priorityColors[task.priority] || priorityColors.medium}>
-              {task.priority}
+              {t(`tasks.priority.${task.priority}`)}
             </Badge>
             <Badge className={statusColors[task.status] || statusColors.pending}>
-              {task.status.replace("_", " ")}
+              {t(`tasks.status.${task.status === 'in_progress' ? 'inProgress' : task.status}`)}
             </Badge>
           </div>
         </div>
@@ -96,7 +98,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
           {task.assigned_role && !task.assigned_employee && (
             <span className="flex items-center gap-1 text-primary">
               <Users className="h-3 w-3" />
-              {task.assigned_role.name} (shared)
+              {task.assigned_role.name} ({t('tasks.shared')})
             </span>
           )}
           {task.location && (
@@ -114,7 +116,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
           {!task.start_at && task.due_at && (
             <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : isDueToday ? "text-orange-600 font-medium" : ""}`}>
               <Clock className="h-3 w-3" />
-              {isOverdue ? "Overdue: " : isDueToday ? "Today: " : "Due: "}
+              {isOverdue ? `${t('tasks.overdue')}: ` : isDueToday ? `${t('common.today')}: ` : `${t('common.due')}: `}
               {format(new Date(task.due_at), "MMM d, HH:mm")}
             </span>
           )}
@@ -138,7 +140,6 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
   );
 };
 
-// Employee task card component
 const EmployeeTaskCard = ({ 
   employee, 
   tasks,
@@ -152,6 +153,7 @@ const EmployeeTaskCard = ({
   onTaskEdit: (taskId: string) => void;
   onTaskDelete: (taskId: string) => void;
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   
   const completedTasks = tasks.filter(t => t.status === "completed");
@@ -211,8 +213,8 @@ const EmployeeTaskCard = ({
             </div>
             <div className="mt-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>{tasks.length} total tasks</span>
-                <span>{completionRate}% complete</span>
+                <span>{tasks.length} {t('tasks.title').toLowerCase()}</span>
+                <span>{completionRate}% {t('tasks.completed').toLowerCase()}</span>
               </div>
               <Progress value={completionRate} className="h-2" />
             </div>
@@ -220,30 +222,28 @@ const EmployeeTaskCard = ({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-3">
-            {/* Mobile stats */}
             <div className="sm:hidden grid grid-cols-4 gap-2 py-2 border-t">
               <div className="text-center">
                 <div className="text-lg font-bold text-green-600">{completedTasks.length}</div>
-                <div className="text-xs text-muted-foreground">Done</div>
+                <div className="text-xs text-muted-foreground">{t('tasks.done')}</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-yellow-600">{pendingTasks.length}</div>
-                <div className="text-xs text-muted-foreground">Pending</div>
+                <div className="text-xs text-muted-foreground">{t('tasks.pending')}</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-destructive">{overdueTasks.length}</div>
-                <div className="text-xs text-muted-foreground">Overdue</div>
+                <div className="text-xs text-muted-foreground">{t('tasks.overdue')}</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-orange-600">{completedLateTasks.length}</div>
-                <div className="text-xs text-muted-foreground">Late</div>
+                <div className="text-xs text-muted-foreground">{t('tasks.late')}</div>
               </div>
             </div>
             
-            {/* Task list */}
             {tasks.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground text-sm">
-                No tasks assigned
+                {t('tasks.noTasksAssigned')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -266,6 +266,7 @@ const EmployeeTaskCard = ({
 };
 
 const Tasks = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
@@ -279,9 +280,9 @@ const Tasks = () => {
   const handleComplete = async (taskId: string) => {
     try {
       await completeTask.mutateAsync(taskId);
-      toast.success("Task completed");
+      toast.success(t('tasks.taskCompleted'));
     } catch (error) {
-      toast.error("Failed to complete task");
+      toast.error(t('tasks.failedCompleteTask'));
     }
   };
 
@@ -289,19 +290,17 @@ const Tasks = () => {
     if (!deleteTaskId) return;
     try {
       await deleteTask.mutateAsync(deleteTaskId);
-      toast.success("Task deleted");
+      toast.success(t('tasks.taskDeleted'));
       setDeleteTaskId(null);
     } catch (error) {
-      toast.error("Failed to delete task");
+      toast.error(t('tasks.failedDeleteTask'));
     }
   };
 
-  // Group tasks by employee (completed_by or assigned_to)
   const tasksByEmployee = useMemo(() => {
     const employeeTaskMap: Record<string, Task[]> = {};
     
     tasks.forEach(task => {
-      // Use completed_by for completed tasks, or assigned_to for pending
       const employeeId = task.completed_by || task.assigned_to;
       if (employeeId) {
         if (!employeeTaskMap[employeeId]) {
@@ -314,7 +313,6 @@ const Tasks = () => {
     return employeeTaskMap;
   }, [tasks]);
 
-  // Get employees with tasks (sorted by pending/overdue first)
   const employeesWithTasks = useMemo(() => {
     return employees
       .filter(emp => tasksByEmployee[emp.id]?.length > 0)
@@ -343,33 +341,32 @@ const Tasks = () => {
   const hasTasks = tasks.length > 0;
 
   const taskSubItems = [
-    { title: "All Tasks", url: "/tasks", icon: ListTodo, description: "View all tasks" },
-    { title: "Calendar", url: "/tasks/calendar", icon: Calendar, description: "Calendar view" },
-    { title: "New Task", url: "/tasks/new", icon: Plus, description: "Create task" },
+    { title: t('tasks.allTasks'), url: "/tasks", icon: ListTodo, description: t('tasks.allTasks') },
+    { title: t('tasks.calendar'), url: "/tasks/calendar", icon: Calendar, description: t('tasks.calendar') },
+    { title: t('tasks.newTask'), url: "/tasks/new", icon: Plus, description: t('tasks.createTask') },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Tasks</h1>
+          <h1 className="text-3xl font-bold">{t('tasks.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage daily operations and follow-up actions
+            {t('tasks.manageDescription')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/tasks/calendar")}>
             <Calendar className="h-4 w-4 mr-2" />
-            Calendar
+            {t('tasks.calendar')}
           </Button>
           <Button className="w-full sm:w-auto" onClick={() => navigate("/tasks/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            Create Task
+            {t('tasks.createTask')}
           </Button>
         </div>
       </div>
 
-      {/* Mobile-first quick navigation to subitems */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:hidden">
         {taskSubItems.map((item) => {
           const Icon = item.icon;
@@ -392,13 +389,12 @@ const Tasks = () => {
         })}
       </div>
 
-      {/* Quick Stats */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <ListTodo className="h-4 w-4" />
-              All Tasks
+              {t('tasks.allTasks')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -409,7 +405,7 @@ const Tasks = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Pending
+              {t('tasks.pending')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -420,7 +416,7 @@ const Tasks = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
-              Overdue
+              {t('tasks.overdue')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -431,7 +427,7 @@ const Tasks = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              Completed
+              {t('tasks.completed')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -442,7 +438,7 @@ const Tasks = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              Completed Late
+              {t('tasks.completedLate')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -454,34 +450,33 @@ const Tasks = () => {
       {!hasTasks && !isLoading ? (
         <EmptyState
           icon={ListTodo}
-          title="No Tasks Yet"
-          description="Start organizing your work by creating tasks. Tasks can be created manually or generated automatically from audit findings."
+          title={t('tasks.noTasksYet')}
+          description={t('tasks.noTasksDescription')}
           action={{
-            label: "Create Task",
+            label: t('tasks.createTask'),
             onClick: () => navigate("/tasks/new")
           }}
         />
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="all">All Tasks</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="overdue">Overdue</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="all">{t('tasks.allTasks')}</TabsTrigger>
+            <TabsTrigger value="pending">{t('tasks.pending')}</TabsTrigger>
+            <TabsTrigger value="overdue">{t('tasks.overdue')}</TabsTrigger>
+            <TabsTrigger value="completed">{t('tasks.completed')}</TabsTrigger>
             <TabsTrigger value="by-employee" className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
-              By Employee
+              {t('tasks.byEmployee')}
             </TabsTrigger>
           </TabsList>
           
-          {/* By Employee View */}
           <TabsContent value="by-employee" className="mt-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold">Employee Task Overview</h2>
+                  <h2 className="text-xl font-semibold">{t('tasks.employeeOverview')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {employeesWithTasks.length} employees with tasks
+                    {employeesWithTasks.length} {t('workforce.employees').toLowerCase()}
                   </p>
                 </div>
               </div>
@@ -496,8 +491,8 @@ const Tasks = () => {
                 <Card>
                   <CardContent className="py-12 text-center text-muted-foreground">
                     <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No tasks assigned to employees yet.</p>
-                    <p className="text-sm mt-1">Tasks assigned to roles will appear here when employees complete them.</p>
+                    <p>{t('tasks.noTasksAssignedEmployees')}</p>
+                    <p className="text-sm mt-1">{t('tasks.tasksAssignedRolesWillAppear')}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -517,18 +512,17 @@ const Tasks = () => {
             </div>
           </TabsContent>
           
-          {/* Other tabs content */}
           <TabsContent value={activeTab === "by-employee" ? "" : activeTab} className={activeTab === "by-employee" ? "hidden" : "mt-4"}>
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {activeTab === "all" && "All Tasks"}
-                  {activeTab === "pending" && "Pending Tasks"}
-                  {activeTab === "overdue" && "Overdue Tasks"}
-                  {activeTab === "completed" && "Completed Tasks"}
+                  {activeTab === "all" && t('tasks.allTasks')}
+                  {activeTab === "pending" && t('tasks.pendingTasks')}
+                  {activeTab === "overdue" && t('tasks.overdueTasks')}
+                  {activeTab === "completed" && t('tasks.completedTasks')}
                 </CardTitle>
                 <CardDescription>
-                  {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+                  {filteredTasks.length} {filteredTasks.length === 1 ? t('tasks.title').toLowerCase() : t('tasks.title').toLowerCase()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -541,7 +535,7 @@ const Tasks = () => {
                 ) : filteredTasks.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12">
                     <ListTodo className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No tasks in this category.</p>
+                    <p>{t('tasks.noTasksInCategory')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -565,15 +559,15 @@ const Tasks = () => {
       <AlertDialog open={!!deleteTaskId} onOpenChange={() => setDeleteTaskId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogTitle>{t('tasks.deleteTask')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this task? This action cannot be undone.
+              {t('tasks.deleteTaskConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
