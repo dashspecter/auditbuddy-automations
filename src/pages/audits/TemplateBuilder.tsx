@@ -44,17 +44,39 @@ const TemplateBuilder = () => {
   const updateTemplate = useUpdateAuditTemplate();
   const createSection = useCreateAuditSection();
 
-  const [templateData, setTemplateData] = useState({
-    name: "",
-    description: "",
-    template_type: "location",
-    is_global: true,
-    location_id: null as string | null,
+  const STORAGE_KEY = "template_builder_draft";
+
+  const [templateData, setTemplateData] = useState(() => {
+    // For new templates, try to restore from sessionStorage
+    if (!id) {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Invalid JSON, use defaults
+        }
+      }
+    }
+    return {
+      name: "",
+      description: "",
+      template_type: "location",
+      is_global: true,
+      location_id: null as string | null,
+    };
   });
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Update form when template data loads
+  // Save to sessionStorage when form data changes (only for new templates)
+  useEffect(() => {
+    if (!isEditMode) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(templateData));
+    }
+  }, [templateData, isEditMode]);
+
+  // Update form when template data loads (edit mode)
   useEffect(() => {
     if (template) {
       setTemplateData({
@@ -66,6 +88,13 @@ const TemplateBuilder = () => {
       });
     }
   }, [template]);
+
+  // Clear sessionStorage when navigating to edit mode (template was saved)
+  useEffect(() => {
+    if (isEditMode) {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+  }, [isEditMode]);
 
   const handleSaveTemplate = async () => {
     if (!templateData.name.trim()) {
