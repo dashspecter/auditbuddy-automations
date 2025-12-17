@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
@@ -93,6 +94,9 @@ export const AppTopBar = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+        
         {/* Notifications */}
         <NotificationDropdown />
 

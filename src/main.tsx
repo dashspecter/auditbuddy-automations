@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./i18n"; // Initialize i18n
 
 // Deep-link fallback: when a host serves /404.html and we redirect to /?redirect=...
 // restore the intended client-side route.
