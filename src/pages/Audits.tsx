@@ -173,24 +173,15 @@ const Audits = () => {
                     </Button>
                   </Link>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="default" className="gap-2 w-full sm:w-auto" data-tour="new-audit-button">
-                      <Plus className="h-4 w-4" />
-                      New Audit
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => navigate('/location-audit')} className="gap-2 cursor-pointer">
-                      <MapPin className="h-4 w-4" />
-                      Location Audit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate('/staff-audits')} className="gap-2 cursor-pointer">
-                      <Users className="h-4 w-4" />
-                      Employee Audits
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button 
+                  variant="default" 
+                  className="gap-2 w-full sm:w-auto" 
+                  data-tour="new-audit-button"
+                  onClick={() => navigate('/location-audit')}
+                >
+                  <Plus className="h-4 w-4" />
+                  New Audit
+                </Button>
               </div>
             </div>
 
