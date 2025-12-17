@@ -1,332 +1,238 @@
 {
   "common": {
+    "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
-    "create": "Create",
-    "edit": "Edit",
     "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
     "add": "Add",
     "view": "View",
-    "done": "Done",
-    "new": "New",
     "search": "Search",
     "filter": "Filter",
-    "clear": "Clear",
-    "close": "Close",
+    "export": "Export",
+    "import": "Import",
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
-    "submit": "Submit",
+    "close": "Close",
     "confirm": "Confirm",
-    "loading": "Loading...",
-    "noData": "No data",
-    "all": "All",
-    "select": "Select",
-    "selectAll": "Select All",
-    "none": "None",
-    "actions": "Actions",
+    "submit": "Submit",
+    "reset": "Reset",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "viewAll": "View All",
+    "allTime": "All time",
+    "thisMonth": "This Month",
+    "score": "Score",
     "status": "Status",
     "date": "Date",
-    "time": "Time",
-    "name": "Name",
-    "description": "Description",
-    "type": "Type",
-    "notes": "Notes",
-    "active": "Active",
-    "inactive": "Inactive",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "yes": "Yes",
-    "no": "No",
-    "or": "or",
-    "and": "and",
-    "required": "Required",
-    "optional": "Optional",
-    "export": "Export",
-    "import": "Import",
-    "download": "Download",
-    "upload": "Upload",
-    "refresh": "Refresh",
-    "language": "Language",
-    "settings": "Settings"
+    "draft": "draft"
   },
-  
   "nav": {
-    "navigation": "Navigation",
     "home": "Home",
     "dashboard": "Dashboard",
-    "overview": "Overview",
-    "audits": "Audits",
-    "locationAudits": "Location Audits",
-    "employeeAudits": "Employee Audits",
-    "newStaffAudit": "New Staff Audit",
-    "newPerformanceReview": "New Performance Review",
-    "mysteryShopper": "Mystery Shopper",
-    "templateLibrary": "Template Library",
-    "auditCalendar": "Audit Calendar",
-    "photoGallery": "Photo Gallery",
-    "templates": "Templates",
-    "calendar": "Calendar",
-    "schedules": "Schedules",
-    "reports": "Reports",
-    "locationPerformance": "Location Performance",
-    "employeePerformance": "Employee Performance",
-    "vouchers": "Vouchers",
-    "tasks": "Tasks",
-    "allTasks": "All Tasks",
-    "equipment": "Equipment",
-    "allEquipment": "All Equipment",
-    "maintenanceCalendar": "Maintenance Calendar",
-    "recurringMaintenance": "Recurring Maintenance",
-    "bulkQRCodes": "Bulk QR Codes",
-    "locations": "Locations",
-    "allLocations": "All Locations",
-    "sales": "Sales",
-    "autoClockOut": "Auto Clock-Out",
-    "shiftPresets": "Shift Presets",
-    "workforce": "Workforce",
-    "staff": "Staff",
-    "shifts": "Shifts",
-    "attendance": "Attendance",
-    "timeOff": "Time Off",
-    "payroll": "Payroll",
-    "payrollBatches": "Payroll Batches",
-    "attendanceAlerts": "Attendance Alerts",
-    "schedulingInsights": "Scheduling Insights",
-    "cmms": "CMMS",
-    "workOrders": "Work Orders",
-    "assets": "Assets",
-    "pmSchedules": "PM Schedules",
-    "procedures": "Procedures",
-    "partsInventory": "Parts Inventory",
-    "purchaseOrders": "Purchase Orders",
-    "vendors": "Vendors",
-    "teams": "Teams",
     "operations": "Operations",
-    "dailyOps": "Daily Ops",
-    "maintenanceTasks": "Maintenance Tasks",
-    "slaManagement": "SLA Management",
+    "audits": "Audits",
+    "auditsList": "Audits List",
+    "auditsCalendar": "Calendar",
+    "auditsSummary": "Summary",
+    "recurringSchedules": "Recurring Schedules",
+    "templates": "Templates",
+    "templateLibrary": "Template Library",
+    "tasks": "Tasks",
+    "tasksList": "Tasks List",
+    "tasksCalendar": "Calendar",
+    "documents": "Documents",
+    "allDocuments": "All Documents",
+    "workforce": "Workforce",
+    "employees": "Employees",
+    "employeeTraining": "Employee Training",
+    "testManagement": "Test Management",
+    "staffAudits": "Staff Audits",
+    "staffLeaderboard": "Staff Leaderboard",
+    "locations": "Locations",
+    "locationsList": "Locations List",
+    "equipment": "Equipment",
+    "equipmentList": "Equipment List",
+    "maintenanceCalendar": "Maintenance Calendar",
+    "inventory": "Inventory",
     "notifications": "Notifications",
-    "sendNotifications": "Send Notifications",
+    "sendNotification": "Send Notification",
     "notificationTemplates": "Templates",
     "recurringNotifications": "Recurring",
     "analytics": "Analytics",
     "auditLogs": "Audit Logs",
-    "documents": "Documents",
-    "allDocuments": "All Documents",
-    "training": "Training",
-    "tests": "Tests",
-    "testManagement": "Test Management",
-    "createTest": "Create Test",
-    "insights": "Insights",
-    "aiFeed": "AI Feed",
-    "integrations": "Integrations",
-    "templateMarketplace": "Template Marketplace",
-    "inventory": "Inventory",
-    "settingsSection": "Settings",
-    "billingModules": "Billing & Modules",
+    "settings": "Settings",
     "companySettings": "Company Settings",
     "userManagement": "User Management",
-    "platformAdmin": "Platform Admin",
-    "systemHealth": "System Health",
-    "debugData": "Debug Data",
-    "aiAgents": "AI Agents",
+    "integrations": "Integrations",
+    "manualMetrics": "Manual Metrics",
+    "reports": "Reports",
     "aiGuide": "AI Guide",
-    "settings": "Settings",
-    "users": "Users",
-    "roles": "Roles",
-    "company": "Company"
+    "cmms": "CMMS",
+    "overview": "Overview",
+    "assets": "Assets",
+    "workOrders": "Work Orders",
+    "preventiveMaintenance": "Preventive Maintenance",
+    "partsInventory": "Parts Inventory",
+    "purchaseOrders": "Purchase Orders",
+    "vendors": "Vendors",
+    "procedures": "Procedures",
+    "teams": "Teams",
+    "cmmsReports": "Reports",
+    "cmmsSettings": "Settings"
   },
-  
   "auth": {
-    "login": "Login",
-    "logout": "Logout",
-    "signUp": "Sign Up",
     "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
     "email": "Email",
     "password": "Password",
-    "confirmPassword": "Confirm Password",
     "forgotPassword": "Forgot Password?",
     "resetPassword": "Reset Password",
-    "rememberMe": "Remember Me",
-    "dontHaveAccount": "Don't have an account?",
-    "alreadyHaveAccount": "Already have an account?",
-    "sessionExpired": "Session Expired",
-    "sessionExpiredMsg": "You have been logged out due to inactivity.",
-    "profileSettings": "Profile Settings"
+    "confirmPassword": "Confirm Password"
   },
-  
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome",
+    "welcome": "Welcome back",
     "overview": "Overview",
-    "recentAudits": "Recent Audits",
-    "pendingTasks": "Pending Tasks",
-    "upcomingShifts": "Upcoming Shifts",
-    "quickActions": "Quick Actions",
+    "gettingStarted": "Getting Started",
+    "loadingModules": "Loading your modules...",
+    "learnModules": "Learn how to use your active modules with these step-by-step guides",
+    "noActiveModules": "No modules are currently active. Visit Company Settings to activate modules and get started.",
+    "goToSettings": "Go to Settings",
+    "admin": {
+      "title": "Admin Dashboard",
+      "subtitle": "System-wide overview and management",
+      "badge": "Administrator"
+    },
+    "manager": {
+      "title": "Manager Dashboard",
+      "subtitle": "Team oversight and location management",
+      "badge": "Manager",
+      "pendingReviews": "Pending Reviews",
+      "auditsWaiting": "{{count}} audit waiting for review",
+      "auditsWaiting_plural": "{{count}} audits waiting for review",
+      "review": "Review"
+    },
+    "checker": {
+      "title": "My Dashboard",
+      "subtitle": "Track your audit performance",
+      "badge": "Checker",
+      "newAudit": "New Audit",
+      "createNewAudit": "Create a new location audit",
+      "createAudit": "Create Audit",
+      "viewAllAudits": "View All Audits",
+      "browseHistory": "Browse your audit history",
+      "viewAudits": "View Audits",
+      "myRecentAudits": "My Recent Audits",
+      "lastFiveAudits": "Last 5 audits you've created",
+      "noAuditsYet": "No audits yet",
+      "createFirstAudit": "Create your first audit to get started",
+      "createFirstAuditBtn": "Create First Audit"
+    },
     "stats": {
+      "completed": "Completed",
+      "finishedAudits": "Finished audits",
+      "overdue": "Overdue",
+      "pastDeadline": "Past deadline",
+      "averageScore": "Average Score",
+      "overallAverage": "Overall average",
+      "worstLocation": "Worst Location",
+      "bestLocation": "Best Location",
       "totalAudits": "Total Audits",
-      "completedTasks": "Completed Tasks",
-      "activeStaff": "Active Staff",
-      "equipment": "Equipment"
+      "performance": "Performance",
+      "auditsCompleted": "Audits completed",
+      "statisticsOverview": "Statistics Overview"
+    },
+    "refreshed": "Refreshed",
+    "dataUpdated": "Dashboard data has been updated.",
+    "dataRefreshed": "Dashboard data refreshed",
+    "failedRefresh": "Failed to refresh data"
+  },
+  "modules": {
+    "locationAudits": {
+      "title": "Location Audits",
+      "description": "Conduct comprehensive audits with custom templates and scheduling",
+      "steps": {
+        "step1": "Click 'New Audit' to start your first location audit",
+        "step2": "Select a pre-built template or create a custom one",
+        "step3": "Fill in the audit sections with scores and notes",
+        "step4": "Add photos to document findings",
+        "step5": "Submit and view the audit in Reports"
+      },
+      "startNewAudit": "Start New Audit",
+      "viewTemplates": "View Templates"
+    },
+    "staffPerformance": {
+      "title": "Staff Performance",
+      "description": "Monitor and improve team performance with detailed tracking",
+      "steps": {
+        "step1": "Add your team members in Employee Management",
+        "step2": "Assign employees to their respective locations",
+        "step3": "Create staff audits to evaluate performance",
+        "step4": "Review the leaderboard to identify top performers",
+        "step5": "Track trends and provide constructive feedback"
+      },
+      "manageEmployees": "Manage Employees",
+      "staffAudits": "Staff Audits"
+    },
+    "equipmentManagement": {
+      "title": "Equipment Management",
+      "description": "Track equipment, schedule maintenance, and manage interventions",
+      "steps": {
+        "step1": "Register new equipment with location and specifications",
+        "step2": "Generate QR codes for quick equipment access",
+        "step3": "Schedule preventive maintenance on the calendar",
+        "step4": "Log interventions with before/after photos",
+        "step5": "Track equipment status and maintenance history"
+      },
+      "addEquipment": "Add Equipment",
+      "viewCalendar": "View Calendar"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Stay connected with customizable alerts and templates",
+      "steps": {
+        "step1": "Create notification templates for common messages",
+        "step2": "Send notifications to specific roles (checkers, managers, admins)",
+        "step3": "Set up recurring notifications for regular reminders",
+        "step4": "Track notification analytics and engagement",
+        "step5": "Manage notification preferences and history"
+      },
+      "sendNotification": "Send Notification",
+      "viewTemplates": "View Templates"
+    },
+    "reports": {
+      "title": "Reports & Analytics",
+      "description": "Comprehensive insights with detailed reports and visualizations",
+      "steps": {
+        "step1": "View key metrics on your dashboard",
+        "step2": "Filter reports by date range and location",
+        "step3": "Analyze compliance trends and patterns",
+        "step4": "Export reports to PDF or Excel",
+        "step5": "Share insights with stakeholders"
+      },
+      "viewReports": "View Reports",
+      "dashboard": "Dashboard"
     }
   },
-  
   "cmms": {
     "title": "CMMS",
-    "subtitle": "Maintenance & Asset Management System",
-    "description": "Plan, execute, track, and prove maintenance across all your equipment and locations.",
-    "fullDescription": "CMMS (Computerized Maintenance Management System) helps you prevent breakdowns, standardize work, control costs, and stay compliant — all in one place.",
-    "overview": {
-      "title": "CMMS Overview",
-      "goToDashboard": "Go to Dashboard",
-      "viewWorkOrders": "View Work Orders"
-    },
-    "whyMatters": {
-      "title": "Why CMMS matters",
-      "downtime": {
-        "title": "Equipment downtime",
-        "description": "Unexpected failures cost time and money. CMMS helps prevent breakdowns with scheduled maintenance."
-      },
-      "visibility": {
-        "title": "No visibility",
-        "description": "Without structure, it's impossible to know what's done, overdue, or critical. CMMS gives real-time visibility across all locations."
-      },
-      "consistency": {
-        "title": "Inconsistent work",
-        "description": "Different people, different standards. CMMS enforces procedures and checklists every time."
-      },
-      "audits": {
-        "title": "Audits & contracts",
-        "description": "\"Show me proof.\" CMMS provides history, reports, and evidence for audits and clients."
-      }
-    },
-    "howItWorks": {
-      "title": "How CMMS works",
-      "assets": {
-        "title": "Assets",
-        "description": "Register all equipment with location, criticality, and QR codes."
-      },
-      "workOrders": {
-        "title": "Work Orders",
-        "description": "Create tasks manually, from requests, or automatically from schedules."
-      },
-      "procedures": {
-        "title": "Procedures & Checklists",
-        "description": "Guide technicians step-by-step and capture proof of work."
-      },
-      "pm": {
-        "title": "Preventive Maintenance",
-        "description": "Automatically generate work orders on a schedule or usage."
-      },
-      "parts": {
-        "title": "Parts & Inventory",
-        "description": "Track spare parts, consumption, and restocking."
-      },
-      "reports": {
-        "title": "Reports & History",
-        "description": "Analyze performance, costs, compliance, and downtime."
-      },
-      "note": "Every action is logged, traceable, and linked to assets and people."
-    },
-    "modules": {
-      "title": "CMMS Modules",
-      "assets": "Central registry of all equipment, locations, and QR codes.",
-      "workOrders": "Create, assign, track, and complete maintenance tasks.",
-      "pmSchedules": "Preventive maintenance plans that auto-generate work orders.",
-      "procedures": "Standard operating procedures and inspection checklists.",
-      "partsInventory": "Track stock levels, consumption, and low-stock alerts.",
-      "purchaseOrders": "Order and receive parts from vendors.",
-      "teams": "Organize technicians and responsibilities.",
-      "vendors": "Manage external contractors and suppliers.",
-      "reports": "Performance, compliance, costs, and audit-ready history."
-    },
-    "whoFor": {
-      "title": "Who CMMS is for",
-      "operations": {
-        "title": "Operations Managers",
-        "description": "Control maintenance, reduce downtime, and see what's happening in real time."
-      },
-      "technicians": {
-        "title": "Technicians & Teams",
-        "description": "Clear tasks, clear instructions, mobile-first execution."
-      },
-      "auditors": {
-        "title": "Auditors & Management",
-        "description": "Proof of work, traceability, and reports — without manual effort."
-      }
-    },
-    "useCases": {
-      "title": "Common use cases",
-      "hvac": "Monthly HVAC inspections",
-      "forklift": "Forklift preventive maintenance",
-      "fire": "Fire extinguisher checks",
-      "kitchen": "Kitchen equipment servicing",
-      "warehouse": "Warehouse equipment tracking",
-      "multiLocation": "Multi-location franchise maintenance"
-    },
-    "why": {
-      "title": "Why Dashspect CMMS",
-      "multiLocation": "Built for multi-location operations",
-      "mobilFirst": "Mobile-first for technicians",
-      "auditReady": "Audit-ready by default",
-      "enterprise": "Designed to scale to enterprise & industrial contracts",
-      "integrations": "Integrates with Dashspect Ops & AI layers"
-    },
-    "getStarted": {
-      "title": "Get started",
-      "viewDashboard": "View Dashboard",
-      "addFirstAsset": "Add Your First Asset",
-      "createWorkOrder": "Create a Work Order",
-      "setupPM": "Set Up Preventive Maintenance",
-      "hint": "Most teams start by adding assets, then creating their first preventive maintenance plan."
-    },
-    "workOrder": {
-      "title": "Work Order",
-      "new": "New Work Order",
-      "priority": "Priority",
-      "assignedTo": "Assigned To",
-      "dueDate": "Due Date",
-      "status": {
-        "open": "Open",
-        "inProgress": "In Progress",
-        "onHold": "On Hold",
-        "completed": "Completed",
-        "cancelled": "Cancelled"
-      },
-      "priority_levels": {
-        "low": "Low",
-        "medium": "Medium",
-        "high": "High",
-        "critical": "Critical"
-      }
-    },
-    "asset": {
-      "title": "Asset",
-      "new": "New Asset",
-      "code": "Asset Code",
-      "category": "Category",
-      "location": "Location",
-      "status": {
-        "operational": "Operational",
-        "maintenance": "Under Maintenance",
-        "outOfService": "Out of Service",
-        "retired": "Retired"
-      },
-      "criticality": {
-        "low": "Low",
-        "medium": "Medium",
-        "high": "High",
-        "critical": "Critical"
-      }
-    }
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "preventiveMaintenance": "Preventive Maintenance",
+    "parts": "Parts",
+    "vendors": "Vendors"
   },
-  
   "audits": {
     "title": "Audits",
+    "newAudit": "New Audit",
     "new": "New Audit",
     "template": "Template",
     "templates": "Templates",
+    "schedule": "Schedule",
     "location": "Location",
     "auditor": "Auditor",
     "score": "Score",
@@ -341,9 +247,9 @@
     "createTemplate": "Create Template",
     "editTemplate": "Edit Template"
   },
-  
   "tasks": {
     "title": "Tasks",
+    "newTask": "New Task",
     "new": "New Task",
     "myTasks": "My Tasks",
     "allTasks": "All Tasks",
@@ -360,9 +266,11 @@
       "cancelled": "Cancelled"
     }
   },
-  
   "workforce": {
     "title": "Workforce",
+    "employees": "Employees",
+    "training": "Training",
+    "performance": "Performance",
     "staff": {
       "title": "Staff",
       "new": "Add Staff",
@@ -414,9 +322,11 @@
       "total": "Total"
     }
   },
-  
   "equipment": {
     "title": "Equipment",
+    "list": "Equipment List",
+    "maintenance": "Maintenance",
+    "inventory": "Inventory",
     "new": "Add Equipment",
     "model": "Model",
     "brand": "Brand",
@@ -428,17 +338,12 @@
       "maintenance": "Under Maintenance",
       "outOfService": "Out of Service",
       "retired": "Retired"
-    },
-    "maintenance": {
-      "title": "Maintenance",
-      "scheduled": "Scheduled",
-      "completed": "Completed",
-      "overdue": "Overdue"
     }
   },
-  
   "locations": {
     "title": "Locations",
+    "manage": "Manage Locations",
+    "add": "Add Location",
     "new": "Add Location",
     "address": "Address",
     "city": "City",
@@ -446,9 +351,11 @@
     "operatingHours": "Operating Hours",
     "closed": "Closed"
   },
-  
   "notifications": {
     "title": "Notifications",
+    "send": "Send Notification",
+    "templates": "Templates",
+    "history": "History",
     "markAllRead": "Mark All Read",
     "noNotifications": "No notifications",
     "new": "New",
@@ -460,25 +367,24 @@
       "alert": "Alert"
     }
   },
-  
   "settings": {
     "title": "Settings",
+    "company": "Company Settings",
+    "users": "User Management",
+    "integrations": "Integrations",
+    "language": "Language",
     "general": "General",
-    "company": "Company",
-    "users": "Users",
     "roles": "Roles",
     "permissions": "Permissions",
     "modules": "Modules",
-    "integrations": "Integrations",
-    "language": "Language",
     "theme": "Theme",
     "notifications": "Notifications"
   },
-  
   "errors": {
     "generic": "Something went wrong",
     "notFound": "Not found",
-    "unauthorized": "Unauthorized",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access denied",
     "permissionDenied": "Permission denied",
     "permissionDeniedMsg": "You don't have access. Ask an Admin to update your role.",
     "networkError": "Network error",
@@ -486,8 +392,9 @@
     "invalidData": "Invalid data",
     "required": "This field is required"
   },
-  
   "empty": {
+    "noData": "No data available",
+    "noResults": "No results found",
     "generic": {
       "title": "No data yet",
       "description": "Start by adding your first item."
@@ -513,7 +420,6 @@
       "description": "Create shifts to schedule your team."
     }
   },
-  
   "success": {
     "saved": "Saved successfully",
     "created": "Created successfully",
@@ -521,7 +427,6 @@
     "deleted": "Deleted successfully",
     "sent": "Sent successfully"
   },
-  
   "confirm": {
     "delete": "Are you sure you want to delete this?",
     "cancel": "Are you sure you want to cancel?",

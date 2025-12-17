@@ -17,8 +17,10 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { BackToTop } from "@/components/BackToTop";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { data: audits, isLoading: auditsLoading, refetch } = useLocationAudits();
@@ -41,8 +43,8 @@ const Dashboard = () => {
     await refetch();
     await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
     toast({
-      title: "Refreshed",
-      description: "Dashboard data has been updated.",
+      title: t('dashboard.refreshed'),
+      description: t('dashboard.dataUpdated'),
     });
   };
 
@@ -68,9 +70,11 @@ const Dashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="guides">
               <BookOpen className="h-4 w-4 mr-2" />
-              Getting Started
+              {t('dashboard.gettingStarted')}
             </TabsTrigger>
             <TabsTrigger value="dashboard">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              {t('dashboard.title')}
               <TrendingUp className="h-4 w-4 mr-2" />
               Dashboard
             </TabsTrigger>
