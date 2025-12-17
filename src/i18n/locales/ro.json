@@ -850,5 +850,18 @@
     "noDocumentsForRole": "Nicio categorie de documente disponibilă pentru rolul tău.",
     "document": "document",
     "documents": "documente"
+  },
+  "notFound": {
+    "title": "404 - Pagină negăsită",
+    "description": "Pagina pe care o căutați nu există sau a fost mutată.",
+    "goBack": "Înapoi",
+    "goToDashboard": "Mergi la Dashboard",
+    "tryPopularPages": "Sau încercați una dintre aceste pagini populare:",
+    "dashboard": "Dashboard",
+    "locations": "Locații",
+    "workforce": "Personal",
+    "audits": "Audituri",
+    "tasks": "Sarcini",
+    "settings": "Setări"
   }
 }
