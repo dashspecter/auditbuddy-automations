@@ -398,6 +398,47 @@ export type Database = {
           },
         ]
       }
+      asset_categories: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          icon: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_alerts: {
         Row: {
           alert_type: string
@@ -1212,6 +1253,1334 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_asset_files: {
+        Row: {
+          asset_id: string
+          caption: string | null
+          created_at: string
+          created_by: string
+          file_type: string | null
+          file_url: string
+          id: string
+        }
+        Insert: {
+          asset_id: string
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          file_type?: string | null
+          file_url: string
+          id?: string
+        }
+        Update: {
+          asset_id?: string
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          file_type?: string | null
+          file_url?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_asset_files_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_asset_procedures: {
+        Row: {
+          asset_id: string
+          id: string
+          is_default: boolean
+          procedure_id: string
+        }
+        Insert: {
+          asset_id: string
+          id?: string
+          is_default?: boolean
+          procedure_id: string
+        }
+        Update: {
+          asset_id?: string
+          id?: string
+          is_default?: boolean
+          procedure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_asset_procedures_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_asset_procedures_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_asset_tags: {
+        Row: {
+          asset_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          asset_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          asset_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_asset_tags_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_asset_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_assets: {
+        Row: {
+          asset_code: string
+          brand: string | null
+          category_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          criticality: string
+          id: string
+          is_archived: boolean
+          location_id: string | null
+          meter_current_value: number | null
+          meter_type: string | null
+          model: string | null
+          name: string
+          notes: string | null
+          qr_token: string | null
+          qr_url: string | null
+          serial_number: string | null
+          status: string
+          updated_at: string
+          warranty_expiry: string | null
+          year: number | null
+        }
+        Insert: {
+          asset_code: string
+          brand?: string | null
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          criticality?: string
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          meter_current_value?: number | null
+          meter_type?: string | null
+          model?: string | null
+          name: string
+          notes?: string | null
+          qr_token?: string | null
+          qr_url?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+          year?: number | null
+        }
+        Update: {
+          asset_code?: string
+          brand?: string | null
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          criticality?: string
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          meter_current_value?: number | null
+          meter_type?: string | null
+          model?: string | null
+          name?: string
+          notes?: string | null
+          qr_token?: string | null
+          qr_url?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          warranty_expiry?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_assets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string
+          company_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata_json: Json | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          company_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata_json?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          company_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_part_stock: {
+        Row: {
+          id: string
+          location_id: string | null
+          part_id: string
+          qty_on_hand: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          location_id?: string | null
+          part_id: string
+          qty_on_hand?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          location_id?: string | null
+          part_id?: string
+          qty_on_hand?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_part_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_part_stock_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_part_transactions: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          part_id: string
+          performed_by: string
+          qty_delta: number
+          reason: string | null
+          related_work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          part_id: string
+          performed_by: string
+          qty_delta: number
+          reason?: string | null
+          related_work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          part_id?: string
+          performed_by?: string
+          qty_delta?: number
+          reason?: string | null
+          related_work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_part_transactions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_part_transactions_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_part_transactions_related_work_order_id_fkey"
+            columns: ["related_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_parts: {
+        Row: {
+          avg_unit_cost: number | null
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_archived: boolean
+          minimum_qty: number | null
+          name: string
+          photo_url: string | null
+          reorder_qty: number | null
+          sku: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          avg_unit_cost?: number | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_archived?: boolean
+          minimum_qty?: number | null
+          name: string
+          photo_url?: string | null
+          reorder_qty?: number | null
+          sku?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avg_unit_cost?: number | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_archived?: boolean
+          minimum_qty?: number | null
+          name?: string
+          photo_url?: string | null
+          reorder_qty?: number | null
+          sku?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_parts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_pm_plans: {
+        Row: {
+          asset_id: string | null
+          assigned_team_id: string | null
+          assigned_user_id: string | null
+          auto_create_work_order: boolean
+          category_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          default_priority: string
+          frequency_type: string
+          frequency_value: number
+          id: string
+          is_archived: boolean
+          location_id: string | null
+          name: string
+          next_due_at: string | null
+          procedure_id: string | null
+          scope_type: string
+          tag_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id?: string | null
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          auto_create_work_order?: boolean
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          default_priority?: string
+          frequency_type: string
+          frequency_value?: number
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          name: string
+          next_due_at?: string | null
+          procedure_id?: string | null
+          scope_type: string
+          tag_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string | null
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          auto_create_work_order?: boolean
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          default_priority?: string
+          frequency_type?: string
+          frequency_value?: number
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          name?: string
+          next_due_at?: string | null
+          procedure_id?: string | null
+          scope_type?: string
+          tag_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_pm_plans_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_assigned_team_id_fkey"
+            columns: ["assigned_team_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_procedures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_plans_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_pm_runs: {
+        Row: {
+          generated_work_order_id: string | null
+          id: string
+          pm_plan_id: string
+          run_at: string
+          status: string
+        }
+        Insert: {
+          generated_work_order_id?: string | null
+          id?: string
+          pm_plan_id: string
+          run_at?: string
+          status?: string
+        }
+        Update: {
+          generated_work_order_id?: string | null
+          id?: string
+          pm_plan_id?: string
+          run_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_pm_runs_generated_work_order_id_fkey"
+            columns: ["generated_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_pm_runs_pm_plan_id_fkey"
+            columns: ["pm_plan_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_pm_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_procedure_files: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string
+          file_url: string
+          id: string
+          procedure_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          file_url: string
+          id?: string
+          procedure_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          file_url?: string
+          id?: string
+          procedure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_procedure_files_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_procedure_steps: {
+        Row: {
+          choices_json: Json | null
+          created_at: string
+          id: string
+          instruction_text: string | null
+          procedure_id: string
+          requires_photo: boolean
+          requires_value: boolean
+          step_order: number
+          title: string
+          updated_at: string
+          value_type: string | null
+        }
+        Insert: {
+          choices_json?: Json | null
+          created_at?: string
+          id?: string
+          instruction_text?: string | null
+          procedure_id: string
+          requires_photo?: boolean
+          requires_value?: boolean
+          step_order: number
+          title: string
+          updated_at?: string
+          value_type?: string | null
+        }
+        Update: {
+          choices_json?: Json | null
+          created_at?: string
+          id?: string
+          instruction_text?: string | null
+          procedure_id?: string
+          requires_photo?: boolean
+          requires_value?: boolean
+          step_order?: number
+          title?: string
+          updated_at?: string
+          value_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_procedure_steps_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_procedures: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          is_archived: boolean
+          is_published: boolean
+          safety_notes: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_archived?: boolean
+          is_published?: boolean
+          safety_notes?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_archived?: boolean
+          is_published?: boolean
+          safety_notes?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_procedures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          part_id: string
+          purchase_order_id: string
+          qty: number
+          received_qty: number | null
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          part_id: string
+          purchase_order_id: string
+          qty: number
+          received_qty?: number | null
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          part_id?: string
+          purchase_order_id?: string
+          qty?: number
+          received_qty?: number | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_purchase_order_items_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_purchase_orders: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          expected_at: string | null
+          id: string
+          is_archived: boolean
+          location_id: string | null
+          notes: string | null
+          po_number: number
+          status: string
+          total_cost: number | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          expected_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          notes?: string | null
+          po_number?: number
+          status?: string
+          total_cost?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          expected_at?: string | null
+          id?: string
+          is_archived?: boolean
+          location_id?: string | null
+          notes?: string | null
+          po_number?: number
+          status?: string
+          total_cost?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_purchase_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_purchase_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_reporting_snapshots: {
+        Row: {
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          location_id: string | null
+          metrics_json: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          location_id?: string | null
+          metrics_json?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          location_id?: string | null
+          metrics_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_reporting_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_reporting_snapshots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_tags: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_tags_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_teams: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_archived: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_teams_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_vendor_locations: {
+        Row: {
+          id: string
+          location_id: string | null
+          vendor_id: string
+        }
+        Insert: {
+          id?: string
+          location_id?: string | null
+          vendor_id: string
+        }
+        Update: {
+          id?: string
+          location_id?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_vendor_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_vendor_locations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_vendors: {
+        Row: {
+          company_id: string
+          contact_name: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          contact_name?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_vendors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_order_checklist_responses: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          photo_url: string | null
+          response_json: Json | null
+          step_key: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          response_json?: Json | null
+          step_key: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          response_json?: Json | null
+          step_key?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_order_checklist_responses_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_order_comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          id: string
+          user_id: string
+          work_order_id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          id?: string
+          user_id: string
+          work_order_id: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_order_comments_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_order_files: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string
+          file_url: string
+          id: string
+          work_order_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by: string
+          file_url: string
+          id?: string
+          work_order_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string
+          file_url?: string
+          id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_order_files_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_order_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          from_status: string | null
+          id: string
+          to_status: string
+          work_order_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          from_status?: string | null
+          id?: string
+          to_status: string
+          work_order_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          from_status?: string | null
+          id?: string
+          to_status?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_order_status_history_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_order_watchers: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_order_watchers_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cmms_work_orders: {
+        Row: {
+          actual_minutes: number | null
+          asset_id: string | null
+          assigned_team_id: string | null
+          assigned_user_id: string | null
+          checklist_snapshot_json: Json | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_at: string | null
+          estimated_minutes: number | null
+          id: string
+          internal_notes: string | null
+          is_archived: boolean
+          labor_cost: number | null
+          location_id: string | null
+          parts_cost: number | null
+          priority: string
+          procedure_id: string | null
+          started_at: string | null
+          status: string
+          title: string
+          total_cost: number | null
+          type: string
+          updated_at: string
+          wo_number: number
+        }
+        Insert: {
+          actual_minutes?: number | null
+          asset_id?: string | null
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          checklist_snapshot_json?: Json | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_at?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_archived?: boolean
+          labor_cost?: number | null
+          location_id?: string | null
+          parts_cost?: number | null
+          priority?: string
+          procedure_id?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          total_cost?: number | null
+          type?: string
+          updated_at?: string
+          wo_number?: number
+        }
+        Update: {
+          actual_minutes?: number | null
+          asset_id?: string | null
+          assigned_team_id?: string | null
+          assigned_user_id?: string | null
+          checklist_snapshot_json?: Json | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_at?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_archived?: boolean
+          labor_cost?: number | null
+          location_id?: string | null
+          parts_cost?: number | null
+          priority?: string
+          procedure_id?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          total_cost?: number | null
+          type?: string
+          updated_at?: string
+          wo_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmms_work_orders_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_work_orders_assigned_team_id_fkey"
+            columns: ["assigned_team_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_work_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_work_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cmms_work_orders_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_procedures"
             referencedColumns: ["id"]
           },
         ]
