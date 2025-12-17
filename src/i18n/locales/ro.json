@@ -829,5 +829,15 @@
     "noColleaguesAvailable": "Niciun coleg disponibil",
     "addMessagePlaceholder": "Adaugă un mesaj pentru colegul tău...",
     "sendRequest": "Trimite cererea"
+  },
+  "testResult": {
+    "congratulations": "Felicitări!",
+    "testComplete": "Test finalizat",
+    "passedMessage": "Ai trecut testul!",
+    "failedMessage": "Din păcate, nu ai trecut de această dată.",
+    "yourScore": "Scorul tău",
+    "passedDetail": "Excelent! Rezultatele tale au fost înregistrate.",
+    "failedDetail": "Te rugăm să revizuiești materialul și să încerci din nou.",
+    "backToHome": "Înapoi acasă"
   }
 }

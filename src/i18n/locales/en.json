@@ -829,5 +829,15 @@
     "noColleaguesAvailable": "No colleagues available",
     "addMessagePlaceholder": "Add a message for your colleague...",
     "sendRequest": "Send Request"
+  },
+  "testResult": {
+    "congratulations": "Congratulations!",
+    "testComplete": "Test Complete",
+    "passedMessage": "You've passed the test!",
+    "failedMessage": "Unfortunately, you did not pass this time.",
+    "yourScore": "Your Score",
+    "passedDetail": "Great job! Your results have been recorded.",
+    "failedDetail": "Please review the material and try again.",
+    "backToHome": "Back to Home"
   }
 }

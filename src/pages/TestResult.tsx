@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 const TestResult = () => {
+  const { t } = useTranslation();
   const { testId, score, passed } = useParams();
   const navigate = useNavigate();
   const isPassed = passed === "true";
@@ -19,26 +21,24 @@ const TestResult = () => {
             <XCircle className="h-20 w-20 text-red-500 mx-auto mb-4" />
           )}
           <h1 className="text-3xl font-bold mb-2">
-            {isPassed ? "Congratulations!" : "Test Complete"}
+            {isPassed ? t("testResult.congratulations") : t("testResult.testComplete")}
           </h1>
           <p className="text-muted-foreground">
-            {isPassed ? "You've passed the test!" : "Unfortunately, you did not pass this time."}
+            {isPassed ? t("testResult.passedMessage") : t("testResult.failedMessage")}
           </p>
         </div>
 
         <div className="bg-muted rounded-lg p-6 mb-6">
-          <p className="text-sm text-muted-foreground mb-2">Your Score</p>
+          <p className="text-sm text-muted-foreground mb-2">{t("testResult.yourScore")}</p>
           <p className="text-5xl font-bold">{scoreValue}%</p>
         </div>
 
         <p className="text-sm text-muted-foreground mb-6">
-          {isPassed
-            ? "Great job! Your results have been recorded."
-            : "Please review the material and try again."}
+          {isPassed ? t("testResult.passedDetail") : t("testResult.failedDetail")}
         </p>
 
         <Button onClick={() => navigate("/staff")} variant="outline" className="w-full">
-          Back to Home
+          {t("testResult.backToHome")}
         </Button>
       </Card>
     </div>
