@@ -764,5 +764,33 @@
     "accountPaused": "Cont suspendat",
     "trialExpired": "Perioada de probă a expirat. Upgradează la un plan plătit pentru a continua să folosești DashSpect.",
     "viewPricingPlans": "Vezi planurile de prețuri"
+  },
+  "staffHome": {
+    "failedLoadData": "Încărcarea datelor a eșuat",
+    "accountDeactivated": "Contul tău a fost dezactivat. Te rugăm să contactezi managerul.",
+    "greeting": {
+      "morning": "Bună dimineața",
+      "afternoon": "Bună ziua",
+      "evening": "Bună seara"
+    },
+    "allLocations": "Toate locațiile",
+    "todaysShift": "TURA DE AZI",
+    "pendingApproval": "În așteptare aprobare",
+    "confirmed": "Confirmat",
+    "start": "Început",
+    "end": "Sfârșit",
+    "awaitingApproval": "Se așteaptă aprobarea managerului",
+    "noShiftToday": "Nicio tură programată pentru azi",
+    "browseShifts": "Răsfoiește turele disponibile",
+    "upcomingShifts": "Ture viitoare",
+    "viewAll": "Vezi tot",
+    "thisWeek": "Săptămâna aceasta",
+    "myScore": "Scorul meu",
+    "quickActions": "Acțiuni rapide",
+    "documents": "Documente",
+    "enterVoucher": "Introdu voucher",
+    "claimShift": "Revendică tură",
+    "requestTimeOff": "Solicită concediu",
+    "myTasks": "Sarcinile mele"
   }
 }

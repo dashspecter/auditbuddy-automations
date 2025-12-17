@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,7 @@ import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCar
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 
 const StaffHome = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
@@ -78,14 +80,14 @@ const StaffHome = () => {
 
       if (error) {
         console.error("Error loading employee:", error);
-        toast.error("Failed to load data");
+        toast.error(t('staffHome.failedLoadData'));
         return;
       }
 
       if (empData) {
         // Check if employee is deactivated
         if (empData.status === "inactive") {
-          toast.error("Your account has been deactivated. Please contact your manager.");
+          toast.error(t('staffHome.accountDeactivated'));
           await supabase.auth.signOut();
           navigate("/staff-login");
           return;
@@ -134,7 +136,7 @@ const StaffHome = () => {
       }
     } catch (error: any) {
       console.error("Failed to load data:", error);
-      toast.error("Failed to load data");
+      toast.error(t('staffHome.failedLoadData'));
     } finally {
       setIsLoading(false);
     }
@@ -241,9 +243,9 @@ const StaffHome = () => {
 
   const greeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t('staffHome.greeting.morning');
+    if (hour < 18) return t('staffHome.greeting.afternoon');
+    return t('staffHome.greeting.evening');
   };
 
   return (
@@ -256,7 +258,7 @@ const StaffHome = () => {
             {greeting()}, {employee?.full_name.split(' ')[0]}
           </h1>
           <p className="text-sm opacity-90">
-            {employee?.role} • {additionalLocationsCount > 0 ? "All Locations" : employee?.locations?.name}
+            {employee?.role} • {additionalLocationsCount > 0 ? t('staffHome.allLocations') : employee?.locations?.name}
           </p>
         </div>
       </div>
@@ -285,21 +287,21 @@ const StaffHome = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm font-semibold text-muted-foreground">TODAY'S SHIFT</span>
+                <span className="text-sm font-semibold text-muted-foreground">{t('staffHome.todaysShift')}</span>
               </div>
               <Badge variant={todayShift.approval_status === "pending" ? "secondary" : "default"}>
-                {todayShift.approval_status === "pending" ? "Pending Approval" : "Confirmed"}
+                {todayShift.approval_status === "pending" ? t('staffHome.pendingApproval') : t('staffHome.confirmed')}
               </Badge>
             </div>
             <div className="flex items-center gap-4 mb-3">
               <div className="text-center">
                 <div className="text-3xl font-bold">{todayShift.shifts.start_time.slice(0, 5)}</div>
-                <div className="text-xs text-muted-foreground">Start</div>
+                <div className="text-xs text-muted-foreground">{t('staffHome.start')}</div>
               </div>
               <div className="text-2xl text-muted-foreground">→</div>
               <div className="text-center">
                 <div className="text-3xl font-bold">{todayShift.shifts.end_time.slice(0, 5)}</div>
-                <div className="text-xs text-muted-foreground">End</div>
+                <div className="text-xs text-muted-foreground">{t('staffHome.end')}</div>
               </div>
             </div>
             <div className="mb-3">
@@ -322,16 +324,16 @@ const StaffHome = () => {
             )}
             {todayShift.approval_status === "pending" && (
               <div className="text-sm text-muted-foreground text-center py-2">
-                Awaiting manager approval
+                {t('staffHome.awaitingApproval')}
               </div>
             )}
           </Card>
         ) : !isManager ? (
           <Card className="p-6 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No shift scheduled for today</p>
+            <p className="text-sm text-muted-foreground">{t('staffHome.noShiftToday')}</p>
             <Button variant="link" className="mt-2" onClick={() => navigate("/staff/shift-pool")}>
-              Browse available shifts
+              {t('staffHome.browseShifts')}
             </Button>
           </Card>
         ) : null}
@@ -342,19 +344,19 @@ const StaffHome = () => {
             <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/schedule")}>
               <Calendar className="h-5 w-5 text-primary mb-2" />
               <div className="text-2xl font-bold">{upcomingShifts.length}</div>
-              <div className="text-xs text-muted-foreground">Upcoming Shifts</div>
+              <div className="text-xs text-muted-foreground">{t('staffHome.upcomingShifts')}</div>
             </Card>
             {!hideEarnings && (
               <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/earnings")}>
                 <Wallet className="h-5 w-5 text-primary mb-2" />
                 <div className="text-2xl font-bold">{earnings.thisWeek} Lei</div>
-                <div className="text-xs text-muted-foreground">This Week</div>
+                <div className="text-xs text-muted-foreground">{t('staffHome.thisWeek')}</div>
               </Card>
             )}
             <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors">
               <Trophy className="h-5 w-5 text-primary mb-2" />
               <div className="text-2xl font-bold">{myPerformanceScore !== null ? Math.round(myPerformanceScore) : '--'}</div>
-              <div className="text-xs text-muted-foreground">My Score</div>
+              <div className="text-xs text-muted-foreground">{t('staffHome.myScore')}</div>
             </Card>
           </div>
         )}
@@ -363,9 +365,9 @@ const StaffHome = () => {
         {!isManager && upcomingShifts.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Upcoming Shifts</h2>
+              <h2 className="font-semibold">{t('staffHome.upcomingShifts')}</h2>
               <Button variant="link" size="sm" onClick={() => navigate("/staff/schedule")}>
-                View All <ArrowRight className="h-3 w-3 ml-1" />
+                {t('staffHome.viewAll')} <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>
             <div className="space-y-2">
@@ -407,23 +409,23 @@ const StaffHome = () => {
 
         {/* Quick Actions */}
         <div>
-          <h2 className="font-semibold mb-3">Quick Actions</h2>
+          <h2 className="font-semibold mb-3">{t('staffHome.quickActions')}</h2>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/documents")}>
               <FileText className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Documents</span>
+              <span className="text-xs">{t('staffHome.documents')}</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/scan-voucher")}>
               <Gift className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Enter Voucher</span>
+              <span className="text-xs">{t('staffHome.enterVoucher')}</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/shift-pool")}>
               <Clock className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Claim Shift</span>
+              <span className="text-xs">{t('staffHome.claimShift')}</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/time-off")}>
               <Calendar className="h-6 w-6 mb-2 text-primary" />
-              <span className="text-xs">Request Time Off</span>
+              <span className="text-xs">{t('staffHome.requestTimeOff')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -436,7 +438,7 @@ const StaffHome = () => {
                 </Badge>
               )}
               <ListTodo className={`h-6 w-6 mb-2 ${activeTaskCount > 0 ? "text-primary" : "text-primary"}`} />
-              <span className="text-xs">My Tasks</span>
+              <span className="text-xs">{t('staffHome.myTasks')}</span>
             </Button>
           </div>
         </div>

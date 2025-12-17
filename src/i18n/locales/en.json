@@ -764,5 +764,33 @@
     "accountPaused": "Account Paused",
     "trialExpired": "Your free trial has expired. Please upgrade to a paid plan to continue using DashSpect.",
     "viewPricingPlans": "View Pricing Plans"
+  },
+  "staffHome": {
+    "failedLoadData": "Failed to load data",
+    "accountDeactivated": "Your account has been deactivated. Please contact your manager.",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "allLocations": "All Locations",
+    "todaysShift": "TODAY'S SHIFT",
+    "pendingApproval": "Pending Approval",
+    "confirmed": "Confirmed",
+    "start": "Start",
+    "end": "End",
+    "awaitingApproval": "Awaiting manager approval",
+    "noShiftToday": "No shift scheduled for today",
+    "browseShifts": "Browse available shifts",
+    "upcomingShifts": "Upcoming Shifts",
+    "viewAll": "View All",
+    "thisWeek": "This Week",
+    "myScore": "My Score",
+    "quickActions": "Quick Actions",
+    "documents": "Documents",
+    "enterVoucher": "Enter Voucher",
+    "claimShift": "Claim Shift",
+    "requestTimeOff": "Request Time Off",
+    "myTasks": "My Tasks"
   }
 }
