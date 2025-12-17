@@ -105,18 +105,12 @@ export default function StaffAudits() {
               {isNewReviewMode ? "Submit a new employee performance review" : "View and manage all employee performance audits"}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            {isNewReviewMode ? (
-              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/staff-audits')}>
-                View All Audits
-              </Button>
-            ) : (
-              <Button className="gap-2 w-full sm:w-auto" onClick={() => navigate('/staff-audits?review=new')}>
-                <Plus className="h-4 w-4" />
-                New Audit
-              </Button>
-            )}
-          </div>
+          {!isNewReviewMode && (
+            <Button className="gap-2 w-full sm:w-auto" onClick={() => navigate('/staff-audits?review=new')}>
+              <Plus className="h-4 w-4" />
+              New Audit
+            </Button>
+          )}
         </div>
 
         {isNewReviewMode ? (
