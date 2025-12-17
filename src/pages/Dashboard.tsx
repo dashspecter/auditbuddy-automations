@@ -75,8 +75,6 @@ const Dashboard = () => {
             <TabsTrigger value="dashboard">
               <TrendingUp className="h-4 w-4 mr-2" />
               {t('dashboard.title')}
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Dashboard
             </TabsTrigger>
           </TabsList>
 
