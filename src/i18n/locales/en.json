@@ -478,5 +478,209 @@
     "delete": "Are you sure you want to delete this?",
     "cancel": "Are you sure you want to cancel?",
     "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "landing": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "welcomeBack": "Welcome Back!",
+    "welcomeBackDesc": "Track your audit performance and manage compliance with ease.",
+    "heroTitle": "Complete Operations & Compliance Management Platform",
+    "heroDesc": "Streamline workforce scheduling, location audits, equipment maintenance, and compliance management — all in one powerful platform.",
+    "newAudit": "New Audit",
+    "viewDashboard": "View Dashboard",
+    "getStartedFree": "Get Started Free",
+    "learnMore": "Learn More",
+    "coreFeatures": {
+      "title": "Complete Operations Management Solution",
+      "subtitle": "Everything you need to manage locations, workforce, equipment, audits, and compliance"
+    },
+    "locationAudits": {
+      "title": "Location Audits",
+      "customTemplates": "Custom audit templates with scoring",
+      "photoDoc": "Photo documentation for evidence",
+      "recurringSchedules": "Recurring schedules & reminders",
+      "pdfReports": "PDF reports & analytics"
+    },
+    "workforceManagement": {
+      "title": "Workforce Management",
+      "shiftScheduling": "Shift scheduling & time tracking",
+      "qrClockIn": "QR clock-in/out & attendance",
+      "timeOffRequests": "Time-off requests & approvals",
+      "leaderboards": "Performance leaderboards"
+    },
+    "equipmentAssets": {
+      "title": "Equipment & Assets",
+      "inventory": "Equipment inventory by location",
+      "maintenance": "Maintenance scheduling",
+      "qrTracking": "QR code tracking",
+      "interventionHistory": "Intervention history & documents"
+    },
+    "analyticsInsights": {
+      "title": "Analytics & Insights",
+      "realTimeDashboards": "Real-time compliance dashboards",
+      "locationComparison": "Location performance comparison",
+      "aiInsights": "AI-powered insights",
+      "trendAnalysis": "Trend analysis & forecasting"
+    },
+    "industries": {
+      "title": "Perfect for Any Location-Based Business",
+      "subtitle": "Our platform adapts to your industry's unique compliance requirements",
+      "foodService": {
+        "title": "Food Service",
+        "desc": "Restaurants, cafes, fast food chains, food trucks, catering services"
+      },
+      "retail": {
+        "title": "Retail",
+        "desc": "Store chains, shopping centers, boutiques, supermarkets"
+      },
+      "hospitality": {
+        "title": "Hospitality",
+        "desc": "Hotels, resorts, vacation rentals, bed & breakfasts"
+      },
+      "healthcare": {
+        "title": "Healthcare",
+        "desc": "Clinics, dental offices, care facilities, medical practices"
+      },
+      "manufacturing": {
+        "title": "Manufacturing",
+        "desc": "Production facilities, warehouses, quality control departments"
+      },
+      "construction": {
+        "title": "Construction",
+        "desc": "Job sites, safety inspections, contractor management"
+      },
+      "propertyManagement": {
+        "title": "Property Management",
+        "desc": "Building inspections, maintenance audits, facility management"
+      },
+      "education": {
+        "title": "Education",
+        "desc": "Schools, universities, training centers, daycare facilities"
+      }
+    },
+    "features": {
+      "title": "Powerful Features Built for Scale",
+      "subtitle": "Enterprise-grade tools designed to help teams maintain standards across multiple locations. From single sites to hundreds of locations.",
+      "customTemplates": {
+        "title": "Custom Audit Templates",
+        "desc": "Design unlimited templates with custom sections, scoring rules, and field types. Clone and modify templates for different locations or inspection types."
+      },
+      "realTimeAnalytics": {
+        "title": "Real-Time Analytics",
+        "desc": "Live dashboards with performance trends, location comparisons, and section-level breakdowns. Identify issues before they become problems."
+      },
+      "roleBasedAccess": {
+        "title": "Role-Based Access Control",
+        "desc": "Granular permissions for admins, managers, checkers, and HR. Control who sees what data and who can perform which actions."
+      },
+      "automatedScheduling": {
+        "title": "Automated Scheduling",
+        "desc": "Set up recurring audits that run automatically. Never miss a compliance deadline with smart reminders and calendar integration."
+      },
+      "photoDocumentation": {
+        "title": "Photo Documentation",
+        "desc": "Capture and attach photos directly to audit responses. Build a visual history of compliance and issues across all locations."
+      },
+      "professionalReports": {
+        "title": "Professional Reports",
+        "desc": "Generate branded PDF reports with scores, photos, and detailed findings. Share with stakeholders or archive for compliance records."
+      },
+      "smartNotifications": {
+        "title": "Smart Notifications",
+        "desc": "Role-based alerts keep the right people informed. Recurring reminders, audit completion notices, and escalation workflows."
+      },
+      "equipmentManagement": {
+        "title": "Equipment Management",
+        "desc": "Track equipment across locations, schedule maintenance, and log interventions. Keep your assets running smoothly."
+      },
+      "auditTrail": {
+        "title": "Complete Audit Trail",
+        "desc": "Every change is logged with full revision history. Demonstrate compliance with complete transparency and accountability."
+      }
+    },
+    "teamMembers": {
+      "title": "Designed for Every Team Member",
+      "subtitle": "From executives needing oversight to field workers conducting inspections — everyone has the tools they need",
+      "administrators": {
+        "title": "Administrators",
+        "shortDesc": "Full system control and analytics",
+        "desc": "Complete control over templates, users, locations, and company-wide settings. Access comprehensive analytics, configure billing, manage modules, and set up integrations. The command center for your entire operation."
+      },
+      "managers": {
+        "title": "Managers",
+        "shortDesc": "Oversee locations and teams",
+        "desc": "Manage staff schedules, approve time-off requests, and monitor team performance. Conduct audits, assign tasks, and receive real-time notifications about their locations. The bridge between strategy and execution."
+      },
+      "checkers": {
+        "title": "Checkers & Inspectors",
+        "shortDesc": "Conduct audits on-site",
+        "desc": "Mobile-first experience for on-the-ground inspections. Complete checklists, capture photos, add observations, and submit findings in real-time. Works offline and syncs when connected."
+      },
+      "hrTeams": {
+        "title": "HR Teams",
+        "shortDesc": "Manage workforce compliance",
+        "desc": "Handle employee onboarding, track training completion, manage documents, and ensure workforce compliance. Access payroll data and performance reviews."
+      },
+      "staffMembers": {
+        "title": "Staff Members",
+        "shortDesc": "Self-service portal",
+        "desc": "View schedules, clock in/out, request time off, and swap shifts. Access training materials, complete assigned tests, and track their own performance."
+      }
+    },
+    "howItWorks": {
+      "title": "Get Started in Minutes",
+      "subtitle": "From signup to your first audit in under an hour. Our guided setup walks you through every step.",
+      "step1": {
+        "title": "Set Up Your Company",
+        "shortTitle": "Setup",
+        "desc": "Create your account, add your company details, and invite your team. Choose your industry to get pre-configured templates and settings tailored to your needs."
+      },
+      "step2": {
+        "title": "Add Locations & Staff",
+        "shortTitle": "Locations",
+        "desc": "Register your sites with addresses, managers, and operating hours. Import your employee list or add staff manually with their roles and assignments."
+      },
+      "step3": {
+        "title": "Create Your Templates",
+        "shortTitle": "Templates",
+        "desc": "Build custom audit checklists with sections, fields, and scoring. Use the template marketplace to find industry-specific templates or start from scratch."
+      },
+      "step4": {
+        "title": "Schedule Audits",
+        "shortTitle": "Schedule",
+        "desc": "Set up recurring audit schedules or create one-time inspections. Assign checkers, set due dates, and configure automatic reminders."
+      },
+      "step5": {
+        "title": "Conduct Inspections",
+        "shortTitle": "Inspect",
+        "desc": "Your team completes audits on mobile or desktop. Capture photos, add notes, and score each item. Results sync instantly to your dashboard."
+      },
+      "step6": {
+        "title": "Analyze & Improve",
+        "shortTitle": "Improve",
+        "desc": "Review performance trends, identify problem areas, and track improvements over time. Generate reports for stakeholders and regulatory compliance."
+      }
+    },
+    "cta": {
+      "startFreeTrial": "Start Your Free Trial",
+      "noCreditCard": "No credit card required"
+    },
+    "contact": {
+      "title": "Get Started Today",
+      "subtitle": "Ready to transform your operations and compliance process?",
+      "emailUs": "Email Us",
+      "callUs": "Call Us",
+      "readyToStart": "Ready to get started?",
+      "signUpFree": "Sign Up Free",
+      "alreadyHaveAccount": "Already have an account?"
+    },
+    "footer": {
+      "copyright": "© {{year}} Dashspect. All rights reserved."
+    }
+  },
+  "index": {
+    "accountPaused": "Account Paused",
+    "trialExpired": "Your free trial has expired. Please upgrade to a paid plan to continue using DashSpect.",
+    "viewPricingPlans": "View Pricing Plans"
   }
 }

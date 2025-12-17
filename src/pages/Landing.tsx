@@ -12,8 +12,10 @@ import { Header } from "@/components/Header";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { useTranslation } from "react-i18next";
 
 const Landing = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: allAudits, isLoading: auditsLoading } = useLocationAudits();
 
@@ -46,50 +48,50 @@ const Landing = () => {
   const industries = [
     {
       icon: UtensilsCrossed,
-      title: "Food Service",
-      description: "Restaurants, cafes, fast food chains, food trucks, catering services",
+      title: t('landing.industries.foodService.title'),
+      description: t('landing.industries.foodService.desc'),
       color: "text-orange-500"
     },
     {
       icon: ShoppingBag,
-      title: "Retail",
-      description: "Store chains, shopping centers, boutiques, supermarkets",
+      title: t('landing.industries.retail.title'),
+      description: t('landing.industries.retail.desc'),
       color: "text-blue-500"
     },
     {
       icon: Building,
-      title: "Hospitality",
-      description: "Hotels, resorts, vacation rentals, bed & breakfasts",
+      title: t('landing.industries.hospitality.title'),
+      description: t('landing.industries.hospitality.desc'),
       color: "text-purple-500"
     },
     {
       icon: Stethoscope,
-      title: "Healthcare",
-      description: "Clinics, dental offices, care facilities, medical practices",
+      title: t('landing.industries.healthcare.title'),
+      description: t('landing.industries.healthcare.desc'),
       color: "text-red-500"
     },
     {
       icon: Factory,
-      title: "Manufacturing",
-      description: "Production facilities, warehouses, quality control departments",
+      title: t('landing.industries.manufacturing.title'),
+      description: t('landing.industries.manufacturing.desc'),
       color: "text-slate-500"
     },
     {
       icon: HardHat,
-      title: "Construction",
-      description: "Job sites, safety inspections, contractor management",
+      title: t('landing.industries.construction.title'),
+      description: t('landing.industries.construction.desc'),
       color: "text-yellow-600"
     },
     {
       icon: Home,
-      title: "Property Management",
-      description: "Building inspections, maintenance audits, facility management",
+      title: t('landing.industries.propertyManagement.title'),
+      description: t('landing.industries.propertyManagement.desc'),
       color: "text-emerald-500"
     },
     {
       icon: GraduationCap,
-      title: "Education",
-      description: "Schools, universities, training centers, daycare facilities",
+      title: t('landing.industries.education.title'),
+      description: t('landing.industries.education.desc'),
       color: "text-indigo-500"
     }
   ];
@@ -97,120 +99,120 @@ const Landing = () => {
   const features = [
     {
       icon: ClipboardCheck,
-      title: "Custom Audit Templates",
-      description: "Design unlimited templates with custom sections, scoring rules, and field types. Clone and modify templates for different locations or inspection types."
+      title: t('landing.features.customTemplates.title'),
+      description: t('landing.features.customTemplates.desc')
     },
     {
       icon: BarChart3,
-      title: "Real-Time Analytics",
-      description: "Live dashboards with performance trends, location comparisons, and section-level breakdowns. Identify issues before they become problems."
+      title: t('landing.features.realTimeAnalytics.title'),
+      description: t('landing.features.realTimeAnalytics.desc')
     },
     {
       icon: Users,
-      title: "Role-Based Access Control",
-      description: "Granular permissions for admins, managers, checkers, and HR. Control who sees what data and who can perform which actions."
+      title: t('landing.features.roleBasedAccess.title'),
+      description: t('landing.features.roleBasedAccess.desc')
     },
     {
       icon: Calendar,
-      title: "Automated Scheduling",
-      description: "Set up recurring audits that run automatically. Never miss a compliance deadline with smart reminders and calendar integration."
+      title: t('landing.features.automatedScheduling.title'),
+      description: t('landing.features.automatedScheduling.desc')
     },
     {
       icon: Camera,
-      title: "Photo Documentation",
-      description: "Capture and attach photos directly to audit responses. Build a visual history of compliance and issues across all locations."
+      title: t('landing.features.photoDocumentation.title'),
+      description: t('landing.features.photoDocumentation.desc')
     },
     {
       icon: FileText,
-      title: "Professional Reports",
-      description: "Generate branded PDF reports with scores, photos, and detailed findings. Share with stakeholders or archive for compliance records."
+      title: t('landing.features.professionalReports.title'),
+      description: t('landing.features.professionalReports.desc')
     },
     {
       icon: Bell,
-      title: "Smart Notifications",
-      description: "Role-based alerts keep the right people informed. Recurring reminders, audit completion notices, and escalation workflows."
+      title: t('landing.features.smartNotifications.title'),
+      description: t('landing.features.smartNotifications.desc')
     },
     {
       icon: Wrench,
-      title: "Equipment Management",
-      description: "Track equipment across locations, schedule maintenance, and log interventions. Keep your assets running smoothly."
+      title: t('landing.features.equipmentManagement.title'),
+      description: t('landing.features.equipmentManagement.desc')
     },
     {
       icon: Lock,
-      title: "Complete Audit Trail",
-      description: "Every change is logged with full revision history. Demonstrate compliance with complete transparency and accountability."
+      title: t('landing.features.auditTrail.title'),
+      description: t('landing.features.auditTrail.desc')
     }
   ];
 
   const teamMembers = [
     {
       icon: Shield,
-      title: "Administrators",
-      shortDesc: "Full system control and analytics",
-      description: "Complete control over templates, users, locations, and company-wide settings. Access comprehensive analytics, configure billing, manage modules, and set up integrations. The command center for your entire operation."
+      title: t('landing.teamMembers.administrators.title'),
+      shortDesc: t('landing.teamMembers.administrators.shortDesc'),
+      description: t('landing.teamMembers.administrators.desc')
     },
     {
       icon: Users,
-      title: "Managers",
-      shortDesc: "Oversee locations and teams",
-      description: "Manage staff schedules, approve time-off requests, and monitor team performance. Conduct audits, assign tasks, and receive real-time notifications about their locations. The bridge between strategy and execution."
+      title: t('landing.teamMembers.managers.title'),
+      shortDesc: t('landing.teamMembers.managers.shortDesc'),
+      description: t('landing.teamMembers.managers.desc')
     },
     {
       icon: ClipboardCheck,
-      title: "Checkers & Inspectors",
-      shortDesc: "Conduct audits on-site",
-      description: "Mobile-first experience for on-the-ground inspections. Complete checklists, capture photos, add observations, and submit findings in real-time. Works offline and syncs when connected."
+      title: t('landing.teamMembers.checkers.title'),
+      shortDesc: t('landing.teamMembers.checkers.shortDesc'),
+      description: t('landing.teamMembers.checkers.desc')
     },
     {
       icon: UserCheck,
-      title: "HR Teams",
-      shortDesc: "Manage workforce compliance",
-      description: "Handle employee onboarding, track training completion, manage documents, and ensure workforce compliance. Access payroll data and performance reviews."
+      title: t('landing.teamMembers.hrTeams.title'),
+      shortDesc: t('landing.teamMembers.hrTeams.shortDesc'),
+      description: t('landing.teamMembers.hrTeams.desc')
     },
     {
       icon: Award,
-      title: "Staff Members",
-      shortDesc: "Self-service portal",
-      description: "View schedules, clock in/out, request time off, and swap shifts. Access training materials, complete assigned tests, and track their own performance."
+      title: t('landing.teamMembers.staffMembers.title'),
+      shortDesc: t('landing.teamMembers.staffMembers.shortDesc'),
+      description: t('landing.teamMembers.staffMembers.desc')
     }
   ];
 
   const steps = [
     {
       number: "1",
-      title: "Set Up Your Company",
-      shortTitle: "Setup",
-      description: "Create your account, add your company details, and invite your team. Choose your industry to get pre-configured templates and settings tailored to your needs."
+      title: t('landing.howItWorks.step1.title'),
+      shortTitle: t('landing.howItWorks.step1.shortTitle'),
+      description: t('landing.howItWorks.step1.desc')
     },
     {
       number: "2",
-      title: "Add Locations & Staff",
-      shortTitle: "Locations",
-      description: "Register your sites with addresses, managers, and operating hours. Import your employee list or add staff manually with their roles and assignments."
+      title: t('landing.howItWorks.step2.title'),
+      shortTitle: t('landing.howItWorks.step2.shortTitle'),
+      description: t('landing.howItWorks.step2.desc')
     },
     {
       number: "3",
-      title: "Create Your Templates",
-      shortTitle: "Templates",
-      description: "Build custom audit checklists with sections, fields, and scoring. Use the template marketplace to find industry-specific templates or start from scratch."
+      title: t('landing.howItWorks.step3.title'),
+      shortTitle: t('landing.howItWorks.step3.shortTitle'),
+      description: t('landing.howItWorks.step3.desc')
     },
     {
       number: "4",
-      title: "Schedule Audits",
-      shortTitle: "Schedule",
-      description: "Set up recurring audit schedules or create one-time inspections. Assign checkers, set due dates, and configure automatic reminders."
+      title: t('landing.howItWorks.step4.title'),
+      shortTitle: t('landing.howItWorks.step4.shortTitle'),
+      description: t('landing.howItWorks.step4.desc')
     },
     {
       number: "5",
-      title: "Conduct Inspections",
-      shortTitle: "Inspect",
-      description: "Your team completes audits on mobile or desktop. Capture photos, add notes, and score each item. Results sync instantly to your dashboard."
+      title: t('landing.howItWorks.step5.title'),
+      shortTitle: t('landing.howItWorks.step5.shortTitle'),
+      description: t('landing.howItWorks.step5.desc')
     },
     {
       number: "6",
-      title: "Analyze & Improve",
-      shortTitle: "Improve",
-      description: "Review performance trends, identify problem areas, and track improvements over time. Generate reports for stakeholders and regulatory compliance."
+      title: t('landing.howItWorks.step6.title'),
+      shortTitle: t('landing.howItWorks.step6.shortTitle'),
+      description: t('landing.howItWorks.step6.desc')
     }
   ];
 
@@ -232,10 +234,10 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-2">
               <Link to="/auth">
-                <Button variant="outline">Sign In</Button>
+                <Button variant="outline">{t('landing.signIn')}</Button>
               </Link>
               <Link to="/auth">
-                <Button>Sign Up</Button>
+                <Button>{t('landing.signUp')}</Button>
               </Link>
             </div>
           </div>
@@ -246,13 +248,10 @@ const Landing = () => {
       <section className="container mx-auto px-4 px-safe py-8 md:py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6">
-            {user ? `Welcome Back!` : `Complete Operations & Compliance Management Platform`}
+            {user ? t('landing.welcomeBack') : t('landing.heroTitle')}
           </h1>
           <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-2xl mx-auto">
-            {user 
-              ? `Track your audit performance and manage compliance with ease.`
-              : `Streamline workforce scheduling, location audits, equipment maintenance, and compliance management — all in one powerful platform.`
-            }
+            {user ? t('landing.welcomeBackDesc') : t('landing.heroDesc')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
@@ -260,12 +259,12 @@ const Landing = () => {
                 <Link to="/location-audit">
                   <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
                     <Plus className="h-5 w-5 mr-2" />
-                    New Audit
+                    {t('landing.newAudit')}
                   </Button>
                 </Link>
                 <Link to="/dashboard">
                   <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
-                    View Dashboard
+                    {t('landing.viewDashboard')}
                   </Button>
                 </Link>
               </>
@@ -273,12 +272,12 @@ const Landing = () => {
               <>
                 <Link to="/auth">
                   <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                    Get Started Free
+                    {t('landing.getStartedFree')}
                   </Button>
                 </Link>
                 <a href="#features">
                   <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
-                    Learn More
+                    {t('landing.learnMore')}
                   </Button>
                 </a>
               </>
