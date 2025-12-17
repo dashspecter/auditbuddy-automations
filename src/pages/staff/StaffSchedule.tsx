@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffSchedule = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: roleData } = useUserRole();
   const [employee, setEmployee] = useState<any>(null);
@@ -55,7 +57,7 @@ const StaffSchedule = () => {
 
       if (error) {
         console.error("Error loading employee:", error);
-        toast.error("Failed to load schedule");
+        toast.error(t('staffSchedule.failedLoadSchedule'));
         return;
       }
 
@@ -113,7 +115,7 @@ const StaffSchedule = () => {
       }
     } catch (error) {
       console.error("Failed to load schedule:", error);
-      toast.error("Failed to load schedule");
+      toast.error(t('staffSchedule.failedLoadSchedule'));
     } finally {
       setIsLoading(false);
     }
@@ -283,7 +285,7 @@ const StaffSchedule = () => {
         setColleagues(data || []);
       } catch (error) {
         console.error("Error loading colleagues:", error);
-        toast.error("Failed to load colleagues");
+        toast.error(t('staffSchedule.failedLoadColleagues'));
       }
     }
   };
@@ -308,7 +310,7 @@ const StaffSchedule = () => {
 
       if (error) throw error;
       
-      toast.success("Shift offered successfully! Other employees can now claim it.");
+      toast.success(t('staffSchedule.shiftOfferedSuccess'));
       setOfferDialogOpen(false);
       setOfferNote("");
       
@@ -318,7 +320,7 @@ const StaffSchedule = () => {
       }
     } catch (error: any) {
       console.error("Error offering shift:", error);
-      toast.error("Failed to offer shift: " + error.message);
+      toast.error(t('staffSchedule.failedOfferShift') + ": " + error.message);
     }
   };
 
@@ -358,9 +360,9 @@ const StaffSchedule = () => {
       if (error) throw error;
 
       if (requiresManagerApproval) {
-        toast.success("Swap request sent! Manager approval is required for different roles.");
+        toast.success(t('staffSchedule.swapSentManagerApproval'));
       } else {
-        toast.success("Swap request sent! The colleague will be notified.");
+        toast.success(t('staffSchedule.swapSentSuccess'));
       }
       
       setSwapDialogOpen(false);
@@ -368,7 +370,7 @@ const StaffSchedule = () => {
       setSwapNote("");
     } catch (error: any) {
       console.error("Error creating swap request:", error);
-      toast.error("Failed to create swap request: " + error.message);
+      toast.error(t('staffSchedule.failedCreateSwap') + ": " + error.message);
     }
   };
 
@@ -423,16 +425,16 @@ const StaffSchedule = () => {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="my" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  My Schedule
+                  {t('staffSchedule.mySchedule')}
                 </TabsTrigger>
                 <TabsTrigger value="location" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Location
+                  {t('staffSchedule.location')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           ) : (
-            <h1 className="text-xl font-bold mb-3">My Schedule</h1>
+            <h1 className="text-xl font-bold mb-3">{t('staffSchedule.mySchedule')}</h1>
           )}
           
           {/* Week Navigation */}
@@ -467,11 +469,11 @@ const StaffSchedule = () => {
           ) : (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
-                Today
+                {t('staffSchedule.today')}
               </Button>
               <Button variant="outline" size="sm">
                 <Share className="h-4 w-4 mr-2" />
-                Export
+                {t('staffSchedule.export')}
               </Button>
             </div>
           )}
@@ -506,7 +508,7 @@ const StaffSchedule = () => {
                 <div className="space-y-2">
                   {dayShifts.length === 0 ? (
                     <Card className="p-3 text-center text-sm text-muted-foreground">
-                      No shifts scheduled
+                      {t('staffSchedule.noShiftsScheduled')}
                     </Card>
                   ) : (
                     dayShifts.map((shift) => (
@@ -534,7 +536,7 @@ const StaffSchedule = () => {
                                 </div>
                               ))
                             ) : (
-                              <span className="text-base text-muted-foreground italic font-medium">Unassigned</span>
+                              <span className="text-base text-muted-foreground italic font-medium">{t('staffSchedule.unassigned')}</span>
                             )}
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                               <span className="font-medium">{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</span>
@@ -558,8 +560,8 @@ const StaffSchedule = () => {
           {daysWithShifts.length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No shifts scheduled this week</p>
-              <p className="text-sm text-muted-foreground mt-1">Check back later or browse the shift pool</p>
+              <p className="text-muted-foreground">{t('staffSchedule.noShiftsThisWeek')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('staffSchedule.checkBackLater')}</p>
             </Card>
           ) : (
             daysWithShifts.map((day) => {
@@ -577,7 +579,7 @@ const StaffSchedule = () => {
                       <div className="font-semibold">{format(day, "EEEE")}</div>
                       <div className="text-sm text-muted-foreground">{format(day, "MMM d")}</div>
                     </div>
-                    {isToday && <Badge>Today</Badge>}
+                    {isToday && <Badge>{t('staffSchedule.today')}</Badge>}
                   </div>
 
                   <div className="space-y-2">
@@ -589,11 +591,11 @@ const StaffSchedule = () => {
                           </span>
                           <div className="flex gap-2">
                             {assignment.approval_status === "pending" && (
-                              <Badge variant="outline" className="text-xs">Pending</Badge>
+                              <Badge variant="outline" className="text-xs">{t('staffSchedule.pending')}</Badge>
                             )}
                             {assignment.status === "offered" && (
                               <Badge className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                                Offered
+                                {t('staffSchedule.offered')}
                               </Badge>
                             )}
                             <Badge variant="secondary">{assignment.shifts.role}</Badge>
@@ -609,19 +611,19 @@ const StaffSchedule = () => {
                               : "bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400"
                           }`}>
                             {dayStr < today 
-                              ? "Shift expired - was not claimed"
-                              : "Waiting for someone to claim this shift"
+                              ? t('staffSchedule.shiftExpiredNotClaimed')
+                              : t('staffSchedule.waitingForClaim')
                             }
                             {assignment.notes && (
-                              <div className="mt-1 text-muted-foreground">Note: {assignment.notes}</div>
+                              <div className="mt-1 text-muted-foreground">{t('staffSchedule.note')}: {assignment.notes}</div>
                             )}
                           </div>
                         )}
                         {assignment.approval_status === "approved" && assignment.status !== "offered" && (
                           dayStr < today ? (
                             <div className="mt-3 p-2 border rounded text-xs bg-muted/50 border-muted text-muted-foreground flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">Completed</Badge>
-                              <span>This shift has ended</span>
+                              <Badge variant="secondary" className="text-xs">{t('staffSchedule.completed')}</Badge>
+                              <span>{t('staffSchedule.shiftEnded')}</span>
                             </div>
                           ) : (
                             <div className="flex gap-2 mt-3">
@@ -632,7 +634,7 @@ const StaffSchedule = () => {
                                 onClick={() => handleOfferShift(assignment)}
                               >
                                 <Share className="h-3 w-3 mr-1" />
-                                Offer
+                                {t('staffSchedule.offer')}
                               </Button>
                               <Button 
                                 variant="outline" 
@@ -641,7 +643,7 @@ const StaffSchedule = () => {
                                 onClick={() => handleSwapShift(assignment)}
                               >
                                 <RefreshCw className="h-3 w-3 mr-1" />
-                                Swap
+                                {t('staffSchedule.swap')}
                               </Button>
                             </div>
                           )
@@ -662,9 +664,9 @@ const StaffSchedule = () => {
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Offer Shift</DialogTitle>
+            <DialogTitle>{t('staffSchedule.offerShift')}</DialogTitle>
             <DialogDescription>
-              Make this shift available for other employees to claim.
+              {t('staffSchedule.offerShiftDesc')}
             </DialogDescription>
           </DialogHeader>
           {selectedShift && (
@@ -682,10 +684,10 @@ const StaffSchedule = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="offer-note">Note (optional)</Label>
+                <Label htmlFor="offer-note">{t('staffSchedule.noteOptional')}</Label>
                 <Textarea
                   id="offer-note"
-                  placeholder="Add any details about this shift..."
+                  placeholder={t('staffSchedule.addDetailsPlaceholder')}
                   value={offerNote}
                   onChange={(e) => setOfferNote(e.target.value)}
                   rows={3}
@@ -694,10 +696,10 @@ const StaffSchedule = () => {
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setOfferDialogOpen(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={submitOfferShift}>
-                  Offer Shift
+                  {t('staffSchedule.offerShift')}
                 </Button>
               </div>
             </div>
@@ -709,15 +711,15 @@ const StaffSchedule = () => {
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Swap Shift</DialogTitle>
+            <DialogTitle>{t('staffSchedule.swapShift')}</DialogTitle>
             <DialogDescription>
-              Select a colleague to request a shift swap with.
+              {t('staffSchedule.swapShiftDesc')}
             </DialogDescription>
           </DialogHeader>
           {selectedShift && (
             <div className="space-y-4">
               <div className="bg-muted p-3 rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Your Shift</div>
+                <div className="text-xs text-muted-foreground mb-1">{t('staffSchedule.yourShift')}</div>
                 <div className="font-medium">
                   {format(new Date(selectedShift.shifts.shift_date), "EEEE, MMMM d")}
                 </div>
@@ -730,10 +732,10 @@ const StaffSchedule = () => {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Select Colleague</label>
+                <label className="text-sm font-medium mb-2 block">{t('staffSchedule.selectColleague')}</label>
                 {colleagues.length === 0 ? (
                   <div className="text-sm text-muted-foreground p-4 text-center bg-muted rounded-lg">
-                    No colleagues available
+                    {t('staffSchedule.noColleaguesAvailable')}
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -780,11 +782,11 @@ const StaffSchedule = () => {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Note (Optional)</label>
+                <label className="text-sm font-medium mb-2 block">{t('staffSchedule.noteOptional')}</label>
                 <textarea
                   value={swapNote}
                   onChange={(e) => setSwapNote(e.target.value)}
-                  placeholder="Add a message for your colleague..."
+                  placeholder={t('staffSchedule.addMessagePlaceholder')}
                   className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -799,14 +801,14 @@ const StaffSchedule = () => {
                     setSwapNote("");
                   }}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button 
                   className="flex-1" 
                   onClick={submitSwapRequest}
                   disabled={!selectedColleague}
                 >
-                  Send Request
+                  {t('staffSchedule.sendRequest')}
                 </Button>
               </div>
             </div>
