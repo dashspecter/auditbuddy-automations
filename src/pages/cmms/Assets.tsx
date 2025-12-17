@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, MapPin, Wrench, AlertTriangle } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,8 +32,7 @@ export default function Assets() {
   }, [assets, searchQuery]);
 
   return (
-    <AppLayout>
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">Assets</h1>
@@ -165,13 +163,12 @@ export default function Assets() {
               </Table>
             )}
           </CardContent>
-        </Card>
-      </div>
+      </Card>
 
       <NewAssetDialog
         open={isNewDialogOpen}
         onOpenChange={setIsNewDialogOpen}
       />
-    </AppLayout>
+    </div>
   );
 }

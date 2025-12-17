@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Plus, Search, Filter, SlidersHorizontal } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,14 +53,14 @@ export default function WorkOrders() {
     status: wo.status as any,
     priority: wo.priority as any,
     due_at: wo.due_at,
-    asset_name: null, // Would come from join
-    location_name: null, // Would come from join
-    assigned_user_name: null, // Would come from join
+    asset_name: null,
+    location_name: null,
+    assigned_user_name: null,
   });
 
   return (
-    <AppLayout>
-      <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <>
+      <div className="h-[calc(100vh-8rem)] flex flex-col">
         {/* Top Bar */}
         <div className="p-4 border-b bg-background">
           <div className="flex items-center justify-between gap-4">
@@ -165,7 +164,7 @@ export default function WorkOrders() {
 
           {/* Middle Column - Work Order Detail */}
           <div className="flex-1 border-r overflow-hidden">
-          {selectedWorkOrder ? (
+            {selectedWorkOrder ? (
               <WorkOrderDetail workOrder={selectedWorkOrder} />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -195,6 +194,6 @@ export default function WorkOrders() {
         open={isNewDialogOpen}
         onOpenChange={setIsNewDialogOpen}
       />
-    </AppLayout>
+    </>
   );
 }
