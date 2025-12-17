@@ -291,10 +291,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-              Complete Operations Management Solution
+              {t('landing.coreFeatures.title')}
             </h2>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to manage locations, workforce, equipment, audits, and compliance
+              {t('landing.coreFeatures.subtitle')}
             </p>
           </div>
 
@@ -305,24 +305,24 @@ const Landing = () => {
                   <div className="bg-primary/10 rounded-lg p-2">
                     <ClipboardCheck className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground">Location Audits</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">{t('landing.locationAudits.title')}</h3>
                 </div>
                 <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Custom audit templates with scoring</span>
+                    <span>{t('landing.locationAudits.customTemplates')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Photo documentation for evidence</span>
+                    <span>{t('landing.locationAudits.photoDoc')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Recurring schedules & reminders</span>
+                    <span>{t('landing.locationAudits.recurringSchedules')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>PDF reports & analytics</span>
+                    <span>{t('landing.locationAudits.pdfReports')}</span>
                   </li>
                 </ul>
               </CardContent>
@@ -334,24 +334,24 @@ const Landing = () => {
                   <div className="bg-primary/10 rounded-lg p-2">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground">Workforce Management</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">{t('landing.workforceManagement.title')}</h3>
                 </div>
                 <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Shift scheduling & time tracking</span>
+                    <span>{t('landing.workforceManagement.shiftScheduling')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>QR clock-in/out & attendance</span>
+                    <span>{t('landing.workforceManagement.qrClockIn')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Time-off requests & approvals</span>
+                    <span>{t('landing.workforceManagement.timeOffRequests')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Performance leaderboards</span>
+                    <span>{t('landing.workforceManagement.leaderboards')}</span>
                   </li>
                 </ul>
               </CardContent>
@@ -363,24 +363,24 @@ const Landing = () => {
                   <div className="bg-primary/10 rounded-lg p-2">
                     <Wrench className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground">Equipment & Assets</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">{t('landing.equipmentAssets.title')}</h3>
                 </div>
                 <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Equipment inventory by location</span>
+                    <span>{t('landing.equipmentAssets.inventory')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Maintenance scheduling</span>
+                    <span>{t('landing.equipmentAssets.maintenance')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>QR code tracking</span>
+                    <span>{t('landing.equipmentAssets.qrTracking')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Intervention history & documents</span>
+                    <span>{t('landing.equipmentAssets.interventionHistory')}</span>
                   </li>
                 </ul>
               </CardContent>
@@ -392,24 +392,24 @@ const Landing = () => {
                   <div className="bg-primary/10 rounded-lg p-2">
                     <TrendingUp className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground">Analytics & Insights</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground">{t('landing.analyticsInsights.title')}</h3>
                 </div>
                 <ul className="space-y-2 md:space-y-3 text-sm md:text-base text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Real-time compliance dashboards</span>
+                    <span>{t('landing.analyticsInsights.realTimeDashboards')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Location performance comparison</span>
+                    <span>{t('landing.analyticsInsights.locationComparison')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>AI-powered insights</span>
+                    <span>{t('landing.analyticsInsights.aiInsights')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Trend analysis & forecasting</span>
+                    <span>{t('landing.analyticsInsights.trendAnalysis')}</span>
                   </li>
                 </ul>
               </CardContent>
@@ -423,10 +423,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-8 md:mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-              Perfect for Any Location-Based Business
+              {t('landing.industries.title')}
             </h2>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              Our platform adapts to your industry's unique compliance requirements
+              {t('landing.industries.subtitle')}
             </p>
           </div>
 
@@ -453,10 +453,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-              Powerful Features Built for Scale
+              {t('landing.features.title')}
             </h2>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              Enterprise-grade tools designed to help teams maintain standards across multiple locations. From single sites to hundreds of locations.
+              {t('landing.features.subtitle')}
             </p>
           </div>
 
@@ -483,10 +483,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-              Designed for Every Team Member
+              {t('landing.teamMembers.title')}
             </h2>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              From executives needing oversight to field workers conducting inspections — everyone has the tools they need
+              {t('landing.teamMembers.subtitle')}
             </p>
           </div>
 
@@ -514,10 +514,10 @@ const Landing = () => {
         <div className="container mx-auto px-4 px-safe">
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-              Get Started in Minutes
+              {t('landing.howItWorks.title')}
             </h2>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              From signup to your first audit in under an hour. Our guided setup walks you through every step.
+              {t('landing.howItWorks.subtitle')}
             </p>
           </div>
 
@@ -545,10 +545,10 @@ const Landing = () => {
             <Link to="/auth">
               <Button size="lg" className="min-h-[48px]">
                 <Zap className="h-5 w-5 mr-2" />
-                Start Your Free Trial
+                {t('landing.cta.startFreeTrial')}
               </Button>
             </Link>
-            <p className="text-sm text-muted-foreground mt-2">No credit card required</p>
+            <p className="text-sm text-muted-foreground mt-2">{t('landing.cta.noCreditCard')}</p>
           </div>
         </div>
       </section>
@@ -559,10 +559,10 @@ const Landing = () => {
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-6 md:mb-12">
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
-                Get Started Today
+                {t('landing.contact.title')}
               </h2>
               <p className="text-sm md:text-base md:text-lg text-muted-foreground">
-                Ready to transform your operations and compliance process?
+                {t('landing.contact.subtitle')}
               </p>
             </div>
 
@@ -573,7 +573,7 @@ const Landing = () => {
                     <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
                       <Mail className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
                     </div>
-                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Email Us</h3>
+                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{t('landing.contact.emailUs')}</h3>
                     <a 
                       href="mailto:alex@grecea.work" 
                       className="text-primary hover:underline text-sm md:text-lg"
@@ -586,7 +586,7 @@ const Landing = () => {
                     <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
                       <Phone className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
                     </div>
-                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Call Us</h3>
+                    <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">{t('landing.contact.callUs')}</h3>
                     <a 
                       href="tel:+40741427777" 
                       className="text-primary hover:underline text-sm md:text-lg"
@@ -599,21 +599,21 @@ const Landing = () => {
                 <div className="mt-6 md:mt-8 text-center space-y-4">
                   <div>
                     <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
-                      Ready to get started?
+                      {t('landing.contact.readyToStart')}
                     </p>
                     <Link to="/auth">
                       <Button size="lg" className="min-h-[44px] md:min-h-[48px]">
-                        Sign Up Free
+                        {t('landing.contact.signUpFree')}
                       </Button>
                     </Link>
                   </div>
                   <div>
                     <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
-                      Already have an account?
+                      {t('landing.contact.alreadyHaveAccount')}
                     </p>
                     <Link to="/auth">
                       <Button size="lg" variant="outline" className="min-h-[44px] md:min-h-[48px]">
-                        Sign In
+                        {t('landing.signIn')}
                       </Button>
                     </Link>
                   </div>
@@ -627,7 +627,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t border-border py-8 pb-safe">
         <div className="container mx-auto px-4 px-safe text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Dashspect. All rights reserved.</p>
+          <p>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</p>
         </div>
       </footer>
     </div>
