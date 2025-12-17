@@ -38,6 +38,14 @@ const StaffHome = () => {
   const [companyRole, setCompanyRole] = useState<string | null>(null);
   const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
   const [hideEarnings, setHideEarnings] = useState(false);
+
+  // Redirect desktop users to dashboard - staff pages are mobile-only
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 1024;
+    if (isDesktop) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
   
   // Date range for performance - this month
   const dateRange = useMemo(() => {
