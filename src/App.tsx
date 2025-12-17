@@ -70,6 +70,7 @@ import CmmsVendors from "./pages/cmms/Vendors";
 import CmmsTeams from "./pages/cmms/Teams";
 import CmmsDashboard from "./pages/cmms/CmmsDashboard";
 import CmmsReporting from "./pages/cmms/CmmsReporting";
+import CmmsOverview from "./pages/cmms/CmmsOverview";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
@@ -274,6 +275,7 @@ const App = () => (
               
               {/* CMMS Industrial Routes */}
               <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
+              <Route path="/cmms/overview" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
               <Route path="/cmms/work-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsWorkOrders /></ManagerRoute>} />
               <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
               <Route path="/cmms/assets/:id" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssetDetail /></ManagerRoute>} />

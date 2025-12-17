@@ -139,6 +139,7 @@ const navigationItems = [
     module: null,
     allowedRoles: ['admin', 'manager'],
     subItems: [
+      { title: "Overview", url: "/cmms/overview" },
       { title: "Dashboard", url: "/cmms" },
       { title: "Assets", url: "/cmms/assets" },
       { title: "Work Orders", url: "/cmms/work-orders" },
