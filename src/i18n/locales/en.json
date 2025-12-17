@@ -1,0 +1,482 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "view": "View",
+    "done": "Done",
+    "new": "New",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "noData": "No data",
+    "all": "All",
+    "select": "Select",
+    "selectAll": "Select All",
+    "none": "None",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "time": "Time",
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "notes": "Notes",
+    "active": "Active",
+    "inactive": "Inactive",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "required": "Required",
+    "optional": "Optional",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload",
+    "refresh": "Refresh",
+    "language": "Language",
+    "settings": "Settings"
+  },
+  
+  "nav": {
+    "dashboard": "Dashboard",
+    "overview": "Overview",
+    "audits": "Audits",
+    "templates": "Templates",
+    "calendar": "Calendar",
+    "schedules": "Schedules",
+    "reports": "Reports",
+    "tasks": "Tasks",
+    "equipment": "Equipment",
+    "locations": "Locations",
+    "workforce": "Workforce",
+    "staff": "Staff",
+    "shifts": "Shifts",
+    "attendance": "Attendance",
+    "timeOff": "Time Off",
+    "payroll": "Payroll",
+    "cmms": "CMMS",
+    "workOrders": "Work Orders",
+    "assets": "Assets",
+    "pmSchedules": "PM Schedules",
+    "procedures": "Procedures",
+    "partsInventory": "Parts Inventory",
+    "purchaseOrders": "Purchase Orders",
+    "vendors": "Vendors",
+    "teams": "Teams",
+    "operations": "Operations",
+    "dailyOps": "Daily Ops",
+    "notifications": "Notifications",
+    "documents": "Documents",
+    "training": "Training",
+    "tests": "Tests",
+    "integrations": "Integrations",
+    "settings": "Settings",
+    "users": "Users",
+    "roles": "Roles",
+    "company": "Company"
+  },
+  
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signUp": "Sign Up",
+    "signIn": "Sign In",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "rememberMe": "Remember Me",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "sessionExpired": "Session Expired",
+    "sessionExpiredMsg": "You have been logged out due to inactivity.",
+    "profileSettings": "Profile Settings"
+  },
+  
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "overview": "Overview",
+    "recentAudits": "Recent Audits",
+    "pendingTasks": "Pending Tasks",
+    "upcomingShifts": "Upcoming Shifts",
+    "quickActions": "Quick Actions",
+    "stats": {
+      "totalAudits": "Total Audits",
+      "completedTasks": "Completed Tasks",
+      "activeStaff": "Active Staff",
+      "equipment": "Equipment"
+    }
+  },
+  
+  "cmms": {
+    "title": "CMMS",
+    "subtitle": "Maintenance & Asset Management System",
+    "description": "Plan, execute, track, and prove maintenance across all your equipment and locations.",
+    "fullDescription": "CMMS (Computerized Maintenance Management System) helps you prevent breakdowns, standardize work, control costs, and stay compliant — all in one place.",
+    "overview": {
+      "title": "CMMS Overview",
+      "goToDashboard": "Go to Dashboard",
+      "viewWorkOrders": "View Work Orders"
+    },
+    "whyMatters": {
+      "title": "Why CMMS matters",
+      "downtime": {
+        "title": "Equipment downtime",
+        "description": "Unexpected failures cost time and money. CMMS helps prevent breakdowns with scheduled maintenance."
+      },
+      "visibility": {
+        "title": "No visibility",
+        "description": "Without structure, it's impossible to know what's done, overdue, or critical. CMMS gives real-time visibility across all locations."
+      },
+      "consistency": {
+        "title": "Inconsistent work",
+        "description": "Different people, different standards. CMMS enforces procedures and checklists every time."
+      },
+      "audits": {
+        "title": "Audits & contracts",
+        "description": "\"Show me proof.\" CMMS provides history, reports, and evidence for audits and clients."
+      }
+    },
+    "howItWorks": {
+      "title": "How CMMS works",
+      "assets": {
+        "title": "Assets",
+        "description": "Register all equipment with location, criticality, and QR codes."
+      },
+      "workOrders": {
+        "title": "Work Orders",
+        "description": "Create tasks manually, from requests, or automatically from schedules."
+      },
+      "procedures": {
+        "title": "Procedures & Checklists",
+        "description": "Guide technicians step-by-step and capture proof of work."
+      },
+      "pm": {
+        "title": "Preventive Maintenance",
+        "description": "Automatically generate work orders on a schedule or usage."
+      },
+      "parts": {
+        "title": "Parts & Inventory",
+        "description": "Track spare parts, consumption, and restocking."
+      },
+      "reports": {
+        "title": "Reports & History",
+        "description": "Analyze performance, costs, compliance, and downtime."
+      },
+      "note": "Every action is logged, traceable, and linked to assets and people."
+    },
+    "modules": {
+      "title": "CMMS Modules",
+      "assets": "Central registry of all equipment, locations, and QR codes.",
+      "workOrders": "Create, assign, track, and complete maintenance tasks.",
+      "pmSchedules": "Preventive maintenance plans that auto-generate work orders.",
+      "procedures": "Standard operating procedures and inspection checklists.",
+      "partsInventory": "Track stock levels, consumption, and low-stock alerts.",
+      "purchaseOrders": "Order and receive parts from vendors.",
+      "teams": "Organize technicians and responsibilities.",
+      "vendors": "Manage external contractors and suppliers.",
+      "reports": "Performance, compliance, costs, and audit-ready history."
+    },
+    "whoFor": {
+      "title": "Who CMMS is for",
+      "operations": {
+        "title": "Operations Managers",
+        "description": "Control maintenance, reduce downtime, and see what's happening in real time."
+      },
+      "technicians": {
+        "title": "Technicians & Teams",
+        "description": "Clear tasks, clear instructions, mobile-first execution."
+      },
+      "auditors": {
+        "title": "Auditors & Management",
+        "description": "Proof of work, traceability, and reports — without manual effort."
+      }
+    },
+    "useCases": {
+      "title": "Common use cases",
+      "hvac": "Monthly HVAC inspections",
+      "forklift": "Forklift preventive maintenance",
+      "fire": "Fire extinguisher checks",
+      "kitchen": "Kitchen equipment servicing",
+      "warehouse": "Warehouse equipment tracking",
+      "multiLocation": "Multi-location franchise maintenance"
+    },
+    "why": {
+      "title": "Why Dashspect CMMS",
+      "multiLocation": "Built for multi-location operations",
+      "mobilFirst": "Mobile-first for technicians",
+      "auditReady": "Audit-ready by default",
+      "enterprise": "Designed to scale to enterprise & industrial contracts",
+      "integrations": "Integrates with Dashspect Ops & AI layers"
+    },
+    "getStarted": {
+      "title": "Get started",
+      "viewDashboard": "View Dashboard",
+      "addFirstAsset": "Add Your First Asset",
+      "createWorkOrder": "Create a Work Order",
+      "setupPM": "Set Up Preventive Maintenance",
+      "hint": "Most teams start by adding assets, then creating their first preventive maintenance plan."
+    },
+    "workOrder": {
+      "title": "Work Order",
+      "new": "New Work Order",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "status": {
+        "open": "Open",
+        "inProgress": "In Progress",
+        "onHold": "On Hold",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "priority_levels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      }
+    },
+    "asset": {
+      "title": "Asset",
+      "new": "New Asset",
+      "code": "Asset Code",
+      "category": "Category",
+      "location": "Location",
+      "status": {
+        "operational": "Operational",
+        "maintenance": "Under Maintenance",
+        "outOfService": "Out of Service",
+        "retired": "Retired"
+      },
+      "criticality": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      }
+    }
+  },
+  
+  "audits": {
+    "title": "Audits",
+    "new": "New Audit",
+    "template": "Template",
+    "templates": "Templates",
+    "location": "Location",
+    "auditor": "Auditor",
+    "score": "Score",
+    "status": {
+      "draft": "Draft",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "sections": "Sections",
+    "fields": "Fields",
+    "createTemplate": "Create Template",
+    "editTemplate": "Edit Template"
+  },
+  
+  "tasks": {
+    "title": "Tasks",
+    "new": "New Task",
+    "myTasks": "My Tasks",
+    "allTasks": "All Tasks",
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "status": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
+  
+  "workforce": {
+    "title": "Workforce",
+    "staff": {
+      "title": "Staff",
+      "new": "Add Staff",
+      "role": "Role",
+      "department": "Department",
+      "hireDate": "Hire Date",
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "onLeave": "On Leave"
+      }
+    },
+    "shifts": {
+      "title": "Shifts",
+      "new": "New Shift",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "required": "Required Staff",
+      "assigned": "Assigned"
+    },
+    "attendance": {
+      "title": "Attendance",
+      "clockIn": "Clock In",
+      "clockOut": "Clock Out",
+      "late": "Late",
+      "onTime": "On Time",
+      "absent": "Absent"
+    },
+    "timeOff": {
+      "title": "Time Off",
+      "request": "Request Time Off",
+      "type": {
+        "vacation": "Vacation",
+        "sick": "Sick Leave",
+        "personal": "Personal",
+        "other": "Other"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      }
+    },
+    "payroll": {
+      "title": "Payroll",
+      "period": "Pay Period",
+      "hours": "Hours Worked",
+      "rate": "Rate",
+      "total": "Total"
+    }
+  },
+  
+  "equipment": {
+    "title": "Equipment",
+    "new": "Add Equipment",
+    "model": "Model",
+    "brand": "Brand",
+    "serialNumber": "Serial Number",
+    "purchaseDate": "Purchase Date",
+    "warranty": "Warranty",
+    "status": {
+      "operational": "Operational",
+      "maintenance": "Under Maintenance",
+      "outOfService": "Out of Service",
+      "retired": "Retired"
+    },
+    "maintenance": {
+      "title": "Maintenance",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "overdue": "Overdue"
+    }
+  },
+  
+  "locations": {
+    "title": "Locations",
+    "new": "Add Location",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "operatingHours": "Operating Hours",
+    "closed": "Closed"
+  },
+  
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark All Read",
+    "noNotifications": "No notifications",
+    "new": "New",
+    "types": {
+      "task": "Task",
+      "audit": "Audit",
+      "shift": "Shift",
+      "maintenance": "Maintenance",
+      "alert": "Alert"
+    }
+  },
+  
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "company": "Company",
+    "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "modules": "Modules",
+    "integrations": "Integrations",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications"
+  },
+  
+  "errors": {
+    "generic": "Something went wrong",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized",
+    "permissionDenied": "Permission denied",
+    "permissionDeniedMsg": "You don't have access. Ask an Admin to update your role.",
+    "networkError": "Network error",
+    "tryAgain": "Please try again",
+    "invalidData": "Invalid data",
+    "required": "This field is required"
+  },
+  
+  "empty": {
+    "generic": {
+      "title": "No data yet",
+      "description": "Start by adding your first item."
+    },
+    "assets": {
+      "title": "No assets yet",
+      "description": "Your CMMS is ready. Start by adding your first asset."
+    },
+    "workOrders": {
+      "title": "No work orders",
+      "description": "Create your first work order to get started."
+    },
+    "tasks": {
+      "title": "No tasks",
+      "description": "All caught up! No tasks to show."
+    },
+    "staff": {
+      "title": "No staff members",
+      "description": "Add your team members to get started."
+    },
+    "shifts": {
+      "title": "No shifts scheduled",
+      "description": "Create shifts to schedule your team."
+    }
+  },
+  
+  "success": {
+    "saved": "Saved successfully",
+    "created": "Created successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully",
+    "sent": "Sent successfully"
+  },
+  
+  "confirm": {
+    "delete": "Are you sure you want to delete this?",
+    "cancel": "Are you sure you want to cancel?",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  }
+}
