@@ -850,5 +850,18 @@
     "noDocumentsForRole": "No document categories are available for your role.",
     "document": "document",
     "documents": "documents"
+  },
+  "notFound": {
+    "title": "404 - Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goBack": "Go Back",
+    "goToDashboard": "Go to Dashboard",
+    "tryPopularPages": "Or try one of these popular pages:",
+    "dashboard": "Dashboard",
+    "locations": "Locations",
+    "workforce": "Workforce",
+    "audits": "Audits",
+    "tasks": "Tasks",
+    "settings": "Settings"
   }
 }
