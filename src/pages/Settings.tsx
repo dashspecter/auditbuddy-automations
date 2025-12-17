@@ -12,17 +12,10 @@ import { OnboardingDialog } from "@/components/OnboardingDialog";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
-
-const passwordSchema = z.object({
-  currentPassword: z.string().min(6, "Password must be at least 6 characters"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+import { useTranslation } from "react-i18next";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -32,6 +25,15 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const passwordSchema = z.object({
+    currentPassword: z.string().min(6, t('settings.passwordMinChars')),
+    newPassword: z.string().min(6, t('settings.passwordMinChars')),
+    confirmPassword: z.string().min(6, t('settings.passwordMinChars')),
+  }).refine((data) => data.newPassword === data.confirmPassword, {
+    message: t('settings.passwordsDontMatch'),
+    path: ["confirmPassword"],
+  });
 
   // Fetch user profile for avatar
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -69,7 +71,7 @@ export default function Settings() {
       });
 
       if (signInError) {
-        setErrors({ currentPassword: "Current password is incorrect" });
+        setErrors({ currentPassword: t('settings.currentPasswordIncorrect') });
         return;
       }
 
@@ -81,8 +83,8 @@ export default function Settings() {
       if (updateError) throw updateError;
 
       toast({
-        title: "Password updated",
-        description: "Your password has been successfully changed.",
+        title: t('settings.passwordUpdated'),
+        description: t('settings.passwordChangedSuccess'),
       });
 
       // Clear form
@@ -100,8 +102,8 @@ export default function Settings() {
         setErrors(fieldErrors);
       } else {
         toast({
-          title: "Error",
-          description: "Failed to update password. Please try again.",
+          title: t('errors.generic'),
+          description: t('settings.failedUpdatePassword'),
           variant: "destructive",
         });
       }
@@ -119,23 +121,23 @@ export default function Settings() {
               onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('settings.back')}
             </Button>
           </div>
 
           <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
+            <h1 className="text-3xl font-bold">{t('settings.title')}</h1>
             <p className="text-muted-foreground">
-              Manage your account settings
+              {t('settings.manageAccount')}
             </p>
           </div>
 
           <div className="max-w-2xl space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Avatar</CardTitle>
+                <CardTitle>{t('settings.profileAvatar')}</CardTitle>
                 <CardDescription>
-                  Upload a profile picture to personalize your account
+                  {t('settings.uploadProfilePicture')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
@@ -150,16 +152,16 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <KeyRound className="h-5 w-5" />
-                  Change Password
+                  {t('settings.changePassword')}
                 </CardTitle>
                 <CardDescription>
-                  Update your password to keep your account secure
+                  {t('settings.updatePasswordDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePasswordReset} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Label htmlFor="currentPassword">{t('settings.currentPassword')}</Label>
                     <Input
                       id="currentPassword"
                       type="password"
@@ -173,7 +175,7 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
+                    <Label htmlFor="newPassword">{t('settings.newPassword')}</Label>
                     <Input
                       id="newPassword"
                       type="password"
@@ -187,7 +189,7 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword">{t('settings.confirmNewPassword')}</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -201,7 +203,7 @@ export default function Settings() {
                   </div>
 
               <Button type="submit" disabled={loading} className="min-h-[48px]">
-                {loading ? "Updating..." : "Update Password"}
+                {loading ? t('settings.updating') : t('settings.updatePassword')}
               </Button>
                 </form>
               </CardContent>
@@ -211,15 +213,15 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5" />
-                  Getting Started Tutorial
+                  {t('settings.gettingStartedTutorial')}
                 </CardTitle>
                 <CardDescription>
-                  Review the onboarding tutorial to learn about available features
+                  {t('settings.reviewOnboardingDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Revisit the welcome tutorial to understand all the features available for your role.
+                  {t('settings.revisitTutorialDesc')}
                 </p>
                 <Button 
                   variant="outline" 
@@ -227,7 +229,7 @@ export default function Settings() {
                   className="min-h-[48px]"
                 >
                   <HelpCircle className="h-4 w-4 mr-2" />
-                  Restart Tutorial
+                  {t('settings.restartTutorial')}
                 </Button>
               </CardContent>
             </Card>
