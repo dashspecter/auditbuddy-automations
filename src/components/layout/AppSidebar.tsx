@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AIGuideChat } from "@/components/AIGuideChat";
+import { useTranslation } from "react-i18next";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
@@ -44,251 +45,251 @@ import { AIGuideChat } from "@/components/AIGuideChat";
  */
 const navigationItems = [
   { 
-    title: "Home", 
+    titleKey: "nav.home", 
     url: "/dashboard", 
     icon: Home,
     module: null
   },
   { 
-    title: "Workforce", 
+    titleKey: "nav.workforce", 
     url: "/workforce", 
     icon: Users,
     module: "workforce",
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'manage_shifts' as CompanyPermission,
     subItems: [
-      { title: "Overview", url: "/workforce" },
-      { title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
-      { title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
-      { title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
-      { title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
-      { title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.overview", url: "/workforce" },
+      { titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
+      { titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
+      { titleKey: "nav.payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
+      { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
+      { titleKey: "nav.attendanceAlerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
-    title: "Locations", 
+    titleKey: "nav.locations", 
     url: "/admin/locations", 
     icon: MapPin,
     module: null,
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_locations' as CompanyPermission,
     subItems: [
-      { title: "All Locations", url: "/admin/locations" },
-      { title: "Sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
-      { title: "Auto Clock-Out", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { title: "Shift Presets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.allLocations", url: "/admin/locations" },
+      { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.autoClockOut", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.shiftPresets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
     ]
   },
   { 
-    title: "Audits", 
+    titleKey: "nav.audits", 
     url: "/audits", 
     icon: ClipboardCheck,
     module: "location_audits",
     allowedRoles: ['admin', 'manager', 'hr', 'checker'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
-      { title: "Location Audits", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.locationAudits", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { 
-        title: "Employee Audits", 
+        titleKey: "nav.employeeAudits", 
         url: "/staff-audits/all", 
         allowedRoles: ['admin', 'manager', 'hr'], 
         companyPermission: 'manage_audits' as CompanyPermission,
         nestedItems: [
-          { title: "New Staff Audit", url: "/staff-audit/new" },
-          { title: "New Performance Review", url: "/staff-audits?review=new" },
+          { titleKey: "nav.newStaffAudit", url: "/staff-audit/new" },
+          { titleKey: "nav.newPerformanceReview", url: "/staff-audits?review=new" },
         ]
       },
-      { title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Photo Gallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.templateLibrary", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.auditCalendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
     ]
   },
   { 
-    title: "Tasks", 
+    titleKey: "nav.tasks", 
     url: "/tasks", 
     icon: ListTodo,
     module: null,
     subItems: [
-      { title: "All Tasks", url: "/tasks" },
-      { title: "Calendar", url: "/tasks/calendar" },
+      { titleKey: "nav.allTasks", url: "/tasks" },
+      { titleKey: "nav.calendar", url: "/tasks/calendar" },
     ]
   },
   { 
-    title: "Equipment", 
+    titleKey: "nav.equipment", 
     url: "/equipment", 
     icon: Wrench,
     module: "equipment_management",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
-      { title: "All Equipment", url: "/equipment" },
-      { title: "Maintenance Calendar", url: "/maintenance-calendar" },
-      { title: "Recurring Maintenance", url: "/recurring-maintenance" },
-      { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+      { titleKey: "nav.allEquipment", url: "/equipment" },
+      { titleKey: "nav.maintenanceCalendar", url: "/maintenance-calendar" },
+      { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance" },
+      { titleKey: "nav.bulkQRCodes", url: "/equipment/bulk-qr" },
     ]
   },
   { 
-    title: "CMMS", 
+    titleKey: "nav.cmms", 
     url: "/cmms", 
     icon: Cog,
     module: null,
     allowedRoles: ['admin', 'manager'],
     subItems: [
-      { title: "Overview", url: "/cmms/overview" },
-      { title: "Dashboard", url: "/cmms" },
-      { title: "Assets", url: "/cmms/assets" },
-      { title: "Work Orders", url: "/cmms/work-orders" },
-      { title: "PM Schedules", url: "/cmms/pm-schedules" },
-      { title: "Parts Inventory", url: "/cmms/parts" },
-      { title: "Procedures", url: "/cmms/procedures" },
-      { title: "Vendors", url: "/cmms/vendors" },
-      { title: "Teams", url: "/cmms/teams" },
-      { title: "Purchase Orders", url: "/cmms/purchase-orders" },
-      { title: "Reports", url: "/cmms/reports" },
+      { titleKey: "nav.overview", url: "/cmms/overview" },
+      { titleKey: "nav.dashboard", url: "/cmms" },
+      { titleKey: "nav.assets", url: "/cmms/assets" },
+      { titleKey: "nav.workOrders", url: "/cmms/work-orders" },
+      { titleKey: "nav.pmSchedules", url: "/cmms/pm-schedules" },
+      { titleKey: "nav.partsInventory", url: "/cmms/parts" },
+      { titleKey: "nav.procedures", url: "/cmms/procedures" },
+      { titleKey: "nav.vendors", url: "/cmms/vendors" },
+      { titleKey: "nav.teams", url: "/cmms/teams" },
+      { titleKey: "nav.purchaseOrders", url: "/cmms/purchase-orders" },
+      { titleKey: "nav.reports", url: "/cmms/reports" },
     ]
   },
   { 
-    title: "Notifications", 
+    titleKey: "nav.notifications", 
     url: "/notifications", 
     icon: Bell,
     module: "notifications",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_notifications' as CompanyPermission,
     subItems: [
-      { title: "Send Notifications", url: "/notifications" },
-      { title: "Templates", url: "/notification-templates" },
-      { title: "Recurring", url: "/recurring-notifications" },
-      { title: "Analytics", url: "/notification-analytics" },
-      { title: "Audit Logs", url: "/notification-audit-logs" },
+      { titleKey: "nav.sendNotifications", url: "/notifications" },
+      { titleKey: "nav.notificationTemplates", url: "/notification-templates" },
+      { titleKey: "nav.recurringNotifications", url: "/recurring-notifications" },
+      { titleKey: "nav.analytics", url: "/notification-analytics" },
+      { titleKey: "nav.auditLogs", url: "/notification-audit-logs" },
     ]
   },
   { 
-    title: "Reports", 
+    titleKey: "nav.reports", 
     url: "/reports", 
     icon: BarChart,
     module: "reports",
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
-      { title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
-      { title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
-    title: "Inventory", 
+    titleKey: "nav.inventory", 
     url: "/inventory", 
     icon: Package,
     module: "inventory"
   },
   { 
-    title: "Documents", 
+    titleKey: "nav.documents", 
     url: "/documents", 
     icon: FileText,
     module: "documents",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "All Documents", url: "/documents" },
+      { titleKey: "nav.allDocuments", url: "/documents" },
     ]
   },
   { 
-    title: "Tests", 
+    titleKey: "nav.tests", 
     url: "/test-management", 
     icon: GraduationCap,
     module: null,
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_employees' as CompanyPermission,
     subItems: [
-      { title: "Test Management", url: "/test-management" },
-      { title: "Create Test", url: "/test-creation" },
+      { titleKey: "nav.testManagement", url: "/test-management" },
+      { titleKey: "nav.createTest", url: "/test-creation" },
     ]
   },
   { 
-    title: "Insights", 
+    titleKey: "nav.insights", 
     url: "/insights", 
     icon: Lightbulb,
     module: "insights",
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { title: "Overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
-      { title: "AI Feed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
-    title: "Integrations", 
+    titleKey: "nav.integrations", 
     url: "/integrations", 
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
   },
   { 
-    title: "Template Marketplace", 
+    titleKey: "nav.templateMarketplace", 
     url: "/marketplace", 
     icon: Store,
     module: null,
     allowedRoles: ['admin', 'manager', 'hr', 'checker']
   },
   { 
-    title: "Operations", 
+    titleKey: "nav.operations", 
     url: "/operations/daily", 
     icon: Settings2,
     module: null,
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
-      { title: "Daily Ops", url: "/operations/daily" },
-      { title: "Maintenance Tasks", url: "/operations/maintenance" },
-      { title: "SLA Management", url: "/operations/slas" },
+      { titleKey: "nav.dailyOps", url: "/operations/daily" },
+      { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
+      { titleKey: "nav.slaManagement", url: "/operations/slas" },
     ]
   },
 ];
 
 const settingsItems = [
   { 
-    title: "Billing & Modules", 
+    titleKey: "nav.billingModules", 
     url: "/pricing", 
     icon: CreditCard,
     requiresOwner: true
   },
   { 
-    title: "Company Settings", 
+    titleKey: "nav.companySettings", 
     url: "/settings/company", 
     icon: Building2,
     requiresOwnerOrAdmin: true
   },
   { 
-    title: "User Management", 
+    titleKey: "nav.userManagement", 
     url: "/admin/users", 
     icon: UserCog,
     requiresOwner: true
   },
   { 
-    title: "Platform Admin", 
+    titleKey: "nav.platformAdmin", 
     url: "/admin/platform", 
     icon: Shield,
     requiresPlatformAdmin: true
   },
   { 
-    title: "System Health", 
+    titleKey: "nav.systemHealth", 
     url: "/system-health", 
     icon: Activity,
     requiresPlatformAdmin: true
   },
   { 
-    title: "Debug Data", 
+    titleKey: "nav.debugData", 
     url: "/debug/system-health", 
     icon: Bug,
     requiresPlatformAdmin: true
   },
   { 
-    title: "AI Agents", 
+    titleKey: "nav.aiAgents", 
     url: "/admin/agents", 
     icon: Bot,
     requiresPlatformAdmin: true
@@ -296,6 +297,7 @@ const settingsItems = [
 ];
 
 export function AppSidebar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { hasModule, canAccessModule } = useCompanyContext();
   const { expandedGroups, toggleGroup, expandGroup, isCollapsed, toggleCollapsed } = useSidebarContext();
@@ -320,7 +322,7 @@ export function AppSidebar() {
   useEffect(() => {
     navigationItems.forEach((item) => {
       if (item.subItems && isParentActive(item)) {
-        expandGroup(item.title);
+        expandGroup(item.titleKey);
       }
     });
   }, [currentPath, expandGroup]);
@@ -461,16 +463,16 @@ export function AppSidebar() {
           <div className="mb-4">
             {!isCollapsed && (
               <div className="px-3 py-2 text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.15em]">
-                Navigation
+                {t('nav.navigation')}
               </div>
             )}
             <nav className="space-y-0.5">
               {navigationItems.filter(shouldShowItem).map((item) => (
-                <div key={item.title}>
+                <div key={item.titleKey}>
                   {item.subItems && !isCollapsed ? (
                     <Collapsible
-                      open={expandedGroups[item.title] ?? false}
-                      onOpenChange={() => toggleGroup(item.title)}
+                      open={expandedGroups[item.titleKey] ?? false}
+                      onOpenChange={() => toggleGroup(item.titleKey)}
                     >
                       <CollapsibleTrigger className={`
                         w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
@@ -486,15 +488,15 @@ export function AppSidebar() {
                         }`}>
                           <item.icon className="h-4 w-4 flex-shrink-0" />
                         </div>
-                        <span className="flex-1 text-left">{item.title}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.title] ? 'rotate-180' : ''}`} />
+                        <span className="flex-1 text-left">{t(item.titleKey)}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.titleKey] ? 'rotate-180' : ''}`} />
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 overflow-hidden">
                         {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                           subItem.nestedItems ? (
                             <Collapsible key={subItem.url}>
                               <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted group">
-                                <span>{subItem.title}</span>
+                                <span>{t(subItem.titleKey)}</span>
                                 <ChevronRight className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                               </CollapsibleTrigger>
                               <CollapsibleContent className="ml-3 pl-3 border-l border-sidebar-border/40 space-y-0.5 mt-1">
@@ -503,7 +505,7 @@ export function AppSidebar() {
                                   className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                                   activeClassName="text-primary font-medium bg-primary/10"
                                 >
-                                  View All
+                                  {t('common.view')} {t('common.all')}
                                 </NavLink>
                                 {subItem.nestedItems.map((nestedItem: any) => (
                                   <NavLink
@@ -512,7 +514,7 @@ export function AppSidebar() {
                                     className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                                     activeClassName="text-primary font-medium bg-primary/10"
                                   >
-                                    {nestedItem.title}
+                                    {t(nestedItem.titleKey)}
                                   </NavLink>
                                 ))}
                               </CollapsibleContent>
@@ -524,7 +526,7 @@ export function AppSidebar() {
                               className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                               activeClassName="text-primary font-medium bg-primary/10"
                             >
-                              {subItem.title}
+                              {t(subItem.titleKey)}
                             </NavLink>
                           )
                         ))}
@@ -547,7 +549,7 @@ export function AppSidebar() {
                         </button>
                       </PopoverTrigger>
                       <PopoverContent side="right" align="start" className="w-48 p-2 bg-popover border shadow-lg">
-                        <div className="font-medium text-sm mb-2 px-2 text-foreground">{item.title}</div>
+                        <div className="font-medium text-sm mb-2 px-2 text-foreground">{t(item.titleKey)}</div>
                         <div className="space-y-0.5">
                           {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                             <NavLink
@@ -556,7 +558,7 @@ export function AppSidebar() {
                               className="block px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
                               activeClassName="text-primary font-medium bg-primary/10"
                             >
-                              {subItem.title}
+                              {t(subItem.titleKey)}
                             </NavLink>
                           ))}
                         </div>
@@ -575,12 +577,12 @@ export function AppSidebar() {
                           <div className={`p-1.5 rounded-lg transition-colors duration-200 bg-sidebar-muted group-hover:bg-sidebar-border ${isActive(item.url) ? 'bg-white/20' : ''}`}>
                             <item.icon className="h-4 w-4 flex-shrink-0" />
                           </div>
-                          {!isCollapsed && <span>{item.title}</span>}
+                          {!isCollapsed && <span>{t(item.titleKey)}</span>}
                         </NavLink>
                       </TooltipTrigger>
                       {isCollapsed && (
                         <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                          {item.title}
+                          {t(item.titleKey)}
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -595,12 +597,12 @@ export function AppSidebar() {
             <div className="pt-3 border-t border-sidebar-border/40">
               {!isCollapsed && (
                 <div className="px-3 py-2 text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.15em]">
-                  Settings
+                  {t('nav.settingsSection')}
                 </div>
               )}
               <nav className="space-y-0.5">
                 {settingsItems.filter(shouldShowItem).map((item) => (
-                  <Tooltip key={item.title}>
+                  <Tooltip key={item.titleKey}>
                     <TooltipTrigger asChild>
                       <NavLink
                         to={item.url}
@@ -608,12 +610,12 @@ export function AppSidebar() {
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20"
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && <span>{item.title}</span>}
+                        {!isCollapsed && <span>{t(item.titleKey)}</span>}
                       </NavLink>
                     </TooltipTrigger>
                     {isCollapsed && (
                       <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                        {item.title}
+                        {t(item.titleKey)}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -635,12 +637,12 @@ export function AppSidebar() {
                     <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors duration-200">
                       <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
                     </div>
-                    {!isCollapsed && <span>AI Guide</span>}
+                    {!isCollapsed && <span>{t('nav.aiGuide')}</span>}
                   </button>
                 </TooltipTrigger>
                 {isCollapsed && (
                   <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                    AI Guide
+                    {t('nav.aiGuide')}
                   </TooltipContent>
                 )}
               </Tooltip>
