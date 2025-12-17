@@ -4,6 +4,7 @@ import { ClipboardList, Users, Wrench, Bell, Briefcase, Video } from "lucide-rea
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 // Import tutorial images
 import locationAuditsStep1 from "@/assets/tutorials/location-audits-step1.png";
@@ -36,158 +37,159 @@ import reportsStep3 from "@/assets/tutorials/reports-step3.png";
 import reportsStep4 from "@/assets/tutorials/reports-step4.png";
 import reportsStep5 from "@/assets/tutorials/reports-step5.png";
 
-const MODULE_GUIDES = {
-  location_audits: {
-    name: "location_audits",
-    title: "Location Audits",
-    description: "Conduct comprehensive audits with custom templates and scheduling",
-    icon: <ClipboardList className="h-5 w-5" />,
-    stepImages: [
-      locationAuditsStep1,
-      locationAuditsStep2,
-      locationAuditsStep3,
-      locationAuditsStep4,
-      locationAuditsStep5
-    ],
-    steps: [
-      "Click 'New Audit' to start your first location audit",
-      "Select a pre-built template or create a custom one",
-      "Fill in the audit sections with scores and notes",
-      "Add photos to document findings",
-      "Submit and view the audit in Reports"
-    ],
-    primaryAction: {
-      label: "Start New Audit",
-      to: "/location-audit"
-    },
-    secondaryAction: {
-      label: "View Templates",
-      to: "/admin-templates"
-    }
-  },
-  staff_performance: {
-    name: "staff_performance",
-    title: "Staff Performance",
-    description: "Monitor and improve team performance with detailed tracking",
-    icon: <Users className="h-5 w-5" />,
-    stepImages: [
-      staffPerformanceStep1,
-      staffPerformanceStep2,
-      staffPerformanceStep3,
-      staffPerformanceStep4,
-      staffPerformanceStep5
-    ],
-    steps: [
-      "Add your team members in Employee Management",
-      "Assign employees to their respective locations",
-      "Create staff audits to evaluate performance",
-      "Review the leaderboard to identify top performers",
-      "Track trends and provide constructive feedback"
-    ],
-    primaryAction: {
-      label: "Manage Employees",
-      to: "/employees"
-    },
-    secondaryAction: {
-      label: "Staff Audits",
-      to: "/staff-audits"
-    }
-  },
-  equipment_management: {
-    name: "equipment_management",
-    title: "Equipment Management",
-    description: "Track equipment, schedule maintenance, and manage interventions",
-    icon: <Wrench className="h-5 w-5" />,
-    stepImages: [
-      equipmentManagementStep1,
-      equipmentManagementStep2,
-      equipmentManagementStep3,
-      equipmentManagementStep4,
-      equipmentManagementStep5
-    ],
-    steps: [
-      "Register new equipment with location and specifications",
-      "Generate QR codes for quick equipment access",
-      "Schedule preventive maintenance on the calendar",
-      "Log interventions with before/after photos",
-      "Track equipment status and maintenance history"
-    ],
-    primaryAction: {
-      label: "Add Equipment",
-      to: "/equipment/new"
-    },
-    secondaryAction: {
-      label: "View Calendar",
-      to: "/maintenance-calendar"
-    }
-  },
-  notifications: {
-    name: "notifications",
-    title: "Notifications",
-    description: "Stay connected with customizable alerts and templates",
-    icon: <Bell className="h-5 w-5" />,
-    stepImages: [
-      notificationsStep1,
-      notificationsStep2,
-      notificationsStep3,
-      notificationsStep4,
-      notificationsStep5
-    ],
-    steps: [
-      "Create notification templates for common messages",
-      "Send notifications to specific roles (checkers, managers, admins)",
-      "Set up recurring notifications for regular reminders",
-      "Track notification analytics and engagement",
-      "Manage notification preferences and history"
-    ],
-    primaryAction: {
-      label: "Send Notification",
-      to: "/notifications"
-    },
-    secondaryAction: {
-      label: "View Templates",
-      to: "/notification-templates"
-    }
-  },
-  reports: {
-    name: "reports",
-    title: "Reports & Analytics",
-    description: "Comprehensive insights with detailed reports and visualizations",
-    icon: <Briefcase className="h-5 w-5" />,
-    stepImages: [
-      reportsStep1,
-      reportsStep2,
-      reportsStep3,
-      reportsStep4,
-      reportsStep5
-    ],
-    steps: [
-      "View key metrics on your dashboard",
-      "Filter reports by date range and location",
-      "Analyze compliance trends and patterns",
-      "Export reports to PDF or Excel",
-      "Share insights with stakeholders"
-    ],
-    primaryAction: {
-      label: "View Reports",
-      to: "/reports"
-    },
-    secondaryAction: {
-      label: "Dashboard",
-      to: "/"
-    }
-  }
-};
-
 export function ModuleGuides() {
+  const { t } = useTranslation();
   const { modules, isLoading } = useCompanyContext();
+
+  const MODULE_GUIDES = {
+    location_audits: {
+      name: "location_audits",
+      title: t('modules.locationAudits.title'),
+      description: t('modules.locationAudits.description'),
+      icon: <ClipboardList className="h-5 w-5" />,
+      stepImages: [
+        locationAuditsStep1,
+        locationAuditsStep2,
+        locationAuditsStep3,
+        locationAuditsStep4,
+        locationAuditsStep5
+      ],
+      steps: [
+        t('modules.locationAudits.steps.step1'),
+        t('modules.locationAudits.steps.step2'),
+        t('modules.locationAudits.steps.step3'),
+        t('modules.locationAudits.steps.step4'),
+        t('modules.locationAudits.steps.step5')
+      ],
+      primaryAction: {
+        label: t('modules.locationAudits.startNewAudit'),
+        to: "/location-audit"
+      },
+      secondaryAction: {
+        label: t('modules.locationAudits.viewTemplates'),
+        to: "/admin-templates"
+      }
+    },
+    staff_performance: {
+      name: "staff_performance",
+      title: t('modules.staffPerformance.title'),
+      description: t('modules.staffPerformance.description'),
+      icon: <Users className="h-5 w-5" />,
+      stepImages: [
+        staffPerformanceStep1,
+        staffPerformanceStep2,
+        staffPerformanceStep3,
+        staffPerformanceStep4,
+        staffPerformanceStep5
+      ],
+      steps: [
+        t('modules.staffPerformance.steps.step1'),
+        t('modules.staffPerformance.steps.step2'),
+        t('modules.staffPerformance.steps.step3'),
+        t('modules.staffPerformance.steps.step4'),
+        t('modules.staffPerformance.steps.step5')
+      ],
+      primaryAction: {
+        label: t('modules.staffPerformance.manageEmployees'),
+        to: "/employees"
+      },
+      secondaryAction: {
+        label: t('modules.staffPerformance.staffAudits'),
+        to: "/staff-audits"
+      }
+    },
+    equipment_management: {
+      name: "equipment_management",
+      title: t('modules.equipmentManagement.title'),
+      description: t('modules.equipmentManagement.description'),
+      icon: <Wrench className="h-5 w-5" />,
+      stepImages: [
+        equipmentManagementStep1,
+        equipmentManagementStep2,
+        equipmentManagementStep3,
+        equipmentManagementStep4,
+        equipmentManagementStep5
+      ],
+      steps: [
+        t('modules.equipmentManagement.steps.step1'),
+        t('modules.equipmentManagement.steps.step2'),
+        t('modules.equipmentManagement.steps.step3'),
+        t('modules.equipmentManagement.steps.step4'),
+        t('modules.equipmentManagement.steps.step5')
+      ],
+      primaryAction: {
+        label: t('modules.equipmentManagement.addEquipment'),
+        to: "/equipment/new"
+      },
+      secondaryAction: {
+        label: t('modules.equipmentManagement.viewCalendar'),
+        to: "/maintenance-calendar"
+      }
+    },
+    notifications: {
+      name: "notifications",
+      title: t('modules.notifications.title'),
+      description: t('modules.notifications.description'),
+      icon: <Bell className="h-5 w-5" />,
+      stepImages: [
+        notificationsStep1,
+        notificationsStep2,
+        notificationsStep3,
+        notificationsStep4,
+        notificationsStep5
+      ],
+      steps: [
+        t('modules.notifications.steps.step1'),
+        t('modules.notifications.steps.step2'),
+        t('modules.notifications.steps.step3'),
+        t('modules.notifications.steps.step4'),
+        t('modules.notifications.steps.step5')
+      ],
+      primaryAction: {
+        label: t('modules.notifications.sendNotification'),
+        to: "/notifications"
+      },
+      secondaryAction: {
+        label: t('modules.notifications.viewTemplates'),
+        to: "/notification-templates"
+      }
+    },
+    reports: {
+      name: "reports",
+      title: t('modules.reports.title'),
+      description: t('modules.reports.description'),
+      icon: <Briefcase className="h-5 w-5" />,
+      stepImages: [
+        reportsStep1,
+        reportsStep2,
+        reportsStep3,
+        reportsStep4,
+        reportsStep5
+      ],
+      steps: [
+        t('modules.reports.steps.step1'),
+        t('modules.reports.steps.step2'),
+        t('modules.reports.steps.step3'),
+        t('modules.reports.steps.step4'),
+        t('modules.reports.steps.step5')
+      ],
+      primaryAction: {
+        label: t('modules.reports.viewReports'),
+        to: "/reports"
+      },
+      secondaryAction: {
+        label: t('modules.reports.dashboard'),
+        to: "/"
+      }
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Getting Started</h2>
-          <p className="text-muted-foreground mt-1">Loading your modules...</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.gettingStarted')}</h2>
+          <p className="text-muted-foreground mt-1">{t('dashboard.loadingModules')}</p>
         </div>
       </div>
     );
@@ -203,9 +205,9 @@ export function ModuleGuides() {
       <Alert>
         <Video className="h-4 w-4" />
         <AlertDescription className="flex items-center justify-between">
-          <span>No modules are currently active. Visit Company Settings to activate modules and get started.</span>
+          <span>{t('dashboard.noActiveModules')}</span>
           <Button asChild variant="outline" size="sm" className="ml-4">
-            <Link to="/settings/company?tab=modules">Go to Settings</Link>
+            <Link to="/settings/company?tab=modules">{t('dashboard.goToSettings')}</Link>
           </Button>
         </AlertDescription>
       </Alert>
@@ -215,9 +217,9 @@ export function ModuleGuides() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Getting Started</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.gettingStarted')}</h2>
         <p className="text-muted-foreground mt-1">
-          Learn how to use your active modules with these step-by-step guides
+          {t('dashboard.learnModules')}
         </p>
       </div>
 

@@ -23,8 +23,10 @@ import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { subMonths } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export const ManagerDashboard = () => {
+  const { t } = useTranslation();
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subMonths(new Date(), 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
@@ -66,10 +68,10 @@ export const ManagerDashboard = () => {
         queryClient.invalidateQueries({ queryKey: ['checkers_count'] }),
         queryClient.invalidateQueries({ queryKey: ['pending_audits'] }),
       ]);
-      toast.success("Dashboard data refreshed");
+      toast.success(t('dashboard.dataRefreshed'));
     } catch (error) {
       console.error('Error refreshing dashboard:', error);
-      toast.error("Failed to refresh data");
+      toast.error(t('dashboard.failedRefresh'));
     } finally {
       setIsRefreshing(false);
     }
@@ -80,8 +82,8 @@ export const ManagerDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Manager Dashboard</h2>
-          <p className="text-muted-foreground">Team oversight and location management</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('dashboard.manager.title')}</h2>
+          <p className="text-muted-foreground">{t('dashboard.manager.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -91,9 +93,9 @@ export const ManagerDashboard = () => {
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? t('common.refreshing') : t('common.refresh')}
           </Button>
-          <Badge variant="secondary" className="text-sm">Manager</Badge>
+          <Badge variant="secondary" className="text-sm">{t('dashboard.manager.badge')}</Badge>
         </div>
       </div>
 
@@ -113,13 +115,13 @@ export const ManagerDashboard = () => {
           <div className="p-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-warning" />
             <div className="flex-1">
-              <h3 className="font-semibold">Pending Reviews</h3>
+              <h3 className="font-semibold">{t('dashboard.manager.pendingReviews')}</h3>
               <p className="text-sm text-muted-foreground">
-                {pendingAudits?.length} audit{(pendingAudits?.length || 0) !== 1 ? 's' : ''} waiting for review
+                {pendingAudits?.length} {(pendingAudits?.length || 0) !== 1 ? t('dashboard.manager.auditsWaiting_plural', { count: pendingAudits?.length }) : t('dashboard.manager.auditsWaiting', { count: pendingAudits?.length })}
               </p>
             </div>
             <Link to="/audits?status=pending">
-              <Button variant="outline" size="sm">Review</Button>
+              <Button variant="outline" size="sm">{t('dashboard.manager.review')}</Button>
             </Link>
           </div>
         </Card>
@@ -129,7 +131,7 @@ export const ManagerDashboard = () => {
         <Collapsible open={statsOpen} onOpenChange={setStatsOpen}>
           <CollapsibleTrigger asChild>
             <Button variant="outline" className="w-full justify-between">
-              Statistics Overview
+              {t('dashboard.stats.statisticsOverview')}
               <ChevronDown className={`h-4 w-4 transition-transform ${statsOpen ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
@@ -137,31 +139,31 @@ export const ManagerDashboard = () => {
             <div className="grid gap-4">
               <RecentAudits />
               <StatsCard
-                title="Completed"
+                title={t('dashboard.stats.completed')}
                 value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
                 icon={ClipboardCheck}
-                description="Finished audits"
+                description={t('dashboard.stats.finishedAudits')}
               />
               <StatsCard
-                title="Overdue"
+                title={t('dashboard.stats.overdue')}
                 value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
                 icon={ClipboardCheck}
-                description="Past deadline"
+                description={t('dashboard.stats.pastDeadline')}
               />
               <StatsCard
-                title="Average Score"
+                title={t('dashboard.stats.averageScore')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
                 icon={TrendingUp}
-                description="Overall average"
+                description={t('dashboard.stats.overallAverage')}
               />
               <StatsCard
-                title="Worst Location"
+                title={t('dashboard.stats.worstLocation')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
                 icon={TrendingDown}
                 description={dashboardStats.worstLocation.name}
               />
               <StatsCard
-                title="Best Location"
+                title={t('dashboard.stats.bestLocation')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
                 icon={TrendingUp}
                 description={dashboardStats.bestLocation.name}
@@ -173,31 +175,31 @@ export const ManagerDashboard = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <RecentAudits />
           <StatsCard
-            title="Completed"
+            title={t('dashboard.stats.completed')}
             value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
             icon={ClipboardCheck}
-            description="Finished audits"
+            description={t('dashboard.stats.finishedAudits')}
           />
           <StatsCard
-            title="Overdue"
+            title={t('dashboard.stats.overdue')}
             value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
             icon={ClipboardCheck}
-            description="Past deadline"
+            description={t('dashboard.stats.pastDeadline')}
           />
           <StatsCard
-            title="Average Score"
+            title={t('dashboard.stats.averageScore')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
             icon={TrendingUp}
-            description="Overall average"
+            description={t('dashboard.stats.overallAverage')}
           />
           <StatsCard
-            title="Worst Location"
+            title={t('dashboard.stats.worstLocation')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
             icon={TrendingDown}
             description={dashboardStats.worstLocation.name}
           />
           <StatsCard
-            title="Best Location"
+            title={t('dashboard.stats.bestLocation')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
             icon={TrendingUp}
             description={dashboardStats.bestLocation.name}

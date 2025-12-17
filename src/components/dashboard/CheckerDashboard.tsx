@@ -12,8 +12,10 @@ import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const CheckerDashboard = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: allAudits, isLoading: auditsLoading } = useLocationAudits();
   const queryClient = useQueryClient();
@@ -78,10 +80,10 @@ export const CheckerDashboard = () => {
     setIsRefreshing(true);
     try {
       await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
-      toast.success("Dashboard data refreshed");
+      toast.success(t('dashboard.dataRefreshed'));
     } catch (error) {
       console.error('Error refreshing dashboard:', error);
-      toast.error("Failed to refresh data");
+      toast.error(t('dashboard.failedRefresh'));
     } finally {
       setIsRefreshing(false);
     }
@@ -91,8 +93,8 @@ export const CheckerDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">My Dashboard</h2>
-          <p className="text-muted-foreground">Track your audit performance</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('dashboard.checker.title')}</h2>
+          <p className="text-muted-foreground">{t('dashboard.checker.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -102,9 +104,9 @@ export const CheckerDashboard = () => {
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? t('common.refreshing') : t('common.refresh')}
           </Button>
-          <Badge variant="outline" className="text-sm">Checker</Badge>
+          <Badge variant="outline" className="text-sm">{t('dashboard.checker.badge')}</Badge>
         </div>
       </div>
 
@@ -119,14 +121,14 @@ export const CheckerDashboard = () => {
               <ClipboardCheck className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">New Audit</h3>
-              <p className="text-sm text-muted-foreground">Create a new location audit</p>
+              <h3 className="font-semibold">{t('dashboard.checker.newAudit')}</h3>
+              <p className="text-sm text-muted-foreground">{t('dashboard.checker.createNewAudit')}</p>
             </div>
           </div>
           <Link to="/location-audit">
             <Button className="w-full">
               <Plus className="h-4 w-4 mr-2" />
-              Create Audit
+              {t('dashboard.checker.createAudit')}
             </Button>
           </Link>
         </Card>
@@ -137,14 +139,14 @@ export const CheckerDashboard = () => {
               <TrendingUp className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">View All Audits</h3>
-              <p className="text-sm text-muted-foreground">Browse your audit history</p>
+              <h3 className="font-semibold">{t('dashboard.checker.viewAllAudits')}</h3>
+              <p className="text-sm text-muted-foreground">{t('dashboard.checker.browseHistory')}</p>
             </div>
           </div>
           <Link to="/audits">
             <Button variant="outline" className="w-full">
               <ClipboardCheck className="h-4 w-4 mr-2" />
-              View Audits
+              {t('dashboard.checker.viewAudits')}
             </Button>
           </Link>
         </Card>
@@ -152,39 +154,39 @@ export const CheckerDashboard = () => {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Total Audits"
+          title={t('dashboard.stats.totalAudits')}
           value={auditsLoading ? "..." : stats.totalAudits.toString()}
           icon={ClipboardCheck}
-          description="All time"
+          description={t('common.allTime')}
         />
         <StatsCard
-          title="Completed"
+          title={t('dashboard.stats.completed')}
           value={auditsLoading ? "..." : stats.completedAudits.toString()}
           icon={CheckCircle2}
-          description="Finished audits"
+          description={t('dashboard.stats.finishedAudits')}
         />
         <StatsCard
-          title="Average Score"
+          title={t('dashboard.stats.averageScore')}
           value={auditsLoading ? "..." : `${stats.avgScore}%`}
           icon={Target}
-          description="Performance"
+          description={t('dashboard.stats.performance')}
         />
         <StatsCard
-          title="This Month"
+          title={t('common.thisMonth')}
           value={auditsLoading ? "..." : stats.thisMonth.toString()}
           icon={Calendar}
-          description="Audits completed"
+          description={t('dashboard.stats.auditsCompleted')}
         />
       </div>
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold">My Recent Audits</h3>
-            <p className="text-sm text-muted-foreground">Last 5 audits you've created</p>
+            <h3 className="text-lg font-semibold">{t('dashboard.checker.myRecentAudits')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dashboard.checker.lastFiveAudits')}</p>
           </div>
           <Link to="/audits">
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="outline" size="sm">{t('common.viewAll')}</Button>
           </Link>
         </div>
 
@@ -195,12 +197,12 @@ export const CheckerDashboard = () => {
         ) : recentAudits.length === 0 ? (
           <div className="text-center py-12">
             <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No audits yet</p>
-            <p className="text-sm text-muted-foreground mb-4">Create your first audit to get started</p>
+            <p className="text-muted-foreground">{t('dashboard.checker.noAuditsYet')}</p>
+            <p className="text-sm text-muted-foreground mb-4">{t('dashboard.checker.createFirstAudit')}</p>
             <Link to="/location-audit">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Create First Audit
+                {t('dashboard.checker.createFirstAuditBtn')}
               </Button>
             </Link>
           </div>
@@ -214,7 +216,7 @@ export const CheckerDashboard = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-semibold truncate">{audit.location}</h4>
                         <Badge variant="outline" className={getStatusColor(audit.status || 'draft')}>
-                          {audit.status || 'draft'}
+                          {audit.status || t('common.draft')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -226,7 +228,7 @@ export const CheckerDashboard = () => {
                         <div className={`text-2xl font-bold ${getScoreColor(audit.overall_score)}`}>
                           {audit.overall_score}%
                         </div>
-                        <p className="text-xs text-muted-foreground">Score</p>
+                        <p className="text-xs text-muted-foreground">{t('common.score')}</p>
                       </div>
                     )}
                   </div>
