@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +20,8 @@ export default function Procedures() {
   ) || [];
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">Procedures</h1>
           <Button onClick={() => setShowNewDialog(true)}>
@@ -32,7 +30,6 @@ export default function Procedures() {
           </Button>
         </div>
 
-        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -43,7 +40,6 @@ export default function Procedures() {
           />
         </div>
 
-        {/* Procedures List */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading procedures...</div>
         ) : filteredProcedures.length === 0 ? (
@@ -106,6 +102,6 @@ export default function Procedures() {
       </div>
 
       <NewProcedureDialog open={showNewDialog} onOpenChange={setShowNewDialog} />
-    </AppLayout>
+    </>
   );
 }
