@@ -10,22 +10,26 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-const authSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }).optional(),
-});
-
-const signUpSchema = authSchema.extend({
-  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  companyName: z.string().min(2, { message: "Company name must be at least 2 characters" }),
-  companySlug: z.string()
-    .min(2, { message: "Company slug must be at least 2 characters" })
-    .regex(/^[a-z0-9-]+$/, { message: "Slug can only contain lowercase letters, numbers, and hyphens" }),
-});
 
 const Auth = () => {
+  const { t } = useTranslation();
+  
+  const authSchema = z.object({
+    email: z.string().email({ message: t('auth.invalidEmail') }),
+    password: z.string().min(6, { message: t('auth.passwordMinLength') }),
+    fullName: z.string().min(2, { message: t('auth.nameMinLength') }).optional(),
+  });
+
+  const signUpSchema = authSchema.extend({
+    fullName: z.string().min(2, { message: t('auth.nameMinLength') }),
+    companyName: z.string().min(2, { message: t('auth.companyNameMinLength') }),
+    companySlug: z.string()
+      .min(2, { message: t('auth.slugMinLength') })
+      .regex(/^[a-z0-9-]+$/, { message: t('auth.slugFormat') }),
+  });
+
   const [signInData, setSignInData] = useState({ email: '', password: '' });
   const [signUpData, setSignUpData] = useState({ 
     email: '', 
@@ -64,7 +68,7 @@ const Auth = () => {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password');
+          setError(t('auth.invalidCredentials'));
         } else {
           setError(error.message);
         }
@@ -97,15 +101,15 @@ const Auth = () => {
       }
 
       toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
+        title: t('auth.welcomeBack'),
+        description: t('auth.signedInSuccess'),
       });
       navigate('/dashboard');
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
       } else {
-        setError('An unexpected error occurred');
+        setError(t('auth.unexpectedError'));
       }
     } finally {
       setLoading(false);
@@ -128,7 +132,7 @@ const Auth = () => {
         .single();
 
       if (existingCompany) {
-        setError('This company slug is already taken. Please choose another.');
+        setError(t('auth.slugTaken'));
         setLoading(false);
         return;
       }
@@ -148,7 +152,7 @@ const Auth = () => {
 
       if (authError) {
         if (authError.message.includes('already registered')) {
-          setError('This email is already registered. Please sign in instead.');
+          setError(t('auth.emailRegistered'));
         } else {
           setError(authError.message);
         }
@@ -156,7 +160,7 @@ const Auth = () => {
       }
 
       if (!authData.user) {
-        setError('Failed to create user account');
+        setError(t('auth.failedCreateUser'));
         return;
       }
 
@@ -174,7 +178,7 @@ const Auth = () => {
 
       if (companyError) {
         console.error('Company creation error:', companyError);
-        setError('Failed to create company. Please contact support.');
+        setError(t('auth.failedCreateCompany'));
         return;
       }
 
@@ -189,7 +193,7 @@ const Auth = () => {
 
       if (companyUserError) {
         console.error('Company user linking error:', companyUserError);
-        setError('Failed to link account to company. Please contact support.');
+        setError(t('auth.failedLinkAccount'));
         return;
       }
 
@@ -206,15 +210,15 @@ const Auth = () => {
       }
 
       toast({
-        title: "Company created!",
-        description: "Now let's choose your modules",
+        title: t('auth.companyCreated'),
+        description: t('auth.chooseModules'),
       });
       navigate('/onboarding/modules');
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
       } else {
-        setError('An unexpected error occurred');
+        setError(t('auth.unexpectedError'));
       }
     } finally {
       setLoading(false);
@@ -235,14 +239,14 @@ const Auth = () => {
 
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="signin">{t('auth.signIn')}</TabsTrigger>
+            <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="signin-email">{t('auth.email')}</Label>
                 <Input
                   id="signin-email"
                   type="email"
@@ -253,7 +257,7 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
+                <Label htmlFor="signin-password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Input
                     id="signin-password"
@@ -268,7 +272,6 @@ const Auth = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -288,7 +291,7 @@ const Auth = () => {
                   htmlFor="remember-me" 
                   className="text-sm font-normal cursor-pointer"
                 >
-                  Remember me
+                  {t('auth.rememberMe')}
                 </Label>
               </div>
               {error && (
@@ -298,14 +301,14 @@ const Auth = () => {
                 </div>
               )}
               <Button type="submit" className="w-full min-h-[48px]" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? t('auth.signingIn') : t('auth.signIn')}
               </Button>
               <div className="text-center pt-2">
                 <Link 
                   to="/forgot-password" 
                   className="text-sm text-primary hover:underline font-medium"
                 >
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
             </form>
@@ -314,7 +317,7 @@ const Auth = () => {
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
+                <Label htmlFor="signup-name">{t('auth.fullName')}</Label>
                 <Input
                   id="signup-name"
                   type="text"
@@ -325,7 +328,7 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
+                <Label htmlFor="signup-email">{t('auth.email')}</Label>
                 <Input
                   id="signup-email"
                   type="email"
@@ -336,7 +339,7 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
+                <Label htmlFor="signup-password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Input
                     id="signup-password"
@@ -351,7 +354,6 @@ const Auth = () => {
                     type="button"
                     onClick={() => setShowSignUpPassword(!showSignUpPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                   >
                     {showSignUpPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -363,7 +365,7 @@ const Auth = () => {
               </div>
               <div className="border-t border-border my-4"></div>
               <div className="space-y-2">
-                <Label htmlFor="signup-company-name">Company Name</Label>
+                <Label htmlFor="signup-company-name">{t('auth.companyName')}</Label>
                 <Input
                   id="signup-company-name"
                   type="text"
@@ -378,7 +380,7 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-company-slug">Company Slug</Label>
+                <Label htmlFor="signup-company-slug">{t('auth.companySlug')}</Label>
                 <Input
                   id="signup-company-slug"
                   type="text"
@@ -388,7 +390,7 @@ const Auth = () => {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your company URL: dashspect.com/{signUpData.companySlug || 'your-slug'}
+                  {t('auth.companyUrlPreview', { slug: signUpData.companySlug || 'your-slug' })}
                 </p>
               </div>
               {error && (
@@ -398,7 +400,7 @@ const Auth = () => {
                 </div>
               )}
               <Button type="submit" className="w-full min-h-[48px]" disabled={loading}>
-                {loading ? 'Creating account...' : 'Sign Up'}
+                {loading ? t('auth.creatingAccount') : t('auth.signUp')}
               </Button>
             </form>
           </TabsContent>

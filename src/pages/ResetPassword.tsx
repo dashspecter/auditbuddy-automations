@@ -7,17 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ClipboardCheck, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 
-const passwordSchema = z.object({
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
 const ResetPassword = () => {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,6 +20,14 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const passwordSchema = z.object({
+    password: z.string().min(6, { message: t('auth.passwordMinLength') }),
+    confirmPassword: z.string().min(6, { message: t('auth.passwordMinLength') }),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('auth.passwordsDontMatch'),
+    path: ["confirmPassword"],
+  });
+
   useEffect(() => {
     // Check if we have a valid recovery session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,14 +35,14 @@ const ResetPassword = () => {
         setIsValidSession(true);
       } else {
         toast({
-          title: "Invalid or expired link",
-          description: "Please request a new password reset link.",
+          title: t('auth.invalidLink'),
+          description: t('auth.requestNewLink'),
           variant: "destructive",
         });
         navigate('/forgot-password');
       }
     });
-  }, [navigate, toast]);
+  }, [navigate, toast, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +61,8 @@ const ResetPassword = () => {
       }
 
       toast({
-        title: "Password reset successful!",
-        description: "You can now sign in with your new password.",
+        title: t('auth.passwordResetSuccess'),
+        description: t('auth.canSignInNow'),
       });
 
       // Sign out to clear the recovery session
@@ -72,7 +74,7 @@ const ResetPassword = () => {
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Failed to reset password. Please try again.');
+        setError(t('auth.failedResetPassword'));
       }
     } finally {
       setLoading(false);
@@ -84,7 +86,7 @@ const ResetPassword = () => {
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 px-safe py-safe">
         <Card className="w-full max-w-md p-8 text-center">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Validating reset link...</p>
+          <p className="text-muted-foreground">{t('auth.validatingLink')}</p>
         </Card>
       </div>
     );
@@ -101,9 +103,9 @@ const ResetPassword = () => {
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold mb-2">Set New Password</h2>
+          <h2 className="text-2xl font-semibold mb-2">{t('auth.setNewPassword')}</h2>
           <p className="text-muted-foreground">
-            Enter your new password below.
+            {t('auth.enterNewPassword')}
           </p>
         </div>
 
@@ -116,7 +118,7 @@ const ResetPassword = () => {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="password">New Password</Label>
+            <Label htmlFor="password">{t('auth.newPassword')}</Label>
             <Input
               id="password"
               type="password"
@@ -129,7 +131,7 @@ const ResetPassword = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword">{t('auth.confirmNewPassword')}</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -146,7 +148,7 @@ const ResetPassword = () => {
             className="w-full" 
             disabled={loading}
           >
-            {loading ? "Resetting..." : "Reset Password"}
+            {loading ? t('auth.resetting') : t('auth.resetPassword')}
           </Button>
         </form>
       </Card>

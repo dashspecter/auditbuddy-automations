@@ -7,18 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ClipboardCheck, ArrowLeft, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 
-const emailSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-});
-
 const ForgotPassword = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
+
+  const emailSchema = z.object({
+    email: z.string().email({ message: t('auth.invalidEmail') }),
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +41,8 @@ const ForgotPassword = () => {
 
       setEmailSent(true);
       toast({
-        title: "Email sent!",
-        description: "Check your inbox for password reset instructions.",
+        title: t('auth.emailSent'),
+        description: t('auth.checkInbox'),
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -48,7 +50,7 @@ const ForgotPassword = () => {
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Failed to send reset email. Please try again.');
+        setError(t('auth.failedSendReset'));
       }
     } finally {
       setLoading(false);
@@ -68,9 +70,9 @@ const ForgotPassword = () => {
         {!emailSent ? (
           <>
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold mb-2">Reset Password</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t('auth.resetPasswordTitle')}</h2>
               <p className="text-muted-foreground">
-                Enter your email address and we'll send you a link to reset your password.
+                {t('auth.resetPasswordDesc')}
               </p>
             </div>
 
@@ -83,7 +85,7 @@ const ForgotPassword = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -100,7 +102,7 @@ const ForgotPassword = () => {
                 className="w-full" 
                 disabled={loading}
               >
-                {loading ? "Sending..." : "Send Reset Link"}
+                {loading ? t('auth.sending') : t('auth.sendResetLink')}
               </Button>
 
               <div className="text-center">
@@ -109,7 +111,7 @@ const ForgotPassword = () => {
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                 >
                   <ArrowLeft className="h-3 w-3" />
-                  Back to Sign In
+                  {t('auth.backToSignIn')}
                 </Link>
               </div>
             </form>
@@ -119,17 +121,17 @@ const ForgotPassword = () => {
             <div className="bg-success/10 border border-success/20 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
               <Mail className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-2xl font-semibold">Check Your Email</h2>
+            <h2 className="text-2xl font-semibold">{t('auth.checkYourEmail')}</h2>
             <p className="text-muted-foreground">
-              We've sent a password reset link to <strong>{email}</strong>
+              {t('auth.resetLinkSent')} <strong>{email}</strong>
             </p>
             <p className="text-sm text-muted-foreground">
-              The link will expire in 1 hour. If you don't see the email, check your spam folder.
+              {t('auth.linkExpires')}
             </p>
             <div className="pt-4">
               <Link to="/auth">
                 <Button variant="outline" className="w-full">
-                  Back to Sign In
+                  {t('auth.backToSignIn')}
                 </Button>
               </Link>
             </div>
