@@ -90,22 +90,18 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager', 'hr', 'checker'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
-      { title: "Location Audits", url: "/audits" },
+      { title: "Location Audits", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { 
         title: "Employee Audits", 
         url: "/staff-audits", 
         allowedRoles: ['admin', 'manager', 'hr'], 
         companyPermission: 'manage_audits' as CompanyPermission,
-        nestedItems: [
-          { title: "New Staff Audit", url: "/staff-audit/new" },
-          { title: "New Performance Review", url: "/staff-audits?review=new" },
-        ]
       },
       { title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Audit Calendar", url: "/audits-calendar" },
+      { title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
-      { title: "Photo Gallery", url: "/photos" },
+      { title: "Photo Gallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
     ]
   },
   { 
