@@ -85,7 +85,9 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Staff-only users (not managers/admins) should be on staff routes
   // But staff who are also managers/admins can access non-staff routes
-  if (isStaff && !isStaffRoute && !company) {
+  // Only redirect if company is definitively not available (not loading)
+  // This prevents unwanted redirects during tab switches when company data is briefly null
+  if (isStaff && !isStaffRoute && !company && !companyLoading) {
     return <Navigate to="/staff" replace />;
   }
 
