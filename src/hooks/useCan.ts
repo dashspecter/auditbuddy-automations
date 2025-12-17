@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { usePermissions, CompanyPermission } from '@/hooks/useCompanyPermissions';
-import { useModules } from '@/hooks/useModules';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type ActionType = 
@@ -189,22 +188,39 @@ const permissionMatrix: Record<ResourceType, Record<ActionType, {
 export function useCan(): UseCanReturn {
   const { user } = useAuth();
   const { data: userRole, isLoading: roleLoading } = useUserRole();
-  const { isPlatformAdmin, isCompanyOwner, isCompanyAdmin } = useCompanyContext();
+  const { modules, isLoading: companyLoading } = useCompanyContext();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
-  const { data: modules, isLoading: modulesLoading } = useModules();
 
-  const isLoading = roleLoading || permissionsLoading || modulesLoading;
+  // Derive role flags from userRole data
+  const isPlatformAdmin = userRole?.isAdmin ?? false;
+  const isCompanyOwner = userRole?.companyRole === 'company_owner';
+  const isCompanyAdmin = userRole?.isCompanyAdmin ?? false;
+
+  const isLoading = roleLoading || permissionsLoading || companyLoading;
 
   const hasModule = (moduleName: string | undefined): boolean => {
     if (!moduleName) return true;
     if (!modules) return false;
-    return modules.some(m => m.module_name === moduleName && m.is_active);
+    return modules.some((m: any) => m.module_name === moduleName && m.is_active);
   };
 
   const hasRole = (allowedRoles: string[] | undefined): boolean => {
     if (!allowedRoles || allowedRoles.length === 0) return true;
     if (!userRole) return false;
-    return allowedRoles.includes(userRole);
+    
+    // Check against platform roles
+    const platformRoles = userRole.roles || [];
+    for (const role of allowedRoles) {
+      if (platformRoles.includes(role as any)) return true;
+    }
+    
+    // Also check derived role flags
+    if (allowedRoles.includes('admin') && userRole.isAdmin) return true;
+    if (allowedRoles.includes('manager') && userRole.isManager) return true;
+    if (allowedRoles.includes('checker') && userRole.isChecker) return true;
+    if (allowedRoles.includes('hr') && userRole.isHR) return true;
+    
+    return false;
   };
 
   const can = useMemo(() => {
