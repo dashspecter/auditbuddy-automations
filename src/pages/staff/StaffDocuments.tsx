@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ interface Document {
 }
 
 const StaffDocuments = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -117,8 +119,8 @@ const StaffDocuments = () => {
       {/* Header */}
       <div className="bg-gradient-hero text-primary-foreground px-safe pt-safe pb-6">
         <div className="px-4 pt-4">
-          <h1 className="text-2xl font-bold">Documents</h1>
-          <p className="text-sm opacity-90">Training materials & resources</p>
+          <h1 className="text-2xl font-bold">{t("staffDocuments.title")}</h1>
+          <p className="text-sm opacity-90">{t("staffDocuments.subtitle")}</p>
         </div>
       </div>
 
@@ -133,7 +135,7 @@ const StaffDocuments = () => {
               className="gap-2 -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Categories
+              {t("staffDocuments.backToCategories")}
             </Button>
             
             <div className="flex items-center gap-3">
@@ -169,7 +171,7 @@ const StaffDocuments = () => {
                       className="gap-2 flex-shrink-0"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      View
+                      {t("common.view")}
                     </Button>
                   </div>
                 </Card>
@@ -179,8 +181,8 @@ const StaffDocuments = () => {
             {getCategoryDocuments(selectedCategory.id).length === 0 && (
               <EmptyState
                 icon={FileText}
-                title="No Documents"
-                description="No documents available in this category."
+                title={t("staffDocuments.noDocuments")}
+                description={t("staffDocuments.noDocumentsInCategory")}
               />
             )}
           </div>
@@ -190,8 +192,8 @@ const StaffDocuments = () => {
             {categories.length === 0 ? (
               <EmptyState
                 icon={Folder}
-                title="No Documents Available"
-                description="No document categories are available for your role."
+                title={t("staffDocuments.noDocumentsAvailable")}
+                description={t("staffDocuments.noDocumentsForRole")}
               />
             ) : (
               <div className="space-y-3">
@@ -213,7 +215,7 @@ const StaffDocuments = () => {
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
-                            {docCount} {docCount === 1 ? 'document' : 'documents'}
+                            {docCount} {docCount === 1 ? t("staffDocuments.document") : t("staffDocuments.documents")}
                           </p>
                         </div>
                       </div>

@@ -839,5 +839,16 @@
     "passedDetail": "Great job! Your results have been recorded.",
     "failedDetail": "Please review the material and try again.",
     "backToHome": "Back to Home"
+  },
+  "staffDocuments": {
+    "title": "Documents",
+    "subtitle": "Training materials & resources",
+    "backToCategories": "Back to Categories",
+    "noDocuments": "No Documents",
+    "noDocumentsInCategory": "No documents available in this category.",
+    "noDocumentsAvailable": "No Documents Available",
+    "noDocumentsForRole": "No document categories are available for your role.",
+    "document": "document",
+    "documents": "documents"
   }
 }

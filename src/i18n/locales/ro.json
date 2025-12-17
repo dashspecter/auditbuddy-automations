@@ -839,5 +839,16 @@
     "passedDetail": "Excelent! Rezultatele tale au fost înregistrate.",
     "failedDetail": "Te rugăm să revizuiești materialul și să încerci din nou.",
     "backToHome": "Înapoi acasă"
+  },
+  "staffDocuments": {
+    "title": "Documente",
+    "subtitle": "Materiale de instruire și resurse",
+    "backToCategories": "Înapoi la categorii",
+    "noDocuments": "Niciun document",
+    "noDocumentsInCategory": "Niciun document disponibil în această categorie.",
+    "noDocumentsAvailable": "Niciun document disponibil",
+    "noDocumentsForRole": "Nicio categorie de documente disponibilă pentru rolul tău.",
+    "document": "document",
+    "documents": "documente"
   }
 }
