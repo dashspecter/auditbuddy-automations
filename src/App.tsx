@@ -68,6 +68,7 @@ import CmmsPartsInventory from "./pages/cmms/PartsInventory";
 import CmmsPurchaseOrders from "./pages/cmms/PurchaseOrders";
 import CmmsVendors from "./pages/cmms/Vendors";
 import CmmsTeams from "./pages/cmms/Teams";
+import CmmsDashboard from "./pages/cmms/CmmsDashboard";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
@@ -271,6 +272,7 @@ const App = () => (
               <Route path="/recurring-maintenance" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
               
               {/* CMMS Industrial Routes */}
+              <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
               <Route path="/cmms/work-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsWorkOrders /></ManagerRoute>} />
               <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
               <Route path="/cmms/assets/:id" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssetDetail /></ManagerRoute>} />
