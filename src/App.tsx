@@ -66,6 +66,8 @@ import CmmsProcedureDetail from "./pages/cmms/ProcedureDetail";
 import CmmsPmSchedules from "./pages/cmms/PmSchedules";
 import CmmsPartsInventory from "./pages/cmms/PartsInventory";
 import CmmsPurchaseOrders from "./pages/cmms/PurchaseOrders";
+import CmmsVendors from "./pages/cmms/Vendors";
+import CmmsTeams from "./pages/cmms/Teams";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
@@ -277,6 +279,8 @@ const App = () => (
               <Route path="/cmms/pm-schedules" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPmSchedules /></ManagerRoute>} />
               <Route path="/cmms/parts" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPartsInventory /></ManagerRoute>} />
               <Route path="/cmms/purchase-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPurchaseOrders /></ManagerRoute>} />
+              <Route path="/cmms/vendors" element={<ManagerRoute requiredPermission="manage_audits"><CmmsVendors /></ManagerRoute>} />
+              <Route path="/cmms/teams" element={<ManagerRoute requiredPermission="manage_audits"><CmmsTeams /></ManagerRoute>} />
               
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
