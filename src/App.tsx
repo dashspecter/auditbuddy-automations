@@ -58,6 +58,7 @@ import EquipmentDetail from "./pages/EquipmentDetail";
 import BulkEquipmentQR from "./pages/BulkEquipmentQR";
 import InterventionDetail from "./pages/InterventionDetail";
 import MaintenanceCalendar from "./pages/MaintenanceCalendar";
+import CmmsWorkOrders from "./pages/cmms/WorkOrders";
 import CompanyOnboarding from "./pages/CompanyOnboarding";
 import CompanySettings from "./pages/CompanySettings";
 import ModuleSelection from "./pages/ModuleSelection";
@@ -259,6 +260,9 @@ const App = () => (
               <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
               <Route path="/maintenance-calendar" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceCalendar /></ManagerRoute>} />
               <Route path="/recurring-maintenance" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
+              
+              {/* CMMS Industrial Routes */}
+              <Route path="/cmms/work-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsWorkOrders /></ManagerRoute>} />
               
               {/* Workforce Routes */}
               <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
