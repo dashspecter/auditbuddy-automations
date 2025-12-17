@@ -91,12 +91,9 @@ const navigationItems = [
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
       { title: "Location Audits", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { 
-        title: "Employee Audits", 
-        url: "/staff-audits", 
-        allowedRoles: ['admin', 'manager', 'hr'], 
-        companyPermission: 'manage_audits' as CompanyPermission,
-      },
+      { title: "Employee Audits", url: "/staff-audits", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "New Staff Audit", url: "/staff-audit/new", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
+      { title: "All Employee Audits", url: "/staff-audits/all", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
