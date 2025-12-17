@@ -136,7 +136,7 @@ const navigationItems = [
     title: "CMMS", 
     url: "/cmms", 
     icon: Cog,
-    module: "cmms",
+    module: null,
     allowedRoles: ['admin', 'manager'],
     subItems: [
       { title: "Dashboard", url: "/cmms" },
