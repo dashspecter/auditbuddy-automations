@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion
+  MessageCircleQuestion, Cog
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -130,6 +130,25 @@ const navigationItems = [
       { title: "Maintenance Calendar", url: "/maintenance-calendar" },
       { title: "Recurring Maintenance", url: "/recurring-maintenance" },
       { title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+    ]
+  },
+  { 
+    title: "CMMS", 
+    url: "/cmms", 
+    icon: Cog,
+    module: "cmms",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { title: "Dashboard", url: "/cmms" },
+      { title: "Assets", url: "/cmms/assets" },
+      { title: "Work Orders", url: "/cmms/work-orders" },
+      { title: "PM Schedules", url: "/cmms/pm-schedules" },
+      { title: "Parts Inventory", url: "/cmms/parts" },
+      { title: "Procedures", url: "/cmms/procedures" },
+      { title: "Vendors", url: "/cmms/vendors" },
+      { title: "Teams", url: "/cmms/teams" },
+      { title: "Purchase Orders", url: "/cmms/purchase-orders" },
+      { title: "Reports", url: "/cmms/reports" },
     ]
   },
   { 
