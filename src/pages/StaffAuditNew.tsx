@@ -305,33 +305,29 @@ const StaffAuditNew = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card className="p-6">
-        <div className="flex items-center gap-4 mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
+            New Staff Audit
+          </h1>
+          <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
+            Create a new staff performance audit
+          </p>
+        </div>
+        {selectedTemplate && (
           <Button
-            variant="ghost"
-            onClick={() => navigate('/staff-audits')}
-            size="sm"
-            className="-ml-2"
+            type="button"
+            variant="outline"
+            onClick={() => setShowPreview(true)}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Audits
+            <Eye className="mr-2 h-4 w-4" />
+            Preview Template
           </Button>
-        </div>
+        )}
+      </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">New Staff Audit</h1>
-          {selectedTemplate && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowPreview(true)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Preview Template
-            </Button>
-          )}
-        </div>
+      <Card className="p-6">
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
