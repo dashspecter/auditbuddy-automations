@@ -478,5 +478,209 @@
     "delete": "Sigur vrei să ștergi?",
     "cancel": "Sigur vrei să anulezi?",
     "unsavedChanges": "Ai modificări nesalvate. Sigur vrei să pleci?"
+  },
+  "landing": {
+    "signIn": "Autentificare",
+    "signUp": "Înregistrare",
+    "welcomeBack": "Bine ai revenit!",
+    "welcomeBackDesc": "Urmărește performanța auditurilor și gestionează conformitatea cu ușurință.",
+    "heroTitle": "Platformă completă de management operațional și conformitate",
+    "heroDesc": "Eficientizează programarea personalului, auditurile locațiilor, mentenanța echipamentelor și gestionarea conformității — totul într-o singură platformă.",
+    "newAudit": "Audit nou",
+    "viewDashboard": "Vezi panoul",
+    "getStartedFree": "Începe gratuit",
+    "learnMore": "Află mai mult",
+    "coreFeatures": {
+      "title": "Soluție completă de management operațional",
+      "subtitle": "Tot ce ai nevoie pentru a gestiona locații, personal, echipamente, audituri și conformitate"
+    },
+    "locationAudits": {
+      "title": "Audituri locații",
+      "customTemplates": "Șabloane personalizate cu punctaj",
+      "photoDoc": "Documentare foto pentru dovezi",
+      "recurringSchedules": "Programări recurente și reminder-e",
+      "pdfReports": "Rapoarte PDF și analiză"
+    },
+    "workforceManagement": {
+      "title": "Gestionare personal",
+      "shiftScheduling": "Programare ture și urmărire timp",
+      "qrClockIn": "Pontaj QR și prezență",
+      "timeOffRequests": "Cereri și aprobări concedii",
+      "leaderboards": "Clasamente performanță"
+    },
+    "equipmentAssets": {
+      "title": "Echipamente și active",
+      "inventory": "Inventar echipamente pe locație",
+      "maintenance": "Programare mentenanță",
+      "qrTracking": "Urmărire cod QR",
+      "interventionHistory": "Istoric intervenții și documente"
+    },
+    "analyticsInsights": {
+      "title": "Analiză și informații",
+      "realTimeDashboards": "Panouri conformitate în timp real",
+      "locationComparison": "Comparație performanță locații",
+      "aiInsights": "Informații bazate pe AI",
+      "trendAnalysis": "Analiză tendințe și prognoză"
+    },
+    "industries": {
+      "title": "Perfect pentru orice afacere cu locații multiple",
+      "subtitle": "Platforma noastră se adaptează cerințelor unice de conformitate ale industriei tale",
+      "foodService": {
+        "title": "Servicii alimentare",
+        "desc": "Restaurante, cafenele, fast-food-uri, food truck-uri, catering"
+      },
+      "retail": {
+        "title": "Retail",
+        "desc": "Lanțuri de magazine, centre comerciale, buticuri, supermarketuri"
+      },
+      "hospitality": {
+        "title": "Ospitalitate",
+        "desc": "Hoteluri, resorturi, închirieri de vacanță, pensiuni"
+      },
+      "healthcare": {
+        "title": "Sănătate",
+        "desc": "Clinici, cabinete stomatologice, centre de îngrijire, cabinete medicale"
+      },
+      "manufacturing": {
+        "title": "Producție",
+        "desc": "Facilități de producție, depozite, departamente control calitate"
+      },
+      "construction": {
+        "title": "Construcții",
+        "desc": "Șantiere, inspecții de siguranță, gestionare contractori"
+      },
+      "propertyManagement": {
+        "title": "Administrare proprietăți",
+        "desc": "Inspecții clădiri, audituri mentenanță, gestionare facilități"
+      },
+      "education": {
+        "title": "Educație",
+        "desc": "Școli, universități, centre de formare, grădinițe"
+      }
+    },
+    "features": {
+      "title": "Funcții puternice create pentru scalare",
+      "subtitle": "Instrumente de nivel enterprise pentru echipe care mențin standardele în locații multiple. De la un singur loc la sute de locații.",
+      "customTemplates": {
+        "title": "Șabloane personalizate",
+        "desc": "Creează șabloane nelimitate cu secțiuni, reguli de punctaj și tipuri de câmpuri personalizate. Clonează și modifică pentru locații sau tipuri de inspecții diferite."
+      },
+      "realTimeAnalytics": {
+        "title": "Analiză în timp real",
+        "desc": "Panouri live cu tendințe de performanță, comparații între locații și detalii pe secțiuni. Identifică problemele înainte să devină grave."
+      },
+      "roleBasedAccess": {
+        "title": "Control acces pe roluri",
+        "desc": "Permisiuni granulare pentru admini, manageri, verificatori și HR. Controlează cine vede ce date și cine poate efectua ce acțiuni."
+      },
+      "automatedScheduling": {
+        "title": "Programare automată",
+        "desc": "Configurează audituri recurente care rulează automat. Nu rata niciodată un termen de conformitate cu reminder-e inteligente și integrare calendar."
+      },
+      "photoDocumentation": {
+        "title": "Documentare foto",
+        "desc": "Capturează și atașează fotografii direct la răspunsurile de audit. Construiește un istoric vizual al conformității în toate locațiile."
+      },
+      "professionalReports": {
+        "title": "Rapoarte profesionale",
+        "desc": "Generează rapoarte PDF personalizate cu scoruri, fotografii și constatări detaliate. Distribuie părților interesate sau arhivează pentru conformitate."
+      },
+      "smartNotifications": {
+        "title": "Notificări inteligente",
+        "desc": "Alerte bazate pe rol pentru a ține informați oamenii potriviți. Reminder-e recurente, notificări de finalizare audit și fluxuri de escaladare."
+      },
+      "equipmentManagement": {
+        "title": "Gestionare echipamente",
+        "desc": "Urmărește echipamentele în locații, programează mentenanța și înregistrează intervențiile. Păstrează activele funcționale."
+      },
+      "auditTrail": {
+        "title": "Pistă de audit completă",
+        "desc": "Fiecare modificare este înregistrată cu istoric complet de revizii. Demonstrează conformitatea cu transparență și responsabilitate totală."
+      }
+    },
+    "teamMembers": {
+      "title": "Proiectat pentru fiecare membru al echipei",
+      "subtitle": "De la executivi care au nevoie de supraveghere la lucrătorii de teren care efectuează inspecții — fiecare are instrumentele necesare",
+      "administrators": {
+        "title": "Administratori",
+        "shortDesc": "Control complet sistem și analiză",
+        "desc": "Control complet asupra șabloanelor, utilizatorilor, locațiilor și setărilor companiei. Acces la analize complete, configurare facturare, gestionare module și integrări. Centrul de comandă pentru întreaga operațiune."
+      },
+      "managers": {
+        "title": "Manageri",
+        "shortDesc": "Supraveghează locații și echipe",
+        "desc": "Gestionează programele personalului, aprobă cererile de concediu și monitorizează performanța echipei. Efectuează audituri, atribuie sarcini și primește notificări în timp real despre locațiile lor."
+      },
+      "checkers": {
+        "title": "Verificatori și inspectori",
+        "shortDesc": "Efectuează audituri la fața locului",
+        "desc": "Experiență mobile-first pentru inspecții pe teren. Completează liste de verificare, capturează fotografii, adaugă observații și trimite constatări în timp real. Funcționează offline și sincronizează când e conectat."
+      },
+      "hrTeams": {
+        "title": "Echipe HR",
+        "shortDesc": "Gestionează conformitatea personalului",
+        "desc": "Gestionează onboarding-ul angajaților, urmărește finalizarea training-urilor, gestionează documentele și asigură conformitatea forței de muncă. Acces la date salariale și evaluări de performanță."
+      },
+      "staffMembers": {
+        "title": "Angajați",
+        "shortDesc": "Portal self-service",
+        "desc": "Vizualizează programele, pontează intrare/ieșire, cere concediu și schimbă ture. Acces la materiale de training, completează testele atribuite și urmărește propria performanță."
+      }
+    },
+    "howItWorks": {
+      "title": "Începe în câteva minute",
+      "subtitle": "De la înregistrare la primul audit în mai puțin de o oră. Configurarea ghidată te conduce prin fiecare pas.",
+      "step1": {
+        "title": "Configurează compania",
+        "shortTitle": "Configurare",
+        "desc": "Creează contul, adaugă detaliile companiei și invită echipa. Alege industria pentru șabloane și setări pre-configurate adaptate nevoilor tale."
+      },
+      "step2": {
+        "title": "Adaugă locații și personal",
+        "shortTitle": "Locații",
+        "desc": "Înregistrează locațiile cu adrese, manageri și program. Importă lista de angajați sau adaugă manual personalul cu rolurile și atribuirile lor."
+      },
+      "step3": {
+        "title": "Creează șabloanele",
+        "shortTitle": "Șabloane",
+        "desc": "Construiește liste de verificare personalizate cu secțiuni, câmpuri și punctaj. Folosește marketplace-ul de șabloane sau începe de la zero."
+      },
+      "step4": {
+        "title": "Programează audituri",
+        "shortTitle": "Programare",
+        "desc": "Configurează programări de audit recurente sau creează inspecții unice. Atribuie verificatori, stabilește termene și configurează reminder-e automate."
+      },
+      "step5": {
+        "title": "Efectuează inspecții",
+        "shortTitle": "Inspectează",
+        "desc": "Echipa completează auditurile pe mobil sau desktop. Capturează fotografii, adaugă note și punctează fiecare element. Rezultatele se sincronizează instant în panou."
+      },
+      "step6": {
+        "title": "Analizează și îmbunătățește",
+        "shortTitle": "Îmbunătățire",
+        "desc": "Revizuiește tendințele de performanță, identifică zonele problematice și urmărește îmbunătățirile în timp. Generează rapoarte pentru părțile interesate."
+      }
+    },
+    "cta": {
+      "startFreeTrial": "Începe perioada de probă",
+      "noCreditCard": "Nu necesită card de credit"
+    },
+    "contact": {
+      "title": "Începe astăzi",
+      "subtitle": "Ești gata să transformi procesele de operațiuni și conformitate?",
+      "emailUs": "Email",
+      "callUs": "Telefon",
+      "readyToStart": "Ești gata să începi?",
+      "signUpFree": "Înregistrare gratuită",
+      "alreadyHaveAccount": "Ai deja cont?"
+    },
+    "footer": {
+      "copyright": "© {{year}} Dashspect. Toate drepturile rezervate."
+    }
+  },
+  "index": {
+    "accountPaused": "Cont suspendat",
+    "trialExpired": "Perioada de probă a expirat. Upgradează la un plan plătit pentru a continua să folosești DashSpect.",
+    "viewPricingPlans": "Vezi planurile de prețuri"
   }
 }

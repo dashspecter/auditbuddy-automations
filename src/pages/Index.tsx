@@ -5,8 +5,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 const Index = () => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
 
@@ -16,7 +18,7 @@ const Index = () => {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -29,11 +31,11 @@ const Index = () => {
         <Alert variant="destructive" className="max-w-md">
           <AlertTriangle className="h-5 w-5" />
           <AlertDescription className="mt-2">
-            <h3 className="font-semibold text-lg mb-2">Account Paused</h3>
-            <p className="mb-4">Your free trial has expired. Please upgrade to a paid plan to continue using DashSpect.</p>
+            <h3 className="font-semibold text-lg mb-2">{t('index.accountPaused')}</h3>
+            <p className="mb-4">{t('index.trialExpired')}</p>
             <Link to="/pricing">
               <Button className="w-full">
-                View Pricing Plans
+                {t('index.viewPricingPlans')}
               </Button>
             </Link>
           </AlertDescription>
