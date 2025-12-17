@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateCmmsAsset, useCmmsAssetCategories } from "@/hooks/useCmmsAssets";
+import { useCreateCmmsAsset, useCmmsAssetCategories, useCreateCmmsAssetCategory } from "@/hooks/useCmmsAssets";
 import { useLocations } from "@/hooks/useLocations";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +29,7 @@ interface NewAssetDialogProps {
 export function NewAssetDialog({ open, onOpenChange }: NewAssetDialogProps) {
   const { toast } = useToast();
   const createAsset = useCreateCmmsAsset();
+  const createCategory = useCreateCmmsAssetCategory();
   const { data: locations } = useLocations();
   const { data: categories } = useCmmsAssetCategories();
   
@@ -40,6 +42,21 @@ export function NewAssetDialog({ open, onOpenChange }: NewAssetDialogProps) {
   const [serialNumber, setSerialNumber] = useState("");
   const [criticality, setCriticality] = useState("Medium");
   const [notes, setNotes] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewCategory, setShowNewCategory] = useState(false);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const newCat = await createCategory.mutateAsync({ name: newCategoryName.trim() });
+      setCategoryId(newCat.id);
+      setNewCategoryName("");
+      setShowNewCategory(false);
+      toast({ title: "Category created" });
+    } catch {
+      toast({ title: "Failed to create category", variant: "destructive" });
+    }
+  };
 
   const handleSubmit = async () => {
     if (!name.trim() || !assetCode.trim()) {
@@ -78,6 +95,8 @@ export function NewAssetDialog({ open, onOpenChange }: NewAssetDialogProps) {
     setSerialNumber("");
     setCriticality("Medium");
     setNotes("");
+    setNewCategoryName("");
+    setShowNewCategory(false);
   };
 
   return (
@@ -127,18 +146,56 @@ export function NewAssetDialog({ open, onOpenChange }: NewAssetDialogProps) {
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {showNewCategory ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Category name"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={handleCreateCategory}
+                    disabled={createCategory.isPending}
+                  >
+                    Add
+                  </Button>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => setShowNewCategory(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => setShowNewCategory(true)}
+                    title="Create new category"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 

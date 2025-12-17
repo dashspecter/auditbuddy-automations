@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Filter, MapPin, Wrench, AlertTriangle } from "lucide-react";
+import { Plus, Search, MapPin, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,28 +8,48 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { NewAssetDialog } from "@/components/cmms/NewAssetDialog";
 import { AssetStatusBadge } from "@/components/cmms/AssetStatusBadge";
 import { CriticalityBadge } from "@/components/cmms/CriticalityBadge";
+import { AssetFilters, type AssetFilterValues } from "@/components/cmms/AssetFilters";
 import { useCmmsAssets, type CmmsAsset } from "@/hooks/useCmmsAssets";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Assets() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<AssetFilterValues>({});
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   
   const { data: assets, isLoading } = useCmmsAssets();
 
   const filteredAssets = useMemo(() => {
     if (!assets) return [];
-    if (!searchQuery.trim()) return assets;
     
-    const query = searchQuery.toLowerCase();
-    return assets.filter(asset =>
-      asset.name.toLowerCase().includes(query) ||
-      asset.asset_code.toLowerCase().includes(query) ||
-      asset.serial_number?.toLowerCase().includes(query) ||
-      asset.location?.name?.toLowerCase().includes(query)
-    );
-  }, [assets, searchQuery]);
+    return assets.filter(asset => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          asset.name.toLowerCase().includes(query) ||
+          asset.asset_code.toLowerCase().includes(query) ||
+          asset.serial_number?.toLowerCase().includes(query) ||
+          asset.location?.name?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Location filter
+      if (filters.locationId && asset.location_id !== filters.locationId) return false;
+      
+      // Category filter
+      if (filters.categoryId && asset.category_id !== filters.categoryId) return false;
+      
+      // Status filter
+      if (filters.status && asset.status !== filters.status) return false;
+      
+      // Criticality filter
+      if (filters.criticality && asset.criticality !== filters.criticality) return false;
+      
+      return true;
+    });
+  }, [assets, searchQuery, filters]);
 
   return (
     <div className="p-6 space-y-6">
@@ -55,24 +75,7 @@ export default function Assets() {
         </div>
 
         {/* Filter chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            <Filter className="h-3 w-3 mr-1" />
-            Location
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            Category
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            Status
-          </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            Criticality
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-primary">
-            + Add filter
-          </Button>
-        </div>
+        <AssetFilters filters={filters} onFiltersChange={setFilters} />
 
         {/* Assets Table */}
         <Card>
