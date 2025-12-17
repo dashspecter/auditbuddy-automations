@@ -1,332 +1,238 @@
 {
   "common": {
+    "loading": "Se încarcă...",
     "save": "Salvează",
     "cancel": "Anulează",
-    "create": "Creează",
-    "edit": "Editează",
     "delete": "Șterge",
+    "edit": "Editează",
+    "create": "Creează",
     "add": "Adaugă",
     "view": "Vezi",
-    "done": "Finalizat",
-    "new": "Nou",
     "search": "Caută",
     "filter": "Filtrează",
-    "clear": "Șterge",
-    "close": "Închide",
+    "export": "Exportă",
+    "import": "Importă",
     "back": "Înapoi",
     "next": "Următorul",
     "previous": "Anterior",
-    "submit": "Trimite",
+    "close": "Închide",
     "confirm": "Confirmă",
-    "loading": "Se încarcă...",
-    "noData": "Nu există date",
-    "all": "Toate",
-    "select": "Selectează",
-    "selectAll": "Selectează tot",
-    "none": "Niciunul",
-    "actions": "Acțiuni",
+    "submit": "Trimite",
+    "reset": "Resetează",
+    "refresh": "Reîmprospătează",
+    "refreshing": "Se reîmprospătează...",
+    "viewAll": "Vezi tot",
+    "allTime": "Tot timpul",
+    "thisMonth": "Luna aceasta",
+    "score": "Scor",
     "status": "Status",
     "date": "Dată",
-    "time": "Oră",
-    "name": "Nume",
-    "description": "Descriere",
-    "type": "Tip",
-    "notes": "Note",
-    "active": "Activ",
-    "inactive": "Inactiv",
-    "enabled": "Activat",
-    "disabled": "Dezactivat",
-    "yes": "Da",
-    "no": "Nu",
-    "or": "sau",
-    "and": "și",
-    "required": "Obligatoriu",
-    "optional": "Opțional",
-    "export": "Exportă",
-    "import": "Importă",
-    "download": "Descarcă",
-    "upload": "Încarcă",
-    "refresh": "Reîmprospătează",
-    "language": "Limbă",
-    "settings": "Setări"
+    "draft": "ciornă"
   },
-  
   "nav": {
-    "navigation": "Navigare",
     "home": "Acasă",
     "dashboard": "Panou",
-    "overview": "Prezentare",
-    "audits": "Audituri",
-    "locationAudits": "Audituri locații",
-    "employeeAudits": "Audituri angajați",
-    "newStaffAudit": "Audit angajat nou",
-    "newPerformanceReview": "Evaluare nouă",
-    "mysteryShopper": "Mystery Shopper",
-    "templateLibrary": "Bibliotecă șabloane",
-    "auditCalendar": "Calendar audituri",
-    "photoGallery": "Galerie foto",
-    "templates": "Șabloane",
-    "calendar": "Calendar",
-    "schedules": "Programări",
-    "reports": "Rapoarte",
-    "locationPerformance": "Performanță locații",
-    "employeePerformance": "Performanță angajați",
-    "vouchers": "Vouchere",
-    "tasks": "Sarcini",
-    "allTasks": "Toate sarcinile",
-    "equipment": "Echipamente",
-    "allEquipment": "Toate echipamentele",
-    "maintenanceCalendar": "Calendar mentenanță",
-    "recurringMaintenance": "Mentenanță recurentă",
-    "bulkQRCodes": "Coduri QR în masă",
-    "locations": "Locații",
-    "allLocations": "Toate locațiile",
-    "sales": "Vânzări",
-    "autoClockOut": "Pontaj automat",
-    "shiftPresets": "Setări ture",
-    "workforce": "Personal",
-    "staff": "Angajați",
-    "shifts": "Ture",
-    "attendance": "Prezență",
-    "timeOff": "Concedii",
-    "payroll": "Salarii",
-    "payrollBatches": "Loturi salarii",
-    "attendanceAlerts": "Alerte prezență",
-    "schedulingInsights": "Analiză programări",
-    "cmms": "CMMS",
-    "workOrders": "Ordine de lucru",
-    "assets": "Echipamente",
-    "pmSchedules": "Mentenanță preventivă",
-    "procedures": "Proceduri",
-    "partsInventory": "Inventar piese",
-    "purchaseOrders": "Comenzi achiziție",
-    "vendors": "Furnizori",
-    "teams": "Echipe",
     "operations": "Operațiuni",
-    "dailyOps": "Operațiuni zilnice",
-    "maintenanceTasks": "Sarcini mentenanță",
-    "slaManagement": "Management SLA",
+    "audits": "Audituri",
+    "auditsList": "Listă audituri",
+    "auditsCalendar": "Calendar",
+    "auditsSummary": "Sumar",
+    "recurringSchedules": "Programări recurente",
+    "templates": "Șabloane",
+    "templateLibrary": "Bibliotecă șabloane",
+    "tasks": "Sarcini",
+    "tasksList": "Listă sarcini",
+    "tasksCalendar": "Calendar",
+    "documents": "Documente",
+    "allDocuments": "Toate documentele",
+    "workforce": "Personal",
+    "employees": "Angajați",
+    "employeeTraining": "Training angajați",
+    "testManagement": "Gestionare teste",
+    "staffAudits": "Audituri personal",
+    "staffLeaderboard": "Clasament personal",
+    "locations": "Locații",
+    "locationsList": "Listă locații",
+    "equipment": "Echipamente",
+    "equipmentList": "Listă echipamente",
+    "maintenanceCalendar": "Calendar mentenanță",
+    "inventory": "Inventar",
     "notifications": "Notificări",
-    "sendNotifications": "Trimite notificări",
+    "sendNotification": "Trimite notificare",
     "notificationTemplates": "Șabloane",
     "recurringNotifications": "Recurente",
     "analytics": "Analiză",
-    "auditLogs": "Jurnal audituri",
-    "documents": "Documente",
-    "allDocuments": "Toate documentele",
-    "training": "Training",
-    "tests": "Teste",
-    "testManagement": "Gestionare teste",
-    "createTest": "Creează test",
-    "insights": "Analize",
-    "aiFeed": "Feed AI",
-    "integrations": "Integrări",
-    "templateMarketplace": "Piață șabloane",
-    "inventory": "Inventar",
-    "settingsSection": "Setări",
-    "billingModules": "Facturare & Module",
+    "auditLogs": "Jurnal audit",
+    "settings": "Setări",
     "companySettings": "Setări companie",
     "userManagement": "Gestionare utilizatori",
-    "platformAdmin": "Admin platformă",
-    "systemHealth": "Stare sistem",
-    "debugData": "Date debug",
-    "aiAgents": "Agenți AI",
+    "integrations": "Integrări",
+    "manualMetrics": "Metrici manuale",
+    "reports": "Rapoarte",
     "aiGuide": "Ghid AI",
-    "settings": "Setări",
-    "users": "Utilizatori",
-    "roles": "Roluri",
-    "company": "Companie"
+    "cmms": "CMMS",
+    "overview": "Prezentare",
+    "assets": "Active",
+    "workOrders": "Ordine de lucru",
+    "preventiveMaintenance": "Mentenanță preventivă",
+    "partsInventory": "Inventar piese",
+    "purchaseOrders": "Comenzi achiziție",
+    "vendors": "Furnizori",
+    "procedures": "Proceduri",
+    "teams": "Echipe",
+    "cmmsReports": "Rapoarte",
+    "cmmsSettings": "Setări"
   },
-  
   "auth": {
-    "login": "Autentificare",
-    "logout": "Deconectare",
+    "signIn": "Autentificare",
     "signUp": "Înregistrare",
-    "signIn": "Conectare",
+    "signOut": "Deconectare",
     "email": "Email",
     "password": "Parolă",
-    "confirmPassword": "Confirmă parola",
     "forgotPassword": "Ai uitat parola?",
     "resetPassword": "Resetează parola",
-    "rememberMe": "Ține-mă minte",
-    "dontHaveAccount": "Nu ai cont?",
-    "alreadyHaveAccount": "Ai deja cont?",
-    "sessionExpired": "Sesiune expirată",
-    "sessionExpiredMsg": "Ai fost deconectat din cauza inactivității.",
-    "profileSettings": "Setări profil"
+    "confirmPassword": "Confirmă parola"
   },
-  
   "dashboard": {
     "title": "Panou",
-    "welcome": "Bun venit",
-    "overview": "Prezentare generală",
-    "recentAudits": "Audituri recente",
-    "pendingTasks": "Sarcini în așteptare",
-    "upcomingShifts": "Ture viitoare",
-    "quickActions": "Acțiuni rapide",
+    "welcome": "Bine ai revenit",
+    "overview": "Prezentare",
+    "gettingStarted": "Primii pași",
+    "loadingModules": "Se încarcă modulele...",
+    "learnModules": "Învață cum să folosești modulele active cu aceste ghiduri pas cu pas",
+    "noActiveModules": "Niciun modul activ. Vizitează Setările companiei pentru a activa modulele.",
+    "goToSettings": "Mergi la Setări",
+    "admin": {
+      "title": "Panou Administrator",
+      "subtitle": "Prezentare și gestionare la nivel de sistem",
+      "badge": "Administrator"
+    },
+    "manager": {
+      "title": "Panou Manager",
+      "subtitle": "Supraveghere echipă și gestionare locații",
+      "badge": "Manager",
+      "pendingReviews": "Revizuiri în așteptare",
+      "auditsWaiting": "{{count}} audit în așteptare",
+      "auditsWaiting_plural": "{{count}} audituri în așteptare",
+      "review": "Revizuiește"
+    },
+    "checker": {
+      "title": "Panoul meu",
+      "subtitle": "Urmărește performanța auditurilor",
+      "badge": "Verificator",
+      "newAudit": "Audit nou",
+      "createNewAudit": "Creează un audit de locație",
+      "createAudit": "Creează audit",
+      "viewAllAudits": "Vezi toate auditurile",
+      "browseHistory": "Răsfoiește istoricul auditurilor",
+      "viewAudits": "Vezi audituri",
+      "myRecentAudits": "Auditurile mele recente",
+      "lastFiveAudits": "Ultimele 5 audituri create",
+      "noAuditsYet": "Niciun audit încă",
+      "createFirstAudit": "Creează primul audit pentru a începe",
+      "createFirstAuditBtn": "Creează primul audit"
+    },
     "stats": {
+      "completed": "Finalizate",
+      "finishedAudits": "Audituri finalizate",
+      "overdue": "Întârziate",
+      "pastDeadline": "După termen",
+      "averageScore": "Scor mediu",
+      "overallAverage": "Media generală",
+      "worstLocation": "Cea mai slabă locație",
+      "bestLocation": "Cea mai bună locație",
       "totalAudits": "Total audituri",
-      "completedTasks": "Sarcini finalizate",
-      "activeStaff": "Personal activ",
-      "equipment": "Echipamente"
+      "performance": "Performanță",
+      "auditsCompleted": "Audituri finalizate",
+      "statisticsOverview": "Prezentare statistici"
+    },
+    "refreshed": "Reîmprospătat",
+    "dataUpdated": "Datele panoului au fost actualizate.",
+    "dataRefreshed": "Datele panoului au fost reîmprospătate",
+    "failedRefresh": "Reîmprospătarea a eșuat"
+  },
+  "modules": {
+    "locationAudits": {
+      "title": "Audituri locații",
+      "description": "Efectuează audituri complete cu șabloane personalizate și programare",
+      "steps": {
+        "step1": "Click 'Audit nou' pentru a începe primul audit",
+        "step2": "Selectează un șablon predefinit sau creează unul personalizat",
+        "step3": "Completează secțiunile cu scoruri și note",
+        "step4": "Adaugă fotografii pentru documentare",
+        "step5": "Trimite și vizualizează auditul în Rapoarte"
+      },
+      "startNewAudit": "Începe audit",
+      "viewTemplates": "Vezi șabloane"
+    },
+    "staffPerformance": {
+      "title": "Performanță personal",
+      "description": "Monitorizează și îmbunătățește performanța echipei",
+      "steps": {
+        "step1": "Adaugă membrii echipei în Gestionare angajați",
+        "step2": "Atribuie angajații locațiilor respective",
+        "step3": "Creează audituri pentru a evalua performanța",
+        "step4": "Revizuiește clasamentul pentru a identifica performerii",
+        "step5": "Urmărește tendințele și oferă feedback constructiv"
+      },
+      "manageEmployees": "Gestionează angajați",
+      "staffAudits": "Audituri personal"
+    },
+    "equipmentManagement": {
+      "title": "Gestionare echipamente",
+      "description": "Urmărește echipamentele, programează mentenanța și gestionează intervențiile",
+      "steps": {
+        "step1": "Înregistrează echipamentele cu locația și specificațiile",
+        "step2": "Generează coduri QR pentru acces rapid",
+        "step3": "Programează mentenanța preventivă în calendar",
+        "step4": "Înregistrează intervențiile cu fotografii înainte/după",
+        "step5": "Urmărește starea echipamentelor și istoricul"
+      },
+      "addEquipment": "Adaugă echipament",
+      "viewCalendar": "Vezi calendar"
+    },
+    "notifications": {
+      "title": "Notificări",
+      "description": "Rămâi conectat cu alerte și șabloane personalizabile",
+      "steps": {
+        "step1": "Creează șabloane de notificări pentru mesaje comune",
+        "step2": "Trimite notificări către roluri specifice",
+        "step3": "Configurează notificări recurente",
+        "step4": "Urmărește analiza și engagement-ul",
+        "step5": "Gestionează preferințele și istoricul notificărilor"
+      },
+      "sendNotification": "Trimite notificare",
+      "viewTemplates": "Vezi șabloane"
+    },
+    "reports": {
+      "title": "Rapoarte și analiză",
+      "description": "Informații detaliate cu rapoarte și vizualizări",
+      "steps": {
+        "step1": "Vizualizează metricile cheie pe panou",
+        "step2": "Filtrează rapoartele după dată și locație",
+        "step3": "Analizează tendințele de conformitate",
+        "step4": "Exportă rapoartele în PDF sau Excel",
+        "step5": "Distribuie informațiile părților interesate"
+      },
+      "viewReports": "Vezi rapoarte",
+      "dashboard": "Panou"
     }
   },
-  
   "cmms": {
     "title": "CMMS",
-    "subtitle": "Sistem de management al mentenanței",
-    "description": "Planifică, execută, urmărește și dovedește mentenanța pentru toate echipamentele și locațiile.",
-    "fullDescription": "CMMS (Computerized Maintenance Management System) te ajută să previi defecțiunile, să standardizezi munca, să controlezi costurile și să rămâi conform — totul într-un singur loc.",
-    "overview": {
-      "title": "Prezentare CMMS",
-      "goToDashboard": "Mergi la Panou",
-      "viewWorkOrders": "Vezi ordinele de lucru"
-    },
-    "whyMatters": {
-      "title": "De ce contează CMMS",
-      "downtime": {
-        "title": "Timp de nefuncționare",
-        "description": "Defecțiunile neașteptate costă timp și bani. CMMS ajută la prevenirea defecțiunilor prin mentenanță programată."
-      },
-      "visibility": {
-        "title": "Fără vizibilitate",
-        "description": "Fără structură, e imposibil să știi ce e făcut, întârziat sau critic. CMMS oferă vizibilitate în timp real."
-      },
-      "consistency": {
-        "title": "Muncă inconsistentă",
-        "description": "Oameni diferiți, standarde diferite. CMMS impune proceduri și liste de verificare de fiecare dată."
-      },
-      "audits": {
-        "title": "Audituri și contracte",
-        "description": "\"Arată-mi dovada.\" CMMS oferă istoric, rapoarte și dovezi pentru audituri și clienți."
-      }
-    },
-    "howItWorks": {
-      "title": "Cum funcționează CMMS",
-      "assets": {
-        "title": "Echipamente",
-        "description": "Înregistrează toate echipamentele cu locație, criticitate și coduri QR."
-      },
-      "workOrders": {
-        "title": "Ordine de lucru",
-        "description": "Creează sarcini manual, din cereri sau automat din programări."
-      },
-      "procedures": {
-        "title": "Proceduri și liste",
-        "description": "Ghidează tehnicienii pas cu pas și captează dovada muncii."
-      },
-      "pm": {
-        "title": "Mentenanță preventivă",
-        "description": "Generează automat ordine de lucru pe baza programării sau utilizării."
-      },
-      "parts": {
-        "title": "Piese și inventar",
-        "description": "Urmărește piesele de schimb, consumul și reaprovizionarea."
-      },
-      "reports": {
-        "title": "Rapoarte și istoric",
-        "description": "Analizează performanța, costurile, conformitatea și timpul de nefuncționare."
-      },
-      "note": "Fiecare acțiune este înregistrată, trasabilă și legată de echipamente și oameni."
-    },
-    "modules": {
-      "title": "Module CMMS",
-      "assets": "Registru central al echipamentelor, locațiilor și codurilor QR.",
-      "workOrders": "Creează, atribuie, urmărește și finalizează sarcinile de mentenanță.",
-      "pmSchedules": "Planuri de mentenanță preventivă care generează automat ordine de lucru.",
-      "procedures": "Proceduri standard de operare și liste de verificare.",
-      "partsInventory": "Urmărește nivelurile de stoc, consumul și alertele de stoc scăzut.",
-      "purchaseOrders": "Comandă și primește piese de la furnizori.",
-      "teams": "Organizează tehnicienii și responsabilitățile.",
-      "vendors": "Gestionează contractorii externi și furnizorii.",
-      "reports": "Performanță, conformitate, costuri și istoric pentru audituri."
-    },
-    "whoFor": {
-      "title": "Pentru cine este CMMS",
-      "operations": {
-        "title": "Manageri de operațiuni",
-        "description": "Controlează mentenanța, reduce timpii morți și vezi ce se întâmplă în timp real."
-      },
-      "technicians": {
-        "title": "Tehnicieni și echipe",
-        "description": "Sarcini clare, instrucțiuni clare, execuție pe mobil."
-      },
-      "auditors": {
-        "title": "Auditori și management",
-        "description": "Dovada muncii, trasabilitate și rapoarte — fără efort manual."
-      }
-    },
-    "useCases": {
-      "title": "Cazuri de utilizare",
-      "hvac": "Inspecții lunare HVAC",
-      "forklift": "Mentenanță preventivă stivuitoare",
-      "fire": "Verificări stingătoare",
-      "kitchen": "Service echipamente bucătărie",
-      "warehouse": "Urmărire echipamente depozit",
-      "multiLocation": "Mentenanță franciză multi-locație"
-    },
-    "why": {
-      "title": "De ce Dashspect CMMS",
-      "multiLocation": "Construit pentru operațiuni multi-locație",
-      "mobilFirst": "Mobile-first pentru tehnicieni",
-      "auditReady": "Gata pentru audituri din start",
-      "enterprise": "Proiectat să scaleze pentru contracte enterprise și industriale",
-      "integrations": "Se integrează cu Dashspect Ops și AI"
-    },
-    "getStarted": {
-      "title": "Începe acum",
-      "viewDashboard": "Vezi panoul",
-      "addFirstAsset": "Adaugă primul echipament",
-      "createWorkOrder": "Creează ordin de lucru",
-      "setupPM": "Configurează mentenanța preventivă",
-      "hint": "Cele mai multe echipe încep prin a adăuga echipamente, apoi creează primul plan de mentenanță preventivă."
-    },
-    "workOrder": {
-      "title": "Ordin de lucru",
-      "new": "Ordin nou",
-      "priority": "Prioritate",
-      "assignedTo": "Atribuit lui",
-      "dueDate": "Termen limită",
-      "status": {
-        "open": "Deschis",
-        "inProgress": "În desfășurare",
-        "onHold": "În așteptare",
-        "completed": "Finalizat",
-        "cancelled": "Anulat"
-      },
-      "priority_levels": {
-        "low": "Scăzută",
-        "medium": "Medie",
-        "high": "Ridicată",
-        "critical": "Critică"
-      }
-    },
-    "asset": {
-      "title": "Echipament",
-      "new": "Echipament nou",
-      "code": "Cod echipament",
-      "category": "Categorie",
-      "location": "Locație",
-      "status": {
-        "operational": "Operațional",
-        "maintenance": "În mentenanță",
-        "outOfService": "Scos din uz",
-        "retired": "Retras"
-      },
-      "criticality": {
-        "low": "Scăzută",
-        "medium": "Medie",
-        "high": "Ridicată",
-        "critical": "Critică"
-      }
-    }
+    "workOrders": "Ordine de lucru",
+    "assets": "Active",
+    "preventiveMaintenance": "Mentenanță preventivă",
+    "parts": "Piese",
+    "vendors": "Furnizori"
   },
-  
   "audits": {
     "title": "Audituri",
+    "newAudit": "Audit nou",
     "new": "Audit nou",
     "template": "Șablon",
     "templates": "Șabloane",
+    "schedule": "Programare",
     "location": "Locație",
     "auditor": "Auditor",
     "score": "Scor",
@@ -341,9 +247,9 @@
     "createTemplate": "Creează șablon",
     "editTemplate": "Editează șablon"
   },
-  
   "tasks": {
     "title": "Sarcini",
+    "newTask": "Sarcină nouă",
     "new": "Sarcină nouă",
     "myTasks": "Sarcinile mele",
     "allTasks": "Toate sarcinile",
@@ -360,9 +266,11 @@
       "cancelled": "Anulată"
     }
   },
-  
   "workforce": {
     "title": "Personal",
+    "employees": "Angajați",
+    "training": "Training",
+    "performance": "Performanță",
     "staff": {
       "title": "Angajați",
       "new": "Adaugă angajat",
@@ -414,9 +322,11 @@
       "total": "Total"
     }
   },
-  
   "equipment": {
     "title": "Echipamente",
+    "list": "Listă echipamente",
+    "maintenance": "Mentenanță",
+    "inventory": "Inventar",
     "new": "Adaugă echipament",
     "model": "Model",
     "brand": "Marcă",
@@ -428,17 +338,12 @@
       "maintenance": "În mentenanță",
       "outOfService": "Scos din uz",
       "retired": "Retras"
-    },
-    "maintenance": {
-      "title": "Mentenanță",
-      "scheduled": "Programată",
-      "completed": "Finalizată",
-      "overdue": "Întârziată"
     }
   },
-  
   "locations": {
     "title": "Locații",
+    "manage": "Gestionează locații",
+    "add": "Adaugă locație",
     "new": "Adaugă locație",
     "address": "Adresă",
     "city": "Oraș",
@@ -446,9 +351,11 @@
     "operatingHours": "Program de funcționare",
     "closed": "Închis"
   },
-  
   "notifications": {
     "title": "Notificări",
+    "send": "Trimite notificare",
+    "templates": "Șabloane",
+    "history": "Istoric",
     "markAllRead": "Marchează ca citite",
     "noNotifications": "Nu sunt notificări",
     "new": "Nou",
@@ -460,25 +367,24 @@
       "alert": "Alertă"
     }
   },
-  
   "settings": {
     "title": "Setări",
+    "company": "Setări companie",
+    "users": "Gestionare utilizatori",
+    "integrations": "Integrări",
+    "language": "Limbă",
     "general": "General",
-    "company": "Companie",
-    "users": "Utilizatori",
     "roles": "Roluri",
     "permissions": "Permisiuni",
     "modules": "Module",
-    "integrations": "Integrări",
-    "language": "Limbă",
     "theme": "Temă",
     "notifications": "Notificări"
   },
-  
   "errors": {
     "generic": "Ceva nu a funcționat",
-    "notFound": "Nu a fost găsit",
-    "unauthorized": "Neautorizat",
+    "notFound": "Negăsit",
+    "unauthorized": "Acces neautorizat",
+    "forbidden": "Acces interzis",
     "permissionDenied": "Acces interzis",
     "permissionDeniedMsg": "Nu ai acces. Cere unui Admin să îți actualizeze rolul.",
     "networkError": "Eroare de rețea",
@@ -486,8 +392,9 @@
     "invalidData": "Date invalide",
     "required": "Acest câmp este obligatoriu"
   },
-  
   "empty": {
+    "noData": "Nu există date",
+    "noResults": "Niciun rezultat",
     "generic": {
       "title": "Nu există date",
       "description": "Începe prin a adăuga primul element."
@@ -513,7 +420,6 @@
       "description": "Creează ture pentru a-ți programa echipa."
     }
   },
-  
   "success": {
     "saved": "Salvat cu succes",
     "created": "Creat cu succes",
@@ -521,7 +427,6 @@
     "deleted": "Șters cu succes",
     "sent": "Trimis cu succes"
   },
-  
   "confirm": {
     "delete": "Sigur vrei să ștergi?",
     "cancel": "Sigur vrei să anulezi?",
