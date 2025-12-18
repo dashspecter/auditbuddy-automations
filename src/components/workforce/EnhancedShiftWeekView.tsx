@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const EnhancedShiftWeekView = () => {
+  const { t } = useTranslation();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -390,28 +392,28 @@ export const EnhancedShiftWeekView = () => {
           {/* Presence indicator - show who else is viewing */}
           <SchedulePresenceIndicator activeUsers={activeUsers} locations={locations} />
           <Button variant="outline" onClick={goToToday}>
-            Today
+            {t('workforce.shifts.today')}
           </Button>
         </div>
         
         <div className="flex items-center gap-2">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "employee" | "location")}>
-            <ToggleGroupItem value="employee" aria-label="Employee view" className="gap-1">
+            <ToggleGroupItem value="employee" aria-label={t('workforce.shifts.employeeView')} className="gap-1">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Employees</span>
+              <span className="hidden sm:inline">{t('workforce.shifts.employees')}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="location" aria-label="Location view" className="gap-1">
+            <ToggleGroupItem value="location" aria-label={t('workforce.shifts.locationView')} className="gap-1">
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">Locations</span>
+              <span className="hidden sm:inline">{t('workforce.shifts.locations')}</span>
             </ToggleGroupItem>
           </ToggleGroup>
 
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Locations" />
+              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -425,7 +427,7 @@ export const EnhancedShiftWeekView = () => {
               variant="outline"
               size="icon"
               onClick={() => setScheduleDialogOpen(true)}
-              title="Manage Operating Hours"
+              title={t('workforce.shifts.manageOperatingHours')}
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -435,22 +437,22 @@ export const EnhancedShiftWeekView = () => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                    onClick={handlePublishWeek}
-                    disabled={bulkPublish.isPending}
-                  >
-                    <Send className="h-4 w-4" />
-                    <span className="hidden sm:inline">Publish Week</span>
-                    <Badge variant="secondary" className="ml-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                      {unpublishedWeekShiftIds.length}
-                    </Badge>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Publish all {unpublishedWeekShiftIds.length} unpublished shifts for this week</p>
-                </TooltipContent>
+                    <Button 
+                      variant="outline" 
+                      className="gap-2 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                      onClick={handlePublishWeek}
+                      disabled={bulkPublish.isPending}
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="hidden sm:inline">{t('workforce.shifts.publishWeek')}</span>
+                      <Badge variant="secondary" className="ml-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        {unpublishedWeekShiftIds.length}
+                      </Badge>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('workforce.shifts.publishAllShifts', { count: unpublishedWeekShiftIds.length })}</p>
+                  </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
@@ -465,12 +467,12 @@ export const EnhancedShiftWeekView = () => {
             className="gap-2"
           >
             <Palmtree className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Time Off</span>
+            <span className="hidden sm:inline">{t('workforce.shifts.addTimeOff')}</span>
           </Button>
 
           <Button onClick={() => handleAddShift(new Date())} className="gap-2">
             <Plus className="h-4 w-4" />
-            Add Shift
+            {t('workforce.shifts.addShift')}
           </Button>
         </div>
       </div>
@@ -479,45 +481,45 @@ export const EnhancedShiftWeekView = () => {
       <div className="flex flex-wrap items-center gap-4 px-3 py-2 bg-muted/50 rounded-lg border text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
           <Info className="h-3.5 w-3.5" />
-          Legend:
+          {t('workforce.shifts.legend')}:
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-primary/20 border border-primary" />
-          <span>Published</span>
+          <span>{t('workforce.shifts.published')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-primary/10 border border-dashed border-primary/40 opacity-50" />
-          <span>Unpublished (Draft)</span>
+          <span>{t('workforce.shifts.unpublished')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 flex items-center justify-center">
             <Palmtree className="h-2.5 w-2.5 text-red-500" />
           </div>
-          <span>Time Off / Vacation</span>
+          <span>{t('workforce.shifts.timeOffVacation')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded border border-dashed border-orange-400 bg-orange-50 dark:bg-orange-900/20 opacity-70" />
-          <span>Pending Approval</span>
+          <span>{t('workforce.shifts.pendingApprovalLegend')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded">
             <TrendingUp className="h-3 w-3" />
             +N
           </span>
-          <span>Extra Shifts</span>
+          <span>{t('workforce.shifts.extraShifts')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded">
             <TrendingDown className="h-3 w-3" />
             -N
           </span>
-          <span>Missing Shifts</span>
+          <span>{t('workforce.shifts.missingShifts')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-4 w-4 rounded bg-muted border border-border flex items-center justify-center">
             <Calendar className="h-2.5 w-2.5 text-muted-foreground" />
           </div>
-          <span>Open Shift</span>
+          <span>{t('workforce.shifts.openShiftLegend')}</span>
         </div>
       </div>
 
@@ -525,7 +527,7 @@ export const EnhancedShiftWeekView = () => {
       <div className="border rounded-lg overflow-hidden bg-card max-h-[calc(100vh-280px)] overflow-y-auto">
         <div className="grid grid-cols-8 border-b sticky top-0 z-10 bg-card">
           <div className="p-3 border-r bg-muted/50 font-medium sticky left-0">
-            {viewMode === "employee" ? "Employee" : "Location"}
+            {viewMode === "employee" ? t('workforce.shifts.employee') : t('workforce.shifts.locationHeader')}
           </div>
           {weekDays.map((day) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
