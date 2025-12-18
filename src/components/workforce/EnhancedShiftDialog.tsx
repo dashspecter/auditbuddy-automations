@@ -754,7 +754,7 @@ export const EnhancedShiftDialog = ({
             </div>
             {formData.role && !batchMode && (
               <p className="text-xs text-muted-foreground">
-                {String(t('workforce.components.enhancedShiftDialog.assignDescription', { count: formData.required_count, role: formData.role }))}
+                {t('workforce.components.enhancedShiftDialog.assignDescription', { count: Number(formData.required_count), role: formData.role })}
               </p>
             )}
             {batchMode && (
