@@ -28,7 +28,10 @@
     "status": "Status",
     "date": "Dată",
     "draft": "ciornă",
-    "archive": "Arhivează"
+    "archive": "Arhivează",
+    "error": "Eroare",
+    "today": "Astăzi",
+    "due": "Scadent"
   },
   "nav": {
     "navigation": "Navigare",
@@ -126,7 +129,8 @@
     "platformAdmin": "Admin platformă",
     "systemHealth": "Stare sistem",
     "debugData": "Date debug",
-    "aiAgents": "Agenți AI"
+    "aiAgents": "Agenți AI",
+    "settingsSection": "Setări"
   },
   "auth": {
     "signIn": "Autentificare",
@@ -236,8 +240,23 @@
       "totalAudits": "Total audituri",
       "performance": "Performanță",
       "auditsCompleted": "Audituri finalizate",
-      "statisticsOverview": "Prezentare statistici"
+      "statisticsOverview": "Prezentare statistici",
+      "thisWeekAudits": "Audituri săptămâna aceasta",
+      "currentWeek": "Săptămâna curentă",
+      "thisWeeksAudits": "Auditurile săptămânii",
+      "noAuditsThisWeek": "Niciun audit săptămâna aceasta"
     },
+    "compliance": {
+      "title": "Conformitate generală",
+      "compliant": "Conform",
+      "nonCompliant": "Neconform",
+      "noData": "Nu există date despre audituri",
+      "meetThreshold": "Ating pragul ({{threshold}}%)"
+    },
+    "auditDeleted": "Audit șters",
+    "auditDeletedDesc": "Auditul a fost șters cu succes.",
+    "failedDeleteAudit": "Ștergerea auditului a eșuat.",
+    "issuesFound": "Probleme găsite",
     "refreshed": "Reîmprospătat",
     "dataUpdated": "Datele panoului au fost actualizate.",
     "dataRefreshed": "Datele panoului au fost reîmprospătate",

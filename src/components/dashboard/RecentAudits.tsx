@@ -15,8 +15,10 @@ import { SwipeableListItem } from "@/components/SwipeableListItem";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 export const RecentAudits = () => {
+  const { t } = useTranslation();
   const { data: locationAudits, isLoading: locationLoading } = useLocationAudits();
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -43,22 +45,22 @@ export const RecentAudits = () => {
     <>
       <div onClick={handleCardClick} className={thisWeekAudits.length > 0 ? "cursor-pointer" : ""}>
         <StatsCard
-          title="This Week Audits"
+          title={t('dashboard.stats.thisWeekAudits')}
           value={locationLoading ? "..." : thisWeekAudits.length.toString()}
           icon={Calendar}
-          description="Current week"
+          description={t('dashboard.stats.currentWeek')}
         />
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>This Week's Audits</DialogTitle>
+            <DialogTitle>{t('dashboard.stats.thisWeeksAudits')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-4">
             {thisWeekAudits.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No audits this week</p>
+                <p className="text-muted-foreground">{t('dashboard.stats.noAuditsThisWeek')}</p>
               </div>
             ) : (
               thisWeekAudits.map((audit) => (
@@ -74,16 +76,16 @@ export const RecentAudits = () => {
                       if (error) throw error;
 
                       toast({
-                        title: "Audit deleted",
-                        description: "The audit has been successfully deleted.",
+                        title: t('dashboard.auditDeleted'),
+                        description: t('dashboard.auditDeletedDesc'),
                       });
                       
                       await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
                     } catch (error) {
                       console.error('Error deleting audit:', error);
                       toast({
-                        title: "Error",
-                        description: "Failed to delete audit.",
+                        title: t('common.error'),
+                        description: t('dashboard.failedDeleteAudit'),
                         variant: "destructive",
                       });
                     }
@@ -99,7 +101,7 @@ export const RecentAudits = () => {
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-foreground">{audit.location}</p>
                         <Badge variant="location" className="text-xs">
-                          Location
+                          {t('audits.location')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -115,19 +117,19 @@ export const RecentAudits = () => {
                       {audit.status === "compliant" && (
                         <Badge className="bg-success text-success-foreground gap-1">
                           <CheckCircle2 className="h-3 w-3" />
-                          Compliant
+                          {t('audits.status.completed')}
                         </Badge>
                       )}
                       {audit.status === "non-compliant" && (
                         <Badge variant="destructive" className="gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          Issues Found
+                          {t('dashboard.issuesFound')}
                         </Badge>
                       )}
                       {audit.status === "pending" && (
                         <Badge variant="outline" className="gap-1">
                           <Clock className="h-3 w-3" />
-                          Pending
+                          {t('audits.status.inProgress')}
                         </Badge>
                       )}
                     </div>

@@ -28,7 +28,10 @@
     "status": "Status",
     "date": "Date",
     "draft": "draft",
-    "archive": "Archive"
+    "archive": "Archive",
+    "error": "Error",
+    "today": "Today",
+    "due": "Due"
   },
   "nav": {
     "navigation": "Navigation",
@@ -126,7 +129,8 @@
     "platformAdmin": "Platform Admin",
     "systemHealth": "System Health",
     "debugData": "Debug Data",
-    "aiAgents": "AI Agents"
+    "aiAgents": "AI Agents",
+    "settingsSection": "Settings"
   },
   "auth": {
     "signIn": "Sign In",
@@ -236,8 +240,23 @@
       "totalAudits": "Total Audits",
       "performance": "Performance",
       "auditsCompleted": "Audits completed",
-      "statisticsOverview": "Statistics Overview"
+      "statisticsOverview": "Statistics Overview",
+      "thisWeekAudits": "This Week Audits",
+      "currentWeek": "Current week",
+      "thisWeeksAudits": "This Week's Audits",
+      "noAuditsThisWeek": "No audits this week"
     },
+    "compliance": {
+      "title": "Overall Compliance",
+      "compliant": "Compliant",
+      "nonCompliant": "Non-Compliant",
+      "noData": "No audit data available",
+      "meetThreshold": "Meet Threshold ({{threshold}}%)"
+    },
+    "auditDeleted": "Audit deleted",
+    "auditDeletedDesc": "The audit has been successfully deleted.",
+    "failedDeleteAudit": "Failed to delete audit.",
+    "issuesFound": "Issues Found",
     "refreshed": "Refreshed",
     "dataUpdated": "Dashboard data has been updated.",
     "dataRefreshed": "Dashboard data refreshed",
