@@ -9,8 +9,10 @@ import { WorkOrderDetail } from "@/components/cmms/WorkOrderDetail";
 import { NewWorkOrderDialog } from "@/components/cmms/NewWorkOrderDialog";
 import { useCmmsWorkOrders, type CmmsWorkOrder } from "@/hooks/useCmmsWorkOrders";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 export default function WorkOrders() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"todo" | "done">("todo");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<CmmsWorkOrder | null>(null);
@@ -64,7 +66,7 @@ export default function WorkOrders() {
         {/* Top Bar */}
         <div className="p-4 border-b bg-background">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl font-semibold">Work Orders</h1>
+            <h1 className="text-xl font-semibold">{t('cmms.workOrders')}</h1>
             
             <div className="flex-1 max-w-md">
               <div className="relative">
@@ -72,7 +74,7 @@ export default function WorkOrders() {
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search work orders (title, asset, location, WO #)"
+                  placeholder={t('cmms.workOrders.searchPlaceholder')}
                   className="pl-9"
                 />
               </div>
@@ -81,11 +83,11 @@ export default function WorkOrders() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <SlidersHorizontal className="h-4 w-4 mr-1.5" />
-                My Filters
+                {t('cmms.workOrders.myFilters')}
               </Button>
               <Button onClick={() => setIsNewDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-1.5" />
-                New Work Order
+                {t('cmms.workOrders.newWorkOrder')}
               </Button>
             </div>
           </div>
@@ -94,22 +96,22 @@ export default function WorkOrders() {
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <Button variant="outline" size="sm" className="h-7 text-xs">
               <Filter className="h-3 w-3 mr-1" />
-              Assigned to
+              {t('cmms.workOrders.filters.assignedTo')}
             </Button>
             <Button variant="outline" size="sm" className="h-7 text-xs">
-              Due date
+              {t('cmms.workOrders.filters.dueDate')}
             </Button>
             <Button variant="outline" size="sm" className="h-7 text-xs">
-              Location
+              {t('cmms.workOrders.filters.location')}
             </Button>
             <Button variant="outline" size="sm" className="h-7 text-xs">
-              Priority
+              {t('cmms.workOrders.filters.priority')}
             </Button>
             <Button variant="outline" size="sm" className="h-7 text-xs">
-              Status
+              {t('cmms.workOrders.filters.status')}
             </Button>
             <Button variant="ghost" size="sm" className="h-7 text-xs text-primary">
-              + Add filter
+              {t('cmms.workOrders.filters.addFilter')}
             </Button>
           </div>
         </div>
@@ -121,14 +123,14 @@ export default function WorkOrders() {
             <div className="p-3 border-b">
               <Tabs value={tab} onValueChange={(v) => setTab(v as "todo" | "done")}>
                 <TabsList className="w-full">
-                  <TabsTrigger value="todo" className="flex-1">To Do</TabsTrigger>
-                  <TabsTrigger value="done" className="flex-1">Done</TabsTrigger>
+                  <TabsTrigger value="todo" className="flex-1">{t('cmms.workOrders.tabs.toDo')}</TabsTrigger>
+                  <TabsTrigger value="done" className="flex-1">{t('cmms.workOrders.tabs.done')}</TabsTrigger>
                 </TabsList>
               </Tabs>
               <p className="text-xs text-muted-foreground mt-2">
                 {tab === "todo" 
-                  ? "To Do shows Open, On Hold, and In Progress."
-                  : "Done shows completed and cancelled work orders."
+                  ? t('cmms.workOrders.tabs.toDoDescription')
+                  : t('cmms.workOrders.tabs.doneDescription')
                 }
               </p>
             </div>
@@ -143,8 +145,8 @@ export default function WorkOrders() {
                   <div className="text-center py-8 text-muted-foreground">
                     <p className="text-sm">
                       {tab === "todo" 
-                        ? "You're all clear. No work orders right now."
-                        : "No completed work orders yet."
+                        ? t('cmms.workOrders.emptyToDo')
+                        : t('cmms.workOrders.emptyDone')
                       }
                     </p>
                   </div>
@@ -171,13 +173,13 @@ export default function WorkOrders() {
                 <div className="rounded-full bg-muted p-3 mb-4">
                   <Search className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">No work order selected</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('cmms.workOrders.noSelection')}</h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                  Select a work order from the list to view details, or create a new one.
+                  {t('cmms.workOrders.noSelectionDescription')}
                 </p>
                 <Button onClick={() => setIsNewDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1.5" />
-                  New Work Order
+                  {t('cmms.workOrders.newWorkOrder')}
                 </Button>
               </div>
             )}

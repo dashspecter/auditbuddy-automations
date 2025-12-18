@@ -8,9 +8,10 @@ import {
   Settings, Truck, ClipboardList
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 export default function CmmsDashboard() {
+  const { t } = useTranslation();
   const { data: metrics, isLoading } = useCmmsMetrics();
   const { data: recentWorkOrders } = useRecentWorkOrders(5);
 
@@ -36,7 +37,7 @@ export default function CmmsDashboard() {
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">CMMS Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('cmms.dashboard.title')}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <Card key={i} className="animate-pulse">
@@ -53,11 +54,11 @@ export default function CmmsDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">CMMS Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('cmms.dashboard.title')}</h1>
         <Button asChild>
           <Link to="/cmms/work-orders/new">
             <Wrench className="h-4 w-4 mr-2" />
-            New Work Order
+            {t('cmms.dashboard.newWorkOrder')}
           </Link>
         </Button>
       </div>
@@ -68,10 +69,10 @@ export default function CmmsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Open Work Orders</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.openWorkOrders')}</p>
                 <p className="text-3xl font-bold">{metrics?.workOrders.open || 0}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {metrics?.workOrders.inProgress || 0} in progress
+                  {metrics?.workOrders.inProgress || 0} {t('cmms.dashboard.inProgress')}
                 </p>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -85,12 +86,12 @@ export default function CmmsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Overdue</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.overdue')}</p>
                 <p className="text-3xl font-bold text-destructive">
                   {metrics?.workOrders.overdue || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {metrics?.workOrders.highPriorityOpen || 0} high priority
+                  {metrics?.workOrders.highPriorityOpen || 0} {t('cmms.dashboard.highPriority')}
                 </p>
               </div>
               <div className="p-3 bg-red-100 dark:bg-red-900 rounded-full">
@@ -104,12 +105,12 @@ export default function CmmsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completed (30d)</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.completed30d')}</p>
                 <p className="text-3xl font-bold text-green-600">
                   {metrics?.workOrders.completedThisMonth || 0}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {metrics?.workOrders.preventive || 0} preventive
+                  {metrics?.workOrders.preventive || 0} {t('cmms.dashboard.preventive')}
                 </p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
@@ -123,13 +124,13 @@ export default function CmmsDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Asset Health</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.assetHealth')}</p>
                 <p className="text-3xl font-bold">
                   {metrics?.assets.total ? 
                     Math.round((metrics.assets.operational / metrics.assets.total) * 100) : 0}%
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {metrics?.assets.down || 0} assets down
+                  {metrics?.assets.down || 0} {t('cmms.dashboard.assetsDown')}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
@@ -149,10 +150,10 @@ export default function CmmsDashboard() {
                 <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">PM Due Soon</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.pmDueSoon')}</p>
                 <p className="text-2xl font-bold">{metrics?.pm.upcoming || 0}</p>
                 <p className="text-xs text-destructive">
-                  {metrics?.pm.overdue || 0} overdue
+                  {metrics?.pm.overdue || 0} {t('cmms.dashboard.overdueCount')}
                 </p>
               </div>
             </div>
@@ -166,9 +167,9 @@ export default function CmmsDashboard() {
                 <Package className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Low Stock Parts</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.lowStockParts')}</p>
                 <p className="text-2xl font-bold">{metrics?.parts.lowStock || 0}</p>
-                <p className="text-xs text-muted-foreground">need reorder</p>
+                <p className="text-xs text-muted-foreground">{t('cmms.dashboard.needReorder')}</p>
               </div>
             </div>
           </CardContent>
@@ -181,10 +182,10 @@ export default function CmmsDashboard() {
                 <Settings className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Assets</p>
+                <p className="text-sm text-muted-foreground">{t('cmms.dashboard.totalAssets')}</p>
                 <p className="text-2xl font-bold">{metrics?.assets.total || 0}</p>
                 <p className="text-xs text-muted-foreground">
-                  {metrics?.assets.operational || 0} operational
+                  {metrics?.assets.operational || 0} {t('cmms.dashboard.operational')}
                 </p>
               </div>
             </div>
@@ -196,10 +197,10 @@ export default function CmmsDashboard() {
         {/* Recent Work Orders */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Work Orders</CardTitle>
+            <CardTitle className="text-lg">{t('cmms.dashboard.recentWorkOrders')}</CardTitle>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/cmms/work-orders">
-                View All <ArrowRight className="h-4 w-4 ml-1" />
+                {t('cmms.dashboard.viewAll')} <ArrowRight className="h-4 w-4 ml-1" />
               </Link>
             </Button>
           </CardHeader>
@@ -207,7 +208,7 @@ export default function CmmsDashboard() {
             <div className="space-y-3">
               {recentWorkOrders?.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No work orders yet
+                  {t('cmms.dashboard.noWorkOrdersYet')}
                 </p>
               )}
               {recentWorkOrders?.map((wo: any) => (
@@ -223,7 +224,7 @@ export default function CmmsDashboard() {
                         WO-{wo.wo_number}: {wo.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {wo.cmms_assets?.name || wo.locations?.name || 'No location'}
+                        {wo.cmms_assets?.name || wo.locations?.name || t('cmms.workOrders.noLocation')}
                       </p>
                     </div>
                   </div>
@@ -239,56 +240,56 @@ export default function CmmsDashboard() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <CardTitle className="text-lg">{t('cmms.dashboard.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/work-orders">
                   <Wrench className="h-5 w-5 mb-2" />
-                  <span>Work Orders</span>
+                  <span>{t('cmms.workOrders')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/assets">
                   <Settings className="h-5 w-5 mb-2" />
-                  <span>Assets</span>
+                  <span>{t('cmms.assets')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/pm-schedules">
                   <Calendar className="h-5 w-5 mb-2" />
-                  <span>PM Schedules</span>
+                  <span>{t('cmms.dashboard.pmSchedules')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/parts">
                   <Package className="h-5 w-5 mb-2" />
-                  <span>Parts</span>
+                  <span>{t('cmms.parts')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/procedures">
                   <ClipboardList className="h-5 w-5 mb-2" />
-                  <span>Procedures</span>
+                  <span>{t('cmms.dashboard.procedures')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/vendors">
                   <Truck className="h-5 w-5 mb-2" />
-                  <span>Vendors</span>
+                  <span>{t('cmms.vendors')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/teams">
                   <Users className="h-5 w-5 mb-2" />
-                  <span>Teams</span>
+                  <span>{t('cmms.dashboard.teams')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col" asChild>
                 <Link to="/cmms/purchase-orders">
                   <Clock className="h-5 w-5 mb-2" />
-                  <span>Purchase Orders</span>
+                  <span>{t('cmms.dashboard.purchaseOrders')}</span>
                 </Link>
               </Button>
             </div>

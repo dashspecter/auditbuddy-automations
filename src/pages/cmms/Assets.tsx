@@ -11,8 +11,10 @@ import { CriticalityBadge } from "@/components/cmms/CriticalityBadge";
 import { AssetFilters, type AssetFilterValues } from "@/components/cmms/AssetFilters";
 import { useCmmsAssets, type CmmsAsset } from "@/hooks/useCmmsAssets";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 export default function Assets() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<AssetFilterValues>({});
@@ -55,7 +57,7 @@ export default function Assets() {
     <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold">Assets</h1>
+          <h1 className="text-2xl font-semibold">{t('cmms.assets')}</h1>
           
           <div className="flex items-center gap-3">
             <div className="relative w-80">
@@ -63,13 +65,13 @@ export default function Assets() {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search assets (name, code, serial, location)"
+                placeholder={t('cmms.assetsPage.searchPlaceholder')}
                 className="pl-9"
               />
             </div>
             <Button onClick={() => setIsNewDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
-              New Asset
+              {t('cmms.assetsPage.newAsset')}
             </Button>
           </div>
         </div>
@@ -91,25 +93,25 @@ export default function Assets() {
                 <div className="rounded-full bg-muted p-3 w-fit mx-auto mb-4">
                   <Wrench className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">No assets yet</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('cmms.assetsPage.noAssets')}</h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                  Add your first asset to track maintenance, procedures, and QR workflows.
+                  {t('cmms.assetsPage.noAssetsDescription')}
                 </p>
                 <Button onClick={() => setIsNewDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1.5" />
-                  New Asset
+                  {t('cmms.assetsPage.newAsset')}
                 </Button>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Criticality</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('cmms.assetsPage.table.asset')}</TableHead>
+                    <TableHead>{t('cmms.assetsPage.table.location')}</TableHead>
+                    <TableHead>{t('cmms.assetsPage.table.status')}</TableHead>
+                    <TableHead>{t('cmms.assetsPage.table.criticality')}</TableHead>
+                    <TableHead>{t('cmms.assetsPage.table.category')}</TableHead>
+                    <TableHead className="text-right">{t('cmms.assetsPage.table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,7 +159,7 @@ export default function Assets() {
                             navigate(`/cmms/assets/${asset.id}`);
                           }}
                         >
-                          View
+                          {t('common.view')}
                         </Button>
                       </TableCell>
                     </TableRow>

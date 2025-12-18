@@ -7,8 +7,10 @@ import { Plus, Search, FileText, Clock, CheckCircle, Edit } from 'lucide-react';
 import { useCmmsProcedures } from '@/hooks/useCmmsProcedures';
 import { NewProcedureDialog } from '@/components/cmms/NewProcedureDialog';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Procedures() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: procedures, isLoading } = useCmmsProcedures();
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,17 +25,17 @@ export default function Procedures() {
     <>
       <div className="p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold">Procedures</h1>
+          <h1 className="text-2xl font-bold">{t('cmms.proceduresPage.title')}</h1>
           <Button onClick={() => setShowNewDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            New Procedure
+            {t('cmms.proceduresPage.newProcedure')}
           </Button>
         </div>
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search procedures (title, steps, tags)"
+            placeholder={t('cmms.proceduresPage.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -41,18 +43,18 @@ export default function Procedures() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading procedures...</div>
+          <div className="text-center py-12 text-muted-foreground">{t('cmms.proceduresPage.loading')}</div>
         ) : filteredProcedures.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No procedures yet</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('cmms.proceduresPage.noProcedures')}</h3>
               <p className="text-muted-foreground mb-4 max-w-sm">
-                Create reusable procedures with step-by-step checklists for your maintenance tasks.
+                {t('cmms.proceduresPage.noProceduresDescription')}
               </p>
               <Button onClick={() => setShowNewDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Procedure
+                {t('cmms.proceduresPage.newProcedure')}
               </Button>
             </CardContent>
           </Card>
@@ -75,7 +77,7 @@ export default function Procedures() {
                     ) : (
                       <Badge variant="secondary" className="shrink-0">
                         <Edit className="h-3 w-3 mr-1" />
-                        Draft
+                        {t('cmms.proceduresPage.draft')}
                       </Badge>
                     )}
                   </div>
@@ -90,7 +92,7 @@ export default function Procedures() {
                     {procedure.estimated_minutes && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
-                        {procedure.estimated_minutes} min
+                        {procedure.estimated_minutes} {t('cmms.proceduresPage.min')}
                       </span>
                     )}
                   </div>
