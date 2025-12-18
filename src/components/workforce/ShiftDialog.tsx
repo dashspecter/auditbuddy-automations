@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export const ShiftDialog = ({
   shift,
   defaultDate,
 }: ShiftDialogProps) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     location_id: "",
     shift_date: "",
@@ -171,16 +173,16 @@ export const ShiftDialog = ({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogHeader>
             <DialogTitle>
-              {shift ? "Edit Shift" : "Create Shift"}
+              {shift ? t('workforce.components.shiftDialog.editShift') : t('workforce.components.shiftDialog.createShift')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="location_id">Location *</Label>
+                <Label htmlFor="location_id">{t('workforce.components.shiftDialog.location')} *</Label>
                 <Select
                   value={formData.location_id}
                   onValueChange={(value) =>
@@ -189,7 +191,7 @@ export const ShiftDialog = ({
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
+                    <SelectValue placeholder={t('workforce.components.shiftDialog.selectLocation')} />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map((location) => (
@@ -202,7 +204,7 @@ export const ShiftDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="shift_date">Date *</Label>
+                <Label htmlFor="shift_date">{t('workforce.components.shiftDialog.date')} *</Label>
                 <Input
                   id="shift_date"
                   type="date"
@@ -215,7 +217,7 @@ export const ShiftDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="start_time">Start Time *</Label>
+                <Label htmlFor="start_time">{t('workforce.components.shiftDialog.startTime')} *</Label>
                 <Input
                   id="start_time"
                   type="time"
@@ -228,7 +230,7 @@ export const ShiftDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="end_time">End Time *</Label>
+                <Label htmlFor="end_time">{t('workforce.components.shiftDialog.endTime')} *</Label>
                 <Input
                   id="end_time"
                   type="time"
@@ -241,7 +243,7 @@ export const ShiftDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role">Role Required *</Label>
+                <Label htmlFor="role">{t('workforce.components.shiftDialog.roleRequired')} *</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value) =>
@@ -250,7 +252,7 @@ export const ShiftDialog = ({
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder={t('workforce.components.shiftDialog.selectRole')} />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
@@ -263,7 +265,7 @@ export const ShiftDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="required_count">Staff Needed *</Label>
+                <Label htmlFor="required_count">{t('workforce.components.shiftDialog.staffNeeded')} *</Label>
                 <Input
                   id="required_count"
                   type="number"
@@ -284,11 +286,11 @@ export const ShiftDialog = ({
                 <AlertDescription>
                   {operatingHoursInfo.isClosed ? (
                     <span className="text-destructive font-medium">
-                      Location is closed on this day
+                      {t('workforce.components.shiftDialog.locationClosed')}
                     </span>
                   ) : (
                     <span>
-                      Operating hours: {operatingHoursInfo.openTime} - {operatingHoursInfo.closeTime}
+                      {t('workforce.components.shiftDialog.operatingHours')}: {operatingHoursInfo.openTime} - {operatingHoursInfo.closeTime}
                     </span>
                   )}
                 </AlertDescription>
@@ -307,20 +309,20 @@ export const ShiftDialog = ({
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Cannot create shifts on days when the location is closed
+                  {t('workforce.components.shiftDialog.cannotCreateClosed')}
                 </AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">{t('workforce.components.shiftDialog.notes')}</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
-                placeholder="Add any additional notes about this shift..."
+                placeholder={t('workforce.components.shiftDialog.notesPlaceholder')}
                 rows={3}
               />
             </div>
@@ -331,7 +333,7 @@ export const ShiftDialog = ({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t('workforce.components.shiftDialog.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -342,7 +344,7 @@ export const ShiftDialog = ({
                   (shiftValidation && !shiftValidation.isValid)
                 }
               >
-                {shift ? "Update" : "Create"} Shift
+                {shift ? t('workforce.components.shiftDialog.update') : t('workforce.components.shiftDialog.create')} {t('workforce.shifts.title').split(' ')[0]}
               </Button>
             </div>
           </form>
