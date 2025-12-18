@@ -9,8 +9,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { calculateNextDates, formatSchedulePreview } from "@/lib/recurringScheduleUtils";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export default function RecurringMaintenanceSchedules() {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -39,7 +41,10 @@ export default function RecurringMaintenanceSchedules() {
   };
 
   const getRecurrenceLabel = (pattern: string) => {
-    return pattern.charAt(0).toUpperCase() + pattern.slice(1);
+    const patternKey = `equipment.recurringMaintenance.patterns.${pattern}`;
+    const translated = t(patternKey);
+    // If no translation found, fallback to capitalized pattern
+    return translated === patternKey ? pattern.charAt(0).toUpperCase() + pattern.slice(1) : translated;
   };
 
   const toggleSchedule = (id: string) => {
@@ -66,12 +71,12 @@ export default function RecurringMaintenanceSchedules() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Recurring Maintenance</h1>
-          <p className="text-muted-foreground">Automated scheduling for periodic equipment maintenance</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('equipment.recurringMaintenance.title')}</h1>
+          <p className="text-muted-foreground">{t('equipment.recurringMaintenance.subtitle')}</p>
         </div>
         <Button onClick={() => { setSelectedSchedule(null); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" />
-          New Schedule
+          {t('equipment.recurringMaintenance.newSchedule')}
         </Button>
       </div>
 
@@ -105,7 +110,7 @@ export default function RecurringMaintenanceSchedules() {
                     </CardDescription>
                   </div>
                   <Badge variant={schedule.is_active ? "default" : "secondary"}>
-                    {schedule.is_active ? "Active" : "Inactive"}
+                    {schedule.is_active ? t('common.active') : t('common.inactive')}
                   </Badge>
                 </div>
               </CardHeader>
@@ -133,7 +138,7 @@ export default function RecurringMaintenanceSchedules() {
                 <Collapsible open={expandedSchedules.has(schedule.id)} onOpenChange={() => toggleSchedule(schedule.id)}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="w-full justify-between mt-2">
-                      <span className="text-xs">Next 5 Dates</span>
+                      <span className="text-xs">{t('equipment.recurringMaintenance.next5Dates')}</span>
                       <ChevronDown className={`h-4 w-4 transition-transform ${expandedSchedules.has(schedule.id) ? 'rotate-180' : ''}`} />
                     </Button>
                   </CollapsibleTrigger>
@@ -150,7 +155,7 @@ export default function RecurringMaintenanceSchedules() {
 
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" onClick={() => handleEdit(schedule)} className="flex-1">
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => handleDelete(schedule.id)}>
                     <Trash2 className="h-4 w-4" />
@@ -164,13 +169,13 @@ export default function RecurringMaintenanceSchedules() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No recurring schedules</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('equipment.recurringMaintenance.empty.title')}</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Create automated maintenance schedules for your equipment
+              {t('equipment.recurringMaintenance.empty.description')}
             </p>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create First Schedule
+              {t('equipment.recurringMaintenance.createFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -185,14 +190,14 @@ export default function RecurringMaintenanceSchedules() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Recurring Schedule</AlertDialogTitle>
+            <AlertDialogTitle>{t('equipment.recurringMaintenance.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this schedule? This will not affect existing scheduled interventions.
+              {t('equipment.recurringMaintenance.deleteDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -7,17 +7,19 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { EquipmentListTable } from "@/components/equipment/EquipmentListTable";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
-
-const equipmentSubItems = [
-  { title: "All Equipment", url: "/equipment", icon: Wrench, description: "View equipment" },
-  { title: "Calendar", url: "/maintenance-calendar", icon: Calendar, description: "Maintenance calendar" },
-  { title: "Recurring", url: "/recurring-maintenance", icon: RefreshCw, description: "Recurring schedules" },
-  { title: "QR Codes", url: "/equipment/bulk-qr", icon: QrCode, description: "Bulk QR codes" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function EquipmentList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: equipment, isLoading } = useEquipment();
+
+  const equipmentSubItems = [
+    { titleKey: "nav.allEquipment", url: "/equipment", icon: Wrench },
+    { titleKey: "nav.maintenanceCalendar", url: "/maintenance-calendar", icon: Calendar },
+    { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance", icon: RefreshCw },
+    { titleKey: "nav.bulkQRCodes", url: "/equipment/bulk-qr", icon: QrCode },
+  ];
 
   const overdueCount = equipment?.filter(e => 
     e.next_check_date && new Date(e.next_check_date) < new Date()
@@ -30,7 +32,7 @@ export default function EquipmentList() {
       <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading equipment...</p>
+            <p className="text-muted-foreground">{t('equipment.loading')}</p>
           </div>
         </div>
     );
@@ -41,19 +43,19 @@ export default function EquipmentList() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Equipment Management</h1>
-              <p className="text-muted-foreground">Track and maintain your equipment</p>
+              <h1 className="text-3xl font-bold">{t('equipment.management.title')}</h1>
+              <p className="text-muted-foreground">{t('equipment.management.subtitle')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               {equipmentCount > 0 && (
                 <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/equipment/bulk-qr")}>
                   <QrCode className="mr-2 h-4 w-4" />
-                  Print QR Labels
+                  {t('equipment.printQRLabels')}
                 </Button>
               )}
               <Button className="w-full sm:w-auto" onClick={() => navigate("/equipment/new")}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Equipment
+                {t('equipment.new')}
               </Button>
           </div>
 
@@ -69,7 +71,7 @@ export default function EquipmentList() {
                         <Icon className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <div className="font-medium text-sm">{item.title}</div>
+                        <div className="font-medium text-sm">{t(item.titleKey)}</div>
                       </div>
                     </CardContent>
                   </Card>
@@ -82,10 +84,10 @@ export default function EquipmentList() {
           {equipmentCount === 0 ? (
             <EmptyState
               icon={Wrench}
-              title="No Equipment Yet"
-              description="Start tracking your equipment by adding your first item. You can manage maintenance schedules, checks, and interventions from here."
+              title={t('equipment.empty.title')}
+              description={t('equipment.empty.description')}
               action={{
-                label: "Add Equipment",
+                label: t('equipment.new'),
                 onClick: () => navigate("/equipment/new")
               }}
             />
@@ -95,7 +97,7 @@ export default function EquipmentList() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Total Equipment
+                      {t('equipment.stats.total')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -106,7 +108,7 @@ export default function EquipmentList() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Active
+                      {t('equipment.stats.active')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -119,7 +121,7 @@ export default function EquipmentList() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Overdue Checks
+                      {t('equipment.stats.overdueChecks')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -133,7 +135,7 @@ export default function EquipmentList() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
-                      In Maintenance
+                      {t('equipment.stats.inMaintenance')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -146,7 +148,7 @@ export default function EquipmentList() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Equipment Inventory</CardTitle>
+                  <CardTitle>{t('equipment.inventory')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <EquipmentListTable />

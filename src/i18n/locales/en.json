@@ -1491,6 +1491,60 @@
     "serialNumber": "Serial Number",
     "purchaseDate": "Purchase Date",
     "warranty": "Warranty",
+    "loading": "Loading equipment...",
+    "backToEquipment": "Back to Equipment",
+    "printQRLabels": "Print QR Labels",
+    "allEquipment": "All Equipment",
+    "allStatuses": "All Statuses",
+    "statusScheduled": "Scheduled",
+    "statusCompleted": "Completed",
+    "statusOverdue": "Overdue",
+    "legend": "Legend",
+    "management": {
+      "title": "Equipment Management",
+      "subtitle": "Track and maintain your equipment"
+    },
+    "stats": {
+      "total": "Total Equipment",
+      "active": "Active",
+      "overdueChecks": "Overdue Checks",
+      "inMaintenance": "In Maintenance"
+    },
+    "empty": {
+      "title": "No Equipment Yet",
+      "description": "Start tracking your equipment by adding your first item. You can manage maintenance schedules, checks, and interventions from here."
+    },
+    "qrLabels": {
+      "title": "Equipment QR Labels",
+      "print": "Print Labels",
+      "noEquipment": "No equipment found to generate labels."
+    },
+    "maintenanceCalendar": {
+      "title": "Maintenance Calendar",
+      "subtitle": "Schedule and track equipment maintenance interventions"
+    },
+    "recurringMaintenance": {
+      "title": "Recurring Maintenance",
+      "subtitle": "Automated scheduling for periodic equipment maintenance",
+      "newSchedule": "New Schedule",
+      "next5Dates": "Next 5 Dates",
+      "createFirst": "Create First Schedule",
+      "empty": {
+        "title": "No recurring schedules",
+        "description": "Create automated maintenance schedules for your equipment"
+      },
+      "deleteDialog": {
+        "title": "Delete Recurring Schedule",
+        "description": "Are you sure you want to delete this schedule? This will not affect existing scheduled interventions."
+      },
+      "patterns": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "yearly": "Yearly"
+      }
+    },
     "status": {
       "operational": "Operational",
       "maintenance": "Under Maintenance",
