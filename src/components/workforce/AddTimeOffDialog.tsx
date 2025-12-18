@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ export const AddTimeOffDialog = ({
   defaultEmployeeId,
   defaultDate 
 }: AddTimeOffDialogProps) => {
+  const { t } = useTranslation();
   const [employeeId, setEmployeeId] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -47,12 +49,12 @@ export const AddTimeOffDialog = ({
 
   const handleSubmit = async () => {
     if (!employeeId || !startDate || !endDate) {
-      toast.error("Please fill in all required fields");
+      toast.error(t('workforce.components.addTimeOffDialog.fillRequired'));
       return;
     }
 
     if (endDate < startDate) {
-      toast.error("End date must be after start date");
+      toast.error(t('workforce.components.addTimeOffDialog.endDateAfterStart'));
       return;
     }
 
@@ -61,16 +63,16 @@ export const AddTimeOffDialog = ({
         employee_id: employeeId,
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
-        status: "approved", // Manager-added time off is auto-approved
+        status: "approved",
         request_type: requestType,
         reason: reason || null,
         rejection_reason: null,
       });
       
-      toast.success("Time off added successfully");
+      toast.success(t('workforce.components.addTimeOffDialog.addedSuccess'));
       onOpenChange(false);
     } catch (error: any) {
-      toast.error("Failed to add time off: " + error.message);
+      toast.error(t('workforce.components.addTimeOffDialog.addFailed') + error.message);
     }
   };
 
@@ -80,19 +82,19 @@ export const AddTimeOffDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Palmtree className="h-5 w-5 text-green-600" />
-            Add Time Off
+            {t('workforce.components.addTimeOffDialog.title')}
           </DialogTitle>
           <DialogDescription>
-            Add vacation or absence for an employee. This will be automatically approved.
+            {t('workforce.components.addTimeOffDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Employee *</Label>
+            <Label>{t('workforce.components.addTimeOffDialog.employee')} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select employee" />
+                <SelectValue placeholder={t('workforce.components.addTimeOffDialog.selectEmployee')} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((emp) => (
@@ -105,24 +107,24 @@ export const AddTimeOffDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Type *</Label>
+            <Label>{t('workforce.components.addTimeOffDialog.type')} *</Label>
             <Select value={requestType} onValueChange={setRequestType}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vacation">Vacation</SelectItem>
-                <SelectItem value="sick">Sick Leave</SelectItem>
-                <SelectItem value="personal">Personal</SelectItem>
-                <SelectItem value="unpaid">Unpaid Leave</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="vacation">{t('workforce.components.addTimeOffDialog.types.vacation')}</SelectItem>
+                <SelectItem value="sick">{t('workforce.components.addTimeOffDialog.types.sick')}</SelectItem>
+                <SelectItem value="personal">{t('workforce.components.addTimeOffDialog.types.personal')}</SelectItem>
+                <SelectItem value="unpaid">{t('workforce.components.addTimeOffDialog.types.unpaid')}</SelectItem>
+                <SelectItem value="other">{t('workforce.components.addTimeOffDialog.types.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Date *</Label>
+              <Label>{t('workforce.components.addTimeOffDialog.startDate')} *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -133,7 +135,7 @@ export const AddTimeOffDialog = ({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
+                    {startDate ? format(startDate, "MMM d, yyyy") : t('workforce.components.addTimeOffDialog.pickDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -148,7 +150,7 @@ export const AddTimeOffDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label>End Date *</Label>
+              <Label>{t('workforce.components.addTimeOffDialog.endDate')} *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -159,7 +161,7 @@ export const AddTimeOffDialog = ({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "MMM d, yyyy") : "Pick date"}
+                    {endDate ? format(endDate, "MMM d, yyyy") : t('workforce.components.addTimeOffDialog.pickDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -176,25 +178,25 @@ export const AddTimeOffDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Reason (optional)</Label>
+            <Label>{t('workforce.components.addTimeOffDialog.reason')}</Label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Add a note about this time off..."
+              placeholder={t('workforce.components.addTimeOffDialog.reasonPlaceholder')}
             />
           </div>
         </div>
 
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button 
             className="flex-1" 
             onClick={handleSubmit}
             disabled={createTimeOff.isPending || !employeeId || !startDate || !endDate}
           >
-            {createTimeOff.isPending ? "Adding..." : "Add Time Off"}
+            {createTimeOff.isPending ? t('workforce.components.addTimeOffDialog.adding') : t('workforce.components.addTimeOffDialog.addTimeOff')}
           </Button>
         </div>
       </DialogContent>

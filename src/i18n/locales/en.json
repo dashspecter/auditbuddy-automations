@@ -1234,11 +1234,13 @@
         "employee": "Employee",
         "selectEmployee": "Select employee",
         "type": "Type",
-        "vacation": "Vacation",
-        "sickLeave": "Sick Leave",
-        "personal": "Personal",
-        "unpaidLeave": "Unpaid Leave",
-        "other": "Other",
+        "types": {
+          "vacation": "Vacation",
+          "sick": "Sick Leave",
+          "personal": "Personal",
+          "unpaid": "Unpaid Leave",
+          "other": "Other"
+        },
         "startDate": "Start Date",
         "endDate": "End Date",
         "pickDate": "Pick date",
@@ -1248,9 +1250,9 @@
         "addTimeOff": "Add Time Off",
         "adding": "Adding...",
         "fillRequired": "Please fill in all required fields",
-        "endAfterStart": "End date must be after start date",
+        "endDateAfterStart": "End date must be after start date",
         "addedSuccess": "Time off added successfully",
-        "failedAdd": "Failed to add time off"
+        "addFailed": "Failed to add time off: "
       },
       "employeeDialog": {
         "editEmployee": "Edit Employee",
