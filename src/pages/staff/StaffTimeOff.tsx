@@ -25,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 const StaffTimeOff = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [employee, setEmployee] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
@@ -59,7 +61,7 @@ const StaffTimeOff = () => {
         await calculateBalance(empData.id, empData.annual_vacation_days || 25);
       }
     } catch (error) {
-      toast.error("Failed to load data");
+      toast.error(t('staffTimeOff.failedLoadData'));
     } finally {
       setIsLoading(false);
     }
@@ -115,13 +117,13 @@ const StaffTimeOff = () => {
       }
 
       console.log("Time off request created:", data);
-      toast.success("Time off request submitted");
+      toast.success(t('staffTimeOff.requestSubmitted'));
       setDialogOpen(false);
       setFormData({ start_date: "", end_date: "", request_type: "vacation", reason: "" });
       loadData();
     } catch (error: any) {
       console.error("Submit request error:", error);
-      toast.error(error?.message || "Failed to submit request");
+      toast.error(error?.message || t('staffTimeOff.failedSubmit'));
     }
   };
 
@@ -146,46 +148,46 @@ const StaffTimeOff = () => {
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">Time Off</h1>
+          <h1 className="text-xl font-bold mb-3">{t('staffTimeOff.title')}</h1>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="w-full touch-target">
                 <Plus className="h-4 w-4 mr-2" />
-                Request Time Off
+                {t('staffTimeOff.requestTimeOff')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New Time Off Request</DialogTitle>
+                <DialogTitle>{t('staffTimeOff.newRequest')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div>
-                  <Label>Type</Label>
+                  <Label>{t('staffTimeOff.type')}</Label>
                   <Select value={formData.request_type} onValueChange={(value) => setFormData({...formData, request_type: value})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vacation">Vacation</SelectItem>
-                      <SelectItem value="sick">Sick Leave</SelectItem>
-                      <SelectItem value="personal">Personal Day</SelectItem>
+                      <SelectItem value="vacation">{t('staffTimeOff.vacation')}</SelectItem>
+                      <SelectItem value="sick">{t('staffTimeOff.sickLeave')}</SelectItem>
+                      <SelectItem value="personal">{t('staffTimeOff.personalDay')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Start Date</Label>
+                  <Label>{t('staffTimeOff.startDate')}</Label>
                   <Input type="date" value={formData.start_date} onChange={(e) => setFormData({...formData, start_date: e.target.value})} />
                 </div>
                 <div>
-                  <Label>End Date</Label>
+                  <Label>{t('staffTimeOff.endDate')}</Label>
                   <Input type="date" value={formData.end_date} onChange={(e) => setFormData({...formData, end_date: e.target.value})} />
                 </div>
                 <div>
-                  <Label>Reason</Label>
+                  <Label>{t('staffTimeOff.reason')}</Label>
                   <Textarea value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} />
                 </div>
-                <Button className="w-full" onClick={submitRequest}>Submit Request</Button>
+                <Button className="w-full" onClick={submitRequest}>{t('staffTimeOff.submitRequest')}</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -197,20 +199,20 @@ const StaffTimeOff = () => {
         <Card className="p-4 bg-gradient-accent text-primary-foreground">
           <div className="flex items-center gap-3 mb-4">
             <Umbrella className="h-6 w-6" />
-            <h2 className="font-semibold">Vacation Balance {new Date().getFullYear()}</h2>
+            <h2 className="font-semibold">{t('staffTimeOff.vacationBalance')} {new Date().getFullYear()}</h2>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <div className="text-3xl font-bold">{balance.total}</div>
-              <div className="text-sm opacity-90">Total Days</div>
+              <div className="text-sm opacity-90">{t('staffTimeOff.totalDays')}</div>
             </div>
             <div>
               <div className="text-3xl font-bold">{balance.used}</div>
-              <div className="text-sm opacity-90">Used</div>
+              <div className="text-sm opacity-90">{t('staffTimeOff.used')}</div>
             </div>
             <div>
               <div className="text-3xl font-bold">{balance.remaining}</div>
-              <div className="text-sm opacity-90">Remaining</div>
+              <div className="text-sm opacity-90">{t('staffTimeOff.remaining')}</div>
             </div>
           </div>
         </Card>
@@ -218,7 +220,7 @@ const StaffTimeOff = () => {
 
       {/* Requests List */}
       <div className="px-4 pb-4">
-        <h2 className="font-semibold mb-3">Request History</h2>
+        <h2 className="font-semibold mb-3">{t('staffTimeOff.requestHistory')}</h2>
         <div className="space-y-3">
           {requests.map((request) => (
             <Card key={request.id} className="p-4">
@@ -255,9 +257,9 @@ const StaffTimeOff = () => {
       <Dialog open={rejectionDialog.open} onOpenChange={(open) => setRejectionDialog({ ...rejectionDialog, open })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rejection Reason</DialogTitle>
+            <DialogTitle>{t('staffTimeOff.rejectionReason')}</DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground">{rejectionDialog.reason || "No reason provided."}</p>
+          <p className="text-muted-foreground">{rejectionDialog.reason || t('staffTimeOff.noReasonProvided')}</p>
         </DialogContent>
       </Dialog>
 
