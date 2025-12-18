@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { format, subMonths } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AttendanceAlerts() {
+  const { t } = useTranslation();
   const [selectedStatus, setSelectedStatus] = useState<string>("open");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>(format(subMonths(new Date(), 1), "yyyy-MM-dd"));
@@ -49,10 +51,10 @@ export default function AttendanceAlerts() {
   const handleRunDetection = async () => {
     try {
       const result = await detectRisks.mutateAsync({ lookbackDays: 30 });
-      toast.success(result?.data?.message || "Risk detection complete");
+      toast.success(result?.data?.message || t('workforce.attendanceAlerts.detectionComplete'));
       refetch();
     } catch (error: any) {
-      toast.error(error.message || "Failed to detect risks");
+      toast.error(error.message || t('workforce.attendanceAlerts.failedDetect'));
     }
   };
 
@@ -62,10 +64,10 @@ export default function AttendanceAlerts() {
         id: alertId,
         status: newStatus as any,
       });
-      toast.success("Alert status updated");
+      toast.success(t('workforce.attendanceAlerts.statusUpdated'));
       setSelectedAlert(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to update alert");
+      toast.error(error.message || t('workforce.attendanceAlerts.failedUpdate'));
     }
   };
 
@@ -76,13 +78,13 @@ export default function AttendanceAlerts() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "resolved":
-        return <Badge className="bg-green-500/10 text-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> Resolved</Badge>;
+        return <Badge className="bg-green-500/10 text-green-500"><CheckCircle2 className="h-3 w-3 mr-1" /> {t('workforce.attendanceAlerts.resolved')}</Badge>;
       case "acknowledged":
-        return <Badge className="bg-blue-500/10 text-blue-500">Acknowledged</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-500">{t('workforce.attendanceAlerts.acknowledged')}</Badge>;
       case "dismissed":
-        return <Badge variant="secondary">Dismissed</Badge>;
+        return <Badge variant="secondary">{t('workforce.attendanceAlerts.dismissed')}</Badge>;
       default:
-        return <Badge variant="destructive">Open</Badge>;
+        return <Badge variant="destructive">{t('workforce.attendanceAlerts.open')}</Badge>;
     }
   };
 
@@ -90,8 +92,8 @@ export default function AttendanceAlerts() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Attendance Alerts</h1>
-          <p className="text-muted-foreground">Monitor and resolve attendance issues detected by the Workforce Agent</p>
+          <h1 className="text-3xl font-bold">{t('workforce.attendanceAlerts.title')}</h1>
+          <p className="text-muted-foreground">{t('workforce.attendanceAlerts.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>

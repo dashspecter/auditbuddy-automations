@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin } from "lucide-react";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/select";
 
 const Attendance = () => {
+  const { t } = useTranslation();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [kioskDialogOpen, setKioskDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("today");
@@ -83,8 +85,8 @@ const Attendance = () => {
       return (
         <div className="text-center text-muted-foreground py-12">
           <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No attendance logs found.</p>
-          <p className="text-sm mt-2">Attendance will appear as staff check in.</p>
+          <p>{t('workforce.attendance.noLogs')}</p>
+          <p className="text-sm mt-2">{t('workforce.attendance.logsWillAppear')}</p>
         </div>
       );
     }
@@ -93,19 +95,19 @@ const Attendance = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Employee</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Clock In</TableHead>
-            <TableHead>Clock Out</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>{t('workforce.attendance.employee')}</TableHead>
+            <TableHead>{t('workforce.attendance.role')}</TableHead>
+            <TableHead>{t('workforce.attendance.location')}</TableHead>
+            <TableHead>{t('workforce.attendance.clockIn')}</TableHead>
+            <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
+            <TableHead>{t('workforce.attendance.duration')}</TableHead>
+            <TableHead>{t('workforce.attendance.status')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {logs.map(log => (
             <TableRow key={log.id}>
-              <TableCell className="font-medium">{log.employees?.full_name || 'Unknown'}</TableCell>
+              <TableCell className="font-medium">{log.employees?.full_name || t('common.unknown')}</TableCell>
               <TableCell>{log.employees?.role || log.shifts?.role || '-'}</TableCell>
               <TableCell>{log.locations?.name || '-'}</TableCell>
               <TableCell>
@@ -113,7 +115,7 @@ const Attendance = () => {
                   {formatTime(log.check_in_at)}
                   {log.is_late && (
                     <Badge variant="destructive" className="text-xs">
-                      +{log.late_minutes}m late
+                      +{log.late_minutes}m {t('workforce.attendance.late')}
                     </Badge>
                   )}
                 </div>
@@ -122,7 +124,7 @@ const Attendance = () => {
                 <div className="flex items-center gap-2">
                   {log.check_out_at ? formatTime(log.check_out_at) : '-'}
                   {log.auto_clocked_out && (
-                    <Badge variant="secondary" className="text-xs">Auto</Badge>
+                    <Badge variant="secondary" className="text-xs">{t('workforce.attendance.auto')}</Badge>
                   )}
                 </div>
               </TableCell>
@@ -131,12 +133,12 @@ const Attendance = () => {
                 {log.check_out_at ? (
                   <Badge variant="outline" className="gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Complete
+                    {t('workforce.attendance.complete')}
                   </Badge>
                 ) : (
                   <Badge variant="default" className="gap-1">
                     <Clock className="h-3 w-3" />
-                    Working
+                    {t('workforce.attendance.working')}
                   </Badge>
                 )}
               </TableCell>
@@ -151,19 +153,19 @@ const Attendance = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Attendance Tracking</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{t('workforce.attendance.title')}</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Monitor staff check-ins, check-outs, and work hours
+            {t('workforce.attendance.subtitle')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Locations" />
+              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -175,22 +177,22 @@ const Attendance = () => {
           <DropdownMenuTrigger asChild>
             <Button className="gap-2 w-full sm:w-auto">
               <QrCode className="h-4 w-4" />
-              Generate QR Code
+              {t('workforce.attendance.generateQR')}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setQrDialogOpen(true)}>
               <QrCode className="h-4 w-4 mr-2" />
-              Static QR Code (Print)
+              {t('workforce.attendance.staticQR')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setKioskDialogOpen(true)}>
               <Tablet className="h-4 w-4 mr-2" />
-              Dynamic Kiosk (Recommended)
+              {t('workforce.attendance.dynamicKiosk')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setKioskDialogOpen(true)}>
               <Settings className="h-4 w-4 mr-2" />
-              Manage Kiosks
+              {t('workforce.attendance.manageKiosks')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -204,7 +206,7 @@ const Attendance = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Checked In Today
+              {t('workforce.attendance.checkedInToday')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -214,7 +216,7 @@ const Attendance = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              Late Check-ins
+              {t('workforce.attendance.lateCheckIns')}
               {lateCheckIns > 0 && <AlertTriangle className="h-4 w-4 text-warning" />}
             </CardTitle>
           </CardHeader>
@@ -227,7 +229,7 @@ const Attendance = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Average Hours
+              {t('workforce.attendance.averageHours')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -238,19 +240,19 @@ const Attendance = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="today">Today</TabsTrigger>
-          <TabsTrigger value="week">This Week</TabsTrigger>
-          <TabsTrigger value="month">This Month</TabsTrigger>
+          <TabsTrigger value="today">{t('workforce.attendance.today')}</TabsTrigger>
+          <TabsTrigger value="week">{t('workforce.attendance.thisWeek')}</TabsTrigger>
+          <TabsTrigger value="month">{t('workforce.attendance.thisMonth')}</TabsTrigger>
         </TabsList>
         <TabsContent value="today">
           <Card>
             <CardHeader>
-              <CardTitle>Today's Attendance</CardTitle>
-              <CardDescription>Real-time check-in status for {format(new Date(), 'MMMM d, yyyy')}</CardDescription>
+              <CardTitle>{t('workforce.attendance.todayAttendance')}</CardTitle>
+              <CardDescription>{t('workforce.attendance.realTimeStatus')} {format(new Date(), 'MMMM d, yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
               {todayLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">{t('common.loading')}</div>
               ) : (
                 renderAttendanceTable(todayLogs)
               )}
@@ -260,7 +262,7 @@ const Attendance = () => {
         <TabsContent value="week">
           <Card>
             <CardHeader>
-              <CardTitle>This Week's Attendance</CardTitle>
+              <CardTitle>{t('workforce.attendance.weekAttendance')}</CardTitle>
               <CardDescription>{format(new Date(weekStart), 'MMM d')} - {format(new Date(weekEnd), 'MMM d, yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -271,7 +273,7 @@ const Attendance = () => {
         <TabsContent value="month">
           <Card>
             <CardHeader>
-              <CardTitle>This Month's Attendance</CardTitle>
+              <CardTitle>{t('workforce.attendance.monthAttendance')}</CardTitle>
               <CardDescription>{format(new Date(), 'MMMM yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
