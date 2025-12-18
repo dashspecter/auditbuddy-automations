@@ -98,7 +98,7 @@ export default function AttendanceAlerts() {
         <div className="flex items-center gap-2">
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Statuses" />
+              <SelectValue placeholder={t('workforce.attendanceAlerts.allStatuses')} />
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((opt) => (
@@ -108,11 +108,11 @@ export default function AttendanceAlerts() {
           </Select>
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {t('common.refresh')}
           </Button>
           <Button onClick={handleRunDetection} disabled={detectRisks.isPending}>
             <Bot className="h-4 w-4 mr-2" />
-            Run Detection
+            {t('workforce.attendanceAlerts.runDetection')}
           </Button>
         </div>
       </div>
@@ -122,13 +122,13 @@ export default function AttendanceAlerts() {
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Location</Label>
+              <Label>{t('workforce.attendanceAlerts.location')}</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
+                  <SelectValue placeholder={t('workforce.attendanceAlerts.selectLocation')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
                   {locations?.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
@@ -136,7 +136,7 @@ export default function AttendanceAlerts() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Start Date</Label>
+              <Label>{t('workforce.attendanceAlerts.startDate')}</Label>
               <Input
                 type="date"
                 value={startDate}
@@ -144,7 +144,7 @@ export default function AttendanceAlerts() {
               />
             </div>
             <div className="space-y-2">
-              <Label>End Date</Label>
+              <Label>{t('workforce.attendanceAlerts.endDate')}</Label>
               <Input
                 type="date"
                 value={endDate}
@@ -161,7 +161,7 @@ export default function AttendanceAlerts() {
             <p className="text-2xl font-bold text-red-500">
               {alerts?.filter(a => a.status === "open").length || 0}
             </p>
-            <p className="text-sm text-muted-foreground">Open Alerts</p>
+            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.openAlerts')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -169,7 +169,7 @@ export default function AttendanceAlerts() {
             <p className="text-2xl font-bold text-blue-500">
               {alerts?.filter(a => a.status === "acknowledged").length || 0}
             </p>
-            <p className="text-sm text-muted-foreground">Acknowledged</p>
+            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.acknowledged')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -177,7 +177,7 @@ export default function AttendanceAlerts() {
             <p className="text-2xl font-bold text-green-500">
               {alerts?.filter(a => a.status === "resolved").length || 0}
             </p>
-            <p className="text-sm text-muted-foreground">Resolved</p>
+            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.resolved')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -185,15 +185,15 @@ export default function AttendanceAlerts() {
             <p className="text-2xl font-bold">
               {alerts?.length || 0}
             </p>
-            <p className="text-sm text-muted-foreground">Total Alerts</p>
+            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.totalAlerts')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Alert List</CardTitle>
-          <CardDescription>All attendance alerts requiring attention</CardDescription>
+          <CardTitle>{t('workforce.attendanceAlerts.alertList')}</CardTitle>
+          <CardDescription>{t('workforce.attendanceAlerts.alertsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (

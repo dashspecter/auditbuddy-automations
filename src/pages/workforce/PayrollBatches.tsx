@@ -81,20 +81,20 @@ export default function PayrollBatches() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Prepare Payroll
+              {t('workforce.payrollBatches.preparePayroll')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Prepare Payroll Batch</DialogTitle>
+              <DialogTitle>{t('workforce.payrollBatches.prepareBatch')}</DialogTitle>
               <DialogDescription>
-                The Workforce Agent will analyze attendance and generate a payroll batch
+                {t('workforce.payrollBatches.agentAnalyze')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Period Start</Label>
+                  <Label>{t('workforce.payrollBatches.periodStart')}</Label>
                   <Input
                     type="date"
                     value={newPeriod.start}
@@ -102,7 +102,7 @@ export default function PayrollBatches() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Period End</Label>
+                  <Label>{t('workforce.payrollBatches.periodEnd')}</Label>
                   <Input
                     type="date"
                     value={newPeriod.end}
@@ -112,10 +112,10 @@ export default function PayrollBatches() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button onClick={handlePreparePayroll} disabled={preparePayroll.isPending}>
                 <Bot className="h-4 w-4 mr-2" />
-                Prepare with Agent
+                {t('workforce.payrollBatches.prepareWithAgent')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -124,8 +124,8 @@ export default function PayrollBatches() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Payroll History</CardTitle>
-          <CardDescription>All payroll batches and their current status</CardDescription>
+          <CardTitle>{t('workforce.payrollBatches.payrollHistory')}</CardTitle>
+          <CardDescription>{t('workforce.payrollBatches.historyDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -138,13 +138,13 @@ export default function PayrollBatches() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Employees</TableHead>
-                  <TableHead>Total Hours</TableHead>
-                  <TableHead>Overtime</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.period')}</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.employees')}</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.totalHours')}</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.overtime')}</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.status')}</TableHead>
+                  <TableHead>{t('workforce.payrollBatches.sourceCol')}</TableHead>
+                  <TableHead className="text-right">{t('workforce.payrollBatches.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

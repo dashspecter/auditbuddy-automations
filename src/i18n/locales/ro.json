@@ -31,7 +31,8 @@
     "archive": "Arhivează",
     "error": "Eroare",
     "today": "Astăzi",
-    "due": "Scadent"
+    "due": "Scadent",
+    "unknown": "Necunoscut"
   },
   "nav": {
     "navigation": "Navigare",
