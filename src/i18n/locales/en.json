@@ -27,7 +27,8 @@
     "score": "Score",
     "status": "Status",
     "date": "Date",
-    "draft": "draft"
+    "draft": "draft",
+    "archive": "Archive"
   },
   "nav": {
     "navigation": "Navigation",
@@ -692,6 +693,38 @@
       "reactiveVsPreventiveDesc": "Work order type distribution over time",
       "reactive": "Reactive",
       "preventiveLabel": "Preventive"
+    },
+    "purchaseOrders": {
+      "title": "Purchase Orders",
+      "newPO": "New PO",
+      "searchPlaceholder": "Search POs (number, vendor, location)",
+      "loading": "Loading purchase orders...",
+      "noPOs": "No purchase orders yet",
+      "noPOsDescription": "Create purchase orders to track part orders and receiving.",
+      "poNumber": "PO #",
+      "vendor": "Vendor",
+      "location": "Location",
+      "status": "Status",
+      "expected": "Expected",
+      "total": "Total"
+    },
+    "pmSchedules": {
+      "title": "PM Schedules",
+      "newPlan": "New PM Plan",
+      "searchPlaceholder": "Search PM plans...",
+      "loading": "Loading PM plans...",
+      "noPlans": "No preventive maintenance plans yet",
+      "noPlansDescription": "Create PM plans to automatically generate work orders on schedule.",
+      "name": "Name",
+      "scope": "Scope",
+      "frequency": "Frequency",
+      "nextDue": "Next Due",
+      "autoCreate": "Auto-create",
+      "defaultPriority": "Default Priority",
+      "category": "Category",
+      "every": "Every",
+      "overdue": "Overdue",
+      "today": "Today"
     }
   },
   "audits": {
