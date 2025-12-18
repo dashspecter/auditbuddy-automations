@@ -14,13 +14,13 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "secondary" },
-  pending_approval: { label: "Pending Approval", color: "bg-yellow-500/10 text-yellow-500" },
-  approved: { label: "Approved", color: "bg-blue-500/10 text-blue-500" },
-  processed: { label: "Processed", color: "bg-purple-500/10 text-purple-500" },
-  paid: { label: "Paid", color: "bg-green-500/10 text-green-500" },
-};
+const getStatusLabels = (t: any): Record<string, { label: string; color: string }> => ({
+  draft: { label: t('workforce.payrollBatches.statusDraft'), color: "secondary" },
+  pending_approval: { label: t('workforce.payrollBatches.statusPendingApproval'), color: "bg-yellow-500/10 text-yellow-500" },
+  approved: { label: t('workforce.payrollBatches.statusApproved'), color: "bg-blue-500/10 text-blue-500" },
+  processed: { label: t('workforce.payrollBatches.statusProcessed'), color: "bg-purple-500/10 text-purple-500" },
+  paid: { label: t('workforce.payrollBatches.statusPaid'), color: "bg-green-500/10 text-green-500" },
+});
 
 export default function PayrollBatches() {
   const { t } = useTranslation();
@@ -66,7 +66,8 @@ export default function PayrollBatches() {
   };
 
   const getStatusBadge = (status: string) => {
-    const config = STATUS_LABELS[status] || { label: status, color: "secondary" };
+    const statusLabels = getStatusLabels(t);
+    const config = statusLabels[status] || { label: status, color: "secondary" };
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
@@ -183,10 +184,10 @@ export default function PayrollBatches() {
                       <TableCell>
                         {batch.created_by_agent ? (
                           <Badge variant="outline" className="gap-1">
-                            <Bot className="h-3 w-3" /> Agent
+                            <Bot className="h-3 w-3" /> {t('workforce.payrollBatches.agent')}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Manual</span>
+                          <span className="text-muted-foreground text-sm">{t('workforce.payrollBatches.manual')}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -197,14 +198,14 @@ export default function PayrollBatches() {
                             onClick={() => setSelectedBatch(batch)}
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            Details
+                            {t('workforce.payrollBatches.details')}
                           </Button>
                           {batch.status === "draft" && (
                             <Button
                               size="sm"
                               onClick={() => handleStatusChange(batch.id, "pending_approval")}
                             >
-                              Submit
+                              {t('workforce.payrollBatches.submit')}
                             </Button>
                           )}
                           {batch.status === "pending_approval" && (
@@ -212,7 +213,7 @@ export default function PayrollBatches() {
                               size="sm"
                               onClick={() => handleStatusChange(batch.id, "approved")}
                             >
-                              Approve
+                              {t('workforce.payrollBatches.approve')}
                             </Button>
                           )}
                         </div>
@@ -225,8 +226,8 @@ export default function PayrollBatches() {
           ) : (
             <div className="text-center py-12">
               <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">No payroll batches found</p>
-              <p className="text-sm text-muted-foreground">Prepare a payroll batch to get started</p>
+              <p className="text-muted-foreground">{t('workforce.payrollBatches.noBatches')}</p>
+              <p className="text-sm text-muted-foreground">{t('workforce.payrollBatches.noBatchesDesc')}</p>
             </div>
           )}
         </CardContent>
@@ -236,7 +237,7 @@ export default function PayrollBatches() {
       <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Payroll Batch Details</DialogTitle>
+            <DialogTitle>{t('workforce.payrollBatches.batchDetails')}</DialogTitle>
             <DialogDescription>
               {selectedBatch && `${format(new Date(selectedBatch.period_start), "MMM d")} - ${format(new Date(selectedBatch.period_end), "MMM d, yyyy")}`}
             </DialogDescription>
@@ -247,38 +248,38 @@ export default function PayrollBatches() {
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-2xl font-bold">{selectedBatch.summary_json.employee_count || 0}</p>
-                    <p className="text-sm text-muted-foreground">Employees</p>
+                    <p className="text-sm text-muted-foreground">{t('workforce.payrollBatches.employees')}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-2xl font-bold">{selectedBatch.summary_json.total_regular_hours?.toFixed(1) || 0}h</p>
-                    <p className="text-sm text-muted-foreground">Regular Hours</p>
+                    <p className="text-sm text-muted-foreground">{t('workforce.payrollBatches.regularHours')}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-2xl font-bold">{selectedBatch.summary_json.total_overtime_hours?.toFixed(1) || 0}h</p>
-                    <p className="text-sm text-muted-foreground">Overtime</p>
+                    <p className="text-sm text-muted-foreground">{t('workforce.payrollBatches.overtimeLabel')}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4">
                     <p className="text-2xl font-bold">{selectedBatch.summary_json.total_anomalies || 0}</p>
-                    <p className="text-sm text-muted-foreground">Anomalies</p>
+                    <p className="text-sm text-muted-foreground">{t('workforce.payrollBatches.anomalies')}</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <h4 className="font-medium mt-6">Employee Breakdown</h4>
+              <h4 className="font-medium mt-6">{t('workforce.payrollBatches.employeeBreakdown')}</h4>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Days Worked</TableHead>
-                    <TableHead>Regular</TableHead>
-                    <TableHead>Overtime</TableHead>
-                    <TableHead>Anomalies</TableHead>
+                    <TableHead>{t('workforce.payrollBatches.employee')}</TableHead>
+                    <TableHead>{t('workforce.payrollBatches.daysWorked')}</TableHead>
+                    <TableHead>{t('workforce.payrollBatches.regular')}</TableHead>
+                    <TableHead>{t('workforce.payrollBatches.overtime')}</TableHead>
+                    <TableHead>{t('workforce.payrollBatches.anomalies')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

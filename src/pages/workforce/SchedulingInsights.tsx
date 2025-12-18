@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { format, subDays } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,15 @@ import { AlertTriangle, Users, TrendingDown, TrendingUp, Bot, Calendar, Lightbul
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const INSIGHT_TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
-  understaffing: { label: "Understaffing", icon: TrendingDown, color: "text-red-500" },
-  overstaffing: { label: "Overstaffing", icon: TrendingUp, color: "text-orange-500" },
-  mismatch: { label: "Schedule Mismatch", icon: AlertTriangle, color: "text-yellow-500" },
-  pattern: { label: "Pattern Detected", icon: Lightbulb, color: "text-blue-500" },
-};
+const getInsightTypeConfig = (t: any): Record<string, { label: string; icon: any; color: string }> => ({
+  understaffing: { label: t('workforce.schedulingInsights.understaffing'), icon: TrendingDown, color: "text-red-500" },
+  overstaffing: { label: t('workforce.schedulingInsights.overstaffing'), icon: TrendingUp, color: "text-orange-500" },
+  mismatch: { label: t('workforce.schedulingInsights.mismatch'), icon: AlertTriangle, color: "text-yellow-500" },
+  pattern: { label: t('workforce.schedulingInsights.pattern'), icon: Lightbulb, color: "text-blue-500" },
+});
 
 export default function SchedulingInsights() {
+  const { t } = useTranslation();
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [dateRange, setDateRange] = useState({
     start: format(subDays(new Date(), 30), "yyyy-MM-dd"),
@@ -33,7 +35,7 @@ export default function SchedulingInsights() {
 
   const handleAnalyze = async () => {
     if (!selectedLocation) {
-      toast.error("Please select a location");
+      toast.error(t('workforce.schedulingInsights.selectLocationError'));
       return;
     }
 
@@ -45,9 +47,9 @@ export default function SchedulingInsights() {
         endDate: dateRange.end,
       });
       setInsights(result?.data?.insights || []);
-      toast.success(result?.data?.message || "Analysis complete");
+      toast.success(result?.data?.message || t('workforce.schedulingInsights.analysisComplete'));
     } catch (error: any) {
-      toast.error(error.message || "Analysis failed");
+      toast.error(error.message || t('workforce.schedulingInsights.analysisFailed'));
     } finally {
       setIsAnalyzing(false);
     }
@@ -56,11 +58,11 @@ export default function SchedulingInsights() {
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "high":
-        return <Badge variant="destructive">High</Badge>;
+        return <Badge variant="destructive">{t('workforce.schedulingInsights.high')}</Badge>;
       case "medium":
-        return <Badge className="bg-yellow-500/10 text-yellow-500">Medium</Badge>;
+        return <Badge className="bg-yellow-500/10 text-yellow-500">{t('workforce.schedulingInsights.medium')}</Badge>;
       default:
-        return <Badge variant="secondary">Low</Badge>;
+        return <Badge variant="secondary">{t('workforce.schedulingInsights.low')}</Badge>;
     }
   };
 
@@ -74,23 +76,23 @@ export default function SchedulingInsights() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Scheduling Insights</h1>
-          <p className="text-muted-foreground">AI-powered analysis of scheduling patterns and issues</p>
+          <h1 className="text-3xl font-bold">{t('workforce.schedulingInsights.title')}</h1>
+          <p className="text-muted-foreground">{t('workforce.schedulingInsights.subtitle')}</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Run Analysis</CardTitle>
-          <CardDescription>Select a location and date range to analyze scheduling patterns</CardDescription>
+          <CardTitle>{t('workforce.schedulingInsights.runAnalysis')}</CardTitle>
+          <CardDescription>{t('workforce.schedulingInsights.runAnalysisDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>Location</Label>
+              <Label>{t('workforce.schedulingInsights.location')}</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
+                  <SelectValue placeholder={t('workforce.schedulingInsights.selectLocation')} />
                 </SelectTrigger>
                 <SelectContent>
                   {locations?.map((loc) => (
@@ -100,7 +102,7 @@ export default function SchedulingInsights() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Start Date</Label>
+              <Label>{t('workforce.schedulingInsights.startDate')}</Label>
               <Input
                 type="date"
                 value={dateRange.start}
@@ -108,7 +110,7 @@ export default function SchedulingInsights() {
               />
             </div>
             <div className="space-y-2">
-              <Label>End Date</Label>
+              <Label>{t('workforce.schedulingInsights.endDate')}</Label>
               <Input
                 type="date"
                 value={dateRange.end}
@@ -118,7 +120,7 @@ export default function SchedulingInsights() {
             <div className="flex items-end">
               <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full">
                 <Bot className="h-4 w-4 mr-2" />
-                {isAnalyzing ? "Analyzing..." : "Analyze"}
+                {isAnalyzing ? t('workforce.schedulingInsights.analyzing') : t('workforce.schedulingInsights.analyze')}
               </Button>
             </div>
           </div>
@@ -138,7 +140,7 @@ export default function SchedulingInsights() {
             <Card>
               <CardContent className="pt-4">
                 <p className="text-2xl font-bold">{insights.length}</p>
-                <p className="text-sm text-muted-foreground">Total Insights</p>
+                <p className="text-sm text-muted-foreground">{t('workforce.schedulingInsights.totalInsights')}</p>
               </CardContent>
             </Card>
             <Card>
@@ -146,7 +148,7 @@ export default function SchedulingInsights() {
                 <p className="text-2xl font-bold text-red-500">
                   {insights.filter(i => i.severity === "high").length}
                 </p>
-                <p className="text-sm text-muted-foreground">High Priority</p>
+                <p className="text-sm text-muted-foreground">{t('workforce.schedulingInsights.highPriority')}</p>
               </CardContent>
             </Card>
             <Card>
@@ -154,7 +156,7 @@ export default function SchedulingInsights() {
                 <p className="text-2xl font-bold text-red-500">
                   {insights.filter(i => i.type === "understaffing").length}
                 </p>
-                <p className="text-sm text-muted-foreground">Understaffing Issues</p>
+                <p className="text-sm text-muted-foreground">{t('workforce.schedulingInsights.understaffingIssues')}</p>
               </CardContent>
             </Card>
             <Card>
@@ -162,14 +164,15 @@ export default function SchedulingInsights() {
                 <p className="text-2xl font-bold text-blue-500">
                   {insights.filter(i => i.type === "pattern").length}
                 </p>
-                <p className="text-sm text-muted-foreground">Patterns Found</p>
+                <p className="text-sm text-muted-foreground">{t('workforce.schedulingInsights.patternsFound')}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Grouped Insights */}
           {Object.entries(groupedInsights).map(([type, typeInsights]) => {
-            const config = INSIGHT_TYPE_CONFIG[type] || { label: type, icon: AlertTriangle, color: "text-muted-foreground" };
+            const insightTypeConfig = getInsightTypeConfig(t);
+            const config = insightTypeConfig[type] || { label: type, icon: AlertTriangle, color: "text-muted-foreground" };
             const Icon = config.icon;
 
             return (
@@ -217,8 +220,8 @@ export default function SchedulingInsights() {
           <CardContent className="py-12">
             <div className="text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">No insights yet</p>
-              <p className="text-sm text-muted-foreground">Select a location and run the analysis to get scheduling insights</p>
+              <p className="text-muted-foreground">{t('workforce.schedulingInsights.noInsights')}</p>
+              <p className="text-sm text-muted-foreground">{t('workforce.schedulingInsights.noInsightsDesc')}</p>
             </div>
           </CardContent>
         </Card>
