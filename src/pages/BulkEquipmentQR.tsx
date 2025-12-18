@@ -5,8 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useEquipment } from "@/hooks/useEquipment";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QRCodeSVG } from "qrcode.react";
+import { useTranslation } from "react-i18next";
 
 export default function BulkEquipmentQR() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: equipment, isLoading } = useEquipment();
 
@@ -33,13 +35,13 @@ export default function BulkEquipmentQR() {
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate("/equipment")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Equipment
+              {t('equipment.backToEquipment')}
             </Button>
-            <h1 className="text-2xl font-bold">Equipment QR Labels</h1>
+            <h1 className="text-2xl font-bold">{t('equipment.qrLabels.title')}</h1>
           </div>
           <Button onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
-            Print Labels
+            {t('equipment.qrLabels.print')}
           </Button>
         </div>
 
@@ -75,7 +77,7 @@ export default function BulkEquipmentQR() {
 
       {(!equipment || equipment.length === 0) && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No equipment found to generate labels.</p>
+          <p className="text-muted-foreground">{t('equipment.qrLabels.noEquipment')}</p>
         </div>
       )}
 

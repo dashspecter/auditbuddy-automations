@@ -11,12 +11,14 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "@/components/ui/calendar.css";
 
 const localizer = momentLocalizer(moment);
 
 export default function MaintenanceCalendar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [locationId, setLocationId] = useState<string>("__all__");
@@ -78,18 +80,18 @@ export default function MaintenanceCalendar() {
   return (
     <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Maintenance Calendar</h1>
-          <p className="text-muted-foreground">Schedule and track equipment maintenance interventions</p>
+          <h1 className="text-3xl font-bold">{t('equipment.maintenanceCalendar.title')}</h1>
+          <p className="text-muted-foreground">{t('equipment.maintenanceCalendar.subtitle')}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Filters</CardTitle>
+            <CardTitle>{t('common.filters')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Location</label>
+                <label className="text-sm font-medium">{t('common.location')}</label>
                 <LocationSelector
                   value={locationId}
                   onValueChange={(value) => {
@@ -101,13 +103,13 @@ export default function MaintenanceCalendar() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Equipment</label>
+                <label className="text-sm font-medium">{t('nav.equipment')}</label>
                 <Select value={equipmentId} onValueChange={setEquipmentId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Equipment" />
+                    <SelectValue placeholder={t('equipment.allEquipment')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Equipment</SelectItem>
+                    <SelectItem value="__all__">{t('equipment.allEquipment')}</SelectItem>
                     {equipment?.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name}
@@ -118,26 +120,26 @@ export default function MaintenanceCalendar() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium">{t('common.status')}</label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
+                    <SelectValue placeholder={t('equipment.allStatuses')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__all__">All Statuses</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="__all__">{t('equipment.allStatuses')}</SelectItem>
+                    <SelectItem value="scheduled">{t('equipment.statusScheduled')}</SelectItem>
+                    <SelectItem value="completed">{t('equipment.statusCompleted')}</SelectItem>
+                    <SelectItem value="overdue">{t('equipment.statusOverdue')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Legend</label>
+                <label className="text-sm font-medium">{t('equipment.legend')}</label>
                 <div className="flex gap-2 flex-wrap">
-                  <Badge className="bg-primary">Scheduled</Badge>
-                  <Badge className="bg-green-500">Completed</Badge>
-                  <Badge className="bg-destructive">Overdue</Badge>
+                  <Badge className="bg-primary">{t('equipment.statusScheduled')}</Badge>
+                  <Badge className="bg-green-500">{t('equipment.statusCompleted')}</Badge>
+                  <Badge className="bg-destructive">{t('equipment.statusOverdue')}</Badge>
                 </div>
               </div>
             </div>
@@ -160,7 +162,7 @@ export default function MaintenanceCalendar() {
                   size="sm"
                   onClick={() => handleNavigate(new Date())}
                 >
-                  Today
+                  {t('common.today')}
                 </Button>
                 <Button
                   variant="outline"
@@ -177,21 +179,21 @@ export default function MaintenanceCalendar() {
                   size="sm"
                   onClick={() => setView("month")}
                 >
-                  Month
+                  {t('common.month')}
                 </Button>
                 <Button
                   variant={view === "week" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setView("week")}
                 >
-                  Week
+                  {t('common.week')}
                 </Button>
                 <Button
                   variant={view === "day" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setView("day")}
                 >
-                  Day
+                  {t('common.day')}
                 </Button>
               </div>
             </div>
