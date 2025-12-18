@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { format, subMonths, startOfMonth } from "date-fns";
-import { useState, useEffect } from "react";
+import { format, subMonths } from "date-fns";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { useLocations } from "@/hooks/useLocations";
 import { useTemplates } from "@/hooks/useTemplates";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 
 export const SectionPerformanceTrends = () => {
+  const { t } = useTranslation();
   const today = new Date();
   const lastMonth = subMonths(today, 1);
   
@@ -58,7 +60,7 @@ export const SectionPerformanceTrends = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading performance trends...</p>
+            <p className="text-muted-foreground">{t('dashboard.charts.loadingTrends')}</p>
           </div>
         </div>
       </Card>
@@ -69,19 +71,19 @@ export const SectionPerformanceTrends = () => {
     <Card className="p-6">
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Performance Trends by Section</h3>
-          <p className="text-sm text-muted-foreground mt-1">Average scores and trends over time</p>
+          <h3 className="text-lg font-semibold text-foreground">{t('dashboard.charts.performanceTrendsBySection')}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{t('dashboard.charts.averageScoresOverTime')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Location</label>
+            <label className="text-sm font-medium">{t('dashboard.charts.location')}</label>
             <Select value={locationFilter} onValueChange={setLocationFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All Locations" />
+                <SelectValue placeholder={t('dashboard.charts.allLocations')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all">{t('dashboard.charts.allLocations')}</SelectItem>
                 {locations?.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
@@ -92,7 +94,7 @@ export const SectionPerformanceTrends = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">From Date</label>
+            <label className="text-sm font-medium">{t('dashboard.charts.fromDate')}</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -103,7 +105,7 @@ export const SectionPerformanceTrends = () => {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
+                  {dateFrom ? format(dateFrom, "PPP") : t('dashboard.charts.pickDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -113,7 +115,7 @@ export const SectionPerformanceTrends = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">To Date</label>
+            <label className="text-sm font-medium">{t('dashboard.charts.toDate')}</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -124,7 +126,7 @@ export const SectionPerformanceTrends = () => {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateTo ? format(dateTo, "PPP") : "Pick a date"}
+                  {dateTo ? format(dateTo, "PPP") : t('dashboard.charts.pickDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -134,13 +136,13 @@ export const SectionPerformanceTrends = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Template</label>
+            <label className="text-sm font-medium">{t('dashboard.charts.template')}</label>
             <Select value={templateFilter} onValueChange={setTemplateFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="All Templates" />
+                <SelectValue placeholder={t('dashboard.charts.allTemplates')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Templates</SelectItem>
+                <SelectItem value="all">{t('dashboard.charts.allTemplates')}</SelectItem>
                 {templates?.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}
@@ -153,7 +155,7 @@ export const SectionPerformanceTrends = () => {
 
         {sectionPerformance.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No data available for the selected filters</p>
+            <p className="text-muted-foreground">{t('dashboard.charts.noDataFilters')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

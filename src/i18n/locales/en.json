@@ -265,7 +265,37 @@
     "refreshed": "Refreshed",
     "dataUpdated": "Dashboard data has been updated.",
     "dataRefreshed": "Dashboard data refreshed",
-    "failedRefresh": "Failed to refresh data"
+    "failedRefresh": "Failed to refresh data",
+    "charts": {
+      "locationPerformanceTrend": "Location Performance Trend",
+      "averageScore": "Average Score",
+      "locationPerformanceTrends": "Location Performance Trends",
+      "noTrendData": "No trend data available. Each location needs at least 2 audits to show trends.",
+      "compareScores": "Compare current scores to previous audits for each location",
+      "totalAudits": "total audits",
+      "latest": "Latest",
+      "currentScore": "Current Score",
+      "previousScore": "Previous Score",
+      "change": "Change",
+      "firstAuditNoComparison": "First audit - no comparison available",
+      "improving": "Improving",
+      "declining": "Declining",
+      "stable": "Stable",
+      "improvement": "improvement",
+      "decline": "decline",
+      "since": "since",
+      "performanceTrendsBySection": "Performance Trends by Section",
+      "averageScoresOverTime": "Average scores and trends over time",
+      "loadingTrends": "Loading performance trends...",
+      "location": "Location",
+      "allLocations": "All Locations",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "pickDate": "Pick a date",
+      "template": "Template",
+      "allTemplates": "All Templates",
+      "noDataFilters": "No data available for the selected filters"
+    }
   },
   "modules": {
     "locationAudits": {

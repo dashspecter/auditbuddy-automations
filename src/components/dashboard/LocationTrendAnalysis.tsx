@@ -9,8 +9,10 @@ import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { LocationPerformanceDetail } from "./LocationPerformanceDetail";
 import type { LocationPerformance } from "@/hooks/usePerformanceTrends";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 
 export const LocationTrendAnalysis = () => {
+  const { t } = useTranslation();
   const { locationTrends, isLoading } = useLocationTrends();
   const { locationPerformance } = usePerformanceTrends();
   const [selectedLocation, setSelectedLocation] = useState<LocationPerformance | null>(null);
@@ -29,7 +31,7 @@ export const LocationTrendAnalysis = () => {
   if (isLoading) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Location Performance Trends</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('dashboard.charts.locationPerformanceTrends')}</h3>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-20 w-full" />
@@ -42,9 +44,9 @@ export const LocationTrendAnalysis = () => {
   if (locationTrends.length === 0) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Location Performance Trends</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('dashboard.charts.locationPerformanceTrends')}</h3>
         <p className="text-sm text-muted-foreground">
-          No trend data available. Each location needs at least 2 audits to show trends.
+          {t('dashboard.charts.noTrendData')}
         </p>
       </Card>
     );
@@ -69,9 +71,9 @@ export const LocationTrendAnalysis = () => {
     } as const;
 
     const labels = {
-      improvement: 'Improving',
-      decline: 'Declining',
-      stable: 'Stable'
+      improvement: t('dashboard.charts.improving'),
+      decline: t('dashboard.charts.declining'),
+      stable: t('dashboard.charts.stable')
     };
 
     return (
@@ -90,9 +92,9 @@ export const LocationTrendAnalysis = () => {
     <>
       <Card className="p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold">Location Performance Trends</h3>
+          <h3 className="text-lg font-semibold">{t('dashboard.charts.locationPerformanceTrends')}</h3>
           <p className="text-sm text-muted-foreground">
-            Compare current scores to previous audits for each location
+            {t('dashboard.charts.compareScores')}
           </p>
         </div>
         
@@ -122,7 +124,7 @@ export const LocationTrendAnalysis = () => {
                       {getTrendBadge(trend.trend)}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {trend.auditCount} total audits • Latest: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
+                      {trend.auditCount} {t('dashboard.charts.totalAudits')} • {t('dashboard.charts.latest')}: {format(new Date(trend.currentAuditDate), 'MMM d, yyyy')}
                     </p>
                   </div>
                   {getTrendIcon(trend.trend)}
@@ -130,19 +132,19 @@ export const LocationTrendAnalysis = () => {
 
                 <div className="grid grid-cols-3 gap-4 mt-3">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Current Score</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.charts.currentScore')}</p>
                     <p className="text-2xl font-bold">{trend.currentScore}%</p>
                   </div>
                   
                   {trend.auditCount > 1 ? (
                     <>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Previous Score</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t('dashboard.charts.previousScore')}</p>
                         <p className="text-2xl font-bold text-muted-foreground">{trend.previousScore}%</p>
                       </div>
                       
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Change</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t('dashboard.charts.change')}</p>
                         <p className={`text-2xl font-bold ${getScoreDifferenceColor(trend.scoreDifference)}`}>
                           {trend.scoreDifference > 0 ? '+' : ''}{trend.scoreDifference}%
                         </p>
@@ -150,7 +152,7 @@ export const LocationTrendAnalysis = () => {
                     </>
                   ) : (
                     <div className="col-span-2 flex items-center justify-center">
-                      <p className="text-sm text-muted-foreground">First audit - no comparison available</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.charts.firstAuditNoComparison')}</p>
                     </div>
                   )}
                 </div>
@@ -197,8 +199,8 @@ export const LocationTrendAnalysis = () => {
                       {trend.trend === 'improvement' ? '📈' : '📉'} 
                       {' '}
                       {Math.abs(trend.percentageChange).toFixed(1)}% 
-                      {trend.trend === 'improvement' ? ' improvement' : ' decline'} 
-                      {' '}since {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
+                      {trend.trend === 'improvement' ? ` ${t('dashboard.charts.improvement')}` : ` ${t('dashboard.charts.decline')}`} 
+                      {' '}{t('dashboard.charts.since')} {format(new Date(trend.previousAuditDate), 'MMM d, yyyy')}
                     </p>
                   </div>
                 )}

@@ -265,7 +265,37 @@
     "refreshed": "Reîmprospătat",
     "dataUpdated": "Datele panoului au fost actualizate.",
     "dataRefreshed": "Datele panoului au fost reîmprospătate",
-    "failedRefresh": "Reîmprospătarea a eșuat"
+    "failedRefresh": "Reîmprospătarea a eșuat",
+    "charts": {
+      "locationPerformanceTrend": "Tendință performanță locație",
+      "averageScore": "Scor mediu",
+      "locationPerformanceTrends": "Tendințe performanță locații",
+      "noTrendData": "Nu există date despre tendințe. Fiecare locație are nevoie de cel puțin 2 audituri pentru a afișa tendințe.",
+      "compareScores": "Compară scorurile curente cu auditurile anterioare pentru fiecare locație",
+      "totalAudits": "total audituri",
+      "latest": "Ultimul",
+      "currentScore": "Scor curent",
+      "previousScore": "Scor anterior",
+      "change": "Schimbare",
+      "firstAuditNoComparison": "Primul audit - nicio comparație disponibilă",
+      "improving": "În creștere",
+      "declining": "În scădere",
+      "stable": "Stabil",
+      "improvement": "creștere",
+      "decline": "scădere",
+      "since": "din",
+      "performanceTrendsBySection": "Tendințe performanță pe secțiuni",
+      "averageScoresOverTime": "Scoruri medii și tendințe în timp",
+      "loadingTrends": "Se încarcă tendințele...",
+      "location": "Locație",
+      "allLocations": "Toate locațiile",
+      "fromDate": "De la data",
+      "toDate": "Până la data",
+      "pickDate": "Alege o dată",
+      "template": "Șablon",
+      "allTemplates": "Toate șabloanele",
+      "noDataFilters": "Nu există date pentru filtrele selectate"
+    }
   },
   "modules": {
     "locationAudits": {
