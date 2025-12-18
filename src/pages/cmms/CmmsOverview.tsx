@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { 
   Cog, 
   ArrowRight, 
@@ -25,88 +26,89 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function CmmsOverview() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const problems = [
     {
-      title: "Equipment Downtime",
-      description: "Unexpected failures cost time and money.",
-      solution: "CMMS helps prevent breakdowns with scheduled maintenance.",
+      title: t("cmms.overview.problems.downtime.title"),
+      description: t("cmms.overview.problems.downtime.description"),
+      solution: t("cmms.overview.problems.downtime.solution"),
       icon: AlertTriangle,
     },
     {
-      title: "No Visibility",
-      description: "Without structure, it's impossible to know what's done, overdue, or critical.",
-      solution: "CMMS gives real-time visibility across all locations.",
+      title: t("cmms.overview.problems.visibility.title"),
+      description: t("cmms.overview.problems.visibility.description"),
+      solution: t("cmms.overview.problems.visibility.solution"),
       icon: Eye,
     },
     {
-      title: "Inconsistent Work",
-      description: "Different people, different standards.",
-      solution: "CMMS enforces procedures and checklists every time.",
+      title: t("cmms.overview.problems.inconsistent.title"),
+      description: t("cmms.overview.problems.inconsistent.description"),
+      solution: t("cmms.overview.problems.inconsistent.solution"),
       icon: ClipboardCheck,
     },
     {
-      title: "Audits & Contracts",
-      description: '"Show me proof."',
-      solution: "CMMS provides history, reports, and evidence for audits and clients.",
+      title: t("cmms.overview.problems.audits.title"),
+      description: t("cmms.overview.problems.audits.description"),
+      solution: t("cmms.overview.problems.audits.solution"),
       icon: FileText,
     },
   ];
 
   const flowSteps = [
-    { step: 1, title: "Assets", description: "Register all equipment with location, criticality, and QR codes.", icon: Package },
-    { step: 2, title: "Work Orders", description: "Create tasks manually, from requests, or automatically from schedules.", icon: Wrench },
-    { step: 3, title: "Procedures & Checklists", description: "Guide technicians step-by-step and capture proof of work.", icon: ClipboardList },
-    { step: 4, title: "Preventive Maintenance", description: "Automatically generate work orders on a schedule or usage.", icon: Calendar },
-    { step: 5, title: "Parts & Inventory", description: "Track spare parts, consumption, and restocking.", icon: Boxes },
-    { step: 6, title: "Reports & History", description: "Analyze performance, costs, compliance, and downtime.", icon: BarChart3 },
+    { step: 1, title: t("cmms.overview.flowSteps.assets.title"), description: t("cmms.overview.flowSteps.assets.description"), icon: Package },
+    { step: 2, title: t("cmms.overview.flowSteps.workOrders.title"), description: t("cmms.overview.flowSteps.workOrders.description"), icon: Wrench },
+    { step: 3, title: t("cmms.overview.flowSteps.procedures.title"), description: t("cmms.overview.flowSteps.procedures.description"), icon: ClipboardList },
+    { step: 4, title: t("cmms.overview.flowSteps.pm.title"), description: t("cmms.overview.flowSteps.pm.description"), icon: Calendar },
+    { step: 5, title: t("cmms.overview.flowSteps.parts.title"), description: t("cmms.overview.flowSteps.parts.description"), icon: Boxes },
+    { step: 6, title: t("cmms.overview.flowSteps.reports.title"), description: t("cmms.overview.flowSteps.reports.description"), icon: BarChart3 },
   ];
 
   const modules = [
-    { icon: Package, title: "Assets", description: "Central registry of all equipment, locations, and QR codes.", url: "/cmms/assets" },
-    { icon: Wrench, title: "Work Orders", description: "Create, assign, track, and complete maintenance tasks.", url: "/cmms/work-orders" },
-    { icon: Calendar, title: "PM Schedules", description: "Preventive maintenance plans that auto-generate work orders.", url: "/cmms/pm-schedules" },
-    { icon: ClipboardList, title: "Procedures", description: "Standard operating procedures and inspection checklists.", url: "/cmms/procedures" },
-    { icon: Boxes, title: "Parts Inventory", description: "Track stock levels, consumption, and low-stock alerts.", url: "/cmms/parts" },
-    { icon: FileBox, title: "Purchase Orders", description: "Order and receive parts from vendors.", url: "/cmms/purchase-orders" },
-    { icon: Users, title: "Teams", description: "Organize technicians and responsibilities.", url: "/cmms/teams" },
-    { icon: Factory, title: "Vendors", description: "Manage external contractors and suppliers.", url: "/cmms/vendors" },
-    { icon: BarChart3, title: "Reports", description: "Performance, compliance, costs, and audit-ready history.", url: "/cmms/reports" },
+    { icon: Package, title: t("cmms.overview.modulesList.assets.title"), description: t("cmms.overview.modulesList.assets.description"), url: "/cmms/assets" },
+    { icon: Wrench, title: t("cmms.overview.modulesList.workOrders.title"), description: t("cmms.overview.modulesList.workOrders.description"), url: "/cmms/work-orders" },
+    { icon: Calendar, title: t("cmms.overview.modulesList.pmSchedules.title"), description: t("cmms.overview.modulesList.pmSchedules.description"), url: "/cmms/pm-schedules" },
+    { icon: ClipboardList, title: t("cmms.overview.modulesList.procedures.title"), description: t("cmms.overview.modulesList.procedures.description"), url: "/cmms/procedures" },
+    { icon: Boxes, title: t("cmms.overview.modulesList.partsInventory.title"), description: t("cmms.overview.modulesList.partsInventory.description"), url: "/cmms/parts" },
+    { icon: FileBox, title: t("cmms.overview.modulesList.purchaseOrders.title"), description: t("cmms.overview.modulesList.purchaseOrders.description"), url: "/cmms/purchase-orders" },
+    { icon: Users, title: t("cmms.overview.modulesList.teams.title"), description: t("cmms.overview.modulesList.teams.description"), url: "/cmms/teams" },
+    { icon: Factory, title: t("cmms.overview.modulesList.vendors.title"), description: t("cmms.overview.modulesList.vendors.description"), url: "/cmms/vendors" },
+    { icon: BarChart3, title: t("cmms.overview.modulesList.reports.title"), description: t("cmms.overview.modulesList.reports.description"), url: "/cmms/reports" },
   ];
 
   const personas = [
     {
-      title: "Operations Managers",
-      description: "Control maintenance, reduce downtime, and see what's happening in real time.",
+      title: t("cmms.overview.personas.opsManagers.title"),
+      description: t("cmms.overview.personas.opsManagers.description"),
       icon: Building,
     },
     {
-      title: "Technicians & Teams",
-      description: "Clear tasks, clear instructions, mobile-first execution.",
+      title: t("cmms.overview.personas.technicians.title"),
+      description: t("cmms.overview.personas.technicians.description"),
       icon: Smartphone,
     },
     {
-      title: "Auditors & Management",
-      description: "Proof of work, traceability, and reports — without manual effort.",
+      title: t("cmms.overview.personas.auditors.title"),
+      description: t("cmms.overview.personas.auditors.description"),
       icon: Shield,
     },
   ];
 
   const useCases = [
-    "Monthly HVAC inspections",
-    "Forklift preventive maintenance",
-    "Fire extinguisher checks",
-    "Kitchen equipment servicing",
-    "Warehouse equipment tracking",
-    "Multi-location franchise maintenance",
+    t("cmms.overview.useCasesList.hvac"),
+    t("cmms.overview.useCasesList.forklift"),
+    t("cmms.overview.useCasesList.fire"),
+    t("cmms.overview.useCasesList.kitchen"),
+    t("cmms.overview.useCasesList.warehouse"),
+    t("cmms.overview.useCasesList.franchise"),
   ];
 
   const differentiators = [
-    "Built for multi-location operations",
-    "Mobile-first for technicians",
-    "Audit-ready by default",
-    "Designed to scale to enterprise & industrial contracts",
-    "Integrates with Dashspect Ops & AI layers",
+    t("cmms.overview.differentiators.multiLocation"),
+    t("cmms.overview.differentiators.mobilFirst"),
+    t("cmms.overview.differentiators.auditReady"),
+    t("cmms.overview.differentiators.scalable"),
+    t("cmms.overview.differentiators.integrates"),
   ];
 
   return (
@@ -117,22 +119,21 @@ export default function CmmsOverview() {
           <Cog className="h-10 w-10 text-primary" />
         </div>
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-          CMMS — Maintenance & Asset Management System
+          {t("cmms.overview.heroTitle")}
         </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-          Plan, execute, track, and prove maintenance across all your equipment and locations.
+          {t("cmms.overview.heroSubtitle")}
         </p>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          CMMS (Computerized Maintenance Management System) helps you prevent breakdowns, 
-          standardize work, control costs, and stay compliant — all in one place.
+          {t("cmms.overview.heroDescription")}
         </p>
         <div className="flex items-center justify-center gap-4 pt-4">
           <Button size="lg" onClick={() => navigate("/cmms")}>
-            Go to Dashboard
+            {t("cmms.overview.goToDashboard")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("/cmms/work-orders")}>
-            View Work Orders
+            {t("cmms.overview.viewWorkOrders")}
           </Button>
         </div>
       </section>
@@ -140,8 +141,8 @@ export default function CmmsOverview() {
       {/* Why CMMS Matters */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Why CMMS Matters</h2>
-          <p className="text-muted-foreground mt-2">The problems that CMMS solves</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.whyMatters")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.whyMattersSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {problems.map((problem, idx) => (
@@ -164,8 +165,8 @@ export default function CmmsOverview() {
       {/* How CMMS Works */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">How CMMS Works</h2>
-          <p className="text-muted-foreground mt-2">End-to-end maintenance workflow</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.howWorks")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.howWorksSubtitle")}</p>
         </div>
         <div className="relative">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -191,15 +192,15 @@ export default function CmmsOverview() {
           </div>
         </div>
         <p className="text-center text-sm text-muted-foreground">
-          Every action is logged, traceable, and linked to assets and people.
+          {t("cmms.overview.everyActionLogged")}
         </p>
       </section>
 
       {/* CMMS Modules */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">CMMS Modules</h2>
-          <p className="text-muted-foreground mt-2">Everything you need to manage maintenance</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.modules")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.modulesSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {modules.map((module, idx) => (
@@ -227,8 +228,8 @@ export default function CmmsOverview() {
       {/* Who CMMS is For */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Who CMMS is For</h2>
-          <p className="text-muted-foreground mt-2">Built for every role in maintenance operations</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.whoFor")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.whoForSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {personas.map((persona, idx) => (
@@ -250,8 +251,8 @@ export default function CmmsOverview() {
       {/* Common Use Cases */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Common Use Cases</h2>
-          <p className="text-muted-foreground mt-2">Real-world applications</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.useCases")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.useCasesSubtitle")}</p>
         </div>
         <Card className="max-w-2xl mx-auto">
           <CardContent className="pt-6">
@@ -270,8 +271,8 @@ export default function CmmsOverview() {
       {/* Why Dashspect CMMS */}
       <section className="space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Why Dashspect CMMS</h2>
-          <p className="text-muted-foreground mt-2">What makes this different</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.whyDashspect")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.whyDashspectSubtitle")}</p>
         </div>
         <Card className="max-w-2xl mx-auto bg-primary/5 border-primary/20">
           <CardContent className="pt-6">
@@ -290,25 +291,25 @@ export default function CmmsOverview() {
       {/* Get Started */}
       <section className="space-y-8 pb-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Get Started</h2>
-          <p className="text-muted-foreground mt-2">Choose your starting point</p>
+          <h2 className="text-3xl font-bold">{t("cmms.overview.getStarted")}</h2>
+          <p className="text-muted-foreground mt-2">{t("cmms.overview.getStartedSubtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Button size="lg" onClick={() => navigate("/cmms")}>
-            View Dashboard
+            {t("cmms.overview.viewDashboard")}
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("/cmms/assets")}>
-            Add Your First Asset
+            {t("cmms.overview.addFirstAsset")}
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("/cmms/work-orders")}>
-            Create a Work Order
+            {t("cmms.overview.createWorkOrder")}
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate("/cmms/pm-schedules")}>
-            Set Up Preventive Maintenance
+            {t("cmms.overview.setupPM")}
           </Button>
         </div>
         <p className="text-center text-sm text-muted-foreground">
-          Most teams start by adding assets, then creating their first preventive maintenance plan.
+          {t("cmms.overview.mostTeamsStart")}
         </p>
       </section>
     </div>

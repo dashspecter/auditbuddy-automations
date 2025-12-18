@@ -315,7 +315,250 @@
     "assets": "Assets",
     "preventiveMaintenance": "Preventive Maintenance",
     "parts": "Parts",
-    "vendors": "Vendors"
+    "vendors": "Vendors",
+    "dashboard": {
+      "title": "CMMS Dashboard",
+      "newWorkOrder": "New Work Order",
+      "openWorkOrders": "Open Work Orders",
+      "inProgress": "in progress",
+      "overdue": "Overdue",
+      "highPriority": "high priority",
+      "completed30d": "Completed (30d)",
+      "preventive": "preventive",
+      "assetHealth": "Asset Health",
+      "assetsDown": "assets down",
+      "pmDueSoon": "PM Due Soon",
+      "overdueCount": "overdue",
+      "lowStockParts": "Low Stock Parts",
+      "needReorder": "need reorder",
+      "totalAssets": "Total Assets",
+      "operational": "operational",
+      "recentWorkOrders": "Recent Work Orders",
+      "viewAll": "View All",
+      "noWorkOrdersYet": "No work orders yet",
+      "quickActions": "Quick Actions",
+      "pmSchedules": "PM Schedules",
+      "procedures": "Procedures",
+      "purchaseOrders": "Purchase Orders",
+      "teams": "Teams"
+    },
+    "overview": {
+      "heroTitle": "CMMS — Maintenance & Asset Management System",
+      "heroSubtitle": "Plan, execute, track, and prove maintenance across all your equipment and locations.",
+      "heroDescription": "CMMS (Computerized Maintenance Management System) helps you prevent breakdowns, standardize work, control costs, and stay compliant — all in one place.",
+      "goToDashboard": "Go to Dashboard",
+      "viewWorkOrders": "View Work Orders",
+      "whyMatters": "Why CMMS Matters",
+      "whyMattersSubtitle": "The problems that CMMS solves",
+      "howWorks": "How CMMS Works",
+      "howWorksSubtitle": "End-to-end maintenance workflow",
+      "everyActionLogged": "Every action is logged, traceable, and linked to assets and people.",
+      "modules": "CMMS Modules",
+      "modulesSubtitle": "Everything you need to manage maintenance",
+      "whoFor": "Who CMMS is For",
+      "whoForSubtitle": "Built for every role in maintenance operations",
+      "useCases": "Common Use Cases",
+      "useCasesSubtitle": "Real-world applications",
+      "whyDashspect": "Why Dashspect CMMS",
+      "whyDashspectSubtitle": "What makes this different",
+      "getStarted": "Get Started",
+      "getStartedSubtitle": "Choose your starting point",
+      "viewDashboard": "View Dashboard",
+      "addFirstAsset": "Add Your First Asset",
+      "createWorkOrder": "Create a Work Order",
+      "setupPM": "Set Up Preventive Maintenance",
+      "mostTeamsStart": "Most teams start by adding assets, then creating their first preventive maintenance plan.",
+      "problems": {
+        "downtime": {
+          "title": "Equipment Downtime",
+          "description": "Unexpected failures cost time and money.",
+          "solution": "CMMS helps prevent breakdowns with scheduled maintenance."
+        },
+        "visibility": {
+          "title": "No Visibility",
+          "description": "Without structure, it's impossible to know what's done, overdue, or critical.",
+          "solution": "CMMS gives real-time visibility across all locations."
+        },
+        "inconsistent": {
+          "title": "Inconsistent Work",
+          "description": "Different people, different standards.",
+          "solution": "CMMS enforces procedures and checklists every time."
+        },
+        "audits": {
+          "title": "Audits & Contracts",
+          "description": "\"Show me proof.\"",
+          "solution": "CMMS provides history, reports, and evidence for audits and clients."
+        }
+      },
+      "flowSteps": {
+        "assets": {
+          "title": "Assets",
+          "description": "Register all equipment with location, criticality, and QR codes."
+        },
+        "workOrders": {
+          "title": "Work Orders",
+          "description": "Create tasks manually, from requests, or automatically from schedules."
+        },
+        "procedures": {
+          "title": "Procedures & Checklists",
+          "description": "Guide technicians step-by-step and capture proof of work."
+        },
+        "pm": {
+          "title": "Preventive Maintenance",
+          "description": "Automatically generate work orders on a schedule or usage."
+        },
+        "parts": {
+          "title": "Parts & Inventory",
+          "description": "Track spare parts, consumption, and restocking."
+        },
+        "reports": {
+          "title": "Reports & History",
+          "description": "Analyze performance, costs, compliance, and downtime."
+        }
+      },
+      "modulesList": {
+        "assets": {
+          "title": "Assets",
+          "description": "Central registry of all equipment, locations, and QR codes."
+        },
+        "workOrders": {
+          "title": "Work Orders",
+          "description": "Create, assign, track, and complete maintenance tasks."
+        },
+        "pmSchedules": {
+          "title": "PM Schedules",
+          "description": "Preventive maintenance plans that auto-generate work orders."
+        },
+        "procedures": {
+          "title": "Procedures",
+          "description": "Standard operating procedures and inspection checklists."
+        },
+        "partsInventory": {
+          "title": "Parts Inventory",
+          "description": "Track stock levels, consumption, and low-stock alerts."
+        },
+        "purchaseOrders": {
+          "title": "Purchase Orders",
+          "description": "Order and receive parts from vendors."
+        },
+        "teams": {
+          "title": "Teams",
+          "description": "Organize technicians and responsibilities."
+        },
+        "vendors": {
+          "title": "Vendors",
+          "description": "Manage external contractors and suppliers."
+        },
+        "reports": {
+          "title": "Reports",
+          "description": "Performance, compliance, costs, and audit-ready history."
+        }
+      },
+      "personas": {
+        "opsManagers": {
+          "title": "Operations Managers",
+          "description": "Control maintenance, reduce downtime, and see what's happening in real time."
+        },
+        "technicians": {
+          "title": "Technicians & Teams",
+          "description": "Clear tasks, clear instructions, mobile-first execution."
+        },
+        "auditors": {
+          "title": "Auditors & Management",
+          "description": "Proof of work, traceability, and reports — without manual effort."
+        }
+      },
+      "useCasesList": {
+        "hvac": "Monthly HVAC inspections",
+        "forklift": "Forklift preventive maintenance",
+        "fire": "Fire extinguisher checks",
+        "kitchen": "Kitchen equipment servicing",
+        "warehouse": "Warehouse equipment tracking",
+        "franchise": "Multi-location franchise maintenance"
+      },
+      "differentiators": {
+        "multiLocation": "Built for multi-location operations",
+        "mobilFirst": "Mobile-first for technicians",
+        "auditReady": "Audit-ready by default",
+        "scalable": "Designed to scale to enterprise & industrial contracts",
+        "integrates": "Integrates with Dashspect Ops & AI layers"
+      }
+    },
+    "reports": {
+      "title": "CMMS Reports & Analytics",
+      "subtitle": "Maintenance performance insights and trends",
+      "avgCompletionTime": "Avg Completion Time",
+      "acrossAllWO": "across all work orders",
+      "criticalAvg": "Critical Avg",
+      "criticalPriority": "critical priority",
+      "highPriorityAvg": "High Priority Avg",
+      "highPriority": "high priority",
+      "mediumPriorityAvg": "Medium Priority Avg",
+      "mediumPriority": "medium priority",
+      "workOrderTrends": "Work Order Trends",
+      "createdVsCompleted": "Created vs completed over 6 months",
+      "created": "Created",
+      "completed": "Completed",
+      "assetHealthDistribution": "Asset Health Distribution",
+      "currentStatusAssets": "Current status of all assets",
+      "noAssetData": "No asset data available",
+      "openWOByPriority": "Open Work Orders by Priority",
+      "currentBacklog": "Current backlog breakdown",
+      "open": "Open",
+      "inProgress": "In Progress",
+      "onHold": "On Hold",
+      "partsConsumption": "Parts Consumption",
+      "monthlyPartsUsage": "Monthly parts usage trend",
+      "partsUsed": "Parts Used",
+      "reactiveVsPreventive": "Reactive vs Preventive Maintenance",
+      "woTypeDistribution": "Work order type distribution over time",
+      "reactive": "Reactive",
+      "preventive": "Preventive"
+    },
+    "workOrdersPage": {
+      "title": "Work Orders",
+      "searchPlaceholder": "Search work orders (title, asset, location, WO #)",
+      "myFilters": "My Filters",
+      "newWorkOrder": "New Work Order",
+      "assignedTo": "Assigned to",
+      "dueDate": "Due date",
+      "location": "Location",
+      "priority": "Priority",
+      "status": "Status",
+      "addFilter": "+ Add filter",
+      "toDo": "To Do",
+      "done": "Done",
+      "toDoDescription": "To Do shows Open, On Hold, and In Progress.",
+      "doneDescription": "Done shows completed and cancelled work orders.",
+      "allClear": "You're all clear. No work orders right now.",
+      "noCompletedYet": "No completed work orders yet.",
+      "noSelected": "No work order selected",
+      "selectOrCreate": "Select a work order from the list to view details, or create a new one."
+    },
+    "assetsPage": {
+      "title": "Assets",
+      "searchPlaceholder": "Search assets (name, code, serial, location)",
+      "newAsset": "New Asset",
+      "noAssetsYet": "No assets yet",
+      "noAssetsDescription": "Add your first asset to track maintenance, procedures, and QR workflows.",
+      "asset": "Asset",
+      "location": "Location",
+      "status": "Status",
+      "criticality": "Criticality",
+      "category": "Category",
+      "actions": "Actions",
+      "view": "View"
+    },
+    "procedureDetail": {
+      "procedureDetails": "Procedure Details",
+      "title": "Title",
+      "description": "Description",
+      "safetyNotes": "Safety Notes",
+      "estimatedTime": "Estimated Time",
+      "checklistSteps": "Checklist Steps",
+      "addStep": "Add Step",
+      "draft": "Draft"
+    }
   },
   "audits": {
     "title": "Audits",
