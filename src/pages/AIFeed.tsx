@@ -11,8 +11,10 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 const AIFeed = () => {
+  const { t } = useTranslation();
   const { data: company } = useCompany();
   const { data: alerts, isLoading: alertsLoading } = useAlerts();
   const { data: summaries, isLoading: summariesLoading } = useInsightSummaries();
@@ -79,9 +81,9 @@ const AIFeed = () => {
     <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">AI Feed</h1>
+            <h1 className="text-3xl font-bold">{t('aiFeed.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Real-time alerts and AI-generated insights
+              {t('aiFeed.subtitle')}
             </p>
           </div>
           <Button 
@@ -95,7 +97,7 @@ const AIFeed = () => {
             ) : (
               <Sparkles className="h-4 w-4" />
             )}
-            {isGenerating ? "Generating..." : "Generate Summary"}
+            {isGenerating ? t('aiFeed.generating') : t('aiFeed.generateSummary')}
           </Button>
         </div>
 
@@ -105,10 +107,10 @@ const AIFeed = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5" />
-                AI Summary
+                {t('aiFeed.aiSummary')}
               </CardTitle>
               <CardDescription className="flex items-center gap-4">
-                <span>Latest AI-generated insights</span>
+                <span>{t('aiFeed.latestInsights')}</span>
                 <Badge variant="outline" className="text-xs">
                   {new Date(summaries[0].period_start).toLocaleDateString()} - {new Date(summaries[0].period_end).toLocaleDateString()}
                 </Badge>
@@ -131,7 +133,7 @@ const AIFeed = () => {
               </div>
               <div className="flex items-center gap-2 mt-6 text-base text-muted-foreground border-t pt-4">
                 <Clock className="h-4 w-4" />
-                Generated {formatDistanceToNow(new Date(summaries[0].generated_at))} ago
+                {t('insights.savedSummaries.generated')} {formatDistanceToNow(new Date(summaries[0].generated_at))} {t('aiFeed.ago')}
               </div>
             </CardContent>
           </Card>
@@ -143,20 +145,20 @@ const AIFeed = () => {
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
-                Active Alerts ({unresolvedAlerts.length})
+                {t('aiFeed.activeAlerts')} ({unresolvedAlerts.length})
               </span>
             </CardTitle>
-            <CardDescription>Issues requiring attention</CardDescription>
+            <CardDescription>{t('aiFeed.issuesRequiringAttention')}</CardDescription>
           </CardHeader>
           <CardContent>
             {alertsLoading ? (
               <div className="text-center py-8 text-muted-foreground">
-                Loading alerts...
+                {t('aiFeed.loadingAlerts')}
               </div>
             ) : unresolvedAlerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No active alerts. Everything looks good!</p>
+                <p>{t('aiFeed.noActiveAlerts')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -183,16 +185,16 @@ const AIFeed = () => {
                         <p className="text-sm text-muted-foreground">{alert.message}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(alert.created_at))} ago
+                          {formatDistanceToNow(new Date(alert.created_at))} {t('aiFeed.ago')}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => resolveAlert.mutate(alert.id)}
-                        disabled={resolveAlert.isPending}
-                      >
-                        Resolve
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => resolveAlert.mutate(alert.id)}
+                          disabled={resolveAlert.isPending}
+                        >
+                          {t('aiFeed.resolve')}
                       </Button>
                     </div>
                   </div>
@@ -206,7 +208,7 @@ const AIFeed = () => {
         {alerts && alerts.filter(a => a.resolved).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-muted-foreground">Resolved Alerts</CardTitle>
+              <CardTitle className="text-muted-foreground">{t('aiFeed.resolvedAlerts')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -218,7 +220,7 @@ const AIFeed = () => {
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{alert.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        Resolved {formatDistanceToNow(new Date(alert.resolved_at!))} ago
+                        {t('aiFeed.resolved')} {formatDistanceToNow(new Date(alert.resolved_at!))} {t('aiFeed.ago')}
                       </span>
                     </div>
                   </div>

@@ -18,8 +18,10 @@ import { WorkforceAnalytics } from "@/components/dashboard/WorkforceAnalytics";
 import { CompanyPerformanceOverview } from "@/components/dashboard/CompanyPerformanceOverview";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { useTranslation } from "react-i18next";
 
 const Insights = () => {
+  const { t } = useTranslation();
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
   
@@ -73,8 +75,8 @@ const Insights = () => {
   };
 
   const insightSubItems = [
-    { title: "Overview", url: "/insights", icon: Sparkles, description: "Analytics overview" },
-    { title: "AI Feed", url: "/ai-feed", icon: TrendingUp, description: "AI-powered insights" },
+    { title: t('insights.overview'), url: "/insights", icon: Sparkles, description: t('insights.overview') },
+    { title: t('insights.aiFeed'), url: "/ai-feed", icon: TrendingUp, description: t('insights.aiFeed') },
   ];
 
   return (
@@ -82,15 +84,15 @@ const Insights = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Insights</h1>
+            <h1 className="text-3xl font-bold">{t('insights.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Analytics and performance trends
+              {t('insights.subtitle')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={handleSaveSummary}>
               <Download className="h-4 w-4" />
-              Save Summary
+              {t('insights.saveSummary')}
             </Button>
           </div>
         </div>
@@ -119,18 +121,18 @@ const Insights = () => {
         {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle>Filters</CardTitle>
+            <CardTitle>{t('insights.filters')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">Location</label>
+                <label className="text-sm font-medium mb-2 block">{t('insights.location')}</label>
                 <Select value={locationFilter} onValueChange={setLocationFilter}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
+                    <SelectItem value="all">{t('insights.allLocations')}</SelectItem>
                     {locations?.map((loc) => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}
@@ -140,15 +142,15 @@ const Insights = () => {
                 </Select>
               </div>
               <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">Period</label>
+                <label className="text-sm font-medium mb-2 block">{t('insights.period')}</label>
                 <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="daily">{t('insights.daily')}</SelectItem>
+                    <SelectItem value="weekly">{t('insights.weekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('insights.monthly')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -158,12 +160,12 @@ const Insights = () => {
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="company">Company</TabsTrigger>
-            <TabsTrigger value="workforce">Workforce</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-            <TabsTrigger value="sections">Sections</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="overview">{t('insights.tabs.overview')}</TabsTrigger>
+            <TabsTrigger value="company">{t('insights.tabs.company')}</TabsTrigger>
+            <TabsTrigger value="workforce">{t('insights.tabs.workforce')}</TabsTrigger>
+            <TabsTrigger value="locations">{t('insights.tabs.locations')}</TabsTrigger>
+            <TabsTrigger value="sections">{t('insights.tabs.sections')}</TabsTrigger>
+            <TabsTrigger value="trends">{t('insights.tabs.trends')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -171,7 +173,7 @@ const Insights = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Audits
+                    {t('insights.stats.totalAudits')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -181,7 +183,7 @@ const Insights = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Average Score
+                    {t('insights.stats.averageScore')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -191,7 +193,7 @@ const Insights = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Locations Tracked
+                    {t('insights.stats.locationsTracked')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -219,17 +221,17 @@ const Insights = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Location Trends</CardTitle>
-                <CardDescription>Score changes by location</CardDescription>
+                <CardTitle>{t('insights.locationTrends.title')}</CardTitle>
+                <CardDescription>{t('insights.locationTrends.subtitle')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {trendsLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading trends...</div>
+                  <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
                 ) : locationTrends.length === 0 ? (
                   <EmptyState
                     icon={MapPin}
-                    title="No Location Data"
-                    description="No location data available yet. Perform audits to see trends."
+                    title={t('insights.locationTrends.noData')}
+                    description={t('insights.locationTrends.noDataDescription')}
                   />
                 ) : (
                   <div className="space-y-3">
@@ -239,7 +241,7 @@ const Insights = () => {
                           <div>
                             <h3 className="font-medium">{trend.location}</h3>
                             <p className="text-sm text-muted-foreground">
-                              {trend.auditCount} audits
+                              {trend.auditCount} {t('insights.locationTrends.audits')}
                             </p>
                           </div>
                           <div className="flex items-center gap-4">
@@ -275,8 +277,8 @@ const Insights = () => {
           <TabsContent value="trends" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Saved Summaries</CardTitle>
-                <CardDescription>Previously saved insight reports</CardDescription>
+                <CardTitle>{t('insights.savedSummaries.title')}</CardTitle>
+                <CardDescription>{t('insights.savedSummaries.subtitle')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {summaries && summaries.length > 0 ? (
@@ -285,7 +287,7 @@ const Insights = () => {
                       <div key={summary.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className="font-medium capitalize">{summary.summary_type} Summary</h3>
+                            <h3 className="font-medium capitalize">{summary.summary_type} {t('insights.savedSummaries.summary')}</h3>
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(summary.period_start), "MMM d")} - {format(new Date(summary.period_end), "MMM d, yyyy")}
                             </p>
@@ -294,7 +296,7 @@ const Insights = () => {
                         </div>
                         {summary.content_html && (
                           <div className="text-sm text-muted-foreground mt-2">
-                            Generated {format(new Date(summary.generated_at), "MMM d, yyyy")}
+                            {t('insights.savedSummaries.generated')} {format(new Date(summary.generated_at), "MMM d, yyyy")}
                           </div>
                         )}
                       </div>
@@ -303,8 +305,8 @@ const Insights = () => {
                 ) : (
                   <EmptyState
                     icon={Calendar}
-                    title="No Saved Summaries"
-                    description="No saved summaries yet. Use 'Save Summary' to create one."
+                    title={t('insights.savedSummaries.noSummaries')}
+                    description={t('insights.savedSummaries.noSummariesDescription')}
                   />
                 )}
               </CardContent>

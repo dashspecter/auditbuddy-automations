@@ -5,41 +5,43 @@ import { Link } from "react-router-dom";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Inventory = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // TODO: Add actual inventory data hook when available
   const hasInventoryData = false;
 
   const modules = [
     {
-      title: "Inventory Items",
-      description: "Manage your product catalog and stock items",
+      title: t('inventory.items.title'),
+      description: t('inventory.items.description'),
       icon: Package,
       link: "/inventory/items",
-      action: "View Items",
+      action: t('inventory.items.action'),
     },
     {
-      title: "Count Snapshots",
-      description: "Take and review inventory count sessions",
+      title: t('inventory.snapshots.title'),
+      description: t('inventory.snapshots.description'),
       icon: FileBarChart,
       link: "/inventory/snapshots",
-      action: "View Snapshots",
+      action: t('inventory.snapshots.action'),
     },
     {
-      title: "Suppliers",
-      description: "Manage your supplier directory",
+      title: t('inventory.suppliers.title'),
+      description: t('inventory.suppliers.description'),
       icon: TruckIcon,
       link: "/inventory/suppliers",
-      action: "View Suppliers",
+      action: t('inventory.suppliers.action'),
     },
     {
-      title: "Invoices",
-      description: "Upload and parse supplier invoices with AI",
+      title: t('inventory.invoices.title'),
+      description: t('inventory.invoices.description'),
       icon: Upload,
       link: "/inventory/invoices",
-      action: "View Invoices",
+      action: t('inventory.invoices.action'),
     },
   ];
 
@@ -48,28 +50,28 @@ const Inventory = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Inventory Management</h1>
+            <h1 className="text-3xl font-bold">{t('inventory.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Track stock, manage suppliers, and process invoices
+              {t('inventory.subtitle')}
             </p>
           </div>
           <Button className="gap-2" onClick={() => navigate("/inventory/snapshots/new")}>
             <Package className="h-4 w-4" />
-            Take Count
+            {t('inventory.takeCount')}
           </Button>
         </div>
 
         {!hasInventoryData ? (
           <EmptyState
             icon={Package}
-            title="No Inventory Items Yet"
-            description="Start managing your inventory by setting up items, taking stock counts, and tracking suppliers."
+            title={t('inventory.empty.title')}
+            description={t('inventory.empty.description')}
             action={{
-              label: "Add First Item",
+              label: t('inventory.empty.addFirst'),
               onClick: () => navigate("/inventory/items/new")
             }}
             secondaryAction={{
-              label: "Take Inventory Count",
+              label: t('inventory.empty.takeInventoryCount'),
               onClick: () => navigate("/inventory/snapshots/new")
             }}
           />
@@ -103,7 +105,7 @@ const Inventory = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Items
+                    {t('inventory.stats.totalItems')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -113,7 +115,7 @@ const Inventory = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Last Count
+                    {t('inventory.stats.lastCount')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -123,7 +125,7 @@ const Inventory = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active Suppliers
+                    {t('inventory.stats.activeSuppliers')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -133,7 +135,7 @@ const Inventory = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    This Month Invoices
+                    {t('inventory.stats.thisMonthInvoices')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
