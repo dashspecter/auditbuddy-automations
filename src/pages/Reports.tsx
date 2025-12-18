@@ -41,6 +41,7 @@ import { useStaffAudits } from "@/hooks/useStaffAudits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTranslation } from "react-i18next";
 
 // Wrapper component to fetch sections for the breakdown
 const SectionScoreBreakdownWrapper = ({ 
@@ -96,6 +97,7 @@ const COLORS = {
 const COMPLIANCE_THRESHOLD = 80; // Scores >= 80 are compliant
 
 const Reports = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'employee' ? 'employee' : 'location';
   
@@ -196,7 +198,7 @@ const Reports = () => {
 
   const handleExportCSV = () => {
     if (!reportData || reportData.length === 0) {
-      toast.error("No data to export");
+      toast.error(t('reports.noDataExport'));
       return;
     }
 
@@ -225,12 +227,12 @@ const Reports = () => {
     link.click();
     document.body.removeChild(link);
 
-    toast.success("CSV exported successfully");
+    toast.success(t('reports.csvExported'));
   };
 
   const handleExportPDF = () => {
     if (!reportData || reportData.length === 0) {
-      toast.error("No data to export");
+      toast.error(t('reports.noDataExport'));
       return;
     }
 
@@ -262,7 +264,7 @@ const Reports = () => {
     });
 
     doc.save(`audit-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    toast.success("PDF exported successfully");
+    toast.success(t('reports.pdfExported'));
   };
 
   const handlePieClick = (location: string | null, type: 'compliant' | 'nonCompliant') => {
@@ -332,14 +334,14 @@ const Reports = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading reports...</p>
+              <p className="text-muted-foreground">{t('reports.loading')}</p>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Reports</h1>
-            <p className="text-muted-foreground mt-1">View performance reports by location and employee</p>
+            <h1 className="text-3xl font-bold text-foreground">{t('reports.title')}</h1>
+            <p className="text-muted-foreground mt-1">{t('reports.subtitle')}</p>
           </div>
 
           {/* Mobile-first quick navigation to subitems */}
@@ -365,17 +367,17 @@ const Reports = () => {
 
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="flex-wrap h-auto">
-              <TabsTrigger value="location">Location Performance</TabsTrigger>
-              <TabsTrigger value="employee">Employee Performance</TabsTrigger>
+              <TabsTrigger value="location">{t('reports.locationPerformance')}</TabsTrigger>
+              <TabsTrigger value="employee">{t('reports.employeePerformance')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="location" className="space-y-6 mt-6">
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Filter Reports</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('reports.filterReports')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">From Date</label>
+                <label className="text-sm font-medium text-foreground">{t('reports.fromDate')}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -386,7 +388,7 @@ const Reports = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateFrom ? format(dateFrom, "PPP") : "Pick a date"}
+                      {dateFrom ? format(dateFrom, "PPP") : t('reports.pickDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -401,7 +403,7 @@ const Reports = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">To Date</label>
+                <label className="text-sm font-medium text-foreground">{t('reports.toDate')}</label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -412,7 +414,7 @@ const Reports = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateTo ? format(dateTo, "PPP") : "Pick a date"}
+                      {dateTo ? format(dateTo, "PPP") : t('reports.pickDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -427,13 +429,13 @@ const Reports = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Location</label>
+                <label className="text-sm font-medium text-foreground">{t('reports.location')}</label>
                 <Select value={locationFilter} onValueChange={setLocationFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All locations" />
+                    <SelectValue placeholder={t('reports.allLocations')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
+                    <SelectItem value="all">{t('reports.allLocations')}</SelectItem>
                     {locations?.map((loc) => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}
@@ -444,13 +446,13 @@ const Reports = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Template</label>
+                <label className="text-sm font-medium text-foreground">{t('reports.template')}</label>
                 <Select value={templateFilter} onValueChange={setTemplateFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All templates" />
+                    <SelectValue placeholder={t('reports.allTemplates')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Templates</SelectItem>
+                    <SelectItem value="all">{t('reports.allTemplates')}</SelectItem>
                     {templates?.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
@@ -461,13 +463,13 @@ const Reports = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">User</label>
+                <label className="text-sm font-medium text-foreground">{t('reports.auditor')}</label>
                 <Select value={userFilter} onValueChange={setUserFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All users" />
+                    <SelectValue placeholder={t('reports.allAuditors')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="all">{t('reports.allAuditors')}</SelectItem>
                     {users?.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.full_name || user.email}
