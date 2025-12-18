@@ -1234,11 +1234,13 @@
         "employee": "Angajat",
         "selectEmployee": "Selectează angajat",
         "type": "Tip",
-        "vacation": "Concediu de odihnă",
-        "sickLeave": "Concediu medical",
-        "personal": "Personal",
-        "unpaidLeave": "Concediu fără plată",
-        "other": "Altele",
+        "types": {
+          "vacation": "Concediu de odihnă",
+          "sick": "Concediu medical",
+          "personal": "Personal",
+          "unpaid": "Concediu fără plată",
+          "other": "Altele"
+        },
         "startDate": "Data de început",
         "endDate": "Data de sfârșit",
         "pickDate": "Alege data",
@@ -1248,9 +1250,9 @@
         "addTimeOff": "Adaugă concediu",
         "adding": "Se adaugă...",
         "fillRequired": "Te rugăm să completezi toate câmpurile obligatorii",
-        "endAfterStart": "Data de sfârșit trebuie să fie după data de început",
+        "endDateAfterStart": "Data de sfârșit trebuie să fie după data de început",
         "addedSuccess": "Concediu adăugat cu succes",
-        "failedAdd": "Adăugarea concediului a eșuat"
+        "addFailed": "Adăugarea concediului a eșuat: "
       },
       "employeeDialog": {
         "editEmployee": "Editează angajat",

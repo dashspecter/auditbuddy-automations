@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 
 export const ShiftWeekView = () => {
+  const { t } = useTranslation();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -46,11 +48,11 @@ export const ShiftWeekView = () => {
   };
 
   const getOperatingHoursForDay = (date: Date) => {
-    const dayOfWeek = (date.getDay() + 6) % 7; // Convert to 0=Monday
+    const dayOfWeek = (date.getDay() + 6) % 7;
     const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
     
-    if (!schedule) return "00:00 - 00:00"; // 24/7 if not set
-    if (schedule.is_closed) return "Closed";
+    if (!schedule) return "00:00 - 00:00";
+    if (schedule.is_closed) return t('workforce.components.shiftWeekView.closed');
     
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
   };
@@ -70,7 +72,6 @@ export const ShiftWeekView = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header with week navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
@@ -83,17 +84,17 @@ export const ShiftWeekView = () => {
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={goToToday}>
-            Today
+            {t('workforce.components.shiftWeekView.today')}
           </Button>
         </div>
         
         <div className="flex items-center gap-2">
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Locations" />
+              <SelectValue placeholder={t('workforce.components.shiftWeekView.allLocations')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{t('workforce.components.shiftWeekView.allLocations')}</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -107,7 +108,7 @@ export const ShiftWeekView = () => {
               variant="outline"
               size="icon"
               onClick={() => setScheduleDialogOpen(true)}
-              title="Manage Operating Hours"
+              title={t('workforce.components.shiftWeekView.manageOperatingHours')}
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -115,7 +116,6 @@ export const ShiftWeekView = () => {
         </div>
       </div>
 
-      {/* Week grid */}
       <div className="grid grid-cols-7 gap-3 overflow-x-auto">
         {weekDays.map((day) => {
           const dayShifts = getShiftsForDay(day);
@@ -127,13 +127,11 @@ export const ShiftWeekView = () => {
               key={day.toISOString()}
               className={`min-w-[180px] ${isWeekend ? 'bg-muted/30' : ''} rounded-lg`}
             >
-              {/* Day header */}
               <div className={`p-3 border-b ${isToday ? 'bg-primary text-primary-foreground' : 'bg-card'} rounded-t-lg`}>
                 <div className="text-xs font-medium">{format(day, 'EEE dd')}</div>
                 <div className="text-xs opacity-90">{getOperatingHoursForDay(day)}</div>
               </div>
               
-              {/* Shifts for the day */}
               <div className="p-2 space-y-2 min-h-[400px] bg-card/50 rounded-b-lg">
                 <Button
                   variant="ghost"
@@ -142,12 +140,12 @@ export const ShiftWeekView = () => {
                   onClick={() => handleAddShift(day)}
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add shift
+                  {t('workforce.components.shiftWeekView.addShift')}
                 </Button>
                 
                 {dayShifts.length === 0 ? (
                   <div className="text-xs text-muted-foreground text-center py-8">
-                    No shifts
+                    {t('workforce.components.shiftWeekView.noShifts')}
                   </div>
                 ) : (
                   dayShifts.map((shift) => (
