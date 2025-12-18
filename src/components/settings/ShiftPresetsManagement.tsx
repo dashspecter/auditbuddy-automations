@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { useShiftPresets, useCreateShiftPreset, useUpdateShiftPreset, useDeleteS
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const ShiftPresetsManagement = () => {
+  const { t } = useTranslation();
   const { data: presets = [], isLoading } = useShiftPresets();
   const createPreset = useCreateShiftPreset();
   const updatePreset = useUpdateShiftPreset();
@@ -116,7 +118,7 @@ export const ShiftPresetsManagement = () => {
   };
 
   if (isLoading) {
-    return <div>Loading shift presets...</div>;
+    return <div>{t('locations.shiftPresets.loading')}</div>;
   }
 
   return (
@@ -127,32 +129,32 @@ export const ShiftPresetsManagement = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Shift Presets
+                {t('locations.shiftPresets.title')}
               </CardTitle>
               <CardDescription>
-                Manage predefined shift templates for quick scheduling
+                {t('locations.shiftPresets.subtitle')}
               </CardDescription>
             </div>
             <Button onClick={() => handleOpenDialog()}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Preset
+              {t('locations.shiftPresets.addPreset')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {presets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No shift presets yet. Create your first preset to get started.
+              {t('locations.shiftPresets.noPresets')}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Start Time</TableHead>
-                  <TableHead>End Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('locations.shiftPresets.table.name')}</TableHead>
+                  <TableHead>{t('locations.shiftPresets.table.startTime')}</TableHead>
+                  <TableHead>{t('locations.shiftPresets.table.endTime')}</TableHead>
+                  <TableHead>{t('locations.shiftPresets.table.duration')}</TableHead>
+                  <TableHead className="text-right">{t('locations.shiftPresets.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,19 +198,19 @@ export const ShiftPresetsManagement = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingPreset ? "Edit Shift Preset" : "Create Shift Preset"}
+              {editingPreset ? t('locations.shiftPresets.editPreset') : t('locations.shiftPresets.createPreset')}
             </DialogTitle>
             <DialogDescription>
-              Define a reusable shift template with start and end times
+              {t('locations.shiftPresets.dialogDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Preset Name *</Label>
+                <Label htmlFor="name">{t('locations.shiftPresets.presetName')} *</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Morning Shift, Day Shift"
+                  placeholder={t('locations.shiftPresets.presetNamePlaceholder')}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
@@ -216,7 +218,7 @@ export const ShiftPresetsManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start_time">Start Time *</Label>
+                  <Label htmlFor="start_time">{t('locations.shiftPresets.startTime')} *</Label>
                   <Input
                     id="start_time"
                     type="time"
@@ -226,7 +228,7 @@ export const ShiftPresetsManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="end_time">End Time *</Label>
+                  <Label htmlFor="end_time">{t('locations.shiftPresets.endTime')} *</Label>
                   <Input
                     id="end_time"
                     type="time"
@@ -239,13 +241,13 @@ export const ShiftPresetsManagement = () => {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 type="submit" 
                 disabled={createPreset.isPending || updatePreset.isPending}
               >
-                {editingPreset ? "Update" : "Create"} Preset
+                {editingPreset ? t('common.update') : t('common.create')} {t('locations.shiftPresets.preset')}
               </Button>
             </DialogFooter>
           </form>
@@ -255,20 +257,20 @@ export const ShiftPresetsManagement = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Shift Preset</AlertDialogTitle>
+            <AlertDialogTitle>{t('locations.shiftPresets.deletePreset')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this shift preset? This action cannot be undone.
+              {t('locations.shiftPresets.deleteDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setDeletingPresetId(null)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
