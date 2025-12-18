@@ -547,7 +547,17 @@
       "criticality": "Criticality",
       "category": "Category",
       "actions": "Actions",
-      "view": "View"
+      "view": "View",
+      "noAssets": "No assets yet",
+      "noAssetsDescription": "Add your first asset to track maintenance, procedures, and QR workflows.",
+      "table": {
+        "asset": "Asset",
+        "location": "Location",
+        "status": "Status",
+        "criticality": "Criticality",
+        "category": "Category",
+        "actions": "Actions"
+      }
     },
     "procedureDetail": {
       "procedureDetails": "Procedure Details",
@@ -558,6 +568,130 @@
       "checklistSteps": "Checklist Steps",
       "addStep": "Add Step",
       "draft": "Draft"
+    },
+    "workOrders": {
+      "searchPlaceholder": "Search work orders (title, asset, location, WO #)",
+      "myFilters": "My Filters",
+      "newWorkOrder": "New Work Order",
+      "noLocation": "No location",
+      "filters": {
+        "assignedTo": "Assigned to",
+        "dueDate": "Due date",
+        "location": "Location",
+        "priority": "Priority",
+        "status": "Status",
+        "addFilter": "+ Add filter"
+      },
+      "tabs": {
+        "toDo": "To Do",
+        "done": "Done",
+        "toDoDescription": "To Do shows Open, On Hold, and In Progress.",
+        "doneDescription": "Done shows completed and cancelled work orders."
+      },
+      "emptyToDo": "You're all clear. No work orders right now.",
+      "emptyDone": "No completed work orders yet.",
+      "noSelection": "No work order selected",
+      "noSelectionDescription": "Select a work order from the list to view details, or create a new one."
+    },
+    "partsPage": {
+      "title": "Parts Inventory",
+      "newPart": "New Part",
+      "searchPlaceholder": "Search parts (name, SKU)",
+      "loading": "Loading parts...",
+      "noParts": "No parts yet",
+      "noPartsDescription": "Add parts to track inventory and consumption on work orders.",
+      "units": "units",
+      "restock": "Restock",
+      "table": {
+        "part": "Part",
+        "sku": "SKU",
+        "stock": "Stock",
+        "minQty": "Min Qty",
+        "reorderQty": "Reorder Qty",
+        "avgCost": "Avg Cost",
+        "actions": "Actions"
+      }
+    },
+    "proceduresPage": {
+      "title": "Procedures",
+      "newProcedure": "New Procedure",
+      "searchPlaceholder": "Search procedures (title, steps, tags)",
+      "loading": "Loading procedures...",
+      "noProcedures": "No procedures yet",
+      "noProceduresDescription": "Create reusable procedures with step-by-step checklists for your maintenance tasks.",
+      "draft": "Draft",
+      "min": "min"
+    },
+    "vendorsPage": {
+      "title": "Vendors",
+      "subtitle": "Manage external service providers and suppliers",
+      "addVendor": "Add Vendor",
+      "addNewVendor": "Add New Vendor",
+      "searchPlaceholder": "Search vendors...",
+      "loading": "Loading vendors...",
+      "noVendors": "No vendors found",
+      "noVendorsDescription": "Add your first vendor to get started",
+      "archiveVendor": "Archive vendor",
+      "creating": "Creating...",
+      "createVendor": "Create Vendor",
+      "form": {
+        "companyName": "Company Name",
+        "contactPerson": "Contact Person",
+        "email": "Email",
+        "phone": "Phone",
+        "notes": "Notes"
+      }
+    },
+    "teamsPage": {
+      "title": "Teams",
+      "subtitle": "Organize technicians into maintenance teams",
+      "createTeam": "Create Team",
+      "createNewTeam": "Create New Team",
+      "searchPlaceholder": "Search teams...",
+      "loading": "Loading teams...",
+      "noTeams": "No teams found",
+      "noTeamsDescription": "Create your first team to organize technicians",
+      "archiveTeam": "Archive team",
+      "creating": "Creating...",
+      "members": "members",
+      "member": "member",
+      "unknown": "Unknown",
+      "noMembers": "No members yet",
+      "form": {
+        "teamName": "Team Name",
+        "teamNamePlaceholder": "e.g., HVAC Team, Electrical Team"
+      }
+    },
+    "reporting": {
+      "title": "CMMS Reports & Analytics",
+      "subtitle": "Maintenance performance insights and trends",
+      "avgCompletionTime": "Avg Completion Time",
+      "acrossAllWorkOrders": "across all work orders",
+      "criticalAvg": "Critical Avg",
+      "criticalPriority": "critical priority",
+      "highPriorityAvg": "High Priority Avg",
+      "highPriority": "high priority",
+      "mediumPriorityAvg": "Medium Priority Avg",
+      "mediumPriority": "medium priority",
+      "woTrends": "Work Order Trends",
+      "woTrendsDesc": "Created vs completed over 6 months",
+      "created": "Created",
+      "completed": "Completed",
+      "assetHealthDist": "Asset Health Distribution",
+      "assetHealthDistDesc": "Current status of all assets",
+      "noAssetData": "No asset data available",
+      "openWoByPriority": "Open Work Orders by Priority",
+      "openWoByPriorityDesc": "Current backlog breakdown",
+      "open": "Open",
+      "inProgress": "In Progress",
+      "onHold": "On Hold",
+      "partsConsumption": "Parts Consumption",
+      "partsConsumptionDesc": "Monthly parts usage trend",
+      "partsUsed": "Parts Used",
+      "reactiveVsPreventive": "Reactive vs Preventive Maintenance",
+      "reactiveVsPreventiveDesc": "Work order type distribution over time",
+      "reactive": "Reactive",
+      "preventiveLabel": "Preventive"
     }
   },
   "audits": {
@@ -660,6 +794,31 @@
       "timeLeft": "left",
       "noTasks": "No tasks assigned"
     }
+  },
+  "staffShifts": {
+    "title": "Shifts & Swaps",
+    "openShifts": "Open Shifts",
+    "swaps": "Swaps",
+    "open": "Open",
+    "claimShift": "Claim This Shift",
+    "shiftClaimed": "Shift claimed! The shift has been added to your schedule.",
+    "couldNotClaim": "Could not claim shift.",
+    "noOpenShifts": "No open shifts available",
+    "incomingRequests": "Incoming Requests",
+    "myRequests": "My Requests",
+    "noIncoming": "No incoming swap requests",
+    "noOutgoing": "No outgoing swap requests",
+    "pendingManager": "Pending Manager",
+    "pending": "Pending",
+    "decline": "Decline",
+    "accept": "Accept",
+    "swapCompleted": "Shift swap completed successfully!",
+    "acceptedWaitingManager": "You've accepted the swap. Waiting for manager approval.",
+    "swapDeclined": "Swap request declined.",
+    "swapCancelled": "Swap request cancelled",
+    "failedLoadSwaps": "Failed to load swap requests",
+    "failedRespond": "Failed to respond to request",
+    "failedCancel": "Failed to cancel request"
   },
   "workforce": {
     "title": "Workforce",

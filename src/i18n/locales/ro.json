@@ -547,7 +547,17 @@
       "criticality": "Criticitate",
       "category": "Categorie",
       "actions": "Acțiuni",
-      "view": "Vezi"
+      "view": "Vezi",
+      "noAssets": "Niciun activ încă",
+      "noAssetsDescription": "Adaugă primul activ pentru mentenanță, proceduri și fluxuri QR.",
+      "table": {
+        "asset": "Activ",
+        "location": "Locație",
+        "status": "Status",
+        "criticality": "Criticitate",
+        "category": "Categorie",
+        "actions": "Acțiuni"
+      }
     },
     "procedureDetail": {
       "procedureDetails": "Detalii procedură",
@@ -558,6 +568,130 @@
       "checklistSteps": "Pași listă verificare",
       "addStep": "Adaugă pas",
       "draft": "Ciornă"
+    },
+    "workOrders": {
+      "searchPlaceholder": "Caută ordine (titlu, activ, locație, nr. OL)",
+      "myFilters": "Filtrele mele",
+      "newWorkOrder": "Ordin nou",
+      "noLocation": "Fără locație",
+      "filters": {
+        "assignedTo": "Atribuit la",
+        "dueDate": "Termen",
+        "location": "Locație",
+        "priority": "Prioritate",
+        "status": "Status",
+        "addFilter": "+ Adaugă filtru"
+      },
+      "tabs": {
+        "toDo": "De făcut",
+        "done": "Finalizate",
+        "toDoDescription": "De făcut include Deschise, În așteptare și În lucru.",
+        "doneDescription": "Finalizate include ordine complete și anulate."
+      },
+      "emptyToDo": "Totul e curat. Niciun ordin acum.",
+      "emptyDone": "Niciun ordin finalizat încă.",
+      "noSelection": "Niciun ordin selectat",
+      "noSelectionDescription": "Selectează un ordin din listă pentru detalii sau creează unul nou."
+    },
+    "partsPage": {
+      "title": "Inventar piese",
+      "newPart": "Piesă nouă",
+      "searchPlaceholder": "Caută piese (nume, SKU)",
+      "loading": "Se încarcă piesele...",
+      "noParts": "Nicio piesă încă",
+      "noPartsDescription": "Adaugă piese pentru a urmări stocul și consumul pe ordine.",
+      "units": "unități",
+      "restock": "Reaprovizionare",
+      "table": {
+        "part": "Piesă",
+        "sku": "SKU",
+        "stock": "Stoc",
+        "minQty": "Cantitate min",
+        "reorderQty": "Cantitate recomandă",
+        "avgCost": "Cost mediu",
+        "actions": "Acțiuni"
+      }
+    },
+    "proceduresPage": {
+      "title": "Proceduri",
+      "newProcedure": "Procedură nouă",
+      "searchPlaceholder": "Caută proceduri (titlu, pași, etichete)",
+      "loading": "Se încarcă procedurile...",
+      "noProcedures": "Nicio procedură încă",
+      "noProceduresDescription": "Creează proceduri reutilizabile cu liste de verificare pas cu pas.",
+      "draft": "Ciornă",
+      "min": "min"
+    },
+    "vendorsPage": {
+      "title": "Furnizori",
+      "subtitle": "Gestionează furnizorii de servicii și aprovizionare",
+      "addVendor": "Adaugă furnizor",
+      "addNewVendor": "Adaugă furnizor nou",
+      "searchPlaceholder": "Caută furnizori...",
+      "loading": "Se încarcă furnizorii...",
+      "noVendors": "Niciun furnizor găsit",
+      "noVendorsDescription": "Adaugă primul furnizor pentru a începe",
+      "archiveVendor": "Arhivează furnizor",
+      "creating": "Se creează...",
+      "createVendor": "Creează furnizor",
+      "form": {
+        "companyName": "Nume companie",
+        "contactPerson": "Persoană contact",
+        "email": "Email",
+        "phone": "Telefon",
+        "notes": "Note"
+      }
+    },
+    "teamsPage": {
+      "title": "Echipe",
+      "subtitle": "Organizează tehnicienii în echipe de mentenanță",
+      "createTeam": "Creează echipă",
+      "createNewTeam": "Creează echipă nouă",
+      "searchPlaceholder": "Caută echipe...",
+      "loading": "Se încarcă echipele...",
+      "noTeams": "Nicio echipă găsită",
+      "noTeamsDescription": "Creează prima echipă pentru a organiza tehnicienii",
+      "archiveTeam": "Arhivează echipa",
+      "creating": "Se creează...",
+      "members": "membri",
+      "member": "membru",
+      "unknown": "Necunoscut",
+      "noMembers": "Niciun membru încă",
+      "form": {
+        "teamName": "Nume echipă",
+        "teamNamePlaceholder": "ex., Echipa HVAC, Echipa Electrică"
+      }
+    },
+    "reporting": {
+      "title": "Rapoarte și analiză CMMS",
+      "subtitle": "Statistici performanță mentenanță și tendințe",
+      "avgCompletionTime": "Timp mediu finalizare",
+      "acrossAllWorkOrders": "pentru toate ordinele",
+      "criticalAvg": "Medie critice",
+      "criticalPriority": "prioritate critică",
+      "highPriorityAvg": "Medie prioritate ridicată",
+      "highPriority": "prioritate ridicată",
+      "mediumPriorityAvg": "Medie prioritate medie",
+      "mediumPriority": "prioritate medie",
+      "woTrends": "Tendințe ordine lucru",
+      "woTrendsDesc": "Create vs finalizate în 6 luni",
+      "created": "Create",
+      "completed": "Finalizate",
+      "assetHealthDist": "Distribuție stare active",
+      "assetHealthDistDesc": "Starea curentă a tuturor activelor",
+      "noAssetData": "Nu există date despre active",
+      "openWoByPriority": "Ordine deschise pe prioritate",
+      "openWoByPriorityDesc": "Defalcare backlog curent",
+      "open": "Deschise",
+      "inProgress": "În lucru",
+      "onHold": "În așteptare",
+      "partsConsumption": "Consum piese",
+      "partsConsumptionDesc": "Tendință consum piese lunar",
+      "partsUsed": "Piese folosite",
+      "reactiveVsPreventive": "Mentenanță reactivă vs preventivă",
+      "reactiveVsPreventiveDesc": "Distribuția tipurilor în timp",
+      "reactive": "Reactivă",
+      "preventiveLabel": "Preventivă"
     }
   },
   "audits": {
@@ -660,6 +794,31 @@
       "timeLeft": "rămas",
       "noTasks": "Nicio sarcină atribuită"
     }
+  },
+  "staffShifts": {
+    "title": "Ture și schimburi",
+    "openShifts": "Ture disponibile",
+    "swaps": "Schimburi",
+    "open": "Deschis",
+    "claimShift": "Revendică tura",
+    "shiftClaimed": "Tură revendicată! A fost adăugată la programul tău.",
+    "couldNotClaim": "Nu s-a putut revendica tura.",
+    "noOpenShifts": "Nicio tură disponibilă",
+    "incomingRequests": "Cereri primite",
+    "myRequests": "Cererile mele",
+    "noIncoming": "Nicio cerere de schimb primită",
+    "noOutgoing": "Nicio cerere de schimb trimisă",
+    "pendingManager": "Așteaptă managerul",
+    "pending": "În așteptare",
+    "decline": "Refuză",
+    "accept": "Acceptă",
+    "swapCompleted": "Schimbul de tură finalizat cu succes!",
+    "acceptedWaitingManager": "Ai acceptat schimbul. Se așteaptă aprobarea managerului.",
+    "swapDeclined": "Cerere de schimb refuzată.",
+    "swapCancelled": "Cerere de schimb anulată",
+    "failedLoadSwaps": "Încărcarea cererilor a eșuat",
+    "failedRespond": "Răspunsul a eșuat",
+    "failedCancel": "Anularea a eșuat"
   },
   "workforce": {
     "title": "Personal",
