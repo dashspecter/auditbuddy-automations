@@ -2021,6 +2021,78 @@
       "sameLocation": "Locațiile sursă și destinație trebuie să fie diferite"
     }
   },
+  "equipment": {
+    "title": "Echipamente",
+    "list": "Listă echipamente",
+    "maintenance": "Mentenanță",
+    "inventory": "Inventar",
+    "new": "Adaugă echipament",
+    "model": "Model",
+    "brand": "Marcă",
+    "serialNumber": "Număr de serie",
+    "purchaseDate": "Data achiziției",
+    "warranty": "Garanție",
+    "loading": "Se încarcă echipamentele...",
+    "backToEquipment": "Înapoi la echipamente",
+    "printQRLabels": "Tipărește etichete QR",
+    "allEquipment": "Toate echipamentele",
+    "allStatuses": "Toate stările",
+    "statusScheduled": "Programat",
+    "statusCompleted": "Finalizat",
+    "statusOverdue": "Întârziat",
+    "legend": "Legendă",
+    "management": {
+      "title": "Gestionare echipamente",
+      "subtitle": "Urmărește și întreține echipamentele tale"
+    },
+    "stats": {
+      "total": "Total echipamente",
+      "active": "Active",
+      "overdueChecks": "Verificări întârziate",
+      "inMaintenance": "În mentenanță"
+    },
+    "empty": {
+      "title": "Niciun echipament încă",
+      "description": "Începe să urmărești echipamentele adăugând primul articol. Poți gestiona programările de mentenanță, verificările și intervențiile de aici."
+    },
+    "qrLabels": {
+      "title": "Etichete QR echipamente",
+      "print": "Tipărește etichetele",
+      "noEquipment": "Nu s-au găsit echipamente pentru generarea etichetelor."
+    },
+    "maintenanceCalendar": {
+      "title": "Calendar mentenanță",
+      "subtitle": "Programează și urmărește intervențiile de mentenanță pentru echipamente"
+    },
+    "recurringMaintenance": {
+      "title": "Mentenanță recurentă",
+      "subtitle": "Programare automată pentru mentenanța periodică a echipamentelor",
+      "newSchedule": "Programare nouă",
+      "next5Dates": "Următoarele 5 date",
+      "createFirst": "Creează prima programare",
+      "empty": {
+        "title": "Nicio programare recurentă",
+        "description": "Creează programări automate de mentenanță pentru echipamentele tale"
+      },
+      "deleteDialog": {
+        "title": "Șterge programarea recurentă",
+        "description": "Ești sigur că vrei să ștergi această programare? Acest lucru nu va afecta intervențiile deja programate."
+      },
+      "patterns": {
+        "daily": "Zilnic",
+        "weekly": "Săptămânal",
+        "monthly": "Lunar",
+        "quarterly": "Trimestrial",
+        "yearly": "Anual"
+      }
+    },
+    "status": {
+      "operational": "Operațional",
+      "maintenance": "În mentenanță",
+      "outOfService": "Scos din funcțiune",
+      "retired": "Retras"
+    }
+  },
   "sales": {
     "title": "Gestionare vânzări",
     "subtitle": "Urmărește și gestionează datele de vânzări pe locații",
