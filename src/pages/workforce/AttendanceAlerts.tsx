@@ -15,19 +15,19 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const ALERT_TYPE_LABELS: Record<string, { label: string; icon: any; color: string }> = {
-  late_pattern: { label: "Late Pattern", icon: Clock, color: "text-yellow-500" },
-  excessive_overtime: { label: "Excessive Overtime", icon: Zap, color: "text-orange-500" },
-  auto_clockout_pattern: { label: "Auto Clock-out Pattern", icon: UserX, color: "text-red-500" },
-  no_show: { label: "No Show", icon: AlertTriangle, color: "text-red-500" },
-};
+const getAlertTypeLabels = (t: any): Record<string, { label: string; icon: any; color: string }> => ({
+  late_pattern: { label: t('workforce.attendanceAlerts.alertTypes.latePattern'), icon: Clock, color: "text-yellow-500" },
+  excessive_overtime: { label: t('workforce.attendanceAlerts.alertTypes.excessiveOvertime'), icon: Zap, color: "text-orange-500" },
+  auto_clockout_pattern: { label: t('workforce.attendanceAlerts.alertTypes.autoClockout'), icon: UserX, color: "text-red-500" },
+  no_show: { label: t('workforce.attendanceAlerts.alertTypes.noShow'), icon: AlertTriangle, color: "text-red-500" },
+});
 
-const STATUS_OPTIONS = [
-  { value: "all", label: "All Statuses" },
-  { value: "open", label: "Open" },
-  { value: "acknowledged", label: "Acknowledged" },
-  { value: "resolved", label: "Resolved" },
-  { value: "dismissed", label: "Dismissed" },
+const getStatusOptions = (t: any) => [
+  { value: "all", label: t('workforce.attendanceAlerts.allStatuses') },
+  { value: "open", label: t('workforce.attendanceAlerts.open') },
+  { value: "acknowledged", label: t('workforce.attendanceAlerts.acknowledged') },
+  { value: "resolved", label: t('workforce.attendanceAlerts.resolved') },
+  { value: "dismissed", label: t('workforce.attendanceAlerts.dismissed') },
 ];
 
 export default function AttendanceAlerts() {
@@ -72,7 +72,8 @@ export default function AttendanceAlerts() {
   };
 
   const getAlertTypeInfo = (type: string) => {
-    return ALERT_TYPE_LABELS[type] || { label: type, icon: AlertTriangle, color: "text-muted-foreground" };
+    const alertTypeLabels = getAlertTypeLabels(t);
+    return alertTypeLabels[type] || { label: type, icon: AlertTriangle, color: "text-muted-foreground" };
   };
 
   const getStatusBadge = (status: string) => {
@@ -101,7 +102,7 @@ export default function AttendanceAlerts() {
               <SelectValue placeholder={t('workforce.attendanceAlerts.allStatuses')} />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((opt) => (
+              {getStatusOptions(t).map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>
@@ -206,12 +207,12 @@ export default function AttendanceAlerts() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Alert Type</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('workforce.attendanceAlerts.alertType')}</TableHead>
+                  <TableHead>{t('workforce.attendanceAlerts.employee')}</TableHead>
+                  <TableHead>{t('workforce.attendanceAlerts.locationCol')}</TableHead>
+                  <TableHead>{t('workforce.attendanceAlerts.date')}</TableHead>
+                  <TableHead>{t('workforce.attendanceAlerts.statusCol')}</TableHead>
+                  <TableHead className="text-right">{t('workforce.attendanceAlerts.actionsCol')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -238,7 +239,7 @@ export default function AttendanceAlerts() {
                           onClick={() => setSelectedAlert(alert)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          View
+                          {t('workforce.attendanceAlerts.view')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -249,8 +250,8 @@ export default function AttendanceAlerts() {
           ) : (
             <div className="text-center py-12">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-              <p className="text-muted-foreground">No attendance alerts</p>
-              <p className="text-sm text-muted-foreground">Run the detection agent to check for issues</p>
+              <p className="text-muted-foreground">{t('workforce.attendanceAlerts.noAlerts')}</p>
+              <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.noAlertsDesc')}</p>
             </div>
           )}
         </CardContent>
@@ -260,7 +261,7 @@ export default function AttendanceAlerts() {
       <Dialog open={!!selectedAlert} onOpenChange={() => setSelectedAlert(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alert Details</DialogTitle>
+            <DialogTitle>{t('workforce.attendanceAlerts.alertDetails')}</DialogTitle>
             <DialogDescription>
               {selectedAlert && getAlertTypeInfo(selectedAlert.alert_type).label}
             </DialogDescription>
@@ -269,25 +270,25 @@ export default function AttendanceAlerts() {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Employee</p>
+                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.employee')}</p>
                   <p className="font-medium">{selectedAlert.employee?.full_name || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
+                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.locationCol')}</p>
                   <p className="font-medium">{selectedAlert.location?.name || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Date</p>
+                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.date')}</p>
                   <p className="font-medium">{format(new Date(selectedAlert.date), "MMMM d, yyyy")}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.statusCol')}</p>
                   {getStatusBadge(selectedAlert.status)}
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Details</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('workforce.attendanceAlerts.detailsLabel')}</p>
                 <Card>
                   <CardContent className="pt-4">
                     <pre className="text-sm whitespace-pre-wrap">
@@ -304,20 +305,20 @@ export default function AttendanceAlerts() {
                     className="flex-1"
                     onClick={() => handleStatusChange(selectedAlert.id, "acknowledged")}
                   >
-                    Acknowledge
+                    {t('workforce.attendanceAlerts.acknowledge')}
                   </Button>
                   <Button
                     variant="outline"
                     className="flex-1"
                     onClick={() => handleStatusChange(selectedAlert.id, "dismissed")}
                   >
-                    Dismiss
+                    {t('workforce.attendanceAlerts.dismiss')}
                   </Button>
                   <Button
                     className="flex-1"
                     onClick={() => handleStatusChange(selectedAlert.id, "resolved")}
                   >
-                    Resolve
+                    {t('workforce.attendanceAlerts.resolve')}
                   </Button>
                 </div>
               )}
@@ -328,13 +329,13 @@ export default function AttendanceAlerts() {
                     className="flex-1"
                     onClick={() => handleStatusChange(selectedAlert.id, "dismissed")}
                   >
-                    Dismiss
+                    {t('workforce.attendanceAlerts.dismiss')}
                   </Button>
                   <Button
                     className="flex-1"
                     onClick={() => handleStatusChange(selectedAlert.id, "resolved")}
                   >
-                    Resolve
+                    {t('workforce.attendanceAlerts.resolve')}
                   </Button>
                 </div>
               )}
