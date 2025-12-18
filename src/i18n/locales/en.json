@@ -943,14 +943,17 @@
       "schedulingInsightsDesc": "Analytics"
     },
     "staff": {
-      "title": "Staff Directory",
+      "title": "Staff",
       "subtitle": "Manage your team members and their information",
       "new": "Add Staff",
+      "addStaff": "Add Staff",
       "addStaffMember": "Add Staff Member",
+      "allStaff": "All Staff",
       "allStaffMembers": "All Staff Members",
       "role": "Role",
       "department": "Department",
       "hireDate": "Hire Date",
+      "jobTitlesTitle": "Job Titles (Workforce Management)",
       "jobTitlesInfo": "Job Titles (Workforce Management)",
       "jobTitlesDescription": "Staff members here have job titles (e.g., Chef, Server, Manager) used for scheduling, payroll, and workforce management. This is separate from platform roles (Admin, Manager, HR, Checker) which control dashboard access. A person can be both a staff member with a job title AND a platform user with dashboard access.",
       "status": {
