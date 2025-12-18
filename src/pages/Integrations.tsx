@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 
 const INTEGRATION_TYPES = [
   {
@@ -57,6 +58,7 @@ const INTEGRATION_TYPES = [
 ];
 
 const Integrations = () => {
+  const { t } = useTranslation();
   const { data: integrations, isLoading } = useIntegrations();
   const createIntegration = useCreateIntegration();
   const navigate = useNavigate();
@@ -89,10 +91,10 @@ const Integrations = () => {
   };
 
   const integrationSubItems = [
-    { title: "All", url: "/integrations", icon: Plug, description: "All integrations" },
-    { title: "POS", url: "/integrations?type=pos", icon: ShoppingCart, description: "Point of Sale" },
-    { title: "Invoicing", url: "/integrations?type=invoicing", icon: FileText, description: "Invoicing" },
-    { title: "Workforce", url: "/integrations?type=workforce", icon: Users, description: "Workforce" },
+    { title: t('common.all'), url: "/integrations", icon: Plug },
+    { title: t('integrations.types.pos'), url: "/integrations?type=pos", icon: ShoppingCart },
+    { title: t('integrations.types.invoicing'), url: "/integrations?type=invoicing", icon: FileText },
+    { title: t('integrations.types.workforce'), url: "/integrations?type=workforce", icon: Users },
   ];
 
   return (
@@ -100,9 +102,9 @@ const Integrations = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Integrations</h1>
+            <h1 className="text-3xl font-bold">{t('integrations.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Connect external systems and APIs
+              {t('integrations.subtitle')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -110,17 +112,17 @@ const Integrations = () => {
               <DialogTrigger asChild>
                 <Button className="gap-2 w-full sm:w-auto">
                   <Plus className="h-4 w-4" />
-                  Add Integration
+                  {t('integrations.addIntegration')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add New Integration</DialogTitle>
-                  <DialogDescription>Select an integration type and configure it</DialogDescription>
+                  <DialogTitle>{t('integrations.addNew')}</DialogTitle>
+                  <DialogDescription>{t('integrations.selectType')}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Integration Type</Label>
+                    <Label>{t('integrations.integrationType')}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {INTEGRATION_TYPES.map((type) => {
                         const Icon = type.icon;
@@ -140,15 +142,15 @@ const Integrations = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Integration Name</Label>
+                    <Label>{t('integrations.integrationName')}</Label>
                     <Input
-                      placeholder="My POS System"
+                      placeholder={t('integrations.integrationNamePlaceholder')}
                       value={integrationName}
                       onChange={(e) => setIntegrationName(e.target.value)}
                     />
                   </div>
                   <Button onClick={handleCreateIntegration} disabled={!selectedType || !integrationName}>
-                    Create Integration
+                    {t('integrations.createIntegration')}
                   </Button>
                 </div>
               </DialogContent>
