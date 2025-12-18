@@ -315,7 +315,250 @@
     "assets": "Active",
     "preventiveMaintenance": "Mentenanță preventivă",
     "parts": "Piese",
-    "vendors": "Furnizori"
+    "vendors": "Furnizori",
+    "dashboard": {
+      "title": "Panou CMMS",
+      "newWorkOrder": "Ordin nou",
+      "openWorkOrders": "Ordine deschise",
+      "inProgress": "în desfășurare",
+      "overdue": "Întârziate",
+      "highPriority": "prioritate ridicată",
+      "completed30d": "Finalizate (30z)",
+      "preventive": "preventive",
+      "assetHealth": "Stare active",
+      "assetsDown": "active oprite",
+      "pmDueSoon": "PM scadent curând",
+      "overdueCount": "întârziate",
+      "lowStockParts": "Piese stoc mic",
+      "needReorder": "necesită recomandă",
+      "totalAssets": "Total active",
+      "operational": "operaționale",
+      "recentWorkOrders": "Ordine recente",
+      "viewAll": "Vezi tot",
+      "noWorkOrdersYet": "Niciun ordin încă",
+      "quickActions": "Acțiuni rapide",
+      "pmSchedules": "Programări PM",
+      "procedures": "Proceduri",
+      "purchaseOrders": "Comenzi achiziție",
+      "teams": "Echipe"
+    },
+    "overview": {
+      "heroTitle": "CMMS — Sistem de mentenanță și gestionare active",
+      "heroSubtitle": "Planifică, execută, urmărește și dovedește mentenanța pentru echipamente și locații.",
+      "heroDescription": "CMMS te ajută să previi defecțiunile, să standardizezi munca, să controlezi costurile și să rămâi conform — totul într-un singur loc.",
+      "goToDashboard": "Spre panou",
+      "viewWorkOrders": "Vezi ordine",
+      "whyMatters": "De ce contează CMMS",
+      "whyMattersSubtitle": "Problemele pe care CMMS le rezolvă",
+      "howWorks": "Cum funcționează CMMS",
+      "howWorksSubtitle": "Flux de lucru mentenanță complet",
+      "everyActionLogged": "Fiecare acțiune e înregistrată, trasabilă și legată de active și persoane.",
+      "modules": "Module CMMS",
+      "modulesSubtitle": "Tot ce ai nevoie pentru gestionarea mentenanței",
+      "whoFor": "Pentru cine e CMMS",
+      "whoForSubtitle": "Creat pentru fiecare rol în operațiunile de mentenanță",
+      "useCases": "Cazuri de utilizare",
+      "useCasesSubtitle": "Aplicații reale",
+      "whyDashspect": "De ce Dashspect CMMS",
+      "whyDashspectSubtitle": "Ce îl face diferit",
+      "getStarted": "Începe",
+      "getStartedSubtitle": "Alege punctul de pornire",
+      "viewDashboard": "Vezi panoul",
+      "addFirstAsset": "Adaugă primul activ",
+      "createWorkOrder": "Creează ordin",
+      "setupPM": "Configurează mentenanță preventivă",
+      "mostTeamsStart": "Majoritatea echipelor încep prin adăugarea activelor, apoi creează primul plan de mentenanță preventivă.",
+      "problems": {
+        "downtime": {
+          "title": "Opriri echipamente",
+          "description": "Defecțiunile neașteptate costă timp și bani.",
+          "solution": "CMMS previne defecțiunile prin mentenanță programată."
+        },
+        "visibility": {
+          "title": "Lipsă vizibilitate",
+          "description": "Fără structură, e imposibil să știi ce e făcut, întârziat sau critic.",
+          "solution": "CMMS oferă vizibilitate în timp real pentru toate locațiile."
+        },
+        "inconsistent": {
+          "title": "Muncă inconsistentă",
+          "description": "Oameni diferiți, standarde diferite.",
+          "solution": "CMMS impune proceduri și liste de verificare de fiecare dată."
+        },
+        "audits": {
+          "title": "Audituri și contracte",
+          "description": "\"Arată-mi dovada.\"",
+          "solution": "CMMS oferă istoric, rapoarte și dovezi pentru audituri și clienți."
+        }
+      },
+      "flowSteps": {
+        "assets": {
+          "title": "Active",
+          "description": "Înregistrează echipamentele cu locație, criticitate și coduri QR."
+        },
+        "workOrders": {
+          "title": "Ordine de lucru",
+          "description": "Creează sarcini manual, din cereri sau automat din programări."
+        },
+        "procedures": {
+          "title": "Proceduri și liste",
+          "description": "Ghidează tehnicienii pas cu pas și capturează dovezi."
+        },
+        "pm": {
+          "title": "Mentenanță preventivă",
+          "description": "Generează automat ordine de lucru pe bază de program sau utilizare."
+        },
+        "parts": {
+          "title": "Piese și inventar",
+          "description": "Urmărește piesele de schimb, consumul și reaprovizionarea."
+        },
+        "reports": {
+          "title": "Rapoarte și istoric",
+          "description": "Analizează performanța, costurile, conformitatea și timpii morți."
+        }
+      },
+      "modulesList": {
+        "assets": {
+          "title": "Active",
+          "description": "Registru central pentru echipamente, locații și coduri QR."
+        },
+        "workOrders": {
+          "title": "Ordine de lucru",
+          "description": "Creează, atribuie, urmărește și finalizează sarcini de mentenanță."
+        },
+        "pmSchedules": {
+          "title": "Programări PM",
+          "description": "Planuri de mentenanță preventivă care generează automat ordine."
+        },
+        "procedures": {
+          "title": "Proceduri",
+          "description": "Proceduri standard de operare și liste de inspecție."
+        },
+        "partsInventory": {
+          "title": "Inventar piese",
+          "description": "Urmărește nivelurile de stoc, consumul și alertele de stoc redus."
+        },
+        "purchaseOrders": {
+          "title": "Comenzi achiziție",
+          "description": "Comandă și recepționează piese de la furnizori."
+        },
+        "teams": {
+          "title": "Echipe",
+          "description": "Organizează tehnicienii și responsabilitățile."
+        },
+        "vendors": {
+          "title": "Furnizori",
+          "description": "Gestionează contractorii externi și furnizorii."
+        },
+        "reports": {
+          "title": "Rapoarte",
+          "description": "Performanță, conformitate, costuri și istoric pentru audituri."
+        }
+      },
+      "personas": {
+        "opsManagers": {
+          "title": "Manageri operațiuni",
+          "description": "Controlează mentenanța, reduce timpii morți și vezi ce se întâmplă în timp real."
+        },
+        "technicians": {
+          "title": "Tehnicieni și echipe",
+          "description": "Sarcini clare, instrucțiuni clare, execuție mobile-first."
+        },
+        "auditors": {
+          "title": "Auditori și management",
+          "description": "Dovezi de lucru, trasabilitate și rapoarte — fără efort manual."
+        }
+      },
+      "useCasesList": {
+        "hvac": "Inspecții HVAC lunare",
+        "forklift": "Mentenanță preventivă motostivuitoare",
+        "fire": "Verificări stingătoare incendiu",
+        "kitchen": "Service echipamente bucătărie",
+        "warehouse": "Urmărire echipamente depozit",
+        "franchise": "Mentenanță franciză multi-locații"
+      },
+      "differentiators": {
+        "multiLocation": "Construit pentru operațiuni multi-locații",
+        "mobilFirst": "Mobile-first pentru tehnicieni",
+        "auditReady": "Pregătit pentru audituri din start",
+        "scalable": "Proiectat să scaleze la contracte enterprise și industriale",
+        "integrates": "Se integrează cu Dashspect Ops și AI"
+      }
+    },
+    "reports": {
+      "title": "Rapoarte și analiză CMMS",
+      "subtitle": "Informații despre performanța mentenanței și tendințe",
+      "avgCompletionTime": "Timp mediu finalizare",
+      "acrossAllWO": "pentru toate ordinele",
+      "criticalAvg": "Medie critice",
+      "criticalPriority": "prioritate critică",
+      "highPriorityAvg": "Medie prioritate ridicată",
+      "highPriority": "prioritate ridicată",
+      "mediumPriorityAvg": "Medie prioritate medie",
+      "mediumPriority": "prioritate medie",
+      "workOrderTrends": "Tendințe ordine",
+      "createdVsCompleted": "Create vs finalizate în 6 luni",
+      "created": "Create",
+      "completed": "Finalizate",
+      "assetHealthDistribution": "Distribuție stare active",
+      "currentStatusAssets": "Starea curentă a tuturor activelor",
+      "noAssetData": "Nu există date despre active",
+      "openWOByPriority": "Ordine deschise pe prioritate",
+      "currentBacklog": "Defalcare backlog curent",
+      "open": "Deschise",
+      "inProgress": "În lucru",
+      "onHold": "În așteptare",
+      "partsConsumption": "Consum piese",
+      "monthlyPartsUsage": "Tendință utilizare piese lunar",
+      "partsUsed": "Piese folosite",
+      "reactiveVsPreventive": "Mentenanță reactivă vs preventivă",
+      "woTypeDistribution": "Distribuția tipurilor de ordine în timp",
+      "reactive": "Reactivă",
+      "preventive": "Preventivă"
+    },
+    "workOrdersPage": {
+      "title": "Ordine de lucru",
+      "searchPlaceholder": "Caută ordine (titlu, activ, locație, nr. OL)",
+      "myFilters": "Filtrele mele",
+      "newWorkOrder": "Ordin nou",
+      "assignedTo": "Atribuit la",
+      "dueDate": "Termen",
+      "location": "Locație",
+      "priority": "Prioritate",
+      "status": "Status",
+      "addFilter": "+ Adaugă filtru",
+      "toDo": "De făcut",
+      "done": "Gata",
+      "toDoDescription": "De făcut arată Deschise, În așteptare și În lucru.",
+      "doneDescription": "Gata arată ordine finalizate și anulate.",
+      "allClear": "Totul e curat. Niciun ordin acum.",
+      "noCompletedYet": "Niciun ordin finalizat încă.",
+      "noSelected": "Niciun ordin selectat",
+      "selectOrCreate": "Selectează un ordin din listă pentru detalii sau creează unul nou."
+    },
+    "assetsPage": {
+      "title": "Active",
+      "searchPlaceholder": "Caută active (nume, cod, serial, locație)",
+      "newAsset": "Activ nou",
+      "noAssetsYet": "Niciun activ încă",
+      "noAssetsDescription": "Adaugă primul activ pentru a urmări mentenanța, procedurile și fluxurile QR.",
+      "asset": "Activ",
+      "location": "Locație",
+      "status": "Status",
+      "criticality": "Criticitate",
+      "category": "Categorie",
+      "actions": "Acțiuni",
+      "view": "Vezi"
+    },
+    "procedureDetail": {
+      "procedureDetails": "Detalii procedură",
+      "title": "Titlu",
+      "description": "Descriere",
+      "safetyNotes": "Note siguranță",
+      "estimatedTime": "Timp estimat",
+      "checklistSteps": "Pași listă verificare",
+      "addStep": "Adaugă pas",
+      "draft": "Ciornă"
+    }
   },
   "audits": {
     "title": "Audituri",
