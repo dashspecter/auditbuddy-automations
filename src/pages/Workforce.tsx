@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 import { Users, Calendar, Clock, DollarSign, UserPlus, Briefcase, AlertTriangle, BarChart, CalendarClock } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
@@ -9,17 +10,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const workforceSubItems = [
-  { title: "Staff", url: "/workforce/staff", icon: Users, description: "Manage employees" },
-  { title: "Shifts", url: "/workforce/shifts", icon: Calendar, description: "Schedule shifts" },
-  { title: "Attendance", url: "/workforce/attendance", icon: Clock, description: "Track attendance" },
-  { title: "Time Off", url: "/workforce/time-off", icon: CalendarClock, description: "Manage leave requests" },
-  { title: "Payroll", url: "/workforce/payroll", icon: DollarSign, description: "Process payroll" },
-  { title: "Payroll Batches", url: "/workforce/payroll-batches", icon: DollarSign, description: "Manage batches" },
-  { title: "Attendance Alerts", url: "/workforce/attendance-alerts", icon: AlertTriangle, description: "View alerts" },
-  { title: "Scheduling Insights", url: "/workforce/scheduling-insights", icon: BarChart, description: "Analytics" },
+  { titleKey: "workforce.subItems.staff", url: "/workforce/staff", icon: Users, descKey: "workforce.subItems.staffDesc" },
+  { titleKey: "workforce.subItems.shifts", url: "/workforce/shifts", icon: Calendar, descKey: "workforce.subItems.shiftsDesc" },
+  { titleKey: "workforce.subItems.attendance", url: "/workforce/attendance", icon: Clock, descKey: "workforce.subItems.attendanceDesc" },
+  { titleKey: "workforce.subItems.timeOff", url: "/workforce/time-off", icon: CalendarClock, descKey: "workforce.subItems.timeOffDesc" },
+  { titleKey: "workforce.subItems.payroll", url: "/workforce/payroll", icon: DollarSign, descKey: "workforce.subItems.payrollDesc" },
+  { titleKey: "workforce.subItems.payrollBatches", url: "/workforce/payroll-batches", icon: DollarSign, descKey: "workforce.subItems.payrollBatchesDesc" },
+  { titleKey: "workforce.subItems.attendanceAlerts", url: "/workforce/attendance-alerts", icon: AlertTriangle, descKey: "workforce.subItems.attendanceAlertsDesc" },
+  { titleKey: "workforce.subItems.schedulingInsights", url: "/workforce/scheduling-insights", icon: BarChart, descKey: "workforce.subItems.schedulingInsightsDesc" },
 ];
 
 const Workforce = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasModule } = useCompanyContext();
@@ -41,7 +43,7 @@ const Workforce = () => {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading workforce data...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -52,20 +54,20 @@ const Workforce = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Workforce Management</h1>
+            <h1 className="text-3xl font-bold">{t('workforce.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your team, schedules, and payroll in one place
+              {t('workforce.description')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => setRoleDialogOpen(true)}>
               <Briefcase className="h-4 w-4" />
-              Manage Roles
+              {t('workforce.manageRoles')}
             </Button>
             <Link to="/workforce/staff" className="w-full sm:w-auto">
               <Button className="gap-2 w-full">
                 <UserPlus className="h-4 w-4" />
-                Add Staff Member
+                {t('workforce.addStaffMember')}
               </Button>
             </Link>
           </div>
@@ -83,8 +85,8 @@ const Workforce = () => {
                       <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <div className="font-medium text-sm">{item.title}</div>
-                      <div className="text-xs text-muted-foreground hidden sm:block">{item.description}</div>
+                      <div className="font-medium text-sm">{t(item.titleKey)}</div>
+                      <div className="text-xs text-muted-foreground hidden sm:block">{t(item.descKey)}</div>
                     </div>
                   </CardContent>
                 </Card>

@@ -279,7 +279,6 @@ const Payroll = () => {
           <TabsTrigger value="locations">{t('workforce.payroll.byLocation')}</TabsTrigger>
           <TabsTrigger value="daily">{t('workforce.payroll.dailyBreakdown')}</TabsTrigger>
           <TabsTrigger value="history">{t('workforce.payroll.historyTab')}</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         
         <TabsContent value="current">

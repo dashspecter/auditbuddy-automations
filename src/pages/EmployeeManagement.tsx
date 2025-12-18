@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, KeyRound, FileText, Upload, UserX, UserCheck } from "lucide-react";
@@ -35,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSelector } from "@/components/LocationSelector";
 
 export default function EmployeeManagement() {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function EmployeeManagement() {
 
   const handleCreateAccount = async (employee: any) => {
     if (!employee.email) {
-      toast.error("Employee must have an email address");
+      toast.error(t('workforce.employees.mustHaveEmail'));
       return;
     }
 
@@ -111,7 +113,7 @@ export default function EmployeeManagement() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        toast.error("You must be logged in");
+        toast.error(t('auth.mustBeLoggedIn'));
         return;
       }
 
@@ -125,13 +127,13 @@ export default function EmployeeManagement() {
 
       if (error) throw error;
 
-      toast.success(`Login account created for ${employee.full_name}. They can now reset their password.`);
+      toast.success(t('workforce.employees.accountCreated', { name: employee.full_name }));
       
       // Refresh the employees list
       window.location.reload();
     } catch (error: any) {
       console.error('Create account error:', error);
-      toast.error(error.message || "Failed to create account");
+      toast.error(error.message || t('workforce.employees.failedCreateAccount'));
     }
   };
 
@@ -139,19 +141,19 @@ export default function EmployeeManagement() {
     <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('workforce.employees.title')}</h1>
             <p className="text-muted-foreground mt-2">
-              Manage your team members, reset passwords, and generate contracts
+              {t('workforce.employees.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setTemplateDialogOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              Upload Template
+              {t('workforce.employees.uploadTemplate')}
             </Button>
             <Button onClick={handleAddNew}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Employee
+              {t('workforce.employees.addEmployee')}
             </Button>
           </div>
         </div>
@@ -161,7 +163,7 @@ export default function EmployeeManagement() {
             <LocationSelector
               value={filterLocationId}
               onValueChange={setFilterLocationId}
-              placeholder="All Locations"
+              placeholder={t('workforce.attendance.allLocations')}
               allowAll
             />
           </div>
@@ -174,17 +176,17 @@ export default function EmployeeManagement() {
             </div>
           ) : !employees || employees.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No employees found</p>
+              <p className="text-muted-foreground">{t('workforce.employees.noEmployees')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('workforce.employees.name')}</TableHead>
+                  <TableHead>{t('workforce.employees.location')}</TableHead>
+                  <TableHead>{t('workforce.employees.role')}</TableHead>
+                  <TableHead>{t('workforce.employees.status')}</TableHead>
+                  <TableHead className="text-right">{t('workforce.employees.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -200,7 +202,7 @@ export default function EmployeeManagement() {
                     <TableCell>
                       {hasMultipleLocations ? (
                         <Badge variant="secondary" className="text-xs">
-                          All Locations ({totalLocationsCount})
+                          {t('workforce.employees.allLocationsCount', { count: totalLocationsCount })}
                         </Badge>
                       ) : (
                         employee.locations?.name || '-'
@@ -211,7 +213,7 @@ export default function EmployeeManagement() {
                       <Badge
                         variant={employee.status === "active" ? "default" : "secondary"}
                       >
-                        {employee.status}
+                        {t(`workforce.employees.statuses.${employee.status}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -221,7 +223,7 @@ export default function EmployeeManagement() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleResetPassword(employee)}
-                            title="Reset Password"
+                            title={t('workforce.employees.resetPassword')}
                           >
                             <KeyRound className="h-4 w-4" />
                           </Button>
@@ -230,18 +232,18 @@ export default function EmployeeManagement() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleCreateAccount(employee)}
-                            title="Create Login Account"
+                            title={t('workforce.employees.createLoginAccount')}
                             className="text-xs"
                           >
                             <KeyRound className="h-4 w-4 mr-1" />
-                            Create Account
+                            {t('workforce.employees.createAccount')}
                           </Button>
                         ) : null}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleGenerateContract(employee)}
-                          title="Generate Contract"
+                          title={t('workforce.employees.generateContract')}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -249,7 +251,7 @@ export default function EmployeeManagement() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleToggleStatus(employee)}
-                          title={employee.status === "active" ? "Deactivate Employee" : "Activate Employee"}
+                          title={employee.status === "active" ? t('workforce.employees.deactivate') : t('workforce.employees.activate')}
                         >
                           {employee.status === "active" ? (
                             <UserX className="h-4 w-4 text-destructive" />
@@ -283,9 +285,9 @@ export default function EmployeeManagement() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Staff Performance Records</CardTitle>
+            <CardTitle>{t('workforce.employees.performanceRecords')}</CardTitle>
             <CardDescription>
-              Complete history of all staff performance audits
+              {t('workforce.employees.performanceDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -330,7 +332,7 @@ export default function EmployeeManagement() {
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No staff performance records found.
+                {t('workforce.employees.noPerformanceRecords')}
               </div>
             )}
           </CardContent>
@@ -346,14 +348,14 @@ export default function EmployeeManagement() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+              <AlertDialogTitle>{t('workforce.employees.deleteEmployee')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this employee? This action cannot be undone.
+                {t('workforce.employees.deleteConfirm')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>{t('common.delete')}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
