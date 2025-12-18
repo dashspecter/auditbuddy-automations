@@ -429,37 +429,37 @@ const DocumentManagement = () => {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3">
                     <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Category</span>
+                    <span className="hidden sm:inline">{t('documentManagement.addCategory')}</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create Category</DialogTitle>
+                    <DialogTitle>{t('documentManagement.createCategory')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Name *</Label>
+                      <Label>{t('documentManagement.categoryName')} *</Label>
                       <Input
                         value={newCategory.name}
                         onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                        placeholder="e.g., Safety Procedures"
+                        placeholder={t('documentManagement.categoryNamePlaceholder')}
                       />
                     </div>
                     <div>
-                      <Label>Description</Label>
+                      <Label>{t('documentManagement.categoryDescription')}</Label>
                       <Textarea
                         value={newCategory.description}
                         onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                        placeholder="Optional description"
+                        placeholder={t('documentManagement.categoryDescriptionPlaceholder')}
                       />
                     </div>
                     <div>
                       <Label className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Visible to Roles
+                        {t('documentManagement.visibleToRoles')}
                       </Label>
                       <p className="text-xs text-muted-foreground mb-2">
-                        Leave empty to make visible to all employees
+                        {t('documentManagement.visibleToRolesHint')}
                       </p>
                       <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
                         {employeeRoles.map((role) => (
@@ -487,11 +487,11 @@ const DocumentManagement = () => {
                           </div>
                         ))}
                         {employeeRoles.length === 0 && (
-                          <p className="text-sm text-muted-foreground">No roles defined yet</p>
+                          <p className="text-sm text-muted-foreground">{t('documentManagement.noRolesDefined')}</p>
                         )}
                       </div>
                     </div>
-                    <Button onClick={handleCreateCategory} className="w-full">Create</Button>
+                    <Button onClick={handleCreateCategory} className="w-full">{t('documentManagement.createCategory')}</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -500,32 +500,32 @@ const DocumentManagement = () => {
               <Dialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit Category</DialogTitle>
+                    <DialogTitle>{t('documentManagement.editCategory')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Name *</Label>
+                      <Label>{t('documentManagement.categoryName')} *</Label>
                       <Input
                         value={editingCategory?.name || ""}
                         onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                        placeholder="Category name"
+                        placeholder={t('documentManagement.categoryNamePlaceholder')}
                       />
                     </div>
                     <div>
-                      <Label>Description</Label>
+                      <Label>{t('documentManagement.categoryDescription')}</Label>
                       <Textarea
                         value={editingCategory?.description || ""}
                         onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
-                        placeholder="Optional description"
+                        placeholder={t('documentManagement.categoryDescriptionPlaceholder')}
                       />
                     </div>
                     <div>
                       <Label className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Visible to Roles
+                        {t('documentManagement.visibleToRoles')}
                       </Label>
                       <p className="text-xs text-muted-foreground mb-2">
-                        Leave empty to make visible to all employees
+                        {t('documentManagement.visibleToRolesHint')}
                       </p>
                       <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
                         {employeeRoles.map((role) => (
@@ -554,11 +554,11 @@ const DocumentManagement = () => {
                           </div>
                         ))}
                         {employeeRoles.length === 0 && (
-                          <p className="text-sm text-muted-foreground">No roles defined yet</p>
+                          <p className="text-sm text-muted-foreground">{t('documentManagement.noRolesDefined')}</p>
                         )}
                       </div>
                     </div>
-                    <Button onClick={handleEditCategory} className="w-full">Save Changes</Button>
+                    <Button onClick={handleEditCategory} className="w-full">{t('documentManagement.saveChanges')}</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -567,16 +567,16 @@ const DocumentManagement = () => {
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-1.5 px-2 sm:px-3">
                     <Upload className="h-4 w-4" />
-                    <span className="hidden sm:inline">Upload</span>
+                    <span className="hidden sm:inline">{t('documentManagement.addDocument')}</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Upload Document</DialogTitle>
+                    <DialogTitle>{t('documentManagement.uploadDocument')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label>Document Type *</Label>
+                      <Label>{t('documentManagement.documentType')} *</Label>
                       <Select
                         value={newDocument.documentType}
                         onValueChange={(value) => setNewDocument({ ...newDocument, documentType: value })}
@@ -585,14 +585,14 @@ const DocumentManagement = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="knowledge">Knowledge</SelectItem>
-                          <SelectItem value="permit">Permit</SelectItem>
-                          <SelectItem value="contract">Contract</SelectItem>
+                          <SelectItem value="knowledge">{t('documentManagement.knowledgeType')}</SelectItem>
+                          <SelectItem value="permit">{t('documentManagement.permitType')}</SelectItem>
+                          <SelectItem value="contract">{t('documentManagement.contractType')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label>Title *</Label>
+                      <Label>{t('documentManagement.documentTitle')} *</Label>
                       <Input
                         value={newDocument.title}
                         onChange={(e) => setNewDocument({ ...newDocument, title: e.target.value })}
@@ -600,13 +600,13 @@ const DocumentManagement = () => {
                     </div>
                     {newDocument.documentType === "knowledge" && (
                       <div>
-                        <Label>Category *</Label>
+                        <Label>{t('documentManagement.category')} *</Label>
                         <Select
                           value={newDocument.categoryId}
                           onValueChange={(value) => setNewDocument({ ...newDocument, categoryId: value })}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
+                            <SelectValue placeholder={t('documentManagement.selectCategory')} />
                           </SelectTrigger>
                           <SelectContent>
                             {categories.map((cat) => (
@@ -618,7 +618,7 @@ const DocumentManagement = () => {
                     )}
                     {newDocument.documentType === "knowledge" && (
                       <div>
-                        <Label>Description</Label>
+                        <Label>{t('documentManagement.documentDescription')}</Label>
                         <Textarea
                           value={newDocument.description}
                           onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
@@ -628,14 +628,14 @@ const DocumentManagement = () => {
                     {newDocument.documentType !== "knowledge" && (
                       <>
                         <div>
-                          <Label>Location *</Label>
+                          <Label>{t('documentManagement.location')} *</Label>
                           <LocationSelector
                             value={newDocument.locationId}
                             onValueChange={(value) => setNewDocument({ ...newDocument, locationId: value })}
                           />
                         </div>
                         <div>
-                          <Label>Renewal Date *</Label>
+                          <Label>{t('documentManagement.renewalDate')} *</Label>
                           <div className="border rounded-md p-3">
                             <Calendar
                               mode="single"
@@ -646,7 +646,7 @@ const DocumentManagement = () => {
                           </div>
                         </div>
                         <div>
-                          <Label>Notification Email *</Label>
+                          <Label>{t('documentManagement.notificationEmail')} *</Label>
                           <Input
                             type="email"
                             value={newDocument.notificationEmail}
@@ -654,23 +654,23 @@ const DocumentManagement = () => {
                             placeholder="email@example.com"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            Renewal reminder will be sent to this email 14 days in advance
+                            {t('documentManagement.notificationEmailHint')}
                           </p>
                         </div>
                       </>
                     )}
                     {newDocument.documentType !== "knowledge" && (
                       <div>
-                        <Label>Notes</Label>
+                        <Label>{t('documentManagement.notes')}</Label>
                         <Textarea
                           value={newDocument.description}
                           onChange={(e) => setNewDocument({ ...newDocument, description: e.target.value })}
-                          placeholder="Additional notes about this permit or contract"
+                          placeholder={t('documentManagement.notesPlaceholder')}
                         />
                       </div>
                     )}
                     <div>
-                      <Label>File *</Label>
+                      <Label>{t('documentManagement.file')} *</Label>
                       <Input
                         type="file"
                         accept=".pdf,.doc,.docx,.txt,.ppt,.pptx"
@@ -678,7 +678,7 @@ const DocumentManagement = () => {
                       />
                     </div>
                     <Button onClick={handleUploadDocument} disabled={uploading} className="w-full">
-                      {uploading ? "Uploading..." : "Upload"}
+                      {uploading ? t('documentManagement.uploading') : t('documentManagement.upload')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -691,17 +691,17 @@ const DocumentManagement = () => {
             <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="knowledge" className="gap-1.5">
                 <BookOpen className="h-4 w-4" />
-                <span className="hidden sm:inline">Knowledge</span>
+                <span className="hidden sm:inline">{t('documentManagement.tabs.knowledge')}</span>
                 <span className="text-xs">({knowledgeDocuments.length})</span>
               </TabsTrigger>
               <TabsTrigger value="contracts" className="gap-1.5">
                 <ScrollText className="h-4 w-4" />
-                <span className="hidden sm:inline">Contracts</span>
+                <span className="hidden sm:inline">{t('documentManagement.tabs.contracts')}</span>
                 <span className="text-xs">({contractDocuments.length})</span>
               </TabsTrigger>
               <TabsTrigger value="permits" className="gap-1.5">
                 <FileCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">Permits</span>
+                <span className="hidden sm:inline">{t('documentManagement.tabs.permits')}</span>
                 <span className="text-xs">({permitDocuments.length})</span>
               </TabsTrigger>
             </TabsList>
@@ -718,7 +718,7 @@ const DocumentManagement = () => {
                       className="gap-2"
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      Back to Categories
+                      {t('documentManagement.backToCategories')}
                     </Button>
                   </div>
                   <div className="flex items-center gap-3">
@@ -771,10 +771,10 @@ const DocumentManagement = () => {
                   {knowledgeDocuments.filter(doc => doc.category_id === selectedCategory.id).length === 0 && (
                     <EmptyState
                       icon={FileText}
-                      title="No Documents in this Category"
-                      description="This category is empty. Upload a document to get started."
+                      title={t('documentManagement.noDocumentsInCategory')}
+                      description={t('documentManagement.noDocumentsInCategoryDescription')}
                       action={{
-                        label: "Upload Document",
+                        label: t('documentManagement.uploadDocument'),
                         onClick: () => {
                           setNewDocument({ ...newDocument, categoryId: selectedCategory.id });
                           setDocumentDialogOpen(true);
@@ -786,7 +786,7 @@ const DocumentManagement = () => {
               ) : (
                 /* Categories grid view */
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Categories ({categories.length})</h2>
+                  <h2 className="text-xl font-semibold">{t('documentManagement.categories')} ({categories.length})</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {categories.map((cat) => {
                       const docCount = knowledgeDocuments.filter(d => d.category_id === cat.id).length;
@@ -810,12 +810,12 @@ const DocumentManagement = () => {
                               )}
                               <div className="flex items-center gap-2 mt-2 flex-wrap">
                                 <p className="text-xs text-muted-foreground">
-                                  {docCount} {docCount === 1 ? 'document' : 'documents'}
+                                  {docCount} {docCount === 1 ? t('documentManagement.document') : t('documentManagement.documents')}
                                 </p>
                                 {cat.visible_to_roles && cat.visible_to_roles.length > 0 && (
                                   <Badge variant="secondary" className="text-xs">
                                     <Users className="h-3 w-3 mr-1" />
-                                    {cat.visible_to_roles.length} role{cat.visible_to_roles.length !== 1 ? 's' : ''}
+                                    {cat.visible_to_roles.length} {cat.visible_to_roles.length !== 1 ? t('documentManagement.roles') : t('documentManagement.role')}
                                   </Badge>
                                 )}
                               </div>
@@ -851,10 +851,10 @@ const DocumentManagement = () => {
                   {categories.length === 0 && (
                     <EmptyState
                       icon={FileText}
-                      title="No Categories"
-                      description="No categories yet. Create one to organize your documents."
+                      title={t('documentManagement.noCategories')}
+                      description={t('documentManagement.noCategoriesDescription')}
                       action={{
-                        label: "Create Category",
+                        label: t('documentManagement.createCategory'),
                         onClick: () => setCategoryDialogOpen(true)
                       }}
                     />
@@ -869,7 +869,7 @@ const DocumentManagement = () => {
                 <Card className="p-4 border-yellow-200 bg-yellow-50/50">
                   <div className="flex items-center gap-2 mb-3">
                     <Clock className="h-5 w-5 text-yellow-600" />
-                    <h3 className="font-semibold text-yellow-800">Upcoming Renewals</h3>
+                    <h3 className="font-semibold text-yellow-800">{t('documentManagement.upcomingRenewals')}</h3>
                   </div>
                   <div className="space-y-2">
                     {upcomingRenewals.filter(r => r.document_type === 'contract').slice(0, 3).map((renewal) => {
@@ -894,17 +894,17 @@ const DocumentManagement = () => {
 
               {/* All Contracts */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">All Contracts</h2>
+                <h2 className="text-xl font-semibold">{t('documentManagement.allContracts')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {contractDocuments.map(renderDocumentCard)}
                 </div>
                 {contractDocuments.length === 0 && (
                   <EmptyState
                     icon={ScrollText}
-                    title="No Contracts"
-                    description="No contracts uploaded yet. Add contracts with renewal dates to track them."
+                    title={t('documentManagement.noContracts')}
+                    description={t('documentManagement.noContractsDescription')}
                     action={{
-                      label: "Upload Contract",
+                      label: t('documentManagement.uploadContract'),
                       onClick: () => {
                         setNewDocument({ ...newDocument, documentType: "contract" });
                         setDocumentDialogOpen(true);
@@ -921,7 +921,7 @@ const DocumentManagement = () => {
                 <Card className="p-4 border-blue-200 bg-blue-50/50">
                   <div className="flex items-center gap-2 mb-3">
                     <Clock className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-800">Upcoming Renewals</h3>
+                    <h3 className="font-semibold text-blue-800">{t('documentManagement.upcomingRenewals')}</h3>
                   </div>
                   <div className="space-y-2">
                     {upcomingRenewals.filter(r => r.document_type === 'permit').slice(0, 3).map((renewal) => {
@@ -946,17 +946,17 @@ const DocumentManagement = () => {
 
               {/* All Permits */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">All Permits</h2>
+                <h2 className="text-xl font-semibold">{t('documentManagement.allPermits')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {permitDocuments.map(renderDocumentCard)}
                 </div>
                 {permitDocuments.length === 0 && (
                   <EmptyState
                     icon={FileCheck}
-                    title="No Permits"
-                    description="No permits uploaded yet. Add permits with renewal dates to get reminders 2 weeks before expiry."
+                    title={t('documentManagement.noPermits')}
+                    description={t('documentManagement.noPermitsDescription')}
                     action={{
-                      label: "Upload Permit",
+                      label: t('documentManagement.uploadPermit'),
                       onClick: () => {
                         setNewDocument({ ...newDocument, documentType: "permit" });
                         setDocumentDialogOpen(true);
