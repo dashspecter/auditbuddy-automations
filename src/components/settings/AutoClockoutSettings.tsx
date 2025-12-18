@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ interface AutoClockoutSettingsProps {
 }
 
 export function AutoClockoutSettings({ company }: AutoClockoutSettingsProps) {
+  const { t } = useTranslation();
   const [delayMinutes, setDelayMinutes] = useState<number>(30);
   const queryClient = useQueryClient();
 
@@ -33,10 +35,10 @@ export function AutoClockoutSettings({ company }: AutoClockoutSettingsProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company'] });
-      toast.success("Auto clock-out delay updated");
+      toast.success(t('locations.autoClockout.updated'));
     },
     onError: (error) => {
-      toast.error("Failed to update: " + error.message);
+      toast.error(t('locations.autoClockout.updateFailed') + ": " + error.message);
     },
   });
 
@@ -51,15 +53,15 @@ export function AutoClockoutSettings({ company }: AutoClockoutSettingsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Auto Clock-Out Settings
+          {t('locations.autoClockout.title')}
         </CardTitle>
         <CardDescription>
-          Automatically clock out employees who forget to clock out after their shift ends
+          {t('locations.autoClockout.subtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="delay-minutes">Minutes after shift end</Label>
+          <Label htmlFor="delay-minutes">{t('locations.autoClockout.minutesAfterShift')}</Label>
           <div className="flex gap-2 items-center">
             <Input
               id="delay-minutes"
@@ -70,17 +72,17 @@ export function AutoClockoutSettings({ company }: AutoClockoutSettingsProps) {
               onChange={(e) => setDelayMinutes(parseInt(e.target.value) || 0)}
               className="w-24"
             />
-            <span className="text-sm text-muted-foreground">minutes</span>
+            <span className="text-sm text-muted-foreground">{t('locations.autoClockout.minutes')}</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Employees will be automatically clocked out {delayMinutes} minutes after their scheduled shift end time if they haven't clocked out manually.
+            {t('locations.autoClockout.description', { minutes: delayMinutes })}
           </p>
         </div>
         <Button
           onClick={handleSave}
           disabled={delayMinutes === company?.auto_clockout_delay_minutes || updateDelayMutation.isPending}
         >
-          {updateDelayMutation.isPending ? "Saving..." : "Save Changes"}
+          {updateDelayMutation.isPending ? t('common.saving') : t('common.saveChanges')}
         </Button>
       </CardContent>
     </Card>

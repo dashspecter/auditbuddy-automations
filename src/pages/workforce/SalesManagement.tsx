@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SalesManagement = () => {
+  const { t } = useTranslation();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [salesInputs, setSalesInputs] = useState<Record<string, Record<string, string>>>({});
@@ -77,9 +79,9 @@ const SalesManagement = () => {
         actual_hours: existing?.actual_hours || 0,
         projected_sales: existing?.projected_sales || 0,
       });
-      toast.success("Sales saved successfully");
+      toast.success(t('sales.salesSaved'));
     } catch (error) {
-      toast.error("Failed to save sales");
+      toast.error(t('sales.salesSaveFailed'));
     }
   };
 
@@ -105,8 +107,8 @@ const SalesManagement = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Sales Management</h1>
-            <p className="text-muted-foreground">Record daily sales to track labor cost performance</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('sales.title')}</h1>
+            <p className="text-muted-foreground">{t('sales.subtitle')}</p>
           </div>
         </div>
 
@@ -124,16 +126,16 @@ const SalesManagement = () => {
                 <span className="font-medium min-w-[200px]">
                   {format(currentWeekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
                 </span>
-                <Button variant="outline" onClick={goToToday}>Today</Button>
+                <Button variant="outline" onClick={goToToday}>{t('sales.today')}</Button>
               </div>
               
               <div className="flex items-center gap-4">
                 <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select location" />
+                    <SelectValue placeholder={t('sales.selectLocation')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
+                    <SelectItem value="all">{t('sales.allLocations')}</SelectItem>
                     {locations.map(location => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
@@ -152,10 +154,9 @@ const SalesManagement = () => {
             <div className="flex items-start gap-3">
               <Info className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-primary">Why track sales?</p>
+                <p className="font-medium text-primary">{t('sales.whyTrack')}</p>
                 <p className="text-muted-foreground mt-1">
-                  Recording daily sales helps calculate labor cost percentage (target: under 30%). 
-                  This data enables better scheduling decisions and helps predict staffing needs based on historical performance.
+                  {t('sales.whyTrackDesc')}
                 </p>
               </div>
             </div>
@@ -175,7 +176,7 @@ const SalesManagement = () => {
                     <CardTitle className="text-lg">{location.name}</CardTitle>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-muted-foreground">Week Total</div>
+                    <div className="text-sm text-muted-foreground">{t('sales.weekTotal')}</div>
                     <div className="font-bold text-lg">{weekTotal.toLocaleString()} Lei</div>
                   </div>
                 </div>
@@ -225,7 +226,7 @@ const SalesManagement = () => {
                               disabled={upsertLaborCost.isPending}
                             >
                               <Save className="h-3 w-3 mr-1" />
-                              Save
+                              {t('common.save')}
                             </Button>
                           )}
                           
@@ -245,10 +246,10 @@ const SalesManagement = () => {
                                     {laborPct}%
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Labor cost as % of sales</p>
+                              <TooltipContent>
+                                  <p>{t('sales.laborCostPercent')}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {(laborCost?.scheduled_cost || 0).toFixed(0)} Lei labor / {(laborCost?.actual_sales || 0).toFixed(0)} Lei sales
+                                    {(laborCost?.scheduled_cost || 0).toFixed(0)} Lei {t('sales.labor')} / {(laborCost?.actual_sales || 0).toFixed(0)} Lei {t('sales.salesLabel')}
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
@@ -257,7 +258,7 @@ const SalesManagement = () => {
                           
                           {laborCost && (
                             <div className="text-xs text-center text-muted-foreground">
-                              {(laborCost.scheduled_hours || 0).toFixed(1)}h scheduled
+                              {(laborCost.scheduled_hours || 0).toFixed(1)}h {t('sales.scheduled')}
                             </div>
                           )}
                         </div>
@@ -274,8 +275,8 @@ const SalesManagement = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No locations found</h3>
-              <p className="text-muted-foreground">Create locations first to start tracking sales.</p>
+              <h3 className="text-lg font-medium mb-2">{t('sales.noLocations')}</h3>
+              <p className="text-muted-foreground">{t('sales.noLocationsDesc')}</p>
             </CardContent>
           </Card>
         )}

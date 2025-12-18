@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +33,7 @@ interface MigrationStats {
 }
 
 export const LocationDataMigration = () => {
+  const { t } = useTranslation();
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [stats, setStats] = useState<MigrationStats | null>(null);
@@ -42,7 +44,7 @@ export const LocationDataMigration = () => {
     setStats(null);
 
     try {
-      toast.info("Starting migration...");
+      toast.info(t('locations.migration.starting'));
 
       const { data, error } = await supabase.functions.invoke(
         "migrate-location-data",
@@ -53,7 +55,7 @@ export const LocationDataMigration = () => {
 
       if (error) {
         console.error("Migration error:", error);
-        throw new Error(error.message || "Migration failed");
+        throw new Error(error.message || t('locations.migration.failed'));
       }
 
       
@@ -68,7 +70,7 @@ export const LocationDataMigration = () => {
       }
     } catch (error: any) {
       console.error("Error running migration:", error);
-      toast.error(`Migration failed: ${error.message}`);
+      toast.error(`${t('locations.migration.failed')}: ${error.message}`);
     } finally {
       setIsRunning(false);
     }
@@ -79,20 +81,20 @@ export const LocationDataMigration = () => {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Database className="h-5 w-5 text-amber-600" />
-          <CardTitle className="text-lg">Data Migration Tool</CardTitle>
+          <CardTitle className="text-lg">{t('locations.migration.title')}</CardTitle>
         </div>
         <CardDescription>
-          Migrate existing location text data to use the new locations table
+          {t('locations.migration.subtitle')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm space-y-2">
-          <p className="font-medium">This migration will:</p>
+          <p className="font-medium">{t('locations.migration.willDo')}</p>
           <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-            <li>Find all unique location names in your audit records</li>
-            <li>Create location entries for any that don't exist</li>
-            <li>Update all audits to reference the correct location IDs</li>
-            <li>Update templates to use location references</li>
+            <li>{t('locations.migration.findLocations')}</li>
+            <li>{t('locations.migration.createEntries')}</li>
+            <li>{t('locations.migration.updateAudits')}</li>
+            <li>{t('locations.migration.updateTemplates')}</li>
           </ul>
         </div>
 
@@ -100,29 +102,29 @@ export const LocationDataMigration = () => {
           <div className="space-y-2 p-4 bg-background rounded-lg border">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-success" />
-              <p className="font-semibold">Migration Complete!</p>
+              <p className="font-semibold">{t('locations.migration.complete')}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <span className="text-muted-foreground">Locations found:</span>
+                <span className="text-muted-foreground">{t('locations.migration.locationsFound')}:</span>
                 <Badge variant="outline" className="ml-2">
                   {stats.uniqueLocations}
                 </Badge>
               </div>
               <div>
-                <span className="text-muted-foreground">Locations created:</span>
+                <span className="text-muted-foreground">{t('locations.migration.locationsCreated')}:</span>
                 <Badge variant="default" className="ml-2">
                   {stats.locationsCreated}
                 </Badge>
               </div>
               <div>
-                <span className="text-muted-foreground">Audits updated:</span>
+                <span className="text-muted-foreground">{t('locations.migration.auditsUpdated')}:</span>
                 <Badge variant="secondary" className="ml-2">
                   {stats.auditsUpdated}
                 </Badge>
               </div>
               <div>
-                <span className="text-muted-foreground">Templates updated:</span>
+                <span className="text-muted-foreground">{t('locations.migration.templatesUpdated')}:</span>
                 <Badge variant="secondary" className="ml-2">
                   {stats.templatesUpdated}
                 </Badge>
@@ -133,7 +135,7 @@ export const LocationDataMigration = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   <span className="text-sm font-medium text-destructive">
-                    Errors ({stats.errors.length})
+                    {t('locations.migration.errors', { count: stats.errors.length })}
                   </span>
                 </div>
                 <ul className="text-xs space-y-1 text-destructive/80">
@@ -142,7 +144,7 @@ export const LocationDataMigration = () => {
                   ))}
                   {stats.errors.length > 5 && (
                     <li className="italic">
-                      ...and {stats.errors.length - 5} more
+                      ...{t('locations.migration.andMore', { count: stats.errors.length - 5 })}
                     </li>
                   )}
                 </ul>
@@ -158,46 +160,43 @@ export const LocationDataMigration = () => {
               className="w-full"
               disabled={isRunning || completed}
             >
-              {isRunning ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Running Migration...
-                </>
-              ) : completed ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Migration Complete
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Run Migration
-                </>
-              )}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Run Location Data Migration?</AlertDialogTitle>
-              <AlertDialogDescription className="space-y-2">
-                <p>
-                  This will automatically migrate all existing audit records to
-                  use the new locations table.
-                </p>
-                <p className="font-medium text-foreground">
-                  This is a safe operation and can be run multiple times without
-                  causing issues.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Note: Existing data will not be deleted, only location IDs will
-                  be added.
-                </p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={runMigration}>
-                Run Migration
+            {isRunning ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {t('locations.migration.running')}
+              </>
+            ) : completed ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {t('locations.migration.complete')}
+              </>
+            ) : (
+              <>
+                <Database className="h-4 w-4 mr-2" />
+                {t('locations.migration.runMigration')}
+              </>
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('locations.migration.confirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                {t('locations.migration.confirmDesc1')}
+              </p>
+              <p className="font-medium text-foreground">
+                {t('locations.migration.confirmDesc2')}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t('locations.migration.confirmNote')}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={runMigration}>
+              {t('locations.migration.runMigration')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

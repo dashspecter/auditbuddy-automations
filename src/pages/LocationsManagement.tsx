@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -39,6 +40,7 @@ import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManage
 import { useCompany } from "@/hooks/useCompany";
 
 const LocationsManagement = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "locations";
   
@@ -88,9 +90,9 @@ const LocationsManagement = () => {
         <div className="flex items-center gap-2">
           <MapPin className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Locations Management</h1>
+            <h1 className="text-3xl font-bold">{t('locations.management.title')}</h1>
             <p className="text-muted-foreground">
-              Manage your business locations and their settings
+              {t('locations.management.subtitle')}
             </p>
           </div>
         </div>
@@ -100,15 +102,15 @@ const LocationsManagement = () => {
         <TabsList>
           <TabsTrigger value="locations" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Locations
+            {t('locations.management.tabs.locations')}
           </TabsTrigger>
           <TabsTrigger value="auto-clockout" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Auto Clock-Out
+            {t('locations.management.tabs.autoClockOut')}
           </TabsTrigger>
           <TabsTrigger value="shift-presets" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Shift Presets
+            {t('locations.management.tabs.shiftPresets')}
           </TabsTrigger>
         </TabsList>
 
@@ -116,7 +118,7 @@ const LocationsManagement = () => {
           <div className="flex justify-end">
             <Button onClick={handleAddNew}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Location
+              {t('locations.management.addLocation')}
             </Button>
           </div>
 
@@ -125,9 +127,9 @@ const LocationsManagement = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Locations</CardTitle>
+            <CardTitle>{t('locations.management.allLocations')}</CardTitle>
             <CardDescription>
-              View and manage all locations in your system
+              {t('locations.management.allLocationsDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -141,12 +143,12 @@ const LocationsManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('locations.management.table.name')}</TableHead>
+                    <TableHead>{t('locations.management.table.city')}</TableHead>
+                    <TableHead>{t('locations.management.table.type')}</TableHead>
+                    <TableHead>{t('locations.management.table.address')}</TableHead>
+                    <TableHead>{t('locations.management.table.status')}</TableHead>
+                    <TableHead className="text-right">{t('locations.management.table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,10 +192,10 @@ const LocationsManagement = () => {
             ) : (
               <EmptyState
                 icon={MapPin}
-                title="No Locations"
-                description="No locations found. Add your first location to get started."
+                title={t('locations.management.noLocations')}
+                description={t('locations.management.noLocationsDesc')}
                 action={{
-                  label: "Add Location",
+                  label: t('locations.management.addLocation'),
                   onClick: handleAddNew
                 }}
               />
@@ -210,15 +212,14 @@ const LocationsManagement = () => {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogTitle>{t('locations.management.deleteDialog.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete this location. This action cannot be undone.
-                The location will be removed from all templates, schedules, and reports.
+                {t('locations.management.deleteDialog.description')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>{t('common.delete')}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
