@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./i18n"; // Initialize i18n
+import { registerSW } from "virtual:pwa-register";
 
 // Deep-link fallback: when a host serves /404.html and we redirect to /?redirect=...
 // restore the intended client-side route.
@@ -21,24 +22,11 @@ import "./i18n"; // Initialize i18n
   }
 })();
 
-// Register service worker for PWA
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").then(
-      (registration) => {
-        console.log("ServiceWorker registration successful:", registration.scope);
-
-        // Check for updates periodically
-        setInterval(() => {
-          registration.update();
-        }, 60 * 60 * 1000); // Check every hour
-      },
-      (error) => {
-        console.log("ServiceWorker registration failed:", error);
-      }
-    );
-  });
-}
+// PWA: ensure updated service worker takes control and reloads clients.
+// Needed to avoid users being stuck on an old cached UI.
+registerSW({
+  immediate: true,
+});
 
 createRoot(document.getElementById("root")!).render(<App />);
 
