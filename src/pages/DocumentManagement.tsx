@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 
 const DocumentManagement = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: employeeRoles = [] } = useEmployeeRoles();
   const [categories, setCategories] = useState<any[]>([]);
@@ -419,8 +421,8 @@ const DocumentManagement = () => {
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold">Document Management</h1>
-              <p className="text-muted-foreground">Upload and organize training documents, permits, and contracts</p>
+              <h1 className="text-3xl font-bold">{t('documentManagement.title')}</h1>
+              <p className="text-muted-foreground">{t('documentManagement.subtitle')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>

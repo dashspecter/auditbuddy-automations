@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ const getInitialTab = () => {
 };
 
 const TestCreation = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: locations } = useLocations();
@@ -257,43 +259,42 @@ const TestCreation = () => {
     <div className="max-w-4xl mx-auto">
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">Create Test</h1>
-            <p className="text-muted-foreground">Generate AI-powered tests or create manually</p>
+            <h1 className="text-3xl font-bold">{t('tests.creation.title')}</h1>
+            <p className="text-muted-foreground">{t('tests.creation.subtitle')}</p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ai">
                 <Sparkles className="mr-2 h-4 w-4" />
-                AI Generated
+                {t('tests.creation.aiGenerated')}
               </TabsTrigger>
               <TabsTrigger value="manual">
                 <PencilLine className="mr-2 h-4 w-4" />
-                Manual Creation
+                {t('tests.creation.manualCreation')}
               </TabsTrigger>
             </TabsList>
 
-            {/* AI Generated Tab */}
             <TabsContent value="ai" className="space-y-6">
               <Card className="p-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Test Title *</Label>
+                      <Label>{t('tests.creation.testTitle')} *</Label>
                       <Input
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="e.g., Safety Training Quiz"
+                        placeholder={t('tests.creation.testTitlePlaceholder')}
                       />
                     </div>
                     <div>
-                      <Label>Location (Optional)</Label>
+                      <Label>{t('tests.creation.locationOptional')}</Label>
                       <Select
                         value={formData.locationId}
                         onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="All locations" />
+                          <SelectValue placeholder={t('tests.creation.allLocations')} />
                         </SelectTrigger>
                         <SelectContent>
                           {locations?.map((loc) => (
@@ -307,13 +308,13 @@ const TestCreation = () => {
                   </div>
 
                   <div>
-                    <Label>Document *</Label>
+                    <Label>{t('tests.document')} *</Label>
                     <Select
                       value={formData.documentId}
                       onValueChange={(value) => setFormData({ ...formData, documentId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select document" />
+                        <SelectValue placeholder={t('tests.creation.selectDocument')} />
                       </SelectTrigger>
                       <SelectContent>
                         {documents.map((doc) => (
@@ -326,17 +327,17 @@ const TestCreation = () => {
                   </div>
 
                   <div>
-                    <Label>Description</Label>
+                    <Label>{t('tests.creation.description')}</Label>
                     <Textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Optional description"
+                      placeholder={t('tests.creation.descriptionPlaceholder')}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label>Number of Questions</Label>
+                      <Label>{t('tests.creation.numQuestions')}</Label>
                       <Input
                         type="number"
                         min="5"
@@ -346,7 +347,7 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Time Limit (minutes)</Label>
+                      <Label>{t('tests.creation.timeLimitMinutes')}</Label>
                       <Input
                         type="number"
                         min="5"
@@ -355,7 +356,7 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Passing Score (%)</Label>
+                      <Label>{t('tests.creation.passingScorePercent')}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -368,7 +369,7 @@ const TestCreation = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Schedule For (Optional)</Label>
+                      <Label>{t('tests.creation.scheduleFor')}</Label>
                       <Input
                         type="datetime-local"
                         value={formData.scheduledFor}
@@ -376,7 +377,7 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Expires At (Optional)</Label>
+                      <Label>{t('tests.creation.expiresAt')}</Label>
                       <Input
                         type="datetime-local"
                         value={formData.expiresAt}
@@ -391,7 +392,7 @@ const TestCreation = () => {
                       checked={formData.isTemplate}
                       onCheckedChange={(checked) => setFormData({ ...formData, isTemplate: checked })}
                     />
-                    <Label htmlFor="isTemplate-ai" className="cursor-pointer">Save as Template</Label>
+                    <Label htmlFor="isTemplate-ai" className="cursor-pointer">{t('tests.creation.saveAsTemplate')}</Label>
                   </div>
 
                   <Button
@@ -403,12 +404,12 @@ const TestCreation = () => {
                     {generating ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Generating Questions...
+                        {t('tests.creation.generatingQuestions')}
                       </>
                     ) : (
                       <>
                         <Sparkles className="mr-2 h-5 w-5" />
-                        Generate Questions with AI
+                        {t('tests.creation.generateQuestions')}
                       </>
                     )}
                   </Button>
@@ -419,7 +420,7 @@ const TestCreation = () => {
                 <>
                   <Card className="p-6">
                     <h2 className="text-xl font-semibold mb-4">
-                      Generated Questions ({questions.length})
+                      {t('tests.creation.generatedQuestions')} ({questions.length})
                     </h2>
                     <div className="space-y-6">
                       {questions.map((q, index) => (
@@ -448,7 +449,7 @@ const TestCreation = () => {
 
                   <Button onClick={() => handleSaveTest(false)} size="lg" className="w-full">
                     <Save className="mr-2 h-5 w-5" />
-                    Save Test
+                    {t('tests.creation.saveTest')}
                   </Button>
                 </>
               )}
@@ -460,21 +461,21 @@ const TestCreation = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Test Title *</Label>
+                      <Label>{t('tests.creation.testTitle')} *</Label>
                       <Input
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="e.g., Safety Training Quiz"
+                        placeholder={t('tests.creation.testTitlePlaceholder')}
                       />
                     </div>
                     <div>
-                      <Label>Location (Optional)</Label>
+                      <Label>{t('tests.creation.locationOptional')}</Label>
                       <Select
                         value={formData.locationId}
                         onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="All locations" />
+                          <SelectValue placeholder={t('tests.creation.allLocations')} />
                         </SelectTrigger>
                         <SelectContent>
                           {locations?.map((loc) => (
@@ -488,17 +489,17 @@ const TestCreation = () => {
                   </div>
 
                   <div>
-                    <Label>Description</Label>
+                    <Label>{t('tests.creation.description')}</Label>
                     <Textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Optional description"
+                      placeholder={t('tests.creation.descriptionPlaceholder')}
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Time Limit (minutes)</Label>
+                      <Label>{t('tests.creation.timeLimitMinutes')}</Label>
                       <Input
                         type="number"
                         min="5"
@@ -507,7 +508,7 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Passing Score (%)</Label>
+                      <Label>{t('tests.creation.passingScorePercent')}</Label>
                       <Input
                         type="number"
                         min="0"
@@ -520,7 +521,7 @@ const TestCreation = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Schedule For (Optional)</Label>
+                      <Label>{t('tests.creation.scheduleFor')}</Label>
                       <Input
                         type="datetime-local"
                         value={formData.scheduledFor}
@@ -528,7 +529,7 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>Expires At (Optional)</Label>
+                      <Label>{t('tests.creation.expiresAt')}</Label>
                       <Input
                         type="datetime-local"
                         value={formData.expiresAt}
@@ -543,17 +544,17 @@ const TestCreation = () => {
                       checked={formData.isTemplate}
                       onCheckedChange={(checked) => setFormData({ ...formData, isTemplate: checked })}
                     />
-                    <Label htmlFor="isTemplate-manual" className="cursor-pointer">Save as Template</Label>
+                    <Label htmlFor="isTemplate-manual" className="cursor-pointer">{t('tests.creation.saveAsTemplate')}</Label>
                   </div>
                 </div>
               </Card>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Questions ({manualQuestions.length})</h2>
+                  <h2 className="text-xl font-semibold">{t('tests.creation.questions')} ({manualQuestions.length})</h2>
                   <Button onClick={addManualQuestion} size="sm">
                     <Plus className="mr-2 h-4 w-4" />
-                    Add Question
+                    {t('tests.creation.addQuestion')}
                   </Button>
                 </div>
 
@@ -562,11 +563,11 @@ const TestCreation = () => {
                     <div className="space-y-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <Label>Question {qIndex + 1} *</Label>
+                          <Label>{t('tests.creation.question')} {qIndex + 1} *</Label>
                           <Textarea
                             value={q.question}
                             onChange={(e) => updateManualQuestion(qIndex, "question", e.target.value)}
-                            placeholder="Enter your question"
+                            placeholder={t('tests.creation.questionPlaceholder')}
                             rows={2}
                           />
                         </div>
@@ -582,7 +583,7 @@ const TestCreation = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Options *</Label>
+                        <Label>{t('tests.creation.options')} *</Label>
                         {q.options.map((opt: string, optIndex: number) => (
                           <div key={optIndex} className="flex items-center gap-2">
                             <span className="text-sm font-medium w-6">
@@ -591,14 +592,14 @@ const TestCreation = () => {
                             <Input
                               value={opt}
                               onChange={(e) => updateManualOption(qIndex, optIndex, e.target.value)}
-                              placeholder={`Option ${String.fromCharCode(65 + optIndex)}`}
+                              placeholder={`${t('tests.creation.optionPlaceholder')} ${String.fromCharCode(65 + optIndex)}`}
                             />
                           </div>
                         ))}
                       </div>
 
                       <div>
-                        <Label>Correct Answer *</Label>
+                        <Label>{t('tests.creation.correctAnswer')} *</Label>
                         <Select
                           value={q.correct_answer}
                           onValueChange={(value) => updateManualQuestion(qIndex, "correct_answer", value)}
@@ -626,7 +627,7 @@ const TestCreation = () => {
                 disabled={manualQuestions.length === 0}
               >
                 <Save className="mr-2 h-5 w-5" />
-                Save Test
+                {t('tests.creation.saveTest')}
               </Button>
             </TabsContent>
           </Tabs>
