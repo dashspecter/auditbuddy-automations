@@ -27,7 +27,8 @@
     "score": "Scor",
     "status": "Status",
     "date": "Dată",
-    "draft": "ciornă"
+    "draft": "ciornă",
+    "archive": "Arhivează"
   },
   "nav": {
     "navigation": "Navigare",
@@ -692,6 +693,38 @@
       "reactiveVsPreventiveDesc": "Distribuția tipurilor în timp",
       "reactive": "Reactivă",
       "preventiveLabel": "Preventivă"
+    },
+    "purchaseOrders": {
+      "title": "Comenzi achiziție",
+      "newPO": "Comandă nouă",
+      "searchPlaceholder": "Caută comenzi (număr, furnizor, locație)",
+      "loading": "Se încarcă comenzile...",
+      "noPOs": "Nicio comandă încă",
+      "noPOsDescription": "Creează comenzi pentru a urmări comenzile de piese și recepția.",
+      "poNumber": "Nr. comandă",
+      "vendor": "Furnizor",
+      "location": "Locație",
+      "status": "Status",
+      "expected": "Așteptată",
+      "total": "Total"
+    },
+    "pmSchedules": {
+      "title": "Programări PM",
+      "newPlan": "Plan PM nou",
+      "searchPlaceholder": "Caută planuri PM...",
+      "loading": "Se încarcă planurile PM...",
+      "noPlans": "Niciun plan de mentenanță preventivă încă",
+      "noPlansDescription": "Creează planuri PM pentru a genera automat ordine de lucru.",
+      "name": "Nume",
+      "scope": "Domeniu",
+      "frequency": "Frecvență",
+      "nextDue": "Următorul termen",
+      "autoCreate": "Auto-creare",
+      "defaultPriority": "Prioritate implicită",
+      "category": "Categorie",
+      "every": "La fiecare",
+      "overdue": "Întârziat",
+      "today": "Astăzi"
     }
   },
   "audits": {
