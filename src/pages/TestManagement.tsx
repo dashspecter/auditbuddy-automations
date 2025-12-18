@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { TestAssignmentsDialog } from "@/components/TestAssignmentsDialog";
 import { useTestAssignments } from "@/hooks/useTestAssignments";
 
 const TestManagement = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [tests, setTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
@@ -189,22 +191,22 @@ const TestManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Test Management</h1>
-              <p className="text-muted-foreground">Manage and monitor all tests</p>
+              <h1 className="text-3xl font-bold">{t('tests.title')}</h1>
+              <p className="text-muted-foreground">{t('tests.subtitle')}</p>
             </div>
             <Link to="/test-creation">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Test
+                {t('tests.createTest')}
               </Button>
             </Link>
           </div>
 
           <Tabs defaultValue="tests" className="w-full">
             <TabsList>
-              <TabsTrigger value="tests">All Tests</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="submissions">All Submissions</TabsTrigger>
+              <TabsTrigger value="tests">{t('tests.allTests')}</TabsTrigger>
+              <TabsTrigger value="templates">{t('tests.templates')}</TabsTrigger>
+              <TabsTrigger value="submissions">{t('tests.allSubmissions')}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="tests" className="space-y-4">
@@ -227,25 +229,25 @@ const TestManagement = () => {
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <p className="text-muted-foreground">Document</p>
-                        <p className="font-medium">{test.document?.title || "Manual"}</p>
+                        <p className="text-muted-foreground">{t('tests.document')}</p>
+                        <p className="font-medium">{test.document?.title || t('tests.manual')}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Time Limit</p>
+                        <p className="text-muted-foreground">{t('tests.timeLimit')}</p>
                         <p className="font-medium">{test.time_limit_minutes} min</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Passing Score</p>
+                        <p className="text-muted-foreground">{t('tests.passingScore')}</p>
                         <p className="font-medium">{test.passing_score}%</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Submissions</p>
+                        <p className="text-muted-foreground">{t('tests.submissions')}</p>
                         <p className="font-medium">{test.submissionCount || 0}</p>
                       </div>
                     </div>
                     {test.scheduled_for && (
                       <div className="mt-2 text-sm">
-                        <span className="text-muted-foreground">Scheduled: </span>
+                        <span className="text-muted-foreground">{t('tests.scheduled')}: </span>
                         <span className="font-medium">
                           {format(new Date(test.scheduled_for), "PPp")}
                         </span>
@@ -312,7 +314,7 @@ const TestManagement = () => {
                 <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm text-muted-foreground flex-1">
-                      Test Link: <span className="font-medium text-foreground">
+                      {t('tests.testLink')}: <span className="font-medium text-foreground">
                         {test.title}
                         {test.scheduled_for && ` - ${format(new Date(test.scheduled_for), "MMM d, yyyy")}`}
                       </span>
@@ -324,9 +326,9 @@ const TestManagement = () => {
                 </div>
                   </Card>
                 ))}
-                {tests.filter(t => !t.is_template).length === 0 && (
+                {tests.filter(test => !test.is_template).length === 0 && (
                   <Card className="p-8 text-center text-muted-foreground">
-                    No tests created yet. Click "Create Test" to get started.
+                    {t('tests.noTests')}
                   </Card>
                 )}
               </div>
@@ -350,15 +352,15 @@ const TestManagement = () => {
                         )}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
-                            <p className="text-muted-foreground">Time Limit</p>
+                            <p className="text-muted-foreground">{t('tests.timeLimit')}</p>
                             <p className="font-medium">{test.time_limit_minutes} min</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Passing Score</p>
+                            <p className="text-muted-foreground">{t('tests.passingScore')}</p>
                             <p className="font-medium">{test.passing_score}%</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Submissions</p>
+                            <p className="text-muted-foreground">{t('tests.submissions')}</p>
                             <p className="font-medium">{test.submissionCount || 0}</p>
                           </div>
                         </div>
@@ -392,9 +394,9 @@ const TestManagement = () => {
                     </div>
                   </Card>
                 ))}
-                {tests.filter(t => t.is_template).length === 0 && (
+                {tests.filter(test => test.is_template).length === 0 && (
                   <Card className="p-8 text-center text-muted-foreground">
-                    No templates yet. Edit any test and toggle "Save as Template" to create one.
+                    {t('tests.noTemplates')}
                   </Card>
                 )}
               </div>
@@ -402,11 +404,11 @@ const TestManagement = () => {
 
             <TabsContent value="submissions" className="space-y-4">
               <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">All Test Submissions</h2>
+                <h2 className="text-xl font-semibold mb-4">{t('tests.allSubmissions')}</h2>
                 <div className="space-y-3">
                   {allSubmissions.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                      No submissions yet
+                      {t('tests.noSubmissions')}
                     </p>
                   ) : (
                     allSubmissions.map((sub) => (
@@ -414,31 +416,31 @@ const TestManagement = () => {
                         <div className="flex items-center justify-between">
                           <div className="grid grid-cols-2 md:grid-cols-6 gap-4 flex-1 text-sm">
                             <div>
-                              <p className="text-muted-foreground">Test</p>
+                              <p className="text-muted-foreground">{t('tests.test')}</p>
                               <p className="font-medium">{sub.test?.title}</p>
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Name</p>
+                              <p className="text-muted-foreground">{t('tests.name')}</p>
                               <p className="font-medium">{sub.staff_name}</p>
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Location</p>
+                              <p className="text-muted-foreground">{t('tests.location')}</p>
                               <p className="font-medium">{sub.staff_location}</p>
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Score</p>
+                              <p className="text-muted-foreground">{t('tests.score')}</p>
                               <p className="font-medium text-lg">{sub.score}%</p>
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Result</p>
+                              <p className="text-muted-foreground">{t('tests.status')}</p>
                               {sub.passed ? (
-                                <Badge variant="default">Passed</Badge>
+                                <Badge variant="default">{t('tests.passed')}</Badge>
                               ) : (
-                                <Badge variant="destructive">Failed</Badge>
+                                <Badge variant="destructive">{t('tests.failed')}</Badge>
                               )}
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Date</p>
+                              <p className="text-muted-foreground">{t('tests.date')}</p>
                               <p className="font-medium">
                                 {format(new Date(sub.completed_at), "PP")}
                               </p>
@@ -451,7 +453,7 @@ const TestManagement = () => {
                             className="ml-4"
                           >
                             <FileText className="h-4 w-4 mr-2" />
-                            Review
+                            {t('tests.viewAnswers')}
                           </Button>
                         </div>
                       </Card>
@@ -486,40 +488,40 @@ const TestManagement = () => {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Test Submissions - {selectedTest?.title}
+              {t('tests.submissions')} - {selectedTest?.title}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {submissions.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No submissions yet
+                {t('tests.noSubmissions')}
               </p>
             ) : (
               submissions.map((sub) => (
                 <Card key={sub.id} className="p-4">
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Name</p>
+                      <p className="text-muted-foreground">{t('tests.name')}</p>
                       <p className="font-medium">{sub.staff_name}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Location</p>
+                      <p className="text-muted-foreground">{t('tests.location')}</p>
                       <p className="font-medium">{sub.staff_location}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Score</p>
+                      <p className="text-muted-foreground">{t('tests.score')}</p>
                       <p className="font-medium">{sub.score}%</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Result</p>
+                      <p className="text-muted-foreground">{t('tests.status')}</p>
                       {sub.passed ? (
-                        <Badge variant="default">Passed</Badge>
+                        <Badge variant="default">{t('tests.passed')}</Badge>
                       ) : (
-                        <Badge variant="destructive">Failed</Badge>
+                        <Badge variant="destructive">{t('tests.failed')}</Badge>
                       )}
                     </div>
                       <div>
-                        <p className="text-muted-foreground">Submitted</p>
+                        <p className="text-muted-foreground">{t('tests.date')}</p>
                         <p className="font-medium">
                           {format(new Date(sub.completed_at), "PP")}
                         </p>
@@ -532,7 +534,7 @@ const TestManagement = () => {
                         onClick={() => loadSubmissionDetails(sub)}
                       >
                         <FileText className="h-4 w-4 mr-2" />
-                        Review Answers
+                        {t('tests.viewAnswers')}
                       </Button>
                     </div>
                   </Card>
