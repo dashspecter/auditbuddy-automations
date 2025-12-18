@@ -10,8 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 const StaffShifts = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("open-shifts");
 
   return (
@@ -19,16 +21,16 @@ const StaffShifts = () => {
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">Shifts & Swaps</h1>
+          <h1 className="text-xl font-bold mb-3">{t('staffShifts.title')}</h1>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="open-shifts" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Open Shifts
+                {t('staffShifts.openShifts')}
               </TabsTrigger>
               <TabsTrigger value="swap-requests" className="flex items-center gap-2">
                 <Repeat className="h-4 w-4" />
-                Swaps
+                {t('staffShifts.swaps')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -52,6 +54,7 @@ const StaffShifts = () => {
 
 // Open Shifts Content
 const OpenShiftsContent = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [employee, setEmployee] = useState<any>(null);
@@ -105,10 +108,10 @@ const OpenShiftsContent = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["open-shifts"] });
       queryClient.invalidateQueries({ queryKey: ["staff-shifts"] });
-      toast.success("Shift claimed! The shift has been added to your schedule.");
+      toast.success(t('staffShifts.shiftClaimed'));
     },
     onError: () => {
-      toast.error("Could not claim shift.");
+      toast.error(t('staffShifts.couldNotClaim'));
     },
   });
 
@@ -125,7 +128,7 @@ const OpenShiftsContent = () => {
       <div className="p-4">
         <Card className="p-8 text-center">
           <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">No open shifts available</p>
+          <p className="text-muted-foreground">{t('staffShifts.noOpenShifts')}</p>
         </Card>
       </div>
     );
@@ -146,7 +149,7 @@ const OpenShiftsContent = () => {
                 <span>{shift.start_time?.slice(0, 5)} - {shift.end_time?.slice(0, 5)}</span>
               </div>
             </div>
-            <Badge variant="secondary">Open</Badge>
+            <Badge variant="secondary">{t('staffShifts.open')}</Badge>
           </div>
           {shift.locations?.name && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
@@ -160,7 +163,7 @@ const OpenShiftsContent = () => {
             onClick={() => claimShift.mutate(shift.id)}
             disabled={claimShift.isPending}
           >
-            Claim This Shift
+            {t('staffShifts.claimShift')}
           </Button>
         </Card>
       ))}
@@ -170,6 +173,7 @@ const OpenShiftsContent = () => {
 
 // Swap Requests Content
 const SwapRequestsContent = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [employee, setEmployee] = useState<any>(null);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
@@ -228,7 +232,7 @@ const SwapRequestsContent = () => {
       setOutgoingRequests(outgoing || []);
     } catch (error: any) {
       console.error("Error loading data:", error);
-      toast.error("Failed to load swap requests");
+      toast.error(t('staffShifts.failedLoadSwaps'));
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +272,7 @@ const SwapRequestsContent = () => {
           })
           .eq("id", requestId);
 
-        toast.success("Shift swap completed successfully!");
+        toast.success(t('staffShifts.swapCompleted'));
       } else if (accept) {
         await supabase
           .from("shift_swap_requests")
@@ -277,7 +281,7 @@ const SwapRequestsContent = () => {
             target_responded_at: new Date().toISOString()
           })
           .eq("id", requestId);
-        toast.info("You've accepted the swap. Waiting for manager approval.");
+        toast.info(t('staffShifts.acceptedWaitingManager'));
       } else {
         await supabase
           .from("shift_swap_requests")
@@ -288,21 +292,21 @@ const SwapRequestsContent = () => {
             responded_at: new Date().toISOString()
           })
           .eq("id", requestId);
-        toast.success("Swap request declined.");
+        toast.success(t('staffShifts.swapDeclined'));
       }
       loadData();
     } catch (error: any) {
-      toast.error("Failed to respond to request: " + error.message);
+      toast.error(t('staffShifts.failedRespond') + ": " + error.message);
     }
   };
 
   const cancelRequest = async (requestId: string) => {
     try {
       await supabase.from("shift_swap_requests").update({ status: "cancelled" }).eq("id", requestId);
-      toast.success("Swap request cancelled");
+      toast.success(t('staffShifts.swapCancelled'));
       loadData();
     } catch (error) {
-      toast.error("Failed to cancel request");
+      toast.error(t('staffShifts.failedCancel'));
     }
   };
 
@@ -318,11 +322,11 @@ const SwapRequestsContent = () => {
     <div className="p-4 space-y-6">
       {/* Incoming Requests */}
       <div>
-        <h2 className="font-semibold mb-3">Incoming Requests</h2>
+        <h2 className="font-semibold mb-3">{t('staffShifts.incomingRequests')}</h2>
         {incomingRequests.length === 0 ? (
           <Card className="p-6 text-center">
             <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No incoming swap requests</p>
+            <p className="text-sm text-muted-foreground">{t('staffShifts.noIncoming')}</p>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -338,16 +342,16 @@ const SwapRequestsContent = () => {
                     )}
                   </div>
                   <Badge variant={req.status === "pending_manager_approval" ? "outline" : "secondary"}>
-                    {req.status === "pending_manager_approval" ? "Pending Manager" : "Pending"}
+                    {req.status === "pending_manager_approval" ? t('staffShifts.pendingManager') : t('staffShifts.pending')}
                   </Badge>
                 </div>
                 {req.status === "pending" && !req.requires_manager_approval && (
                   <div className="flex gap-2 mt-3">
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => respondToRequest(req.id, false, req)}>
-                      <X className="h-4 w-4 mr-1" /> Decline
+                      <X className="h-4 w-4 mr-1" /> {t('staffShifts.decline')}
                     </Button>
                     <Button size="sm" className="flex-1" onClick={() => respondToRequest(req.id, true, req)}>
-                      <Check className="h-4 w-4 mr-1" /> Accept
+                      <Check className="h-4 w-4 mr-1" /> {t('staffShifts.accept')}
                     </Button>
                   </div>
                 )}
@@ -359,11 +363,11 @@ const SwapRequestsContent = () => {
 
       {/* Outgoing Requests */}
       <div>
-        <h2 className="font-semibold mb-3">My Requests</h2>
+        <h2 className="font-semibold mb-3">{t('staffShifts.myRequests')}</h2>
         {outgoingRequests.length === 0 ? (
           <Card className="p-6 text-center">
             <ArrowLeftRight className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No outgoing swap requests</p>
+            <p className="text-sm text-muted-foreground">{t('staffShifts.noOutgoing')}</p>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -381,7 +385,7 @@ const SwapRequestsContent = () => {
                     <Badge variant={req.status === "pending_manager_approval" ? "outline" : "secondary"}>
                       {req.status}
                     </Badge>
-                    <Button variant="ghost" size="sm" onClick={() => cancelRequest(req.id)}>Cancel</Button>
+                    <Button variant="ghost" size="sm" onClick={() => cancelRequest(req.id)}>{t('common.cancel')}</Button>
                   </div>
                 </div>
               </Card>
