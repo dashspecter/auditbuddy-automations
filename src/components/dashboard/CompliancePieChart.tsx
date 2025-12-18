@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const COMPLIANCE_THRESHOLD = 80;
 const COLORS = {
@@ -10,6 +11,7 @@ const COLORS = {
 };
 
 export const CompliancePieChart = () => {
+  const { t } = useTranslation();
   const { data: audits, isLoading } = useLocationAudits();
 
   const { pieData, averageScore } = useMemo(() => {
@@ -23,18 +25,18 @@ export const CompliancePieChart = () => {
 
     return {
       pieData: [
-        { name: 'Compliant', value: compliant },
-        { name: 'Non-Compliant', value: nonCompliant },
+        { name: t('dashboard.compliance.compliant'), value: compliant },
+        { name: t('dashboard.compliance.nonCompliant'), value: nonCompliant },
       ],
       averageScore: avgScore
     };
-  }, [audits]);
+  }, [audits, t]);
 
 
   if (isLoading) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Overall Compliance</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('dashboard.compliance.title')}</h3>
         <div className="flex items-center justify-center h-[300px]">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -45,9 +47,9 @@ export const CompliancePieChart = () => {
   if (!audits || audits.length === 0) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Overall Compliance</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('dashboard.compliance.title')}</h3>
         <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-          No audit data available
+          {t('dashboard.compliance.noData')}
         </div>
       </Card>
     );
@@ -57,15 +59,15 @@ export const CompliancePieChart = () => {
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Overall Compliance</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('dashboard.compliance.title')}</h3>
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center p-4 bg-secondary/50 rounded-lg">
           <span className="text-3xl font-bold">{averageScore}%</span>
-          <p className="text-sm text-muted-foreground mt-1">Average Score</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('dashboard.stats.averageScore')}</p>
         </div>
         <div className="text-center p-4 bg-secondary/50 rounded-lg">
           <span className="text-3xl font-bold">{compliantPercentage}%</span>
-          <p className="text-sm text-muted-foreground mt-1">Meet Threshold ({COMPLIANCE_THRESHOLD}%)</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('dashboard.compliance.meetThreshold', { threshold: COMPLIANCE_THRESHOLD })}</p>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={300}>
