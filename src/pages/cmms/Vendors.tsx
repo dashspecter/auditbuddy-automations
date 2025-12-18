@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Building2, Mail, Phone, MapPin, Archive } from 'lucide-react';
 import { useCmmsVendors, useCreateCmmsVendor, useUpdateCmmsVendor } from '@/hooks/useCmmsVendors';
+import { useTranslation } from 'react-i18next';
 
 export default function Vendors() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -48,20 +50,20 @@ export default function Vendors() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Vendors</h1>
-          <p className="text-muted-foreground">Manage external service providers and suppliers</p>
+          <h1 className="text-3xl font-bold">{t('cmms.vendorsPage.title')}</h1>
+          <p className="text-muted-foreground">{t('cmms.vendorsPage.subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Add Vendor</Button>
+            <Button><Plus className="h-4 w-4 mr-2" />{t('cmms.vendorsPage.addVendor')}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Vendor</DialogTitle>
+              <DialogTitle>{t('cmms.vendorsPage.addNewVendor')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label>Company Name *</Label>
+                <Label>{t('cmms.vendorsPage.form.companyName')} *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -69,7 +71,7 @@ export default function Vendors() {
                 />
               </div>
               <div>
-                <Label>Contact Person</Label>
+                <Label>{t('cmms.vendorsPage.form.contactPerson')}</Label>
                 <Input
                   value={formData.contact_name}
                   onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
@@ -77,7 +79,7 @@ export default function Vendors() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Email</Label>
+                  <Label>{t('cmms.vendorsPage.form.email')}</Label>
                   <Input
                     type="email"
                     value={formData.email}
@@ -85,7 +87,7 @@ export default function Vendors() {
                   />
                 </div>
                 <div>
-                  <Label>Phone</Label>
+                  <Label>{t('cmms.vendorsPage.form.phone')}</Label>
                   <Input
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -93,7 +95,7 @@ export default function Vendors() {
                 </div>
               </div>
               <div>
-                <Label>Notes</Label>
+                <Label>{t('cmms.vendorsPage.form.notes')}</Label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -101,7 +103,7 @@ export default function Vendors() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={createVendor.isPending}>
-                {createVendor.isPending ? 'Creating...' : 'Create Vendor'}
+                {createVendor.isPending ? t('cmms.vendorsPage.creating') : t('cmms.vendorsPage.createVendor')}
               </Button>
             </form>
           </DialogContent>
@@ -111,7 +113,7 @@ export default function Vendors() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search vendors..."
+          placeholder={t('cmms.vendorsPage.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
@@ -119,13 +121,13 @@ export default function Vendors() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading vendors...</div>
+        <div className="text-center py-8 text-muted-foreground">{t('cmms.vendorsPage.loading')}</div>
       ) : filteredVendors.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No vendors found</h3>
-            <p className="text-muted-foreground">Add your first vendor to get started</p>
+            <h3 className="text-lg font-medium">{t('cmms.vendorsPage.noVendors')}</h3>
+            <p className="text-muted-foreground">{t('cmms.vendorsPage.noVendorsDescription')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -139,7 +141,7 @@ export default function Vendors() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleArchive(vendor.id)}
-                    title="Archive vendor"
+                    title={t('cmms.vendorsPage.archiveVendor')}
                   >
                     <Archive className="h-4 w-4" />
                   </Button>

@@ -24,8 +24,10 @@ import {
   AreaChart
 } from 'recharts';
 import { Loader2, Clock, TrendingUp, Wrench, Package } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function CmmsReporting() {
+  const { t } = useTranslation();
   const { data: woTrends, isLoading: loadingTrends } = useWorkOrderTrends(6);
   const { data: assetHealth, isLoading: loadingHealth } = useAssetHealthDistribution();
   const { data: woPriority, isLoading: loadingPriority } = useWorkOrdersByPriority();
@@ -35,15 +37,15 @@ export default function CmmsReporting() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">CMMS Reports & Analytics</h1>
-        <p className="text-muted-foreground">Maintenance performance insights and trends</p>
+        <h1 className="text-3xl font-bold">{t('cmms.reporting.title')}</h1>
+        <p className="text-muted-foreground">{t('cmms.reporting.subtitle')}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Completion Time</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('cmms.reporting.avgCompletionTime')}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -52,7 +54,7 @@ export default function CmmsReporting() {
             ) : (
               <>
                 <div className="text-2xl font-bold">{completionStats?.avgHours || 0}h</div>
-                <p className="text-xs text-muted-foreground">across all work orders</p>
+                <p className="text-xs text-muted-foreground">{t('cmms.reporting.acrossAllWorkOrders')}</p>
               </>
             )}
           </CardContent>
@@ -60,7 +62,7 @@ export default function CmmsReporting() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical Avg</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('cmms.reporting.criticalAvg')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -71,7 +73,7 @@ export default function CmmsReporting() {
                 <div className="text-2xl font-bold">
                   {Math.round((completionStats?.byPriority?.critical || 0) * 10) / 10}h
                 </div>
-                <p className="text-xs text-muted-foreground">critical priority</p>
+                <p className="text-xs text-muted-foreground">{t('cmms.reporting.criticalPriority')}</p>
               </>
             )}
           </CardContent>
@@ -79,7 +81,7 @@ export default function CmmsReporting() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority Avg</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('cmms.reporting.highPriorityAvg')}</CardTitle>
             <Wrench className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -90,7 +92,7 @@ export default function CmmsReporting() {
                 <div className="text-2xl font-bold">
                   {Math.round((completionStats?.byPriority?.high || 0) * 10) / 10}h
                 </div>
-                <p className="text-xs text-muted-foreground">high priority</p>
+                <p className="text-xs text-muted-foreground">{t('cmms.reporting.highPriority')}</p>
               </>
             )}
           </CardContent>
@@ -98,7 +100,7 @@ export default function CmmsReporting() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Medium Priority Avg</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('cmms.reporting.mediumPriorityAvg')}</CardTitle>
             <Package className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -109,7 +111,7 @@ export default function CmmsReporting() {
                 <div className="text-2xl font-bold">
                   {Math.round((completionStats?.byPriority?.medium || 0) * 10) / 10}h
                 </div>
-                <p className="text-xs text-muted-foreground">medium priority</p>
+                <p className="text-xs text-muted-foreground">{t('cmms.reporting.mediumPriority')}</p>
               </>
             )}
           </CardContent>
@@ -120,8 +122,8 @@ export default function CmmsReporting() {
         {/* Work Order Trends */}
         <Card>
           <CardHeader>
-            <CardTitle>Work Order Trends</CardTitle>
-            <CardDescription>Created vs completed over 6 months</CardDescription>
+            <CardTitle>{t('cmms.reporting.woTrends')}</CardTitle>
+            <CardDescription>{t('cmms.reporting.woTrendsDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingTrends ? (
@@ -143,7 +145,7 @@ export default function CmmsReporting() {
                     stroke="hsl(var(--chart-1))" 
                     fill="hsl(var(--chart-1))"
                     fillOpacity={0.6}
-                    name="Created"
+                    name={t('cmms.reporting.created')}
                   />
                   <Area 
                     type="monotone" 
@@ -152,7 +154,7 @@ export default function CmmsReporting() {
                     stroke="hsl(var(--chart-2))" 
                     fill="hsl(var(--chart-2))"
                     fillOpacity={0.6}
-                    name="Completed"
+                    name={t('cmms.reporting.completed')}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -163,8 +165,8 @@ export default function CmmsReporting() {
         {/* Asset Health Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Asset Health Distribution</CardTitle>
-            <CardDescription>Current status of all assets</CardDescription>
+            <CardTitle>{t('cmms.reporting.assetHealthDist')}</CardTitle>
+            <CardDescription>{t('cmms.reporting.assetHealthDistDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingHealth ? (
@@ -192,7 +194,7 @@ export default function CmmsReporting() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No asset data available
+                {t('cmms.reporting.noAssetData')}
               </div>
             )}
           </CardContent>
@@ -201,8 +203,8 @@ export default function CmmsReporting() {
         {/* Work Orders by Priority */}
         <Card>
           <CardHeader>
-            <CardTitle>Open Work Orders by Priority</CardTitle>
-            <CardDescription>Current backlog breakdown</CardDescription>
+            <CardTitle>{t('cmms.reporting.openWoByPriority')}</CardTitle>
+            <CardDescription>{t('cmms.reporting.openWoByPriorityDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingPriority ? (
@@ -217,9 +219,9 @@ export default function CmmsReporting() {
                   <YAxis dataKey="priority" type="category" fontSize={12} width={80} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="open" stackId="a" fill="hsl(var(--chart-1))" name="Open" />
-                  <Bar dataKey="in_progress" stackId="a" fill="hsl(var(--chart-3))" name="In Progress" />
-                  <Bar dataKey="on_hold" stackId="a" fill="hsl(var(--chart-4))" name="On Hold" />
+                  <Bar dataKey="open" stackId="a" fill="hsl(var(--chart-1))" name={t('cmms.reporting.open')} />
+                  <Bar dataKey="in_progress" stackId="a" fill="hsl(var(--chart-3))" name={t('cmms.reporting.inProgress')} />
+                  <Bar dataKey="on_hold" stackId="a" fill="hsl(var(--chart-4))" name={t('cmms.reporting.onHold')} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -229,8 +231,8 @@ export default function CmmsReporting() {
         {/* Parts Usage Trend */}
         <Card>
           <CardHeader>
-            <CardTitle>Parts Consumption</CardTitle>
-            <CardDescription>Monthly parts usage trend</CardDescription>
+            <CardTitle>{t('cmms.reporting.partsConsumption')}</CardTitle>
+            <CardDescription>{t('cmms.reporting.partsConsumptionDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingParts ? (
@@ -250,7 +252,7 @@ export default function CmmsReporting() {
                     stroke="hsl(var(--chart-5))" 
                     strokeWidth={2}
                     dot={{ fill: 'hsl(var(--chart-5))' }}
-                    name="Parts Used"
+                    name={t('cmms.reporting.partsUsed')}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -261,8 +263,8 @@ export default function CmmsReporting() {
         {/* Reactive vs Preventive */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Reactive vs Preventive Maintenance</CardTitle>
-            <CardDescription>Work order type distribution over time</CardDescription>
+            <CardTitle>{t('cmms.reporting.reactiveVsPreventive')}</CardTitle>
+            <CardDescription>{t('cmms.reporting.reactiveVsPreventiveDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingTrends ? (
@@ -277,8 +279,8 @@ export default function CmmsReporting() {
                   <YAxis fontSize={12} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="reactive" fill="hsl(var(--chart-1))" name="Reactive" />
-                  <Bar dataKey="preventive" fill="hsl(var(--chart-2))" name="Preventive" />
+                  <Bar dataKey="reactive" fill="hsl(var(--chart-1))" name={t('cmms.reporting.reactive')} />
+                  <Bar dataKey="preventive" fill="hsl(var(--chart-2))" name={t('cmms.reporting.preventiveLabel')} />
                 </BarChart>
               </ResponsiveContainer>
             )}
