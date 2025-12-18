@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function PayrollBatches() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<PayrollBatch | null>(null);
@@ -33,7 +35,7 @@ export default function PayrollBatches() {
 
   const handlePreparePayroll = async () => {
     if (!newPeriod.start || !newPeriod.end) {
-      toast.error("Please select start and end dates");
+      toast.error(t('workforce.payrollBatches.selectDates'));
       return;
     }
 
@@ -42,12 +44,12 @@ export default function PayrollBatches() {
         periodStart: newPeriod.start,
         periodEnd: newPeriod.end,
       });
-      toast.success("Payroll batch prepared");
+      toast.success(t('workforce.payrollBatches.batchPrepared'));
       setIsDialogOpen(false);
       setNewPeriod({ start: "", end: "" });
       refetch();
     } catch (error: any) {
-      toast.error(error.message || "Failed to prepare payroll");
+      toast.error(error.message || t('workforce.payrollBatches.failedPrepare'));
     }
   };
 
@@ -57,9 +59,9 @@ export default function PayrollBatches() {
         id: batchId,
         status: newStatus as any,
       });
-      toast.success("Batch status updated");
+      toast.success(t('workforce.payrollBatches.statusUpdated'));
     } catch (error: any) {
-      toast.error(error.message || "Failed to update status");
+      toast.error(error.message || t('workforce.payrollBatches.failedUpdate'));
     }
   };
 
@@ -72,8 +74,8 @@ export default function PayrollBatches() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Payroll Batches</h1>
-          <p className="text-muted-foreground">Manage payroll processing and employee payments</p>
+          <h1 className="text-3xl font-bold">{t('workforce.payrollBatches.title')}</h1>
+          <p className="text-muted-foreground">{t('workforce.payrollBatches.subtitle')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

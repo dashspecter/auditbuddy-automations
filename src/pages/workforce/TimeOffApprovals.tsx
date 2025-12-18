@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -35,6 +36,7 @@ interface TimeOffRequest {
 }
 
 const TimeOffApprovals = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,8 +168,8 @@ const TimeOffApprovals = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Time Off Requests</h2>
-          <p className="text-muted-foreground text-sm sm:text-base">Review and manage employee time off requests</p>
+          <h2 className="text-xl sm:text-2xl font-bold">{t('workforce.timeOff.title')}</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">{t('workforce.timeOff.subtitle')}</p>
         </div>
       </div>
 
@@ -175,14 +177,14 @@ const TimeOffApprovals = () => {
         <TabsList>
           <TabsTrigger value="pending">
             <Clock className="h-4 w-4 mr-2" />
-            Pending
+            {t('workforce.timeOff.pending')}
             {requests.length > 0 && activeTab === "pending" && (
               <Badge variant="secondary" className="ml-2">{requests.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="history">
             <Calendar className="h-4 w-4 mr-2" />
-            History
+            {t('workforce.timeOff.history')}
           </TabsTrigger>
         </TabsList>
 
@@ -190,7 +192,7 @@ const TimeOffApprovals = () => {
           {requests.length === 0 ? (
             <Card className="p-8 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No pending time off requests</p>
+              <p className="text-muted-foreground">{t('workforce.timeOff.noPending')}</p>
             </Card>
           ) : (
             requests.map((request) => (

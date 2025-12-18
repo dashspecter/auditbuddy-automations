@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope, Info } from "lucide-react";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/select";
 
 const Payroll = () => {
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
@@ -120,19 +122,19 @@ const Payroll = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Payroll Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{t('workforce.payroll.title')}</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Calculate pay from shifts with attendance tracking
+            {t('workforce.payroll.subtitle')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Locations" />
+              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -142,7 +144,7 @@ const Payroll = () => {
           </Select>
           <Button className="gap-2 w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
             <Calendar className="h-4 w-4" />
-            Create Pay Period
+            {t('workforce.payroll.createPayPeriod')}
           </Button>
         </div>
       </div>
@@ -152,16 +154,16 @@ const Payroll = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                Current Period
+                {t('workforce.payroll.currentPeriod')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">Total Pay Calculation</p>
-                    <p className="text-xs">Sum of all employees' pay for this period.</p>
-                    <p className="text-xs mt-1"><strong>Formula:</strong> Hours Worked × Hourly Rate + Overtime Premium</p>
-                    <p className="text-xs mt-1"><strong>Source:</strong> Shift assignments with clock-in records</p>
+                    <p className="font-semibold mb-1">{t('workforce.payroll.totalPayCalc')}</p>
+                    <p className="text-xs">{t('workforce.payroll.totalPayDesc')}</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.formula')}:</strong> Hours Worked × Hourly Rate + Overtime Premium</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.source')}:</strong> Shift assignments with clock-in records</p>
                   </TooltipContent>
                 </Tooltip>
               </CardTitle>
@@ -178,38 +180,38 @@ const Payroll = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                Scheduled / Actual Hours
+                {t('workforce.payroll.scheduledActualHours')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">Hours Breakdown</p>
-                    <p className="text-xs"><strong>Scheduled:</strong> Total hours from all shift assignments</p>
-                    <p className="text-xs mt-1"><strong>Actual:</strong> Hours worked (only counts shifts with clock-in)</p>
-                    <p className="text-xs mt-1"><strong>Source:</strong> Shifts table + Attendance logs</p>
+                    <p className="font-semibold mb-1">{t('workforce.payroll.hoursBreakdown')}</p>
+                    <p className="text-xs"><strong>{t('workforce.payroll.scheduled')}:</strong> Total hours from all shift assignments</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.actual')}:</strong> Hours worked (only counts shifts with clock-in)</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.source')}:</strong> Shifts table + Attendance logs</p>
                   </TooltipContent>
                 </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalScheduledHours.toFixed(1)} / {totalActualHours.toFixed(1)}</div>
-              <p className="text-xs text-muted-foreground mt-1">hours</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('workforce.payroll.hours')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Overtime
+                {t('workforce.payroll.overtime')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">Overtime Hours</p>
-                    <p className="text-xs">Hours worked beyond expected weekly hours.</p>
-                    <p className="text-xs mt-1"><strong>Formula:</strong> Actual Hours - Expected Weekly Hours (if positive)</p>
-                    <p className="text-xs mt-1"><strong>Pay Rate:</strong> Uses overtime rate from employee profile (if set)</p>
+                    <p className="font-semibold mb-1">{t('workforce.payroll.overtimeHours')}</p>
+                    <p className="text-xs">{t('workforce.payroll.overtimeDesc')}</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.formula')}:</strong> Actual Hours - Expected Weekly Hours (if positive)</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.payRate')}:</strong> Uses overtime rate from employee profile (if set)</p>
                   </TooltipContent>
                 </Tooltip>
                 {totalOvertimeHours > 0 && <TrendingUp className="h-4 w-4 text-green-500" />}
@@ -224,16 +226,16 @@ const Payroll = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Undertime
+                {t('workforce.payroll.undertime')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">Undertime Hours</p>
-                    <p className="text-xs">Hours below expected weekly hours.</p>
-                    <p className="text-xs mt-1"><strong>Formula:</strong> Expected Weekly Hours - Actual Hours (if positive)</p>
-                    <p className="text-xs mt-1"><strong>Note:</strong> Set expected hours in employee profile</p>
+                    <p className="font-semibold mb-1">{t('workforce.payroll.undertimeHours')}</p>
+                    <p className="text-xs">{t('workforce.payroll.undertimeDesc')}</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.formula')}:</strong> Expected Weekly Hours - Actual Hours (if positive)</p>
+                    <p className="text-xs mt-1"><strong>Note:</strong> {t('workforce.payroll.setExpectedNote')}</p>
                   </TooltipContent>
                 </Tooltip>
                 {totalUndertimeHours > 0 && <TrendingDown className="h-4 w-4 text-orange-500" />}
@@ -248,15 +250,15 @@ const Payroll = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Late Check-ins
+                {t('workforce.payroll.lateCheckIns')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70 hover:text-primary" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">Late Arrivals</p>
-                    <p className="text-xs">Count of shifts where employee clocked in after scheduled start time.</p>
-                    <p className="text-xs mt-1"><strong>Source:</strong> Attendance logs with is_late = true</p>
+                    <p className="font-semibold mb-1">{t('workforce.payroll.lateArrivals')}</p>
+                    <p className="text-xs">{t('workforce.payroll.lateDesc')}</p>
+                    <p className="text-xs mt-1"><strong>{t('workforce.payroll.source')}:</strong> Attendance logs with is_late = true</p>
                   </TooltipContent>
                 </Tooltip>
                 {totalLateCount > 0 && <AlertTriangle className="h-4 w-4 text-warning" />}
@@ -273,9 +275,10 @@ const Payroll = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="current">Staff Summary</TabsTrigger>
-          <TabsTrigger value="locations">By Location</TabsTrigger>
-          <TabsTrigger value="daily">Daily Breakdown</TabsTrigger>
+          <TabsTrigger value="current">{t('workforce.payroll.staffSummary')}</TabsTrigger>
+          <TabsTrigger value="locations">{t('workforce.payroll.byLocation')}</TabsTrigger>
+          <TabsTrigger value="daily">{t('workforce.payroll.dailyBreakdown')}</TabsTrigger>
+          <TabsTrigger value="history">{t('workforce.payroll.historyTab')}</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         

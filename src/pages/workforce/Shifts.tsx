@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy } from "lucide-react";
@@ -17,6 +18,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Shifts = () => {
+  const { t } = useTranslation();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
@@ -47,12 +49,12 @@ const Shifts = () => {
 
   const getEmployeeName = (staffId: string) => {
     const employee = employees.find(e => e.id === staffId);
-    return employee?.full_name || 'Unknown';
+    return employee?.full_name || t('common.unknown');
   };
 
   const getLocationName = (locationId: string) => {
     const location = locations.find(l => l.id === locationId);
-    return location?.name || 'Unknown Location';
+    return location?.name || t('workforce.shifts.unknownLocation');
   };
 
   const getAssignedEmployees = (shift: any) => {
@@ -69,9 +71,9 @@ const Shifts = () => {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Shift Scheduling</h1>
+              <h1 className="text-2xl font-bold">{t('workforce.shifts.title')}</h1>
               <p className="text-muted-foreground text-sm">
-                Create and manage shifts for your team
+                {t('workforce.shifts.subtitle')}
               </p>
             </div>
           </div>
@@ -83,7 +85,7 @@ const Shifts = () => {
               onClick={() => setCopyDialogOpen(true)}
             >
               <Copy className="h-4 w-4" />
-              Copy
+              {t('workforce.shifts.copy')}
             </Button>
             <Button 
               variant="outline" 
@@ -94,7 +96,7 @@ const Shifts = () => {
               <Badge variant="destructive" className="mr-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
                 {pendingCount || 0}
               </Badge>
-              Pending
+              {t('workforce.shifts.pending')}
             </Button>
           </div>
         </div>
@@ -118,9 +120,9 @@ const Shifts = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Shift Scheduling</h1>
+          <h1 className="text-3xl font-bold">{t('workforce.shifts.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Create and manage shifts for your team
+            {t('workforce.shifts.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -128,11 +130,11 @@ const Shifts = () => {
             <TabsList>
               <TabsTrigger value="day" className="gap-1">
                 <CalendarIcon className="h-4 w-4" />
-                Day
+                {t('workforce.shifts.day')}
               </TabsTrigger>
               <TabsTrigger value="week" className="gap-1">
                 <Columns3 className="h-4 w-4" />
-                Week
+                {t('workforce.shifts.week')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -142,7 +144,7 @@ const Shifts = () => {
             onClick={() => setCopyDialogOpen(true)}
           >
             <Copy className="h-4 w-4" />
-            <span className="hidden sm:inline">Copy Schedule</span>
+            <span className="hidden sm:inline">{t('workforce.shifts.copySchedule')}</span>
           </Button>
           <Button 
             variant="outline" 
@@ -152,7 +154,7 @@ const Shifts = () => {
             <Badge variant="destructive" className="mr-1">
               {pendingCount || 0}
             </Badge>
-            Pending Approvals
+            {t('workforce.shifts.pendingApprovals')}
           </Button>
         </div>
       </div>
