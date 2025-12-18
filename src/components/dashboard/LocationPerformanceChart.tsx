@@ -2,8 +2,10 @@ import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 export const LocationPerformanceChart = () => {
+  const { t } = useTranslation();
   const { data: audits, isLoading } = useLocationAudits();
 
   const locationData = useMemo(() => {
@@ -32,7 +34,7 @@ export const LocationPerformanceChart = () => {
   if (isLoading) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Location Performance Trend</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('dashboard.charts.locationPerformanceTrend')}</h3>
         <div className="flex items-center justify-center h-[300px]">
           <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
@@ -42,7 +44,7 @@ export const LocationPerformanceChart = () => {
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Location Performance Trend</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('dashboard.charts.locationPerformanceTrend')}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={locationData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -65,7 +67,7 @@ export const LocationPerformanceChart = () => {
               border: '1px solid hsl(var(--border))',
               borderRadius: '8px'
             }}
-            formatter={(value: number) => [`${value}%`, 'Average Score']}
+            formatter={(value: number) => [`${value}%`, t('dashboard.charts.averageScore')]}
           />
           <Line 
             type="monotone" 
@@ -79,7 +81,7 @@ export const LocationPerformanceChart = () => {
               stroke: 'hsl(var(--background))'
             }}
             activeDot={{ r: 8 }}
-            name="Average Score"
+            name={t('dashboard.charts.averageScore')}
           />
         </LineChart>
       </ResponsiveContainer>
