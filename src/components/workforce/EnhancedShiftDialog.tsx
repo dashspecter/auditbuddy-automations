@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -53,6 +54,7 @@ export const EnhancedShiftDialog = ({
   shift,
   defaultDate,
 }: EnhancedShiftDialogProps) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     location_id: "",
     shift_date: "",
@@ -340,15 +342,15 @@ export const EnhancedShiftDialog = ({
     
     // Validate required fields
     if (!formData.location_id) {
-      toast.error("Please select a location");
+      toast.error(t('workforce.components.enhancedShiftDialog.selectLocationError'));
       return;
     }
     if (!formData.role) {
-      toast.error("Please select a role");
+      toast.error(t('workforce.components.enhancedShiftDialog.selectRoleError'));
       return;
     }
     if (!formData.shift_date) {
-      toast.error("Please select a date");
+      toast.error(t('workforce.components.enhancedShiftDialog.selectDateError'));
       return;
     }
     
@@ -495,14 +497,14 @@ export const EnhancedShiftDialog = ({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {shift ? "Edit Shift" : "Create Shift"}
+            {shift ? t('workforce.components.enhancedShiftDialog.editShift') : t('workforce.components.enhancedShiftDialog.createShift')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Location *</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.location')} *</Label>
               <Select
                 value={formData.location_id}
                 onValueChange={(value) =>
@@ -511,7 +513,7 @@ export const EnhancedShiftDialog = ({
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
+                  <SelectValue placeholder={t('workforce.components.enhancedShiftDialog.selectLocation')} />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location) => (
@@ -524,7 +526,7 @@ export const EnhancedShiftDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Date *</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.date')} *</Label>
               <Input
                 type="date"
                 value={formData.shift_date}
@@ -536,7 +538,7 @@ export const EnhancedShiftDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Role *</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.role')} *</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) =>
@@ -545,7 +547,7 @@ export const EnhancedShiftDialog = ({
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t('workforce.components.enhancedShiftDialog.selectRole')} />
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map((role) => (
@@ -559,10 +561,10 @@ export const EnhancedShiftDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="required_count">
-                Staff Needed for this Role *
+                {t('workforce.components.enhancedShiftDialog.staffNeeded')} *
                 {formData.role && (
                   <span className="text-xs text-muted-foreground block mt-1">
-                    Total {roles.find(r => r.name === formData.role)?.name || 'staff'} positions needed
+                    {String(t('workforce.components.enhancedShiftDialog.totalPositions', { role: roles.find(r => r.name === formData.role)?.name || 'staff' }))}
                   </span>
                 )}
               </Label>
@@ -581,16 +583,16 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Preset Selector */}
           <div className="space-y-2">
-            <Label>Shift Preset (Optional)</Label>
+            <Label>{t('workforce.components.enhancedShiftDialog.shiftPreset')}</Label>
             <Select
               value={selectedPreset || "custom"}
               onValueChange={handlePresetChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose a preset or set times manually" />
+                <SelectValue placeholder={t('workforce.components.enhancedShiftDialog.choosePreset')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="custom">Custom Times</SelectItem>
+                <SelectItem value="custom">{t('workforce.components.enhancedShiftDialog.customTimes')}</SelectItem>
                 {shiftPresets.map((preset) => (
                   <SelectItem key={preset.name} value={preset.name}>
                     {preset.name} ({preset.start_time} - {preset.end_time})
@@ -603,26 +605,26 @@ export const EnhancedShiftDialog = ({
           {/* Time Inputs */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Time *</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.startTime')} *</Label>
               <Input
                 type="time"
                 value={formData.start_time}
                 onChange={(e) => {
                   setFormData({ ...formData, start_time: e.target.value });
-                  setSelectedPreset("custom"); // Clear preset when manually editing
+                  setSelectedPreset("custom");
                 }}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>End Time *</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.endTime')} *</Label>
               <Input
                 type="time"
                 value={formData.end_time}
                 onChange={(e) => {
                   setFormData({ ...formData, end_time: e.target.value });
-                  setSelectedPreset("custom"); // Clear preset when manually editing
+                  setSelectedPreset("custom");
                 }}
                 required
               />
@@ -632,7 +634,7 @@ export const EnhancedShiftDialog = ({
           {/* Breaks Section */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Breaks</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.breaks')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -640,7 +642,7 @@ export const EnhancedShiftDialog = ({
                 onClick={handleAddBreak}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Add Break
+                {t('workforce.components.enhancedShiftDialog.addBreak')}
               </Button>
             </div>
             {breaks.map((breakItem, index) => (
@@ -651,7 +653,7 @@ export const EnhancedShiftDialog = ({
                   onChange={(e) => handleBreakChange(index, "start", e.target.value)}
                   className="flex-1"
                 />
-                <span>to</span>
+                <span>{t('workforce.components.enhancedShiftDialog.to')}</span>
                 <Input
                   type="time"
                   value={breakItem.end}
@@ -677,11 +679,11 @@ export const EnhancedShiftDialog = ({
               <AlertDescription>
                 {operatingHoursInfo.isClosed ? (
                   <span className="text-destructive font-medium">
-                    Location is closed on this day
+                    {t('workforce.components.enhancedShiftDialog.locationClosed')}
                   </span>
                 ) : (
                   <span>
-                    Operating hours: {operatingHoursInfo.openTime} - {operatingHoursInfo.closeTime}
+                    {t('workforce.components.enhancedShiftDialog.operatingHours')}: {operatingHoursInfo.openTime} - {operatingHoursInfo.closeTime}
                   </span>
                 )}
               </AlertDescription>
@@ -700,7 +702,7 @@ export const EnhancedShiftDialog = ({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Cannot create shifts on days when the location is closed
+                {t('workforce.components.enhancedShiftDialog.cannotCreate')}
               </AlertDescription>
             </Alert>
           )}
@@ -708,7 +710,7 @@ export const EnhancedShiftDialog = ({
           {/* Apply to Multiple Days */}
           {!shift && (
             <div className="space-y-2">
-              <Label>Apply to</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.applyTo')}</Label>
               <div className="flex gap-2">
                 {WEEKDAYS.map((day, index) => (
                   <Button
@@ -728,11 +730,11 @@ export const EnhancedShiftDialog = ({
           {/* Assign Employees */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Assign Specific Employees (Optional)</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.assignEmployees')}</Label>
               <div className="flex items-center gap-2">
                 {batchMode && (
                   <Badge variant="secondary">
-                    Batch Mode: {selectedEmployees.length} individual shifts
+                    {String(t('workforce.components.enhancedShiftDialog.batchMode', { count: selectedEmployees.length }))}
                   </Badge>
                 )}
                 {!batchMode && (
@@ -745,19 +747,19 @@ export const EnhancedShiftDialog = ({
                         : "outline"
                     }
                   >
-                    {selectedEmployees.length} / {formData.required_count} positions filled
+                    {String(t('workforce.components.enhancedShiftDialog.positionsFilled', { selected: selectedEmployees.length, required: formData.required_count }))}
                   </Badge>
                 )}
               </div>
             </div>
             {formData.role && !batchMode && (
               <p className="text-xs text-muted-foreground">
-                Assign specific employees to fill the {formData.required_count} {formData.role} positions needed for this shift
+                {String(t('workforce.components.enhancedShiftDialog.assignDescription', { count: formData.required_count, role: formData.role }))}
               </p>
             )}
             {batchMode && (
               <p className="text-xs text-muted-foreground">
-                Create individual shifts for each selected employee with customizable start/end times
+                {t('workforce.components.enhancedShiftDialog.batchDescription')}
               </p>
             )}
             <div className="flex flex-wrap gap-3">
@@ -768,7 +770,7 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => setAllowCrossDepartment(checked as boolean)}
                 />
                 <Label htmlFor="allow_cross_department" className="cursor-pointer text-xs font-normal">
-                  Show all roles
+                  {t('workforce.components.enhancedShiftDialog.showAllRoles')}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -778,7 +780,7 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => setShowAllLocations(checked as boolean)}
                 />
                 <Label htmlFor="show_all_locations" className="cursor-pointer text-xs font-normal">
-                  Show all locations
+                  {t('workforce.components.enhancedShiftDialog.showAllLocations')}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -788,7 +790,6 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => {
                     setBatchMode(checked as boolean);
                     if (checked) {
-                      // Initialize times for selected employees
                       const times: Record<string, { start_time: string; end_time: string }> = {};
                       selectedEmployees.forEach(empId => {
                         times[empId] = {
@@ -801,7 +802,7 @@ export const EnhancedShiftDialog = ({
                   }}
                 />
                 <Label htmlFor="batch_mode" className="cursor-pointer text-xs font-normal">
-                  Batch mode
+                  {t('workforce.components.enhancedShiftDialog.batchModeLabel')}
                 </Label>
               </div>
             </div>
@@ -809,7 +810,7 @@ export const EnhancedShiftDialog = ({
               <div className="space-y-3">
                 {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? "No available employees found" : (formData.location_id ? "No available employees at this location" : "Select a location first")}
+                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound') : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation') : t('workforce.components.enhancedShiftDialog.selectLocationFirst'))}
                   </p>
                 ) : (
                   availableEmployees
@@ -864,16 +865,15 @@ export const EnhancedShiftDialog = ({
                                   className="flex items-center gap-1 text-xs"
                                 >
                                   <AlertTriangle className="h-3 w-3" />
-                                  {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
+                                  {employeeShiftInfo[employee.id]?.hasConflict ? t('workforce.components.enhancedShiftWeekView.conflict') : t('workforce.components.enhancedShiftWeekView.hasShift')}
                                 </Badge>
                               </div>
                             )}
                           </div>
                           {isSelected && (
                             <div className="ml-6 space-y-3">
-                              {/* Individual Preset Selector */}
                               <div className="space-y-1">
-                                <Label className="text-xs">Quick Preset</Label>
+                                <Label className="text-xs">{t('workforce.components.enhancedShiftDialog.quickPreset')}</Label>
                                 <Select
                                   value={individualPresets[employee.id] || "custom"}
                                   onValueChange={(presetName) => {
@@ -913,7 +913,7 @@ export const EnhancedShiftDialog = ({
                               {/* Individual Time Inputs */}
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Start Time</Label>
+                                  <Label className="text-xs">{t('workforce.components.enhancedShiftDialog.startTime')}</Label>
                                   <Input
                                     type="time"
                                     value={times.start_time}
@@ -935,7 +935,7 @@ export const EnhancedShiftDialog = ({
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">End Time</Label>
+                                  <Label className="text-xs">{t('workforce.components.enhancedShiftDialog.endTime')}</Label>
                                   <Input
                                     type="time"
                                     value={times.end_time}
@@ -968,7 +968,7 @@ export const EnhancedShiftDialog = ({
               <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                 {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? "No available employees found" : (formData.location_id ? "No available employees at this location" : "Select a location first")}
+                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound') : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation') : t('workforce.components.enhancedShiftDialog.selectLocationFirst'))}
                   </p>
                 ) : (
                   availableEmployees
@@ -1010,8 +1010,8 @@ export const EnhancedShiftDialog = ({
                                 className="flex items-center gap-1 text-xs"
                               >
                                 <AlertTriangle className="h-3 w-3" />
-                                {employeeShiftInfo[employee.id]?.hasConflict ? "Conflict" : "Has shift"}
-                              </Badge>
+                                  {employeeShiftInfo[employee.id]?.hasConflict ? t('workforce.components.enhancedShiftWeekView.conflict') : t('workforce.components.enhancedShiftWeekView.hasShift')}
+                                </Badge>
                             </div>
                           )}
                         </div>
@@ -1022,12 +1022,12 @@ export const EnhancedShiftDialog = ({
             )}
             {!batchMode && selectedEmployees.length < parseInt(formData.required_count) && selectedEmployees.length > 0 && (
               <p className="text-xs text-amber-600 dark:text-amber-500">
-                ⚠️ {parseInt(formData.required_count) - selectedEmployees.length} more {formData.role || 'staff'} position{parseInt(formData.required_count) - selectedEmployees.length > 1 ? 's' : ''} still need to be filled
+                ⚠️ {String(t('workforce.components.enhancedShiftDialog.positionsNeeded', { count: parseInt(formData.required_count) - selectedEmployees.length, role: formData.role || 'staff' }))}
               </p>
             )}
             {!batchMode && selectedEmployees.length === 0 && formData.role && (
               <p className="text-xs text-muted-foreground">
-                💡 Leave unassigned to keep as an open shift that staff can claim
+                💡 {t('workforce.components.enhancedShiftDialog.leaveUnassigned')}
               </p>
             )}
           </div>
@@ -1043,13 +1043,13 @@ export const EnhancedShiftDialog = ({
                     setFormData({ ...formData, is_open_shift: checked as boolean })
                   }
                 />
-                <Label htmlFor="is_open_shift" className="cursor-pointer">Open Shift</Label>
+                <Label htmlFor="is_open_shift" className="cursor-pointer">{t('workforce.components.enhancedShiftDialog.openShift')}</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    <p>Makes this shift available for employees to claim. Useful when you need coverage but haven't assigned anyone yet.</p>
+                    <p>{t('workforce.components.enhancedShiftDialog.openShiftTooltip')}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1062,13 +1062,13 @@ export const EnhancedShiftDialog = ({
                     setFormData({ ...formData, is_published: checked as boolean })
                   }
                 />
-                <Label htmlFor="is_published" className="cursor-pointer">Published</Label>
+                <Label htmlFor="is_published" className="cursor-pointer">{t('workforce.components.enhancedShiftDialog.published')}</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    <p>When published, the shift becomes visible to assigned employees in their schedule. Unpublished shifts are only visible to managers.</p>
+                    <p>{t('workforce.components.enhancedShiftDialog.publishedTooltip')}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1077,13 +1077,13 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Notes */}
           <div className="space-y-2">
-            <Label>Shift Notes</Label>
+            <Label>{t('workforce.components.enhancedShiftDialog.shiftNotes')}</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Let the employee know any important details about this shift..."
+              placeholder={t('workforce.components.enhancedShiftDialog.notesPlaceholder')}
               rows={3}
             />
           </div>
@@ -1097,7 +1097,7 @@ export const EnhancedShiftDialog = ({
                   onClick={handleDelete}
                   disabled={deleteShift.isPending}
                 >
-                  Delete Shift
+                  {t('workforce.components.enhancedShiftDialog.deleteShift')}
                 </Button>
               )}
             </div>
@@ -1107,7 +1107,7 @@ export const EnhancedShiftDialog = ({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t('workforce.components.enhancedShiftDialog.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -1118,7 +1118,7 @@ export const EnhancedShiftDialog = ({
                   (shiftValidation && !shiftValidation.isValid)
                 }
               >
-                {shift ? "Update" : "Create"} Shift
+                {shift ? t('workforce.components.enhancedShiftDialog.update') : t('workforce.components.enhancedShiftDialog.create')} {t('workforce.components.enhancedShiftDialog.shift')}
               </Button>
             </div>
           </div>
