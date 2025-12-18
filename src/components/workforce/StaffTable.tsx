@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useEmployeesPaginated, type Employee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -14,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
 export const StaffTable = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("");
@@ -116,19 +118,19 @@ export const StaffTable = () => {
         />
         <div className="space-y-1 border-t pt-3">
           <MobileCardRow
-            label="Status"
+            label={t('workforce.components.staffTable.status')}
             value={
               <Badge variant={member.status === "active" ? "default" : "secondary"} className="text-xs">
-                {member.status}
+                {member.status === "active" ? t('workforce.components.staffTable.active') : t('workforce.components.staffTable.inactive')}
               </Badge>
             }
           />
           <MobileCardRow
-            label="Location"
+            label={t('workforce.components.staffTable.location')}
             value={
               hasMultipleLocations ? (
                 <Badge variant="secondary" className="text-xs">
-                  All ({totalLocationsCount})
+                  {t('workforce.components.staffTable.allLocationsCount', { count: totalLocationsCount })}
                 </Badge>
               ) : (
                 <span className="flex items-center gap-1 text-xs">
@@ -139,11 +141,11 @@ export const StaffTable = () => {
             }
           />
           {member.contract_type && (
-            <MobileCardRow label="Contract" value={member.contract_type} />
+            <MobileCardRow label={t('workforce.components.staffTable.contract')} value={member.contract_type} />
           )}
           {member.email && (
             <MobileCardRow
-              label="Email"
+              label={t('workforce.components.staffTable.contact')}
               value={
                 <span className="flex items-center gap-1 text-xs truncate max-w-[150px]">
                   <Mail className="h-3 w-3 flex-shrink-0" />
@@ -154,7 +156,7 @@ export const StaffTable = () => {
           )}
           {member.phone && (
             <MobileCardRow
-              label="Phone"
+              label={t('workforce.components.staffTable.contact')}
               value={
                 <span className="flex items-center gap-1 text-xs">
                   <Phone className="h-3 w-3" />
@@ -176,7 +178,7 @@ export const StaffTable = () => {
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, role, or email..."
+              placeholder={t('workforce.components.staffTable.searchPlaceholder')}
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -186,10 +188,10 @@ export const StaffTable = () => {
           <div className="grid grid-cols-3 gap-2">
             <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Location" />
+                <SelectValue placeholder={t('workforce.components.staffTable.location')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all">{t('workforce.components.staffTable.allLocations')}</SelectItem>
                 {locations?.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
@@ -200,10 +202,10 @@ export const StaffTable = () => {
 
             <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Role" />
+                <SelectValue placeholder={t('workforce.components.staffTable.role')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="all">{t('workforce.components.staffTable.allRoles')}</SelectItem>
                 {uniqueRoles.map((role) => (
                   <SelectItem key={role} value={role}>
                     {role}
@@ -214,12 +216,12 @@ export const StaffTable = () => {
 
             <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('workforce.components.staffTable.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">{t('workforce.components.staffTable.allStatus')}</SelectItem>
+                <SelectItem value="active">{t('workforce.components.staffTable.active')}</SelectItem>
+                <SelectItem value="inactive">{t('workforce.components.staffTable.inactive')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -231,8 +233,8 @@ export const StaffTable = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="h-4 w-4" />
               <span>
-                {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
-                {filteredStaff && ` • ${filteredStaff.length} result${filteredStaff.length !== 1 ? 's' : ''}`}
+                {t('workforce.components.staffTable.filtersActive', { count: activeFilterCount })}
+                {filteredStaff && ` • ${t('workforce.components.staffTable.results', { count: filteredStaff.length })}`}
               </span>
             </div>
             <Button
@@ -242,14 +244,14 @@ export const StaffTable = () => {
               className="h-8 text-xs"
             >
               <X className="h-3 w-3 mr-1" />
-              Clear all
+              {t('workforce.components.staffTable.clearAll')}
             </Button>
           </div>
         )}
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading staff...</div>
+        <div className="text-center py-8 text-muted-foreground">{t('workforce.components.staffTable.loadingStaff')}</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
         <>
           {isMobile ? (
@@ -261,13 +263,13 @@ export const StaffTable = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="hidden sm:table-cell">Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Contract</TableHead>
-                    <TableHead className="hidden lg:table-cell">Contact</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('workforce.components.staffTable.name')}</TableHead>
+                    <TableHead>{t('workforce.components.staffTable.role')}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{t('workforce.components.staffTable.location')}</TableHead>
+                    <TableHead>{t('workforce.components.staffTable.status')}</TableHead>
+                    <TableHead className="hidden md:table-cell">{t('workforce.components.staffTable.contract')}</TableHead>
+                    <TableHead className="hidden lg:table-cell">{t('workforce.components.staffTable.contact')}</TableHead>
+                    <TableHead className="text-right">{t('workforce.components.staffTable.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -299,7 +301,7 @@ export const StaffTable = () => {
                       <TableCell className="hidden sm:table-cell">
                         {hasMultipleLocations ? (
                           <Badge variant="secondary" className="text-xs">
-                            All Locations ({totalLocationsCount})
+                            {t('workforce.components.staffTable.allLocationsCount', { count: totalLocationsCount })}
                           </Badge>
                         ) : (
                           member.locations?.name || '-'
@@ -307,7 +309,7 @@ export const StaffTable = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                          {member.status}
+                          {member.status === "active" ? t('workforce.components.staffTable.active') : t('workforce.components.staffTable.inactive')}
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{member.contract_type}</TableCell>
@@ -326,12 +328,12 @@ export const StaffTable = () => {
                             }}
                           >
                             <Edit className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Edit</span>
+                            <span className="hidden sm:inline">{t('workforce.components.staffTable.edit')}</span>
                           </Button>
                           <Link to={`/workforce/staff/${member.id}`}>
                             <Button variant="ghost" size="sm">
                               <Eye className="h-4 w-4 sm:mr-2" />
-                              <span className="hidden sm:inline">View</span>
+                              <span className="hidden sm:inline">{t('workforce.components.staffTable.view')}</span>
                             </Button>
                           </Link>
                         </div>
@@ -347,7 +349,7 @@ export const StaffTable = () => {
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
               <div className="text-sm text-muted-foreground text-center sm:text-left">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+                {t('workforce.components.staffTable.showing', { from: ((currentPage - 1) * pageSize) + 1, to: Math.min(currentPage * pageSize, totalCount), total: totalCount })}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -358,7 +360,7 @@ export const StaffTable = () => {
                   className="h-10 sm:h-9"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-1">Previous</span>
+                  <span className="hidden sm:inline ml-1">{t('workforce.components.staffTable.previous')}</span>
                 </Button>
                 <div className="text-sm text-muted-foreground px-2">
                   {currentPage} / {totalPages}
@@ -370,7 +372,7 @@ export const StaffTable = () => {
                   disabled={currentPage === totalPages}
                   className="h-10 sm:h-9"
                 >
-                  <span className="hidden sm:inline mr-1">Next</span>
+                  <span className="hidden sm:inline mr-1">{t('workforce.components.staffTable.next')}</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -380,14 +382,14 @@ export const StaffTable = () => {
       ) : (
         <div className="text-center py-12 text-muted-foreground space-y-4">
           <div>
-            <p className="font-medium">No staff members found</p>
+            <p className="font-medium">{t('workforce.components.staffTable.noStaffFound')}</p>
             {activeFilterCount > 0 ? (
               <p className="text-sm mt-2">
-                No results match your current filters. Try adjusting or clearing them.
+                {t('workforce.components.staffTable.noResultsFilter')}
               </p>
             ) : (
               <p className="text-sm mt-2">
-                No staff members have been added yet.
+                {t('workforce.components.staffTable.noStaffAdded')}
               </p>
             )}
           </div>
@@ -398,7 +400,7 @@ export const StaffTable = () => {
               onClick={clearAllFilters}
             >
               <X className="h-4 w-4 mr-2" />
-              Clear all filters
+              {t('workforce.components.staffTable.clearAllFilters')}
             </Button>
           )}
         </div>
