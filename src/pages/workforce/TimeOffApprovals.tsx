@@ -215,7 +215,7 @@ const TimeOffApprovals = () => {
                       <div>
                         <div className="font-semibold">{request.employees.full_name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Requested {format(new Date(request.created_at), "MMM d, h:mm a")}
+                          {t('workforce.timeOff.requested')} {format(new Date(request.created_at), "MMM d, h:mm a")}
                         </div>
                       </div>
                       <Badge variant="outline" className="capitalize">
@@ -232,7 +232,7 @@ const TimeOffApprovals = () => {
                           </span>
                         </div>
                         <Badge variant="secondary">
-                          {calculateDays(request.start_date, request.end_date)} days
+                          {calculateDays(request.start_date, request.end_date)} {t('workforce.timeOff.days')}
                         </Badge>
                       </div>
                       {request.reason && (
@@ -244,7 +244,7 @@ const TimeOffApprovals = () => {
 
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-muted-foreground">
-                        Annual allocation: {request.employees.annual_vacation_days} days
+                        {t('workforce.timeOff.annualAllocation')}: {request.employees.annual_vacation_days} {t('workforce.timeOff.days')}
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -253,14 +253,14 @@ const TimeOffApprovals = () => {
                           onClick={() => handleAction(request, "reject")}
                         >
                           <X className="h-4 w-4 mr-1" />
-                          Reject
+                          {t('workforce.timeOff.reject')}
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleAction(request, "approve")}
                         >
                           <Check className="h-4 w-4 mr-1" />
-                          Approve
+                          {t('workforce.timeOff.approve')}
                         </Button>
                       </div>
                     </div>
@@ -275,7 +275,7 @@ const TimeOffApprovals = () => {
           {requests.length === 0 ? (
             <Card className="p-8 text-center">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No time off history</p>
+              <p className="text-muted-foreground">{t('workforce.timeOff.noHistory')}</p>
             </Card>
           ) : (
             requests.map((request) => (
@@ -331,12 +331,12 @@ const TimeOffApprovals = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {actionType === "approve" ? "Approve" : "Reject"} Time Off Request
+              {actionType === "approve" ? t('workforce.timeOff.approveRequest') : t('workforce.timeOff.rejectRequest')}
             </DialogTitle>
             <DialogDescription>
               {actionType === "approve" 
-                ? "This will approve the time off request and block shifts during these dates."
-                : "Provide a reason for rejecting this time off request."}
+                ? t('workforce.timeOff.approveDesc')
+                : t('workforce.timeOff.rejectDesc')}
             </DialogDescription>
           </DialogHeader>
 
@@ -346,17 +346,17 @@ const TimeOffApprovals = () => {
                 <div className="font-medium">{selectedRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
                   {format(new Date(selectedRequest.start_date), "MMM d")} - {format(new Date(selectedRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(selectedRequest.start_date, selectedRequest.end_date)} days)
+                  ({calculateDays(selectedRequest.start_date, selectedRequest.end_date)} {t('workforce.timeOff.days')})
                 </div>
               </div>
 
               {actionType === "reject" && (
                 <div>
-                  <Label>Rejection Reason</Label>
+                  <Label>{t('workforce.timeOff.rejectionReason')}</Label>
                   <Textarea
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Explain why this request is being rejected..."
+                    placeholder={t('workforce.timeOff.rejectionPlaceholder')}
                     className="mt-2"
                   />
                 </div>
@@ -368,14 +368,14 @@ const TimeOffApprovals = () => {
                   className="flex-1"
                   onClick={() => setActionDialogOpen(false)}
                 >
-                  Cancel
+                  {t('workforce.timeOff.cancel')}
                 </Button>
                 <Button
                   className="flex-1"
                   onClick={submitAction}
                   variant={actionType === "reject" ? "destructive" : "default"}
                 >
-                  {actionType === "approve" ? "Approve" : "Reject"}
+                  {actionType === "approve" ? t('workforce.timeOff.approve') : t('workforce.timeOff.reject')}
                 </Button>
               </div>
             </div>

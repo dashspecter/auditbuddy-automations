@@ -165,8 +165,8 @@ const Shifts = () => {
         <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Calendar View</CardTitle>
-            <CardDescription>Select a date to view or create shifts</CardDescription>
+            <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
+            <CardDescription>{t('workforce.shifts.selectDate')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Calendar
@@ -180,21 +180,21 @@ const Shifts = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Shifts for {date?.toLocaleDateString()}</CardTitle>
-            <CardDescription>View and manage today's shifts</CardDescription>
+            <CardTitle>{t('workforce.shifts.shiftsFor')} {date?.toLocaleDateString()}</CardTitle>
+            <CardDescription>{t('workforce.shifts.viewManage')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-                <p className="text-muted-foreground">Loading shifts...</p>
+                <p className="text-muted-foreground">{t('workforce.shifts.loadingShifts')}</p>
               </div>
             ) : shifts.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
-                <p>No shifts scheduled for this date.</p>
+                <p>{t('workforce.shifts.noShifts')}</p>
                 <Button className="mt-4" variant="outline" onClick={() => setShiftDialogOpen(true)}>
                   <CalendarPlus className="mr-2 h-4 w-4" />
-                  Create Shift
+                  {t('workforce.shifts.createShift')}
                 </Button>
               </div>
             ) : (
@@ -221,7 +221,7 @@ const Shifts = () => {
                               <div className="font-semibold text-base">{shift.role}</div>
                               {shift.is_open_shift && (
                                 <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                                  Open Shift
+                                  {t('workforce.shifts.openShift')}
                                 </Badge>
                               )}
                               <Badge 
@@ -229,12 +229,12 @@ const Shifts = () => {
                                 className={`gap-1 ${isFullyStaffed ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ''}`}
                               >
                                 <Users className="h-3 w-3" />
-                                {filledCount}/{shift.required_count} filled
+                                {filledCount}/{shift.required_count} {t('workforce.shifts.filled')}
                               </Badge>
                               {pending.length > 0 && (
                                 <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300">
                                   <AlertCircle className="h-3 w-3" />
-                                  {pending.length} pending
+                                  {pending.length} {t('workforce.shifts.pending')}
                                 </Badge>
                               )}
                             </div>
@@ -246,7 +246,7 @@ const Shifts = () => {
                                 setShiftDialogOpen(true);
                               }}
                             >
-                              Edit
+                              {t('workforce.shifts.edit')}
                             </Button>
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -266,7 +266,7 @@ const Shifts = () => {
                             <div className="mt-3 pt-3 border-t">
                               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                                 <UserCheck className="h-4 w-4 text-green-600" />
-                                Assigned Staff:
+                                {t('workforce.shifts.assignedStaff')}:
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {approved.map((assignment: any) => (
@@ -283,7 +283,7 @@ const Shifts = () => {
                             <div className="mt-2">
                               <div className="flex items-center gap-2 text-sm font-medium mb-2 text-amber-600">
                                 <AlertCircle className="h-4 w-4" />
-                                Pending Approval:
+                                {t('workforce.shifts.pendingApproval')}:
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {pending.map((assignment: any) => (
@@ -299,18 +299,18 @@ const Shifts = () => {
                           {needsMore > 0 && (
                             <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
                               <AlertCircle className="h-4 w-4" />
-                              Needs {needsMore} more {needsMore === 1 ? 'person' : 'people'}
+                              {t('workforce.shifts.needsMore', { count: needsMore, person: needsMore === 1 ? 'person' : 'people' })}
                             </div>
                           )}
                           
                           {shift.notes && (
                             <div className="mt-2 text-sm text-muted-foreground border-t pt-2">
-                              <span className="font-medium">Notes:</span> {shift.notes}
+                              <span className="font-medium">{t('workforce.shifts.notes')}:</span> {shift.notes}
                             </div>
                           )}
                           {shift.creator_name && (
                             <div className="mt-2 text-xs text-muted-foreground">
-                              Created by: {shift.creator_name}
+                              {t('workforce.shifts.createdBy')}: {shift.creator_name}
                             </div>
                           )}
                         </div>

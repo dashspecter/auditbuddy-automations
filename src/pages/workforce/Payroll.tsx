@@ -285,12 +285,12 @@ const Payroll = () => {
         <TabsContent value="current">
           <Card>
             <CardHeader>
-              <CardTitle>Staff Payroll Summary</CardTitle>
+              <CardTitle>{t('workforce.payroll.staffPayrollSummary')}</CardTitle>
               <CardDescription>
                 {activePeriod 
                   ? `${format(new Date(activePeriod.start_date), "MMMM d")} - ${format(new Date(activePeriod.end_date), "MMMM d, yyyy")}`
-                  : "No active period"}
-                {selectedLocationId !== "all" && ` • Filtered by location`}
+                  : t('workforce.payroll.noActivePeriod')}
+                {selectedLocationId !== "all" && ` • ${t('workforce.payroll.filteredByLocation')}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -305,76 +305,76 @@ const Payroll = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-8"></TableHead>
-                          <TableHead>Employee</TableHead>
-                          <TableHead>Role</TableHead>
+                          <TableHead>{t('workforce.attendance.employee')}</TableHead>
+                          <TableHead>{t('workforce.attendance.role')}</TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
-                              Worked
+                              {t('workforce.payroll.worked')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">Shifts where employee clocked in (attendance confirmed)</p>
+                                  <p className="text-xs">{t('workforce.payroll.workedDesc')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
                           </TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
-                              Missed
+                              {t('workforce.payroll.missed')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">Past shifts without clock-in record (no-show)</p>
+                                  <p className="text-xs">{t('workforce.payroll.missedDesc')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
                           </TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
-                              Leave
+                              {t('workforce.payroll.leave')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">Approved time-off requests (vacation, medical, etc.)</p>
+                                  <p className="text-xs">{t('workforce.payroll.leaveDesc')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
                           </TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
-                              Hours
+                              {t('workforce.payroll.hours')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">Actual hours from worked shifts. Green = overtime, Orange = undertime</p>
+                                  <p className="text-xs">{t('workforce.payroll.hoursDesc')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
                           </TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
-                              Late
+                              {t('workforce.payroll.lateCol')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs">Count of shifts with late clock-in</p>
+                                  <p className="text-xs">{t('workforce.payroll.lateColDesc')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
                           </TableHead>
                           <TableHead className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              Total Pay
+                              {t('workforce.payroll.total')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />

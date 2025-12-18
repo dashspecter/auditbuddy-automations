@@ -31,7 +31,8 @@
     "archive": "Archive",
     "error": "Error",
     "today": "Today",
-    "due": "Due"
+    "due": "Due",
+    "unknown": "Unknown"
   },
   "nav": {
     "navigation": "Navigation",
