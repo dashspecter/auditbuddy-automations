@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
-import { Loader2, ArrowDown } from 'lucide-react';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { cn } from '@/lib/utils';
+import { ReactNode } from "react";
+import { Loader2, ArrowDown } from "lucide-react";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -16,6 +17,7 @@ export const PullToRefresh = ({
   disabled = false,
   threshold = 80,
 }: PullToRefreshProps) => {
+  const { t } = useTranslation();
   const { containerRef, isPulling, pullDistance, isRefreshing, isTriggered } =
     usePullToRefresh({
       onRefresh,
@@ -37,14 +39,18 @@ export const PullToRefresh = ({
         )}
         style={{
           height: `${Math.min(pullDistance, adjustedThreshold)}px`,
-          transform: isRefreshing ? `translateY(${adjustedThreshold}px)` : `translateY(${pullDistance}px)`,
+          transform: isRefreshing
+            ? `translateY(${adjustedThreshold}px)`
+            : `translateY(${pullDistance}px)`,
         }}
       >
         <div className="flex flex-col items-center gap-2 p-4 bg-background/95 backdrop-blur-sm rounded-b-lg shadow-lg">
           {isRefreshing ? (
             <>
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">Refreshing...</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {t("common.refreshing")}
+              </span>
             </>
           ) : (
             <>
@@ -57,7 +63,9 @@ export const PullToRefresh = ({
                 <ArrowDown className="h-6 w-6 text-primary" />
               </div>
               <span className="text-sm font-medium text-muted-foreground">
-                {isTriggered ? 'Release to refresh' : 'Pull to refresh'}
+                {isTriggered
+                  ? t("common.pullToRefresh.release")
+                  : t("common.pullToRefresh.pull")}
               </span>
               <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
                 <div
@@ -74,7 +82,9 @@ export const PullToRefresh = ({
       <div
         className="transition-transform duration-200"
         style={{
-          transform: isRefreshing ? `translateY(${adjustedThreshold}px)` : 'translateY(0)',
+          transform: isRefreshing
+            ? `translateY(${adjustedThreshold}px)`
+            : "translateY(0)",
         }}
       >
         {children}

@@ -1,16 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Building2, ChevronDown, User, LogOut, 
-  Plus, ClipboardCheck, ListTodo, Users as UsersIcon, Wrench
+import {
+  Building2,
+  ChevronDown,
+  User,
+  LogOut,
+  Plus,
+  ClipboardCheck,
+  ListTodo,
+  Users as UsersIcon,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
@@ -18,8 +25,10 @@ import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 export const AppTopBar = () => {
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const { data: company } = useCompany();
   const navigate = useNavigate();
@@ -36,12 +45,13 @@ export const AppTopBar = () => {
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 sticky top-0 z-40">
       <div className="flex items-center gap-4">
-        {/* Company Switcher - Future: support multiple companies */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2">
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">{company?.name || "Company"}</span>
+              <span className="hidden sm:inline">
+                {company?.name || t("common.company")}
+              </span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -51,42 +61,41 @@ export const AppTopBar = () => {
             <DropdownMenuItem>
               <Badge variant="secondary">{company?.subscription_tier}</Badge>
             </DropdownMenuItem>
-        </DropdownMenuContent>
+          </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Quick Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Quick Actions</span>
+              <span className="hidden sm:inline">{t("common.quickActions")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56 bg-background">
-            <DropdownMenuLabel>Create New</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("common.createNew")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link to="/tasks/new" className="cursor-pointer">
                 <ListTodo className="mr-2 h-4 w-4" />
-                Create Task
+                {t("common.createTask")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/location-audit" className="cursor-pointer">
                 <ClipboardCheck className="mr-2 h-4 w-4" />
-                Create Audit
+                {t("common.createAudit")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/workforce/staff" className="cursor-pointer">
                 <UsersIcon className="mr-2 h-4 w-4" />
-                Add Staff
+                {t("common.addStaff")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/equipment/new" className="cursor-pointer">
                 <Wrench className="mr-2 h-4 w-4" />
-                Add Equipment
+                {t("common.addEquipment")}
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -94,13 +103,9 @@ export const AppTopBar = () => {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Language Switcher */}
         <LanguageSwitcher />
-        
-        {/* Notifications */}
         <NotificationDropdown />
 
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -122,19 +127,22 @@ export const AppTopBar = () => {
             <DropdownMenuItem asChild>
               <Link to="/settings" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                Profile Settings
+                {t("common.profileSettings")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/tasks?filter=my-tasks" className="cursor-pointer">
                 <ListTodo className="mr-2 h-4 w-4" />
-                My Tasks
+                {t("common.myTasks")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-destructive cursor-pointer"
+            >
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              {t("common.logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface LocationSelectorProps {
   value: string;
@@ -22,12 +23,13 @@ interface LocationSelectorProps {
 export const LocationSelector = ({
   value,
   onValueChange,
-  placeholder = "Select location",
+  placeholder,
   disabled = false,
   locationCounts,
   allowAll = false,
   id,
 }: LocationSelectorProps) => {
+  const { t } = useTranslation();
   const { data: locations, isLoading } = useLocations();
 
   if (isLoading) {
@@ -37,11 +39,11 @@ export const LocationSelector = ({
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger id={id}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder ?? t("common.selectLocation")} />
       </SelectTrigger>
       <SelectContent>
         {allowAll && (
-          <SelectItem value="__all__">All Locations</SelectItem>
+          <SelectItem value="__all__">{t("common.allLocations")}</SelectItem>
         )}
         {locations?.map((location) => (
           <SelectItem key={location.id} value={location.id}>

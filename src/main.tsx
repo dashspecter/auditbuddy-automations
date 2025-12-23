@@ -24,8 +24,11 @@ import { registerSW } from "virtual:pwa-register";
 
 // PWA: ensure updated service worker takes control and reloads clients.
 // Needed to avoid users being stuck on an old cached UI.
-registerSW({
+const updateSW = registerSW({
   immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
 });
 
 createRoot(document.getElementById("root")!).render(<App />);

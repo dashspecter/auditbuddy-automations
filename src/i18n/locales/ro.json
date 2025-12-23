@@ -8,6 +8,7 @@
     "delete": "Șterge",
     "edit": "Editează",
     "create": "Creează",
+    "update": "Actualizează",
     "add": "Adaugă",
     "view": "Vezi",
     "all": "Tot",
@@ -36,7 +37,23 @@
     "today": "Astăzi",
     "due": "Scadent",
     "unknown": "Necunoscut",
-    "update": "Actualizează"
+    "user": "Utilizator",
+    "logout": "Deconectare",
+    "profileSettings": "Setări profil",
+    "myTasks": "Sarcinile mele",
+    "quickActions": "Acțiuni rapide",
+    "createNew": "Creează nou",
+    "createTask": "Creează sarcină",
+    "createAudit": "Creează audit",
+    "addStaff": "Adaugă personal",
+    "addEquipment": "Adaugă echipament",
+    "company": "Companie",
+    "selectLocation": "Selectează locația",
+    "allLocations": "Toate locațiile",
+    "pullToRefresh": {
+      "pull": "Trage pentru reîmprospătare",
+      "release": "Eliberează pentru reîmprospătare"
+    }
   },
   "nav": {
     "navigation": "Navigare",
@@ -232,6 +249,12 @@
       "noAuditsYet": "Niciun audit încă",
       "createFirstAudit": "Creează primul audit pentru a începe",
       "createFirstAuditBtn": "Creează primul audit"
+    },
+    "greeting": {
+      "goodMorning": "Bună dimineața",
+      "goodAfternoon": "Bună ziua",
+      "goodEvening": "Bună seara",
+      "lastLogin": "Ultima autentificare:"
     },
     "stats": {
       "completed": "Finalizate",
