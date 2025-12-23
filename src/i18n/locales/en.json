@@ -36,7 +36,24 @@
     "error": "Error",
     "today": "Today",
     "due": "Due",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "user": "User",
+    "logout": "Logout",
+    "profileSettings": "Profile Settings",
+    "myTasks": "My Tasks",
+    "quickActions": "Quick Actions",
+    "createNew": "Create New",
+    "createTask": "Create Task",
+    "createAudit": "Create Audit",
+    "addStaff": "Add Staff",
+    "addEquipment": "Add Equipment",
+    "company": "Company",
+    "selectLocation": "Select location",
+    "allLocations": "All Locations",
+    "pullToRefresh": {
+      "pull": "Pull to refresh",
+      "release": "Release to refresh"
+    }
   },
   "nav": {
     "navigation": "Navigation",
@@ -232,6 +249,12 @@
       "noAuditsYet": "No audits yet",
       "createFirstAudit": "Create your first audit to get started",
       "createFirstAuditBtn": "Create First Audit"
+    },
+    "greeting": {
+      "goodMorning": "Good morning",
+      "goodAfternoon": "Good afternoon",
+      "goodEvening": "Good evening",
+      "lastLogin": "Last login:"
     },
     "stats": {
       "completed": "Completed",

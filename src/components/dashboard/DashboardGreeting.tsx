@@ -4,19 +4,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export const DashboardGreeting = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      
+
       const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, last_login')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("full_name, last_login")
+        .eq("id", user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -27,12 +29,13 @@ export const DashboardGreeting = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t("dashboard.greeting.goodMorning");
+    if (hour < 18) return t("dashboard.greeting.goodAfternoon");
+    return t("dashboard.greeting.goodEvening");
   };
 
-  const rawName = profile?.full_name || user?.email?.split('@')[0] || "User";
+  const rawName =
+    profile?.full_name || user?.email?.split("@")[0] || t("common.user");
   const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const lastLogin = profile?.last_login;
 
@@ -52,7 +55,8 @@ export const DashboardGreeting = () => {
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-11">
               <Calendar className="h-4 w-4" />
               <span>
-                Last login: {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
+                {t("dashboard.greeting.lastLogin")} {" "}
+                {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
               </span>
             </div>
           )}
