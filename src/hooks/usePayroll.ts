@@ -447,6 +447,19 @@ export const useCreatePayrollPeriod = () => {
 
       if (!companyUser) throw new Error("No company found for user");
       
+      // Check for existing period with same dates
+      const { data: existingPeriod } = await supabase
+        .from("payroll_periods")
+        .select("id")
+        .eq("company_id", companyUser.company_id)
+        .eq("start_date", period.start_date)
+        .eq("end_date", period.end_date)
+        .maybeSingle();
+      
+      if (existingPeriod) {
+        throw new Error("A payroll period already exists for this date range");
+      }
+      
       const { data, error } = await supabase
         .from("payroll_periods")
         .insert({ ...period, created_by: user.id, company_id: companyUser.company_id })
