@@ -2590,6 +2590,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           auto_clockout_delay_minutes: number | null
+          clock_in_enabled: boolean
           created_at: string
           hide_earnings_from_staff: boolean
           id: string
@@ -2609,6 +2610,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           auto_clockout_delay_minutes?: number | null
+          clock_in_enabled?: boolean
           created_at?: string
           hide_earnings_from_staff?: boolean
           id?: string
@@ -2628,6 +2630,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           auto_clockout_delay_minutes?: number | null
+          clock_in_enabled?: boolean
           created_at?: string
           hide_earnings_from_staff?: boolean
           id?: string
