@@ -49,6 +49,16 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
 
   console.log(`[WorkforceAgent] Preparing payroll for ${periodStart} to ${periodEnd}`);
 
+  // Check company settings for clock-in mode
+  const { data: companyData } = await supabase
+    .from("companies")
+    .select("clock_in_enabled")
+    .eq("id", companyId)
+    .single();
+
+  const clockInEnabled = companyData?.clock_in_enabled !== false;
+  console.log(`[WorkforceAgent] Clock-in enabled: ${clockInEnabled}`);
+
   // Get all employees
   const { data: employees } = await supabase
     .from("employees")
@@ -60,88 +70,118 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
     return { batch: null, message: "No active employees found" };
   }
 
-  // Get attendance logs for the period
-  const { data: attendanceLogs } = await supabase
-    .from("attendance_logs")
-    .select("*, employee:staff_id(id, full_name)")
-    .gte("check_in_at", periodStart)
-    .lte("check_in_at", periodEnd + "T23:59:59Z");
+  if (clockInEnabled) {
+    // CLOCK-IN MODE: Use attendance logs for hours calculation
+    const { data: attendanceLogs } = await supabase
+      .from("attendance_logs")
+      .select("*, employee:staff_id(id, full_name)")
+      .gte("check_in_at", periodStart)
+      .lte("check_in_at", periodEnd + "T23:59:59Z");
 
-  // Process each employee
-  for (const employee of employees) {
-    const employeeLogs = attendanceLogs?.filter(
-      (log) => log.staff_id === employee.id && log.check_out_at
-    ) || [];
+    for (const employee of employees) {
+      const employeeLogs = attendanceLogs?.filter(
+        (log) => log.staff_id === employee.id && log.check_out_at
+      ) || [];
 
-    let totalHours = 0;
-    let overtimeHours = 0;
-    const anomalies: string[] = [];
-    const daysWorked = new Set<string>();
+      let totalHours = 0;
+      let overtimeHours = 0;
+      const anomalies: string[] = [];
+      const daysWorked = new Set<string>();
 
-    for (const log of employeeLogs) {
-      const checkIn = new Date(log.check_in_at);
-      const checkOut = new Date(log.check_out_at);
-      const hours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
-      
-      totalHours += hours;
-      daysWorked.add(checkIn.toISOString().split("T")[0]);
+      for (const log of employeeLogs) {
+        const checkIn = new Date(log.check_in_at);
+        const checkOut = new Date(log.check_out_at);
+        const hours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+        
+        totalHours += hours;
+        daysWorked.add(checkIn.toISOString().split("T")[0]);
 
-      // Check for anomalies
-      if (hours > 12) {
-        anomalies.push(`Shift over 12 hours on ${checkIn.toISOString().split("T")[0]}`);
+        if (hours > 12) {
+          anomalies.push(`Shift over 12 hours on ${checkIn.toISOString().split("T")[0]}`);
+        }
+        if (log.is_late) {
+          anomalies.push(`Late arrival on ${checkIn.toISOString().split("T")[0]} (${log.late_minutes} min)`);
+        }
+        if (log.auto_clocked_out) {
+          anomalies.push(`Auto clock-out on ${checkIn.toISOString().split("T")[0]}`);
+        }
       }
-      if (log.is_late) {
-        anomalies.push(`Late arrival on ${checkIn.toISOString().split("T")[0]} (${log.late_minutes} min)`);
-      }
-      if (log.auto_clocked_out) {
-        anomalies.push(`Auto clock-out on ${checkIn.toISOString().split("T")[0]}`);
-      }
+
+      const regularHoursMax = daysWorked.size * 8;
+      overtimeHours = Math.max(0, totalHours - regularHoursMax);
+      const regularHours = totalHours - overtimeHours;
+
+      summaries.push({
+        employee_id: employee.id,
+        employee_name: employee.full_name,
+        total_hours: Math.round(totalHours * 100) / 100,
+        overtime_hours: Math.round(overtimeHours * 100) / 100,
+        regular_hours: Math.round(regularHours * 100) / 100,
+        days_worked: daysWorked.size,
+        anomalies,
+      });
     }
+  } else {
+    // SCHEDULE MODE: Use scheduled shifts for hours calculation
+    console.log(`[WorkforceAgent] Using scheduled shifts for payroll calculation`);
+    
+    // Get all approved shift assignments for the period
+    const { data: shiftAssignments } = await supabase
+      .from("shift_assignments")
+      .select(`
+        staff_id,
+        shifts!inner (
+          id,
+          shift_date,
+          start_time,
+          end_time,
+          role,
+          company_id
+        )
+      `)
+      .eq("approval_status", "approved")
+      .gte("shifts.shift_date", periodStart)
+      .lte("shifts.shift_date", periodEnd);
 
-    // Calculate overtime (assuming 8 hours/day standard)
-    const regularHoursMax = daysWorked.size * 8;
-    overtimeHours = Math.max(0, totalHours - regularHoursMax);
-    const regularHours = totalHours - overtimeHours;
+    for (const employee of employees) {
+      const employeeShifts = shiftAssignments?.filter(
+        (sa: any) => sa.staff_id === employee.id
+      ) || [];
 
-    summaries.push({
-      employee_id: employee.id,
-      employee_name: employee.full_name,
-      total_hours: Math.round(totalHours * 100) / 100,
-      overtime_hours: Math.round(overtimeHours * 100) / 100,
-      regular_hours: Math.round(regularHours * 100) / 100,
-      days_worked: daysWorked.size,
-      anomalies,
-    });
+      let totalHours = 0;
+      const daysWorked = new Set<string>();
+      const anomalies: string[] = [];
 
-    // Create or update timesheet records
-    for (const day of daysWorked) {
-      const dayLogs = employeeLogs.filter(
-        (l) => new Date(l.check_in_at).toISOString().split("T")[0] === day
-      );
-      
-      const firstLog = dayLogs[0];
-      const lastLog = dayLogs[dayLogs.length - 1];
-      
-      if (firstLog && lastLog) {
-        await supabase
-          .from("timesheets")
-          .upsert({
-            employee_id: employee.id,
-            company_id: companyId,
-            location_id: firstLog.location_id,
-            date: day,
-            shift_start: firstLog.check_in_at,
-            shift_end: lastLog.check_out_at,
-            hours_worked: dayLogs.reduce((sum, l) => {
-              if (!l.check_out_at) return sum;
-              return sum + (new Date(l.check_out_at).getTime() - new Date(l.check_in_at).getTime()) / (1000 * 60 * 60);
-            }, 0),
-            anomalies_json: anomalies.filter(a => a.includes(day)),
-            status: "pending",
-          }, {
-            onConflict: "employee_id,date",
-          });
+      for (const assignment of employeeShifts) {
+        const shift = assignment.shifts as any;
+        if (!shift) continue;
+
+        // Calculate hours from shift times
+        const [startH, startM] = shift.start_time.split(":").map(Number);
+        const [endH, endM] = shift.end_time.split(":").map(Number);
+        
+        let hours = (endH + endM / 60) - (startH + startM / 60);
+        // Handle overnight shifts
+        if (hours < 0) hours += 24;
+        
+        totalHours += hours;
+        daysWorked.add(shift.shift_date);
       }
+
+      // Calculate overtime (assuming 8 hours/day standard)
+      const regularHoursMax = daysWorked.size * 8;
+      const overtimeHours = Math.max(0, totalHours - regularHoursMax);
+      const regularHours = totalHours - overtimeHours;
+
+      summaries.push({
+        employee_id: employee.id,
+        employee_name: employee.full_name,
+        total_hours: Math.round(totalHours * 100) / 100,
+        overtime_hours: Math.round(overtimeHours * 100) / 100,
+        regular_hours: Math.round(regularHours * 100) / 100,
+        days_worked: daysWorked.size,
+        anomalies,
+      });
     }
   }
 

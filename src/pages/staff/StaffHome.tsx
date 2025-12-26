@@ -38,6 +38,7 @@ const StaffHome = () => {
   const [companyRole, setCompanyRole] = useState<string | null>(null);
   const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
   const [hideEarnings, setHideEarnings] = useState(false);
+  const [clockInEnabled, setClockInEnabled] = useState(true);
 
   // Redirect desktop users to dashboard - staff pages are mobile-only
   useEffect(() => {
@@ -112,10 +113,10 @@ const StaffHome = () => {
         
         setAdditionalLocationsCount(additionalCount || 0);
         
-        // Check company settings for hiding earnings
+        // Check company settings for hiding earnings and clock-in
         const { data: companyData, error: companyError } = await supabase
           .from("companies")
-          .select("hide_earnings_from_staff")
+          .select("hide_earnings_from_staff, clock_in_enabled")
           .eq("id", empData.company_id)
           .maybeSingle();
         
@@ -123,11 +124,13 @@ const StaffHome = () => {
           companyId: empData.company_id,
           companyData,
           companyError,
-          hide_earnings_from_staff: companyData?.hide_earnings_from_staff
+          hide_earnings_from_staff: companyData?.hide_earnings_from_staff,
+          clock_in_enabled: companyData?.clock_in_enabled
         });
         
         if (companyData) {
           setHideEarnings(companyData.hide_earnings_from_staff === true);
+          setClockInEnabled(companyData.clock_in_enabled !== false);
         }
         
         // Check company role for manager features
@@ -323,12 +326,17 @@ const StaffHome = () => {
                 </div>
               )}
             </div>
-            {todayShift.approval_status === "approved" && (
+            {todayShift.approval_status === "approved" && clockInEnabled && (
               <ClockInOutButtons 
                 todayShift={todayShift} 
                 employee={employee} 
                 onRefresh={loadData}
               />
+            )}
+            {todayShift.approval_status === "approved" && !clockInEnabled && (
+              <div className="text-sm text-muted-foreground text-center py-2 bg-muted rounded-md">
+                {t('staffHome.shiftConfirmed', 'Shift confirmed - clock-in not required')}
+              </div>
             )}
             {todayShift.approval_status === "pending" && (
               <div className="text-sm text-muted-foreground text-center py-2">

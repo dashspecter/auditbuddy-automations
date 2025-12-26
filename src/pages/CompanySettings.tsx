@@ -14,6 +14,7 @@ import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManage
 import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
 import { StaffVisibilitySettings } from "@/components/settings/StaffVisibilitySettings";
 import { ClockInRemindersSettings } from "@/components/settings/ClockInRemindersSettings";
+import { ClockInToggleSettings } from "@/components/settings/ClockInToggleSettings";
 import { RolePermissionsManager } from "@/components/settings/RolePermissionsManager";
 import {
   Select,
@@ -326,6 +327,7 @@ export default function CompanySettings() {
           </TabsContent>
 
           <TabsContent value="workforce" className="space-y-6">
+            <ClockInToggleSettings company={company} />
             <StaffVisibilitySettings company={company} />
             <ClockInRemindersSettings />
             <AutoClockoutSettings company={company} />
