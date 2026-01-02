@@ -476,7 +476,7 @@ const Tasks = () => {
                 <div>
                   <h2 className="text-xl font-semibold">{t('tasks.employeeOverview')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {employeesWithTasks.length} {t('workforce.employees').toLowerCase()}
+                    {employeesWithTasks.length} {t('workforce.employees.label').toLowerCase()}
                   </p>
                 </div>
               </div>
