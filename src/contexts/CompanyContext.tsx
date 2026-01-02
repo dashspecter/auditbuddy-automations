@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PricingTier, canAccessModule } from '@/config/pricingTiers';
+import { useCompany, useCompanyModules } from '@/hooks/useCompany';
 
 interface CompanyContextType {
   company: any;

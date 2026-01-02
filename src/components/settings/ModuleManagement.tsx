@@ -60,6 +60,7 @@ export default function ModuleManagement() {
   const { data: activeModules = [], isLoading } = useCompanyModules();
   const toggleModule = useToggleModule();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [dialogState, setDialogState] = useState<{
     open: boolean;
     moduleId: string;
