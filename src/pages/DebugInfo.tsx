@@ -9,8 +9,10 @@ import { RefreshCw, Copy, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { useLocation } from "react-router-dom";
 
 export default function DebugInfo() {
+  const location = useLocation();
   const { user, session } = useAuth();
   const { data: roleData, isLoading: isLoadingRole, refetch: refetchRoles } = useUserRole();
   const queryClient = useQueryClient();
@@ -57,6 +59,13 @@ export default function DebugInfo() {
     });
   };
 
+  const handleResetAppCache = () => {
+    const returnTo = encodeURIComponent(
+      `${location.pathname}${location.search}${location.hash}`
+    );
+    window.location.assign(`/?resetApp=1&returnTo=${returnTo}`);
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -96,10 +105,15 @@ export default function DebugInfo() {
             Authentication and permission troubleshooting
           </p>
         </div>
-        <Button onClick={handleRefreshAll}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh All
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleResetAppCache}>
+            Reset app cache
+          </Button>
+          <Button onClick={handleRefreshAll}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh All
+          </Button>
+        </div>
       </div>
 
           {/* User Authentication */}
