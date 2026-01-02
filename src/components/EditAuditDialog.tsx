@@ -123,26 +123,41 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
         );
 
       case 'yes_no':
+      case 'yesno':
+      case 'checkbox':
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id}>
               {field.name} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
-            <RadioGroup
-              value={value?.toString()}
-              onValueChange={(val) => handleFieldChange(field.id, val === 'true')}
-            >
-              <div className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="true" id={`${field.id}-yes`} />
-                  <Label htmlFor={`${field.id}-yes`}>Yes</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="false" id={`${field.id}-no`} />
-                  <Label htmlFor={`${field.id}-no`}>No</Label>
-                </div>
-              </div>
-            </RadioGroup>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={value === 'yes' || value === true ? 'default' : 'outline'}
+                size="sm"
+                className={
+                  value === 'yes' || value === true
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'hover:bg-green-50 hover:text-green-700'
+                }
+                onClick={() => handleFieldChange(field.id, 'yes')}
+              >
+                Yes
+              </Button>
+              <Button
+                type="button"
+                variant={value === 'no' || value === false ? 'default' : 'outline'}
+                size="sm"
+                className={
+                  value === 'no' || value === false
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'hover:bg-red-50 hover:text-red-700'
+                }
+                onClick={() => handleFieldChange(field.id, 'no')}
+              >
+                No
+              </Button>
+            </div>
           </div>
         );
 

@@ -263,7 +263,53 @@ const StaffAuditNew = () => {
           </RadioGroup>
         );
 
-      case 'select':
+      case 'yesno':
+      case 'yes_no':
+      case 'checkbox':
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={value === 'yes' || value === true ? 'default' : 'outline'}
+                size="sm"
+                className={
+                  value === 'yes' || value === true
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'hover:bg-green-50 hover:text-green-700'
+                }
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customData: { ...prev.customData, [field.id]: 'yes' },
+                  }))
+                }
+              >
+                Yes
+              </Button>
+              <Button
+                type="button"
+                variant={value === 'no' || value === false ? 'default' : 'outline'}
+                size="sm"
+                className={
+                  value === 'no' || value === false
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'hover:bg-red-50 hover:text-red-700'
+                }
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customData: { ...prev.customData, [field.id]: 'no' },
+                  }))
+                }
+              >
+                No
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'select': {
         const options = field.options?.options || [];
         return (
           <Select
@@ -288,6 +334,7 @@ const StaffAuditNew = () => {
             </SelectContent>
           </Select>
         );
+      }
 
       default:
         return null;

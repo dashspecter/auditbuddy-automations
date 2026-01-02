@@ -318,6 +318,7 @@ const LocationAudit = () => {
     switch (field.field_type) {
       case 'yesno':
       case 'yes_no':
+      case 'checkbox':
         return (
           <div className="space-y-3 w-full">
             <Label htmlFor={field.id} className={hasError ? 'text-destructive font-medium' : 'font-medium'}>
