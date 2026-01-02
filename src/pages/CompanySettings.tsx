@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function CompanySettings() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers();
@@ -499,7 +500,7 @@ export default function CompanySettings() {
                         {company?.subscription_tier} tier
                       </p>
                     </div>
-                    <Button onClick={() => window.location.href = '/pricing'}>
+                    <Button onClick={() => navigate('/pricing')}>
                       View Plans
                     </Button>
                   </div>

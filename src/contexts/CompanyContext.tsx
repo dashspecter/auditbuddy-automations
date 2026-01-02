@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useCompany, useCompanyModules } from '@/hooks/useCompany';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PricingTier, canAccessModule } from '@/config/pricingTiers';
 
 interface CompanyContextType {
@@ -17,6 +17,8 @@ interface CompanyContextType {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export const CompanyProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: modules = [], isLoading: modulesLoading } = useCompanyModules();
 
@@ -40,12 +42,12 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
-  // Redirect to pending approval page if company is pending
+  // Redirect to pending approval page if company is pending (SPA navigation)
   React.useEffect(() => {
-    if (isPendingApproval && window.location.pathname !== '/pending-approval' && window.location.pathname !== '/auth') {
-      window.location.href = '/pending-approval';
+    if (isPendingApproval && location.pathname !== '/pending-approval' && location.pathname !== '/auth') {
+      navigate('/pending-approval', { replace: true });
     }
-  }, [isPendingApproval]);
+  }, [isPendingApproval, location.pathname, navigate]);
 
   return (
     <CompanyContext.Provider
