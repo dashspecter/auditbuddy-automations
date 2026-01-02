@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export const CompanyAdminRoute = ({ children }: CompanyAdminRouteProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: company, isLoading: companyLoading } = useCompany();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['company'] });
@@ -53,7 +54,7 @@ export const CompanyAdminRoute = ({ children }: CompanyAdminRouteProps) => {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Permissions
             </Button>
-            <Button onClick={() => window.location.href = '/dashboard'} variant="default">
+            <Button onClick={() => navigate('/dashboard')} variant="default">
               Go to Dashboard
             </Button>
           </div>

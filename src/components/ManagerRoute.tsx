@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
@@ -19,6 +19,7 @@ export const ManagerRoute = ({ children, requiredPermission }: ManagerRouteProps
   const { data: company, isLoading: companyLoading } = useCompany();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['user_role'] });
@@ -78,7 +79,7 @@ export const ManagerRoute = ({ children, requiredPermission }: ManagerRouteProps
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Permissions
             </Button>
-            <Button onClick={() => window.location.href = '/dashboard'} variant="default">
+            <Button onClick={() => navigate('/dashboard')} variant="default">
               Go to Dashboard
             </Button>
           </div>
