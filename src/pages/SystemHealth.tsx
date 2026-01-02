@@ -7,11 +7,14 @@ import { useLocationAudits } from '@/hooks/useAudits';
 import { useEquipment } from '@/hooks/useEquipment';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, AlertCircle, Activity } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { useLocation } from 'react-router-dom';
 
 export default function SystemHealth() {
+  const location = useLocation();
   const { user, session } = useAuth();
   const { company, modules, tier, isTrialExpired, trialDaysRemaining, isAccountPaused } = useCompanyContext();
   const { data: roleData } = useUserRole();
@@ -20,6 +23,12 @@ export default function SystemHealth() {
   const { data: audits } = useLocationAudits();
   const { data: equipment } = useEquipment();
 
+  const handleResetAppCache = () => {
+    const returnTo = encodeURIComponent(
+      `${location.pathname}${location.search}${location.hash}`
+    );
+    window.location.assign(`/?resetApp=1&returnTo=${returnTo}`);
+  };
   const StatusBadge = ({ condition, trueLabel = 'OK', falseLabel = 'Issue' }: { condition: boolean; trueLabel?: string; falseLabel?: string }) => (
     condition ? (
       <Badge variant="default" className="bg-success text-success-foreground">
@@ -202,6 +211,15 @@ export default function SystemHealth() {
           <CardDescription>For debugging purposes</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Button variant="outline" onClick={handleResetAppCache}>
+              Reset app cache
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Use this if you see an old UI after updates.
+            </p>
+          </div>
+
           <details className="text-xs">
             <summary className="cursor-pointer font-medium mb-2 hover:text-primary">
               View Raw Data
