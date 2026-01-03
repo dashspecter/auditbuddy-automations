@@ -130,9 +130,9 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       if (isVisible) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
         
-        // Only revalidate if we've been hidden for more than 30 seconds
-        // This prevents unnecessary refetches on quick tab switches
-        if (autoRevalidate && user && timeSinceLastVisible > 30000) {
+        // Revalidate when coming back after a short pause (helps with PWAs/backgrounding)
+        // Keep this low to avoid users seeing stale/incorrect views after tab switching.
+        if (autoRevalidate && user && timeSinceLastVisible > 2000) {
           revalidateCriticalData();
         }
         
@@ -147,7 +147,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
     const handleFocus = () => {
       if (autoRevalidate && user) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
-        if (timeSinceLastVisible > 60000) { // 1 minute threshold for focus
+        if (timeSinceLastVisible > 2000) {
           revalidateCriticalData();
         }
       }
