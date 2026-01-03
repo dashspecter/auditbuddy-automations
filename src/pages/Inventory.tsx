@@ -55,7 +55,7 @@ const Inventory = () => {
               {t('inventory.subtitle')}
             </p>
           </div>
-          <Button className="gap-2" onClick={() => navigate("/inventory/snapshots/new")}>
+          <Button className="gap-2" onClick={() => navigate("/inventory/items/new")}>
             <Package className="h-4 w-4" />
             {t('inventory.takeCount')}
           </Button>
@@ -72,7 +72,7 @@ const Inventory = () => {
             }}
             secondaryAction={{
               label: t('inventory.empty.takeInventoryCount'),
-              onClick: () => navigate("/inventory/snapshots/new")
+              onClick: () => navigate("/inventory/items/new")
             }}
           />
         ) : (
