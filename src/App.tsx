@@ -12,6 +12,7 @@ import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AppVisibilityManager } from "@/components/AppVisibilityManager";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
@@ -171,6 +172,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <AppVisibilityManager />
             <CompanyProvider>
               <SidebarProvider>
               <PWAInstallPrompt />
