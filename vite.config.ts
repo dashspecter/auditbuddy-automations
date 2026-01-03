@@ -63,8 +63,9 @@ export default defineConfig(({ mode }) => ({
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
-              cacheName: "html-cache-v1",
-              networkTimeoutSeconds: 5,
+              cacheName: "html-cache-v2",
+              // Don’t fall back to cached HTML just because the network is slow.
+              // This prevents users reopening the app later and seeing an old build.
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60, // 1 minute
