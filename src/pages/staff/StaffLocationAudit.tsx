@@ -126,8 +126,22 @@ const StaffLocationAudit = () => {
           .eq("is_active", true)
           .eq("template_type", "location");
 
+        // Load assigned templates for this user
+        const { data: assignedData } = await supabase
+          .from("audit_template_checkers")
+          .select("template_id")
+          .eq("user_id", user.id);
+
+        const assignedTemplateIds = assignedData?.map(a => a.template_id) || [];
+
         if (templatesData) {
-          setTemplates(templatesData);
+          // If user has assignments, only show assigned templates
+          // If no assignments exist for user, show all templates (backwards compatible)
+          const filteredTemplates = assignedTemplateIds.length > 0
+            ? templatesData.filter(t => assignedTemplateIds.includes(t.id))
+            : templatesData;
+          
+          setTemplates(filteredTemplates);
           
           if (templateIdFromUrl) {
             setSelectedTemplateId(templateIdFromUrl);
