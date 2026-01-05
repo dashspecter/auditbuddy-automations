@@ -71,10 +71,14 @@ const setupPWAUpdates = () => {
     },
   });
 
-  // When a new service worker takes control, reload to ensure fresh chunks.
+  // When a new service worker takes control, prompt the user instead of forcing a reload.
+  // This prevents losing unsaved in-progress form state.
   if ("serviceWorker" in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      window.location.reload();
+      if (!hadController) return; // ignore first install
+      sessionStorage.setItem("pwa:update-ready", "1");
+      window.dispatchEvent(new CustomEvent("pwa:update-ready"));
     });
   }
 };
