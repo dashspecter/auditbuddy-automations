@@ -95,43 +95,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        // First check if user is a company admin or owner - they should NOT be treated as staff
-        const { data: companyUser } = await supabase
+        // IMPORTANT: Never use maybeSingle() for role existence checks.
+        // Users can have multiple company_users rows (multi-company) and multiple user_roles.
+        // We only need to know whether a qualifying row exists.
+
+        // 1) Company admins/owners should NOT be treated as staff
+        const { count: companyAdminCount, error: companyAdminError } = await supabase
           .from('company_users')
-          .select('company_role')
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .maybeSingle();
+          .in('company_role', ['company_owner', 'company_admin']);
 
-        // Company admins and owners should access the admin dashboard, not staff
-        if (companyUser?.company_role === 'company_owner' || companyUser?.company_role === 'company_admin') {
+        if (companyAdminError) {
+          console.error('[AuthContext] Error checking company admin status:', companyAdminError);
+        }
+
+        if ((companyAdminCount ?? 0) > 0) {
           setIsStaff(false);
           setStaffCheckComplete(true);
           return;
         }
 
-        // Also check platform admin role
-        const { data: userRole } = await supabase
+        // 2) Platform admins should NOT be treated as staff
+        const { count: platformAdminCount, error: platformAdminError } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('role', 'admin');
 
-        if (userRole?.role === 'admin') {
+        if (platformAdminError) {
+          console.error('[AuthContext] Error checking platform admin role:', platformAdminError);
+        }
+
+        if ((platformAdminCount ?? 0) > 0) {
           setIsStaff(false);
           setStaffCheckComplete(true);
           return;
         }
 
-        // Now check if they have an employee record (for actual staff members)
-        const { data: employee } = await supabase
+        // 3) Staff users are those who have an employee record (checker can still be staff)
+        const { count: employeeCount, error: employeeError } = await supabase
           .from('employees')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
 
-        setIsStaff(!!employee);
+        if (employeeError) {
+          console.error('[AuthContext] Error checking employee record:', employeeError);
+          setIsStaff(false);
+        } else {
+          setIsStaff((employeeCount ?? 0) > 0);
+        }
       } catch (error) {
-        console.error('Error checking staff status:', error);
+        console.error('[AuthContext] Error checking staff status:', error);
         setIsStaff(false);
       } finally {
         setStaffCheckComplete(true);
