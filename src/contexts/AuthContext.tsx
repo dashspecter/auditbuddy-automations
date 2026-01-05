@@ -116,15 +116,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        // 2) Platform admins should NOT be treated as staff
+        // 2) Platform admins/managers should NOT be treated as staff
         const { count: platformAdminCount, error: platformAdminError } = await supabase
           .from('user_roles')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('role', 'admin');
+          .in('role', ['admin', 'manager']);
 
         if (platformAdminError) {
-          console.error('[AuthContext] Error checking platform admin role:', platformAdminError);
+          console.error('[AuthContext] Error checking platform admin/manager role:', platformAdminError);
         }
 
         if ((platformAdminCount ?? 0) > 0) {
