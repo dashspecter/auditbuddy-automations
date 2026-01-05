@@ -988,6 +988,38 @@ export type Database = {
           },
         ]
       }
+      audit_template_checkers: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_template_checkers_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_templates: {
         Row: {
           company_id: string

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Copy, Eye, Search, Rocket, Edit, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Copy, Eye, Search, Rocket, Edit, Trash2, MoreVertical, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
+import { AssignCheckersDialog } from "@/components/audits/AssignCheckersDialog";
 
 interface Template {
   id: string;
@@ -38,6 +39,7 @@ interface Template {
   template_type: string;
   is_global: boolean;
   created_by: string;
+  company_id: string;
 }
 
 interface TemplateWithDetails extends Template {
@@ -67,6 +69,7 @@ export default function TemplateLibrary() {
   const [previewTemplate, setPreviewTemplate] = useState<TemplateWithDetails | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  const [assignCheckersTemplate, setAssignCheckersTemplate] = useState<Template | null>(null);
   
   const deleteTemplateMutation = useDeleteTemplate();
 
@@ -400,6 +403,10 @@ export default function TemplateLibrary() {
                     {canEditTemplate(template) && (
                       <>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setAssignCheckersTemplate(template)}>
+                          <Users className="h-4 w-4 mr-2" />
+                          Assign Checkers
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(template.id)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
@@ -456,6 +463,16 @@ export default function TemplateLibrary() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {assignCheckersTemplate && (
+        <AssignCheckersDialog
+          open={!!assignCheckersTemplate}
+          onOpenChange={(open) => !open && setAssignCheckersTemplate(null)}
+          templateId={assignCheckersTemplate.id}
+          templateName={assignCheckersTemplate.name}
+          companyId={assignCheckersTemplate.company_id}
+        />
+      )}
     </div>
   );
 }
