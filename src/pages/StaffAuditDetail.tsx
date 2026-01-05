@@ -220,7 +220,7 @@ export default function StaffAuditDetail() {
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full ${getScoreColor(audit.score)} text-white`}>
-                <span className="text-4xl font-bold">{audit.score}%</span>
+                <span className="text-4xl font-bold">{typeof audit.score === 'number' ? audit.score.toFixed(1) : audit.score}%</span>
               </div>
               <p className="mt-4 text-xl font-semibold">{getScoreLabel(audit.score)}</p>
             </div>

@@ -45,7 +45,7 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
 
   // Calculate company-wide metrics
   const avgPerformanceScore = allScores.length > 0
-    ? Math.round(allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length)
+    ? allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length
     : 0;
 
   const totalEmployees = allScores.length;
@@ -66,7 +66,7 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
   const locationPerformance = byLocation.map(loc => ({
     name: loc.location_name.length > 15 ? loc.location_name.substring(0, 15) + '...' : loc.location_name,
     fullName: loc.location_name,
-    score: Math.round(loc.employees.reduce((sum, e) => sum + e.overall_score, 0) / loc.employees.length),
+    score: parseFloat((loc.employees.reduce((sum, e) => sum + e.overall_score, 0) / loc.employees.length).toFixed(1)),
     employees: loc.employees.length,
   })).sort((a, b) => b.score - a.score);
 
@@ -139,7 +139,7 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getScoreColor(avgPerformanceScore)}`}>
-              {avgPerformanceScore}%
+              {avgPerformanceScore.toFixed(1)}%
             </div>
             <Progress value={avgPerformanceScore} className="h-2 mt-2" />
           </CardContent>
@@ -307,17 +307,17 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
           ) : (
             <div className="space-y-4">
               {byLocation.map((location) => {
-                const locAvgScore = Math.round(
-                  location.employees.reduce((sum, e) => sum + e.overall_score, 0) / location.employees.length
+                const locAvgScore = parseFloat(
+                  (location.employees.reduce((sum, e) => sum + e.overall_score, 0) / location.employees.length).toFixed(1)
                 );
-                const locAvgAttendance = Math.round(
-                  location.employees.reduce((sum, e) => sum + e.attendance_score, 0) / location.employees.length
+                const locAvgAttendance = parseFloat(
+                  (location.employees.reduce((sum, e) => sum + e.attendance_score, 0) / location.employees.length).toFixed(1)
                 );
-                const locAvgPunctuality = Math.round(
-                  location.employees.reduce((sum, e) => sum + e.punctuality_score, 0) / location.employees.length
+                const locAvgPunctuality = parseFloat(
+                  (location.employees.reduce((sum, e) => sum + e.punctuality_score, 0) / location.employees.length).toFixed(1)
                 );
-                const locAvgTasks = Math.round(
-                  location.employees.reduce((sum, e) => sum + e.task_score, 0) / location.employees.length
+                const locAvgTasks = parseFloat(
+                  (location.employees.reduce((sum, e) => sum + e.task_score, 0) / location.employees.length).toFixed(1)
                 );
                 const topPerformer = location.employees.sort((a, b) => b.overall_score - a.overall_score)[0];
 
@@ -359,7 +359,7 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
                         <Trophy className="h-4 w-4 text-yellow-500" />
                         <span className="text-muted-foreground">Top performer:</span>
                         <span className="font-medium">{topPerformer.employee_name}</span>
-                        <Badge variant="outline" className="text-xs">{topPerformer.overall_score}%</Badge>
+                        <Badge variant="outline" className="text-xs">{topPerformer.overall_score.toFixed(1)}%</Badge>
                       </div>
                     )}
                   </div>

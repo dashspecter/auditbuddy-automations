@@ -160,7 +160,7 @@ const EmployeePerformance = () => {
               
               <div className={`flex items-center justify-center w-14 h-14 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
                 <span className={`text-lg font-bold ${getScoreColor(employee.overall_score)}`}>
-                  {employee.overall_score}
+                  {employee.overall_score.toFixed(1)}
                 </span>
               </div>
               
@@ -341,8 +341,8 @@ const EmployeePerformance = () => {
                 <p className="text-sm text-muted-foreground">Avg Score</p>
                 <p className="text-2xl font-bold">
                   {allScores.length > 0
-                    ? Math.round(allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length)
-                    : 0}
+                    ? (allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length).toFixed(1)
+                    : '0.0'}
                 </p>
               </div>
             </div>
