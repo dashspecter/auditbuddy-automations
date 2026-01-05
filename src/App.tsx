@@ -103,6 +103,8 @@ import StaffEarnings from "./pages/staff/StaffEarnings";
 import StaffTasks from "./pages/staff/StaffTasks";
 import ManagerSchedule from "./pages/staff/ManagerSchedule";
 import StaffLocationAudit from "./pages/staff/StaffLocationAudit";
+import StaffLocationAudits from "./pages/staff/StaffLocationAudits";
+import StaffLocationAuditDetail from "./pages/staff/StaffLocationAuditDetail";
 import StaffEmployeeAudit from "./pages/staff/StaffEmployeeAudit";
 import StaffStaffAudit from "./pages/staff/StaffStaffAudit";
 import StaffPerformanceReview from "./pages/staff/StaffPerformanceReview";
@@ -196,6 +198,8 @@ const App = () => (
               <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
               <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
               <Route path="/staff/scan-voucher" element={<ProtectedRoute><StaffScanVoucher /></ProtectedRoute>} />
+              <Route path="/staff/audits" element={<ProtectedRoute><StaffLocationAudits /></ProtectedRoute>} />
+              <Route path="/staff/audits/:id" element={<ProtectedRoute><StaffLocationAuditDetail /></ProtectedRoute>} />
               <Route path="/staff/location-audit" element={<ProtectedRoute><StaffLocationAudit /></ProtectedRoute>} />
               <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
               <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
