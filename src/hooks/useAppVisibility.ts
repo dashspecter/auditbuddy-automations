@@ -8,18 +8,25 @@ interface AppVisibilityOptions {
    * Callback when app becomes visible again
    */
   onVisible?: () => void;
-  
+
   /**
    * Callback when app becomes hidden
    */
   onHidden?: () => void;
-  
+
   /**
    * Whether to automatically revalidate critical data on visibility change
    * @default true
    */
   autoRevalidate?: boolean;
-  
+
+  /**
+   * Minimum time (ms) the app must be hidden before auto revalidation runs.
+   * Prevents users losing unsaved form input on quick tab switches.
+   * @default 300000
+   */
+  minHiddenMs?: number;
+
   /**
    * Query keys to invalidate when app becomes visible
    * @default ['company', 'company_modules', 'user_role']
@@ -49,6 +56,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
     onVisible,
     onHidden,
     autoRevalidate = true,
+    minHiddenMs = 5 * 60 * 1000,
     criticalQueryKeys = ['company', 'company_modules', 'user_role', 'permissions'],
   } = options;
   
@@ -142,9 +150,9 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       if (isVisible) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
         
-        // Revalidate when coming back after a short pause (helps with PWAs/backgrounding)
-        // Keep this low to avoid users seeing stale/incorrect views after tab switching.
-        if (autoRevalidate && user && timeSinceLastVisible > 2000) {
+        // Revalidate when coming back after being away long enough.
+        // Keep this high enough to avoid wiping unsaved local form state on quick tab switches.
+        if (autoRevalidate && user && timeSinceLastVisible > minHiddenMs) {
           revalidateCriticalData();
         }
         
@@ -159,7 +167,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
     const handleFocus = () => {
       if (autoRevalidate && user) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
-        if (timeSinceLastVisible > 2000) {
+        if (timeSinceLastVisible > minHiddenMs) {
           revalidateCriticalData();
         }
       }
@@ -172,7 +180,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [user, autoRevalidate, revalidateCriticalData, onVisible, onHidden]);
+  }, [user, autoRevalidate, minHiddenMs, revalidateCriticalData, onVisible, onHidden]);
 }
 
 /**
