@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { PWAUpdateReadyToast } from "@/components/PWAUpdateReadyToast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppVisibilityManager } from "@/components/AppVisibilityManager";
@@ -170,6 +171,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <PWAUpdateReadyToast />
         <BrowserRouter>
           <AuthProvider>
             <AppVisibilityManager />
