@@ -22,6 +22,7 @@ import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeader
 import { ActiveTasksCard } from "@/components/staff/ActiveTasksCard";
 import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
+import { CheckerAuditsCard } from "@/components/staff/CheckerAuditsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 
 const StaffHome = () => {
@@ -70,6 +71,9 @@ const StaffHome = () => {
   const isManager = roleData?.isManager || roleData?.isAdmin || 
     companyRole === 'company_admin' || companyRole === 'company_owner' ||
     employee?.role?.toLowerCase() === 'manager';
+
+  // Check if user is a checker (can create/complete audits)
+  const isChecker = roleData?.isChecker;
 
   useEffect(() => {
     // ProtectedRoute handles auth redirects - just load data when user is present
@@ -288,6 +292,9 @@ const StaffHome = () => {
             <OfferedShiftsCard />
           </>
         )}
+
+        {/* Checker Audits Card - Show for checker role users who aren't managers */}
+        {!isManager && isChecker && <CheckerAuditsCard />}
         
         {/* Active Tasks - Prominent display for non-managers */}
         {!isManager && <ActiveTasksCard />}
