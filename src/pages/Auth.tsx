@@ -44,14 +44,13 @@ const Auth = () => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isStaff, staffCheckComplete } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
+    if (!user || !staffCheckComplete) return;
+    navigate(isStaff ? "/staff" : "/dashboard", { replace: true });
+  }, [user, isStaff, staffCheckComplete, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +103,9 @@ const Auth = () => {
         title: t('auth.welcomeBack'),
         description: t('auth.signedInSuccess'),
       });
-      navigate('/dashboard');
+
+      // Let the app decide where to land (staff users go to /staff, others to /dashboard)
+      navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);

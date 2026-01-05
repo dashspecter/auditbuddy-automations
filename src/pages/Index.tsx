@@ -9,11 +9,11 @@ import { useTranslation } from "react-i18next";
 
 const Index = () => {
   const { t } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, loading, isStaff, staffCheckComplete } = useAuth();
   const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
 
   // Show loading state
-  if (loading || companyLoading) {
+  if (loading || companyLoading || !staffCheckComplete) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -44,8 +44,13 @@ const Index = () => {
     );
   }
 
-  // Redirect to dashboard if logged in, otherwise show landing
-  return user ? <Navigate to="/dashboard" replace /> : <Landing />;
+  // Redirect to staff home for staff users, otherwise to dashboard
+  if (user) {
+    return <Navigate to={isStaff ? "/staff" : "/dashboard"} replace />;
+  }
+
+  // Otherwise show landing
+  return <Landing />;
 };
 
 export default Index;
