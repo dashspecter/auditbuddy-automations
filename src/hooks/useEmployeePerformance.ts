@@ -236,14 +236,14 @@ export const useEmployeePerformance = (
         const testsTaken = employeeTests.length;
         const testsPassed = employeeTests.filter((t) => t.passed).length;
         const averageTestScore = testsTaken > 0
-          ? Math.round(employeeTests.reduce((sum, t) => sum + (t.score || 0), 0) / testsTaken)
+          ? employeeTests.reduce((sum, t) => sum + (t.score || 0), 0) / testsTaken
           : 0;
 
         // Calculate component scores (0-100)
         // Attendance score: % of scheduled shifts worked
         const attendanceScore =
           shiftsScheduled > 0
-            ? Math.round((shiftsWithAttendance / shiftsScheduled) * 100)
+            ? (shiftsWithAttendance / shiftsScheduled) * 100
             : 100; // Perfect score if no shifts scheduled
 
         // Punctuality score: Deduct points for lateness
@@ -259,16 +259,15 @@ export const useEmployeePerformance = (
         // Task score: % of assigned tasks completed on time
         const taskScore =
           tasksAssigned > 0
-            ? Math.round((tasksCompletedOnTime / tasksAssigned) * 100)
+            ? (tasksCompletedOnTime / tasksAssigned) * 100
             : 100; // Perfect score if no tasks assigned
 
         // Test score: Average test score if tests taken, otherwise neutral (doesn't hurt)
         const testScore = testsTaken > 0 ? averageTestScore : 100;
 
         // Overall score: Equal weight (25% each)
-        const overallScore = Math.round(
-          (attendanceScore + punctualityScore + taskScore + testScore) / 4
-        );
+        const overallScore =
+          (attendanceScore + punctualityScore + taskScore + testScore) / 4;
 
         performanceScores.push({
           employee_id: employeeId,

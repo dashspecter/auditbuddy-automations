@@ -171,7 +171,7 @@ const StaffProfile = () => {
               <Trophy className="h-6 w-6 text-primary" />
               <div>
                 <div className="text-sm text-muted-foreground">My Performance Score</div>
-                <div className="text-2xl font-bold">{myPerformanceScore !== null ? Math.round(myPerformanceScore) : '--'}</div>
+                <div className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</div>
               </div>
             </div>
           </div>
