@@ -1,5 +1,14 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { 
+  addBrandedHeader, 
+  addBrandedFooter, 
+  getBrandedTableStyles, 
+  addSectionTitle,
+  getScoreColor,
+  BRAND_COLORS,
+  BRAND_FONT 
+} from './pdfBranding';
 
 interface AuditSection {
   name: string;
@@ -22,39 +31,18 @@ interface AuditData {
 export const generateAuditPDF = (audit: AuditData) => {
   const doc = new jsPDF();
   
-  // Brand colors
-  const primaryColor: [number, number, number] = [59, 130, 246]; // blue
-  const successColor: [number, number, number] = [34, 197, 94]; // green
-  const warningColor: [number, number, number] = [234, 179, 8]; // yellow
-  const dangerColor: [number, number, number] = [239, 68, 68]; // red
+  // Add branded header
+  addBrandedHeader(doc, 'Audit Report', audit.location);
   
-  // Header with branding
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, 210, 40, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Audit Report', 15, 20);
-  
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 15, 30);
-  
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-  
-  let yPosition = 50;
+  let yPosition = 55;
   
   // Audit Summary Section
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Audit Summary', 15, yPosition);
-  yPosition += 10;
+  yPosition = addSectionTitle(doc, 'Audit Summary', yPosition);
   
   // Summary details
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setFont(BRAND_FONT, 'normal');
+  doc.setTextColor(...BRAND_COLORS.text);
   
   const summaryData = [
     ['Location:', audit.location],
@@ -64,83 +52,77 @@ export const generateAuditPDF = (audit: AuditData) => {
   ];
   
   summaryData.forEach(([label, value]) => {
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(BRAND_FONT, 'bold');
     doc.text(label, 15, yPosition);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(BRAND_FONT, 'normal');
     doc.text(value, 50, yPosition);
-    yPosition += 7;
+    yPosition += 6;
   });
   
   yPosition += 5;
   
   // Overall Score with color coding
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setFont(BRAND_FONT, 'bold');
+  doc.setTextColor(...BRAND_COLORS.text);
   doc.text('Overall Score:', 15, yPosition);
   
   // Color code the score
-  let scoreColor: [number, number, number];
-  if (audit.score >= 80) {
-    scoreColor = successColor;
-  } else if (audit.score >= 60) {
-    scoreColor = warningColor;
-  } else {
-    scoreColor = dangerColor;
-  }
-  
+  const scoreColor = getScoreColor(audit.score);
   doc.setTextColor(...scoreColor);
-  doc.setFontSize(24);
-  doc.text(`${audit.score}%`, 60, yPosition);
-  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(20);
+  doc.text(`${audit.score}%`, 55, yPosition);
+  doc.setTextColor(...BRAND_COLORS.text);
   
-  yPosition += 15;
+  yPosition += 12;
   
   // Status badge
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setFont(BRAND_FONT, 'bold');
   doc.text('Status:', 15, yPosition);
   
   const statusText = audit.status === 'compliant' ? 'COMPLIANT' : 
                      audit.status === 'non-compliant' ? 'NON-COMPLIANT' : 
                      'PENDING';
-  const statusColor = audit.status === 'compliant' ? successColor : 
-                      audit.status === 'non-compliant' ? dangerColor : 
-                      warningColor;
+  const statusColor = audit.status === 'compliant' ? BRAND_COLORS.success : 
+                      audit.status === 'non-compliant' ? BRAND_COLORS.danger : 
+                      BRAND_COLORS.warning;
   
   doc.setTextColor(...statusColor);
   doc.text(statusText, 40, yPosition);
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(...BRAND_COLORS.text);
   
   yPosition += 15;
   
   // Section Details
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Section Breakdown', 15, yPosition);
-  yPosition += 10;
+  yPosition = addSectionTitle(doc, 'Section Breakdown', yPosition);
   
-  audit.sections.forEach((section, index) => {
+  audit.sections.forEach((section) => {
     // Check if we need a new page
     if (yPosition > 250) {
       doc.addPage();
       yPosition = 20;
     }
     
-    // Section header
-    doc.setFillColor(240, 240, 240);
+    // Section header with brand color
+    doc.setFillColor(...BRAND_COLORS.lightBg);
     doc.rect(15, yPosition - 5, 180, 8, 'F');
     
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.setTextColor(...BRAND_COLORS.text);
     doc.text(section.name, 17, yPosition);
+    
+    const sectionScoreColor = getScoreColor(section.score);
+    doc.setTextColor(...sectionScoreColor);
     doc.text(`${section.score}%`, 175, yPosition);
+    doc.setTextColor(...BRAND_COLORS.text);
     
     yPosition += 10;
     
     // Section items
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setFont(BRAND_FONT, 'normal');
     
     section.items.forEach((item) => {
       if (yPosition > 270) {
@@ -148,13 +130,13 @@ export const generateAuditPDF = (audit: AuditData) => {
         yPosition = 20;
       }
       
-      // Bullet point
-      doc.setFillColor(...successColor);
-      doc.circle(18, yPosition - 1.5, 1, 'F');
+      // Orange bullet point
+      doc.setFillColor(...BRAND_COLORS.primary);
+      doc.circle(18, yPosition - 1.5, 1.5, 'F');
       
       // Wrap text if too long
       const splitText = doc.splitTextToSize(item, 170);
-      doc.text(splitText, 22, yPosition);
+      doc.text(splitText, 24, yPosition);
       yPosition += splitText.length * 5 + 2;
     });
     
@@ -168,36 +150,16 @@ export const generateAuditPDF = (audit: AuditData) => {
       yPosition = 20;
     }
     
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Notes', 15, yPosition);
-    yPosition += 10;
+    yPosition = addSectionTitle(doc, 'Notes', yPosition);
     
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setFont(BRAND_FONT, 'normal');
     const notesText = doc.splitTextToSize(audit.notes, 180);
     doc.text(notesText, 15, yPosition);
   }
   
-  // Footer on all pages
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      105,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
-    );
-    doc.text(
-      'Confidential - For internal use only',
-      105,
-      doc.internal.pageSize.height - 5,
-      { align: 'center' }
-    );
-  }
+  // Add branded footer
+  addBrandedFooter(doc);
   
   // Save the PDF
   const fileName = `audit_${audit.location.replace(/\s+/g, '_')}_${audit.date}.pdf`;
