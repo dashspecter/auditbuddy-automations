@@ -48,15 +48,15 @@ export const EmployeePerformanceDetail = ({
     }));
 
   const auditAverage = audits && audits.length > 0
-    ? Math.round(audits.reduce((sum, a) => sum + a.score, 0) / audits.length)
+    ? audits.reduce((sum, a) => sum + a.score, 0) / audits.length
     : 0;
 
   const testAverage = testSubmissions && testSubmissions.length > 0
-    ? Math.round(testSubmissions.filter(t => t.score !== null).reduce((sum, t) => sum + (t.score || 0), 0) / testSubmissions.filter(t => t.score !== null).length)
+    ? testSubmissions.filter(t => t.score !== null).reduce((sum, t) => sum + (t.score || 0), 0) / testSubmissions.filter(t => t.score !== null).length
     : 0;
 
   const overallAverage = allScores.length > 0
-    ? Math.round(allScores.reduce((sum, s) => sum + s.score, 0) / allScores.length)
+    ? allScores.reduce((sum, s) => sum + s.score, 0) / allScores.length
     : 0;
 
   const getTrend = () => {
@@ -90,7 +90,7 @@ export const EmployeePerformanceDetail = ({
                   variant={overallAverage >= 80 ? "default" : overallAverage >= 60 ? "secondary" : "destructive"}
                   className="text-xl px-3 py-1"
                 >
-                  {overallAverage}%
+                  {overallAverage.toFixed(1)}%
                 </Badge>
                 {trend === "up" && <TrendingUp className="h-5 w-5 text-green-500" />}
                 {trend === "down" && <TrendingDown className="h-5 w-5 text-red-500" />}
@@ -105,7 +105,7 @@ export const EmployeePerformanceDetail = ({
                 <ClipboardCheck className="h-4 w-4 text-primary" />
                 <p className="text-sm text-muted-foreground">Staff Audits Avg</p>
               </div>
-              <p className="text-2xl font-bold">{auditAverage}%</p>
+              <p className="text-2xl font-bold">{auditAverage.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground mt-1">{audits?.length || 0} audits</p>
             </div>
             <div className="p-4 border rounded-lg">
@@ -113,7 +113,7 @@ export const EmployeePerformanceDetail = ({
                 <FileText className="h-4 w-4 text-primary" />
                 <p className="text-sm text-muted-foreground">Test Scores Avg</p>
               </div>
-              <p className="text-2xl font-bold">{testAverage}%</p>
+              <p className="text-2xl font-bold">{testAverage.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground mt-1">{testSubmissions?.length || 0} tests</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export const EmployeePerformanceDetail = ({
                     variant={item.score >= 80 ? "default" : item.score >= 60 ? "secondary" : "destructive"}
                     className="text-lg px-3 py-1"
                   >
-                    {item.score}%
+                    {item.score.toFixed(1)}%
                   </Badge>
                 </div>
               ))}
@@ -212,7 +212,7 @@ export const EmployeePerformanceDetail = ({
                     variant={audit.score >= 80 ? "default" : audit.score >= 60 ? "secondary" : "destructive"}
                     className="text-lg px-3 py-1"
                   >
-                    {audit.score}%
+                    {audit.score.toFixed(1)}%
                   </Badge>
                 </div>
               ))}
@@ -247,7 +247,7 @@ export const EmployeePerformanceDetail = ({
                     variant={submission.score! >= 80 ? "default" : submission.score! >= 60 ? "secondary" : "destructive"}
                     className="text-lg px-3 py-1"
                   >
-                    {submission.score}%
+                    {submission.score!.toFixed(1)}%
                   </Badge>
                 </div>
               ))}
