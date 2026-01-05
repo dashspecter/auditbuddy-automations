@@ -87,7 +87,7 @@ export const StaffLeaderboard = () => {
         }
 
         const scores = allScores.map((s) => s.score);
-        const average = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        const average = scores.reduce((a, b) => a + b, 0) / scores.length;
 
         // Calculate trend
         let trend: "up" | "down" | "neutral" = "neutral";
@@ -122,9 +122,8 @@ export const StaffLeaderboard = () => {
 
     // Convert to array and sort locations by average score
     const locationArray = Array.from(locationGroups.entries()).map(([location, employees]) => {
-      const locationAvg = Math.round(
-        employees.reduce((sum, emp) => sum + emp.average, 0) / employees.length
-      );
+      const locationAvg = 
+        employees.reduce((sum, emp) => sum + emp.average, 0) / employees.length;
       return { location, employees, locationAvg };
     });
 
@@ -153,14 +152,14 @@ export const StaffLeaderboard = () => {
       // Add location header
       doc.setFontSize(14);
       doc.setFont(undefined, "bold");
-      doc.text(`${locationGroup.location} (Avg: ${locationGroup.locationAvg}%)`, 14, yPosition);
+      doc.text(`${locationGroup.location} (Avg: ${locationGroup.locationAvg.toFixed(1)}%)`, 14, yPosition);
       yPosition += 8;
 
       const tableData = locationGroup.employees.map((emp, index) => [
         index + 1,
         emp.name,
         emp.role,
-        `${emp.average}%`,
+        `${emp.average.toFixed(1)}%`,
         emp.trend === "up" ? "↑" : emp.trend === "down" ? "↓" : "→",
       ]);
 
@@ -229,7 +228,7 @@ export const StaffLeaderboard = () => {
                   </p>
                 </div>
                 <Badge variant="outline" className="text-lg px-3 py-1">
-                  Avg: {locationGroup.locationAvg}%
+                  Avg: {locationGroup.locationAvg.toFixed(1)}%
                 </Badge>
               </div>
               
@@ -259,7 +258,7 @@ export const StaffLeaderboard = () => {
                       }
                       className="text-lg px-3 py-1"
                     >
-                      {emp.average}%
+                      {emp.average.toFixed(1)}%
                     </Badge>
                     {getTrendIcon(emp.trend)}
                   </div>
