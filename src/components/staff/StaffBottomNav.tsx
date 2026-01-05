@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Calendar, Repeat, Umbrella, User, Users } from "lucide-react";
+import { Home, Calendar, Repeat, Umbrella, User, Users, ClipboardCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,10 +46,22 @@ export const StaffBottomNav = () => {
     checkManagerRole();
   }, [user, roleData]);
 
+  // Checker role - focused on audits
+  const isChecker = roleData?.isChecker && !isManager;
+
   const staffNavItems = [
     { id: "home", path: "/staff", icon: Home, label: "Home" },
     { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
     { id: "shifts", path: "/staff/shifts", icon: Repeat, label: "Shifts" },
+    { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
+    { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
+  ];
+
+  // Checker nav - includes audits functionality
+  const checkerNavItems = [
+    { id: "home", path: "/staff", icon: Home, label: "Home" },
+    { id: "audits", path: "/staff/location-audit", icon: ClipboardCheck, label: "Audits" },
+    { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
     { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
     { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
   ];
@@ -62,7 +74,7 @@ export const StaffBottomNav = () => {
     { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
   ];
 
-  const navItems = isManager ? managerNavItems : staffNavItems;
+  const navItems = isManager ? managerNavItems : isChecker ? checkerNavItems : staffNavItems;
 
   const isActive = (path: string) => {
     if (path === "/staff") {
