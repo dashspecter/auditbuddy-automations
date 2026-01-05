@@ -20,6 +20,8 @@ import ModuleTourWrapper from "@/components/onboarding/ModuleTourWrapper";
 import { MODULE_TOURS } from "@/config/moduleTours";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
+import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
 
 const auditsSubItems = [
   { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
@@ -40,6 +42,22 @@ const Audits = () => {
   const [statusFilter, setStatusFilter] = useState("all-status");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Fetch template fields for fallback score calculation
+  const templateIds = useMemo(() => {
+    return audits?.map(a => a.template_id).filter(Boolean) as string[] || [];
+  }, [audits]);
+  const { data: fieldsByTemplate } = useAuditTemplateFields(templateIds);
+
+  // Compute score with fallback from custom_data
+  const getScore = (audit: NonNullable<typeof audits>[0]) => {
+    if (audit.overall_score != null && audit.overall_score > 0) {
+      return audit.overall_score;
+    }
+    if (!audit.template_id || !fieldsByTemplate) return null;
+    const fields = fieldsByTemplate[audit.template_id];
+    return computeLocationAuditPercent(fields, audit.custom_data as Record<string, any>);
+  };
 
   // Fetch user profiles to get checker names
   const { data: profiles } = useQuery({
@@ -302,11 +320,14 @@ const Audits = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        {audit.overall_score !== null && audit.overall_score !== undefined && (
-                          <span className="text-lg font-bold text-foreground">
-                            {audit.overall_score}%
-                          </span>
-                        )}
+                        {(() => {
+                          const score = getScore(audit);
+                          return score !== null ? (
+                            <span className="text-lg font-bold text-foreground">
+                              {score}%
+                            </span>
+                          ) : null;
+                        })()}
                         {audit.status === "compliant" && (
                           <Badge className="bg-success text-success-foreground gap-1">
                             <CheckCircle2 className="h-3 w-3" />
