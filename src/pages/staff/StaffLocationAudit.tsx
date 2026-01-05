@@ -306,7 +306,8 @@ const StaffLocationAudit = () => {
           if (value !== undefined && value !== null) {
             totalScore += Number(value);
           }
-        } else if (field.field_type === "yes_no") {
+        } else if (field.field_type === "yes_no" || field.field_type === "yesno" || field.field_type === "checkbox") {
+          // checkbox, yesno, yes_no all count as binary 0/1 fields
           maxScore += 1;
           const value = formData.customData[field.id];
           if (value === "yes" || value === true) {
@@ -344,6 +345,10 @@ const StaffLocationAudit = () => {
 
       const locationName = managerLocations.find(l => l.id === formData.location_id)?.name || "";
 
+      // Determine status based on score - 80% is compliance threshold
+      const COMPLIANCE_THRESHOLD = 80;
+      const status = percentScore >= COMPLIANCE_THRESHOLD ? 'compliant' : 'non-compliant';
+
       const auditPayload = {
         template_id: selectedTemplateId,
         location_id: formData.location_id,
@@ -355,9 +360,8 @@ const StaffLocationAudit = () => {
         time_end: formData.timeEnd || null,
         notes: formData.notes || null,
         custom_data: formData.customData,
-        status: "completed",
-        total_score: percentScore,
-        compliance_status: percentScore >= 70 ? "compliant" : "non_compliant",
+        status: status,
+        overall_score: percentScore,
       };
 
       if (currentDraftId) {
