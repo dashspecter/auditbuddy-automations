@@ -87,6 +87,7 @@ const Dashboard = () => {
               admin={<AdminDashboard />}
               manager={<ManagerDashboard />}
               checker={<CheckerDashboard />}
+              fallback={<CheckerDashboard />}
             />
           </TabsContent>
         </Tabs>
