@@ -83,11 +83,10 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Check if this is a staff-only route (not /staff-audits which is admin/manager route)
   const isStaffRoute = location.pathname === '/staff' || location.pathname.startsWith('/staff/');
 
-  // Staff-only users (not managers/admins) should be on staff routes
-  // But staff who are also managers/admins can access non-staff routes
-  // Only redirect if company is definitively not available (not loading)
-  // This prevents unwanted redirects during tab switches when company data is briefly null
-  if (isStaff && !isStaffRoute && !company && !companyLoading) {
+  // Staff users should stay on staff routes.
+  // Company admins/owners and platform admins are not considered staff in AuthContext.
+
+  if (isStaff && !isStaffRoute) {
     return <Navigate to="/staff" replace />;
   }
 
