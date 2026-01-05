@@ -15,6 +15,7 @@ export interface EmployeePerformanceScore {
   punctuality_score: number;
   task_score: number;
   test_score: number;
+  performance_review_score: number;
   // Overall score (0-100)
   overall_score: number;
   // Raw metrics
@@ -31,6 +32,9 @@ export interface EmployeePerformanceScore {
   tests_taken: number;
   tests_passed: number;
   average_test_score: number;
+  // Performance review metrics
+  reviews_count: number;
+  average_review_score: number;
 }
 
 export const useEmployeePerformance = (
@@ -165,6 +169,16 @@ export const useEmployeePerformance = (
 
       if (testError) throw testError;
 
+      // Get staff audits (performance reviews) for the period
+      const { data: staffAudits, error: auditsError } = await supabase
+        .from("staff_audits")
+        .select("id, employee_id, score, audit_date")
+        .gte("audit_date", startDate)
+        .lte("audit_date", endDate)
+        .not("employee_id", "is", null);
+
+      if (auditsError) throw auditsError;
+
       // Calculate performance for each employee
       const performanceScores: EmployeePerformanceScore[] = [];
 
@@ -239,6 +253,15 @@ export const useEmployeePerformance = (
           ? employeeTests.reduce((sum, t) => sum + (t.score || 0), 0) / testsTaken
           : 0;
 
+        // Calculate performance review metrics (staff audits)
+        const employeeReviews = (staffAudits || []).filter(
+          (audit) => audit.employee_id === employeeId
+        );
+        const reviewsCount = employeeReviews.length;
+        const averageReviewScore = reviewsCount > 0
+          ? employeeReviews.reduce((sum, r) => sum + (r.score || 0), 0) / reviewsCount
+          : 0;
+
         // Calculate component scores (0-100)
         // Attendance score: % of scheduled shifts worked
         const attendanceScore =
@@ -262,12 +285,15 @@ export const useEmployeePerformance = (
             ? (tasksCompletedOnTime / tasksAssigned) * 100
             : 100; // Perfect score if no tasks assigned
 
-        // Test score: Average test score if tests taken, otherwise neutral (doesn't hurt)
+        // Test score: Average test score if tests taken, otherwise neutral
         const testScore = testsTaken > 0 ? averageTestScore : 100;
 
-        // Overall score: Equal weight (25% each)
+        // Performance review score: Average review score if reviews exist, otherwise neutral
+        const performanceReviewScore = reviewsCount > 0 ? averageReviewScore : 100;
+
+        // Overall score: Equal weight (20% each for 5 components)
         const overallScore =
-          (attendanceScore + punctualityScore + taskScore + testScore) / 4;
+          (attendanceScore + punctualityScore + taskScore + testScore + performanceReviewScore) / 5;
 
         performanceScores.push({
           employee_id: employeeId,
@@ -280,6 +306,7 @@ export const useEmployeePerformance = (
           punctuality_score: punctualityScore,
           task_score: taskScore,
           test_score: testScore,
+          performance_review_score: performanceReviewScore,
           overall_score: overallScore,
           shifts_scheduled: shiftsScheduled,
           shifts_worked: shiftsWithAttendance,
@@ -293,6 +320,8 @@ export const useEmployeePerformance = (
           tests_taken: testsTaken,
           tests_passed: testsPassed,
           average_test_score: averageTestScore,
+          reviews_count: reviewsCount,
+          average_review_score: averageReviewScore,
         });
       }
 
