@@ -172,9 +172,10 @@ export default function StaffAudits() {
                     id="score"
                     min={0}
                     max={100}
+                    step="0.01"
                     value={formData.score}
                     onChange={(e) =>
-                      setFormData({ ...formData, score: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })
+                      setFormData({ ...formData, score: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })
                     }
                   />
                 </div>
