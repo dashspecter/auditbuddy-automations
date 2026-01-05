@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
@@ -135,25 +135,31 @@ const EmployeePerformance = () => {
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground">Attendance</div>
                   <div className={`font-medium ${getScoreColor(employee.attendance_score)}`}>
-                    {employee.attendance_score}
+                    {employee.attendance_score.toFixed(1)}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground">Punctuality</div>
                   <div className={`font-medium ${getScoreColor(employee.punctuality_score)}`}>
-                    {employee.punctuality_score}
+                    {employee.punctuality_score.toFixed(1)}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground">Tasks</div>
                   <div className={`font-medium ${getScoreColor(employee.task_score)}`}>
-                    {employee.task_score}
+                    {employee.task_score.toFixed(1)}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground">Tests</div>
                   <div className={`font-medium ${getScoreColor(employee.test_score)}`}>
-                    {employee.test_score}
+                    {employee.test_score.toFixed(1)}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Reviews</div>
+                  <div className={`font-medium ${getScoreColor(employee.performance_review_score)}`}>
+                    {employee.performance_review_score.toFixed(1)}
                   </div>
                 </div>
               </div>
@@ -176,7 +182,7 @@ const EmployeePerformance = () => {
         <CollapsibleContent>
           <div className="px-4 pb-4 ml-12 space-y-4">
             {/* Score breakdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1">
@@ -184,7 +190,7 @@ const EmployeePerformance = () => {
                     Attendance
                   </span>
                   <span className={`font-medium ${getScoreColor(employee.attendance_score)}`}>
-                    {employee.attendance_score}/100
+                    {employee.attendance_score.toFixed(1)}/100
                   </span>
                 </div>
                 <Progress 
@@ -208,7 +214,7 @@ const EmployeePerformance = () => {
                     Punctuality
                   </span>
                   <span className={`font-medium ${getScoreColor(employee.punctuality_score)}`}>
-                    {employee.punctuality_score}/100
+                    {employee.punctuality_score.toFixed(1)}/100
                   </span>
                 </div>
                 <Progress 
@@ -233,7 +239,7 @@ const EmployeePerformance = () => {
                     Tasks
                   </span>
                   <span className={`font-medium ${getScoreColor(employee.task_score)}`}>
-                    {employee.task_score}/100
+                    {employee.task_score.toFixed(1)}/100
                   </span>
                 </div>
                 <Progress 
@@ -257,7 +263,7 @@ const EmployeePerformance = () => {
                     Tests
                   </span>
                   <span className={`font-medium ${getScoreColor(employee.test_score)}`}>
-                    {employee.test_score}/100
+                    {employee.test_score.toFixed(1)}/100
                   </span>
                 </div>
                 <Progress 
@@ -267,10 +273,35 @@ const EmployeePerformance = () => {
                 <div className="text-xs text-muted-foreground">
                   {employee.tests_taken > 0 ? (
                     <>
-                      {employee.tests_passed}/{employee.tests_taken} passed (avg: {employee.average_test_score}%)
+                      {employee.tests_passed}/{employee.tests_taken} passed (avg: {employee.average_test_score.toFixed(1)}%)
                     </>
                   ) : (
                     "No tests taken"
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-yellow-500" />
+                    Reviews
+                  </span>
+                  <span className={`font-medium ${getScoreColor(employee.performance_review_score)}`}>
+                    {employee.performance_review_score.toFixed(1)}/100
+                  </span>
+                </div>
+                <Progress 
+                  value={employee.performance_review_score} 
+                  className={`h-2 [&>div]:${getProgressColor(employee.performance_review_score)}`}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {employee.reviews_count > 0 ? (
+                    <>
+                      {employee.reviews_count} reviews (avg: {employee.average_review_score.toFixed(1)}%)
+                    </>
+                  ) : (
+                    "No reviews"
                   )}
                 </div>
               </div>
