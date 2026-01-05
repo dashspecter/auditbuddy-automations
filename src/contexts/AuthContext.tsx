@@ -177,13 +177,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Invalidate ALL queries on auth state change to ensure fresh data
+        // Keep UI stable on TOKEN_REFRESHED: don't clear cache (clearing causes full-page spinners
+        // and feels like a hard refresh). Instead, refetch critical data in the background.
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          console.log('[AuthContext] Auth changed, clearing cached queries');
+          queryClient.clear();
+        }
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log('[AuthContext] Clearing all queries for fresh data');
-          queryClient.clear(); // Clear ALL cached queries
           queryClient.invalidateQueries({ queryKey: ['user_role'] });
           queryClient.invalidateQueries({ queryKey: ['company'] });
           queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+          queryClient.invalidateQueries({ queryKey: ['permissions'] });
         }
         
         if (event === 'SIGNED_OUT') {
