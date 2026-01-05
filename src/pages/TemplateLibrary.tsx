@@ -266,7 +266,7 @@ export default function TemplateLibrary() {
   };
 
   const canEditTemplate = (template: Template) => {
-    return roleData?.isAdmin || template.created_by === user?.id;
+    return roleData?.isAdmin || roleData?.isManager || template.created_by === user?.id;
   };
 
   const filteredTemplates = templates?.filter((template) => {
