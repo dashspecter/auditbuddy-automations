@@ -56,6 +56,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
   const { user, session } = useAuth();
   const lastVisibleRef = useRef<number>(Date.now());
   const isValidatingRef = useRef(false);
+  const hasBootRevalidatedRef = useRef(false);
 
   /**
    * Validate the current session
@@ -122,6 +123,17 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       isValidatingRef.current = false;
     }
   }, [validateSession, queryClient, criticalQueryKeys]);
+
+  // When the app is opened fresh (e.g., next day), ensure we still revalidate once.
+  // This covers cases where window focus events don't fire (PWA resume, restored tabs, etc.).
+  useEffect(() => {
+    if (!autoRevalidate || !user) return;
+    if (hasBootRevalidatedRef.current) return;
+    if (document.visibilityState !== 'visible') return;
+
+    hasBootRevalidatedRef.current = true;
+    revalidateCriticalData();
+  }, [autoRevalidate, user, revalidateCriticalData]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
