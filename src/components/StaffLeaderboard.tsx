@@ -10,6 +10,7 @@ import { LocationSelector } from "@/components/LocationSelector";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addBrandedHeader, addBrandedFooter, getBrandedTableStyles, addSectionTitle, BRAND_COLORS, BRAND_FONT } from "@/lib/pdfBranding";
 import { EmployeePerformanceDetail } from "@/components/EmployeePerformanceDetail";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -134,47 +135,42 @@ export const StaffLeaderboard = () => {
 
   const generatePDF = () => {
     const doc = new jsPDF();
-
-    doc.setFontSize(18);
-    doc.text("Staff Performance Leaderboard", 14, 20);
     
-    doc.setFontSize(11);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
+    // Add branded header
+    addBrandedHeader(doc, "Staff Performance Leaderboard", filterLocationId && filterLocationId !== "__all__" ? leaderboardData[0]?.location : undefined);
     
-    if (filterLocationId && filterLocationId !== "__all__") {
-      const location = leaderboardData[0]?.location || "Selected Location";
-      doc.text(`Location: ${location}`, 14, 34);
-    }
-
-    let yPosition = (filterLocationId && filterLocationId !== "__all__") ? 42 : 38;
+    let yPosition = 55;
 
     leaderboardData.forEach((locationGroup) => {
-      // Add location header
-      doc.setFontSize(14);
-      doc.setFont(undefined, "bold");
-      doc.text(`${locationGroup.location} (Avg: ${locationGroup.locationAvg.toFixed(1)}%)`, 14, yPosition);
-      yPosition += 8;
+      // Check for page break
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Add section title
+      yPosition = addSectionTitle(doc, `${locationGroup.location} (Avg: ${locationGroup.locationAvg.toFixed(1)}%)`, yPosition);
 
       const tableData = locationGroup.employees.map((emp, index) => [
         index + 1,
         emp.name,
         emp.role,
         `${emp.average.toFixed(1)}%`,
-        emp.trend === "up" ? "↑" : emp.trend === "down" ? "↓" : "→",
+        emp.trend === "up" ? "↑ Up" : emp.trend === "down" ? "↓ Down" : "→ Stable",
       ]);
 
       autoTable(doc, {
         startY: yPosition,
         head: [["Rank", "Name", "Role", "Score", "Trend"]],
         body: tableData,
-        theme: "striped",
-        headStyles: { fillColor: [59, 130, 246] },
-        margin: { left: 14 },
+        ...getBrandedTableStyles(),
+        margin: { left: 15, right: 15 },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 10;
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
     });
 
+    addBrandedFooter(doc);
     doc.save(`staff-leaderboard-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 

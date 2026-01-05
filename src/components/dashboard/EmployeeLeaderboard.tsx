@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { Trophy, Medal, Award, TrendingUp, TrendingDown, Minus, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addBrandedHeader, addBrandedFooter, getBrandedTableStyles } from "@/lib/pdfBranding";
 import { toast } from "sonner";
 
 export const EmployeeLeaderboard = () => {
@@ -149,13 +150,9 @@ export const EmployeeLeaderboard = () => {
     }
 
     const doc = new jsPDF();
-
-    doc.setFontSize(18);
-    doc.text("Employee Leaderboard", 14, 20);
     
-    doc.setFontSize(11);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
-    doc.text("Top Performers Based on Staff Audit Scores", 14, 34);
+    // Add branded header
+    addBrandedHeader(doc, "Employee Leaderboard", "Top Performers");
 
     const tableData = leaderboardData.map((emp, index) => [
       index + 1,
@@ -164,30 +161,27 @@ export const EmployeeLeaderboard = () => {
       emp.role,
       `${emp.avgScore}%`,
       emp.auditCount.toString(),
-      emp.trend === "up" ? "↑" : emp.trend === "down" ? "↓" : "→",
+      emp.trend === "up" ? "↑ Up" : emp.trend === "down" ? "↓ Down" : "→ Stable",
     ]);
 
     autoTable(doc, {
-      startY: 42,
+      startY: 55,
       head: [["Rank", "Name", "Location", "Role", "Avg Score", "Audits", "Trend"]],
       body: tableData,
-      theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
-      styles: {
-        cellPadding: 3,
-        fontSize: 10,
-      },
+      ...getBrandedTableStyles(),
       columnStyles: {
         0: { cellWidth: 15 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 25 },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 15 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 18 },
+        6: { cellWidth: 20 },
       },
+      margin: { left: 15, right: 15 },
     });
 
+    addBrandedFooter(doc);
     doc.save(`employee-leaderboard-${new Date().toISOString().split("T")[0]}.pdf`);
     toast.success("PDF downloaded successfully");
   };

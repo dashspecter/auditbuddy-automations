@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addBrandedHeader, addBrandedFooter, getBrandedTableStyles } from "@/lib/pdfBranding";
 import { ComplianceChart } from "@/components/dashboard/ComplianceChart";
 import { LocationPerformanceCards } from "@/components/dashboard/LocationPerformanceCards";
 import { LocationTrendAnalysis } from "@/components/dashboard/LocationTrendAnalysis";
@@ -238,16 +239,11 @@ const Reports = () => {
 
     const doc = new jsPDF();
     
-    doc.setFontSize(18);
-    doc.text("Audit Performance Report", 14, 20);
-    
-    doc.setFontSize(11);
-    doc.text(`Generated: ${format(new Date(), 'PPP')}`, 14, 28);
-    
-    if (dateFrom || dateTo) {
-      const dateRange = `Date Range: ${dateFrom ? format(dateFrom, 'PPP') : 'Start'} - ${dateTo ? format(dateTo, 'PPP') : 'End'}`;
-      doc.text(dateRange, 14, 35);
-    }
+    // Add branded header
+    const dateRangeText = dateFrom && dateTo 
+      ? `${format(dateFrom, 'MMM d')} - ${format(dateTo, 'MMM d, yyyy')}` 
+      : undefined;
+    addBrandedHeader(doc, "Audit Performance Report", dateRangeText);
 
     autoTable(doc, {
       head: [["Location", "Total Audits", "Avg Score", "Compliant", "Non-Compliant", "Compliance Rate"]],
@@ -259,10 +255,12 @@ const Reports = () => {
         row.nonCompliant.toString(),
         `${row.totalAudits > 0 ? Math.round((row.compliant / row.totalAudits) * 100) : 0}%`
       ]),
-      startY: dateFrom || dateTo ? 42 : 35,
-      theme: 'grid',
+      startY: 55,
+      ...getBrandedTableStyles(),
+      margin: { left: 15, right: 15 },
     });
 
+    addBrandedFooter(doc);
     doc.save(`audit-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success(t('reports.pdfExported'));
   };
