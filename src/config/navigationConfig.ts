@@ -132,7 +132,7 @@ export const navigationItems: NavItem[] = [
         ]
       },
       { id: "audits-mystery", title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
-      { id: "audits-templates", title: "Template Library", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
+      { id: "audits-templates", title: "Template Library", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: "audits-calendar", title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: "audits-schedules", title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' },
       { id: "audits-photos", title: "Photo Gallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
