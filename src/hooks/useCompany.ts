@@ -390,6 +390,9 @@ export const useUpdatePlatformRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company_users'] });
+      // Ensure role-dependent UI updates immediately across the app
+      queryClient.invalidateQueries({ queryKey: ['user_role'] });
+      queryClient.invalidateQueries({ queryKey: ['company_role_permissions'] });
       toast({
         title: "Success",
         description: "Platform role updated successfully",

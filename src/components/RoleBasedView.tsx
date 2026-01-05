@@ -27,7 +27,7 @@ export const RoleBasedView = ({ admin, manager, checker, fallback }: RoleBasedVi
     return <>{manager}</>;
   }
 
-  if (checker) {
+  if (roleData?.isChecker && checker) {
     return <>{checker}</>;
   }
 
