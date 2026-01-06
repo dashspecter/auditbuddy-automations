@@ -175,201 +175,206 @@ const App = () => (
         <Sonner />
         <PWAUpdateReadyToast />
         <BrowserRouter>
-          <AuthProvider>
-            <AppVisibilityManager />
-            <CompanyProvider>
-              <SidebarProvider>
-              <PWAInstallPrompt />
-              <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/staff-login" element={<StaffLogin />} />
-              <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
-              <Route path="/staff/schedule" element={<ProtectedRoute><StaffSchedule /></ProtectedRoute>} />
-              <Route path="/staff/manager-schedule" element={<ProtectedRoute><ManagerSchedule /></ProtectedRoute>} />
-              <Route path="/staff/shifts" element={<ProtectedRoute><StaffShifts /></ProtectedRoute>} />
-              <Route path="/staff/shift-pool" element={<ProtectedRoute><StaffShiftPool /></ProtectedRoute>} />
-              <Route path="/staff/swap-requests" element={<ProtectedRoute><StaffSwapRequests /></ProtectedRoute>} />
-              <Route path="/staff/time-off" element={<ProtectedRoute><StaffTimeOff /></ProtectedRoute>} />
-              <Route path="/staff/messages" element={<ProtectedRoute><StaffMessages /></ProtectedRoute>} />
-              <Route path="/staff/earnings" element={<ProtectedRoute><StaffEarnings /></ProtectedRoute>} />
-              <Route path="/staff/tasks" element={<ProtectedRoute><StaffTasks /></ProtectedRoute>} />
-              <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
-              <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
-              <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
-              <Route path="/staff/scan-voucher" element={<ProtectedRoute><StaffScanVoucher /></ProtectedRoute>} />
-              <Route path="/staff/audits" element={<ProtectedRoute><StaffLocationAudits /></ProtectedRoute>} />
-              <Route path="/staff/audits/:id" element={<ProtectedRoute><StaffLocationAuditDetail /></ProtectedRoute>} />
-              <Route path="/staff/location-audit" element={<ProtectedRoute><StaffLocationAudit /></ProtectedRoute>} />
-              <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
-              <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
-              <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
-              <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
-              {/* Legacy route - redirect to new path */}
-              <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
-              <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
-              <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
-              <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
-              <Route path="/settings/company" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
-              <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
-              <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
-              <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
-              
-              {/* New Audit System Routes */}
-              <Route path="/audits/templates" element={<ManagerRoute requiredPermission="manage_audits"><Templates /></ManagerRoute>} />
-              <Route path="/audits/templates/new" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
-              <Route path="/audits/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
-              <Route path="/audits/schedule" element={<ManagerRoute requiredPermission="manage_audits"><ScheduleAudit /></ManagerRoute>} />
-              <Route path="/audits/perform/:id" element={<ProtectedRoute><PerformAudit /></ProtectedRoute>} />
-              <Route path="/audits/report/:id" element={<ProtectedRoute><AuditReport /></ProtectedRoute>} />
-              <Route path="/audits/list" element={<ProtectedRoute><AuditsList /></ProtectedRoute>} />
-              
-              {/* Mystery Shopper Routes */}
-              <Route path="/audits/mystery-shopper" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplates /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper/new" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper/:templateId" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
-              <Route path="/audits/mystery-shopper-results" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperResults /></ManagerRoute>} />
-              <Route path="/audits/vouchers" element={<ManagerRoute requiredPermission="manage_audits"><VouchersManagement /></ManagerRoute>} />
-              
-              {/* Public Mystery Shopper Routes (no auth required) */}
-              <Route path="/mystery/:token" element={<MysteryShopperForm />} />
-              <Route path="/voucher/:code" element={<VoucherPage />} />
-              
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-              <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/admin/templates" element={<ProtectedRoute><AdminTemplates /></ProtectedRoute>} />
-              <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
-              <Route path="/admin/template-library" element={<ProtectedRoute><TemplateLibrary /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-              <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
-              <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
-              <Route path="/notifications" element={<ManagerRoute requiredPermission="manage_notifications"><Notifications /></ManagerRoute>} />
-              <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationTemplates /></ManagerRoute>} />
-              <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAuditLogs /></ManagerRoute>} />
-              <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAnalytics /></ManagerRoute>} />
-              <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_notifications"><RecurringNotifications /></ManagerRoute>} />
-              <Route path="/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
-              <Route path="/documents" element={<ManagerRoute requiredPermission="view_reports"><DocumentManagement /></ManagerRoute>} />
-              <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetail /></ProtectedRoute>} />
-              <Route path="/training" element={<ProtectedRoute><TrainingPrograms /></ProtectedRoute>} />
-              <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
-              <Route path="/test-creation" element={<ManagerRoute requiredPermission="manage_employees"><TestCreation /></ManagerRoute>} />
-              <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_employees"><TestManagement /></ManagerRoute>} />
-              <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_employees"><TestEdit /></ManagerRoute>} />
-              <Route path="/take-test/:testId" element={<TakeTest />} />
-              <Route path="/t/:shortCode" element={<TakeTest />} />
-              <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
-              <Route path="/admin/locations" element={<ManagerRoute requiredPermission="manage_locations"><LocationsManagement /></ManagerRoute>} />
-              <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
-              <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
-              <Route path="/staff-audits" element={<ProtectedRoute><StaffAudits /></ProtectedRoute>} />
-              <Route path="/staff-audits/all" element={<ProtectedRoute><StaffAuditsViewAll /></ProtectedRoute>} />
-              <Route path="/staff-audits/:id" element={<ProtectedRoute><StaffAuditDetail /></ProtectedRoute>} />
-              <Route path="/staff-audit/new" element={<ProtectedRoute><StaffAuditNew /></ProtectedRoute>} />
-              <Route path="/manual-metrics" element={<ManagerRoute requiredPermission="view_reports"><ManualMetrics /></ManagerRoute>} />
-              <Route path="/equipment" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentList /></ManagerRoute>} />
-              <Route path="/equipment/bulk-qr" element={<ManagerRoute requiredPermission="manage_audits"><BulkEquipmentQR /></ManagerRoute>} />
-              <Route path="/equipment/new" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentForm /></ManagerRoute>} />
-              <Route path="/equipment/:id" element={<EquipmentDetail />} />
-              <Route path="/equipment/:id/edit" element={<ManagerRoute requiredPermission="manage_audits"><EquipmentForm /></ManagerRoute>} />
-              <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
-              <Route path="/maintenance-calendar" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceCalendar /></ManagerRoute>} />
-              <Route path="/recurring-maintenance" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
-              
-              {/* CMMS Industrial Routes */}
-              <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
-              <Route path="/cmms/overview" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
-              <Route path="/cmms/work-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsWorkOrders /></ManagerRoute>} />
-              <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
-              <Route path="/cmms/assets/:id" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssetDetail /></ManagerRoute>} />
-              <Route path="/cmms/procedures" element={<ManagerRoute requiredPermission="manage_audits"><CmmsProcedures /></ManagerRoute>} />
-              <Route path="/cmms/procedures/:id" element={<ManagerRoute requiredPermission="manage_audits"><CmmsProcedureDetail /></ManagerRoute>} />
-              <Route path="/cmms/pm-schedules" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPmSchedules /></ManagerRoute>} />
-              <Route path="/cmms/parts" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPartsInventory /></ManagerRoute>} />
-              <Route path="/cmms/purchase-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPurchaseOrders /></ManagerRoute>} />
-              <Route path="/cmms/vendors" element={<ManagerRoute requiredPermission="manage_audits"><CmmsVendors /></ManagerRoute>} />
-              <Route path="/cmms/teams" element={<ManagerRoute requiredPermission="manage_audits"><CmmsTeams /></ManagerRoute>} />
-              <Route path="/cmms/reports" element={<ManagerRoute requiredPermission="manage_audits"><CmmsReporting /></ManagerRoute>} />
-              
-              {/* Workforce Routes */}
-              <Route path="/workforce" element={<ProtectedRoute><Workforce /></ProtectedRoute>} />
-              <Route path="/workforce/staff" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
-              <Route path="/workforce/staff/:id" element={<ProtectedRoute><WorkforceStaffProfile /></ProtectedRoute>} />
-              <Route path="/workforce/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
-              <Route path="/workforce/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-              <Route path="/workforce/time-off" element={<ProtectedRoute><TimeOffApprovals /></ProtectedRoute>} />
-              <Route path="/workforce/payroll" element={<ManagerRoute requiredPermission="manage_employees"><Payroll /></ManagerRoute>} />
-              <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
-              <Route path="/workforce/performance" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
-              
-              {/* Tasks Routes */}
-              <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-              <Route path="/tasks/new" element={<ProtectedRoute><TaskNew /></ProtectedRoute>} />
-              <Route path="/tasks/edit/:id" element={<ProtectedRoute><TaskEdit /></ProtectedRoute>} />
-              <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
-              
-              {/* Inventory Routes */}
-              <Route path="/inventory" element={<ManagerRoute requiredPermission="manage_audits"><Inventory /></ManagerRoute>} />
-              
-              {/* Insights Routes */}
-              <Route path="/insights" element={<ManagerRoute requiredPermission="view_reports"><Insights /></ManagerRoute>} />
-              <Route path="/ai-feed" element={<ManagerRoute requiredPermission="view_reports"><AIFeed /></ManagerRoute>} />
-              
-              {/* Integrations Routes */}
-              <Route path="/integrations" element={<ManagerRoute><Integrations /></ManagerRoute>} />
-              <Route path="/integrations/:id" element={<ManagerRoute><IntegrationDetail /></ManagerRoute>} />
-              
-              {/* Marketplace Routes */}
-              <Route path="/marketplace" element={<ProtectedRoute><MarketplaceBrowse /></ProtectedRoute>} />
-              <Route path="/marketplace/template/:slug" element={<ProtectedRoute><MarketplaceTemplateDetail /></ProtectedRoute>} />
-              <Route path="/marketplace/share/:token" element={<MarketplaceShare />} />
-              <Route path="/marketplace/publish" element={<ProtectedRoute><MarketplacePublish /></ProtectedRoute>} />
-              <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              
-              {/* Attendance Kiosk - Public route for displaying QR codes */}
-              <Route path="/kiosk/:token" element={<AttendanceKiosk />} />
-              
-              {/* System Health - Internal Diagnostics */}
-              <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
-              <Route path="/debug/system-health" element={<AdminRoute><SystemHealthData /></AdminRoute>} />
-              
-              {/* Agent Admin Routes */}
-              <Route path="/admin/agents" element={<AdminRoute><AgentsDashboard /></AdminRoute>} />
-              <Route path="/admin/agents/policies" element={<AdminRoute><AgentPolicies /></AdminRoute>} />
-              <Route path="/admin/agents/logs" element={<AdminRoute><AgentLogs /></AdminRoute>} />
-              <Route path="/admin/agents/workflows" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
-              <Route path="/admin/agents/workflows/:id" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
-              <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
-              
-              {/* Operations Agent Routes */}
-              <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
-              <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
-              <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
-              <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
-              
-              {/* Workforce Agent Routes */}
-              <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
-              <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
-              <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
-              
-              {/* Company Admin Routes */}
-              <Route path="/company/admin" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-              </SidebarProvider>
-          </CompanyProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+          <Routes>
+            {/* Public kiosk route - fully outside Auth/Company contexts for anonymous access */}
+            <Route path="/kiosk/:token" element={<AttendanceKiosk />} />
+            
+            {/* All other routes go through Auth/Company contexts */}
+            <Route path="/*" element={
+              <AuthProvider>
+                <AppVisibilityManager />
+                <CompanyProvider>
+                  <SidebarProvider>
+                    <PWAInstallPrompt />
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/staff-login" element={<StaffLogin />} />
+                      <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
+                      <Route path="/staff/schedule" element={<ProtectedRoute><StaffSchedule /></ProtectedRoute>} />
+                      <Route path="/staff/manager-schedule" element={<ProtectedRoute><ManagerSchedule /></ProtectedRoute>} />
+                      <Route path="/staff/shifts" element={<ProtectedRoute><StaffShifts /></ProtectedRoute>} />
+                      <Route path="/staff/shift-pool" element={<ProtectedRoute><StaffShiftPool /></ProtectedRoute>} />
+                      <Route path="/staff/swap-requests" element={<ProtectedRoute><StaffSwapRequests /></ProtectedRoute>} />
+                      <Route path="/staff/time-off" element={<ProtectedRoute><StaffTimeOff /></ProtectedRoute>} />
+                      <Route path="/staff/messages" element={<ProtectedRoute><StaffMessages /></ProtectedRoute>} />
+                      <Route path="/staff/earnings" element={<ProtectedRoute><StaffEarnings /></ProtectedRoute>} />
+                      <Route path="/staff/tasks" element={<ProtectedRoute><StaffTasks /></ProtectedRoute>} />
+                      <Route path="/staff/profile" element={<ProtectedRoute><StaffProfile /></ProtectedRoute>} />
+                      <Route path="/staff/team" element={<ProtectedRoute><TeamView /></ProtectedRoute>} />
+                      <Route path="/staff/scan-attendance" element={<ProtectedRoute><StaffScanAttendance /></ProtectedRoute>} />
+                      <Route path="/staff/scan-voucher" element={<ProtectedRoute><StaffScanVoucher /></ProtectedRoute>} />
+                      <Route path="/staff/audits" element={<ProtectedRoute><StaffLocationAudits /></ProtectedRoute>} />
+                      <Route path="/staff/audits/:id" element={<ProtectedRoute><StaffLocationAuditDetail /></ProtectedRoute>} />
+                      <Route path="/staff/location-audit" element={<ProtectedRoute><StaffLocationAudit /></ProtectedRoute>} />
+                      <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
+                      <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
+                      <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
+                      <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
+                      {/* Legacy route - redirect to new path */}
+                      <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
+                      <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
+                      <Route path="/onboarding/company" element={<ProtectedRoute><CompanyOnboarding /></ProtectedRoute>} />
+                      <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
+                      <Route path="/settings/company" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
+                      <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
+                      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                      <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
+                      <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
+                      <Route path="/audit-summary/:id" element={<ProtectedRoute><AuditSummary /></ProtectedRoute>} />
+                      
+                      {/* New Audit System Routes */}
+                      <Route path="/location-audit" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
+                      <Route path="/location-audit/:auditId" element={<ProtectedRoute><LocationAudit /></ProtectedRoute>} />
+                      
+                      <Route path="/reports" element={<ManagerRoute requiredPermission="view_reports"><Reports /></ManagerRoute>} />
+                      <Route path="/equipment" element={<ProtectedRoute><EquipmentList /></ProtectedRoute>} />
+                      <Route path="/equipment/new" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
+                      <Route path="/equipment/:id" element={<ProtectedRoute><EquipmentDetail /></ProtectedRoute>} />
+                      <Route path="/equipment/:id/edit" element={<ProtectedRoute><EquipmentForm /></ProtectedRoute>} />
+                      <Route path="/equipment/bulk-qr" element={<ProtectedRoute><BulkEquipmentQR /></ProtectedRoute>} />
+                      <Route path="/interventions/:id" element={<ProtectedRoute><InterventionDetail /></ProtectedRoute>} />
+                      <Route path="/maintenance-calendar" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceCalendar /></ManagerRoute>} />
+                      <Route path="/admin/templates" element={<ManagerRoute requiredPermission="manage_audits"><AdminTemplates /></ManagerRoute>} />
+                      <Route path="/admin/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><TemplateEditor /></ManagerRoute>} />
+                      <Route path="/admin/template-library" element={<ManagerRoute requiredPermission="manage_audits"><TemplateLibrary /></ManagerRoute>} />
+                      <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                      <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
+                      <Route path="/admin/employees" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
+                      <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
+                      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                      <Route path="/notifications" element={<ManagerRoute requiredPermission="view_reports"><Notifications /></ManagerRoute>} />
+                      <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationTemplates /></ManagerRoute>} />
+                      <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_notifications"><RecurringNotifications /></ManagerRoute>} />
+                      <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAuditLogs /></ManagerRoute>} />
+                      <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAnalytics /></ManagerRoute>} />
+                      <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/audit/:id/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
+                      <Route path="/documents" element={<ManagerRoute requiredPermission="manage_audits"><DocumentManagement /></ManagerRoute>} />
+                      <Route path="/documents/:id" element={<ManagerRoute requiredPermission="manage_audits"><DocumentDetail /></ManagerRoute>} />
+                      <Route path="/test-creation" element={<ManagerRoute requiredPermission="manage_audits"><TestCreation /></ManagerRoute>} />
+                      <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_audits"><TestManagement /></ManagerRoute>} />
+                      <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_audits"><TestEdit /></ManagerRoute>} />
+                      <Route path="/take-test/:id" element={<ProtectedRoute><TakeTest /></ProtectedRoute>} />
+                      <Route path="/test-result/:id" element={<ProtectedRoute><TestResult /></ProtectedRoute>} />
+                      <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
+                      <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
+                      <Route path="/recurring-maintenance-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
+                      <Route path="/staff-audits" element={<ManagerRoute requiredPermission="manage_employees"><StaffAudits /></ManagerRoute>} />
+                      <Route path="/staff-audits/all" element={<ManagerRoute requiredPermission="manage_employees"><StaffAuditsViewAll /></ManagerRoute>} />
+                      <Route path="/staff-audits/:id" element={<ManagerRoute requiredPermission="manage_employees"><StaffAuditDetail /></ManagerRoute>} />
+                      <Route path="/staff-audits/new" element={<ManagerRoute requiredPermission="manage_employees"><StaffAuditNew /></ManagerRoute>} />
+                      <Route path="/manual-metrics" element={<ManagerRoute requiredPermission="manage_employees"><ManualMetrics /></ManagerRoute>} />
+                      <Route path="/integrations" element={<AdminRoute><Integrations /></AdminRoute>} />
+                      <Route path="/integrations/:integrationId" element={<AdminRoute><IntegrationDetail /></AdminRoute>} />
+                      
+                      {/* Workforce Module Routes */}
+                      <Route path="/workforce" element={<ManagerRoute requiredPermission="manage_employees"><Workforce /></ManagerRoute>} />
+                      <Route path="/workforce/staff" element={<ManagerRoute requiredPermission="manage_employees"><Staff /></ManagerRoute>} />
+                      <Route path="/workforce/staff/:id" element={<ManagerRoute requiredPermission="manage_employees"><WorkforceStaffProfile /></ManagerRoute>} />
+                      <Route path="/workforce/shifts" element={<ManagerRoute requiredPermission="manage_shifts"><Shifts /></ManagerRoute>} />
+                      <Route path="/workforce/attendance" element={<ManagerRoute requiredPermission="manage_employees"><Attendance /></ManagerRoute>} />
+                      <Route path="/workforce/time-off" element={<ManagerRoute requiredPermission="manage_employees"><TimeOffApprovals /></ManagerRoute>} />
+                      <Route path="/workforce/payroll" element={<CompanyOwnerRoute><Payroll /></CompanyOwnerRoute>} />
+                      <Route path="/workforce/payroll-batches" element={<CompanyOwnerRoute><PayrollBatches /></CompanyOwnerRoute>} />
+                      <Route path="/workforce/performance/:employeeId" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
+                      <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
+                      <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
+                      <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
+                      
+                      {/* CMMS Routes */}
+                      <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
+                      <Route path="/cmms/dashboard" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
+                      <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
+                      <Route path="/cmms/assets/:id" element={<ProtectedRoute><CmmsAssetDetail /></ProtectedRoute>} />
+                      <Route path="/cmms/work-orders" element={<ProtectedRoute><CmmsWorkOrders /></ProtectedRoute>} />
+                      <Route path="/cmms/preventive" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPmSchedules /></ManagerRoute>} />
+                      <Route path="/cmms/inventory" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPartsInventory /></ManagerRoute>} />
+                      <Route path="/cmms/vendors" element={<ManagerRoute requiredPermission="manage_audits"><CmmsVendors /></ManagerRoute>} />
+                      <Route path="/cmms/teams" element={<ManagerRoute requiredPermission="manage_audits"><CmmsTeams /></ManagerRoute>} />
+                      <Route path="/cmms/procedures" element={<ManagerRoute requiredPermission="manage_audits"><CmmsProcedures /></ManagerRoute>} />
+                      <Route path="/cmms/procedures/:id" element={<ProtectedRoute><CmmsProcedureDetail /></ProtectedRoute>} />
+                      <Route path="/cmms/purchase-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPurchaseOrders /></ManagerRoute>} />
+                      <Route path="/cmms/reports" element={<ManagerRoute requiredPermission="manage_audits"><CmmsReporting /></ManagerRoute>} />
+                      
+                      {/* Inventory Routes */}
+                      <Route path="/inventory" element={<ManagerRoute requiredPermission="manage_audits"><Inventory /></ManagerRoute>} />
+                      
+                      {/* Tasks Routes */}
+                      <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                      <Route path="/tasks/new" element={<ProtectedRoute><TaskNew /></ProtectedRoute>} />
+                      <Route path="/tasks/:id/edit" element={<ProtectedRoute><TaskEdit /></ProtectedRoute>} />
+                      <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
+                      
+                      {/* Insights/AI Routes */}
+                      <Route path="/insights" element={<ManagerRoute requiredPermission="view_reports"><Insights /></ManagerRoute>} />
+                      <Route path="/ai-feed" element={<ManagerRoute requiredPermission="view_reports"><AIFeed /></ManagerRoute>} />
+                      
+                      {/* Training Routes */}
+                      <Route path="/training" element={<ManagerRoute requiredPermission="manage_audits"><TrainingPrograms /></ManagerRoute>} />
+                      <Route path="/training/:id" element={<ProtectedRoute><TrainingProgramDetail /></ProtectedRoute>} />
+                      
+                      {/* Audits Routes */}
+                      <Route path="/audits/templates" element={<ManagerRoute requiredPermission="manage_audits"><Templates /></ManagerRoute>} />
+                      <Route path="/audits/templates/new" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
+                      <Route path="/audits/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><TemplateBuilder /></ManagerRoute>} />
+                      <Route path="/audits/schedule" element={<ManagerRoute requiredPermission="manage_audits"><ScheduleAudit /></ManagerRoute>} />
+                      <Route path="/audits/perform/:id" element={<ProtectedRoute><PerformAudit /></ProtectedRoute>} />
+                      <Route path="/audits/report/:id" element={<ProtectedRoute><AuditReport /></ProtectedRoute>} />
+                      <Route path="/audits/list" element={<ProtectedRoute><AuditsList /></ProtectedRoute>} />
+                      
+                      {/* Mystery Shopper Routes */}
+                      <Route path="/mystery-shopper/:token" element={<MysteryShopperForm />} />
+                      <Route path="/voucher/:code" element={<VoucherPage />} />
+                      <Route path="/audits/mystery-shopper" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplates /></ManagerRoute>} />
+                      <Route path="/audits/mystery-shopper/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
+                      <Route path="/audits/mystery-shopper/results" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperResults /></ManagerRoute>} />
+                      <Route path="/audits/vouchers" element={<ManagerRoute requiredPermission="manage_audits"><VouchersManagement /></ManagerRoute>} />
+                      
+                      {/* Template Marketplace Routes */}
+                      <Route path="/marketplace" element={<ProtectedRoute><MarketplaceBrowse /></ProtectedRoute>} />
+                      <Route path="/marketplace/:id" element={<ProtectedRoute><MarketplaceTemplateDetail /></ProtectedRoute>} />
+                      <Route path="/marketplace/share/:token" element={<MarketplaceShare />} />
+                      <Route path="/marketplace/publish" element={<ProtectedRoute><MarketplacePublish /></ProtectedRoute>} />
+                      <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
+                      
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      
+                      {/* System Health - Internal Diagnostics */}
+                      <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />
+                      <Route path="/debug/system-health" element={<AdminRoute><SystemHealthData /></AdminRoute>} />
+                      
+                      {/* Agent Admin Routes */}
+                      <Route path="/admin/agents" element={<AdminRoute><AgentsDashboard /></AdminRoute>} />
+                      <Route path="/admin/agents/policies" element={<AdminRoute><AgentPolicies /></AdminRoute>} />
+                      <Route path="/admin/agents/logs" element={<AdminRoute><AgentLogs /></AdminRoute>} />
+                      <Route path="/admin/agents/workflows" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
+                      <Route path="/admin/agents/workflows/:id" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
+                      <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
+                      
+                      {/* Operations Agent Routes */}
+                      <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
+                      <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
+                      <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
+                      <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
+                      
+                      {/* Workforce Agent Routes */}
+                      <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
+                      <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
+                      <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
+                      
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </SidebarProvider>
+                </CompanyProvider>
+              </AuthProvider>
+            } />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 
