@@ -60,10 +60,12 @@ export function useAssignCheckers() {
       if (!user) throw new Error("Not authenticated");
 
       // First delete existing assignments
-      await supabase
+      const { error: deleteError } = await supabase
         .from("audit_template_checkers")
         .delete()
         .eq("template_id", templateId);
+
+      if (deleteError) throw deleteError;
 
       // Then insert new assignments
       if (userIds.length > 0) {
@@ -73,11 +75,11 @@ export function useAssignCheckers() {
           created_by: user.id,
         }));
 
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from("audit_template_checkers")
           .insert(inserts);
 
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
 
       return { templateId, userIds };
