@@ -2,7 +2,7 @@ import {
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
-  GraduationCap, UserCog, Bug, Shield, Store, Settings2,
+  GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -20,15 +20,16 @@ import { CompanyPermission } from "@/hooks/useCompanyPermissions";
  * 4. Audits
  * 5. Tasks
  * 6. Equipment
- * 7. Notifications
- * 8. Reports
- * 9. Inventory
- * 10. Documents
- * 11. Tests
- * 12. Insights
- * 13. Integrations
- * 14. Template Marketplace
- * 15. Operations
+ * 7. CMMS
+ * 8. Notifications
+ * 9. Reports
+ * 10. Inventory
+ * 11. Documents
+ * 12. Tests
+ * 13. Insights
+ * 14. Integrations
+ * 15. Template Marketplace
+ * 16. Operations
  */
 
 export interface NestedNavItem {
@@ -162,6 +163,27 @@ export const navigationItems: NavItem[] = [
       { id: "equipment-calendar", title: "Maintenance Calendar", url: "/maintenance-calendar" },
       { id: "equipment-recurring", title: "Recurring Maintenance", url: "/recurring-maintenance" },
       { id: "equipment-qr", title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
+    ]
+  },
+  { 
+    id: "cmms",
+    title: "CMMS", 
+    url: "/cmms", 
+    icon: Cog,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { id: "cmms-overview", title: "Overview", url: "/cmms/overview" },
+      { id: "cmms-dashboard", title: "Dashboard", url: "/cmms" },
+      { id: "cmms-assets", title: "Assets", url: "/cmms/assets" },
+      { id: "cmms-work-orders", title: "Work Orders", url: "/cmms/work-orders" },
+      { id: "cmms-pm-schedules", title: "PM Schedules", url: "/cmms/pm-schedules" },
+      { id: "cmms-parts", title: "Parts Inventory", url: "/cmms/parts" },
+      { id: "cmms-procedures", title: "Procedures", url: "/cmms/procedures" },
+      { id: "cmms-vendors", title: "Vendors", url: "/cmms/vendors" },
+      { id: "cmms-teams", title: "Teams", url: "/cmms/teams" },
+      { id: "cmms-purchase-orders", title: "Purchase Orders", url: "/cmms/purchase-orders" },
+      { id: "cmms-reports", title: "Reports", url: "/cmms/reports" },
     ]
   },
   { 
