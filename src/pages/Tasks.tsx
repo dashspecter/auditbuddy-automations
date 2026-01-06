@@ -503,7 +503,7 @@ const Tasks = () => {
                       employee={emp}
                       tasks={emp.tasks}
                       onTaskComplete={handleComplete}
-                      onTaskEdit={(id) => navigate(`/tasks/edit/${id}`)}
+                      onTaskEdit={(id) => navigate(`/tasks/${id}/edit`)}
                       onTaskDelete={(id) => setDeleteTaskId(id)}
                     />
                   ))}
@@ -544,7 +544,7 @@ const Tasks = () => {
                         key={task.id}
                         task={task}
                         onComplete={() => handleComplete(task.id)}
-                        onEdit={() => navigate(`/tasks/edit/${task.id}`)}
+                        onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
                       />
                     ))}
