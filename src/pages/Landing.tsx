@@ -218,31 +218,8 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation - Show authenticated header if logged in */}
-      {user ? (
-        <Header />
-      ) : (
-        <nav className="border-b border-border pt-safe">
-          <div className="container mx-auto px-4 px-safe py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/dashspect-logo-512.png?v=2" 
-                alt="DashSpect" 
-                className="h-8 w-8 rounded-xl bg-primary p-1"
-              />
-              <span className="text-xl font-bold text-foreground">Dashspect</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/auth">
-                <Button variant="outline">{t('landing.signIn')}</Button>
-              </Link>
-              <Link to="/auth">
-                <Button>{t('landing.signUp')}</Button>
-              </Link>
-            </div>
-          </div>
-        </nav>
-      )}
+      {/* Navigation */}
+      <Header />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 px-safe py-8 md:py-16 lg:py-24">
