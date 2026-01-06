@@ -559,12 +559,14 @@ export const useCompleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
-      // First, get the task to check if it should be marked as late
+      // First, get the full task to check recurrence and other fields
       const { data: existingTask } = await supabase
         .from("tasks")
-        .select("start_at, duration_minutes")
+        .select("*")
         .eq("id", taskId)
         .single();
+
+      if (!existingTask) throw new Error("Task not found");
 
       // Get the employee record for the current user to set completed_by
       let employeeId: string | null = null;
@@ -599,6 +601,86 @@ export const useCompleteTask = () => {
         .single();
 
       if (error) throw error;
+
+      // If this is a recurring task, create the next instance
+      if (existingTask.recurrence_type && existingTask.recurrence_type !== "none") {
+        const nextStartAt = calculateNextOccurrence(
+          existingTask.start_at || existingTask.due_at,
+          existingTask.recurrence_type,
+          existingTask.recurrence_interval || 1,
+          existingTask.recurrence_days_of_week,
+          existingTask.recurrence_days_of_month
+        );
+
+        // Check if we should still create the next occurrence
+        const shouldCreate = !existingTask.recurrence_end_date || 
+          new Date(nextStartAt) <= new Date(existingTask.recurrence_end_date);
+
+        if (shouldCreate && nextStartAt) {
+          // Create the next recurring task instance
+          const { data: newTask, error: createError } = await supabase
+            .from("tasks")
+            .insert({
+              company_id: existingTask.company_id,
+              title: existingTask.title,
+              description: existingTask.description,
+              priority: existingTask.priority,
+              status: "pending",
+              location_id: existingTask.location_id,
+              assigned_to: existingTask.assigned_to,
+              assigned_role_id: existingTask.assigned_role_id,
+              is_individual: existingTask.is_individual,
+              start_at: existingTask.start_at ? nextStartAt : null,
+              due_at: existingTask.start_at ? null : nextStartAt,
+              duration_minutes: existingTask.duration_minutes,
+              created_by: existingTask.created_by,
+              source: existingTask.source,
+              source_reference_id: existingTask.source_reference_id,
+              recurrence_type: existingTask.recurrence_type,
+              recurrence_interval: existingTask.recurrence_interval,
+              recurrence_end_date: existingTask.recurrence_end_date,
+              recurrence_days_of_week: existingTask.recurrence_days_of_week,
+              recurrence_days_of_month: existingTask.recurrence_days_of_month,
+              parent_task_id: existingTask.parent_task_id || existingTask.id,
+              is_recurring_instance: true,
+            })
+            .select()
+            .single();
+
+          if (!createError && newTask) {
+            // Copy task_locations
+            const { data: taskLocations } = await supabase
+              .from("task_locations")
+              .select("location_id")
+              .eq("task_id", taskId);
+
+            if (taskLocations && taskLocations.length > 0) {
+              await supabase
+                .from("task_locations")
+                .insert(taskLocations.map(tl => ({
+                  task_id: newTask.id,
+                  location_id: tl.location_id,
+                })));
+            }
+
+            // Copy task_roles
+            const { data: taskRoles } = await supabase
+              .from("task_roles")
+              .select("role_id")
+              .eq("task_id", taskId);
+
+            if (taskRoles && taskRoles.length > 0) {
+              await supabase
+                .from("task_roles")
+                .insert(taskRoles.map(tr => ({
+                  task_id: newTask.id,
+                  role_id: tr.role_id,
+                })));
+            }
+          }
+        }
+      }
+
       return task;
     },
     onSuccess: () => {
@@ -611,6 +693,63 @@ export const useCompleteTask = () => {
     },
   });
 };
+
+// Helper function to calculate the next occurrence date
+function calculateNextOccurrence(
+  currentDate: string | null,
+  recurrenceType: string,
+  interval: number,
+  daysOfWeek: number[] | null,
+  daysOfMonth: number[] | null
+): string | null {
+  if (!currentDate) return null;
+
+  const date = new Date(currentDate);
+  
+  switch (recurrenceType) {
+    case "daily":
+      date.setDate(date.getDate() + interval);
+      break;
+    case "weekly":
+      if (daysOfWeek && daysOfWeek.length > 0) {
+        // Find next day of week
+        const currentDay = date.getDay();
+        const sortedDays = [...daysOfWeek].sort((a, b) => a - b);
+        const nextDay = sortedDays.find(d => d > currentDay);
+        
+        if (nextDay !== undefined) {
+          date.setDate(date.getDate() + (nextDay - currentDay));
+        } else {
+          // Wrap to next week
+          date.setDate(date.getDate() + (7 - currentDay + sortedDays[0]));
+        }
+      } else {
+        date.setDate(date.getDate() + 7 * interval);
+      }
+      break;
+    case "monthly":
+      if (daysOfMonth && daysOfMonth.length > 0) {
+        const currentDayOfMonth = date.getDate();
+        const sortedDays = [...daysOfMonth].sort((a, b) => a - b);
+        const nextDay = sortedDays.find(d => d > currentDayOfMonth);
+        
+        if (nextDay !== undefined) {
+          date.setDate(nextDay);
+        } else {
+          // Move to next month
+          date.setMonth(date.getMonth() + 1);
+          date.setDate(sortedDays[0]);
+        }
+      } else {
+        date.setMonth(date.getMonth() + interval);
+      }
+      break;
+    default:
+      return null;
+  }
+
+  return date.toISOString();
+}
 
 export const useDeleteTask = () => {
   const queryClient = useQueryClient();
