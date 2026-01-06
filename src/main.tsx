@@ -71,12 +71,35 @@ const setupPWAUpdates = () => {
     },
   });
 
-  // When a new service worker takes control, prompt the user instead of forcing a reload.
-  // This prevents losing unsaved in-progress form state.
+  // When a new service worker takes control, fix "old view" issues by doing a one-time
+  // hard refresh early on app start. If it happens later, show the non-blocking toast
+  // to avoid users losing unsaved in-progress form state.
+  const bootMs = Date.now();
+  const hardRefresh = () => {
+    const returnTo = encodeURIComponent(
+      `${window.location.pathname}${window.location.search}${window.location.hash}`
+    );
+    window.location.replace(`/?resetApp=1&returnTo=${returnTo}`);
+  };
+
   if ("serviceWorker" in navigator) {
     const hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!hadController) return; // ignore first install
+
+      // Only do this once per session to avoid reload loops.
+      const alreadyAutoRefreshed =
+        sessionStorage.getItem("pwa:auto-refreshed") === "1";
+
+      // If an update takes control shortly after launch, hard refresh immediately.
+      const isEarly = Date.now() - bootMs < 5000;
+      if (isEarly && !alreadyAutoRefreshed) {
+        sessionStorage.setItem("pwa:auto-refreshed", "1");
+        hardRefresh();
+        return;
+      }
+
+      // Otherwise, show the non-blocking "Update ready" toast.
       sessionStorage.setItem("pwa:update-ready", "1");
       window.dispatchEvent(new CustomEvent("pwa:update-ready"));
     });
