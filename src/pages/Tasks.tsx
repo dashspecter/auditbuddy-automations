@@ -98,7 +98,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
           {task.assigned_role && !task.assigned_employee && (
             <span className="flex items-center gap-1 text-primary">
               <Users className="h-3 w-3" />
-              {task.assigned_role.name} ({t('tasks.shared')})
+              {task.assigned_role.name} {!task.is_individual && `(${t('tasks.shared')})`}
             </span>
           )}
           {task.location && (
