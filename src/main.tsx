@@ -111,6 +111,10 @@ const setupPWAUpdates = () => {
   restoreDeepLinkIfNeeded();
   setupPWAUpdates();
 
+  // Remove the pre-boot fallback as soon as JS is running.
+  document.getElementById("boot-fallback")?.remove();
+
   createRoot(document.getElementById("root")!).render(<App />);
 })();
+
 
