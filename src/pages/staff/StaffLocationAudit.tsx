@@ -59,6 +59,7 @@ const StaffLocationAudit = () => {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [managerLocations, setManagerLocations] = useState<ManagerLocation[]>([]);
   const [sectionFollowUps, setSectionFollowUps] = useState<Record<string, { needed: boolean; notes: string }>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     location_id: "",
@@ -238,6 +239,14 @@ const StaffLocationAudit = () => {
         [fieldId]: value,
       },
     }));
+    // Clear field error when user fills the field
+    if (fieldErrors[fieldId]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      });
+    }
   };
 
   const handleFollowUpChange = (sectionId: string, needed: boolean, notes: string = "") => {
@@ -334,9 +343,60 @@ const StaffLocationAudit = () => {
     return { score: totalScore, maxScore };
   };
 
+  // Validate required fields
+  const validateRequiredFields = (): { valid: boolean; errors: string[] } => {
+    if (!selectedTemplate) return { valid: true, errors: [] };
+    
+    const errors: string[] = [];
+    const newFieldErrors: Record<string, string> = {};
+
+    selectedTemplate.sections.forEach(section => {
+      section.fields.forEach(field => {
+        if (field.is_required) {
+          const value = formData.customData[field.id];
+          
+          if (value === undefined || value === null || value === '') {
+            errors.push(`${field.name} is required in ${section.name}`);
+            newFieldErrors[field.id] = 'Required';
+          } else if (field.field_type === 'rating' && (typeof value !== 'number' || value < 1 || value > 5)) {
+            errors.push(`${field.name} must be rated between 1-5 in ${section.name}`);
+            newFieldErrors[field.id] = 'Invalid rating';
+          } else if ((field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') && 
+                     value !== 'yes' && value !== 'no' && value !== true && value !== false) {
+            errors.push(`${field.name} must be answered with YES or NO in ${section.name}`);
+            newFieldErrors[field.id] = 'Invalid answer';
+          }
+        }
+      });
+    });
+
+    setFieldErrors(newFieldErrors);
+    return { valid: errors.length === 0, errors };
+  };
+
   const handleSubmit = async () => {
     if (!user || !selectedTemplateId || !formData.location_id) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Validate required fields before submitting
+    const validation = validateRequiredFields();
+    if (!validation.valid) {
+      toast.error(
+        <div className="space-y-1">
+          <div className="font-semibold">Please complete all required fields:</div>
+          <ul className="list-disc pl-4 space-y-1">
+            {validation.errors.slice(0, 5).map((error, index) => (
+              <li key={index} className="text-sm">{error}</li>
+            ))}
+            {validation.errors.length > 5 && (
+              <li className="text-sm">...and {validation.errors.length - 5} more</li>
+            )}
+          </ul>
+        </div>,
+        { duration: 6000 }
+      );
       return;
     }
 
@@ -551,16 +611,25 @@ const StaffLocationAudit = () => {
 
               <div className="space-y-4">
                 {currentSection.fields.map((field) => (
-                  <div key={field.id} className="space-y-2">
-                    <Label className={field.is_required ? "after:content-['*'] after:text-destructive after:ml-1" : ""}>
-                      {field.name}
-                    </Label>
+                  <div key={field.id} className={`space-y-2 ${fieldErrors[field.id] ? 'p-2 border border-destructive rounded-md bg-destructive/5' : ''}`}>
+                    <div className="flex items-center justify-between">
+                      <Label className={field.is_required ? "after:content-['*'] after:text-destructive after:ml-1" : ""}>
+                        {field.name}
+                      </Label>
+                      {fieldErrors[field.id] && (
+                        <span className="text-xs text-destructive font-medium flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {fieldErrors[field.id]}
+                        </span>
+                      )}
+                    </div>
                     
                     {field.field_type === "text" && (
                       <Input
                         value={formData.customData[field.id] || ""}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
                         placeholder="Enter text..."
+                        className={fieldErrors[field.id] ? 'border-destructive' : ''}
                       />
                     )}
 
@@ -570,11 +639,12 @@ const StaffLocationAudit = () => {
                         value={formData.customData[field.id] || ""}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
                         placeholder="Enter number..."
+                        className={fieldErrors[field.id] ? 'border-destructive' : ''}
                       />
                     )}
 
                     {field.field_type === "rating" && (
-                      <div className="flex gap-2">
+                      <div className={`flex gap-2 ${fieldErrors[field.id] ? 'ring-1 ring-destructive rounded-md p-1' : ''}`}>
                         {[1, 2, 3, 4, 5].map((rating) => (
                           <Button
                             key={rating}
@@ -590,7 +660,7 @@ const StaffLocationAudit = () => {
                     )}
 
                     {(field.field_type === "yes_no" || field.field_type === "yesno" || field.field_type === "checkbox") && (
-                      <div className="flex gap-2">
+                      <div className={`flex gap-2 ${fieldErrors[field.id] ? 'ring-1 ring-destructive rounded-md p-1' : ''}`}>
                         <Button
                           variant={formData.customData[field.id] === "yes" ? "default" : "outline"}
                           size="sm"
@@ -617,6 +687,7 @@ const StaffLocationAudit = () => {
                         type="date"
                         value={formData.customData[field.id] || ""}
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                        className={fieldErrors[field.id] ? 'border-destructive' : ''}
                       />
                     )}
 
@@ -626,6 +697,7 @@ const StaffLocationAudit = () => {
                         onChange={(e) => handleFieldChange(field.id, e.target.value)}
                         placeholder="Enter details..."
                         rows={3}
+                        className={fieldErrors[field.id] ? 'border-destructive' : ''}
                       />
                     )}
                   </div>

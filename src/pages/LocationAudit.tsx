@@ -706,7 +706,8 @@ const LocationAudit = () => {
             } else if (field.field_type === 'rating' && (typeof value !== 'number' || value < 1 || value > 5)) {
               errors.push(`${field.name} must be rated between 1-5 in ${section.name}`);
               newFieldErrors[field.id] = 'Invalid rating';
-            } else if ((field.field_type === 'yesno' || field.field_type === 'yes_no') && value !== 'yes' && value !== 'no' && value !== true && value !== false) {
+            } else if ((field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') && 
+                       value !== 'yes' && value !== 'no' && value !== true && value !== false) {
               errors.push(`${field.name} must be answered with YES or NO in ${section.name}`);
               newFieldErrors[field.id] = 'Invalid answer';
             }
