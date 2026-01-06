@@ -3,17 +3,34 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { startOfDay, endOfDay } from "date-fns";
 
-export const LocationPerformanceChart = () => {
+interface LocationPerformanceChartProps {
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export const LocationPerformanceChart = ({ dateFrom, dateTo }: LocationPerformanceChartProps) => {
   const { t } = useTranslation();
   const { data: audits, isLoading } = useLocationAudits();
 
   const locationData = useMemo(() => {
     if (!audits) return [];
 
+    // Filter audits by date range if provided
+    let filteredAudits = audits;
+    if (dateFrom || dateTo) {
+      filteredAudits = audits.filter(audit => {
+        const auditDate = new Date(audit.audit_date);
+        if (dateFrom && auditDate < startOfDay(dateFrom)) return false;
+        if (dateTo && auditDate > endOfDay(dateTo)) return false;
+        return true;
+      });
+    }
+
     const locationMap = new Map<string, { total: number; count: number }>();
 
-    audits.forEach(audit => {
+    filteredAudits.forEach(audit => {
       const locationName = audit.locations?.name || audit.location || 'Unknown';
       if (!locationMap.has(locationName)) {
         locationMap.set(locationName, { total: 0, count: 0 });
@@ -29,7 +46,7 @@ export const LocationPerformanceChart = () => {
         score: data.count > 0 ? Math.round(data.total / data.count) : 0
       }))
       .sort((a, b) => a.score - b.score);
-  }, [audits]);
+  }, [audits, dateFrom, dateTo]);
 
   if (isLoading) {
     return (
