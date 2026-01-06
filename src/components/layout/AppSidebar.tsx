@@ -33,15 +33,16 @@ import { useTranslation } from "react-i18next";
  * 4. Audits
  * 5. Tasks
  * 6. Equipment
- * 7. Notifications
- * 8. Reports
- * 9. Inventory
- * 10. Documents
- * 11. Tests
- * 12. Insights
- * 13. Integrations
- * 14. Template Marketplace
- * 15. Operations
+ * 7. CMMS
+ * 8. Notifications
+ * 9. Reports
+ * 10. Inventory
+ * 11. Documents
+ * 12. Tests
+ * 13. Insights
+ * 14. Integrations
+ * 15. Template Marketplace
+ * 16. Operations
  */
 const navigationItems = [
   { 
@@ -369,8 +370,8 @@ export function AppSidebar() {
       return isOwner === true || isCompanyAdmin === true;
     }
 
-    // Company owners and admins always have access to other items
-    if (isOwner || isCompanyAdmin) {
+    // Company owners, company admins, and platform admins always have access to other items
+    if (isOwner || isCompanyAdmin || roleData?.isAdmin) {
       return true;
     }
 
