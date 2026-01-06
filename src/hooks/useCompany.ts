@@ -40,19 +40,21 @@ export interface CompanyModule {
 
 // Get current user's company
 export const useCompany = () => {
-  return useQuery({
-    queryKey: ['company'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  const { user } = useAuth();
 
-      
+  return useQuery({
+    queryKey: ['company', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) throw new Error('Not authenticated');
 
       // Get user's company
       const { data: companyUser, error: cuError } = await supabase
         .from('company_users')
         .select('company_id, company_role')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (cuError) {
@@ -61,11 +63,8 @@ export const useCompany = () => {
       }
 
       if (!companyUser) {
-        
         throw new Error('No company association found');
       }
-
-      
 
       // Get company details
       const { data: company, error: companyError } = await supabase
@@ -84,8 +83,6 @@ export const useCompany = () => {
         throw new Error('Company not found');
       }
 
-      
-
       return {
         ...company,
         userRole: companyUser.company_role,
@@ -97,6 +94,7 @@ export const useCompany = () => {
     gcTime: 5 * 60 * 1000,
   });
 };
+
 
 // Get company users
 export const useCompanyUsers = () => {
