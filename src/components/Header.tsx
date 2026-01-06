@@ -78,6 +78,13 @@ export const Header = () => {
 
   const isAuthPage = location.pathname === '/auth';
 
+  const handleResetAppCache = () => {
+    const returnTo = encodeURIComponent(
+      `${location.pathname}${location.search}${location.hash}`
+    );
+    window.location.assign(`/?resetApp=1&returnTo=${returnTo}`);
+  };
+
   // Simplified public header for landing and auth pages
   if (isPublicPage) {
     return (
@@ -92,7 +99,15 @@ export const Header = () => {
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="min-h-[44px]"
+              onClick={handleResetAppCache}
+            >
+              Reset cache
+            </Button>
+
             {user ? (
               <>
                 <Link to="/dashboard">
