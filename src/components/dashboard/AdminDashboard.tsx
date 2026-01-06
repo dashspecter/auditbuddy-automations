@@ -198,8 +198,8 @@ export const AdminDashboard = () => {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <CompliancePieChart />
-        <LocationPerformanceChart />
+        <CompliancePieChart dateFrom={dateFrom} dateTo={dateTo} />
+        <LocationPerformanceChart dateFrom={dateFrom} dateTo={dateTo} />
       </div>
 
       <div className="w-full">
