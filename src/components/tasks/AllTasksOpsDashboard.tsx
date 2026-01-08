@@ -30,15 +30,19 @@ import { Task } from "@/hooks/useTasks";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useShiftCoverage } from "@/hooks/useShiftCoverage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, startOfWeek, endOfWeek, addWeeks, getDay, startOfDay, endOfDay, addDays } from "date-fns";
 import { 
-  isTaskOverdue, 
-  getOccurrencesForDate,
   getTaskDate,
   getTaskDeadline,
   isVirtualId,
 } from "@/lib/taskOccurrenceEngine";
+import { 
+  runPipelineForDateRange,
+  isTaskOverdueShiftAware,
+  TaskWithCoverage,
+} from "@/lib/unifiedTaskPipeline";
 
 // Group mode types
 type GroupMode = "location-day" | "day-location" | "role" | "flat";
@@ -63,14 +67,14 @@ const TaskCard = ({
   onEdit,
   compact = false 
 }: { 
-  task: Task; 
+  task: TaskWithCoverage; 
   onComplete: () => void;
   onEdit: () => void;
   compact?: boolean;
 }) => {
   const { t } = useTranslation();
   const isVirtual = isVirtualId(task.id);
-  const overdue = isTaskOverdue(task);
+  const overdue = isTaskOverdueShiftAware(task, task.coverage);
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
   const taskDate = getTaskDate(task);
   
@@ -148,12 +152,12 @@ const GroupHeader = ({
 }: { 
   title: string; 
   icon: React.ElementType;
-  tasks: Task[]; 
+  tasks: TaskWithCoverage[]; 
   isOpen: boolean; 
   onToggle: () => void;
 }) => {
-  const pending = tasks.filter(t => t.status !== "completed" && !isTaskOverdue(t)).length;
-  const overdue = tasks.filter(t => isTaskOverdue(t)).length;
+  const pending = tasks.filter(t => t.status !== "completed" && !isTaskOverdueShiftAware(t, t.coverage)).length;
+  const overdue = tasks.filter(t => isTaskOverdueShiftAware(t, t.coverage)).length;
   const completed = tasks.filter(t => t.status === "completed").length;
   
   return (
@@ -198,7 +202,7 @@ const DayGroup = ({
   defaultOpen = false 
 }: { 
   dayName: string; 
-  tasks: Task[];
+  tasks: TaskWithCoverage[];
   onComplete: (id: string) => void;
   onEdit: (id: string) => void;
   defaultOpen?: boolean;
@@ -280,38 +284,33 @@ export const AllTasksOpsDashboard = ({
     }
   }, [dateRange]);
 
-  // Get all occurrences in range
+  // Fetch shifts for coverage check
+  const { data: shifts = [] } = useShiftCoverage({
+    startDate: rangeStart,
+    endDate: rangeEnd,
+  });
+
+  // Get all occurrences in range using unified pipeline
   const occurrencesInRange = useMemo(() => {
-    const allOccurrences: Task[] = [];
-    const seenIds = new Set<string>();
+    const pipelineResult = runPipelineForDateRange(tasks, rangeStart, rangeEnd, {
+      viewMode: "execution", // Only show covered tasks
+      includeCompleted: true,
+      includeVirtual: true,
+      shifts,
+    });
     
-    // Iterate each day in range and collect occurrences
-    let currentDate = rangeStart;
-    while (currentDate <= rangeEnd) {
-      const dayOccurrences = getOccurrencesForDate(tasks, currentDate, { includeCompleted: true });
-      
-      for (const occ of dayOccurrences) {
-        if (!seenIds.has(occ.id)) {
-          seenIds.add(occ.id);
-          allOccurrences.push(occ);
-        }
-      }
-      
-      currentDate = addDays(currentDate, 1);
-    }
-    
-    return allOccurrences;
-  }, [tasks, rangeStart, rangeEnd]);
+    return pipelineResult.tasks;
+  }, [tasks, rangeStart, rangeEnd, shifts]);
 
   // Apply filters
   const filteredTasks = useMemo(() => {
     let result = occurrencesInRange;
     
-    // Status filter
+    // Status filter (using shift-aware overdue check)
     if (statusFilter === "pending") {
-      result = result.filter(t => t.status !== "completed" && !isTaskOverdue(t));
+      result = result.filter(t => t.status !== "completed" && !isTaskOverdueShiftAware(t, t.coverage));
     } else if (statusFilter === "overdue") {
-      result = result.filter(t => isTaskOverdue(t));
+      result = result.filter(t => isTaskOverdueShiftAware(t, t.coverage));
     } else if (statusFilter === "completed") {
       result = result.filter(t => t.status === "completed");
     }
@@ -562,7 +561,7 @@ export const AllTasksOpsDashboard = ({
             </span>
             <span className="flex items-center gap-1 text-destructive">
               <AlertCircle className="h-3.5 w-3.5" />
-              {filteredTasks.filter(t => isTaskOverdue(t)).length} {t('tasks.overdue').toLowerCase()}
+              {filteredTasks.filter(t => isTaskOverdueShiftAware(t, t.coverage)).length} {t('tasks.overdue').toLowerCase()}
             </span>
           </div>
         </CardContent>
