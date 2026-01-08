@@ -52,6 +52,7 @@
     "selectLocation": "Selectează locația",
     "allLocations": "Toate locațiile",
     "noLocation": "Fără locație",
+    "globalCompany": "Global (Companie)",
     "groupBy": "Grupare după",
     "dateRange": "Interval dată",
     "thisWeek": "Săptămâna aceasta",
@@ -64,6 +65,8 @@
     "flatList": "Listă simplă",
     "clearFilters": "Șterge filtre",
     "unassigned": "Neatribuit",
+    "noCoverage": "Fără acoperire",
+    "showNoCoverage": "Arată fără acoperire",
     "pullToRefresh": {
       "pull": "Trage pentru reîmprospătare",
       "release": "Eliberează pentru reîmprospătare"

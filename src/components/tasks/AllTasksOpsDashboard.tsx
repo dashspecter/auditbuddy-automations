@@ -341,15 +341,16 @@ export const AllTasksOpsDashboard = ({
     
     if (groupMode === "location-day") {
       // Group by location, then by day of week
-      const byLocation: Record<string, { location: { id: string; name: string }; byDay: Record<number, Task[]> }> = {};
+      const byLocation: Record<string, { location: { id: string; name: string; isGlobal: boolean }; byDay: Record<number, Task[]> }> = {};
       
       for (const task of filteredTasks) {
-        const locId = task.location_id || "no-location";
-        const locName = task.location?.name || t('common.noLocation');
+        const locId = task.location_id || "global-company";
+        const isGlobal = !task.location_id;
+        const locName = task.location?.name || t('common.globalCompany', 'Global (Company)');
         
         if (!byLocation[locId]) {
           byLocation[locId] = { 
-            location: { id: locId, name: locName }, 
+            location: { id: locId, name: locName, isGlobal }, 
             byDay: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] } 
           };
         }
@@ -372,8 +373,7 @@ export const AllTasksOpsDashboard = ({
       for (const task of filteredTasks) {
         const taskDate = getTaskDate(task);
         const dayOfWeek = taskDate ? getDay(taskDate) : 0;
-        const locId = task.location_id || "no-location";
-        const locName = task.location?.name || t('common.noLocation');
+        const locId = task.location_id || "global-company";
         
         if (!byDay[dayOfWeek].byLocation[locId]) {
           byDay[dayOfWeek].byLocation[locId] = [];
@@ -636,14 +636,17 @@ export const AllTasksOpsDashboard = ({
                   <CardContent className="pt-0 space-y-3">
                     {Object.entries(dayData.byLocation).map(([locId, locTasks]) => {
                       if (locTasks.length === 0) return null;
-                      const locName = locTasks[0]?.location?.name || t('common.noLocation');
+                      const isGlobal = locId === "global-company";
+                      const locName = isGlobal 
+                        ? t('common.globalCompany', 'Global (Company)')
+                        : (locTasks[0]?.location?.name || t('common.globalCompany', 'Global (Company)'));
                       
                       return (
                         <div key={locId} className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground pl-2">
+                          <div className={`flex items-center gap-2 text-sm font-medium pl-2 ${isGlobal ? 'text-primary' : 'text-muted-foreground'}`}>
                             <MapPin className="h-3.5 w-3.5" />
                             {locName}
-                            <Badge variant="outline" className="text-xs">{locTasks.length}</Badge>
+                            <Badge variant={isGlobal ? "default" : "outline"} className="text-xs">{locTasks.length}</Badge>
                           </div>
                           <div className="space-y-2 pl-4">
                             {locTasks.map(task => (
