@@ -52,6 +52,7 @@
     "selectLocation": "Select location",
     "allLocations": "All Locations",
     "noLocation": "No Location",
+    "globalCompany": "Global (Company)",
     "groupBy": "Group By",
     "dateRange": "Date Range",
     "thisWeek": "This Week",
@@ -64,6 +65,8 @@
     "flatList": "Flat List",
     "clearFilters": "Clear Filters",
     "unassigned": "Unassigned",
+    "noCoverage": "No Coverage",
+    "showNoCoverage": "Show No Coverage",
     "pullToRefresh": {
       "pull": "Pull to refresh",
       "release": "Release to refresh"

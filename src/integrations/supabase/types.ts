@@ -6532,6 +6532,7 @@ export type Database = {
           description: string | null
           due_at: string | null
           duration_minutes: number | null
+          execution_mode: string
           id: string
           is_individual: boolean
           is_recurring_instance: boolean | null
@@ -6562,6 +6563,7 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          execution_mode?: string
           id?: string
           is_individual?: boolean
           is_recurring_instance?: boolean | null
@@ -6592,6 +6594,7 @@ export type Database = {
           description?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          execution_mode?: string
           id?: string
           is_individual?: boolean
           is_recurring_instance?: boolean | null

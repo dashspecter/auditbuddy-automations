@@ -33,6 +33,8 @@ export interface Task {
   parent_task_id: string | null;
   is_recurring_instance: boolean | null;
   is_individual: boolean | null;
+  // Execution mode for shift-aware tasks
+  execution_mode?: 'shift_based' | 'always_on';
   // Joined data
   assigned_employee?: {
     id: string;
