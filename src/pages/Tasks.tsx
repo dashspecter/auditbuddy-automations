@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
-import { format } from "date-fns";
+import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AllTasksOpsDashboard } from "@/components/tasks/AllTasksOpsDashboard";
@@ -30,12 +30,11 @@ import {
   getTaskDeadline,
   isTaskOverdue,
   isVirtualId as isVirtualTask,
-  getTodayOccurrences,
-  getTomorrowOccurrences,
   getOccurrencesHappeningNow,
   isDateInToday,
-  groupOccurrencesByStatus,
 } from "@/lib/taskOccurrenceEngine";
+import { useUnifiedTasks } from "@/hooks/useUnifiedTasks";
+import { groupTasksByStatusShiftAware } from "@/lib/unifiedTaskPipeline";
 
 const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -191,11 +190,26 @@ const Tasks = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
 
-  const { data: tasks = [], isLoading } = useTasks();
+  const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: stats } = useTaskStats();
   const { data: employees = [] } = useEmployees();
   const completeTask = useCompleteTask();
   const deleteTask = useDeleteTask();
+
+  // Use UNIFIED pipeline for shift-aware task filtering
+  const {
+    todayTasks: todayResult,
+    tomorrowTasks: tomorrowResult,
+    isLoading: isLoadingUnified,
+    isLoadingShifts,
+    rawTasks,
+  } = useUnifiedTasks({
+    viewMode: "execution", // Only show tasks with coverage
+    startDate: startOfDay(new Date()),
+    endDate: endOfDay(addDays(new Date(), 7)),
+  });
+
+  const isLoading = isLoadingTasks || isLoadingUnified;
 
   const handleComplete = async (taskId: string) => {
     try {
@@ -217,24 +231,25 @@ const Tasks = () => {
     }
   };
 
-  // All task date utilities are now imported from @/lib/taskOccurrenceEngine for consistency
+  // Get SHIFT-AWARE tasks from unified pipeline
+  const todayTasks = todayResult.tasks;
+  const tomorrowTasks = tomorrowResult.tasks;
 
-  // Get tasks for today using UNIFIED occurrence engine
-  const todayTasks = useMemo(() => getTodayOccurrences(tasks), [tasks]);
+  // Tasks happening right now (from raw tasks, then filter by coverage)
+  const tasksHappeningNow = useMemo(() => {
+    const happeningNow = getOccurrencesHappeningNow(rawTasks);
+    // Only show tasks that are also in today's covered list
+    const todayTaskIds = new Set(todayTasks.map(t => t.id));
+    return happeningNow.filter(t => todayTaskIds.has(t.id));
+  }, [rawTasks, todayTasks]);
 
-  // Get tasks for tomorrow using UNIFIED occurrence engine
-  const tomorrowTasks = useMemo(() => getTomorrowOccurrences(tasks), [tasks]);
-
-  // Tasks happening right now using UNIFIED occurrence engine
-  const tasksHappeningNow = useMemo(() => getOccurrencesHappeningNow(tasks), [tasks]);
-
-  // Group today's tasks by status for better display (using unified helper)
-  const todayGrouped = useMemo(() => groupOccurrencesByStatus(todayTasks), [todayTasks]);
+  // Group today's tasks by status (shift-aware)
+  const todayGrouped = useMemo(() => groupTasksByStatusShiftAware(todayTasks), [todayTasks]);
 
   const filteredTasks = useMemo(() => {
     if (activeTab === "all") return tasks;
-    if (activeTab === "today") return todayTasks;
-    if (activeTab === "tomorrow") return tomorrowTasks;
+    if (activeTab === "today") return todayTasks as Task[];
+    if (activeTab === "tomorrow") return tomorrowTasks as Task[];
     if (activeTab === "pending") return tasks.filter(task => task.status === "pending" || task.status === "in_progress");
     if (activeTab === "completed") return tasks.filter(task => task.status === "completed");
     // Use canonical overdue check
