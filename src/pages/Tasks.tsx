@@ -161,6 +161,14 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
               {task.recurrence_type}
             </span>
           )}
+          {/* Show completion info for completed tasks */}
+          {task.status === "completed" && task.completed_at && (
+            <span className="flex items-center gap-1 text-green-600">
+              <CheckCircle2 className="h-3 w-3" />
+              {task.completed_employee?.full_name ? `${task.completed_employee.full_name} • ` : ""}
+              {format(new Date(task.completed_at), "HH:mm")}
+            </span>
+          )}
         </div>
       </div>
       {!isVirtualInstance && (
