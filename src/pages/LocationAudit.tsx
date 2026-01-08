@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { useSwipeable } from "react-swipeable";
@@ -24,6 +24,18 @@ import FieldResponseInput from "@/components/audit/FieldResponseInput";
 import SectionFollowUpInput from "@/components/audit/SectionFollowUpInput";
 import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
 import { useAuditSectionResponses, useSaveSectionResponse } from "@/hooks/useAuditSectionResponses";
+import { useAuditDraft } from "@/hooks/useAuditDraft";
+import { AuditDraft, clearAuditDraft, buildDraftKey } from "@/lib/auditDraftStorage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AuditField {
   id: string;
@@ -69,6 +81,8 @@ const LocationAudit = () => {
   const [isScheduledAudit, setIsScheduledAudit] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [pendingChange, setPendingChange] = useState<{ type: 'template' | 'location'; value: string } | null>(null);
   const [formData, setFormData] = useState({
     location_id: "",
     auditDate: new Date().toISOString().split('T')[0],
@@ -76,6 +90,22 @@ const LocationAudit = () => {
     timeEnd: "",
     notes: "",
     customData: {} as Record<string, any>,
+  });
+
+  // Draft restoration handler
+  const handleDraftRestore = useCallback((draft: AuditDraft) => {
+    setFormData(draft.formData);
+    setCurrentSectionIndex(draft.currentSectionIndex);
+  }, []);
+
+  // Use audit draft hook for persistence
+  const { clearDraft, resetDraftState, hasPendingDraft } = useAuditDraft({
+    templateId: selectedTemplateId,
+    locationId: formData.location_id,
+    formData,
+    currentSectionIndex,
+    onRestore: handleDraftRestore,
+    enabled: !draftId && !scheduledAuditId && !!selectedTemplateId && !!formData.location_id,
   });
 
   // Load field responses
@@ -836,6 +866,9 @@ const LocationAudit = () => {
           .eq('status', 'draft')
           .neq('id', currentDraftId);
         
+        // Clear the local IndexedDB draft
+        await clearDraft();
+        
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${currentDraftId}`);
       } else {
@@ -1266,6 +1299,49 @@ const LocationAudit = () => {
             sections={selectedTemplate.sections}
           />
         )}
+
+        {/* Discard Draft Confirmation Dialog */}
+        <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Discard current draft?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Changing the {pendingChange?.type} will discard your current progress. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingChange(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (pendingChange) {
+                    // Clear old draft
+                    if (user?.id && formData.location_id && selectedTemplateId) {
+                      const oldKey = buildDraftKey(user.id, formData.location_id, selectedTemplateId);
+                      await clearAuditDraft(oldKey);
+                    }
+                    resetDraftState();
+                    
+                    // Apply the change
+                    if (pendingChange.type === 'template') {
+                      setSelectedTemplateId(pendingChange.value);
+                      setFormData(prev => ({ ...prev, customData: {} }));
+                    } else {
+                      setFormData(prev => ({ ...prev, location_id: pendingChange.value, customData: {} }));
+                    }
+                    setCurrentSectionIndex(0);
+                  }
+                  setPendingChange(null);
+                  setShowDiscardDialog(false);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Discard & Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 };
