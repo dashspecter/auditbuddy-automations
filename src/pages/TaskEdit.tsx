@@ -26,10 +26,14 @@ import { LocationMultiSelector } from "@/components/LocationMultiSelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 
 const TaskEdit = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Extract real task ID from virtual/occurrence ID
+  const id = rawId ? getOriginalTaskId(rawId) : undefined;
   const updateTask = useUpdateTask();
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: employees = [] } = useEmployees();
