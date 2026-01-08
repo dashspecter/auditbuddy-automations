@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
-import { format, isPast, isToday } from "date-fns";
+import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay, endOfDay, addMinutes } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
@@ -330,8 +330,64 @@ const Tasks = () => {
       .sort((a, b) => b.overdueCount - a.overdueCount || b.tasks.length - a.tasks.length);
   }, [employees, tasksByEmployee]);
 
+  // Helper to get task's relevant date (start time or due date)
+  const getTaskDate = (task: Task) => {
+    if (task.start_at) return new Date(task.start_at);
+    if (task.due_at) return new Date(task.due_at);
+    return null;
+  };
+
+  // Group tasks by temporal category
+  const todayTasks = useMemo(() => {
+    const now = new Date();
+    return tasks.filter(task => {
+      if (task.status === "completed") return false;
+      const taskDate = getTaskDate(task);
+      return taskDate && isToday(taskDate);
+    }).sort((a, b) => {
+      const dateA = getTaskDate(a);
+      const dateB = getTaskDate(b);
+      if (!dateA || !dateB) return 0;
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [tasks]);
+
+  const tomorrowTasks = useMemo(() => {
+    return tasks.filter(task => {
+      if (task.status === "completed") return false;
+      const taskDate = getTaskDate(task);
+      return taskDate && isTomorrow(taskDate);
+    }).sort((a, b) => {
+      const dateA = getTaskDate(a);
+      const dateB = getTaskDate(b);
+      if (!dateA || !dateB) return 0;
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [tasks]);
+
+  // Tasks happening right now (within their duration window)
+  const tasksHappeningNow = useMemo(() => {
+    const now = new Date();
+    return todayTasks.filter(task => {
+      if (!task.start_at) return false;
+      const start = new Date(task.start_at);
+      const end = task.duration_minutes 
+        ? addMinutes(start, task.duration_minutes)
+        : addMinutes(start, 30); // default 30min window
+      return now >= start && now <= end;
+    });
+  }, [todayTasks]);
+
   const filteredTasks = tasks.filter((task) => {
     if (activeTab === "all") return true;
+    if (activeTab === "today") {
+      const taskDate = getTaskDate(task);
+      return task.status !== "completed" && taskDate && isToday(taskDate);
+    }
+    if (activeTab === "tomorrow") {
+      const taskDate = getTaskDate(task);
+      return task.status !== "completed" && taskDate && isTomorrow(taskDate);
+    }
     if (activeTab === "pending") return task.status === "pending" || task.status === "in_progress";
     if (activeTab === "completed") return task.status === "completed";
     if (activeTab === "overdue") return task.due_at && isPast(new Date(task.due_at)) && task.status !== "completed";
@@ -461,6 +517,13 @@ const Tasks = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="all">{t('tasks.allTasks')}</TabsTrigger>
+            <TabsTrigger value="today" className="flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5" />
+              {t('common.today')} {todayTasks.length > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{todayTasks.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="tomorrow">
+              {t('common.tomorrow')} {tomorrowTasks.length > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{tomorrowTasks.length}</Badge>}
+            </TabsTrigger>
             <TabsTrigger value="pending">{t('tasks.pending')}</TabsTrigger>
             <TabsTrigger value="overdue">{t('tasks.overdue')}</TabsTrigger>
             <TabsTrigger value="completed">{t('tasks.completed')}</TabsTrigger>
@@ -513,16 +576,49 @@ const Tasks = () => {
           </TabsContent>
           
           <TabsContent value={activeTab === "by-employee" ? "" : activeTab} className={activeTab === "by-employee" ? "hidden" : "mt-4"}>
+            {/* Happening Now Alert for Today tab */}
+            {activeTab === "today" && tasksHappeningNow.length > 0 && (
+              <Card className="mb-4 border-primary bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                    </span>
+                    {t('tasks.happeningNow', 'Happening Now')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {tasksHappeningNow.map((task) => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onComplete={() => handleComplete(task.id)}
+                      onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                      onDelete={() => setDeleteTaskId(task.id)}
+                    />
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>
                   {activeTab === "all" && t('tasks.allTasks')}
+                  {activeTab === "today" && t('tasks.todaysTasks', "Today's Tasks")}
+                  {activeTab === "tomorrow" && t('tasks.tomorrowsTasks', "Tomorrow's Tasks")}
                   {activeTab === "pending" && t('tasks.pendingTasks')}
                   {activeTab === "overdue" && t('tasks.overdueTasks')}
                   {activeTab === "completed" && t('tasks.completedTasks')}
                 </CardTitle>
                 <CardDescription>
                   {filteredTasks.length} {filteredTasks.length === 1 ? t('tasks.title').toLowerCase() : t('tasks.title').toLowerCase()}
+                  {activeTab === "today" && tasksHappeningNow.length > 0 && (
+                    <span className="ml-2 text-primary font-medium">
+                      • {tasksHappeningNow.length} {t('tasks.inProgress', 'in progress')}
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -535,7 +631,11 @@ const Tasks = () => {
                 ) : filteredTasks.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12">
                     <ListTodo className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('tasks.noTasksInCategory')}</p>
+                    <p>
+                      {activeTab === "today" && t('tasks.noTasksToday', 'No tasks scheduled for today')}
+                      {activeTab === "tomorrow" && t('tasks.noTasksTomorrow', 'No tasks scheduled for tomorrow')}
+                      {activeTab !== "today" && activeTab !== "tomorrow" && t('tasks.noTasksInCategory')}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
