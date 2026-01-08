@@ -30,12 +30,13 @@ import {
   getTaskDate,
   getTaskDeadline,
   isTaskOverdue,
-  isVirtualTask,
-  getTodayTasks,
-  getTomorrowTasks,
-  getTasksHappeningNow,
-  isDateToday,
-} from "@/lib/taskDateUtils";
+  isVirtualId as isVirtualTask,
+  getTodayOccurrences,
+  getTomorrowOccurrences,
+  getOccurrencesHappeningNow,
+  isDateInToday,
+  groupOccurrencesByStatus,
+} from "@/lib/taskOccurrenceEngine";
 
 const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -76,7 +77,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
   // For display - if context is 'tomorrow', NEVER show as overdue (logical impossibility)
   const showAsOverdue = context === 'tomorrow' ? false : isOverdue;
   
-  const isDueToday = deadline && isDateToday(deadline);
+  const isDueToday = deadline && isDateInToday(deadline);
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
   
   // Show scheduled badge for virtual instances or future recurring tasks in tomorrow context
@@ -365,24 +366,19 @@ const Tasks = () => {
       .sort((a, b) => b.overdueCount - a.overdueCount || b.tasks.length - a.tasks.length);
   }, [employees, tasksByEmployee]);
 
-  // All task date utilities are now imported from @/lib/taskDateUtils for consistency
+  // All task date utilities are now imported from @/lib/taskOccurrenceEngine for consistency
 
-  // Get tasks for today using canonical utility
-  const todayTasks = useMemo(() => getTodayTasks(tasks), [tasks]);
+  // Get tasks for today using UNIFIED occurrence engine
+  const todayTasks = useMemo(() => getTodayOccurrences(tasks), [tasks]);
 
-  // Get tasks for tomorrow using canonical utility
-  const tomorrowTasks = useMemo(() => getTomorrowTasks(tasks), [tasks]);
+  // Get tasks for tomorrow using UNIFIED occurrence engine
+  const tomorrowTasks = useMemo(() => getTomorrowOccurrences(tasks), [tasks]);
 
-  // Tasks happening right now using canonical utility
-  const tasksHappeningNow = useMemo(() => getTasksHappeningNow(tasks), [tasks]);
+  // Tasks happening right now using UNIFIED occurrence engine
+  const tasksHappeningNow = useMemo(() => getOccurrencesHappeningNow(tasks), [tasks]);
 
-  // Group today's tasks by status for better display
-  const todayGrouped = useMemo(() => {
-    const pending = todayTasks.filter(t => t.status !== 'completed' && !isTaskOverdue(t));
-    const overdue = todayTasks.filter(t => isTaskOverdue(t));
-    const completed = todayTasks.filter(t => t.status === 'completed');
-    return { pending, overdue, completed };
-  }, [todayTasks]);
+  // Group today's tasks by status for better display (using unified helper)
+  const todayGrouped = useMemo(() => groupOccurrencesByStatus(todayTasks), [todayTasks]);
 
   const filteredTasks = useMemo(() => {
     if (activeTab === "all") return tasks;

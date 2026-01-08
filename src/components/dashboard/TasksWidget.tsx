@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ListTodo, Clock, AlertCircle, Plus, ArrowRight } from "lucide-react";
-import { useTaskStats, useTasks } from "@/hooks/useTasks";
+import { ListTodo, Clock, Plus, ArrowRight } from "lucide-react";
+import { useTaskStats, useTasks, Task } from "@/hooks/useTasks";
 import { useNavigate } from "react-router-dom";
-import { format, isPast, isToday } from "date-fns";
+import { format } from "date-fns";
+import { isTaskOverdue, getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 export const TasksWidget = () => {
   const navigate = useNavigate();
@@ -21,20 +22,20 @@ export const TasksWidget = () => {
     }
   };
 
-  const isOverdue = (dueAt: string | null) => {
-    if (!dueAt) return false;
-    return isPast(new Date(dueAt)) && !isToday(new Date(dueAt));
-  };
+  // Use unified overdue check from occurrence engine
+  const checkOverdue = (task: Task) => isTaskOverdue(task);
 
-  // Get the most urgent tasks (overdue first, then by due date)
+  // Get the most urgent tasks (overdue first, then by deadline)
   const urgentTasks = tasks
     ?.sort((a, b) => {
-      const aOverdue = a.due_at && isOverdue(a.due_at);
-      const bOverdue = b.due_at && isOverdue(b.due_at);
+      const aOverdue = checkOverdue(a);
+      const bOverdue = checkOverdue(b);
       if (aOverdue && !bOverdue) return -1;
       if (!aOverdue && bOverdue) return 1;
-      if (a.due_at && b.due_at) {
-        return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
+      const aDeadline = getTaskDeadline(a);
+      const bDeadline = getTaskDeadline(b);
+      if (aDeadline && bDeadline) {
+        return aDeadline.getTime() - bDeadline.getTime();
       }
       return 0;
     })
@@ -91,7 +92,7 @@ export const TasksWidget = () => {
               <div 
                 key={task.id} 
                 className={`p-2 rounded-md border cursor-pointer hover:bg-accent/5 transition-colors ${
-                  isOverdue(task.due_at) ? 'border-destructive/50 bg-destructive/5' : 'border-border'
+                  checkOverdue(task) ? 'border-destructive/50 bg-destructive/5' : 'border-border'
                 }`}
                 onClick={() => navigate("/tasks")}
               >
@@ -101,7 +102,7 @@ export const TasksWidget = () => {
                     <div className="flex items-center gap-2 mt-1">
                       {task.due_at && (
                         <span className={`text-xs flex items-center gap-1 ${
-                          isOverdue(task.due_at) ? 'text-destructive' : 'text-muted-foreground'
+                          checkOverdue(task) ? 'text-destructive' : 'text-muted-foreground'
                         }`}>
                           <Clock className="h-3 w-3" />
                           {format(new Date(task.due_at), "MMM d")}
