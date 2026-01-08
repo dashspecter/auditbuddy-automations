@@ -40,11 +40,27 @@ const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 };
 
-const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComplete: () => void; onEdit: () => void; onDelete: () => void }) => {
+// Enhanced TaskItem with proper Late/Overdue logic that respects context
+interface TaskItemProps {
+  task: Task;
+  onComplete: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  context?: 'today' | 'tomorrow' | 'all' | 'pending' | 'overdue' | 'completed';
+}
+
+const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps) => {
   const { t } = useTranslation();
   
   // Check if this is a virtual recurring instance (id contains "-virtual-")
   const isVirtualInstance = task.id.includes('-virtual-');
+  
+  // Get the task's scheduled date for display
+  const getTaskDate = () => {
+    if (task.start_at) return new Date(task.start_at);
+    if (task.due_at) return new Date(task.due_at);
+    return null;
+  };
   
   const getDeadline = () => {
     if (task.start_at && task.duration_minutes) {
@@ -53,13 +69,28 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
     return task.due_at ? new Date(task.due_at) : null;
   };
   
+  const taskDate = getTaskDate();
   const deadline = getDeadline();
-  const isOverdue = deadline && isPast(deadline) && task.status !== "completed";
+  
+  // CRITICAL: A task can ONLY be late/overdue if:
+  // 1. It has a deadline
+  // 2. The deadline is in the past
+  // 3. It's not completed
+  // 4. It's NOT a future task (tomorrow's tasks are NEVER late)
+  const isTaskInFuture = taskDate && !isToday(taskDate) && taskDate > new Date();
+  const isOverdue = deadline && isPast(deadline) && task.status !== "completed" && !isTaskInFuture;
+  
+  // For display - if context is 'tomorrow', NEVER show as overdue/late (logical impossibility)
+  const showAsOverdue = context === 'tomorrow' ? false : isOverdue;
+  
   const isDueToday = deadline && isToday(deadline);
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+  
+  // Show scheduled badge for virtual instances or future recurring tasks in tomorrow context
+  const showScheduledBadge = isVirtualInstance || (context === 'tomorrow' && isRecurring && !isVirtualInstance);
 
   return (
-    <div className={`flex items-start gap-3 p-4 border rounded-lg ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""} ${isVirtualInstance ? "border-dashed border-primary/30 bg-primary/5" : ""}`}>
+    <div className={`flex items-start gap-3 p-4 border rounded-lg ${showAsOverdue ? "border-destructive/50 bg-destructive/5" : ""} ${isVirtualInstance ? "border-dashed border-primary/30 bg-primary/5" : ""}`}>
       <Checkbox
         checked={task.status === "completed"}
         onCheckedChange={() => task.status !== "completed" && !isVirtualInstance && onComplete()}
@@ -75,11 +106,16 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
             {isRecurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
             )}
-            {isVirtualInstance && (
+            {showScheduledBadge && (
               <Badge variant="outline" className="text-xs border-primary/50 text-primary">{t('tasks.scheduledInstance')}</Badge>
             )}
-            {task.completed_late && (
+            {/* Only show Late badge for COMPLETED tasks that were completed late, never for pending future tasks */}
+            {task.status === "completed" && task.completed_late && (
               <Badge variant="destructive" className="text-xs">{t('tasks.late')}</Badge>
+            )}
+            {/* Show overdue indicator ONLY for past-due pending tasks that are NOT in tomorrow context */}
+            {showAsOverdue && task.status !== "completed" && (
+              <Badge variant="destructive" className="text-xs">{t('tasks.overdue')}</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -114,19 +150,19 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
             </span>
           )}
           {task.start_at && task.duration_minutes && (
-            <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : ""}`}>
+            <span className={`flex items-center gap-1 ${showAsOverdue ? "text-destructive font-medium" : ""}`}>
               <Timer className="h-3 w-3" />
               {format(new Date(task.start_at), "MMM d, HH:mm")} • {task.duration_minutes}min
             </span>
           )}
           {!task.start_at && task.due_at && (
-            <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : isDueToday ? "text-orange-600 font-medium" : ""}`}>
+            <span className={`flex items-center gap-1 ${showAsOverdue ? "text-destructive font-medium" : isDueToday ? "text-orange-600 font-medium" : ""}`}>
               <Clock className="h-3 w-3" />
-              {isOverdue ? `${t('tasks.overdue')}: ` : isDueToday ? `${t('common.today')}: ` : `${t('common.due')}: `}
+              {showAsOverdue ? `${t('tasks.overdue')}: ` : isDueToday ? `${t('common.today')}: ` : `${t('common.due')}: `}
               {format(new Date(task.due_at), "MMM d, HH:mm")}
             </span>
           )}
-          {isRecurring && !isVirtualInstance && (
+          {isRecurring && !showScheduledBadge && (
             <span className="flex items-center gap-1 text-primary">
               <RefreshCw className="h-3 w-3" />
               {task.recurrence_type}
@@ -675,6 +711,7 @@ const Tasks = () => {
                     <TaskItem
                       key={task.id}
                       task={task}
+                      context="today"
                       onComplete={() => handleComplete(task.id)}
                       onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                       onDelete={() => setDeleteTaskId(task.id)}
@@ -725,6 +762,7 @@ const Tasks = () => {
                       <TaskItem
                         key={task.id}
                         task={task}
+                        context={activeTab as 'today' | 'tomorrow' | 'all' | 'pending' | 'overdue' | 'completed'}
                         onComplete={() => handleComplete(task.id)}
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
