@@ -40,13 +40,10 @@ const resetAppCacheIfRequested = async () => {
 
 /**
  * Build version guard: ensures the app always loads the latest build.
- * Compares the build timestamp baked into the JS bundle against a stored value.
+ * Fetches /version.json (never cached) and compares against localStorage.
  * If different, clears caches and reloads once.
  */
 const checkBuildVersion = async (): Promise<boolean> => {
-  // Skip in development
-  if (CURRENT_BUILD === "dev") return false;
-
   const VERSION_KEY = "app_build_version";
   const RELOAD_KEY = "app_build_reload_pending";
 
@@ -54,24 +51,39 @@ const checkBuildVersion = async (): Promise<boolean> => {
     // Prevent infinite reload loops
     if (sessionStorage.getItem(RELOAD_KEY) === "1") {
       sessionStorage.removeItem(RELOAD_KEY);
-      localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+      return false;
+    }
+
+    // Fetch version.json with cache disabled to always get the latest
+    const res = await fetch("/version.json", { cache: "no-store" });
+    if (!res.ok) {
+      console.warn("[BuildGuard] Failed to fetch version.json:", res.status);
+      return false;
+    }
+
+    const data = await res.json();
+    const serverVersion = data.buildTime || data.version || "";
+
+    // Skip in development (placeholder value)
+    if (!serverVersion || serverVersion === "__BUILD_TIME__") {
       return false;
     }
 
     const storedVersion = localStorage.getItem(VERSION_KEY);
 
-    // First visit or same version - no action needed
+    // First visit - just store the version
     if (!storedVersion) {
-      localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+      localStorage.setItem(VERSION_KEY, serverVersion);
       return false;
     }
 
-    if (storedVersion === CURRENT_BUILD) {
+    // Same version - no action needed
+    if (storedVersion === serverVersion) {
       return false;
     }
 
     // Version mismatch detected - clear caches and reload
-    console.info(`[BuildGuard] Version mismatch: ${storedVersion} → ${CURRENT_BUILD}. Clearing caches...`);
+    console.info(`[BuildGuard] Version mismatch: ${storedVersion} → ${serverVersion}. Clearing caches...`);
 
     // Mark that we're about to reload to prevent loops
     sessionStorage.setItem(RELOAD_KEY, "1");
@@ -82,14 +94,20 @@ const checkBuildVersion = async (): Promise<boolean> => {
       await Promise.all(keys.map((k) => window.caches.delete(k)));
     }
 
-    // Request service worker update
+    // Request service worker update and unregister old ones
     if ("serviceWorker" in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((r) => r.update()));
+      await Promise.all(registrations.map(async (r) => {
+        await r.update();
+        // Force the waiting SW to activate
+        if (r.waiting) {
+          r.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+      }));
     }
 
     // Update stored version before reload
-    localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+    localStorage.setItem(VERSION_KEY, serverVersion);
 
     // Hard reload to get fresh assets
     window.location.reload();
