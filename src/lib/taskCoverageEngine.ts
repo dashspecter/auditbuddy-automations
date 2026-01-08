@@ -127,6 +127,7 @@ export function checkTaskCoverage(
   const taskTime = task.start_at ? getTimeFromDate(task.start_at) : null;
   const locationId = task.location_id;
   const roleId = task.assigned_role_id;
+  const roleName = task.assigned_role?.name;
   const assignedTo = task.assigned_to;
   
   // Find matching shifts for this date
@@ -146,7 +147,7 @@ export function checkTaskCoverage(
   const coveredEmployees: string[] = [];
   
   for (const shift of dateShifts) {
-    // Location check (global tasks match any location)
+    // Location check (global tasks with NULL location match any location)
     if (locationId && shift.location_id !== locationId) continue;
     
     // Time window check
@@ -154,10 +155,14 @@ export function checkTaskCoverage(
       continue;
     }
     
-    // Role check (if task has role requirement)
-    if (roleId) {
-      // Role name matching (shift.role is the role name, not ID)
-      // This requires role name lookup - for now we check if shift has approved assignments
+    // CRITICAL: Role check - if task requires a role, shift MUST have that role
+    if (roleId || roleName) {
+      const taskRoleName = roleName || '';
+      // Compare shift.role (role name string) with task's role name
+      // Case-insensitive comparison for robustness
+      if (shift.role.toLowerCase() !== taskRoleName.toLowerCase()) {
+        continue; // Skip this shift - role doesn't match
+      }
     }
     
     // Check if shift has approved assignments
@@ -185,10 +190,13 @@ export function checkTaskCoverage(
     return {
       hasCoverage: false,
       coveredByEmployees: [],
-      noCoverageReason: locationId 
-        ? `No staff scheduled at this location${taskTime ? ` during ${taskTime}` : ''}`
-        : 'No matching shifts found',
+      noCoverageReason: roleName 
+        ? `No ${roleName} scheduled${locationId ? ' at this location' : ''}${taskTime ? ` during ${taskTime}` : ''}`
+        : locationId 
+          ? `No staff scheduled at this location${taskTime ? ` during ${taskTime}` : ''}`
+          : 'No matching shifts found',
       coverageDetails: {
+        requiredRole: roleName,
         timeWindow: taskTime || undefined,
       },
     };
