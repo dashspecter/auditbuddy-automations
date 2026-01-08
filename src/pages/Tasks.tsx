@@ -376,6 +376,14 @@ const Tasks = () => {
   // Tasks happening right now using canonical utility
   const tasksHappeningNow = useMemo(() => getTasksHappeningNow(tasks), [tasks]);
 
+  // Group today's tasks by status for better display
+  const todayGrouped = useMemo(() => {
+    const pending = todayTasks.filter(t => t.status !== 'completed' && !isTaskOverdue(t));
+    const overdue = todayTasks.filter(t => isTaskOverdue(t));
+    const completed = todayTasks.filter(t => t.status === 'completed');
+    return { pending, overdue, completed };
+  }, [todayTasks]);
+
   const filteredTasks = useMemo(() => {
     if (activeTab === "all") return tasks;
     if (activeTab === "today") return todayTasks;
@@ -630,6 +638,78 @@ const Tasks = () => {
                       {activeTab === "tomorrow" && t('tasks.noTasksScheduledTomorrow')}
                       {activeTab !== "today" && activeTab !== "tomorrow" && t('tasks.noTasksInCategory')}
                     </p>
+                  </div>
+                ) : activeTab === "today" ? (
+                  // Today tab with grouped sections
+                  <div className="space-y-6">
+                    {/* Overdue Section */}
+                    {todayGrouped.overdue.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <h3 className="font-semibold text-destructive">{t('tasks.overdue')}</h3>
+                          <Badge variant="destructive" className="text-xs">{todayGrouped.overdue.length}</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {todayGrouped.overdue.map((task) => (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              context="today"
+                              onComplete={() => handleComplete(task.id)}
+                              onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                              onDelete={() => setDeleteTaskId(task.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Pending Section */}
+                    {todayGrouped.pending.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-4 w-4 text-yellow-600" />
+                          <h3 className="font-semibold">{t('tasks.pending')}</h3>
+                          <Badge variant="secondary" className="text-xs">{todayGrouped.pending.length}</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {todayGrouped.pending.map((task) => (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              context="today"
+                              onComplete={() => handleComplete(task.id)}
+                              onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                              onDelete={() => setDeleteTaskId(task.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Completed Section */}
+                    {todayGrouped.completed.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <h3 className="font-semibold text-green-600">{t('tasks.completed')}</h3>
+                          <Badge className="bg-green-100 text-green-800 text-xs">{todayGrouped.completed.length}</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {todayGrouped.completed.map((task) => (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              context="today"
+                              onComplete={() => handleComplete(task.id)}
+                              onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                              onDelete={() => setDeleteTaskId(task.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
