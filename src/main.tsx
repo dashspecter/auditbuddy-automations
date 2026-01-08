@@ -4,6 +4,10 @@ import "./index.css";
 import "./i18n"; // Initialize i18n
 import { registerSW } from "virtual:pwa-register";
 
+// Build timestamp injected at build time for cache busting
+declare const __BUILD_TIME__: string;
+const CURRENT_BUILD = typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "dev";
+
 const isSafeInternalPath = (path: string) => path.startsWith("/");
 
 const resetAppCacheIfRequested = async () => {
@@ -31,6 +35,68 @@ const resetAppCacheIfRequested = async () => {
     window.location.replace(returnTo);
   } catch {
     // no-op
+  }
+};
+
+/**
+ * Build version guard: ensures the app always loads the latest build.
+ * Compares the build timestamp baked into the JS bundle against a stored value.
+ * If different, clears caches and reloads once.
+ */
+const checkBuildVersion = async (): Promise<boolean> => {
+  // Skip in development
+  if (CURRENT_BUILD === "dev") return false;
+
+  const VERSION_KEY = "app_build_version";
+  const RELOAD_KEY = "app_build_reload_pending";
+
+  try {
+    // Prevent infinite reload loops
+    if (sessionStorage.getItem(RELOAD_KEY) === "1") {
+      sessionStorage.removeItem(RELOAD_KEY);
+      localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+      return false;
+    }
+
+    const storedVersion = localStorage.getItem(VERSION_KEY);
+
+    // First visit or same version - no action needed
+    if (!storedVersion) {
+      localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+      return false;
+    }
+
+    if (storedVersion === CURRENT_BUILD) {
+      return false;
+    }
+
+    // Version mismatch detected - clear caches and reload
+    console.info(`[BuildGuard] Version mismatch: ${storedVersion} → ${CURRENT_BUILD}. Clearing caches...`);
+
+    // Mark that we're about to reload to prevent loops
+    sessionStorage.setItem(RELOAD_KEY, "1");
+
+    // Clear Cache Storage (service worker caches)
+    if ("caches" in window) {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((k) => window.caches.delete(k)));
+    }
+
+    // Request service worker update
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.update()));
+    }
+
+    // Update stored version before reload
+    localStorage.setItem(VERSION_KEY, CURRENT_BUILD);
+
+    // Hard reload to get fresh assets
+    window.location.reload();
+    return true;
+  } catch (err) {
+    console.warn("[BuildGuard] Error checking version:", err);
+    return false;
   }
 };
 
@@ -108,6 +174,11 @@ const setupPWAUpdates = () => {
 
 (async () => {
   await resetAppCacheIfRequested();
+
+  // Check build version before anything else - may trigger reload
+  const reloading = await checkBuildVersion();
+  if (reloading) return; // Stop execution, page is reloading
+
   restoreDeepLinkIfNeeded();
   setupPWAUpdates();
 

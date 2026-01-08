@@ -4,8 +4,14 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Build timestamp for cache busting
+const BUILD_TIME = Date.now().toString();
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+  },
   server: {
     host: "::",
     port: 8080,
@@ -24,7 +30,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "dashspect-logo-512.png", "robots.txt"],
+      includeAssets: ["favicon.png", "dashspect-logo-512.png", "robots.txt", "version.json"],
       manifest: {
         name: "Dashspect - Restaurant Compliance Management",
         short_name: "Dashspect",
