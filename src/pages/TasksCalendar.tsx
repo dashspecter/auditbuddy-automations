@@ -11,14 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ListTodo, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { ArrowLeft, ListTodo, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
-import { format } from "date-fns";
+import { useShiftCoverage } from "@/hooks/useShiftCoverage";
+import { addMonths, startOfDay, endOfDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { getOccurrencesForDateRange, isTaskOverdue } from "@/lib/taskOccurrenceEngine";
+import { runPipelineForDateRange, ViewMode } from "@/lib/unifiedTaskPipeline";
 
 const localizer = momentLocalizer(moment);
 
@@ -30,6 +31,17 @@ const TasksCalendar = () => {
 
   const [filterEmployee, setFilterEmployee] = useState<string>("all");
   const [filterRole, setFilterRole] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("execution");
+
+  // Define visible range (show 3 months forward for recurring tasks)
+  const rangeStart = useMemo(() => startOfDay(addMonths(new Date(), -1)), []);
+  const rangeEnd = useMemo(() => endOfDay(addMonths(new Date(), 3)), []);
+
+  // Fetch shifts for coverage check
+  const { data: shifts = [], isLoading: isLoadingShifts } = useShiftCoverage({
+    startDate: rangeStart,
+    endDate: rangeEnd,
+  });
 
   // Get unique roles from employees
   const employeeRoles = useMemo(() => {
@@ -42,12 +54,10 @@ const TasksCalendar = () => {
     let filtered = tasks;
 
     if (filterEmployee !== "all") {
-      // Get the employee's role
       const selectedEmployee = employees.find((e) => e.id === filterEmployee);
       const employeeRoleName = selectedEmployee?.role;
       const matchingRole = employeeRoleName ? roles.find((r) => r.name === employeeRoleName) : null;
       
-      // Show tasks directly assigned to this employee OR assigned to their role
       filtered = filtered.filter((t) => 
         t.assigned_to === filterEmployee ||
         (matchingRole && t.assigned_role_id === matchingRole.id && !t.assigned_to)
@@ -55,15 +65,12 @@ const TasksCalendar = () => {
     }
 
     if (filterRole !== "all") {
-      // Find employees with this role
       const employeesInRole = employees
         .filter((e) => e.role === filterRole)
         .map((e) => e.id);
       
-      // Find the role ID from employee_roles that matches the name
       const matchingRole = roles.find((r) => r.name === filterRole);
       
-      // Filter tasks assigned to employees with this role OR directly assigned to this role
       filtered = filtered.filter((t) => 
         (t.assigned_to && employeesInRole.includes(t.assigned_to)) ||
         (matchingRole && t.assigned_role_id === matchingRole.id)
@@ -73,17 +80,29 @@ const TasksCalendar = () => {
     return filtered;
   }, [tasks, filterEmployee, filterRole, employees, roles]);
 
-  // Convert tasks to calendar events using UNIFIED Occurrence Engine
+  // Convert tasks to calendar events using UNIFIED pipeline with shift-awareness
   const events = useMemo(() => {
-    // Define visible range (show 3 months forward for recurring tasks)
-    const rangeStart = new Date();
-    rangeStart.setMonth(rangeStart.getMonth() - 1);
-    const rangeEnd = new Date();
-    rangeEnd.setMonth(rangeEnd.getMonth() + 3);
+    const pipelineResult = runPipelineForDateRange(filteredTasks, rangeStart, rangeEnd, {
+      viewMode, // Use selected view mode (execution = covered only, planning = all)
+      includeCompleted: true,
+      includeVirtual: true,
+      shifts,
+    });
 
-    // Use the unified occurrence engine for consistency with Today/Tomorrow views
-    return getOccurrencesForDateRange(filteredTasks, rangeStart, rangeEnd);
-  }, [filteredTasks]);
+    // Convert pipeline tasks to calendar events
+    return pipelineResult.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      start: new Date(task.start_at || task.due_at || new Date()),
+      end: task.start_at && task.duration_minutes
+        ? new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000)
+        : new Date(task.due_at || task.start_at || new Date()),
+      resource: {
+        ...task,
+        hasCoverage: task.coverage?.hasCoverage,
+      },
+    }));
+  }, [filteredTasks, rangeStart, rangeEnd, viewMode, shifts]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -149,7 +168,7 @@ const TasksCalendar = () => {
     // Task detail modal could be implemented here
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingShifts) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -221,6 +240,15 @@ const TasksCalendar = () => {
             </div>
 
             <div className="flex items-end gap-2">
+              <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="View Mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="execution">Execution (Covered)</SelectItem>
+                  <SelectItem value="planning">Planning (All)</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="sm"
