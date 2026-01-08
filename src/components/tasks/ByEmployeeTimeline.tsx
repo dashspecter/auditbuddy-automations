@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -26,11 +27,15 @@ import {
   Timer,
   Users,
   MapPin,
-  Calendar
+  Calendar,
+  AlertTriangle,
+  ClipboardList
 } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { Employee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
+import { useScheduledEmployees, ScheduledEmployee } from "@/hooks/useScheduledEmployees";
+import { useShiftCoverage } from "@/hooks/useShiftCoverage";
 import { format, addDays, startOfDay, isSameDay, parseISO } from "date-fns";
 import { 
   isTaskOverdue, 
@@ -119,186 +124,6 @@ const TimelineTaskBlock = ({
   );
 };
 
-// Timeline row for a single employee
-const EmployeeTimelineRow = ({ 
-  employee, 
-  tasks, 
-  selectedDate,
-  onComplete, 
-  onEdit 
-}: { 
-  employee: Employee & { tasks: Task[] };
-  tasks: Task[];
-  selectedDate: Date;
-  onComplete: (taskId: string) => void;
-  onEdit: (taskId: string) => void;
-}) => {
-  const { t } = useTranslation();
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Get occurrences for this date
-  const dayTasks = useMemo(() => {
-    return getOccurrencesForDate(tasks.filter(t => 
-      t.assigned_to === employee.id
-    ), selectedDate, { includeCompleted: true });
-  }, [tasks, employee.id, selectedDate]);
-  
-  // Calculate stats
-  const completed = dayTasks.filter(t => t.status === "completed").length;
-  const overdue = dayTasks.filter(t => isTaskOverdue(t)).length;
-  const pending = dayTasks.length - completed;
-  const completionRate = dayTasks.length > 0 ? Math.round((completed / dayTasks.length) * 100) : 0;
-  
-  // Position tasks on timeline
-  const positionedTasks = useMemo(() => {
-    return dayTasks
-      .map(task => ({
-        task,
-        position: getTaskTimelinePosition(task)
-      }))
-      .filter(({ position }) => position !== null);
-  }, [dayTasks]);
-  
-  if (dayTasks.length === 0) return null;
-  
-  return (
-    <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-      <Card className={`${overdue > 0 ? "border-destructive/30" : ""}`}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors py-3">
-            <div className="flex items-center gap-3">
-              {/* Employee Info */}
-              <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage src={employee.avatar_url || undefined} />
-                <AvatarFallback className="text-xs">{employee.full_name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              
-              <div className="min-w-[120px] shrink-0">
-                <div className="font-medium text-sm truncate">{employee.full_name}</div>
-                <div className="text-xs text-muted-foreground">{employee.role}</div>
-              </div>
-              
-              {/* Stats */}
-              <div className="hidden sm:flex items-center gap-2 text-xs shrink-0">
-                {overdue > 0 && (
-                  <Badge variant="destructive" className="text-xs gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {overdue}
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="text-xs gap-1">
-                  <Clock className="h-3 w-3" />
-                  {pending}
-                </Badge>
-                <Badge className="bg-green-100 text-green-800 text-xs gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  {completed}
-                </Badge>
-              </div>
-              
-              {/* Timeline Preview */}
-              <div className="flex-1 h-8 bg-muted/50 rounded relative overflow-hidden hidden md:block">
-                {/* Hour markers */}
-                {[6, 9, 12, 15, 18, 21].map((hour) => (
-                  <div 
-                    key={hour}
-                    className="absolute top-0 bottom-0 w-px bg-border/50"
-                    style={{ left: `${((hour - 6) / 18) * 100}%` }}
-                  />
-                ))}
-                
-                {/* Task blocks */}
-                {positionedTasks.map(({ task, position }) => (
-                  position && (
-                    <TimelineTaskBlock
-                      key={task.id}
-                      task={task}
-                      position={position}
-                      onComplete={() => onComplete(task.id)}
-                      onEdit={() => onEdit(task.id)}
-                    />
-                  )
-                ))}
-              </div>
-              
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-muted-foreground hidden sm:block">{completionRate}%</span>
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </div>
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            {/* Full Timeline */}
-            <div className="mb-4">
-              <div className="flex text-xs text-muted-foreground mb-1">
-                {TIMELINE_HOURS.filter((_, i) => i % 3 === 0).map((hour) => (
-                  <div 
-                    key={hour} 
-                    className="flex-1 text-center"
-                    style={{ marginLeft: hour === 6 ? '0' : undefined }}
-                  >
-                    {format(new Date().setHours(hour, 0), 'ha')}
-                  </div>
-                ))}
-              </div>
-              <div className="h-10 bg-muted/30 rounded relative">
-                {/* Hour grid lines */}
-                {TIMELINE_HOURS.map((hour) => (
-                  <div 
-                    key={hour}
-                    className="absolute top-0 bottom-0 w-px bg-border/30"
-                    style={{ left: `${((hour - 6) / 18) * 100}%` }}
-                  />
-                ))}
-                
-                {/* Current time indicator */}
-                {isSameDay(selectedDate, new Date()) && (
-                  <div 
-                    className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
-                    style={{ 
-                      left: `${((new Date().getHours() - 6) * 60 + new Date().getMinutes()) / (18 * 60) * 100}%` 
-                    }}
-                  >
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-red-500" />
-                  </div>
-                )}
-                
-                {/* Task blocks */}
-                {positionedTasks.map(({ task, position }) => (
-                  position && (
-                    <TimelineTaskBlock
-                      key={task.id}
-                      task={task}
-                      position={position}
-                      onComplete={() => onComplete(task.id)}
-                      onEdit={() => onEdit(task.id)}
-                    />
-                  )
-                ))}
-              </div>
-            </div>
-            
-            {/* Task list */}
-            <div className="space-y-2">
-              {dayTasks.map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  onComplete={() => onComplete(task.id)}
-                  onEdit={() => onEdit(task.id)}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
-};
-
 // Task list item (for expanded view)
 const TaskListItem = ({ 
   task, 
@@ -368,13 +193,228 @@ const TaskListItem = ({
   );
 };
 
+// Timeline row for a single scheduled employee
+const ScheduledEmployeeRow = ({ 
+  employee, 
+  dayTasks,
+  selectedDate,
+  onComplete, 
+  onEdit 
+}: { 
+  employee: ScheduledEmployee;
+  dayTasks: Task[];
+  selectedDate: Date;
+  onComplete: (taskId: string) => void;
+  onEdit: (taskId: string) => void;
+}) => {
+  const { t } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Calculate stats
+  const completed = dayTasks.filter(t => t.status === "completed").length;
+  const overdue = dayTasks.filter(t => isTaskOverdue(t)).length;
+  const pending = dayTasks.length - completed;
+  const completionRate = dayTasks.length > 0 ? Math.round((completed / dayTasks.length) * 100) : null;
+  const hasNoTasks = dayTasks.length === 0;
+  
+  // Position tasks on timeline
+  const positionedTasks = useMemo(() => {
+    return dayTasks
+      .map(task => ({
+        task,
+        position: getTaskTimelinePosition(task)
+      }))
+      .filter(({ position }) => position !== null);
+  }, [dayTasks]);
+  
+  // Format shift time
+  const shiftTimeDisplay = employee.shiftStartTime && employee.shiftEndTime
+    ? `${employee.shiftStartTime.slice(0, 5)} – ${employee.shiftEndTime.slice(0, 5)}`
+    : null;
+  
+  return (
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+      <Card className={`${overdue > 0 ? "border-destructive/30" : hasNoTasks ? "border-amber-300/50" : ""}`}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors py-3">
+            <div className="flex items-center gap-3">
+              {/* Employee Info */}
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src={employee.avatar_url || undefined} />
+                <AvatarFallback className="text-xs">{employee.full_name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              
+              <div className="min-w-[140px] shrink-0">
+                <div className="font-medium text-sm truncate">{employee.full_name}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span>{employee.shiftRole || employee.role}</span>
+                  {shiftTimeDisplay && (
+                    <>
+                      <span className="text-muted-foreground/50">•</span>
+                      <span className="text-primary/80">{shiftTimeDisplay}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* Stats or No Tasks Alert */}
+              <div className="hidden sm:flex items-center gap-2 text-xs shrink-0">
+                {hasNoTasks ? (
+                  <Badge variant="outline" className="text-xs gap-1 border-amber-400 text-amber-700 bg-amber-50">
+                    <AlertTriangle className="h-3 w-3" />
+                    {t('tasks.noTasksAssigned', 'No tasks assigned')}
+                  </Badge>
+                ) : (
+                  <>
+                    {overdue > 0 && (
+                      <Badge variant="destructive" className="text-xs gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {overdue}
+                      </Badge>
+                    )}
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <Clock className="h-3 w-3" />
+                      {pending}
+                    </Badge>
+                    <Badge className="bg-green-100 text-green-800 text-xs gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      {completed}
+                    </Badge>
+                  </>
+                )}
+              </div>
+              
+              {/* Timeline Preview */}
+              <div className="flex-1 h-8 bg-muted/50 rounded relative overflow-hidden hidden md:block">
+                {/* Hour markers */}
+                {[6, 9, 12, 15, 18, 21].map((hour) => (
+                  <div 
+                    key={hour}
+                    className="absolute top-0 bottom-0 w-px bg-border/50"
+                    style={{ left: `${((hour - 6) / 18) * 100}%` }}
+                  />
+                ))}
+                
+                {/* Task blocks */}
+                {positionedTasks.map(({ task, position }) => (
+                  position && (
+                    <TimelineTaskBlock
+                      key={task.id}
+                      task={task}
+                      position={position}
+                      onComplete={() => onComplete(task.id)}
+                      onEdit={() => onEdit(task.id)}
+                    />
+                  )
+                ))}
+                
+                {/* No tasks indicator */}
+                {hasNoTasks && (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground italic">
+                    {t('tasks.noTasksScheduled', 'No tasks scheduled')}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 shrink-0">
+                {completionRate !== null && (
+                  <span className="text-xs text-muted-foreground hidden sm:block">{completionRate}%</span>
+                )}
+                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </div>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            {hasNoTasks ? (
+              <Alert variant="default" className="border-amber-300 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">{t('tasks.noTasksAssigned', 'No tasks assigned')}</AlertTitle>
+                <AlertDescription className="text-amber-700 text-sm">
+                  {t('tasks.noTasksAssignedHelper', 'Check task templates, role assignments, and location coverage.')}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                {/* Full Timeline */}
+                <div className="mb-4">
+                  <div className="flex text-xs text-muted-foreground mb-1">
+                    {TIMELINE_HOURS.filter((_, i) => i % 3 === 0).map((hour) => (
+                      <div 
+                        key={hour} 
+                        className="flex-1 text-center"
+                        style={{ marginLeft: hour === 6 ? '0' : undefined }}
+                      >
+                        {format(new Date().setHours(hour, 0), 'ha')}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="h-10 bg-muted/30 rounded relative">
+                    {/* Hour grid lines */}
+                    {TIMELINE_HOURS.map((hour) => (
+                      <div 
+                        key={hour}
+                        className="absolute top-0 bottom-0 w-px bg-border/30"
+                        style={{ left: `${((hour - 6) / 18) * 100}%` }}
+                      />
+                    ))}
+                    
+                    {/* Current time indicator */}
+                    {isSameDay(selectedDate, new Date()) && (
+                      <div 
+                        className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+                        style={{ 
+                          left: `${((new Date().getHours() - 6) * 60 + new Date().getMinutes()) / (18 * 60) * 100}%` 
+                        }}
+                      >
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-red-500" />
+                      </div>
+                    )}
+                    
+                    {/* Task blocks */}
+                    {positionedTasks.map(({ task, position }) => (
+                      position && (
+                        <TimelineTaskBlock
+                          key={task.id}
+                          task={task}
+                          position={position}
+                          onComplete={() => onComplete(task.id)}
+                          onEdit={() => onEdit(task.id)}
+                        />
+                      )
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Task list */}
+                <div className="space-y-2">
+                  {dayTasks.map((task) => (
+                    <TaskListItem
+                      key={task.id}
+                      task={task}
+                      onComplete={() => onComplete(task.id)}
+                      onEdit={() => onEdit(task.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+};
+
 export const ByEmployeeTimeline = ({
   tasks,
   employees,
   onComplete,
   onEdit,
   onDelete,
-  isLoading
+  isLoading: isLoadingTasks
 }: ByEmployeeTimelineProps) => {
   const { t } = useTranslation();
   const { data: locations = [] } = useLocations();
@@ -383,43 +423,66 @@ export const ByEmployeeTimeline = ({
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
   const [locationFilter, setLocationFilter] = useState<string>("all");
   
-  // Filter employees by location
-  const filteredEmployees = useMemo(() => {
-    if (locationFilter === "all") return employees;
-    return employees.filter(emp => emp.location_id === locationFilter);
-  }, [employees, locationFilter]);
+  // Fetch scheduled employees from shifts (source of truth)
+  const { data: scheduledEmployees = [], isLoading: isLoadingScheduled } = useScheduledEmployees({
+    targetDate: selectedDate,
+    locationId: locationFilter === "all" ? undefined : locationFilter,
+  });
   
-  // Get employees with tasks for the selected date
-  const employeesWithDayTasks = useMemo(() => {
-    return filteredEmployees
-      .map(emp => {
-        const empTasks = getOccurrencesForDate(
-          tasks.filter(t => t.assigned_to === emp.id),
-          selectedDate,
-          { includeCompleted: true }
-        );
-        return { ...emp, tasks: empTasks };
-      })
-      .filter(emp => emp.tasks.length > 0)
-      .sort((a, b) => {
-        // Sort by overdue count, then by task count
-        const aOverdue = a.tasks.filter(t => isTaskOverdue(t)).length;
-        const bOverdue = b.tasks.filter(t => isTaskOverdue(t)).length;
-        if (bOverdue !== aOverdue) return bOverdue - aOverdue;
-        return b.tasks.length - a.tasks.length;
-      });
-  }, [filteredEmployees, tasks, selectedDate]);
+  // Fetch shifts for coverage checking
+  const { data: shifts = [] } = useShiftCoverage({
+    startDate: selectedDate,
+    endDate: selectedDate,
+    locationId: locationFilter === "all" ? undefined : locationFilter,
+  });
+  
+  // Build employee task mapping with shift-aware logic
+  const employeesWithTasks = useMemo(() => {
+    return scheduledEmployees.map(emp => {
+      // Get tasks for this employee: assigned directly OR matching their shift role
+      const empTasks = getOccurrencesForDate(
+        tasks.filter(t => {
+          // Directly assigned
+          if (t.assigned_to === emp.id) return true;
+          
+          // Role-based assignment: task's assigned_role matches employee's shift role
+          if (t.assigned_role) {
+            const empRoleStr = emp.shiftRole || String(emp.role || "");
+            const empRole = empRoleStr.toLowerCase();
+            const taskRoleStr = String(t.assigned_role || "");
+            const taskRole = taskRoleStr.toLowerCase();
+            if (empRole === taskRole) {
+              // Also check location match (task location matches shift location, or task is global)
+              if (!t.location_id || t.location_id === emp.shiftLocationId) {
+                return true;
+              }
+            }
+          }
+          
+          return false;
+        }),
+        selectedDate,
+        { includeCompleted: true }
+      );
+      
+      return { employee: emp, tasks: empTasks };
+    });
+  }, [scheduledEmployees, tasks, selectedDate]);
   
   // Summary stats
-  const totalTasks = employeesWithDayTasks.reduce((acc, emp) => acc + emp.tasks.length, 0);
-  const totalCompleted = employeesWithDayTasks.reduce((acc, emp) => 
-    acc + emp.tasks.filter(t => t.status === "completed").length, 0);
-  const totalOverdue = employeesWithDayTasks.reduce((acc, emp) => 
-    acc + emp.tasks.filter(t => isTaskOverdue(t)).length, 0);
+  const totalEmployees = scheduledEmployees.length;
+  const totalTasks = employeesWithTasks.reduce((acc, { tasks }) => acc + tasks.length, 0);
+  const totalCompleted = employeesWithTasks.reduce((acc, { tasks }) => 
+    acc + tasks.filter(t => t.status === "completed").length, 0);
+  const totalOverdue = employeesWithTasks.reduce((acc, { tasks }) => 
+    acc + tasks.filter(t => isTaskOverdue(t)).length, 0);
+  const employeesWithNoTasks = employeesWithTasks.filter(({ tasks }) => tasks.length === 0).length;
   
   const navigateDate = (direction: 'prev' | 'next') => {
     setSelectedDate(prev => addDays(prev, direction === 'next' ? 1 : -1));
   };
+  
+  const isLoading = isLoadingTasks || isLoadingScheduled;
   
   if (isLoading) {
     return (
@@ -494,20 +557,26 @@ export const ByEmployeeTimeline = ({
             <div className="flex items-center gap-3 ml-auto text-sm">
               <Badge variant="outline" className="gap-1">
                 <Users className="h-3 w-3" />
-                {employeesWithDayTasks.length} {t('workforce.employees.label').toLowerCase()}
+                {totalEmployees} {t('workforce.employees.label')}
               </Badge>
               <Badge variant="secondary" className="gap-1">
-                {totalTasks} {t('tasks.title').toLowerCase()}
+                {totalTasks} {t('tasks.title')}
               </Badge>
+              {employeesWithNoTasks > 0 && (
+                <Badge variant="outline" className="gap-1 border-amber-400 text-amber-700">
+                  <AlertTriangle className="h-3 w-3" />
+                  {employeesWithNoTasks} {t('tasks.withNoTasks', 'with no tasks')}
+                </Badge>
+              )}
               {totalOverdue > 0 && (
                 <Badge variant="destructive" className="gap-1">
                   <AlertCircle className="h-3 w-3" />
-                  {totalOverdue} {t('tasks.overdue').toLowerCase()}
+                  {totalOverdue} {t('tasks.overdue')}
                 </Badge>
               )}
               <Badge className="bg-green-100 text-green-800 gap-1">
                 <CheckCircle2 className="h-3 w-3" />
-                {totalCompleted} {t('tasks.completed').toLowerCase()}
+                {totalCompleted} {t('tasks.completed')}
               </Badge>
             </div>
           </div>
@@ -535,21 +604,21 @@ export const ByEmployeeTimeline = ({
       </div>
       
       {/* Employee Timeline Rows */}
-      {employeesWithDayTasks.length === 0 ? (
+      {scheduledEmployees.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>{t('tasks.noTasksAssignedEmployees')}</p>
-            <p className="text-sm mt-1">{t('tasks.selectDifferentDateOrLocation')}</p>
+            <p className="font-medium">{t('tasks.noEmployeesScheduled', 'No employees scheduled')}</p>
+            <p className="text-sm mt-1">{t('tasks.selectDifferentDateOrLocation', 'Try selecting a different date or location')}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {employeesWithDayTasks.map((emp) => (
-            <EmployeeTimelineRow
-              key={emp.id}
-              employee={emp}
-              tasks={tasks}
+          {employeesWithTasks.map(({ employee, tasks: empTasks }) => (
+            <ScheduledEmployeeRow
+              key={employee.id}
+              employee={employee}
+              dayTasks={empTasks}
               selectedDate={selectedDate}
               onComplete={onComplete}
               onEdit={onEdit}
