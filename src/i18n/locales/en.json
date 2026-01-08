@@ -864,6 +864,12 @@
     "pendingTasks": "Pending Tasks",
     "overdueTasks": "Overdue Tasks",
     "completedTasks": "Completed Tasks",
+    "happeningNow": "Happening Now",
+    "todaysTasks": "Today's Tasks",
+    "tomorrowsTasks": "Tomorrow's Tasks",
+    "noTasksScheduledToday": "No tasks scheduled for today",
+    "noTasksScheduledTomorrow": "No tasks scheduled for tomorrow",
+    "scheduledInstance": "Scheduled",
     "priority": {
       "low": "Low",
       "medium": "Medium",
