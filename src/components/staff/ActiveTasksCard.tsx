@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ListTodo, Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
+import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
 import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
 import { differenceInSeconds } from "date-fns";
+import { getTaskDate, getTaskDeadline } from "@/lib/taskDateUtils";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
