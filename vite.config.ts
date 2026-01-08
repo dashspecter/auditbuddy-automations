@@ -3,9 +3,19 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import fs from "fs";
 
 // Build timestamp for cache busting
 const BUILD_TIME = Date.now().toString();
+
+// Write build time to version.json at build time
+const versionJsonPath = path.resolve(__dirname, "public/version.json");
+try {
+  const versionContent = JSON.stringify({ buildTime: BUILD_TIME, version: "1.0.1" }, null, 2);
+  fs.writeFileSync(versionJsonPath, versionContent);
+} catch {
+  // Ignore errors in environments where fs is not available
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
