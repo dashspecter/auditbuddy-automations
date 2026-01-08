@@ -347,8 +347,15 @@ export function getOccurrencesForDate(
     
     // Case 3: Recurring task should have a virtual instance on this day
     if (isRecurring && includeVirtual && shouldRecurOnDate(task, targetDate)) {
-      // Skip if the task is already completed (handled above)
-      if (task.status === 'completed') continue;
+      // If completed, only skip if the completion was for THIS specific date (already handled in Case 2)
+      if (task.status === 'completed' && task.completed_at) {
+        const completedAt = new Date(task.completed_at);
+        if (isSameDay(completedAt, targetDate)) {
+          // Already added as completed instance in Case 2
+          continue;
+        }
+        // For future dates after completion, still show as virtual pending instance
+      }
       
       const virtualId = generateVirtualId(task.id, targetDate);
       if (seenIds.has(virtualId)) continue;
