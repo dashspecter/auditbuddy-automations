@@ -115,18 +115,23 @@ export const generateVirtualId = (taskId: string, date: Date): string => {
 };
 
 /**
- * Check if an ID is a virtual occurrence
+ * Check if an ID is a virtual occurrence (includes virtual or completed suffixes)
  */
 export const isVirtualId = (id: string): boolean => {
-  return id.includes('-virtual-');
+  return id.includes('-virtual-') || id.includes('-completed-');
 };
 
 /**
- * Extract the original task ID from a virtual ID
+ * Extract the original task ID from a virtual/occurrence ID
+ * Handles patterns like:
+ * - uuid-virtual-2026-01-08
+ * - uuid-completed-2026-01-08
  */
 export const getOriginalTaskId = (id: string): string => {
-  if (isVirtualId(id)) {
-    return id.split('-virtual-')[0];
+  // Check for -virtual- or -completed- suffix and extract the UUID part
+  const virtualMatch = id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  if (virtualMatch) {
+    return virtualMatch[1];
   }
   return id;
 };
