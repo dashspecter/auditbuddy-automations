@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
-import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay, endOfDay, addMinutes } from "date-fns";
+import { format, isPast, isToday, isTomorrow, isThisWeek, startOfDay, endOfDay, addMinutes, addDays, setHours, setMinutes, getHours, getMinutes } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
@@ -43,6 +43,9 @@ const statusColors: Record<string, string> = {
 const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComplete: () => void; onEdit: () => void; onDelete: () => void }) => {
   const { t } = useTranslation();
   
+  // Check if this is a virtual recurring instance (id contains "-virtual-")
+  const isVirtualInstance = task.id.includes('-virtual-');
+  
   const getDeadline = () => {
     if (task.start_at && task.duration_minutes) {
       return new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
@@ -56,21 +59,24 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
 
   return (
-    <div className={`flex items-start gap-3 p-4 border rounded-lg ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""}`}>
+    <div className={`flex items-start gap-3 p-4 border rounded-lg ${isOverdue ? "border-destructive/50 bg-destructive/5" : ""} ${isVirtualInstance ? "border-dashed border-primary/30 bg-primary/5" : ""}`}>
       <Checkbox
         checked={task.status === "completed"}
-        onCheckedChange={() => task.status !== "completed" && onComplete()}
-        disabled={task.status === "completed"}
+        onCheckedChange={() => task.status !== "completed" && !isVirtualInstance && onComplete()}
+        disabled={task.status === "completed" || isVirtualInstance}
         className="mt-1"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h4 className={`font-medium ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
               {task.title}
             </h4>
             {isRecurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+            {isVirtualInstance && (
+              <Badge variant="outline" className="text-xs border-primary/50 text-primary">{t('tasks.scheduledInstance')}</Badge>
             )}
             {task.completed_late && (
               <Badge variant="destructive" className="text-xs">{t('tasks.late')}</Badge>
@@ -120,7 +126,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
               {format(new Date(task.due_at), "MMM d, HH:mm")}
             </span>
           )}
-          {isRecurring && (
+          {isRecurring && !isVirtualInstance && (
             <span className="flex items-center gap-1 text-primary">
               <RefreshCw className="h-3 w-3" />
               {task.recurrence_type}
@@ -128,14 +134,16 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete }: { task: Task; onComple
           )}
         </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={onEdit}>
-          <Pencil className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+      {!isVirtualInstance && (
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
@@ -337,14 +345,76 @@ const Tasks = () => {
     return null;
   };
 
-  // Group tasks by temporal category
+  // Helper to check if a recurring task should occur on a given date
+  const shouldRecurOnDate = (task: Task, targetDate: Date): boolean => {
+    if (!task.recurrence_type || task.recurrence_type === 'none') return false;
+    
+    const taskDate = getTaskDate(task);
+    if (!taskDate) return false;
+    
+    // Check if recurrence has ended
+    if (task.recurrence_end_date && new Date(task.recurrence_end_date) < targetDate) return false;
+    
+    const interval = task.recurrence_interval || 1;
+    const daysDiff = Math.floor((targetDate.getTime() - startOfDay(taskDate).getTime()) / (1000 * 60 * 60 * 24));
+    
+    switch (task.recurrence_type) {
+      case 'daily':
+        return daysDiff >= 0 && daysDiff % interval === 0;
+      case 'weekly':
+        // Check if same day of week and correct interval
+        const weeksDiff = Math.floor(daysDiff / 7);
+        return daysDiff >= 0 && targetDate.getDay() === taskDate.getDay() && weeksDiff % interval === 0;
+      case 'monthly':
+        // Check same day of month
+        return daysDiff >= 0 && targetDate.getDate() === taskDate.getDate();
+      default:
+        return false;
+    }
+  };
+
+  // Create a virtual task instance for a recurring task on a specific date
+  const createVirtualInstance = (task: Task, targetDate: Date): Task => {
+    const taskDate = getTaskDate(task);
+    if (!taskDate) return task;
+    
+    const hours = getHours(taskDate);
+    const minutes = getMinutes(taskDate);
+    const newDate = setMinutes(setHours(startOfDay(targetDate), hours), minutes);
+    
+    return {
+      ...task,
+      id: `${task.id}-virtual-${format(targetDate, 'yyyy-MM-dd')}`,
+      start_at: task.start_at ? newDate.toISOString() : null,
+      due_at: task.due_at ? newDate.toISOString() : null,
+      status: 'pending', // Virtual instances are always pending
+      is_recurring_instance: true,
+    };
+  };
+
+  // Get tasks for today - include ALL statuses + virtual recurring instances
   const todayTasks = useMemo(() => {
-    const now = new Date();
-    return tasks.filter(task => {
-      if (task.status === "completed") return false;
+    const today = startOfDay(new Date());
+    const result: Task[] = [];
+    
+    tasks.forEach(task => {
       const taskDate = getTaskDate(task);
-      return taskDate && isToday(taskDate);
-    }).sort((a, b) => {
+      
+      // Include task if it's scheduled for today (any status)
+      if (taskDate && isToday(taskDate)) {
+        result.push(task);
+      } 
+      // For recurring tasks not already showing today, create virtual instance
+      else if (task.recurrence_type && task.recurrence_type !== 'none' && shouldRecurOnDate(task, today)) {
+        // Don't create virtual if we already have this task for today
+        const alreadyHasToday = taskDate && isToday(taskDate);
+        if (!alreadyHasToday && task.status !== 'completed') {
+          result.push(createVirtualInstance(task, today));
+        }
+      }
+    });
+    
+    return result.sort((a, b) => {
       const dateA = getTaskDate(a);
       const dateB = getTaskDate(b);
       if (!dateA || !dateB) return 0;
@@ -352,12 +422,29 @@ const Tasks = () => {
     });
   }, [tasks]);
 
+  // Get tasks for tomorrow - pending tasks + virtual recurring instances
   const tomorrowTasks = useMemo(() => {
-    return tasks.filter(task => {
-      if (task.status === "completed") return false;
+    const tomorrow = startOfDay(addDays(new Date(), 1));
+    const result: Task[] = [];
+    
+    tasks.forEach(task => {
       const taskDate = getTaskDate(task);
-      return taskDate && isTomorrow(taskDate);
-    }).sort((a, b) => {
+      
+      // Include pending task if it's scheduled for tomorrow
+      if (taskDate && isTomorrow(taskDate) && task.status !== 'completed') {
+        result.push(task);
+      }
+      // For recurring tasks, create virtual instance for tomorrow
+      else if (task.recurrence_type && task.recurrence_type !== 'none' && shouldRecurOnDate(task, tomorrow)) {
+        // Don't create virtual if we already have this task for tomorrow
+        const alreadyHasTomorrow = taskDate && isTomorrow(taskDate);
+        if (!alreadyHasTomorrow) {
+          result.push(createVirtualInstance(task, tomorrow));
+        }
+      }
+    });
+    
+    return result.sort((a, b) => {
       const dateA = getTaskDate(a);
       const dateB = getTaskDate(b);
       if (!dateA || !dateB) return 0;
@@ -365,10 +452,11 @@ const Tasks = () => {
     });
   }, [tasks]);
 
-  // Tasks happening right now (within their duration window)
+  // Tasks happening right now (within their duration window) - only pending/in_progress
   const tasksHappeningNow = useMemo(() => {
     const now = new Date();
     return todayTasks.filter(task => {
+      if (task.status === 'completed') return false;
       if (!task.start_at) return false;
       const start = new Date(task.start_at);
       const end = task.duration_minutes 
@@ -378,21 +466,15 @@ const Tasks = () => {
     });
   }, [todayTasks]);
 
-  const filteredTasks = tasks.filter((task) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "today") {
-      const taskDate = getTaskDate(task);
-      return task.status !== "completed" && taskDate && isToday(taskDate);
-    }
-    if (activeTab === "tomorrow") {
-      const taskDate = getTaskDate(task);
-      return task.status !== "completed" && taskDate && isTomorrow(taskDate);
-    }
-    if (activeTab === "pending") return task.status === "pending" || task.status === "in_progress";
-    if (activeTab === "completed") return task.status === "completed";
-    if (activeTab === "overdue") return task.due_at && isPast(new Date(task.due_at)) && task.status !== "completed";
-    return true;
-  });
+  const filteredTasks = useMemo(() => {
+    if (activeTab === "all") return tasks;
+    if (activeTab === "today") return todayTasks;
+    if (activeTab === "tomorrow") return tomorrowTasks;
+    if (activeTab === "pending") return tasks.filter(task => task.status === "pending" || task.status === "in_progress");
+    if (activeTab === "completed") return tasks.filter(task => task.status === "completed");
+    if (activeTab === "overdue") return tasks.filter(task => task.due_at && isPast(new Date(task.due_at)) && task.status !== "completed");
+    return tasks;
+  }, [activeTab, tasks, todayTasks, tomorrowTasks]);
 
   const hasTasks = tasks.length > 0;
 
@@ -632,8 +714,8 @@ const Tasks = () => {
                   <div className="text-center text-muted-foreground py-12">
                     <ListTodo className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>
-                      {activeTab === "today" && t('tasks.noTasksToday', 'No tasks scheduled for today')}
-                      {activeTab === "tomorrow" && t('tasks.noTasksTomorrow', 'No tasks scheduled for tomorrow')}
+                      {activeTab === "today" && t('tasks.noTasksScheduledToday')}
+                      {activeTab === "tomorrow" && t('tasks.noTasksScheduledTomorrow')}
                       {activeTab !== "today" && activeTab !== "tomorrow" && t('tasks.noTasksInCategory')}
                     </p>
                   </div>

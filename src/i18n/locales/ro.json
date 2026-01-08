@@ -864,6 +864,12 @@
     "pendingTasks": "Sarcini în așteptare",
     "overdueTasks": "Sarcini întârziate",
     "completedTasks": "Sarcini finalizate",
+    "happeningNow": "Se întâmplă acum",
+    "todaysTasks": "Sarcinile de azi",
+    "tomorrowsTasks": "Sarcinile de mâine",
+    "noTasksScheduledToday": "Nicio sarcină programată pentru azi",
+    "noTasksScheduledTomorrow": "Nicio sarcină programată pentru mâine",
+    "scheduledInstance": "Programat",
     "priority": {
       "low": "Scăzută",
       "medium": "Medie",
