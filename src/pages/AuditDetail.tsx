@@ -456,20 +456,20 @@ const AuditDetail = () => {
             </TabsList>
             
             <TabsContent value="details" className="space-y-6">
-              {/* Audit Responses Summary - Observations, Photos, Attachments, Follow-ups */}
-              {audit?.custom_data && templateSections.length > 0 && (
-                <AuditResponsesSummary
-                  auditId={audit.id}
+              {/* Section Score Breakdown - Always show when template sections are available */}
+              {templateSections.length > 0 && (
+                <SectionScoreBreakdown 
                   sections={templateSections}
+                  customData={(audit.custom_data as Record<string, any>) || {}}
+                  auditId={audit.id}
                 />
               )}
 
-              {/* Section Score Breakdown */}
-              {audit?.custom_data && templateSections.length > 0 && (
-                <SectionScoreBreakdown 
-                  sections={templateSections}
-                  customData={audit.custom_data as Record<string, any>}
+              {/* Audit Responses Summary - Observations, Photos, Attachments, Follow-ups */}
+              {templateSections.length > 0 && (
+                <AuditResponsesSummary
                   auditId={audit.id}
+                  sections={templateSections}
                 />
               )}
 
