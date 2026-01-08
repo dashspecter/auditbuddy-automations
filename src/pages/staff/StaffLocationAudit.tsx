@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Save, ChevronLeft, ChevronRight, Check, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,18 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
+import { useAuditDraft } from "@/hooks/useAuditDraft";
+import { AuditDraft, clearAuditDraft, buildDraftKey } from "@/lib/auditDraftStorage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AuditField {
   id: string;
@@ -60,6 +72,8 @@ const StaffLocationAudit = () => {
   const [managerLocations, setManagerLocations] = useState<ManagerLocation[]>([]);
   const [sectionFollowUps, setSectionFollowUps] = useState<Record<string, { needed: boolean; notes: string }>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [pendingChange, setPendingChange] = useState<{ type: 'template' | 'location'; value: string } | null>(null);
   
   const [formData, setFormData] = useState({
     location_id: "",
@@ -68,6 +82,26 @@ const StaffLocationAudit = () => {
     timeEnd: "",
     notes: "",
     customData: {} as Record<string, any>,
+  });
+
+  // Draft restoration handler
+  const handleDraftRestore = useCallback((draft: AuditDraft) => {
+    setFormData(draft.formData);
+    setCurrentSectionIndex(draft.currentSectionIndex);
+    if (draft.sectionFollowUps) {
+      setSectionFollowUps(draft.sectionFollowUps);
+    }
+  }, []);
+
+  // Use audit draft hook for persistence
+  const { clearDraft, resetDraftState, hasPendingDraft } = useAuditDraft({
+    templateId: selectedTemplateId,
+    locationId: formData.location_id,
+    formData,
+    currentSectionIndex,
+    sectionFollowUps,
+    onRestore: handleDraftRestore,
+    enabled: !draftId && !!selectedTemplateId && !!formData.location_id,
   });
 
   useEffect(() => {
@@ -453,6 +487,9 @@ const StaffLocationAudit = () => {
         if (error) throw error;
       }
 
+      // Clear the local draft after successful submission
+      await clearDraft();
+      
       toast.success("Audit submitted successfully!");
       navigate("/staff");
     } catch (error) {
@@ -511,7 +548,18 @@ const StaffLocationAudit = () => {
           <div className="space-y-4">
             <div>
               <Label>Template *</Label>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <Select 
+                value={selectedTemplateId} 
+                onValueChange={(value) => {
+                  // If we have pending draft data and changing template, confirm discard
+                  if (hasPendingDraft && selectedTemplateId && value !== selectedTemplateId) {
+                    setPendingChange({ type: 'template', value });
+                    setShowDiscardDialog(true);
+                  } else {
+                    setSelectedTemplateId(value);
+                  }
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select audit template" />
                 </SelectTrigger>
@@ -529,7 +577,15 @@ const StaffLocationAudit = () => {
               <Label>Location *</Label>
               <Select 
                 value={formData.location_id} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, location_id: value }))}
+                onValueChange={(value) => {
+                  // If we have pending draft data and changing location, confirm discard
+                  if (hasPendingDraft && formData.location_id && value !== formData.location_id) {
+                    setPendingChange({ type: 'location', value });
+                    setShowDiscardDialog(true);
+                  } else {
+                    setFormData(prev => ({ ...prev, location_id: value }));
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select location" />
@@ -808,6 +864,50 @@ const StaffLocationAudit = () => {
       </div>
 
       <StaffBottomNav />
+
+      {/* Discard Draft Confirmation Dialog */}
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard current draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Changing the {pendingChange?.type} will discard your current progress. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingChange(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (pendingChange) {
+                  // Clear old draft
+                  if (user?.id && formData.location_id && selectedTemplateId) {
+                    const oldKey = buildDraftKey(user.id, formData.location_id, selectedTemplateId);
+                    await clearAuditDraft(oldKey);
+                  }
+                  resetDraftState();
+                  
+                  // Apply the change
+                  if (pendingChange.type === 'template') {
+                    setSelectedTemplateId(pendingChange.value);
+                    setFormData(prev => ({ ...prev, customData: {} }));
+                  } else {
+                    setFormData(prev => ({ ...prev, location_id: pendingChange.value, customData: {} }));
+                  }
+                  setCurrentSectionIndex(0);
+                  setSectionFollowUps({});
+                }
+                setPendingChange(null);
+                setShowDiscardDialog(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard & Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
