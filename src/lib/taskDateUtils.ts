@@ -228,6 +228,11 @@ export const createVirtualInstance = (task: Task, targetDate: Date): Task => {
 /**
  * Get tasks for a specific day, including virtual recurring instances
  * Handles deduplication automatically
+ * 
+ * CRITICAL: Today must show ALL tasks scheduled for today regardless of status:
+ * - Pending tasks scheduled today
+ * - Overdue tasks (past deadline today)
+ * - Completed tasks that were scheduled for today
  */
 export const getTasksForDay = (
   tasks: Task[], 
@@ -243,9 +248,9 @@ export const getTasksForDay = (
   tasks.forEach(task => {
     const taskDate = getTaskDate(task);
     
-    // Check if original task is on this day
+    // Check if original task is on this day (based on its scheduled start_at/due_at)
     if (taskDate && taskDate >= targetStart && taskDate <= targetEnd) {
-      // Skip completed if not including them
+      // Skip completed if explicitly not including them (e.g., Tomorrow tab)
       if (!includeCompleted && task.status === 'completed') return;
       
       // Avoid duplicates (shouldn't happen but safety)
@@ -254,10 +259,10 @@ export const getTasksForDay = (
       
       result.push(task);
     }
-    // Check if this recurring task should appear on this day
+    // Check if this recurring task should appear on this day as a virtual instance
     else if (shouldRecurOnDate(task, targetDate)) {
       // Don't create virtual for completed parent task on different day
-      // The completion creates the next real instance
+      // The completion creates the next real instance as a separate DB record
       if (task.status === 'completed') return;
       
       const virtualId = generateVirtualTaskKey(task, targetDate);
@@ -268,8 +273,12 @@ export const getTasksForDay = (
     }
   });
   
-  // Sort by time
+  // Sort by status (pending first, then completed) and then by time
   return result.sort((a, b) => {
+    // Completed tasks go to the bottom
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    
     const dateA = getTaskDate(a);
     const dateB = getTaskDate(b);
     if (!dateA && !dateB) return 0;
