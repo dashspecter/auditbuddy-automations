@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users, Pencil, ChevronDown, ChevronUp, LayoutDashboard } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AllTasksOpsDashboard } from "@/components/tasks/AllTasksOpsDashboard";
+import { ByEmployeeTimeline } from "@/components/tasks/ByEmployeeTimeline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Progress } from "@/components/ui/progress";
 import { useTranslation } from "react-i18next";
 import {
   getTaskDate,
@@ -187,126 +185,6 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
   );
 };
 
-const EmployeeTaskCard = ({ 
-  employee, 
-  tasks,
-  onTaskComplete,
-  onTaskEdit,
-  onTaskDelete 
-}: { 
-  employee: { id: string; full_name: string; avatar_url?: string | null; role: string };
-  tasks: Task[];
-  onTaskComplete: (taskId: string) => void;
-  onTaskEdit: (taskId: string) => void;
-  onTaskDelete: (taskId: string) => void;
-}) => {
-  const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const completedTasks = tasks.filter(t => t.status === "completed");
-  const pendingTasks = tasks.filter(t => t.status !== "completed");
-  // Use canonical overdue check
-  const overdueTasks = tasks.filter(t => isTaskOverdue(t));
-  const completedLateTasks = tasks.filter(t => t.completed_late);
-  
-  const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
-  
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className={overdueTasks.length > 0 ? "border-destructive/50" : ""}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={employee.avatar_url || undefined} />
-                  <AvatarFallback>{employee.full_name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-base">{employee.full_name}</CardTitle>
-                  <CardDescription>{employee.role}</CardDescription>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:flex items-center gap-3 text-sm">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">{completedTasks.length}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <span className="font-medium">{pendingTasks.length}</span>
-                  </div>
-                  {overdueTasks.length > 0 && (
-                    <div className="flex items-center gap-1 text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="font-medium">{overdueTasks.length}</span>
-                    </div>
-                  )}
-                  {completedLateTasks.length > 0 && (
-                    <div className="flex items-center gap-1 text-orange-600">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="font-medium">{completedLateTasks.length}</span>
-                    </div>
-                  )}
-                </div>
-                {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>{tasks.length} {t('tasks.title').toLowerCase()}</span>
-                <span>{completionRate}% {t('tasks.completed').toLowerCase()}</span>
-              </div>
-              <Progress value={completionRate} className="h-2" />
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <CardContent className="pt-0 space-y-3">
-            <div className="sm:hidden grid grid-cols-4 gap-2 py-2 border-t">
-              <div className="text-center">
-                <div className="text-lg font-bold text-green-600">{completedTasks.length}</div>
-                <div className="text-xs text-muted-foreground">{t('tasks.done')}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-yellow-600">{pendingTasks.length}</div>
-                <div className="text-xs text-muted-foreground">{t('tasks.pending')}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-destructive">{overdueTasks.length}</div>
-                <div className="text-xs text-muted-foreground">{t('tasks.overdue')}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-orange-600">{completedLateTasks.length}</div>
-                <div className="text-xs text-muted-foreground">{t('tasks.late')}</div>
-              </div>
-            </div>
-            
-            {tasks.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-sm">
-                {t('tasks.noTasksAssigned')}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {tasks.map((task) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    onComplete={() => onTaskComplete(task.id)}
-                    onEdit={() => onTaskEdit(task.id)}
-                    onDelete={() => onTaskDelete(task.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
-};
-
 const Tasks = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -338,34 +216,6 @@ const Tasks = () => {
       toast.error(t('tasks.failedDeleteTask'));
     }
   };
-
-  const tasksByEmployee = useMemo(() => {
-    const employeeTaskMap: Record<string, Task[]> = {};
-    
-    tasks.forEach(task => {
-      const employeeId = task.completed_by || task.assigned_to;
-      if (employeeId) {
-        if (!employeeTaskMap[employeeId]) {
-          employeeTaskMap[employeeId] = [];
-        }
-        employeeTaskMap[employeeId].push(task);
-      }
-    });
-    
-    return employeeTaskMap;
-  }, [tasks]);
-
-  const employeesWithTasks = useMemo(() => {
-    return employees
-      .filter(emp => tasksByEmployee[emp.id]?.length > 0)
-      .map(emp => ({
-        ...emp,
-        tasks: tasksByEmployee[emp.id] || [],
-        // Use canonical overdue check
-        overdueCount: (tasksByEmployee[emp.id] || []).filter(t => isTaskOverdue(t)).length
-      }))
-      .sort((a, b) => b.overdueCount - a.overdueCount || b.tasks.length - a.tasks.length);
-  }, [employees, tasksByEmployee]);
 
   // All task date utilities are now imported from @/lib/taskOccurrenceEngine for consistency
 
@@ -546,45 +396,14 @@ const Tasks = () => {
           </TabsContent>
           
           <TabsContent value="by-employee" className="mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">{t('tasks.employeeOverview')}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {employeesWithTasks.length} {t('workforce.employees.label').toLowerCase()}
-                  </p>
-                </div>
-              </div>
-              
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-32 w-full" />
-                  ))}
-                </div>
-              ) : employeesWithTasks.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>{t('tasks.noTasksAssignedEmployees')}</p>
-                    <p className="text-sm mt-1">{t('tasks.tasksAssignedRolesWillAppear')}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {employeesWithTasks.map((emp) => (
-                    <EmployeeTaskCard
-                      key={emp.id}
-                      employee={emp}
-                      tasks={emp.tasks}
-                      onTaskComplete={handleComplete}
-                      onTaskEdit={(id) => navigate(`/tasks/${id}/edit`)}
-                      onTaskDelete={(id) => setDeleteTaskId(id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <ByEmployeeTimeline
+              tasks={tasks}
+              employees={employees}
+              onComplete={handleComplete}
+              onEdit={(id) => navigate(`/tasks/${id}/edit`)}
+              onDelete={(id) => setDeleteTaskId(id)}
+              isLoading={isLoading}
+            />
           </TabsContent>
           
           <TabsContent value={activeTab === "by-employee" || activeTab === "all" ? "" : activeTab} className={activeTab === "by-employee" || activeTab === "all" ? "hidden" : "mt-4"}>
