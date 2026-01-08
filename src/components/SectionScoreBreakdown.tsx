@@ -60,28 +60,44 @@ export const SectionScoreBreakdown = ({
   const { data: fieldResponses = [] } = useAuditFieldResponses(auditId);
   const { data: sectionResponses = [] } = useAuditSectionResponses(auditId);
 
+  // Helper to check if a field type is binary (yes/no, checkbox)
+  const isBinaryField = (fieldType: string) => 
+    fieldType === "yes_no" || fieldType === "yesno" || fieldType === "checkbox";
+
   const sectionScores = useMemo(() => {
     const scores: SectionScore[] = [];
 
     sections.forEach(section => {
-      let totalRatings = 0;
+      let totalScore = 0;
       let maxPossibleScore = 0;
-      let ratingCount = 0;
+      let scoredFieldCount = 0;
       const fieldDetails: SectionScore['fields'] = [];
 
       section.fields.forEach(field => {
         const value = customData[field.id];
         const maxValue = field.options?.max || 5;
         
+        // Include rating fields in score
         if (field.field_type === 'rating') {
-          if (typeof value === 'number') {
-            totalRatings += value;
-            maxPossibleScore += maxValue;
-            ratingCount++;
+          maxPossibleScore += maxValue;
+          if (value !== undefined && value !== null && value !== '') {
+            totalScore += Number(value);
+            scoredFieldCount++;
           }
         }
         
-        // Add all fields to the details, not just ratings
+        // Include binary fields (yes_no, yesno, checkbox) in score - same as list view
+        if (isBinaryField(field.field_type)) {
+          maxPossibleScore += 1;
+          if (value === 'yes' || value === true || value === 'Yes') {
+            totalScore += 1;
+            scoredFieldCount++;
+          } else if (value === 'no' || value === false || value === 'No') {
+            scoredFieldCount++; // Count as evaluated but 0 score
+          }
+        }
+        
+        // Add all fields to the details
         fieldDetails.push({
           id: field.id,
           name: field.name,
@@ -91,10 +107,10 @@ export const SectionScoreBreakdown = ({
         });
       });
 
-      // Calculate score if there are ratings, otherwise show 0
+      // Calculate score based on all scored fields
       let sectionScore = 0;
-      if (ratingCount > 0 && maxPossibleScore > 0) {
-        sectionScore = Math.round((totalRatings / maxPossibleScore) * 100);
+      if (maxPossibleScore > 0) {
+        sectionScore = Math.round((totalScore / maxPossibleScore) * 100);
       }
       
       let status: SectionScore['status'];
@@ -103,24 +119,24 @@ export const SectionScoreBreakdown = ({
       else if (sectionScore >= 60) status = 'needs-improvement';
       else status = 'critical';
 
-      // Include ALL sections, even those without rating fields
+      // Include ALL sections, even those without scoreable fields
       scores.push({
         id: section.id,
         name: section.name,
         score: sectionScore,
-        totalRatings,
-        ratingCount,
+        totalRatings: totalScore,
+        ratingCount: scoredFieldCount,
         maxPossibleScore,
         status,
         fields: fieldDetails
       });
     });
 
-    // Sort: sections with ratings first (by score), then sections without ratings
+    // Sort: sections with scored fields first (by score), then sections without
     return scores.sort((a, b) => {
-      if (a.ratingCount > 0 && b.ratingCount === 0) return -1;
-      if (a.ratingCount === 0 && b.ratingCount > 0) return 1;
-      if (a.ratingCount > 0 && b.ratingCount > 0) return b.score - a.score;
+      if (a.maxPossibleScore > 0 && b.maxPossibleScore === 0) return -1;
+      if (a.maxPossibleScore === 0 && b.maxPossibleScore > 0) return 1;
+      if (a.maxPossibleScore > 0 && b.maxPossibleScore > 0) return b.score - a.score;
       return 0;
     });
   }, [sections, customData]);
