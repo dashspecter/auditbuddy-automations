@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
-import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
+import { useCompleteTask, Task } from "@/hooks/useTasks";
+import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
-import { getTaskDate, getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -75,19 +75,11 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
 
 export const ActiveTasksCard = () => {
   const navigate = useNavigate();
-  const { data: tasks = [] } = useMyTasks();
+  const { activeTasks: allActiveTasks } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
 
-  // Check if task has started (is now active)
-  const isTaskActive = (task: Task) => {
-    if (!task.start_at) return true;
-    return new Date(task.start_at) <= new Date();
-  };
-
-  // Get only active, non-completed tasks
-  const activeTasks = tasks
-    .filter(t => t.status !== 'completed' && isTaskActive(t))
-    .slice(0, 3); // Show max 3 tasks
+  // Show max 3 tasks
+  const activeTasks = allActiveTasks.slice(0, 3);
 
   if (activeTasks.length === 0) {
     return null;

@@ -6,8 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
-import { format, isPast, isToday, differenceInSeconds } from "date-fns";
+import { useCompleteTask, Task } from "@/hooks/useTasks";
+import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
+import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Countdown timer component
@@ -77,7 +78,11 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
 const StaffTasks = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { data: tasks, isLoading } = useMyTasks();
+  const { 
+    todayGrouped, 
+    upcomingTasks, 
+    isLoading 
+  } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
@@ -107,18 +112,9 @@ const StaffTasks = () => {
     }
   };
 
-  const pendingTasks = tasks?.filter(t => t.status !== 'completed') || [];
-  const completedTasks = tasks?.filter(t => t.status === 'completed') || [];
-
-  // Check if task has started (is now active)
-  const isTaskActive = (task: Task) => {
-    if (!task.start_at) return true; // No start time means always active
-    return new Date(task.start_at) <= new Date();
-  };
-
-  // Filter to only show active tasks
-  const activePendingTasks = pendingTasks.filter(isTaskActive);
-  const upcomingTasks = pendingTasks.filter(t => !isTaskActive(t));
+  // Use occurrence engine groupings - combine pending + overdue for active
+  const activePendingTasks = [...todayGrouped.pending, ...todayGrouped.overdue];
+  const completedTasks = todayGrouped.completed;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -450,7 +446,7 @@ const StaffTasks = () => {
           </div>
         )}
 
-        {(!tasks || tasks.length === 0) && (
+        {activePendingTasks.length === 0 && upcomingTasks.length === 0 && completedTasks.length === 0 && (
           <Card className="p-8 text-center">
             <ListTodo className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">{t('tasks.staff.noTasks')}</p>
