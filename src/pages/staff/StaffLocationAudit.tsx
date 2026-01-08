@@ -84,24 +84,37 @@ const StaffLocationAudit = () => {
     customData: {} as Record<string, any>,
   });
 
-  // Draft restoration handler
+  // Draft restoration handler - restores template, location, form data, and section
   const handleDraftRestore = useCallback((draft: AuditDraft) => {
+    console.log('[StaffLocationAudit] Restoring draft:', draft.key);
+    
+    // Restore template selection if we have one in the draft
+    if (draft.templateId && draft.templateId !== 'none') {
+      setSelectedTemplateId(draft.templateId);
+    }
+    
+    // Restore form data (includes location_id)
     setFormData(draft.formData);
+    
+    // Restore section position
     setCurrentSectionIndex(draft.currentSectionIndex);
+    
+    // Restore follow-ups
     if (draft.sectionFollowUps) {
       setSectionFollowUps(draft.sectionFollowUps);
     }
   }, []);
 
   // Use audit draft hook for persistence
-  const { clearDraft, resetDraftState, hasPendingDraft } = useAuditDraft({
+  // IMPORTANT: enabled even without template/location to allow restoration
+  const { clearDraft, resetDraftState, hasPendingDraft, isRestoring } = useAuditDraft({
     templateId: selectedTemplateId,
     locationId: formData.location_id,
     formData,
     currentSectionIndex,
     sectionFollowUps,
     onRestore: handleDraftRestore,
-    enabled: !draftId && !!selectedTemplateId && !!formData.location_id,
+    enabled: !draftId, // Enable always unless loading from URL params
   });
 
   useEffect(() => {
