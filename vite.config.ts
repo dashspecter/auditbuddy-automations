@@ -63,8 +63,8 @@ export default defineConfig(({ mode }) => ({
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
-              cacheName: "html-cache-v2",
-              // Don’t fall back to cached HTML just because the network is slow.
+              cacheName: "html-cache-v3",
+              // Don't fall back to cached HTML just because the network is slow.
               // This prevents users reopening the app later and seeing an old build.
               expiration: {
                 maxEntries: 10,
@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "google-fonts-cache-v2",
+              cacheName: "google-fonts-cache-v3",
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
@@ -93,7 +93,7 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-api-cache-v2",
+              cacheName: "supabase-api-cache-v3",
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 5 // 5 minutes
