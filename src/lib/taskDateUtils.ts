@@ -226,13 +226,23 @@ export const createVirtualInstance = (task: Task, targetDate: Date): Task => {
 };
 
 /**
+ * Check if a task was completed on a specific day
+ */
+export const wasCompletedOnDay = (task: Task, targetDate: Date): boolean => {
+  if (!task.completed_at) return false;
+  const completedAt = new Date(task.completed_at);
+  return isSameDay(completedAt, targetDate);
+};
+
+/**
  * Get tasks for a specific day, including virtual recurring instances
  * Handles deduplication automatically
  * 
  * CRITICAL: Today must show ALL tasks scheduled for today regardless of status:
  * - Pending tasks scheduled today
  * - Overdue tasks (past deadline today)
- * - Completed tasks that were scheduled for today
+ * - Completed tasks that were COMPLETED today (for recurring tasks)
+ * - Completed tasks that were SCHEDULED for today
  */
 export const getTasksForDay = (
   tasks: Task[], 
@@ -247,22 +257,40 @@ export const getTasksForDay = (
   
   tasks.forEach(task => {
     const taskDate = getTaskDate(task);
+    const isRecurring = task.recurrence_type && task.recurrence_type !== 'none';
     
-    // Check if original task is on this day (based on its scheduled start_at/due_at)
+    // Case 1: Original task is scheduled on this day
     if (taskDate && taskDate >= targetStart && taskDate <= targetEnd) {
-      // Skip completed if explicitly not including them (e.g., Tomorrow tab)
       if (!includeCompleted && task.status === 'completed') return;
-      
-      // Avoid duplicates (shouldn't happen but safety)
       if (seenTaskIds.has(task.id)) return;
       seenTaskIds.add(task.id);
-      
       result.push(task);
+      return;
     }
-    // Check if this recurring task should appear on this day as a virtual instance
-    else if (shouldRecurOnDate(task, targetDate)) {
-      // Don't create virtual for completed parent task on different day
-      // The completion creates the next real instance as a separate DB record
+    
+    // Case 2: Recurring task that was COMPLETED on this day
+    // Show it as a completed instance for this day
+    if (isRecurring && task.status === 'completed' && includeCompleted) {
+      if (wasCompletedOnDay(task, targetDate)) {
+        const completedInstanceId = `${task.id}-completed-${format(targetDate, 'yyyy-MM-dd')}`;
+        if (seenTaskIds.has(completedInstanceId)) return;
+        seenTaskIds.add(completedInstanceId);
+        
+        // Create a virtual completed instance with today's date but completed status
+        const virtualCompleted = createVirtualInstance(task, targetDate);
+        virtualCompleted.status = 'completed';
+        virtualCompleted.completed_at = task.completed_at;
+        virtualCompleted.completed_by = task.completed_by;
+        virtualCompleted.completed_late = task.completed_late;
+        virtualCompleted.id = completedInstanceId;
+        result.push(virtualCompleted);
+        return;
+      }
+    }
+    
+    // Case 3: Recurring task should have a virtual instance on this day (pending only)
+    if (isRecurring && shouldRecurOnDate(task, targetDate)) {
+      // Skip completed tasks - they already have their completed instance handled above
       if (task.status === 'completed') return;
       
       const virtualId = generateVirtualTaskKey(task, targetDate);
@@ -273,7 +301,7 @@ export const getTasksForDay = (
     }
   });
   
-  // Sort by status (pending first, then completed) and then by time
+  // Sort by status (pending/overdue first, then completed) and then by time
   return result.sort((a, b) => {
     // Completed tasks go to the bottom
     if (a.status === 'completed' && b.status !== 'completed') return 1;
