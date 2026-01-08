@@ -38,9 +38,8 @@ const AuditDetail = () => {
   const [showSwipeHint, setShowSwipeHint] = useState(false);
 
   // Load template data for section breakdown
-  // Load template data for section breakdown
   useEffect(() => {
-    if (audit?.template_id && audit?.custom_data) {
+    if (audit?.template_id) {
       loadTemplateSections(audit.template_id);
     }
   }, [audit]);
