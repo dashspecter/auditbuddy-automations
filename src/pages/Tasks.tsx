@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, User, MapPin, Trash2, Calendar, RefreshCw, Timer, AlertTriangle, Users, Pencil, ChevronDown, ChevronUp, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
@@ -11,6 +11,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { AllTasksOpsDashboard } from "@/components/tasks/AllTasksOpsDashboard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -513,7 +514,10 @@ const Tasks = () => {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="all">{t('tasks.allTasks')}</TabsTrigger>
+            <TabsTrigger value="all" className="flex items-center gap-1">
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              {t('tasks.opsDashboard')}
+            </TabsTrigger>
             <TabsTrigger value="today" className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {t('common.today')} {todayTasks.length > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5">{todayTasks.length}</Badge>}
@@ -529,6 +533,17 @@ const Tasks = () => {
               {t('tasks.byEmployee')}
             </TabsTrigger>
           </TabsList>
+          
+          {/* All Tasks - Ops Dashboard */}
+          <TabsContent value="all" className="mt-4">
+            <AllTasksOpsDashboard
+              tasks={tasks}
+              onComplete={handleComplete}
+              onEdit={(id) => navigate(`/tasks/${id}/edit`)}
+              onDelete={(id) => setDeleteTaskId(id)}
+              isLoading={isLoading}
+            />
+          </TabsContent>
           
           <TabsContent value="by-employee" className="mt-4">
             <div className="space-y-4">
@@ -572,7 +587,7 @@ const Tasks = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value={activeTab === "by-employee" ? "" : activeTab} className={activeTab === "by-employee" ? "hidden" : "mt-4"}>
+          <TabsContent value={activeTab === "by-employee" || activeTab === "all" ? "" : activeTab} className={activeTab === "by-employee" || activeTab === "all" ? "hidden" : "mt-4"}>
             {/* Happening Now Alert for Today tab */}
             {activeTab === "today" && tasksHappeningNow.length > 0 && (
               <Card className="mb-4 border-primary bg-primary/5">
@@ -603,7 +618,6 @@ const Tasks = () => {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {activeTab === "all" && t('tasks.allTasks')}
                   {activeTab === "today" && t('tasks.todaysTasks', "Today's Tasks")}
                   {activeTab === "tomorrow" && t('tasks.tomorrowsTasks', "Tomorrow's Tasks")}
                   {activeTab === "pending" && t('tasks.pendingTasks')}
