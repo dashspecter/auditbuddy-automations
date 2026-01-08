@@ -286,6 +286,7 @@ const App = () => (
                       
                       {/* CMMS Routes */}
                       <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
+                      <Route path="/cmms/overview" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
                       <Route path="/cmms/dashboard" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
                       <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
                       <Route path="/cmms/assets/:id" element={<ProtectedRoute><CmmsAssetDetail /></ProtectedRoute>} />
