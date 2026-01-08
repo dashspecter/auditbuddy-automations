@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
 import { useMyTasks, useCompleteTask, Task } from "@/hooks/useTasks";
 import { differenceInSeconds } from "date-fns";
-import { getTaskDate, getTaskDeadline } from "@/lib/taskDateUtils";
+import { getTaskDate, getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
