@@ -91,29 +91,38 @@ export const SectionScoreBreakdown = ({
         });
       });
 
-      if (ratingCount > 0) {
-        const sectionScore = Math.round((totalRatings / maxPossibleScore) * 100);
-        let status: SectionScore['status'];
-        
-        if (sectionScore >= 90) status = 'excellent';
-        else if (sectionScore >= 80) status = 'good';
-        else if (sectionScore >= 60) status = 'needs-improvement';
-        else status = 'critical';
-
-        scores.push({
-          id: section.id,
-          name: section.name,
-          score: sectionScore,
-          totalRatings,
-          ratingCount,
-          maxPossibleScore,
-          status,
-          fields: fieldDetails
-        });
+      // Calculate score if there are ratings, otherwise show 0
+      let sectionScore = 0;
+      if (ratingCount > 0 && maxPossibleScore > 0) {
+        sectionScore = Math.round((totalRatings / maxPossibleScore) * 100);
       }
+      
+      let status: SectionScore['status'];
+      if (sectionScore >= 90) status = 'excellent';
+      else if (sectionScore >= 80) status = 'good';
+      else if (sectionScore >= 60) status = 'needs-improvement';
+      else status = 'critical';
+
+      // Include ALL sections, even those without rating fields
+      scores.push({
+        id: section.id,
+        name: section.name,
+        score: sectionScore,
+        totalRatings,
+        ratingCount,
+        maxPossibleScore,
+        status,
+        fields: fieldDetails
+      });
     });
 
-    return scores.sort((a, b) => b.score - a.score);
+    // Sort: sections with ratings first (by score), then sections without ratings
+    return scores.sort((a, b) => {
+      if (a.ratingCount > 0 && b.ratingCount === 0) return -1;
+      if (a.ratingCount === 0 && b.ratingCount > 0) return 1;
+      if (a.ratingCount > 0 && b.ratingCount > 0) return b.score - a.score;
+      return 0;
+    });
   }, [sections, customData]);
 
   const getStatusIcon = (status: SectionScore['status']) => {
@@ -165,11 +174,18 @@ export const SectionScoreBreakdown = ({
       case 'rating':
         return `${value}/${maxValue || 5}`;
       case 'yes_no':
-        return value ? 'Yes' : 'No';
+      case 'yesno':
+      case 'checkbox':
+        return value === true || value === 'yes' || value === 'Yes' ? 'Yes' : 'No';
       case 'date':
         return new Date(value).toLocaleDateString();
-      default:
+      case 'number':
+        return typeof value === 'number' ? value.toString() : value;
+      case 'text':
+      case 'textarea':
         return value.toString();
+      default:
+        return value?.toString() || 'Not answered';
     }
   };
 
@@ -180,7 +196,7 @@ export const SectionScoreBreakdown = ({
     return 'text-destructive';
   };
 
-  if (sectionScores.length === 0) {
+  if (sectionScores.length === 0 || sections.length === 0) {
     return null;
   }
 
