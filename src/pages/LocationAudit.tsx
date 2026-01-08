@@ -92,20 +92,31 @@ const LocationAudit = () => {
     customData: {} as Record<string, any>,
   });
 
-  // Draft restoration handler
+  // Draft restoration handler - restores template, location, form data, and section
   const handleDraftRestore = useCallback((draft: AuditDraft) => {
+    console.log('[LocationAudit] Restoring draft:', draft.key);
+    
+    // Restore template selection if we have one in the draft
+    if (draft.templateId && draft.templateId !== 'none') {
+      setSelectedTemplateId(draft.templateId);
+    }
+    
+    // Restore form data (includes location_id)
     setFormData(draft.formData);
+    
+    // Restore section position
     setCurrentSectionIndex(draft.currentSectionIndex);
   }, []);
 
   // Use audit draft hook for persistence
-  const { clearDraft, resetDraftState, hasPendingDraft } = useAuditDraft({
+  // IMPORTANT: enabled even without template/location to allow restoration
+  const { clearDraft, resetDraftState, hasPendingDraft, isRestoring } = useAuditDraft({
     templateId: selectedTemplateId,
     locationId: formData.location_id,
     formData,
     currentSectionIndex,
     onRestore: handleDraftRestore,
-    enabled: !draftId && !scheduledAuditId && !!selectedTemplateId && !!formData.location_id,
+    enabled: !draftId && !scheduledAuditId, // Enable always unless loading from URL params
   });
 
   // Load field responses
