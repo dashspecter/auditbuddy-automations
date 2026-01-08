@@ -3,66 +3,88 @@
  * to the user's tasks (from useMyTasks).
  * 
  * This ensures mobile parity with desktop Today/Tomorrow tabs.
+ * Uses the unified pipeline for shift-aware task visibility.
  */
 
 import { useMemo } from "react";
 import { useMyTasks, Task } from "./useTasks";
+import { useShiftCoverage } from "./useShiftCoverage";
 import {
-  getOccurrencesForDate,
+  runPipelineForDate,
+  groupTasksByStatusShiftAware,
+  TaskWithCoverage,
+} from "@/lib/unifiedTaskPipeline";
+import {
   getCanonicalToday,
   getCanonicalTomorrow,
-  groupOccurrencesByStatus,
-  isTaskOverdue,
 } from "@/lib/taskOccurrenceEngine";
+import { startOfDay, endOfDay, addDays } from "date-fns";
 
 export interface MyTaskOccurrences {
   /** All tasks for today (pending, overdue, completed) */
-  todayTasks: Task[];
+  todayTasks: TaskWithCoverage[];
   /** Tomorrow's pending tasks */
-  tomorrowTasks: Task[];
+  tomorrowTasks: TaskWithCoverage[];
   /** Grouped by status for display */
   todayGrouped: {
-    pending: Task[];
-    overdue: Task[];
-    completed: Task[];
+    pending: TaskWithCoverage[];
+    overdue: TaskWithCoverage[];
+    completed: TaskWithCoverage[];
+    noCoverage: TaskWithCoverage[];
   };
   /** Active tasks (pending, started, not overdue) */
-  activeTasks: Task[];
+  activeTasks: TaskWithCoverage[];
   /** Upcoming tasks (scheduled for later today, not started yet) */
-  upcomingTasks: Task[];
+  upcomingTasks: TaskWithCoverage[];
   /** Loading state */
   isLoading: boolean;
   /** Error state */
   error: Error | null;
   /** Raw tasks from useMyTasks */
   rawTasks: Task[];
+  /** Debug stats */
+  debug?: {
+    today: { generated: number; covered: number; visible: number };
+    tomorrow: { generated: number; covered: number; visible: number };
+  };
 }
 
 /**
  * Get the current user's tasks with occurrence expansion applied.
  * This mirrors the desktop Today/Tomorrow logic for mobile parity.
+ * Uses unified pipeline for shift-aware filtering.
  */
 export function useMyTaskOccurrences(): MyTaskOccurrences {
   const { data: rawTasks = [], isLoading, error } = useMyTasks();
+
+  // Fetch shifts for today + tomorrow
+  const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
+    startDate: startOfDay(new Date()),
+    endDate: endOfDay(addDays(new Date(), 1)),
+  });
 
   const result = useMemo(() => {
     const today = getCanonicalToday();
     const tomorrow = getCanonicalTomorrow();
     const now = new Date();
 
-    // Apply occurrence engine for Today and Tomorrow
-    const todayTasks = getOccurrencesForDate(rawTasks, today, {
+    // Apply unified pipeline for Today (execution mode = only covered tasks)
+    const todayResult = runPipelineForDate(rawTasks, today, {
+      viewMode: "execution",
       includeCompleted: true,
       includeVirtual: true,
+      shifts,
     });
 
-    const tomorrowTasks = getOccurrencesForDate(rawTasks, tomorrow, {
+    const tomorrowResult = runPipelineForDate(rawTasks, tomorrow, {
+      viewMode: "execution",
       includeCompleted: false,
       includeVirtual: true,
+      shifts,
     });
 
-    // Group today's tasks
-    const todayGrouped = groupOccurrencesByStatus(todayTasks);
+    // Group today's tasks using shift-aware grouping
+    const todayGrouped = groupTasksByStatusShiftAware(todayResult.tasks);
 
     // Active = pending tasks that have started (start_at <= now)
     const activeTasks = todayGrouped.pending.filter((task) => {
@@ -80,17 +102,29 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     });
 
     return {
-      todayTasks,
-      tomorrowTasks,
+      todayTasks: todayResult.tasks,
+      tomorrowTasks: tomorrowResult.tasks,
       todayGrouped,
       activeTasks,
       upcomingTasks,
+      debug: {
+        today: {
+          generated: todayResult.debug.generated,
+          covered: todayResult.debug.covered,
+          visible: todayResult.debug.visible,
+        },
+        tomorrow: {
+          generated: tomorrowResult.debug.generated,
+          covered: tomorrowResult.debug.covered,
+          visible: tomorrowResult.debug.visible,
+        },
+      },
     };
-  }, [rawTasks]);
+  }, [rawTasks, shifts]);
 
   return {
     ...result,
-    isLoading,
+    isLoading: isLoading || shiftsLoading,
     error: error as Error | null,
     rawTasks,
   };

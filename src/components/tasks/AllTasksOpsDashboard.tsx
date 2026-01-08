@@ -23,7 +23,8 @@ import {
   CheckCircle2, 
   AlertCircle,
   RefreshCw,
-  Timer
+  Timer,
+  Globe
 } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { useLocations } from "@/hooks/useLocations";
@@ -575,15 +576,16 @@ export const AllTasksOpsDashboard = ({
           if (allTasks.length === 0) return null;
           
           const isOpen = openGroups[locId] !== false; // Default open
+          const isGlobal = data.location.isGlobal;
           
           return (
-            <Card key={locId}>
+            <Card key={locId} className={isGlobal ? "border-primary/30" : ""}>
               <Collapsible open={isOpen} onOpenChange={() => toggleGroup(locId)}>
                 <CollapsibleTrigger asChild>
                   <CardHeader className="py-3 cursor-pointer hover:bg-muted/50 transition-colors">
                     <GroupHeader 
                       title={data.location.name} 
-                      icon={MapPin}
+                      icon={isGlobal ? Globe : MapPin}
                       tasks={allTasks}
                       isOpen={isOpen}
                       onToggle={() => toggleGroup(locId)}
@@ -644,7 +646,7 @@ export const AllTasksOpsDashboard = ({
                       return (
                         <div key={locId} className="space-y-2">
                           <div className={`flex items-center gap-2 text-sm font-medium pl-2 ${isGlobal ? 'text-primary' : 'text-muted-foreground'}`}>
-                            <MapPin className="h-3.5 w-3.5" />
+                            {isGlobal ? <Globe className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
                             {locName}
                             <Badge variant={isGlobal ? "default" : "outline"} className="text-xs">{locTasks.length}</Badge>
                           </div>
