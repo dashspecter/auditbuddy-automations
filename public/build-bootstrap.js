@@ -10,6 +10,14 @@
   const BUILD_MANIFEST_URL = "/build-manifest.json";
   const BUILD_ID_KEY = "app_build_manifest_id";
   const RELOAD_GUARD_KEY = "bootstrap:reloaded";
+  const SESSION_MARKER_KEY = "bootstrap:session";
+
+  // Clear reload guard on fresh browser sessions to allow new builds to reload
+  const currentSession = Date.now().toString();
+  if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
+    sessionStorage.setItem(SESSION_MARKER_KEY, currentSession);
+    sessionStorage.removeItem(RELOAD_GUARD_KEY);
+  }
 
   const normalizeAssetPath = (p) => `/${String(p || "").replace(/^\/+/, "")}`;
 
