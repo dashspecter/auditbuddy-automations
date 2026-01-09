@@ -331,6 +331,7 @@ const App = () => (
                       <Route path="/mystery-shopper/:token" element={<MysteryShopperForm />} />
                       <Route path="/voucher/:code" element={<VoucherPage />} />
                       <Route path="/audits/mystery-shopper" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplates /></ManagerRoute>} />
+                      <Route path="/audits/mystery-shopper/new" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
                       <Route path="/audits/mystery-shopper/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperTemplateEditor /></ManagerRoute>} />
                       <Route path="/audits/mystery-shopper/results" element={<ManagerRoute requiredPermission="manage_audits"><MysteryShopperResults /></ManagerRoute>} />
                       <Route path="/audits/vouchers" element={<ManagerRoute requiredPermission="manage_audits"><VouchersManagement /></ManagerRoute>} />
