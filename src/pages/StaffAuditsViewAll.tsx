@@ -49,7 +49,7 @@ export default function StaffAuditsViewAll() {
         </Card>
         <Card 
           className="cursor-pointer hover:bg-accent/50 transition-colors border-2 border-amber-500/20"
-          onClick={() => navigate("/staff-audits/new?type=performance")}
+          onClick={() => navigate("/staff-audits?review=new")}
         >
           <CardContent className="p-4 flex flex-col items-center text-center">
             <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-2">
