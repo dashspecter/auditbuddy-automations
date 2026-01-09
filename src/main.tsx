@@ -7,6 +7,13 @@ import "./i18n"; // Initialize i18n
 declare const __BUILD_TIME__: string;
 const CURRENT_BUILD = typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "dev";
 
+// Non-UI build identifier for debugging stale deploys
+console.info(
+  "%c[Dashspect Build]",
+  "color: #f97316; font-weight: bold;",
+  `ID: ${CURRENT_BUILD} | Loaded: ${new Date().toISOString()}`
+);
+
 const isSafeInternalPath = (path: string) => path.startsWith("/");
 
 /**
