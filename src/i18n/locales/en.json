@@ -857,6 +857,8 @@
     "pending": "Pending",
     "byEmployee": "By Employee",
     "opsDashboard": "Ops Dashboard",
+    "list": "List",
+    "manageTasksHere": "Manage all your tasks here",
     "recurringOnly": "Recurring Only",
     "employeeOverview": "Employee Task Overview",
     "employeesWithTasks": "{count} employees with tasks",
