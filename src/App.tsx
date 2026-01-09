@@ -251,6 +251,7 @@ const App = () => (
                       <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/photos" element={<ManagerRoute requiredPermission="manage_audits"><PhotoGalleryPage /></ManagerRoute>} />
                       <Route path="/audit/:id/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
                       <Route path="/documents" element={<ManagerRoute requiredPermission="manage_audits"><DocumentManagement /></ManagerRoute>} />
                       <Route path="/documents/:id" element={<ManagerRoute requiredPermission="manage_audits"><DocumentDetail /></ManagerRoute>} />
