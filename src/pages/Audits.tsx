@@ -25,7 +25,7 @@ import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
 
 const auditsSubItems = [
   { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
-  { title: "Employee Audits", url: "/staff-audits", icon: Users, description: "Staff audits" },
+  { title: "Employee Audits", url: "/staff-audits/all", icon: Users, description: "Staff audits" },
   { title: "Mystery Shopper", url: "/audits/mystery-shopper", icon: UserSearch, description: "Mystery visits" },
   { title: "Templates", url: "/audits/templates", icon: Library, description: "Audit templates" },
   { title: "Calendar", url: "/audits-calendar", icon: Calendar, description: "Audit calendar" },
