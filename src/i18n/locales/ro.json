@@ -857,6 +857,8 @@
     "pending": "În așteptare",
     "byEmployee": "După angajat",
     "opsDashboard": "Panou operațiuni",
+    "list": "Listă",
+    "manageTasksHere": "Gestionează toate sarcinile tale aici",
     "recurringOnly": "Doar recurente",
     "employeeOverview": "Prezentare sarcini angajați",
     "employeesWithTasks": "{count} angajați cu sarcini",

@@ -187,7 +187,7 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
 const Tasks = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("list");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
 
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
@@ -379,6 +379,10 @@ const Tasks = () => {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="list" className="flex items-center gap-1">
+              <ListTodo className="h-3.5 w-3.5" />
+              {t('tasks.list', 'List')}
+            </TabsTrigger>
             <TabsTrigger value="all" className="flex items-center gap-1">
               <LayoutDashboard className="h-3.5 w-3.5" />
               {t('tasks.opsDashboard')}
@@ -399,6 +403,55 @@ const Tasks = () => {
             </TabsTrigger>
           </TabsList>
           
+          {/* All Tasks List View */}
+          <TabsContent value="list" className="mt-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{t('tasks.allTasks')}</CardTitle>
+                  <CardDescription>
+                    {tasks.length} {t('tasks.title').toLowerCase()} • {t('tasks.manageTasksHere', 'Manage all your tasks here')}
+                  </CardDescription>
+                </div>
+                <Button onClick={() => navigate("/tasks/new")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('tasks.createTask')}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12">
+                    <ListTodo className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('tasks.noTasksYet')}</p>
+                    <Button className="mt-4" onClick={() => navigate("/tasks/new")}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t('tasks.createTask')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {tasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        context="all"
+                        onComplete={() => handleComplete(task.id)}
+                        onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                        onDelete={() => setDeleteTaskId(task.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* All Tasks - Ops Dashboard */}
           <TabsContent value="all" className="mt-4">
             <AllTasksOpsDashboard
@@ -421,7 +474,7 @@ const Tasks = () => {
             />
           </TabsContent>
           
-          <TabsContent value={activeTab === "by-employee" || activeTab === "all" ? "" : activeTab} className={activeTab === "by-employee" || activeTab === "all" ? "hidden" : "mt-4"}>
+          <TabsContent value={activeTab === "by-employee" || activeTab === "all" || activeTab === "list" ? "" : activeTab} className={activeTab === "by-employee" || activeTab === "all" || activeTab === "list" ? "hidden" : "mt-4"}>
             {/* Happening Now Alert for Today tab */}
             {activeTab === "today" && tasksHappeningNow.length > 0 && (
               <Card className="mb-4 border-primary bg-primary/5">
