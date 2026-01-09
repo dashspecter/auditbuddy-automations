@@ -151,8 +151,17 @@ const StaffAuditNew = () => {
     selectedTemplate.sections.forEach((section) => {
       section.fields.forEach((field) => {
         const value = formData.customData[field.id];
+        
+        // Handle rating fields (1-5 scale)
         if (field.field_type === 'rating' && value) {
           totalScore += parseInt(value);
+          fieldCount++;
+        }
+        
+        // Handle binary fields (yes/no, checkbox) - yes = 1, no = 0
+        if ((field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') && value !== undefined) {
+          const isPositive = value === 'yes' || value === true || value === 'true';
+          totalScore += isPositive ? 5 : 0; // Treat as 5 or 0 on a 5-point scale
           fieldCount++;
         }
       });
