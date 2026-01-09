@@ -43,6 +43,28 @@ const defaultQuestion: QuestionFormData = {
   order_index: 0,
 };
 
+const DRAFT_STORAGE_KEY = "mystery_shopper_template_draft";
+
+interface DraftData {
+  templateData: typeof defaultTemplateData;
+  questions: QuestionFormData[];
+  savedAt: number;
+  templateId?: string;
+}
+
+const defaultTemplateData = {
+  name: "",
+  description: "",
+  default_location_ids: [] as string[],
+  voucher_value: 25,
+  voucher_currency: "RON",
+  voucher_expiry_days: 30,
+  voucher_terms_text: "Valid for one use only. Cannot be combined with other offers.",
+  brand_logo_url: "",
+  is_active: true,
+  require_contact: false,
+};
+
 export default function MysteryShopperTemplateEditor() {
   const { templateId } = useParams<{ templateId: string }>();
   const navigate = useNavigate();
@@ -59,23 +81,107 @@ export default function MysteryShopperTemplateEditor() {
   const updateQuestion = useUpdateMysteryShopperQuestion();
   const deleteQuestion = useDeleteMysteryShopperQuestion();
 
-  const [templateData, setTemplateData] = useState({
-    name: "",
-    description: "",
-    default_location_ids: [] as string[],
-    voucher_value: 25,
-    voucher_currency: "RON",
-    voucher_expiry_days: 30,
-    voucher_terms_text: "Valid for one use only. Cannot be combined with other offers.",
-    brand_logo_url: "",
-    is_active: true,
-    require_contact: false,
-  });
-
+  const [templateData, setTemplateData] = useState(defaultTemplateData);
   const [questions, setQuestions] = useState<QuestionFormData[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const lastSavedRef = useRef<string>("");
+
+  // Load draft from localStorage on mount (only for new templates)
+  useEffect(() => {
+    if (isEditing) {
+      setHydrated(true);
+      return;
+    }
+    
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const draft: DraftData = JSON.parse(savedDraft);
+        // Only restore if it's for a new template (not editing)
+        if (!draft.templateId) {
+          setTemplateData(draft.templateData);
+          setQuestions(draft.questions);
+          toast.info("Draft restored from your last session");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load draft:", e);
+    }
+    setHydrated(true);
+  }, [isEditing]);
+
+  // Save draft to localStorage on changes (debounced)
+  useEffect(() => {
+    if (!hydrated || isEditing) return;
+    
+    const draft: DraftData = {
+      templateData,
+      questions,
+      savedAt: Date.now(),
+    };
+    
+    const draftStr = JSON.stringify(draft);
+    if (draftStr === lastSavedRef.current) return;
+    
+    const timeout = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, draftStr);
+        lastSavedRef.current = draftStr;
+      } catch (e) {
+        console.warn("Failed to save draft:", e);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeout);
+  }, [templateData, questions, hydrated, isEditing]);
+
+  // Save draft on visibility change / page hide (for iOS)
+  useEffect(() => {
+    if (isEditing) return;
+    
+    const saveDraftSync = () => {
+      if (!hydrated) return;
+      try {
+        const draft: DraftData = {
+          templateData,
+          questions,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.warn("Failed to save draft on hide:", e);
+      }
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveDraftSync();
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", saveDraftSync);
+    window.addEventListener("beforeunload", saveDraftSync);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", saveDraftSync);
+      window.removeEventListener("beforeunload", saveDraftSync);
+    };
+  }, [templateData, questions, hydrated, isEditing]);
+
+  // Clear draft on successful save
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      lastSavedRef.current = "";
+    } catch (e) {
+      console.warn("Failed to clear draft:", e);
+    }
+  };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -258,6 +364,7 @@ export default function MysteryShopperTemplateEditor() {
         }
       }
 
+      clearDraft();
       toast.success("Template saved successfully");
       navigate("/audits/mystery-shopper");
     } catch (error) {
