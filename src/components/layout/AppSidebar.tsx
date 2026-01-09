@@ -99,7 +99,7 @@ const navigationItems = [
         allowedRoles: ['admin', 'manager', 'hr'], 
         companyPermission: 'manage_audits' as CompanyPermission,
         nestedItems: [
-          { titleKey: "nav.newStaffAudit", url: "/staff-audit/new" },
+          { titleKey: "nav.newStaffAudit", url: "/staff-audits/new" },
           { titleKey: "nav.newPerformanceReview", url: "/staff-audits?review=new" },
         ]
       },

@@ -128,7 +128,7 @@ export const navigationItems: NavItem[] = [
         allowedRoles: ['admin', 'manager', 'hr'], 
         companyPermission: 'manage_audits',
         nestedItems: [
-          { id: "audits-employee-new", title: "New Staff Audit", url: "/staff-audit/new" },
+          { id: "audits-employee-new", title: "New Staff Audit", url: "/staff-audits/new" },
           { id: "audits-employee-review", title: "New Performance Review", url: "/staff-audits?review=new" },
         ]
       },
