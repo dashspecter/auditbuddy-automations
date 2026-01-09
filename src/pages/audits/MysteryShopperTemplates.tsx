@@ -16,7 +16,7 @@ export default function MysteryShopperTemplates() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const copyPublicLink = (token: string) => {
-    const url = `${window.location.origin}/mystery/${token}`;
+    const url = `${window.location.origin}/mystery-shopper/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Public link copied to clipboard");
   };
@@ -100,7 +100,7 @@ export default function MysteryShopperTemplates() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => window.open(`/mystery/${template.public_token}`, '_blank')}
+                          onClick={() => window.open(`/mystery-shopper/${template.public_token}`, '_blank')}
                           title="Preview form"
                         >
                           <ExternalLink className="h-4 w-4" />
