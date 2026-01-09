@@ -940,7 +940,7 @@ const LocationAudit = () => {
     <div className="space-y-6">
         <Button
           variant="ghost"
-          onClick={() => navigate("/admin/template-library")}
+          onClick={() => navigate("/audits")}
           className="mb-4 gap-2 -ml-2"
           size="sm"
         >
