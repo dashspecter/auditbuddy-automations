@@ -130,22 +130,36 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
   const { data: tasks = [] } = useQuery({
     queryKey: ["kiosk-tasks", locationId, format(today, "yyyy-MM-dd")],
     queryFn: async () => {
-      // First get task IDs for this location
+      // Get task IDs from task_locations table
       const { data: taskLocations, error: tlError } = await supabase
         .from("task_locations")
         .select("task_id")
         .eq("location_id", locationId);
 
       if (tlError) throw tlError;
-      if (!taskLocations?.length) return [];
+      
+      const taskIdsFromLocations = (taskLocations || []).map((tl) => tl.task_id);
 
-      const taskIds = taskLocations.map((tl) => tl.task_id);
+      // Also get tasks that have location_id directly set
+      const { data: directTasks, error: directError } = await (supabase
+        .from("tasks") as any)
+        .select("id")
+        .eq("location_id", locationId);
+      
+      if (directError) throw directError;
+      
+      const taskIdsFromDirect = (directTasks || []).map((t: any) => t.id);
+      
+      // Combine both sources and deduplicate
+      const allTaskIds = [...new Set([...taskIdsFromLocations, ...taskIdsFromDirect])];
+      
+      if (!allTaskIds.length) return [];
 
       // Get all non-completed tasks for today and overdue tasks
       const { data, error } = await (supabase
         .from("tasks") as any)
         .select("id, title, status, assigned_to, priority, start_at, due_at")
-        .in("id", taskIds)
+        .in("id", allTaskIds)
         .or(`and(start_at.gte.${todayStart},start_at.lte.${todayEnd}),and(due_at.lt.${new Date().toISOString()},status.neq.completed)`);
 
       if (error) throw error;
