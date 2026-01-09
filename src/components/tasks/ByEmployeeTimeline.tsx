@@ -446,11 +446,10 @@ export const ByEmployeeTimeline = ({
           if (t.assigned_to === emp.id) return true;
           
           // Role-based assignment: task's assigned_role matches employee's shift role
-          if (t.assigned_role) {
+          if (t.assigned_role?.name) {
             const empRoleStr = emp.shiftRole || String(emp.role || "");
             const empRole = empRoleStr.toLowerCase();
-            const taskRoleStr = String(t.assigned_role || "");
-            const taskRole = taskRoleStr.toLowerCase();
+            const taskRole = t.assigned_role.name.toLowerCase();
             if (empRole === taskRole) {
               // Also check location match (task location matches shift location, or task is global)
               if (!t.location_id || t.location_id === emp.shiftLocationId) {
