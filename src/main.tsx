@@ -2,13 +2,40 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./i18n"; // Initialize i18n
-import { registerSW } from "virtual:pwa-register";
 
 // Build timestamp injected at build time for cache busting
 declare const __BUILD_TIME__: string;
 const CURRENT_BUILD = typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "dev";
 
 const isSafeInternalPath = (path: string) => path.startsWith("/");
+
+/**
+ * Required SW + Cache cleanup: neutralize stale service workers and their caches.
+ * Does NOT touch localStorage/sessionStorage beyond a one-session guard.
+ */
+const cleanupServiceWorkersAndCaches = async () => {
+  const GUARD_KEY = "sw:cleanup-done";
+  if (sessionStorage.getItem(GUARD_KEY) === "1") return;
+  sessionStorage.setItem(GUARD_KEY, "1");
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch {
+    // no-op
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((k) => window.caches.delete(k)));
+    }
+  } catch {
+    // no-op
+  }
+};
 
 const resetAppCacheIfRequested = async () => {
   try {
@@ -83,7 +110,9 @@ const checkBuildVersion = async (): Promise<boolean> => {
     }
 
     // Version mismatch detected - clear caches and reload
-    console.info(`[BuildGuard] Version mismatch: ${storedVersion} → ${serverVersion}. Clearing caches...`);
+    console.info(
+      `[BuildGuard] Version mismatch: ${storedVersion} → ${serverVersion}. Clearing caches...`
+    );
 
     // Mark that we're about to reload to prevent loops
     sessionStorage.setItem(RELOAD_KEY, "1");
@@ -94,16 +123,10 @@ const checkBuildVersion = async (): Promise<boolean> => {
       await Promise.all(keys.map((k) => window.caches.delete(k)));
     }
 
-    // Request service worker update and unregister old ones
+    // Unregister any existing service workers (stale SW can serve old bundles)
     if ("serviceWorker" in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map(async (r) => {
-        await r.update();
-        // Force the waiting SW to activate
-        if (r.waiting) {
-          r.waiting.postMessage({ type: "SKIP_WAITING" });
-        }
-      }));
+      await Promise.all(registrations.map((r) => r.unregister()));
     }
 
     // Update stored version before reload
@@ -136,61 +159,10 @@ const restoreDeepLinkIfNeeded = () => {
   }
 };
 
-const setupPWAUpdates = () => {
-  // PWA: keep the app up to date and avoid users being stuck on old cached UI.
-  const updateSW = registerSW({
-    immediate: true,
-    onRegisteredSW(_swUrl, registration) {
-      // Force an update check on load and then periodically.
-      registration?.update();
-      window.setInterval(() => registration?.update(), 30 * 60 * 1000);
-    },
-    onNeedRefresh() {
-      // Apply the update immediately (no prompt).
-      updateSW(true);
-    },
-    onRegisterError(err) {
-      // eslint-disable-next-line no-console
-      console.warn("PWA registration error", err);
-    },
-  });
-
-  // When a new service worker takes control, fix "old view" issues by doing a one-time
-  // hard refresh early on app start. If it happens later, show the non-blocking toast
-  // to avoid users losing unsaved in-progress form state.
-  const bootMs = Date.now();
-  const hardRefresh = () => {
-    const returnTo = encodeURIComponent(
-      `${window.location.pathname}${window.location.search}${window.location.hash}`
-    );
-    window.location.replace(`/?resetApp=1&returnTo=${returnTo}`);
-  };
-
-  if ("serviceWorker" in navigator) {
-    const hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!hadController) return; // ignore first install
-
-      // Only do this once per session to avoid reload loops.
-      const alreadyAutoRefreshed =
-        sessionStorage.getItem("pwa:auto-refreshed") === "1";
-
-      // If an update takes control shortly after launch, hard refresh immediately.
-      const isEarly = Date.now() - bootMs < 5000;
-      if (isEarly && !alreadyAutoRefreshed) {
-        sessionStorage.setItem("pwa:auto-refreshed", "1");
-        hardRefresh();
-        return;
-      }
-
-      // Otherwise, show the non-blocking "Update ready" toast.
-      sessionStorage.setItem("pwa:update-ready", "1");
-      window.dispatchEvent(new CustomEvent("pwa:update-ready"));
-    });
-  }
-};
-
 (async () => {
+  // Neutralize any previously-installed SW/caches before doing anything else.
+  await cleanupServiceWorkersAndCaches();
+
   await resetAppCacheIfRequested();
 
   // Check build version before anything else - may trigger reload
@@ -198,7 +170,6 @@ const setupPWAUpdates = () => {
   if (reloading) return; // Stop execution, page is reloading
 
   restoreDeepLinkIfNeeded();
-  setupPWAUpdates();
 
   // Remove the pre-boot fallback as soon as JS is running.
   document.getElementById("boot-fallback")?.remove();
