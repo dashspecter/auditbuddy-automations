@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { LocationSelector } from "@/components/LocationSelector";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateStaffAudit } from "@/hooks/useStaffAudits";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
+import { useStaffAuditDraft, StaffAuditDraft } from "@/hooks/useStaffAuditDraft";
 
 interface AuditField {
   id: string;
@@ -58,6 +59,19 @@ const StaffAuditNew = () => {
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   
+  // Draft restoration handler
+  const handleDraftRestore = useCallback((draft: StaffAuditDraft) => {
+    console.log('[StaffAuditNew] Restoring draft data:', draft.formData);
+    setFormData(draft.formData);
+  }, []);
+
+  // Draft persistence hook
+  const { clearDraft, isRestoring, hasPendingDraft } = useStaffAuditDraft({
+    formData,
+    onRestore: handleDraftRestore,
+    enabled: true,
+  });
+
   const { data: employees } = useEmployees(
     formData.location_id && formData.location_id !== "__all__" 
       ? formData.location_id 
@@ -209,6 +223,10 @@ const StaffAuditNew = () => {
         custom_data: selectedTemplate ? formData.customData : {},
       });
 
+      // Clear draft only on successful submission
+      await clearDraft();
+      console.log('[StaffAuditNew] Submission successful, draft cleared');
+      
       toast.success('Staff audit submitted successfully');
       navigate('/staff-audits');
     } catch (error: any) {
@@ -352,7 +370,8 @@ const StaffAuditNew = () => {
 
   const activeEmployees = employees?.filter(e => e.status === 'active') || [];
 
-  if (loading) {
+  // Show loading while restoring draft or loading templates
+  if (loading || isRestoring) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
