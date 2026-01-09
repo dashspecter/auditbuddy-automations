@@ -811,12 +811,12 @@ const LocationAudit = () => {
               }
             }
             
-            // Count yes/no fields (yes = 5 points, no = 0 points)
-            if (field.field_type === 'yesno' || field.field_type === 'yes_no') {
-              if (value === 'yes' || value === true) {
+            // Count yes/no and checkbox fields (yes = 5 points, no = 0 points)
+            if (field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') {
+              if (value === 'yes' || value === true || value === 'true') {
                 totalRatings += 5;
                 ratingCount++;
-              } else if (value === 'no' || value === false) {
+              } else if (value === 'no' || value === false || value === 'false') {
                 totalRatings += 0;
                 ratingCount++;
               }
