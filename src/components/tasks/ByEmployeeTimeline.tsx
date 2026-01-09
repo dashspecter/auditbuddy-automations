@@ -436,14 +436,37 @@ export const ByEmployeeTimeline = ({
     locationId: locationFilter === "all" ? undefined : locationFilter,
   });
   
+  // Helper: check if task time falls within shift window (with 30 min grace)
+  const isTaskWithinShift = (taskStartAt: string | null, shiftStart: string | null, shiftEnd: string | null): boolean => {
+    if (!taskStartAt || !shiftStart || !shiftEnd) return true; // No time constraint if missing data
+    
+    // Parse task time (HH:MM from the task's start_at)
+    const taskDate = new Date(taskStartAt);
+    const taskMinutes = taskDate.getHours() * 60 + taskDate.getMinutes();
+    
+    // Parse shift times (HH:MM:SS format)
+    const [shiftStartH, shiftStartM] = shiftStart.split(':').map(Number);
+    const [shiftEndH, shiftEndM] = shiftEnd.split(':').map(Number);
+    const shiftStartMinutes = shiftStartH * 60 + shiftStartM;
+    const shiftEndMinutes = shiftEndH * 60 + shiftEndM;
+    
+    // Apply 30 min grace period before shift start
+    const graceMinutes = 30;
+    const adjustedShiftStart = shiftStartMinutes - graceMinutes;
+    
+    return taskMinutes >= adjustedShiftStart && taskMinutes <= shiftEndMinutes;
+  };
+
   // Build employee task mapping with shift-aware logic
   const employeesWithTasks = useMemo(() => {
     return scheduledEmployees.map(emp => {
       // Get tasks for this employee: assigned directly OR matching their shift role
       const empTasks = getOccurrencesForDate(
         tasks.filter(t => {
-          // Directly assigned
-          if (t.assigned_to === emp.id) return true;
+          // Directly assigned - still check shift time
+          if (t.assigned_to === emp.id) {
+            return isTaskWithinShift(t.start_at, emp.shiftStartTime, emp.shiftEndTime);
+          }
           
           // Role-based assignment: task's assigned_role matches employee's shift role
           if (t.assigned_role?.name) {
@@ -453,7 +476,8 @@ export const ByEmployeeTimeline = ({
             if (empRole === taskRole) {
               // Also check location match (task location matches shift location, or task is global)
               if (!t.location_id || t.location_id === emp.shiftLocationId) {
-                return true;
+                // Check if task falls within employee's shift hours
+                return isTaskWithinShift(t.start_at, emp.shiftStartTime, emp.shiftEndTime);
               }
             }
           }
