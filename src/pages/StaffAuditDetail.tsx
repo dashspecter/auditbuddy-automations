@@ -6,13 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { ArrowLeft, User, MapPin, Calendar, FileText, Star } from "lucide-react";
+import { ArrowLeft, User, MapPin, Calendar, FileText, Star, RefreshCw } from "lucide-react";
 
 export default function StaffAuditDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data: audit, isLoading, error } = useQuery({
+  const { data: audit, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["staff-audit", id],
     queryFn: async () => {
       if (!id) throw new Error("No audit ID provided");
@@ -71,6 +71,8 @@ export default function StaffAuditDetail() {
       return { ...data, auditor_profile: auditorProfile, fieldNames };
     },
     enabled: !!id,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const getScoreColor = (score: number) => {
@@ -118,10 +120,24 @@ export default function StaffAuditDetail() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/staff-audits')} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate('/staff-audits')} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-2"
+              aria-label="Refresh audit"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
           <div>
             <h1 className="text-2xl font-bold">Employee Audit Details</h1>
             <p className="text-muted-foreground">
