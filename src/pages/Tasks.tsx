@@ -49,6 +49,79 @@ const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 };
 
+// Simplified TaskListItem for management list (no status badges)
+interface TaskListItemProps {
+  task: Task;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+const TaskListItem = ({ task, onEdit, onDelete }: TaskListItemProps) => {
+  const { t } = useTranslation();
+  const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+
+  return (
+    <div className="flex items-center gap-3 p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-medium">{task.title}</h4>
+            {isRecurring && (
+              <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+          </div>
+          <Badge className={priorityColors[task.priority] || priorityColors.medium}>
+            {t(`tasks.priority.${task.priority}`)}
+          </Badge>
+        </div>
+        {task.description && (
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{task.description}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+          {task.assigned_role && (
+            <span className="flex items-center gap-1 text-primary">
+              <Users className="h-3 w-3" />
+              {task.assigned_role.name}
+            </span>
+          )}
+          {task.location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {task.location.name}
+            </span>
+          )}
+          {task.start_at && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {format(new Date(task.start_at), "HH:mm")}
+            </span>
+          )}
+          {task.duration_minutes && (
+            <span className="flex items-center gap-1">
+              <Timer className="h-3 w-3" />
+              {task.duration_minutes}min
+            </span>
+          )}
+          {isRecurring && (
+            <span className="flex items-center gap-1 text-primary">
+              <RefreshCw className="h-3 w-3" />
+              {task.recurrence_type}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={onEdit}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={onDelete}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Enhanced TaskItem with proper Late/Overdue logic that respects context
 interface TaskItemProps {
   task: Task;
@@ -437,11 +510,9 @@ const Tasks = () => {
                 ) : (
                   <div className="space-y-3">
                     {tasks.map((task) => (
-                      <TaskItem
+                      <TaskListItem
                         key={task.id}
                         task={task}
-                        context="all"
-                        onComplete={() => handleComplete(task.id)}
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
                       />
