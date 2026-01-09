@@ -4,7 +4,8 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-
+import { ClipboardList, Star, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 export default function StaffAuditsViewAll() {
   const { data: audits, isLoading } = useStaffAudits();
   const navigate = useNavigate();
@@ -31,6 +32,32 @@ export default function StaffAuditsViewAll() {
             Complete history of all employee audits
           </p>
         </div>
+      </div>
+
+      {/* Quick Action Cards - Mobile friendly */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card 
+          className="cursor-pointer hover:bg-accent/50 transition-colors border-2 border-primary/20"
+          onClick={() => navigate("/staff-audits/new")}
+        >
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+            </div>
+            <span className="text-sm font-medium">New Staff Audit</span>
+          </CardContent>
+        </Card>
+        <Card 
+          className="cursor-pointer hover:bg-accent/50 transition-colors border-2 border-amber-500/20"
+          onClick={() => navigate("/staff-audits/new?type=performance")}
+        >
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center mb-2">
+              <Star className="h-5 w-5 text-amber-500" />
+            </div>
+            <span className="text-sm font-medium">New Performance Review</span>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
