@@ -349,17 +349,25 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
   }).length;
 
   // Group tasks by their assigned roles and find employees on shift with those roles
+  // IMPORTANT: Each task only appears ONCE under its PRIMARY role (first assigned role)
+  // This matches the main Tasks page behavior where each task is shown once
   const tasksByRole = useMemo(() => {
     const roleGroups: Record<string, { 
       tasks: Task[];
       employees: Employee[];
     }> = {};
+    const seenTaskIds = new Set<string>();
 
     // Get all pending/in-progress tasks
     const pendingTasks = tasks.filter(t => t.status !== "completed");
     
-    // Group tasks by their assigned role names
+    // Group tasks by their PRIMARY assigned role (first role only to avoid duplicates)
     pendingTasks.forEach(task => {
+      // Skip if we've already added this task
+      const taskBaseId = getOriginalTaskId(task.id);
+      if (seenTaskIds.has(taskBaseId)) return;
+      seenTaskIds.add(taskBaseId);
+      
       const roleNames = task.role_names || [];
       
       if (roleNames.length === 0) {
@@ -369,13 +377,12 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
         }
         roleGroups["Unassigned"].tasks.push(task);
       } else {
-        // Add task to each of its assigned roles
-        roleNames.forEach(roleName => {
-          if (!roleGroups[roleName]) {
-            roleGroups[roleName] = { tasks: [], employees: [] };
-          }
-          roleGroups[roleName].tasks.push(task);
-        });
+        // Add task ONLY to its first/primary assigned role (not all roles)
+        const primaryRole = roleNames[0];
+        if (!roleGroups[primaryRole]) {
+          roleGroups[primaryRole] = { tasks: [], employees: [] };
+        }
+        roleGroups[primaryRole].tasks.push(task);
       }
     });
 
