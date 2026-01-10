@@ -157,16 +157,16 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
       
       if (!allTaskIds.length) return [];
 
-      // Get ALL tasks for this location (no date filtering - occurrence engine will handle it)
+      // Get ALL tasks for this location with assigned_role (no date filtering - occurrence engine will handle it)
       const { data, error } = await (supabase
         .from("tasks") as any)
-        .select("id, title, status, assigned_to, priority, start_at, due_at, recurrence_type, recurrence_interval, recurrence_end_date, duration_minutes, completed_at, completed_by, completed_late")
+        .select("id, title, status, assigned_to, assigned_role_id, priority, start_at, due_at, recurrence_type, recurrence_interval, recurrence_end_date, duration_minutes, completed_at, completed_by, completed_late")
         .in("id", allTaskIds);
 
       if (error) throw error;
       if (!data?.length) return [];
 
-      // Get role assignments for these tasks
+      // Get role assignments from task_roles table (for multi-role support)
       const { data: taskRoles, error: trError } = await supabase
         .from("task_roles")
         .select("task_id, role_id")
@@ -174,28 +174,51 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
       if (trError) throw trError;
 
-      // Get role names
-      const roleIds = [...new Set((taskRoles || []).map((tr: any) => tr.role_id))];
+      // Collect all role IDs from both sources (task_roles table AND direct assigned_role_id)
+      const directRoleIds = data.map((t: any) => t.assigned_role_id).filter(Boolean);
+      const taskRoleIds = (taskRoles || []).map((tr: any) => tr.role_id);
+      const allRoleIds = [...new Set([...directRoleIds, ...taskRoleIds])];
+      
       let roleMap: Record<string, string> = {};
       
-      if (roleIds.length > 0) {
+      if (allRoleIds.length > 0) {
         const { data: roles, error: rolesError } = await supabase
           .from("employee_roles")
           .select("id, name")
-          .in("id", roleIds);
+          .in("id", allRoleIds);
         
         if (!rolesError && roles) {
           roleMap = Object.fromEntries(roles.map((r: any) => [r.id, r.name]));
         }
       }
 
-      // Attach role info to tasks
+      // Attach role info to tasks - check BOTH task_roles table AND direct assigned_role_id
       return data.map((task: any) => {
         const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
+        
+        // If task has entries in task_roles table, use those
+        if (taskRoleEntries.length > 0) {
+          return {
+            ...task,
+            role_ids: taskRoleEntries.map((tr: any) => tr.role_id),
+            role_names: taskRoleEntries.map((tr: any) => roleMap[tr.role_id]).filter(Boolean)
+          };
+        }
+        
+        // Otherwise, fall back to direct assigned_role_id on the task
+        if (task.assigned_role_id && roleMap[task.assigned_role_id]) {
+          return {
+            ...task,
+            role_ids: [task.assigned_role_id],
+            role_names: [roleMap[task.assigned_role_id]]
+          };
+        }
+        
+        // No role assigned
         return {
           ...task,
-          role_ids: taskRoleEntries.map((tr: any) => tr.role_id),
-          role_names: taskRoleEntries.map((tr: any) => roleMap[tr.role_id]).filter(Boolean)
+          role_ids: [],
+          role_names: []
         };
       }) as (BaseTask & { role_ids?: string[]; role_names?: string[] })[];
     },
