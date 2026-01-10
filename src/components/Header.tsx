@@ -128,7 +128,19 @@ export const Header = () => {
             ) : !isAuthPage ? (
               <Button 
                 className="min-h-[44px]"
-                onClick={() => window.location.assign(`/auth?v=${Date.now()}`)}
+                onClick={async () => {
+                  // Aggressively clear all caches to prevent stale views
+                  if ('caches' in window) {
+                    try {
+                      const keys = await window.caches.keys();
+                      await Promise.all(keys.map(k => window.caches.delete(k)));
+                    } catch (e) {
+                      // ignore cache clear errors
+                    }
+                  }
+                  // Force reload by bypassing cache with unique URL and replacing history
+                  window.location.replace(`/auth?v=${Date.now()}&nocache=1`);
+                }}
               >
                 Sign In
               </Button>
