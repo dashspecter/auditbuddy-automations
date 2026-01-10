@@ -17,6 +17,7 @@ import {
   Timer,
   AlertTriangle
 } from "lucide-react";
+import { useEmployeePerformance, type EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 
 interface KioskDashboardProps {
   locationId: string;
@@ -252,86 +253,84 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch weekly task completion stats for leaderboard
-  const { data: weeklyStats = [] } = useQuery({
-    queryKey: ["kiosk-leaderboard", locationId, format(today, "yyyy-ww")],
-    queryFn: async () => {
-      // Get completed tasks this week for employees at this location
-      const { data: taskLocations, error: tlError } = await supabase
-        .from("task_locations")
-        .select("task_id")
-        .eq("location_id", locationId);
+  // =====================================================
+  // REUSE EMPLOYEE PERFORMANCE SCORING FOR LEADERBOARDS
+  // =====================================================
+  
+  // Today's Champions: uses today's date range
+  const todayDateStr = format(today, "yyyy-MM-dd");
+  const { data: todayPerformanceScores = [] } = useEmployeePerformance(
+    todayDateStr,
+    todayDateStr,
+    locationId
+  );
 
-      if (tlError) throw tlError;
-      if (!taskLocations?.length) return [];
+  // Weekly Stars: uses week date range (Mon-Sun)
+  const weekStartStr = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const weekEndStr = format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const { data: weeklyPerformanceScores = [] } = useEmployeePerformance(
+    weekStartStr,
+    weekEndStr,
+    locationId
+  );
 
-      const taskIds = taskLocations.map((tl) => tl.task_id);
+  // Today's Champions: Ranked by tasks completed today (primary), then overall score (tie-breaker)
+  // Only show employees with actual activity (not just 100s from no data)
+  const todaysChampions = useMemo(() => {
+    // Filter to employees with at least some activity today
+    const withActivity = todayPerformanceScores.filter(emp => 
+      emp.tasks_completed > 0 || 
+      emp.shifts_scheduled > 0 || 
+      emp.tests_taken > 0 || 
+      emp.reviews_count > 0
+    );
 
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("completed_by, status, completed_at")
-        .in("id", taskIds)
-        .eq("status", "completed")
-        .gte("completed_at", weekStart)
-        .lte("completed_at", weekEnd);
-
-      if (error) throw error;
-
-      // Aggregate by employee who completed the task
-      const stats: Record<string, number> = {};
-      (data || []).forEach((task: any) => {
-        if (task.completed_by) {
-          stats[task.completed_by] = (stats[task.completed_by] || 0) + 1;
+    // Sort by tasks_completed (desc), then overall_score (desc), then fewer late tasks
+    return withActivity
+      .sort((a, b) => {
+        // Primary: tasks completed today
+        if (b.tasks_completed !== a.tasks_completed) {
+          return b.tasks_completed - a.tasks_completed;
         }
-      });
-
-      // Convert to array and sort
-      return Object.entries(stats)
-        .map(([employeeId, count]) => ({ employeeId, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-    },
-    refetchInterval: 60000,
-  });
-
-  // Get today's task completion stats
-  const { data: dailyStats = [] } = useQuery({
-    queryKey: ["kiosk-daily-stats", locationId, format(today, "yyyy-MM-dd")],
-    queryFn: async () => {
-      const { data: taskLocations, error: tlError } = await supabase
-        .from("task_locations")
-        .select("task_id")
-        .eq("location_id", locationId);
-
-      if (tlError) throw tlError;
-      if (!taskLocations?.length) return [];
-
-      const taskIds = taskLocations.map((tl) => tl.task_id);
-
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("completed_by, status, completed_at")
-        .in("id", taskIds)
-        .eq("status", "completed")
-        .gte("completed_at", todayStart)
-        .lte("completed_at", todayEnd);
-
-      if (error) throw error;
-
-      // Aggregate by employee who completed the task
-      const stats: Record<string, number> = {};
-      (data || []).forEach((task: any) => {
-        if (task.completed_by) {
-          stats[task.completed_by] = (stats[task.completed_by] || 0) + 1;
+        // Tie-breaker 1: overall score
+        if (b.overall_score !== a.overall_score) {
+          return b.overall_score - a.overall_score;
         }
-      });
+        // Tie-breaker 2: fewer tasks completed late (tasksCompleted - tasksCompletedOnTime)
+        const aLate = a.tasks_completed - a.tasks_completed_on_time;
+        const bLate = b.tasks_completed - b.tasks_completed_on_time;
+        return aLate - bLate;
+      })
+      .slice(0, 3);
+  }, [todayPerformanceScores]);
 
-      return Object.entries(stats)
-        .map(([employeeId, count]) => ({ employeeId, count }))
-        .sort((a, b) => b.count - a.count);
-    },
-    refetchInterval: 30000,
-  });
+  // Weekly Stars: Ranked by overall_score (primary), then tasks completed on time (tie-breaker)
+  // Only show employees with at least some activity this week
+  const weeklyStars = useMemo(() => {
+    // Filter to employees with at least some activity this week
+    const withActivity = weeklyPerformanceScores.filter(emp => 
+      emp.tasks_completed > 0 || 
+      emp.shifts_scheduled > 0 || 
+      emp.tests_taken > 0 || 
+      emp.reviews_count > 0
+    );
+
+    // Sort by overall_score (desc), then tasks completed on time (desc)
+    return withActivity
+      .sort((a, b) => {
+        // Primary: overall score
+        if (b.overall_score !== a.overall_score) {
+          return b.overall_score - a.overall_score;
+        }
+        // Tie-breaker 1: tasks completed on time
+        if (b.tasks_completed_on_time !== a.tasks_completed_on_time) {
+          return b.tasks_completed_on_time - a.tasks_completed_on_time;
+        }
+        // Tie-breaker 2: total tasks completed
+        return b.tasks_completed - a.tasks_completed;
+      })
+      .slice(0, 3);
+  }, [weeklyPerformanceScores]);
 
   // Create a map for quick employee lookup by id
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
@@ -642,7 +641,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
         {/* Right Column: Leaderboard */}
         <div className="flex flex-col gap-4 overflow-hidden">
-          {/* Daily Leaderboard */}
+          {/* Daily Leaderboard - Today's Champions */}
           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
@@ -652,36 +651,35 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
-                {dailyStats.map((stat, index) => {
-                  const employee = userIdToEmployeeMap.get(stat.employeeId);
-                  if (!employee) return null;
-
-                  return (
+                {todaysChampions.map((champion, index) => (
+                  <div
+                    key={champion.employee_id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                  >
                     <div
-                      key={stat.employeeId}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        index === 0
+                          ? "bg-yellow-500 text-yellow-950"
+                          : index === 1
+                          ? "bg-gray-300 text-gray-700"
+                          : index === 2
+                          ? "bg-orange-400 text-orange-950"
+                          : "bg-muted text-muted-foreground"
+                      }`}
                     >
-                      <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                          index === 0
-                            ? "bg-yellow-500 text-yellow-950"
-                            : index === 1
-                            ? "bg-gray-300 text-gray-700"
-                            : index === 2
-                            ? "bg-orange-400 text-orange-950"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{employee.full_name}</div>
-                      </div>
-                      <div className="text-lg font-bold text-primary">{stat.count}</div>
+                      {index + 1}
                     </div>
-                  );
-                })}
-                {dailyStats.length === 0 && (
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{champion.employee_name}</div>
+                      <div className="text-xs text-muted-foreground">{champion.role}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary">{champion.tasks_completed}</div>
+                      <div className="text-xs text-muted-foreground">tasks</div>
+                    </div>
+                  </div>
+                ))}
+                {todaysChampions.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     <Trophy className="h-12 w-12 mx-auto mb-2 opacity-20" />
                     Complete tasks to appear here!
@@ -691,7 +689,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             </ScrollArea>
           </Card>
 
-          {/* Weekly Leaderboard */}
+          {/* Weekly Leaderboard - Weekly Stars */}
           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
@@ -701,36 +699,35 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
-                {weeklyStats.map((stat, index) => {
-                  const employee = userIdToEmployeeMap.get(stat.employeeId);
-                  if (!employee) return null;
-
-                  return (
+                {weeklyStars.map((star, index) => (
+                  <div
+                    key={star.employee_id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                  >
                     <div
-                      key={stat.employeeId}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        index === 0
+                          ? "bg-purple-500 text-white"
+                          : index === 1
+                          ? "bg-purple-300 text-purple-800"
+                          : index === 2
+                          ? "bg-purple-200 text-purple-700"
+                          : "bg-muted text-muted-foreground"
+                      }`}
                     >
-                      <div
-                        className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                          index === 0
-                            ? "bg-purple-500 text-white"
-                            : index === 1
-                            ? "bg-purple-300 text-purple-800"
-                            : index === 2
-                            ? "bg-purple-200 text-purple-700"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {index + 1}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{employee.full_name}</div>
-                      </div>
-                      <div className="text-lg font-bold text-purple-600">{stat.count}</div>
+                      {index + 1}
                     </div>
-                  );
-                })}
-                {weeklyStats.length === 0 && (
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{star.employee_name}</div>
+                      <div className="text-xs text-muted-foreground">{star.role}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-purple-600">{star.overall_score.toFixed(0)}</div>
+                      <div className="text-xs text-muted-foreground">score</div>
+                    </div>
+                  </div>
+                ))}
+                {weeklyStars.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     <Trophy className="h-12 w-12 mx-auto mb-2 opacity-20" />
                     No completions this week yet
