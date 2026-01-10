@@ -126,11 +126,12 @@ export const Header = () => {
                 </Link>
               </>
             ) : !isAuthPage ? (
-              <Link to="/auth">
-                <Button className="min-h-[44px]">
-                  Sign In
-                </Button>
-              </Link>
+              <Button 
+                className="min-h-[44px]"
+                onClick={() => window.location.assign(`/auth?v=${Date.now()}`)}
+              >
+                Sign In
+              </Button>
             ) : (
               <Link to="/">
                 <Button variant="outline" className="min-h-[44px]">
