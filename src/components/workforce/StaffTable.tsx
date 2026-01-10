@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone, Mail } from "lucide-react";
+import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone, Mail, KeyRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
+import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
@@ -23,6 +24,8 @@ export const StaffTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [employeeToResetPassword, setEmployeeToResetPassword] = useState<Employee | null>(null);
   const pageSize = 20;
   const isMobile = useIsMobile();
   
@@ -97,6 +100,20 @@ export const StaffTable = () => {
           }
           actions={
             <div className="flex items-center gap-1">
+              {member.user_id && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-9 w-9 p-0"
+                  onClick={() => {
+                    setEmployeeToResetPassword(member);
+                    setResetPasswordDialogOpen(true);
+                  }}
+                  title={t('workforce.employees.resetPassword')}
+                >
+                  <KeyRound className="h-4 w-4" />
+                </Button>
+              )}
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -319,6 +336,19 @@ export const StaffTable = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {member.user_id && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                setEmployeeToResetPassword(member);
+                                setResetPasswordDialogOpen(true);
+                              }}
+                              title={t('workforce.employees.resetPassword')}
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -414,6 +444,20 @@ export const StaffTable = () => {
         }}
         employee={selectedEmployee || undefined}
         locations={locations || []}
+      />
+
+      <ResetPasswordDialog
+        open={resetPasswordDialogOpen}
+        onOpenChange={(open) => {
+          setResetPasswordDialogOpen(open);
+          if (!open) setEmployeeToResetPassword(null);
+        }}
+        employee={employeeToResetPassword ? {
+          id: employeeToResetPassword.id,
+          user_id: employeeToResetPassword.user_id || null,
+          full_name: employeeToResetPassword.full_name,
+          email: employeeToResetPassword.email || null
+        } : null}
       />
     </div>
   );
