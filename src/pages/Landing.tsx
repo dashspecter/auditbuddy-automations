@@ -247,11 +247,16 @@ const Landing = () => {
               </>
             ) : (
               <>
-                <Link to="/auth">
-                  <Button size="lg" className="min-h-[48px] w-full sm:w-auto">
-                    {t('landing.getStartedFree')}
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  className="min-h-[48px] w-full sm:w-auto"
+                  onClick={() => {
+                    const returnTo = encodeURIComponent(`/auth?v=${Date.now()}&nocache=1`);
+                    window.location.assign(`/?resetApp=1&returnTo=${returnTo}`);
+                  }}
+                >
+                  {t('landing.getStartedFree')}
+                </Button>
                 <a href="#features">
                   <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
                     {t('landing.learnMore')}
