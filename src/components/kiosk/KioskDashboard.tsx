@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
+import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import type { Task as BaseTask } from "@/hooks/useTasks";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -126,9 +128,9 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     refetchInterval: 60000,
   });
 
-  // Fetch today's tasks for this location (including future tasks) with their assigned roles
-  const { data: tasks = [] } = useQuery({
-    queryKey: ["kiosk-tasks", locationId, format(today, "yyyy-MM-dd")],
+  // Fetch ALL tasks for this location (we'll filter by occurrence engine)
+  const { data: rawTasks = [] } = useQuery({
+    queryKey: ["kiosk-raw-tasks", locationId],
     queryFn: async () => {
       // Get task IDs from task_locations table
       const { data: taskLocations, error: tlError } = await supabase
@@ -155,12 +157,11 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
       
       if (!allTaskIds.length) return [];
 
-      // Get all non-completed tasks for today and overdue tasks
+      // Get ALL tasks for this location (no date filtering - occurrence engine will handle it)
       const { data, error } = await (supabase
         .from("tasks") as any)
-        .select("id, title, status, assigned_to, priority, start_at, due_at")
-        .in("id", allTaskIds)
-        .or(`and(start_at.gte.${todayStart},start_at.lte.${todayEnd}),and(due_at.lt.${new Date().toISOString()},status.neq.completed)`);
+        .select("id, title, status, assigned_to, priority, start_at, due_at, recurrence_type, recurrence_interval, recurrence_end_date, duration_minutes, completed_at, completed_by, completed_late")
+        .in("id", allTaskIds);
 
       if (error) throw error;
       if (!data?.length) return [];
@@ -196,10 +197,29 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
           role_ids: taskRoleEntries.map((tr: any) => tr.role_id),
           role_names: taskRoleEntries.map((tr: any) => roleMap[tr.role_id]).filter(Boolean)
         };
-      }) as Task[];
+      }) as (BaseTask & { role_ids?: string[]; role_names?: string[] })[];
     },
-    refetchInterval: 10000, // Refresh every 10 seconds for countdown accuracy
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  // Apply occurrence engine to get today's tasks (handles recurring tasks)
+  const tasks: Task[] = useMemo(() => {
+    const todayOccurrences = getOccurrencesForDate(rawTasks, today, {
+      includeCompleted: true,
+      includeVirtual: true,
+    });
+    
+    // Re-attach role info from rawTasks (since occurrence engine strips custom fields)
+    return todayOccurrences.map(task => {
+      const originalId = getOriginalTaskId(task.id);
+      const originalTask = rawTasks.find(t => t.id === originalId);
+      return {
+        ...task,
+        role_ids: originalTask?.role_ids || [],
+        role_names: originalTask?.role_names || [],
+      } as Task;
+    });
+  }, [rawTasks, today]);
 
   // Countdown timer state
   const [now, setNow] = useState(new Date());
