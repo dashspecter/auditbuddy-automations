@@ -571,6 +571,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                     {/* Tasks for this role */}
                     {roleTasks.map((task) => {
                       const isOverdue = task.due_at && isPast(new Date(task.due_at));
+                      const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
                       return (
                         <div
                           key={task.id}
@@ -581,12 +582,19 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                           ) : (
                             <Timer className="h-4 w-4 text-primary flex-shrink-0" />
                           )}
-                          <span className={`text-sm truncate flex-1 ${isOverdue ? 'text-destructive font-medium' : ''}`}>
-                            {task.title}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className={`text-sm truncate block ${isOverdue ? 'text-destructive font-medium' : ''}`}>
+                              {task.title}
+                            </span>
+                            {taskTime && (
+                              <span className="text-xs text-muted-foreground">
+                                Scheduled: {taskTime}
+                              </span>
+                            )}
+                          </div>
                           {isOverdue ? (
                             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                              OVERDUE
+                              Overdue
                             </Badge>
                           ) : task.start_at ? (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
