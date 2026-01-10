@@ -863,6 +863,7 @@ export const EmployeeDialog = ({
             </Select>
           </div>
 
+          {/* Show user account section for new employees */}
           {!employee && formData.email && (
             <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg">
               <Checkbox 
@@ -881,6 +882,73 @@ export const EmployeeDialog = ({
                   Allow this employee to log in and view their shifts
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Show user account status for existing employees */}
+          {employee && (
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Login Account</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {employee.user_id 
+                      ? "This employee has a linked login account" 
+                      : "No login account linked"}
+                  </p>
+                </div>
+                {employee.user_id ? (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Linked
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    Not Linked
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Show create account button for employees without a user_id */}
+              {!employee.user_id && formData.email && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const { data, error } = await supabase.functions.invoke('create-user', {
+                        body: {
+                          email: formData.email,
+                          full_name: formData.full_name,
+                          employeeId: employee.id
+                        }
+                      });
+                      
+                      if (error) {
+                        console.error("Failed to create user account:", error);
+                        toast.error("Failed to create login account");
+                      } else if (data?.error) {
+                        console.error("Failed to create user account:", data.error);
+                        toast.error(`Failed to create login account: ${data.error}`);
+                      } else {
+                        toast.success("Login account created! A password reset email has been sent.");
+                        onOpenChange(false);
+                      }
+                    } catch (err) {
+                      console.error("Error creating user:", err);
+                      toast.error("Failed to create login account");
+                    }
+                  }}
+                >
+                  Create Login Account
+                </Button>
+              )}
+              
+              {!employee.user_id && !formData.email && (
+                <p className="text-sm text-amber-600">
+                  Add an email address to enable login account creation
+                </p>
+              )}
             </div>
           )}
 
