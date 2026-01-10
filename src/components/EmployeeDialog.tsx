@@ -79,6 +79,8 @@ export const EmployeeDialog = ({
     aviz_data_eliberare: "",
     aviz_institutie: "",
     spor_weekend: "",
+    // Login account password
+    newUserPassword: "",
   });
   const [additionalLocations, setAdditionalLocations] = useState<string[]>([]);
   const [selectedLocationToAdd, setSelectedLocationToAdd] = useState("");
@@ -138,6 +140,7 @@ export const EmployeeDialog = ({
         aviz_data_eliberare: employee.aviz_data_eliberare || "",
         aviz_institutie: employee.aviz_institutie || "",
         spor_weekend: employee.spor_weekend?.toString() || "",
+        newUserPassword: "",
       });
     } else {
       setFormData({
@@ -181,6 +184,7 @@ export const EmployeeDialog = ({
         aviz_data_eliberare: "",
         aviz_institutie: "",
         spor_weekend: "",
+        newUserPassword: "",
       });
       setAdditionalLocations([]);
     }
@@ -908,40 +912,60 @@ export const EmployeeDialog = ({
                 )}
               </div>
               
-              {/* Show create account button for employees without a user_id */}
+              {/* Show create account with password for employees without a user_id */}
               {!employee.user_id && formData.email && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const { data, error } = await supabase.functions.invoke('create-user', {
-                        body: {
-                          email: formData.email,
-                          full_name: formData.full_name,
-                          employeeId: employee.id
-                        }
-                      });
-                      
-                      if (error) {
-                        console.error("Failed to create user account:", error);
-                        toast.error("Failed to create login account");
-                      } else if (data?.error) {
-                        console.error("Failed to create user account:", data.error);
-                        toast.error(`Failed to create login account: ${data.error}`);
-                      } else {
-                        toast.success("Login account created! A password reset email has been sent.");
-                        onOpenChange(false);
+                <div className="space-y-3 pt-2 border-t">
+                  <div>
+                    <Label htmlFor="newUserPassword" className="text-sm font-medium">Password for Login Account</Label>
+                    <Input
+                      id="newUserPassword"
+                      type="password"
+                      placeholder="Enter password for employee login"
+                      value={formData.newUserPassword || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Minimum 6 characters</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!formData.newUserPassword || formData.newUserPassword.length < 6}
+                    onClick={async () => {
+                      if (!formData.newUserPassword || formData.newUserPassword.length < 6) {
+                        toast.error("Password must be at least 6 characters");
+                        return;
                       }
-                    } catch (err) {
-                      console.error("Error creating user:", err);
-                      toast.error("Failed to create login account");
-                    }
-                  }}
-                >
-                  Create Login Account
-                </Button>
+                      try {
+                        const { data, error } = await supabase.functions.invoke('create-user', {
+                          body: {
+                            email: formData.email,
+                            full_name: formData.full_name,
+                            password: formData.newUserPassword,
+                            employeeId: employee.id
+                          }
+                        });
+                        
+                        if (error) {
+                          console.error("Failed to create user account:", error);
+                          toast.error("Failed to create login account");
+                        } else if (data?.error) {
+                          console.error("Failed to create user account:", data.error);
+                          toast.error(`Failed to create login account: ${data.error}`);
+                        } else {
+                          toast.success("Login account created successfully!");
+                          onOpenChange(false);
+                        }
+                      } catch (err) {
+                        console.error("Error creating user:", err);
+                        toast.error("Failed to create login account");
+                      }
+                    }}
+                  >
+                    Create Login Account
+                  </Button>
+                </div>
               )}
               
               {!employee.user_id && !formData.email && (

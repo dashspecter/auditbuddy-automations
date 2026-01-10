@@ -101,13 +101,13 @@ serve(async (req) => {
           throw new Error(`This email is already linked to employee: ${existingEmployee.full_name}`);
         }
       } else {
-        // Generate a temporary password
-        const tempPassword = crypto.randomUUID();
+        // Use provided password or generate a temporary one
+        const userPassword = password || crypto.randomUUID();
 
         // Create the user using admin client
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
-          password: tempPassword,
+          password: userPassword,
           email_confirm: true,
           user_metadata: {
             full_name: full_name
