@@ -17,8 +17,14 @@ import {
   Timer,
   AlertTriangle
 } from "lucide-react";
-import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
-import { computeKioskLeaderboardScores, type KioskEmployeeScore } from "@/lib/kioskEffectiveScore";
+import { 
+  computeKioskTaskMetrics, 
+  getTodaysChampions, 
+  getWeeklyStars,
+  type KioskEmployeeTaskMetrics,
+  type KioskTask,
+  type ScheduledEmployee
+} from "@/lib/kioskTaskAttribution";
 
 interface KioskDashboardProps {
   locationId: string;
@@ -254,83 +260,6 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     return () => clearInterval(interval);
   }, []);
 
-  // =====================================================
-  // REUSE EMPLOYEE PERFORMANCE SCORING FOR LEADERBOARDS
-  // =====================================================
-  
-  // Today's Champions: uses today's date range
-  const todayDateStr = format(today, "yyyy-MM-dd");
-  const { data: todayPerformanceScores = [] } = useEmployeePerformance(
-    todayDateStr,
-    todayDateStr,
-    locationId
-  );
-
-  // Weekly Stars: uses week date range (Mon-Sun)
-  const weekStartStr = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-  const weekEndStr = format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-  const { data: weeklyPerformanceScores = [] } = useEmployeePerformance(
-    weekStartStr,
-    weekEndStr,
-    locationId
-  );
-
-  // =====================================================
-  // KIOSK EFFECTIVE SCORE: Only averages components with real data
-  // =====================================================
-
-  // Today's Champions: Ranked by tasks completed today (primary), then kiosk_effective_overall_score
-  // Only show employees with actual activity (not just 100s from no data)
-  const todaysChampions: KioskEmployeeScore[] = useMemo(() => {
-    // Compute kiosk effective scores and filter to employees with activity
-    const withActivity = computeKioskLeaderboardScores(todayPerformanceScores);
-
-    // Sort by tasks_completed (desc), then kiosk_effective_overall_score (desc, nulls last), then fewer late tasks
-    return withActivity
-      .sort((a, b) => {
-        // Primary: tasks completed today
-        if (b.tasks_completed !== a.tasks_completed) {
-          return b.tasks_completed - a.tasks_completed;
-        }
-        // Tie-breaker 1: kiosk effective score (nulls last)
-        const aScore = a.kiosk_effective_overall_score ?? -1;
-        const bScore = b.kiosk_effective_overall_score ?? -1;
-        if (bScore !== aScore) {
-          return bScore - aScore;
-        }
-        // Tie-breaker 2: fewer tasks completed late
-        const aLate = a.tasks_completed - a.tasks_completed_on_time;
-        const bLate = b.tasks_completed - b.tasks_completed_on_time;
-        return aLate - bLate;
-      })
-      .slice(0, 3);
-  }, [todayPerformanceScores]);
-
-  // Weekly Stars: Ranked by kiosk_effective_overall_score (primary), then tasks completed on time
-  // Only show employees with at least some activity this week
-  const weeklyStars: KioskEmployeeScore[] = useMemo(() => {
-    // Compute kiosk effective scores and filter to employees with activity
-    const withActivity = computeKioskLeaderboardScores(weeklyPerformanceScores);
-
-    // Sort by kiosk_effective_overall_score (desc, nulls last), then tasks completed on time
-    return withActivity
-      .sort((a, b) => {
-        // Primary: kiosk effective score (nulls last)
-        const aScore = a.kiosk_effective_overall_score ?? -1;
-        const bScore = b.kiosk_effective_overall_score ?? -1;
-        if (bScore !== aScore) {
-          return bScore - aScore;
-        }
-        // Tie-breaker 1: tasks completed on time
-        if (b.tasks_completed_on_time !== a.tasks_completed_on_time) {
-          return b.tasks_completed_on_time - a.tasks_completed_on_time;
-        }
-        // Tie-breaker 2: total tasks completed
-        return b.tasks_completed - a.tasks_completed;
-      })
-      .slice(0, 3);
-  }, [weeklyPerformanceScores]);
-
   // Create a map for quick employee lookup by id
   const employeeMap = new Map(employees.map((e) => [e.id, e]));
   
@@ -361,6 +290,51 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
 
   // Filter employees to only those with shifts today
   const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
+
+  // =====================================================
+  // KIOSK TASK-BASED LEADERBOARDS (role-aware, overdue-aware)
+  // =====================================================
+  
+  // Build scheduled employees list (Today's Team as ScheduledEmployee format)
+  const scheduledEmployeesForMetrics: ScheduledEmployee[] = useMemo(() => {
+    return todaysTeam.map(e => ({
+      id: e.id,
+      full_name: e.full_name,
+      role: e.role,
+      avatar_url: e.avatar_url,
+    }));
+  }, [todaysTeam]);
+
+  // Convert tasks to KioskTask format for attribution
+  const kioskTasks: KioskTask[] = useMemo(() => {
+    return rawTasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      assigned_to: task.assigned_to,
+      role_ids: task.role_ids,
+      role_names: task.role_names,
+      due_at: task.due_at,
+      start_at: task.start_at,
+      completed_at: task.completed_at,
+      completed_late: task.completed_late,
+    }));
+  }, [rawTasks]);
+
+  // Compute task metrics with proper role attribution
+  const employeeTaskMetrics = useMemo(() => {
+    return computeKioskTaskMetrics(kioskTasks, scheduledEmployeesForMetrics, today);
+  }, [kioskTasks, scheduledEmployeesForMetrics, today]);
+
+  // Today's Champions: ranked by completed_today
+  const todaysChampions = useMemo(() => {
+    return getTodaysChampions(employeeTaskMetrics, 3);
+  }, [employeeTaskMetrics]);
+
+  // Weekly Stars: ranked by weekly_task_score (avoids 100% default problem)
+  const weeklyStars = useMemo(() => {
+    return getWeeklyStars(employeeTaskMetrics, 3);
+  }, [employeeTaskMetrics]);
 
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
@@ -673,7 +647,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                       <div className="text-xs text-muted-foreground">{champion.role}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{champion.tasks_completed}</div>
+                      <div className="text-lg font-bold text-primary">{champion.completed_today}</div>
                       <div className="text-xs text-muted-foreground">tasks</div>
                     </div>
                   </div>
@@ -722,8 +696,8 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-purple-600">
-                        {star.kiosk_effective_overall_score !== null 
-                          ? star.kiosk_effective_overall_score.toFixed(0) 
+                        {star.weekly_task_score !== null 
+                          ? star.weekly_task_score.toFixed(0) 
                           : "-"}
                       </div>
                       <div className="text-xs text-muted-foreground">score</div>
