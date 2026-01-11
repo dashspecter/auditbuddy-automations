@@ -17,7 +17,8 @@ import {
   Timer,
   AlertTriangle
 } from "lucide-react";
-import { useEmployeePerformance, type EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
+import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { computeKioskLeaderboardScores, type KioskEmployeeScore } from "@/lib/kioskEffectiveScore";
 
 interface KioskDashboardProps {
   locationId: string;
@@ -274,29 +275,30 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     locationId
   );
 
-  // Today's Champions: Ranked by tasks completed today (primary), then overall score (tie-breaker)
-  // Only show employees with actual activity (not just 100s from no data)
-  const todaysChampions = useMemo(() => {
-    // Filter to employees with at least some activity today
-    const withActivity = todayPerformanceScores.filter(emp => 
-      emp.tasks_completed > 0 || 
-      emp.shifts_scheduled > 0 || 
-      emp.tests_taken > 0 || 
-      emp.reviews_count > 0
-    );
+  // =====================================================
+  // KIOSK EFFECTIVE SCORE: Only averages components with real data
+  // =====================================================
 
-    // Sort by tasks_completed (desc), then overall_score (desc), then fewer late tasks
+  // Today's Champions: Ranked by tasks completed today (primary), then kiosk_effective_overall_score
+  // Only show employees with actual activity (not just 100s from no data)
+  const todaysChampions: KioskEmployeeScore[] = useMemo(() => {
+    // Compute kiosk effective scores and filter to employees with activity
+    const withActivity = computeKioskLeaderboardScores(todayPerformanceScores);
+
+    // Sort by tasks_completed (desc), then kiosk_effective_overall_score (desc, nulls last), then fewer late tasks
     return withActivity
       .sort((a, b) => {
         // Primary: tasks completed today
         if (b.tasks_completed !== a.tasks_completed) {
           return b.tasks_completed - a.tasks_completed;
         }
-        // Tie-breaker 1: overall score
-        if (b.overall_score !== a.overall_score) {
-          return b.overall_score - a.overall_score;
+        // Tie-breaker 1: kiosk effective score (nulls last)
+        const aScore = a.kiosk_effective_overall_score ?? -1;
+        const bScore = b.kiosk_effective_overall_score ?? -1;
+        if (bScore !== aScore) {
+          return bScore - aScore;
         }
-        // Tie-breaker 2: fewer tasks completed late (tasksCompleted - tasksCompletedOnTime)
+        // Tie-breaker 2: fewer tasks completed late
         const aLate = a.tasks_completed - a.tasks_completed_on_time;
         const bLate = b.tasks_completed - b.tasks_completed_on_time;
         return aLate - bLate;
@@ -304,23 +306,20 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
       .slice(0, 3);
   }, [todayPerformanceScores]);
 
-  // Weekly Stars: Ranked by overall_score (primary), then tasks completed on time (tie-breaker)
+  // Weekly Stars: Ranked by kiosk_effective_overall_score (primary), then tasks completed on time
   // Only show employees with at least some activity this week
-  const weeklyStars = useMemo(() => {
-    // Filter to employees with at least some activity this week
-    const withActivity = weeklyPerformanceScores.filter(emp => 
-      emp.tasks_completed > 0 || 
-      emp.shifts_scheduled > 0 || 
-      emp.tests_taken > 0 || 
-      emp.reviews_count > 0
-    );
+  const weeklyStars: KioskEmployeeScore[] = useMemo(() => {
+    // Compute kiosk effective scores and filter to employees with activity
+    const withActivity = computeKioskLeaderboardScores(weeklyPerformanceScores);
 
-    // Sort by overall_score (desc), then tasks completed on time (desc)
+    // Sort by kiosk_effective_overall_score (desc, nulls last), then tasks completed on time
     return withActivity
       .sort((a, b) => {
-        // Primary: overall score
-        if (b.overall_score !== a.overall_score) {
-          return b.overall_score - a.overall_score;
+        // Primary: kiosk effective score (nulls last)
+        const aScore = a.kiosk_effective_overall_score ?? -1;
+        const bScore = b.kiosk_effective_overall_score ?? -1;
+        if (bScore !== aScore) {
+          return bScore - aScore;
         }
         // Tie-breaker 1: tasks completed on time
         if (b.tasks_completed_on_time !== a.tasks_completed_on_time) {
@@ -722,7 +721,11 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
                       <div className="text-xs text-muted-foreground">{star.role}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-purple-600">{star.overall_score.toFixed(0)}</div>
+                      <div className="text-lg font-bold text-purple-600">
+                        {star.kiosk_effective_overall_score !== null 
+                          ? star.kiosk_effective_overall_score.toFixed(0) 
+                          : "-"}
+                      </div>
                       <div className="text-xs text-muted-foreground">score</div>
                     </div>
                   </div>
