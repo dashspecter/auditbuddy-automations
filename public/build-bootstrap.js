@@ -11,6 +11,7 @@
   const BUILD_ID_KEY = "app_build_manifest_id";
   const RELOAD_GUARD_KEY = "bootstrap:reloaded";
   const SESSION_MARKER_KEY = "bootstrap:session";
+  const PRECLEAN_GUARD_KEY = "bootstrap:precleaned";
 
   // Clear reload guard on fresh browser sessions to allow new builds to reload
   const currentSession = Date.now().toString();
@@ -79,6 +80,35 @@
 
   async function boot() {
     try {
+      // Pre-clean once per session: if an old service worker or Cache Storage exists,
+      // wipe them and reload to avoid stale UI/bundle mismatches.
+      try {
+        if (sessionStorage.getItem(PRECLEAN_GUARD_KEY) !== "1") {
+          sessionStorage.setItem(PRECLEAN_GUARD_KEY, "1");
+
+          let hasSW = false;
+          let hasCaches = false;
+
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            hasSW = regs.length > 0;
+          }
+
+          if ("caches" in window) {
+            const keys = await window.caches.keys();
+            hasCaches = keys.length > 0;
+          }
+
+          if (hasSW || hasCaches) {
+            await cleanupCachingArtifacts();
+            window.location.reload();
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       const res = await fetch(`${BUILD_MANIFEST_URL}?ts=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`manifest fetch failed: ${res.status}`);
 
