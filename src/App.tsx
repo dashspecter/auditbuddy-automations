@@ -155,6 +155,7 @@ import VouchersManagement from "./pages/audits/VouchersManagement";
 import PayrollBatches from "./pages/workforce/PayrollBatches";
 import AttendanceAlerts from "./pages/workforce/AttendanceAlerts";
 import SchedulingInsights from "./pages/workforce/SchedulingInsights";
+import Warnings from "./pages/workforce/Warnings";
 import StaffDocuments from "./pages/staff/StaffDocuments";
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -284,6 +285,7 @@ const App = () => (
                       <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
                       <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
+                      <Route path="/workforce/warnings" element={<ManagerRoute requiredPermission="manage_employees"><Warnings /></ManagerRoute>} />
                       
                       {/* CMMS Routes */}
                       <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />

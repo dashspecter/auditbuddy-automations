@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfDay } from "date-fns";
+import { startOfDay, format } from "date-fns";
 import { useEffect } from "react";
+import { calculateWarningPenalty, WarningMetadata, Warning, WarningContribution } from "./useWarningPenalty";
 
 export interface EmployeePerformanceScore {
   employee_id: string;
@@ -16,7 +17,14 @@ export interface EmployeePerformanceScore {
   task_score: number;
   test_score: number;
   performance_review_score: number;
-  // Overall score (0-100)
+  // Base score before warning deductions
+  base_score: number;
+  // Warning penalty
+  warning_penalty: number;
+  warning_count: number;
+  warning_contributions: WarningContribution[];
+  warning_monthly_caps: Record<string, { raw: number; capped: number }>;
+  // Overall score (0-100) - Base minus warning penalty
   overall_score: number;
   // Raw metrics
   shifts_scheduled: number;
@@ -179,6 +187,33 @@ export const useEmployeePerformance = (
 
       if (auditsError) throw auditsError;
 
+      // Get warnings for all employees (last 90 days for penalty calculation)
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      
+      const { data: warningsData, error: warningsError } = await supabase
+        .from("staff_events")
+        .select("id, staff_id, event_date, metadata")
+        .eq("event_type", "warning")
+        .gte("event_date", format(ninetyDaysAgo, 'yyyy-MM-dd'));
+
+      if (warningsError) throw warningsError;
+
+      // Group warnings by employee
+      const warningsByEmployee: Record<string, Warning[]> = {};
+      for (const event of warningsData || []) {
+        const staffId = event.staff_id;
+        if (!warningsByEmployee[staffId]) {
+          warningsByEmployee[staffId] = [];
+        }
+        warningsByEmployee[staffId].push({
+          id: event.id,
+          staff_id: event.staff_id,
+          event_date: event.event_date,
+          metadata: event.metadata as WarningMetadata | null,
+        });
+      }
+
       // Calculate performance for each employee
       const performanceScores: EmployeePerformanceScore[] = [];
 
@@ -291,9 +326,16 @@ export const useEmployeePerformance = (
         // Performance review score: Average review score if reviews exist, otherwise neutral
         const performanceReviewScore = reviewsCount > 0 ? averageReviewScore : 100;
 
-        // Overall score: Equal weight (20% each for 5 components)
-        const overallScore =
+        // Base score: Equal weight (20% each for 5 components)
+        const baseScore =
           (attendanceScore + punctualityScore + taskScore + testScore + performanceReviewScore) / 5;
+
+        // Calculate warning penalty for this employee
+        const employeeWarnings = warningsByEmployee[employeeId] || [];
+        const warningPenaltyResult = calculateWarningPenalty(employeeWarnings);
+        
+        // Final score: Base minus warning penalty, clamped to 0-100
+        const overallScore = Math.max(0, Math.min(100, baseScore - warningPenaltyResult.totalPenalty));
 
         performanceScores.push({
           employee_id: employeeId,
@@ -307,6 +349,11 @@ export const useEmployeePerformance = (
           task_score: taskScore,
           test_score: testScore,
           performance_review_score: performanceReviewScore,
+          base_score: baseScore,
+          warning_penalty: warningPenaltyResult.totalPenalty,
+          warning_count: warningPenaltyResult.warningCount,
+          warning_contributions: warningPenaltyResult.contributions,
+          warning_monthly_caps: warningPenaltyResult.monthlyPenalties,
           overall_score: overallScore,
           shifts_scheduled: shiftsScheduled,
           shifts_worked: shiftsWithAttendance,
