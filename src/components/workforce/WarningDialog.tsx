@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +55,7 @@ export function WarningDialog({
 }: WarningDialogProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { company } = useCompany();
+  const { company } = useCompanyContext();
   const createEvent = useCreateStaffEvent();
   const updateEvent = useUpdateStaffEvent();
 
