@@ -6096,38 +6096,58 @@ export type Database = {
       staff_events: {
         Row: {
           amount: number | null
+          company_id: string
           created_at: string
           created_by: string
           description: string
           event_date: string
           event_type: string
           id: string
+          location_id: string | null
           metadata: Json | null
           staff_id: string
         }
         Insert: {
           amount?: number | null
+          company_id: string
           created_at?: string
           created_by: string
           description: string
           event_date?: string
           event_type: string
           id?: string
+          location_id?: string | null
           metadata?: Json | null
           staff_id: string
         }
         Update: {
           amount?: number | null
+          company_id?: string
           created_at?: string
           created_by?: string
           description?: string
           event_date?: string
           event_type?: string
           id?: string
+          location_id?: string | null
           metadata?: Json | null
           staff_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "staff_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "staff_events_staff_id_fkey"
             columns: ["staff_id"]
