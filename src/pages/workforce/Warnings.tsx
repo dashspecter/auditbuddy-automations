@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useWarnings, useDeleteStaffEvent } from "@/hooks/useStaffEvents";
@@ -48,7 +48,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Warnings() {
   const { t } = useTranslation();
-  const { company } = useCompany();
+  const { company } = useCompanyContext();
   const { data: locations } = useLocations();
   const { data: employees } = useEmployees();
   const deleteEvent = useDeleteStaffEvent();
@@ -274,7 +274,7 @@ export default function Warnings() {
                             </span>
                             {activeTab === "warning" && warning.metadata?.severity && (
                               <Badge className={SEVERITY_COLORS[warning.metadata.severity]}>
-                                {t(`warnings.${warning.metadata.severity}`, warning.metadata.severity)}
+                                {String(t(`warnings.${warning.metadata.severity}`, warning.metadata.severity))}
                               </Badge>
                             )}
                             {warning.metadata?.category && (

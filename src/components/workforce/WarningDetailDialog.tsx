@@ -79,7 +79,7 @@ export function WarningDetailDialog({ open, onOpenChange, event }: WarningDetail
             <div className="flex flex-wrap gap-2">
               {metadata.severity && (
                 <Badge className={SEVERITY_COLORS[metadata.severity]}>
-                  {t(`warnings.${metadata.severity}`, metadata.severity)}
+                  {String(t(`warnings.${metadata.severity}`, metadata.severity))}
                 </Badge>
               )}
               {metadata.category && (
