@@ -233,25 +233,6 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Apply occurrence engine to get today's tasks (handles recurring tasks)
-  const tasks: Task[] = useMemo(() => {
-    const todayOccurrences = getOccurrencesForDate(rawTasks, today, {
-      includeCompleted: true,
-      includeVirtual: true,
-    });
-    
-    // Re-attach role info from rawTasks (since occurrence engine strips custom fields)
-    return todayOccurrences.map(task => {
-      const originalId = getOriginalTaskId(task.id);
-      const originalTask = rawTasks.find(t => t.id === originalId);
-      return {
-        ...task,
-        role_ids: originalTask?.role_ids || [],
-        role_names: originalTask?.role_names || [],
-      } as Task;
-    });
-  }, [rawTasks, today]);
-
   // Countdown timer state
   const [now, setNow] = useState(new Date());
   
@@ -277,7 +258,7 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     });
   });
 
-  // Create shift map for employees
+  // Create shift map for employees - MUST be computed before tasks
   const employeeShiftMap = new Map<string, { start: string; end: string }>();
   shifts.forEach((shift) => {
     shift.shift_assignments?.forEach((assignment) => {
@@ -288,8 +269,52 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
     });
   });
 
-  // Filter employees to only those with shifts today
+  // Filter employees to only those with shifts today - MUST be computed before tasks
   const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
+
+  // Apply occurrence engine to get today's tasks (handles recurring tasks)
+  // IMPORTANT: Tasks are only visible if there is shift coverage (scheduled staff)
+  const tasks: Task[] = useMemo(() => {
+    // If no staff scheduled today, return empty - no tasks should be active
+    if (todaysTeam.length === 0) {
+      return [];
+    }
+    
+    const todayOccurrences = getOccurrencesForDate(rawTasks, today, {
+      includeCompleted: true,
+      includeVirtual: true,
+    });
+    
+    // Get roles that are scheduled today
+    const scheduledRoles = new Set(todaysTeam.map(e => e.role?.toLowerCase()).filter(Boolean));
+    const scheduledEmployeeIds = new Set(todaysTeam.map(e => e.id));
+    
+    // Re-attach role info and filter by coverage
+    return todayOccurrences
+      .map(task => {
+        const originalId = getOriginalTaskId(task.id);
+        const originalTask = rawTasks.find(t => t.id === originalId);
+        return {
+          ...task,
+          role_ids: originalTask?.role_ids || [],
+          role_names: originalTask?.role_names || [],
+        } as Task;
+      })
+      .filter(task => {
+        // Check if task has coverage:
+        // 1. Direct assignment to a scheduled employee
+        if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) {
+          return true;
+        }
+        // 2. Role assignment matches a scheduled role
+        const taskRoles = (task.role_names || []).map(r => r.toLowerCase());
+        if (taskRoles.some(r => scheduledRoles.has(r))) {
+          return true;
+        }
+        // No coverage - exclude from kiosk
+        return false;
+      });
+  }, [rawTasks, today, todaysTeam]);
 
   // =====================================================
   // KIOSK TASK-BASED LEADERBOARDS (role-aware, overdue-aware)

@@ -24,7 +24,10 @@ import {
   AlertCircle,
   RefreshCw,
   Timer,
-  Globe
+  Globe,
+  Eye,
+  EyeOff,
+  AlertTriangle
 } from "lucide-react";
 import { Task } from "@/hooks/useTasks";
 import { useLocations } from "@/hooks/useLocations";
@@ -258,6 +261,8 @@ export const AllTasksOpsDashboard = ({
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [recurringOnly, setRecurringOnly] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<"execution" | "planning">("planning"); // Default to planning to show all tasks
+  const [showNoCoverage, setShowNoCoverage] = useState(true); // Show no-coverage indicator
 
   // Calculate date range
   const { rangeStart, rangeEnd } = useMemo(() => {
@@ -291,16 +296,17 @@ export const AllTasksOpsDashboard = ({
   });
 
   // Get all occurrences in range using unified pipeline
-  const occurrencesInRange = useMemo(() => {
-    const pipelineResult = runPipelineForDateRange(tasks, rangeStart, rangeEnd, {
-      viewMode: "execution", // Only show covered tasks
+  const pipelineResult = useMemo(() => {
+    return runPipelineForDateRange(tasks, rangeStart, rangeEnd, {
+      viewMode, // Use selected view mode
       includeCompleted: true,
       includeVirtual: true,
       shifts,
     });
-    
-    return pipelineResult.tasks;
-  }, [tasks, rangeStart, rangeEnd, shifts]);
+  }, [tasks, rangeStart, rangeEnd, shifts, viewMode]);
+
+  const occurrencesInRange = pipelineResult.tasks;
+  const noCoverageTasks = pipelineResult.noCoverage;
 
   // Apply filters
   const filteredTasks = useMemo(() => {
@@ -539,6 +545,29 @@ export const AllTasksOpsDashboard = ({
               </Button>
             </div>
 
+            {/* View Mode Toggle */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">&nbsp;</label>
+              <Button
+                variant={viewMode === "planning" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode(viewMode === "planning" ? "execution" : "planning")}
+                className="h-10"
+                title={viewMode === "planning" 
+                  ? t('common.planningMode', 'Planning: All tasks (including no coverage)') 
+                  : t('common.executionMode', 'Execution: Only covered tasks')}
+              >
+                {viewMode === "planning" ? (
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5 mr-1" />
+                )}
+                {viewMode === "planning" 
+                  ? t('common.showNoCoverage', 'Show All') 
+                  : t('common.coveredOnly', 'Covered Only')}
+              </Button>
+            </div>
+
             {/* Clear Filters */}
             {hasActiveFilters && (
               <div className="space-y-1">
@@ -552,7 +581,7 @@ export const AllTasksOpsDashboard = ({
           </div>
 
           {/* Summary */}
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t text-sm text-muted-foreground">
             <span>
               {format(rangeStart, "MMM d")} - {format(rangeEnd, "MMM d, yyyy")}
             </span>
@@ -563,6 +592,12 @@ export const AllTasksOpsDashboard = ({
               <AlertCircle className="h-3.5 w-3.5" />
               {filteredTasks.filter(t => isTaskOverdueShiftAware(t, t.coverage)).length} {t('tasks.overdue').toLowerCase()}
             </span>
+            {viewMode === "planning" && noCoverageTasks.length > 0 && (
+              <span className="flex items-center gap-1 text-orange-600">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {noCoverageTasks.length} {t('common.noCoverage', 'no coverage')}
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
