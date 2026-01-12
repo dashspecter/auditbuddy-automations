@@ -277,7 +277,7 @@ const Tasks = () => {
     isLoadingShifts,
     rawTasks,
   } = useUnifiedTasks({
-    viewMode: "execution", // Only show tasks with coverage
+    viewMode: "planning", // Show all tasks including those without coverage
     startDate: startOfDay(new Date()),
     endDate: endOfDay(addDays(new Date(), 7)),
   });
