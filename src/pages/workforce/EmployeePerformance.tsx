@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
@@ -54,6 +55,7 @@ const getRankIcon = (rank: number) => {
 };
 
 const EmployeePerformance = () => {
+  const { t } = useTranslation();
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("month");
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
@@ -306,6 +308,41 @@ const EmployeePerformance = () => {
                 </div>
               </div>
             </div>
+
+            {/* Warning Penalty Section */}
+            {(employee.warning_count > 0 || employee.warning_penalty > 0) && (
+              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <span className="font-medium text-orange-800 dark:text-orange-200">
+                    {t("warnings.warningsImpact", "Warnings Impact")}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {employee.warning_count} {t("warnings.warningCount", "warnings (last 90d)")}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">{t("warnings.baseScore", "Base Score")}:</span>
+                    <span className="ml-2 font-medium">{employee.base_score?.toFixed(1) || '100.0'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">{t("warnings.warningsImpact", "Warnings")}:</span>
+                    <span className="ml-2 font-medium text-red-600">-{employee.warning_penalty?.toFixed(1) || '0.0'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">{t("warnings.finalScore", "Final Score")}:</span>
+                    <span className={`ml-2 font-bold ${getScoreColor(employee.overall_score)}`}>{employee.overall_score.toFixed(1)}</span>
+                  </div>
+                </div>
+                {employee.warning_monthly_caps && Object.entries(employee.warning_monthly_caps).some(([_, v]) => v.raw > v.capped) && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">
+                    <Info className="h-3 w-3" />
+                    {t("warnings.monthlyCap", "Monthly cap applied")}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

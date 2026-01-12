@@ -3,6 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
   GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
+  AlertTriangle,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -89,6 +90,7 @@ export const navigationItems: NavItem[] = [
       { id: "workforce-staff", title: "Staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' },
       { id: "workforce-shifts", title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: "workforce-attendance", title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
+      { id: "workforce-warnings", title: "Warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' },
       { id: "workforce-timeoff", title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
       { id: "workforce-payroll", title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
       { id: "workforce-payroll-batches", title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
