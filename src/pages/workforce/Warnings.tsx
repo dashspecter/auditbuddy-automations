@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { format, subDays } from "date-fns";
 import { AlertTriangle, Plus, FileText, Search, Filter, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +106,7 @@ export default function Warnings() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -368,6 +367,6 @@ export default function Warnings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppLayout>
+    </>
   );
 }
