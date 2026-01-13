@@ -18,6 +18,7 @@ const workforceSubItems = [
   { titleKey: "workforce.subItems.payrollBatches", url: "/workforce/payroll-batches", icon: DollarSign, descKey: "workforce.subItems.payrollBatchesDesc" },
   { titleKey: "workforce.subItems.attendanceAlerts", url: "/workforce/attendance-alerts", icon: AlertTriangle, descKey: "workforce.subItems.attendanceAlertsDesc" },
   { titleKey: "workforce.subItems.schedulingInsights", url: "/workforce/scheduling-insights", icon: BarChart, descKey: "workforce.subItems.schedulingInsightsDesc" },
+  { titleKey: "workforce.subItems.warnings", url: "/workforce/warnings", icon: AlertTriangle, descKey: "workforce.subItems.warningsDesc" },
 ];
 
 const Workforce = () => {
