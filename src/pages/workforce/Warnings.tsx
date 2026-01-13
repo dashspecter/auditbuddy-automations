@@ -156,24 +156,24 @@ export default function Warnings() {
                     />
                   </div>
                   
-                  <Select value={filterLocationId} onValueChange={setFilterLocationId}>
+                  <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder={t("common.allLocations", "All Locations")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Locations</SelectItem>
+                      <SelectItem value="all">All Locations</SelectItem>
                       {locations?.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   
-                  <Select value={filterEmployeeId} onValueChange={setFilterEmployeeId}>
+                  <Select value={filterEmployeeId || "all"} onValueChange={(v) => setFilterEmployeeId(v === "all" ? "" : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder={t("warnings.allEmployees", "All Employees")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Employees</SelectItem>
+                      <SelectItem value="all">All Employees</SelectItem>
                       {employees?.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
                       ))}
@@ -182,24 +182,24 @@ export default function Warnings() {
                   
                   {activeTab === "warning" && (
                     <>
-                      <Select value={filterSeverity} onValueChange={setFilterSeverity}>
+                      <Select value={filterSeverity || "all"} onValueChange={(v) => setFilterSeverity(v === "all" ? "" : v)}>
                         <SelectTrigger>
                           <SelectValue placeholder={t("warnings.allSeverities", "All Severities")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All Severities</SelectItem>
+                          <SelectItem value="all">All Severities</SelectItem>
                           <SelectItem value="minor">{t("warnings.minor", "Minor")}</SelectItem>
                           <SelectItem value="major">{t("warnings.major", "Major")}</SelectItem>
                           <SelectItem value="critical">{t("warnings.critical", "Critical")}</SelectItem>
                         </SelectContent>
                       </Select>
                       
-                      <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <Select value={filterCategory || "all"} onValueChange={(v) => setFilterCategory(v === "all" ? "" : v)}>
                         <SelectTrigger>
                           <SelectValue placeholder={t("warnings.allCategories", "All Categories")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All Categories</SelectItem>
+                          <SelectItem value="all">All Categories</SelectItem>
                           {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
                             <SelectItem key={key} value={key}>{label}</SelectItem>
                           ))}
