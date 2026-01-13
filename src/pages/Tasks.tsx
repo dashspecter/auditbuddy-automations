@@ -633,6 +633,29 @@ const Tasks = () => {
                       </div>
                     )}
                     
+                    {/* No Coverage Section (Planning mode - shows tasks without shift coverage) */}
+                    {todayGrouped.noCoverage.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          <h3 className="font-semibold text-amber-600">{t('common.noCoverage', 'No Coverage')}</h3>
+                          <Badge className="bg-amber-100 text-amber-800 text-xs">{todayGrouped.noCoverage.length}</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {todayGrouped.noCoverage.map((task) => (
+                            <TaskItem
+                              key={task.id}
+                              task={task}
+                              context="today"
+                              onComplete={() => handleComplete(task.id)}
+                              onEdit={() => navigate(`/tasks/${task.id}/edit`)}
+                              onDelete={() => setDeleteTaskId(task.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Pending Section */}
                     {todayGrouped.pending.length > 0 && (
                       <div>
