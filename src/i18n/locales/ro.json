@@ -1038,7 +1038,9 @@
       "attendanceAlerts": "Alerte prezență",
       "attendanceAlertsDesc": "Vezi alertele",
       "schedulingInsights": "Statistici programare",
-      "schedulingInsightsDesc": "Analiză"
+      "schedulingInsightsDesc": "Analiză",
+      "warnings": "Avertismente",
+      "warningsDesc": "Gestionează avertismentele"
     },
     "overview": {
       "staff": "Angajați",

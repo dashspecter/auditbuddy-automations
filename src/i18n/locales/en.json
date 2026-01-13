@@ -1038,7 +1038,9 @@
       "attendanceAlerts": "Attendance Alerts",
       "attendanceAlertsDesc": "View alerts",
       "schedulingInsights": "Scheduling Insights",
-      "schedulingInsightsDesc": "Analytics"
+      "schedulingInsightsDesc": "Analytics",
+      "warnings": "Warnings",
+      "warningsDesc": "Manage warnings"
     },
     "overview": {
       "staff": "Staff",
