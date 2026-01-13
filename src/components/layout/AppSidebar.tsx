@@ -63,6 +63,7 @@ const navigationItems = [
       { titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
       { titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { titleKey: "nav.attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' as CompanyPermission },
       { titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
       { titleKey: "nav.payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
       { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
