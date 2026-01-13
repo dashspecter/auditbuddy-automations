@@ -308,7 +308,7 @@ const Audits = () => {
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Checked by {getCheckerName(audit.user_id)} • {format(new Date(audit.audit_date), 'yyyy-MM-dd')}
+                          Checked by {getCheckerName(audit.user_id)} • {format(new Date(audit.created_at), 'yyyy-MM-dd HH:mm')}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
