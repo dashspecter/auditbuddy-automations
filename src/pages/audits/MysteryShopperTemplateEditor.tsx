@@ -66,9 +66,11 @@ const defaultTemplateData = {
 };
 
 export default function MysteryShopperTemplateEditor() {
-  const { templateId } = useParams<{ templateId: string }>();
+  // Route param is ":id" for edit; "/new" has no id.
+  const { id } = useParams<{ id?: string }>();
+  const templateId = id;
   const navigate = useNavigate();
-  const isEditing = templateId && templateId !== "new";
+  const isEditing = !!templateId;
   
   const { data: existingTemplate, isLoading: templateLoading } = useMysteryShopperTemplate(isEditing ? templateId : undefined);
   const { data: existingQuestions, isLoading: questionsLoading } = useMysteryShopperQuestions(isEditing ? templateId : undefined);
