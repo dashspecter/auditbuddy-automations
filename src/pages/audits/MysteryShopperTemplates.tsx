@@ -108,7 +108,7 @@ export default function MysteryShopperTemplates() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => navigate(`/audits/mystery-shopper/${template.id}`)}
+                          onClick={() => navigate(`/audits/mystery-shopper/templates/${template.id}`)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
