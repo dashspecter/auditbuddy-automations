@@ -27,6 +27,11 @@
   Pragma: no-cache
   Expires: 0
 
+/build-bootstrap-v3.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
 # version.json must never be cached
 /version.json
   Cache-Control: no-cache, no-store, must-revalidate
