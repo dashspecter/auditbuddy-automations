@@ -15,6 +15,12 @@
   const SESSION_MARKER_KEY = "bootstrap:session";
   const PRECLEAN_GUARD_KEY = "bootstrap:precleaned";
 
+  // Secondary guard: force a versioned URL per build to defeat stubborn edge/CDN caches
+  // that might ignore no-store headers for HTML documents.
+  const VERSION_URL = "/version.json";
+  const VERSION_KEY = "app_build_version";
+  const VERSION_REDIRECT_GUARD_KEY = "bootstrap:version-redirected";
+
   // Clear reload guard on fresh browser sessions to allow new builds to reload
   const currentSession = Date.now().toString();
   if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
@@ -23,6 +29,38 @@
   }
 
   const normalizeAssetPath = (p) => `/${String(p || "").replace(/^\/+/, "")}`;
+
+  async function ensureVersionedUrl() {
+    try {
+      const url = new URL(window.location.href);
+      // Don't interfere with the explicit reset flow.
+      if (url.searchParams.get("resetApp") === "1") return;
+
+      const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverVersion = data.buildTime || data.version || "";
+      if (!serverVersion) return;
+
+      try {
+        localStorage.setItem(VERSION_KEY, String(serverVersion));
+      } catch {
+        // ignore
+      }
+
+      const currentV = url.searchParams.get("v");
+      if (currentV === String(serverVersion)) return;
+
+      // Guard by version so we never loop.
+      if (sessionStorage.getItem(VERSION_REDIRECT_GUARD_KEY) === String(serverVersion)) return;
+      sessionStorage.setItem(VERSION_REDIRECT_GUARD_KEY, String(serverVersion));
+
+      url.searchParams.set("v", String(serverVersion));
+      window.location.replace(url.pathname + url.search + url.hash);
+    } catch {
+      // ignore
+    }
+  }
 
   async function unregisterAllServiceWorkers() {
     if (!("serviceWorker" in navigator)) return;
