@@ -21,6 +21,7 @@ export interface ScheduledAudit {
   } | null;
   audit_templates?: {
     name: string;
+    template_type?: string;
   } | null;
   locations?: {
     name: string;
@@ -39,7 +40,7 @@ export const useScheduledAudits = () => {
         .select(`
           *,
           profiles:assigned_user_id(full_name, email),
-          audit_templates(name),
+          audit_templates(name, template_type),
           locations(name, city)
         `)
         .not('scheduled_start', 'is', null)
@@ -54,6 +55,7 @@ export const useScheduledAudits = () => {
 
 export const useScheduleAudit = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (auditData: {
@@ -64,13 +66,24 @@ export const useScheduleAudit = () => {
       scheduled_end: string;
       notes?: string;
     }) => {
-      // Get location name
-      const { data: locationData } = await supabase
+      if (!user) {
+        throw new Error('You must be logged in to schedule an audit');
+      }
+
+      // Get location name and company_id
+      const { data: locationData, error: locationError } = await supabase
         .from('locations')
-        .select('name')
+        .select('name, company_id')
         .eq('id', auditData.location_id)
         .single();
 
+      if (locationError) {
+        console.error('Error fetching location:', locationError);
+        throw new Error('Failed to fetch location details');
+      }
+
+      // Insert the audit with the current user as user_id (required by RLS)
+      // and the assigned_user_id for who should perform it
       const { data, error } = await supabase
         .from('location_audits')
         .insert({
@@ -80,7 +93,8 @@ export const useScheduleAudit = () => {
           scheduled_start: auditData.scheduled_start,
           scheduled_end: auditData.scheduled_end,
           notes: auditData.notes,
-          user_id: auditData.assigned_user_id,
+          user_id: user.id, // Must be current user to satisfy RLS policy
+          company_id: locationData?.company_id, // Include company_id for consistency
           status: 'scheduled',
           location: locationData?.name || 'Unknown Location',
           audit_date: new Date(auditData.scheduled_start).toISOString().split('T')[0],
@@ -88,7 +102,10 @@ export const useScheduleAudit = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting audit:', error);
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
@@ -96,9 +113,9 @@ export const useScheduleAudit = () => {
       queryClient.invalidateQueries({ queryKey: ['location_audits'] });
       toast.success('Audit scheduled successfully');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error scheduling audit:', error);
-      toast.error('Failed to schedule audit');
+      toast.error(error.message || 'Failed to schedule audit');
     },
   });
 };
