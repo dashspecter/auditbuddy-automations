@@ -321,9 +321,16 @@ const AuditsCalendar = () => {
     setIsDeleting(true);
     try {
       const isScheduledAudit = selectedEvent.resource.source === 'scheduled_audits';
-      const actualId = isScheduledAudit 
-        ? selectedEvent.id.replace(/^scheduled-/, '').split('-').slice(0, 5).join('-')
-        : selectedEvent.id;
+      // Extract UUID: format is "scheduled-{uuid}-{instanceIndex}" or just "{uuid}"
+      // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
+      let actualId: string;
+      if (isScheduledAudit) {
+        // Remove "scheduled-" prefix, then extract the UUID (first 36 chars)
+        const withoutPrefix = selectedEvent.id.replace(/^scheduled-/, '');
+        actualId = withoutPrefix.substring(0, 36);
+      } else {
+        actualId = selectedEvent.id;
+      }
       
       const table = isScheduledAudit ? 'scheduled_audits' : 'location_audits';
       
@@ -352,9 +359,14 @@ const AuditsCalendar = () => {
     if (!selectedEvent) return;
     
     const isScheduledAudit = selectedEvent.resource.source === 'scheduled_audits';
-    const actualId = isScheduledAudit 
-      ? selectedEvent.id.replace(/^scheduled-/, '').split('-').slice(0, 5).join('-')
-      : selectedEvent.id;
+    // Extract UUID: format is "scheduled-{uuid}-{instanceIndex}" or just "{uuid}"
+    let actualId: string;
+    if (isScheduledAudit) {
+      const withoutPrefix = selectedEvent.id.replace(/^scheduled-/, '');
+      actualId = withoutPrefix.substring(0, 36);
+    } else {
+      actualId = selectedEvent.id;
+    }
     
     if (isScheduledAudit) {
       // Navigate to recurring schedules page to edit
