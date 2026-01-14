@@ -33,8 +33,10 @@ export const useScheduledAudits = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['scheduled_audits'],
+    queryKey: ['scheduled_audits', user?.id],
     queryFn: async () => {
+      // Fetch all scheduled audits - RLS will filter appropriately
+      // But for checkers, they should see audits assigned to them
       const { data, error } = await supabase
         .from('location_audits')
         .select(`

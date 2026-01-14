@@ -17,10 +17,12 @@ export const CheckerAuditsCard = () => {
   const { user } = useAuth();
   const { data: allAudits = [], isLoading } = useLocationAudits();
 
-  // Filter audits for current user only
+  // Filter audits for current user - includes audits they created OR are assigned to them
   const myAudits = useMemo(() => {
     if (!allAudits || !user) return [];
-    return allAudits.filter((audit) => audit.user_id === user.id);
+    return allAudits.filter((audit) => 
+      audit.user_id === user.id || audit.assigned_user_id === user.id
+    );
   }, [allAudits, user]);
 
   const stats = useMemo(() => {
