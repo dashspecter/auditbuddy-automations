@@ -741,7 +741,12 @@ const AuditsCalendar = () => {
                     </Button>
                     <Button 
                       variant="destructive" 
-                      onClick={() => setDeleteDialogOpen(true)}
+                      onClick={() => {
+                        // Prevent stacked modal overlays (Dialog + AlertDialog) which can
+                        // leave the UI "black" and unclickable.
+                        setDetailsDialogOpen(false);
+                        setDeleteDialogOpen(true);
+                      }}
                       className="flex-1"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
