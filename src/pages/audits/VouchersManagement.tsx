@@ -57,7 +57,7 @@ export default function VouchersManagement() {
           <p className="text-muted-foreground">Manage customer reward vouchers from mystery shopper surveys</p>
         </div>
         <Button asChild variant="outline">
-          <Link to="/audits/mystery-shopper-results">
+          <Link to="/audits/mystery-shopper/results">
             <ClipboardList className="h-4 w-4 mr-2" />
             View Survey Results
           </Link>
