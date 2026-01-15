@@ -117,7 +117,7 @@ const StaffScanVoucher = () => {
         })
         .eq("id", voucher.id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (updateError) {
         console.error("Redeem error:", updateError);
@@ -126,8 +126,8 @@ const StaffScanVoucher = () => {
       }
       
       if (!data) {
-        console.error("No data returned from update - voucher may not exist or update failed");
-        toast.error("Failed to redeem voucher: No data returned");
+        console.error("No data returned from update - voucher may not exist or access denied");
+        toast.error("Failed to redeem voucher: Access denied or voucher not found");
         return;
       }
       

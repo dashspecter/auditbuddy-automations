@@ -108,10 +108,10 @@ export const useRedeemVoucher = () => {
         })
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      if (!data) throw new Error("No data returned from update");
+      if (!data) throw new Error("Voucher not found or access denied");
       return data as Voucher;
     },
     onSuccess: () => {
@@ -144,10 +144,10 @@ export const useUpdateVoucherStatus = () => {
         .update(updates)
         .eq("id", id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      if (!data) throw new Error("No data returned from update");
+      if (!data) throw new Error("Voucher not found or access denied");
       return data as Voucher;
     },
     onSuccess: () => {
