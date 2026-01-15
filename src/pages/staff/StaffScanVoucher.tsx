@@ -129,6 +129,11 @@ const StaffScanVoucher = () => {
       setVoucher(data as Voucher);
       setRedeemSuccess(true);
       toast.success("Voucher redeemed successfully!");
+      
+      // Redirect to staff home after a brief delay so user sees success message
+      setTimeout(() => {
+        navigate("/staff");
+      }, 2000);
     } catch (err: any) {
       console.error("Unexpected error redeeming voucher:", err);
       toast.error("Error: " + err.message);
