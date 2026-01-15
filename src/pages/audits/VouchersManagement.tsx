@@ -18,6 +18,7 @@ export default function VouchersManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchCode, setSearchCode] = useState<string>("");
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
+  const [selectedRedeemLocationId, setSelectedRedeemLocationId] = useState<string>("");
   
   const { data: vouchers, isLoading } = useVouchers({
     status: statusFilter || undefined,
@@ -37,9 +38,28 @@ export default function VouchersManagement() {
     return locations?.filter(l => locationIds.includes(l.id)).map(l => l.name).join(", ") || "-";
   };
 
+  // Get valid locations for redemption (either all or those specified in voucher)
+  const getValidRedeemLocations = (voucher: typeof selectedVoucher) => {
+    if (!voucher || !locations) return [];
+    if (!voucher.location_ids || voucher.location_ids.length === 0) {
+      return locations;
+    }
+    return locations.filter(l => voucher.location_ids.includes(l.id));
+  };
+
   const handleRedeem = async (id: string) => {
-    await updateStatus.mutateAsync({ id, status: 'redeemed' });
+    if (!selectedRedeemLocationId) {
+      toast.error("Please select a location");
+      return;
+    }
+    await updateStatus.mutateAsync({ id, status: 'redeemed', locationId: selectedRedeemLocationId });
     setSelectedVoucherId(null);
+    setSelectedRedeemLocationId("");
+  };
+
+  const handleCloseRedeemDialog = () => {
+    setSelectedVoucherId(null);
+    setSelectedRedeemLocationId("");
   };
 
   const stats = {
@@ -227,7 +247,7 @@ export default function VouchersManagement() {
       </Card>
 
       {/* Redeem Dialog */}
-      <Dialog open={!!selectedVoucherId} onOpenChange={() => setSelectedVoucherId(null)}>
+      <Dialog open={!!selectedVoucherId} onOpenChange={handleCloseRedeemDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Redeem Voucher</DialogTitle>
@@ -252,15 +272,35 @@ export default function VouchersManagement() {
                   <p className="font-medium">{getLocationNames(selectedVoucher.location_ids)}</p>
                 </div>
               </div>
+              
+              {/* Location selector for redemption */}
+              <div className="space-y-2">
+                <Label htmlFor="redeem-location">Redeem at Location *</Label>
+                <Select 
+                  value={selectedRedeemLocationId} 
+                  onValueChange={setSelectedRedeemLocationId}
+                >
+                  <SelectTrigger id="redeem-location">
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getValidRedeemLocations(selectedVoucher).map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedVoucherId(null)}>
+            <Button variant="outline" onClick={handleCloseRedeemDialog}>
               Cancel
             </Button>
             <Button 
               onClick={() => selectedVoucher && handleRedeem(selectedVoucher.id)}
-              disabled={updateStatus.isPending}
+              disabled={updateStatus.isPending || !selectedRedeemLocationId}
             >
               {updateStatus.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
