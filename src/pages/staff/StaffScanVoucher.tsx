@@ -106,7 +106,7 @@ const StaffScanVoucher = () => {
     
     setIsRedeeming(true);
     try {
-      console.log("Redeeming voucher:", voucher.id);
+      console.log("Redeeming voucher:", voucher.id, "at location:", selectedLocationId);
       
       const { data, error: updateError } = await supabase
         .from("vouchers")
@@ -117,11 +117,17 @@ const StaffScanVoucher = () => {
         })
         .eq("id", voucher.id)
         .select()
-        .maybeSingle();
+        .single();
       
       if (updateError) {
         console.error("Redeem error:", updateError);
         toast.error("Failed to redeem voucher: " + updateError.message);
+        return;
+      }
+      
+      if (!data) {
+        console.error("No data returned from update - voucher may not exist or update failed");
+        toast.error("Failed to redeem voucher: No data returned");
         return;
       }
       
