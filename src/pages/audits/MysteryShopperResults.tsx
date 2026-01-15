@@ -283,7 +283,9 @@ export default function MysteryShopperResults() {
                         </TableCell>
                         <TableCell className="font-medium">{submission.customer_name}</TableCell>
                         <TableCell>{submission.mystery_shopper_templates?.name || "-"}</TableCell>
-                        <TableCell>{submission.locations?.name || "-"}</TableCell>
+                        <TableCell>
+                          {submission.vouchers?.redeemed_location?.name || submission.locations?.name || "-"}
+                        </TableCell>
                         <TableCell>
                           {submission.overall_score !== null ? (
                             <Badge variant={getScoreColor(submission.overall_score)}>
@@ -632,6 +634,12 @@ export default function MysteryShopperResults() {
                         {selectedSubmission.vouchers.status}
                       </Badge>
                     </div>
+                    {selectedSubmission.vouchers.redeemed_location?.name && (
+                      <div>
+                        <span className="text-muted-foreground">Redeemed at: </span>
+                        <span className="font-medium">{selectedSubmission.vouchers.redeemed_location.name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

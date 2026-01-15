@@ -24,10 +24,13 @@ export interface MysteryShopperSubmission {
   };
   vouchers?: {
     code: string;
-    value: number;
+    value: string | number;
     currency: string;
     status: string;
     redeemed_location_id?: string | null;
+    redeemed_location?: {
+      name: string;
+    } | null;
     expires_at?: string;
   };
 }
@@ -47,7 +50,14 @@ export const useMysteryShopperSubmissions = (filters?: {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, redeemed_location_id)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(
+            code,
+            value,
+            currency,
+            status,
+            redeemed_location_id,
+            redeemed_location:locations!vouchers_redeemed_location_id_fkey(name)
+          )
         `)
         .order("submitted_at", { ascending: false });
       
@@ -96,7 +106,15 @@ export const useMysteryShopperSubmission = (submissionId?: string) => {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, expires_at, redeemed_location_id)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(
+            code,
+            value,
+            currency,
+            status,
+            expires_at,
+            redeemed_location_id,
+            redeemed_location:locations!vouchers_redeemed_location_id_fkey(name)
+          )
         `)
         .eq("id", submissionId)
         .single();
