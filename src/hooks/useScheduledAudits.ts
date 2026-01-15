@@ -86,20 +86,25 @@ export const useScheduleAudit = () => {
 
       // Insert the audit with the current user as user_id (required by RLS)
       // and the assigned_user_id for who should perform it
+      // Convert datetime-local strings to proper ISO timestamps with timezone
+      // datetime-local gives "2026-01-15T12:00" which needs to be treated as local time
+      const startDate = new Date(auditData.scheduled_start);
+      const endDate = new Date(auditData.scheduled_end);
+      
       const { data, error } = await supabase
         .from('location_audits')
         .insert({
           location_id: auditData.location_id,
           template_id: auditData.template_id,
           assigned_user_id: auditData.assigned_user_id,
-          scheduled_start: auditData.scheduled_start,
-          scheduled_end: auditData.scheduled_end,
+          scheduled_start: startDate.toISOString(),
+          scheduled_end: endDate.toISOString(),
           notes: auditData.notes,
           user_id: user.id, // Must be current user to satisfy RLS policy
           company_id: locationData?.company_id, // Include company_id for consistency
           status: 'scheduled',
           location: locationData?.name || 'Unknown Location',
-          audit_date: new Date(auditData.scheduled_start).toISOString().split('T')[0],
+          audit_date: startDate.toISOString().split('T')[0],
         })
         .select()
         .single();
