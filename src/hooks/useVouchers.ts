@@ -15,6 +15,7 @@ export interface Voucher {
   expires_at: string;
   status: 'active' | 'redeemed' | 'expired';
   redeemed_at: string | null;
+  redeemed_location_id: string | null;
   linked_submission_id: string | null;
   created_at: string;
   updated_at: string;
@@ -97,18 +98,20 @@ export const useRedeemVoucher = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, locationId }: { id: string; locationId?: string }) => {
       const { data, error } = await supabase
         .from("vouchers")
         .update({
           status: 'redeemed',
           redeemed_at: new Date().toISOString(),
+          redeemed_location_id: locationId || null,
         })
         .eq("id", id)
         .select()
         .single();
       
       if (error) throw error;
+      if (!data) throw new Error("No data returned from update");
       return data as Voucher;
     },
     onSuccess: () => {
@@ -127,10 +130,13 @@ export const useUpdateVoucherStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'active' | 'redeemed' | 'expired' }) => {
-      const updates: Partial<Voucher> = { status };
+    mutationFn: async ({ id, status, locationId }: { id: string; status: 'active' | 'redeemed' | 'expired'; locationId?: string }) => {
+      const updates: Record<string, any> = { status };
       if (status === 'redeemed') {
         updates.redeemed_at = new Date().toISOString();
+        if (locationId) {
+          updates.redeemed_location_id = locationId;
+        }
       }
       
       const { data, error } = await supabase
@@ -141,6 +147,7 @@ export const useUpdateVoucherStatus = () => {
         .single();
       
       if (error) throw error;
+      if (!data) throw new Error("No data returned from update");
       return data as Voucher;
     },
     onSuccess: () => {
