@@ -3,11 +3,19 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, CheckCircle, XCircle, Gift } from "lucide-react";
+import { ArrowLeft, Search, CheckCircle, XCircle, Gift, MapPin } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { useLocations } from "@/hooks/useLocations";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface Voucher {
@@ -30,6 +38,9 @@ const StaffScanVoucher = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  
+  const { data: locations } = useLocations();
   const [isRedeeming, setIsRedeeming] = useState(false);
 
   // Check for URL code parameter
@@ -130,13 +141,31 @@ const StaffScanVoucher = () => {
     setVoucher(null);
     setError(null);
     setRedeemSuccess(false);
+    setSelectedLocationId(null);
   };
 
   const getLocationNames = (locationIds: string[] | null | undefined) => {
     if (!locationIds || locationIds.length === 0) return "All locations";
-    return locationIds.join(", ");
+    if (!locations) return locationIds.join(", ");
+    
+    const locationNames = locationIds
+      .map(id => locations.find(loc => loc.id === id)?.name || id)
+      .filter(Boolean);
+    return locationNames.length > 0 ? locationNames.join(", ") : "All locations";
   };
 
+  // Get valid locations for redemption (filter by voucher's allowed locations)
+  const getValidLocationsForRedemption = () => {
+    if (!locations) return [];
+    if (!voucher?.location_ids || voucher.location_ids.length === 0) {
+      // All locations are valid
+      return locations;
+    }
+    // Only locations that are in the voucher's location_ids
+    return locations.filter(loc => voucher.location_ids?.includes(loc.id));
+  };
+
+  const validRedemptionLocations = getValidLocationsForRedemption();
   const isExpired = voucher ? new Date(voucher.expires_at) < new Date() : false;
   const isRedeemed = voucher?.status === 'redeemed';
   const canRedeem = voucher && !isExpired && !isRedeemed && voucher.status === 'active';
@@ -297,6 +326,31 @@ const StaffScanVoucher = () => {
                 )}
               </div>
 
+              {/* Location selector - required before redeeming */}
+              {canRedeem && (
+                <div className="pt-4 space-y-2">
+                  <div className="text-sm text-muted-foreground flex items-center gap-1.5 mb-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>Select Redemption Location</span>
+                  </div>
+                  <Select
+                    value={selectedLocationId || ""}
+                    onValueChange={(value) => setSelectedLocationId(value)}
+                  >
+                    <SelectTrigger className="w-full bg-background">
+                      <SelectValue placeholder="Choose a location..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {validRedemptionLocations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Action buttons */}
               <div className="pt-4 space-y-2">
                 {canRedeem ? (
@@ -304,7 +358,7 @@ const StaffScanVoucher = () => {
                     onClick={handleRedeem} 
                     className="w-full" 
                     size="lg"
-                    disabled={isRedeeming}
+                    disabled={isRedeeming || !selectedLocationId}
                   >
                     {isRedeeming ? (
                       <>
