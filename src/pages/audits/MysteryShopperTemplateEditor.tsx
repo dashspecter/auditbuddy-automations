@@ -72,8 +72,19 @@ export default function MysteryShopperTemplateEditor() {
   const navigate = useNavigate();
   const isEditing = !!templateId;
   
-  const { data: existingTemplate, isLoading: templateLoading } = useMysteryShopperTemplate(isEditing ? templateId : undefined);
-  const { data: existingQuestions, isLoading: questionsLoading } = useMysteryShopperQuestions(isEditing ? templateId : undefined);
+  const {
+    data: existingTemplate,
+    isLoading: templateLoading,
+    isError: templateIsError,
+    error: templateError,
+  } = useMysteryShopperTemplate(isEditing ? templateId : undefined);
+
+  const {
+    data: existingQuestions,
+    isLoading: questionsLoading,
+    isError: questionsIsError,
+    error: questionsError,
+  } = useMysteryShopperQuestions(isEditing ? templateId : undefined);
   const { data: locations } = useLocations();
   const { data: companyData } = useCompany();
   
@@ -90,6 +101,31 @@ export default function MysteryShopperTemplateEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [hydrated, setHydrated] = useState(false);
   const lastSavedRef = useRef<string>("");
+  const errorHandledRef = useRef(false);
+
+  // Prevent leaking "New Template" draft state into the edit view when navigating
+  // between routes without a full remount.
+  useEffect(() => {
+    errorHandledRef.current = false;
+
+    if (isEditing) {
+      setTemplateData(defaultTemplateData);
+      setQuestions([]);
+      setHydrated(true);
+    }
+  }, [templateId, isEditing]);
+
+  // If editing fails to load, never show stale draft data; bounce back to list.
+  useEffect(() => {
+    if (!isEditing) return;
+    if (!templateIsError && !questionsIsError) return;
+    if (errorHandledRef.current) return;
+
+    errorHandledRef.current = true;
+    const err = (templateError ?? questionsError) as any;
+    toast.error(String(err?.message ?? "Failed to load template"));
+    navigate("/audits/mystery-shopper");
+  }, [isEditing, templateIsError, questionsIsError, templateError, questionsError, navigate]);
 
   // Load draft from localStorage on mount (only for new templates)
   useEffect(() => {
