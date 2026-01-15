@@ -27,6 +27,8 @@ export interface MysteryShopperSubmission {
     value: number;
     currency: string;
     status: string;
+    redeemed_location_id?: string | null;
+    expires_at?: string;
   };
 }
 
@@ -45,16 +47,14 @@ export const useMysteryShopperSubmissions = (filters?: {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, redeemed_location_id)
         `)
         .order("submitted_at", { ascending: false });
       
       if (filters?.templateId) {
         query = query.eq("template_id", filters.templateId);
       }
-      if (filters?.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // Location filter applied client-side to check both submission.location_id and voucher.redeemed_location_id
       if (filters?.dateFrom) {
         query = query.gte("submitted_at", filters.dateFrom);
       }
@@ -68,8 +68,18 @@ export const useMysteryShopperSubmissions = (filters?: {
         console.error("Error fetching mystery shopper submissions:", error);
         throw error;
       }
-      console.log("Mystery shopper submissions fetched:", data?.length, data);
-      return data as MysteryShopperSubmission[];
+      
+      // Apply location filter client-side to check both submission.location_id AND voucher.redeemed_location_id
+      let filteredData = data as MysteryShopperSubmission[];
+      if (filters?.locationId) {
+        filteredData = filteredData.filter(submission => 
+          submission.location_id === filters.locationId || 
+          submission.vouchers?.redeemed_location_id === filters.locationId
+        );
+      }
+      
+      console.log("Mystery shopper submissions fetched:", filteredData?.length, filteredData);
+      return filteredData;
     },
   });
 };
@@ -86,7 +96,7 @@ export const useMysteryShopperSubmission = (submissionId?: string) => {
           *,
           mystery_shopper_templates(name, company_id),
           locations(name),
-          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, expires_at)
+          vouchers!mystery_shopper_submissions_voucher_id_fkey(code, value, currency, status, expires_at, redeemed_location_id)
         `)
         .eq("id", submissionId)
         .single();
