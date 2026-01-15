@@ -39,8 +39,8 @@ export const AdminRoute = ({ children }: AdminRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Show access denied if not admin
-  if (!roleData?.isAdmin) {
+  // Show access denied if not admin (platform admin OR company admin)
+  if (!roleData?.isAdmin && !roleData?.isCompanyAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
