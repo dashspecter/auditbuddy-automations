@@ -7314,6 +7314,7 @@ export type Database = {
           linked_submission_id: string | null
           location_ids: string[] | null
           redeemed_at: string | null
+          redeemed_location_id: string | null
           status: string
           terms_text: string | null
           updated_at: string
@@ -7331,6 +7332,7 @@ export type Database = {
           linked_submission_id?: string | null
           location_ids?: string[] | null
           redeemed_at?: string | null
+          redeemed_location_id?: string | null
           status?: string
           terms_text?: string | null
           updated_at?: string
@@ -7348,6 +7350,7 @@ export type Database = {
           linked_submission_id?: string | null
           location_ids?: string[] | null
           redeemed_at?: string | null
+          redeemed_location_id?: string | null
           status?: string
           terms_text?: string | null
           updated_at?: string
@@ -7366,6 +7369,13 @@ export type Database = {
             columns: ["linked_submission_id"]
             isOneToOne: false
             referencedRelation: "mystery_shopper_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_redeemed_location_id_fkey"
+            columns: ["redeemed_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
