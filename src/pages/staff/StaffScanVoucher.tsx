@@ -113,10 +113,11 @@ const StaffScanVoucher = () => {
         .update({
           status: 'redeemed',
           redeemed_at: new Date().toISOString(),
+          redeemed_location_id: selectedLocationId,
         })
         .eq("id", voucher.id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (updateError) {
         console.error("Redeem error:", updateError);
