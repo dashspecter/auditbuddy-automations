@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,6 +37,8 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
+const DRAFT_KEY = 'schedule-audit-dialog-draft';
+
 const auditEntrySchema = z.object({
   template_id: z.string().min(1, 'Template is required'),
   assigned_user_id: z.string().min(1, 'Assigned user is required'),
@@ -63,6 +65,90 @@ interface ScheduleAuditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+// Draft persistence hook for ScheduleAuditDialog
+const useScheduleAuditDraft = (open: boolean, form: ReturnType<typeof useForm<ScheduleAuditFormValues>>) => {
+  const isHydrating = useRef(true);
+  const lastSavedData = useRef<string>('');
+
+  // Save draft to localStorage
+  const saveDraft = useCallback(() => {
+    if (isHydrating.current || !open) return;
+    const values = form.getValues();
+    const dataStr = JSON.stringify(values);
+    if (dataStr !== lastSavedData.current) {
+      localStorage.setItem(DRAFT_KEY, dataStr);
+      lastSavedData.current = dataStr;
+    }
+  }, [form, open]);
+
+  // Restore draft from localStorage
+  const restoreDraft = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as ScheduleAuditFormValues;
+        if (parsed.location_id || parsed.audits?.some(a => a.template_id || a.assigned_user_id || a.scheduled_start)) {
+          form.reset(parsed);
+          lastSavedData.current = saved;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to restore schedule audit draft:', e);
+    }
+    isHydrating.current = false;
+  }, [form]);
+
+  // Clear draft
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+    lastSavedData.current = '';
+  }, []);
+
+  // Restore on open
+  useEffect(() => {
+    if (open) {
+      isHydrating.current = true;
+      restoreDraft();
+    }
+  }, [open, restoreDraft]);
+
+  // Save on form changes with debounce
+  useEffect(() => {
+    if (!open) return;
+    const subscription = form.watch(() => {
+      const timeoutId = setTimeout(saveDraft, 300);
+      return () => clearTimeout(timeoutId);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, open, saveDraft]);
+
+  // Save on visibility change (tab switch)
+  useEffect(() => {
+    if (!open) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveDraft();
+      }
+    };
+
+    const handlePageHide = () => saveDraft();
+    const handleBeforeUnload = () => saveDraft();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [open, saveDraft]);
+
+  return { clearDraft };
+};
 
 export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogProps) => {
   const { data: locations } = useLocations();
@@ -99,6 +185,8 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
     },
   });
 
+  const { clearDraft } = useScheduleAuditDraft(open, form);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'audits',
@@ -133,6 +221,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
       }
       
       toast.success(`${values.audits.length} audit(s) scheduled successfully`);
+      clearDraft(); // Clear draft on successful submission
       form.reset();
       onOpenChange(false);
     } catch (error) {
