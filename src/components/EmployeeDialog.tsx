@@ -225,8 +225,11 @@ export const EmployeeDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Destructure to exclude non-database fields from submission
+    const { newUserPassword, ...formDataWithoutPassword } = formData;
+    
     const submitData = {
-      ...formData,
+      ...formDataWithoutPassword,
       base_salary: formData.base_salary ? parseFloat(formData.base_salary) : null,
       hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
       overtime_rate: formData.overtime_rate ? parseFloat(formData.overtime_rate) : null,
