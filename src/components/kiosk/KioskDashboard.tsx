@@ -200,33 +200,33 @@ export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) =
         }
       }
 
-      // Attach role info to tasks - check BOTH task_roles table AND direct assigned_role_id
+      // Attach role info to tasks - PRIMARY ROLE from assigned_role_id, additional from task_roles
+      // The PRIMARY role (assigned_role_id) should always come first for display purposes
       return data.map((task: any) => {
         const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
         
-        // If task has entries in task_roles table, use those
-        if (taskRoleEntries.length > 0) {
-          return {
-            ...task,
-            role_ids: taskRoleEntries.map((tr: any) => tr.role_id),
-            role_names: taskRoleEntries.map((tr: any) => roleMap[tr.role_id]).filter(Boolean)
-          };
-        }
+        // Build role list with PRIMARY role first (assigned_role_id)
+        const roleIds: string[] = [];
+        const roleNames: string[] = [];
         
-        // Otherwise, fall back to direct assigned_role_id on the task
+        // 1. Add PRIMARY role first (direct assigned_role_id on task)
         if (task.assigned_role_id && roleMap[task.assigned_role_id]) {
-          return {
-            ...task,
-            role_ids: [task.assigned_role_id],
-            role_names: [roleMap[task.assigned_role_id]]
-          };
+          roleIds.push(task.assigned_role_id);
+          roleNames.push(roleMap[task.assigned_role_id]);
         }
         
-        // No role assigned
+        // 2. Add additional roles from task_roles table (excluding duplicates)
+        taskRoleEntries.forEach((tr: any) => {
+          if (!roleIds.includes(tr.role_id) && roleMap[tr.role_id]) {
+            roleIds.push(tr.role_id);
+            roleNames.push(roleMap[tr.role_id]);
+          }
+        });
+        
         return {
           ...task,
-          role_ids: [],
-          role_names: []
+          role_ids: roleIds,
+          role_names: roleNames
         };
       }) as (BaseTask & { role_ids?: string[]; role_names?: string[] })[];
     },
