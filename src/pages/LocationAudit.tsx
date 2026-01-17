@@ -586,40 +586,50 @@ const LocationAudit = () => {
     if (!user || !selectedTemplateId) return;
 
     try {
-      // First, delete all existing drafts for this user to keep only the latest
-      await supabase
-        .from('location_audits')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('status', 'draft');
-
       const { data: companyUser } = await supabase
         .from('company_users')
         .select('company_id')
         .eq('user_id', user.id)
         .single();
 
-      const { data, error } = await supabase
-        .from('location_audits')
-        .insert({
-          template_id: selectedTemplateId,
-          location: formData.location_id || '',
-          location_id: formData.location_id || null,
-          audit_date: formData.auditDate,
-          time_start: formData.timeStart || null,
-          time_end: formData.timeEnd || null,
-          notes: formData.notes || null,
-          status: 'draft',
-          user_id: user.id,
-          company_id: companyUser?.company_id || null,
-          custom_data: formData.customData,
-        })
-        .select()
-        .single();
+      if (!companyUser?.company_id) {
+        console.error('No company found for user');
+        return;
+      }
 
-      if (error) throw error;
+      // Use the RPC function to find or create a draft (prevents duplicates)
+      const { data: draftId, error } = await supabase
+        .rpc('find_or_create_audit_draft', {
+          p_company_id: companyUser.company_id,
+          p_location_id: formData.location_id || null,
+          p_template_id: selectedTemplateId,
+          p_user_id: user.id,
+          p_audit_date: formData.auditDate,
+          p_scheduled_audit_id: scheduledAuditId || null,
+        });
+
+      if (error) {
+        console.error('Error in find_or_create_audit_draft:', error);
+        // Fallback: try to find existing draft manually
+        const { data: existingDraft } = await supabase
+          .from('location_audits')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('template_id', selectedTemplateId)
+          .eq('location_id', formData.location_id || null)
+          .in('status', ['draft', 'in_progress'])
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingDraft) {
+          setCurrentDraftId(existingDraft.id);
+          return;
+        }
+        throw error;
+      }
       
-      setCurrentDraftId(data.id);
+      setCurrentDraftId(draftId);
     } catch (error) {
       console.error('Error creating initial draft:', error);
     }
@@ -664,7 +674,8 @@ const LocationAudit = () => {
         notes: formData.notes || null,
         template_id: selectedTemplateId,
         custom_data: formData.customData,
-        status: 'draft',
+        status: 'draft' as const,
+        updated_at: new Date().toISOString(),
       };
 
       if (currentDraftId) {
@@ -676,22 +687,36 @@ const LocationAudit = () => {
 
         if (error) throw error;
       } else {
-        // Delete all existing drafts for this user before creating a new one
-        await supabase
-          .from('location_audits')
-          .delete()
+        // Use RPC to find or create draft (prevents duplicates)
+        const { data: companyUser } = await supabase
+          .from('company_users')
+          .select('company_id')
           .eq('user_id', user.id)
-          .eq('status', 'draft');
-
-        // Create new draft
-        const { data, error } = await supabase
-          .from('location_audits')
-          .insert(auditData)
-          .select()
           .single();
 
-        if (error) throw error;
-        setCurrentDraftId(data.id);
+        if (companyUser?.company_id) {
+          const { data: draftId, error: rpcError } = await supabase
+            .rpc('find_or_create_audit_draft', {
+              p_company_id: companyUser.company_id,
+              p_location_id: formData.location_id || null,
+              p_template_id: selectedTemplateId,
+              p_user_id: user.id,
+              p_audit_date: formData.auditDate,
+              p_scheduled_audit_id: scheduledAuditId || null,
+            });
+
+          if (rpcError) throw rpcError;
+          
+          // Update the draft with full data
+          await supabase
+            .from('location_audits')
+            .update(auditData)
+            .eq('id', draftId);
+            
+          setCurrentDraftId(draftId);
+        } else {
+          throw new Error('No company found for user');
+        }
       }
 
       toast.success("Draft saved successfully!");
