@@ -22,6 +22,7 @@ import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
+import { isCompletedAudit, isDraftAudit, isDiscardedAudit, getCompletionDate } from "@/lib/auditHelpers";
 
 const auditsSubItems = [
   { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
@@ -105,8 +106,8 @@ const Audits = () => {
       .filter(audit => {
         const status = audit.status as string;
         
-        // Hide discarded audits always
-        if (status === 'discarded') return false;
+        // Hide discarded audits (unless they're actually completed)
+        if (isDiscardedAudit(audit)) return false;
         
         // Search filter
         const searchLower = searchQuery.toLowerCase();
@@ -122,35 +123,53 @@ const Audits = () => {
         const auditType = getTemplateType(audit.template_id);
         if (typeFilter !== "all" && auditType !== typeFilter) return false;
 
-        // Status filter - handle 'all-status' as showing all non-draft
+        // Status filter using helper functions for proper completion detection
         if (statusFilter === "all-status") {
-          // When "all-status" is selected, show completed + in_progress but NOT drafts
+          // When "all-status" is selected, show completed audits but NOT drafts
           // unless showDrafts toggle is enabled
-          if (!showDrafts && (status === 'draft' || status === 'in_progress')) {
+          if (!showDrafts && isDraftAudit(audit)) {
             return false;
           }
-        } else if (statusFilter !== status) {
-          return false;
+        } else if (statusFilter === "completed") {
+          // "Completed" means any finished audit (compliant, non-compliant, or status=completed)
+          if (!isCompletedAudit(audit)) return false;
+        } else if (statusFilter === "compliant") {
+          if (status !== 'compliant') return false;
+        } else if (statusFilter === "non-compliant") {
+          if (status !== 'non-compliant' && status !== 'non_compliant') return false;
+        } else if (statusFilter === "pending") {
+          if (status !== 'pending') return false;
+        } else if (statusFilter === "in_progress") {
+          if (status !== 'in_progress') return false;
+        } else if (statusFilter === "draft") {
+          if (!isDraftAudit(audit)) return false;
         }
 
         return true;
       })
       .sort((a, b) => {
-        const aStatus = a.status as string;
-        const bStatus = b.status as string;
+        // Sort completed audits first, then in_progress, then drafts
+        // Within each group, sort by updated_at (newest first)
+        const aCompleted = isCompletedAudit(a);
+        const bCompleted = isCompletedAudit(b);
+        const aDraft = isDraftAudit(a);
+        const bDraft = isDraftAudit(b);
         
-        // Sort: completed audits first, then in_progress, then drafts
-        // Within each group, sort by date (newest first)
-        const statusOrder: Record<string, number> = { completed: 0, in_progress: 1, draft: 2 };
-        const aOrder = statusOrder[aStatus] ?? 3;
-        const bOrder = statusOrder[bStatus] ?? 3;
+        // Completed first
+        if (aCompleted && !bCompleted) return -1;
+        if (!aCompleted && bCompleted) return 1;
         
-        if (aOrder !== bOrder) return aOrder - bOrder;
+        // Drafts last
+        if (aDraft && !bDraft) return 1;
+        if (!aDraft && bDraft) return -1;
         
-        // If both same type, sort by date
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        // Within same category, sort by date (use updated_at for completed, created_at otherwise)
+        const aDate = getCompletionDate(a);
+        const bDate = getCompletionDate(b);
+        return bDate.getTime() - aDate.getTime();
       });
   }, [audits, searchQuery, typeFilter, statusFilter, showDrafts, profiles, templates]);
+
 
   const handleRefresh = async () => {
     await refetch();
