@@ -38,7 +38,10 @@ export const AUDIT_STATUS = {
   DRAFT: 'draft',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
+  COMPLIANT: 'compliant',
+  NON_COMPLIANT: 'non-compliant',
   SCHEDULED: 'scheduled',
+  DISCARDED: 'discarded',
 } as const;
 
 export const EQUIPMENT_STATUS = {
