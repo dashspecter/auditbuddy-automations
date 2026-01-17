@@ -39,7 +39,9 @@ const Audits = () => {
   const { data: audits, isLoading, refetch } = useLocationAudits();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all-status");
+  // Default to showing only completed audits
+  const [statusFilter, setStatusFilter] = useState("completed");
+  const [showDrafts, setShowDrafts] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -101,6 +103,11 @@ const Audits = () => {
 
     return audits
       .filter(audit => {
+        const status = audit.status as string;
+        
+        // Hide discarded audits always
+        if (status === 'discarded') return false;
+        
         // Search filter
         const searchLower = searchQuery.toLowerCase();
         const checkerName = getCheckerName(audit.user_id).toLowerCase();
@@ -115,24 +122,35 @@ const Audits = () => {
         const auditType = getTemplateType(audit.template_id);
         if (typeFilter !== "all" && auditType !== typeFilter) return false;
 
-        // Status filter
-        if (statusFilter !== "all-status" && audit.status !== statusFilter) return false;
+        // Status filter - handle 'all-status' as showing all non-draft
+        if (statusFilter === "all-status") {
+          // When "all-status" is selected, show completed + in_progress but NOT drafts
+          // unless showDrafts toggle is enabled
+          if (!showDrafts && (status === 'draft' || status === 'in_progress')) {
+            return false;
+          }
+        } else if (statusFilter !== status) {
+          return false;
+        }
 
         return true;
       })
       .sort((a, b) => {
-        // Sort: completed audits first, then drafts
-        // Within each group, sort by date (newest first)
-        const aIsDraft = a.status === 'draft';
-        const bIsDraft = b.status === 'draft';
+        const aStatus = a.status as string;
+        const bStatus = b.status as string;
         
-        if (aIsDraft && !bIsDraft) return 1;
-        if (!aIsDraft && bIsDraft) return -1;
+        // Sort: completed audits first, then in_progress, then drafts
+        // Within each group, sort by date (newest first)
+        const statusOrder: Record<string, number> = { completed: 0, in_progress: 1, draft: 2 };
+        const aOrder = statusOrder[aStatus] ?? 3;
+        const bOrder = statusOrder[bStatus] ?? 3;
+        
+        if (aOrder !== bOrder) return aOrder - bOrder;
         
         // If both same type, sort by date
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [audits, searchQuery, typeFilter, statusFilter, profiles, templates]);
+  }, [audits, searchQuery, typeFilter, statusFilter, showDrafts, profiles, templates]);
 
   const handleRefresh = async () => {
     await refetch();
@@ -241,12 +259,25 @@ const Audits = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all-status">All Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="compliant">Compliant</SelectItem>
                   <SelectItem value="non-compliant">Non-Compliant</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="draft">Drafts Only</SelectItem>
                 </SelectContent>
               </Select>
+              {/* Toggle for showing drafts in all-status view */}
+              {statusFilter === 'all-status' && (
+                <Button
+                  variant={showDrafts ? "secondary" : "outline"}
+                  size="sm"
+                  className="whitespace-nowrap"
+                  onClick={() => setShowDrafts(!showDrafts)}
+                >
+                  {showDrafts ? "Hide Drafts" : "Show Drafts"}
+                </Button>
+              )}
             </div>
 
             {isLoading ? (

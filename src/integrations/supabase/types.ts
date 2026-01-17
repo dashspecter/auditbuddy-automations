@@ -4096,6 +4096,7 @@ export type Database = {
           compliance_signage: number | null
           created_at: string
           custom_data: Json | null
+          draft_key: string | null
           foh_customer_areas: number | null
           foh_menu_boards: number | null
           foh_restrooms: number | null
@@ -4132,6 +4133,7 @@ export type Database = {
           compliance_signage?: number | null
           created_at?: string
           custom_data?: Json | null
+          draft_key?: string | null
           foh_customer_areas?: number | null
           foh_menu_boards?: number | null
           foh_restrooms?: number | null
@@ -4168,6 +4170,7 @@ export type Database = {
           compliance_signage?: number | null
           created_at?: string
           custom_data?: Json | null
+          draft_key?: string | null
           foh_customer_areas?: number | null
           foh_menu_boards?: number | null
           foh_restrooms?: number | null
@@ -7507,6 +7510,27 @@ export type Database = {
       employee_has_time_off: {
         Args: { _check_date: string; _employee_id: string }
         Returns: boolean
+      }
+      find_or_create_audit_draft: {
+        Args: {
+          p_audit_date: string
+          p_company_id: string
+          p_location_id: string
+          p_scheduled_audit_id?: string
+          p_template_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      generate_audit_draft_key: {
+        Args: {
+          p_company_id: string
+          p_location_id: string
+          p_scheduled_audit_id?: string
+          p_template_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       generate_kiosk_slug: {
         Args: { location_id: string; location_name: string }
