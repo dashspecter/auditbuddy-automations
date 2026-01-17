@@ -1,12 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck, Plus, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ClipboardCheck, Plus, ArrowRight, CheckCircle2, Calendar, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useLocationAudits } from "@/hooks/useAudits";
+import { useMyScheduledAudits, useMyAudits } from "@/hooks/useMyScheduledAudits";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
-import { format } from "date-fns";
+import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
@@ -15,49 +15,96 @@ export const CheckerAuditsCard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: allAudits = [], isLoading } = useLocationAudits();
+  
+  // Use same data source as calendar for scheduled audits
+  const { data: scheduledAudits = [], isLoading: scheduledLoading } = useMyScheduledAudits();
+  // Use all audits for stats (completed, drafts)
+  const { data: allMyAudits = [], isLoading: allLoading } = useMyAudits();
 
-  // Filter audits for current user - includes audits they created OR are assigned to them
-  const myAudits = useMemo(() => {
-    if (!allAudits || !user) return [];
-    return allAudits.filter((audit) => 
-      audit.user_id === user.id || audit.assigned_user_id === user.id
-    );
-  }, [allAudits, user]);
+  const isLoading = scheduledLoading || allLoading;
 
+  // Stats from ALL audits (completed, drafts, etc.)
   const stats = useMemo(() => {
-    const total = myAudits.length;
-    const completed = myAudits.filter(
-      (a) => a.status === "compliant" || a.status === "non-compliant"
+    const total = allMyAudits.length;
+    const completed = allMyAudits.filter(
+      (a) => a.status === "compliant" || a.status === "non-compliant" || a.status === "completed"
     ).length;
-    const drafts = myAudits.filter((a) => a.status === "draft" || !a.status).length;
-    return { total, completed, drafts };
-  }, [myAudits]);
+    const drafts = allMyAudits.filter((a) => a.status === "draft" || !a.status).length;
+    const scheduled = scheduledAudits.filter((a) => a.status === "scheduled").length;
+    return { total, completed, drafts, scheduled };
+  }, [allMyAudits, scheduledAudits]);
 
-  const recentAudits = useMemo(() => {
-    return [...myAudits]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 3);
-  }, [myAudits]);
+  // Upcoming audits: scheduled audits that haven't been completed, sorted by scheduled_start
+  const upcomingAudits = useMemo(() => {
+    const now = new Date();
+    return scheduledAudits
+      .filter((audit) => {
+        // Only show scheduled/pending/in_progress, not completed
+        const status = audit.status?.toLowerCase();
+        return status !== "compliant" && status !== "non-compliant" && status !== "completed";
+      })
+      .slice(0, 3); // Show next 3 upcoming
+  }, [scheduledAudits]);
 
   const templateIds = useMemo(
-    () => recentAudits.map((a) => a.template_id).filter(Boolean) as string[],
-    [recentAudits]
+    () => upcomingAudits.map((a) => a.template_id).filter(Boolean) as string[],
+    [upcomingAudits]
   );
 
   const { data: fieldsByTemplateId } = useAuditTemplateFields(templateIds);
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "compliant":
-        return "bg-success/20 text-success border-success/30";
-      case "pending":
-        return "bg-warning/20 text-warning border-warning/30";
-      case "non-compliant":
-        return "bg-destructive/20 text-destructive border-destructive/30";
-      default:
-        return "bg-muted text-muted-foreground border-border";
+  const getStatusInfo = (audit: any) => {
+    const status = audit.status?.toLowerCase() || "scheduled";
+    const scheduledStart = audit.scheduled_start ? parseISO(audit.scheduled_start) : null;
+    
+    // Check if overdue
+    if (scheduledStart && isPast(scheduledStart) && status === "scheduled") {
+      return {
+        label: t("common.overdue", "Overdue"),
+        className: "bg-destructive/20 text-destructive border-destructive/30",
+        icon: AlertTriangle
+      };
     }
+    
+    switch (status) {
+      case "compliant":
+        return {
+          label: t("common.compliant", "Compliant"),
+          className: "bg-success/20 text-success border-success/30",
+          icon: CheckCircle2
+        };
+      case "in_progress":
+        return {
+          label: t("common.inProgress", "In Progress"),
+          className: "bg-primary/20 text-primary border-primary/30",
+          icon: Clock
+        };
+      case "scheduled":
+        return {
+          label: t("common.scheduled", "Scheduled"),
+          className: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+          icon: Calendar
+        };
+      default:
+        return {
+          label: status || "scheduled",
+          className: "bg-muted text-muted-foreground border-border",
+          icon: Clock
+        };
+    }
+  };
+
+  const formatScheduledDate = (audit: any) => {
+    if (!audit.scheduled_start) return "";
+    const date = parseISO(audit.scheduled_start);
+    
+    if (isToday(date)) {
+      return `${t("common.today", "Today")} ${format(date, "HH:mm")}`;
+    }
+    if (isTomorrow(date)) {
+      return `${t("common.tomorrow", "Tomorrow")} ${format(date, "HH:mm")}`;
+    }
+    return format(date, "MMM d, HH:mm");
   };
 
   const getScore = (audit: any) => {
@@ -86,7 +133,11 @@ export const CheckerAuditsCard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-background rounded-md p-2 text-center">
+            <div className="text-lg font-bold text-blue-600">{stats.scheduled}</div>
+            <div className="text-xs text-muted-foreground">{t("common.scheduled", "Scheduled")}</div>
+          </div>
           <div className="bg-background rounded-md p-2 text-center">
             <div className="text-lg font-bold text-success">{stats.completed}</div>
             <div className="text-xs text-muted-foreground">{t("common.completed", "Completed")}</div>
@@ -104,59 +155,61 @@ export const CheckerAuditsCard = () => {
         </Button>
       </Card>
 
-      {/* Recent Audits */}
-      {recentAudits.length > 0 && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm">{t("staffHome.checker.recentAudits", "Recent Audits")}</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => navigate("/staff/audits")}
-            >
-              {t("common.viewAll", "View All")} <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </div>
+      {/* Upcoming Scheduled Audits */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm">{t("staffHome.checker.upcomingAudits", "Upcoming Audits")}</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => navigate("/staff/audits")}
+          >
+            {t("common.viewAll", "View All")} <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentAudits.map((audit) => {
-                const score = getScore(audit);
-                return (
-                  <div
-                    key={audit.id}
-                    className="flex items-center justify-between p-2 rounded-md bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                    onClick={() => navigate(`/staff/audits/${audit.id}`)}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{audit.locations?.name || audit.location}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(audit.created_at), "MMM d, yyyy")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {score !== null && score !== undefined && (
-                        <span className="text-sm font-semibold">{score}%</span>
-                      )}
-                      <Badge variant="outline" className={`text-xs ${getStatusColor(audit.status || "draft")}`}>
-                        {audit.status || "draft"}
-                      </Badge>
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : upcomingAudits.length === 0 ? (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            {t("staffHome.checker.noUpcomingAudits", "No upcoming audits scheduled")}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {upcomingAudits.map((audit) => {
+              const statusInfo = getStatusInfo(audit);
+              const StatusIcon = statusInfo.icon;
+              return (
+                <div
+                  key={audit.id}
+                  className="flex items-center justify-between p-2 rounded-md bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                  onClick={() => navigate(`/staff/audits/${audit.id}`)}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <StatusIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {audit.locations?.name || audit.location || t("common.unknownLocation", "Unknown Location")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatScheduledDate(audit)}
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-      )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge variant="outline" className={`text-xs ${statusInfo.className}`}>
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   );
 };
