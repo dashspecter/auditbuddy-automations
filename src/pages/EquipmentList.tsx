@@ -17,7 +17,7 @@ export default function EquipmentList() {
   const equipmentSubItems = [
     { titleKey: "nav.allEquipment", url: "/equipment", icon: Wrench },
     { titleKey: "nav.maintenanceCalendar", url: "/maintenance-calendar", icon: Calendar },
-    { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance", icon: RefreshCw },
+    { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance-schedules", icon: RefreshCw },
     { titleKey: "nav.bulkQRCodes", url: "/equipment/bulk-qr", icon: QrCode },
   ];
 
