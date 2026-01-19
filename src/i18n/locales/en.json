@@ -67,6 +67,9 @@
     "unassigned": "Unassigned",
     "noCoverage": "No Coverage",
     "showNoCoverage": "Show No Coverage",
+    "filters": "Filters",
+    "month": "Month",
+    "week": "Week",
     "pullToRefresh": {
       "pull": "Pull to refresh",
       "release": "Release to refresh"
