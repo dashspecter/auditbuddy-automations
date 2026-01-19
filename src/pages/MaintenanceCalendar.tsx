@@ -49,7 +49,7 @@ export default function MaintenanceCalendar() {
 
   const eventStyleGetter = (event: any) => {
     const status = event.resource.status;
-    let backgroundColor = "#6366f1"; // scheduled - primary
+    let backgroundColor = "#f97316"; // scheduled - orange (matches theme primary)
 
     if (status === "completed") {
       backgroundColor = "#22c55e"; // green
