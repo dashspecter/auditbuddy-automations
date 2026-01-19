@@ -42,7 +42,7 @@ serve(async (req) => {
     
     const { data: companyRoles } = await supabaseAdmin
       .from('company_users')
-      .select('company_role')
+      .select('company_role, company_id')
       .eq('user_id', user.id);
 
     const isAdmin = roles?.some(r => r.role === 'admin');
@@ -50,12 +50,25 @@ serve(async (req) => {
       r.company_role === 'company_owner' || r.company_role === 'company_admin'
     );
 
-    if (!isAdmin && !isCompanyOwnerOrAdmin) {
-      console.error('Insufficient permissions for user:', user.id, 'roles:', roles, 'companyRoles:', companyRoles);
+    // Also check if user has manage_employees permission
+    let hasManageEmployeesPermission = false;
+    if (companyRoles && companyRoles.length > 0) {
+      const { data: permissions } = await supabaseAdmin
+        .from('company_role_permissions')
+        .select('permission')
+        .eq('company_id', companyRoles[0].company_id)
+        .eq('company_role', companyRoles[0].company_role)
+        .eq('permission', 'manage_employees');
+      
+      hasManageEmployeesPermission = !!(permissions && permissions.length > 0);
+    }
+
+    if (!isAdmin && !isCompanyOwnerOrAdmin && !hasManageEmployeesPermission) {
+      console.error('Insufficient permissions for user:', user.id, 'roles:', roles, 'companyRoles:', companyRoles, 'hasManageEmployeesPermission:', hasManageEmployeesPermission);
       throw new Error('Insufficient permissions');
     }
 
-    console.log('User authorized:', user.id, 'isAdmin:', isAdmin, 'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin);
+    console.log('User authorized:', user.id, 'isAdmin:', isAdmin, 'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin, 'hasManageEmployeesPermission:', hasManageEmployeesPermission);
 
     const { userId, email, fullName, password } = await req.json();
 
