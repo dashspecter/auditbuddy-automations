@@ -369,7 +369,34 @@ const TakeTest = () => {
     );
   }
 
+  // Safety check: ensure questions exist before rendering
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-4">No Questions Found</h1>
+          <p className="text-muted-foreground">This test has no questions configured yet.</p>
+        </Card>
+      </div>
+    );
+  }
+
   const currentQ = questions[currentQuestion];
+  
+  // Safety check: ensure current question exists
+  if (!currentQ) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-4">Question Not Found</h1>
+          <p className="text-muted-foreground">Unable to load the current question.</p>
+        </Card>
+      </div>
+    );
+  }
+
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
