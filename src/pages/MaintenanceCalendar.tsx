@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
 import { useEquipment } from "@/hooks/useEquipment";
+import { useRecurringMaintenanceSchedules } from "@/hooks/useRecurringMaintenanceSchedules";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -16,6 +17,86 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "@/components/ui/calendar.css";
 
 const localizer = momentLocalizer(moment);
+
+// Generate recurring schedule occurrences for a given date range
+const generateRecurringOccurrences = (
+  schedule: any,
+  rangeStart: Date,
+  rangeEnd: Date
+) => {
+  const occurrences: any[] = [];
+  const startDate = moment(schedule.start_date);
+  const endDate = schedule.end_date ? moment(schedule.end_date) : moment(rangeEnd);
+  const rangeStartMoment = moment(rangeStart);
+  const rangeEndMoment = moment(rangeEnd);
+
+  let currentDate = startDate.clone();
+
+  // Move currentDate to the start of the range if it's before
+  while (currentDate.isBefore(rangeStartMoment) && currentDate.isBefore(endDate)) {
+    switch (schedule.recurrence_pattern) {
+      case "daily":
+        currentDate.add(1, "day");
+        break;
+      case "weekly":
+        currentDate.add(1, "week");
+        break;
+      case "monthly":
+        currentDate.add(1, "month");
+        break;
+      case "quarterly":
+        currentDate.add(3, "months");
+        break;
+      case "yearly":
+        currentDate.add(1, "year");
+        break;
+      default:
+        currentDate.add(1, "day");
+    }
+  }
+
+  // Generate occurrences within the range
+  while (currentDate.isSameOrBefore(rangeEndMoment) && currentDate.isSameOrBefore(endDate)) {
+    // Apply time from start_time
+    const [hours, minutes] = (schedule.start_time || "09:00:00").split(":");
+    const occurrenceDate = currentDate.clone().hours(parseInt(hours)).minutes(parseInt(minutes));
+
+    occurrences.push({
+      id: `recurring-${schedule.id}-${occurrenceDate.format("YYYY-MM-DD")}`,
+      title: `${schedule.equipment?.name || "Equipment"} - ${schedule.title}`,
+      start: occurrenceDate.toDate(),
+      end: occurrenceDate.toDate(),
+      resource: {
+        ...schedule,
+        status: "scheduled",
+        isRecurring: true,
+      },
+    });
+
+    // Move to next occurrence
+    switch (schedule.recurrence_pattern) {
+      case "daily":
+        currentDate.add(1, "day");
+        break;
+      case "weekly":
+        currentDate.add(1, "week");
+        break;
+      case "monthly":
+        currentDate.add(1, "month");
+        break;
+      case "quarterly":
+        currentDate.add(3, "months");
+        break;
+      case "yearly":
+        currentDate.add(1, "year");
+        break;
+      default:
+        currentDate.add(1, "day");
+    }
+  }
+
+  return occurrences;
+};
 
 export default function MaintenanceCalendar() {
   const { t } = useTranslation();
@@ -34,18 +115,41 @@ export default function MaintenanceCalendar() {
     undefined,
     statusFilter === "__all__" ? undefined : statusFilter
   );
+  const { data: recurringSchedules } = useRecurringMaintenanceSchedules(
+    equipmentId === "__all__" ? undefined : equipmentId
+  );
 
   const events = useMemo(() => {
-    if (!interventions) return [];
-
-    return interventions.map((intervention) => ({
+    const interventionEvents = (interventions || []).map((intervention) => ({
       id: intervention.id,
       title: `${intervention.equipment?.name} - ${intervention.title}`,
       start: new Date(intervention.scheduled_for),
       end: new Date(intervention.scheduled_for),
       resource: intervention,
     }));
-  }, [interventions]);
+
+    // Generate recurring maintenance occurrences for visible range (3 months around current date)
+    const rangeStart = moment(date).subtract(1, "month").startOf("month").toDate();
+    const rangeEnd = moment(date).add(2, "months").endOf("month").toDate();
+
+    const recurringEvents = (recurringSchedules || [])
+      .filter((schedule) => {
+        // Filter by location if selected
+        if (locationId !== "__all__" && schedule.location_id !== locationId) {
+          return false;
+        }
+        // Only active schedules
+        return schedule.is_active;
+      })
+      .flatMap((schedule) => generateRecurringOccurrences(schedule, rangeStart, rangeEnd));
+
+    // Apply status filter to recurring events if needed
+    if (statusFilter !== "__all__" && statusFilter !== "scheduled") {
+      return interventionEvents;
+    }
+
+    return [...interventionEvents, ...recurringEvents];
+  }, [interventions, recurringSchedules, date, locationId, statusFilter]);
 
   const eventStyleGetter = (event: any) => {
     const status = event.resource.status;
@@ -70,7 +174,12 @@ export default function MaintenanceCalendar() {
   };
 
   const handleSelectEvent = (event: any) => {
-    navigate(`/interventions/${event.id}`);
+    if (event.resource?.isRecurring) {
+      // Navigate to recurring maintenance schedules page for recurring events
+      navigate("/recurring-maintenance-schedules");
+    } else {
+      navigate(`/interventions/${event.id}`);
+    }
   };
 
   const handleNavigate = (newDate: Date) => {
