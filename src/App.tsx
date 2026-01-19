@@ -260,6 +260,7 @@ const App = () => (
                       <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_audits"><TestManagement /></ManagerRoute>} />
                       <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_audits"><TestEdit /></ManagerRoute>} />
                       <Route path="/take-test/:id" element={<ProtectedRoute><TakeTest /></ProtectedRoute>} />
+                      <Route path="/t/:shortCode" element={<TakeTest />} />
                       <Route path="/test-result/:id" element={<ProtectedRoute><TestResult /></ProtectedRoute>} />
                       <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
                       <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
