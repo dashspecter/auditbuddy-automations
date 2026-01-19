@@ -412,8 +412,10 @@ const StaffHome = () => {
           </div>
         )}
 
-        {/* Pending Tests - Only shown when employee has a shift today */}
-        {employee && todayShift && <PendingTestsCard employeeId={employee.id} />}
+        {/* Pending Tests - Only shown when employee has an approved shift today */}
+        {employee && todayShift && todayShift.approval_status === "approved" && (
+          <PendingTestsCard employeeId={employee.id} isOnShift={true} />
+        )}
 
         {/* Location Leaderboard */}
         {employee && (

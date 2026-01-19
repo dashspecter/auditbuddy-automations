@@ -9,9 +9,15 @@ import { useNavigate } from "react-router-dom";
 
 interface PendingTestsCardProps {
   employeeId: string;
+  /** Optional: Only show tests if employee is currently within their shift window */
+  isOnShift?: boolean;
 }
 
-export const PendingTestsCard = ({ employeeId }: PendingTestsCardProps) => {
+/**
+ * PendingTestsCard displays pending test assignments and recent results for an employee.
+ * When isOnShift is provided, tests are only shown when the employee is actively on shift.
+ */
+export const PendingTestsCard = ({ employeeId, isOnShift = true }: PendingTestsCardProps) => {
   const navigate = useNavigate();
   const { data: assignments = [], isLoading: assignmentsLoading } = useTestAssignments(undefined, employeeId);
   const { data: submissions = [], isLoading: submissionsLoading } = useTestSubmissions(employeeId);
@@ -34,14 +40,17 @@ export const PendingTestsCard = ({ employeeId }: PendingTestsCardProps) => {
   const pendingTests = assignments.filter((a: any) => !a.completed && !submittedTestIds.has(a.test_id));
   const recentSubmissions = submissions.slice(0, 3);
 
-  if (pendingTests.length === 0 && recentSubmissions.length === 0) {
+  // If employee is not on shift, don't show pending tests (but still show recent results)
+  const showPendingTests = isOnShift && pendingTests.length > 0;
+
+  if (!showPendingTests && recentSubmissions.length === 0) {
     return null;
   }
 
   return (
     <div className="space-y-4">
-      {/* Pending Tests */}
-      {pendingTests.length > 0 && (
+      {/* Pending Tests - Only shown when on shift */}
+      {showPendingTests && (
         <Card className="p-4 border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-900">
           <div className="flex items-center gap-2 mb-3">
             <FileText className="h-5 w-5 text-orange-600" />
@@ -81,7 +90,7 @@ export const PendingTestsCard = ({ employeeId }: PendingTestsCardProps) => {
         </Card>
       )}
 
-      {/* Recent Test Results */}
+      {/* Recent Test Results - Always shown */}
       {recentSubmissions.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
