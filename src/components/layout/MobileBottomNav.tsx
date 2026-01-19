@@ -9,7 +9,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { Link } from "react-router-dom";
 import { 
   MapPin, ListTodo, Package, FileText, Lightbulb, 
-  Plug, Bell, BarChart, CreditCard, Building2, Store, Settings2, GraduationCap
+  Plug, Bell, BarChart, CreditCard, Building2, Store, Settings2, GraduationCap, ClipboardList
 } from "lucide-react";
 
 const mainNavItems = [
@@ -27,6 +27,7 @@ const moreNavItems = [
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Training", url: "/training", icon: GraduationCap },
+  { title: "Tests", url: "/tests", icon: ClipboardList },
   { title: "Insights", url: "/insights", icon: Lightbulb },
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Marketplace", url: "/marketplace", icon: Store },
