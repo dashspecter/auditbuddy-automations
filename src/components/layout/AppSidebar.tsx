@@ -132,7 +132,7 @@ const navigationItems = [
     subItems: [
       { titleKey: "nav.allEquipment", url: "/equipment" },
       { titleKey: "nav.maintenanceCalendar", url: "/maintenance-calendar" },
-      { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance" },
+      { titleKey: "nav.recurringMaintenance", url: "/recurring-maintenance-schedules" },
       { titleKey: "nav.bulkQRCodes", url: "/equipment/bulk-qr" },
     ]
   },

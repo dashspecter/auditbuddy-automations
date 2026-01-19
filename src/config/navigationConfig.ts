@@ -163,7 +163,7 @@ export const navigationItems: NavItem[] = [
     subItems: [
       { id: "equipment-all", title: "All Equipment", url: "/equipment" },
       { id: "equipment-calendar", title: "Maintenance Calendar", url: "/maintenance-calendar" },
-      { id: "equipment-recurring", title: "Recurring Maintenance", url: "/recurring-maintenance" },
+      { id: "equipment-recurring", title: "Recurring Maintenance", url: "/recurring-maintenance-schedules" },
       { id: "equipment-qr", title: "Bulk QR Codes", url: "/equipment/bulk-qr" },
     ]
   },

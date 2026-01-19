@@ -47,7 +47,7 @@ export const MaintenanceInterventions = () => {
             <Wrench className="h-5 w-5" />
             Maintenance Schedule
           </CardTitle>
-          <Link to="/maintenance/calendar">
+          <Link to="/maintenance-calendar">
             <Button variant="ghost" size="sm">View All</Button>
           </Link>
         </div>
