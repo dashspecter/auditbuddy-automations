@@ -67,6 +67,9 @@
     "unassigned": "Neatribuit",
     "noCoverage": "Fără acoperire",
     "showNoCoverage": "Arată fără acoperire",
+    "filters": "Filtre",
+    "month": "Lună",
+    "week": "Săptămână",
     "pullToRefresh": {
       "pull": "Trage pentru reîmprospătare",
       "release": "Eliberează pentru reîmprospătare"
