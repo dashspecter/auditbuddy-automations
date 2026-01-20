@@ -136,14 +136,35 @@ export function runPipelineForDate(
   // STAGE 5: Apply view mode filter
   let visible: TaskWithCoverage[];
   if (viewMode === "execution") {
-    // Only show covered tasks
-    visible = covered;
+    // Execution mode:
+    // - show covered tasks (normal in-shift execution)
+    // - ALSO show overdue tasks for the day even if they're no longer covered
+    //   (accountability visibility: tasks must not disappear after shift)
+    const overdueRegardlessOfCoverage = tasksWithCoverage.filter(
+      (t) => t.status !== "completed" && baseIsTaskOverdue(t)
+    );
+
+    const combined = [...covered];
+    const seen = new Set(combined.map((t) => t.id));
+
+    for (const t of overdueRegardlessOfCoverage) {
+      if (seen.has(t.id)) continue;
+      // Mark missed tasks for UI labeling
+      if (!t.coverage?.hasCoverage) {
+        t.visibility_reason = "missed_after_shift";
+      }
+      combined.push(t);
+      seen.add(t.id);
+    }
+
+    visible = combined;
   } else {
     // Planning mode: show all, no-coverage are flagged
     visible = tasksWithCoverage;
   }
 
-  // STAGE 6: Compute status/overdue (only for covered tasks)
+  // STAGE 6: Compute status/overdue
+  // Overdue is deterministic: now > deadline (start_at+duration OR due_at)
   const now = getCanonicalNow();
   let overdueCount = 0;
   let completedCount = 0;
@@ -152,11 +173,15 @@ export function runPipelineForDate(
   for (const task of visible) {
     if (task.status === "completed") {
       completedCount++;
-    } else if (task.coverage?.hasCoverage && isTaskOverdueWithCoverage(task, task.coverage, now)) {
-      overdueCount++;
-    } else if (task.status !== "completed") {
-      pendingCount++;
+      continue;
     }
+
+    if (baseIsTaskOverdue(task)) {
+      overdueCount++;
+      continue;
+    }
+
+    pendingCount++;
   }
 
   // Build debug stats
@@ -338,19 +363,27 @@ export function groupTasksByStatusShiftAware(tasks: TaskWithCoverage[]): {
   const now = getCanonicalNow();
 
   for (const task of tasks) {
-    // No coverage tasks go to their own bucket
+    if (task.status === "completed") {
+      completed.push(task);
+      continue;
+    }
+
+    // Overdue must be visible even when not currently covered
+    if (baseIsTaskOverdue(task)) {
+      if (!task.coverage?.hasCoverage) {
+        task.visibility_reason = "missed_after_shift";
+      }
+      overdue.push(task);
+      continue;
+    }
+
+    // Not overdue: enforce coverage gating for execution views
     if (!task.coverage?.hasCoverage) {
       noCoverage.push(task);
       continue;
     }
 
-    if (task.status === "completed") {
-      completed.push(task);
-    } else if (isTaskOverdueWithCoverage(task, task.coverage, now)) {
-      overdue.push(task);
-    } else {
-      pending.push(task);
-    }
+    pending.push(task);
   }
 
   return { pending, overdue, completed, noCoverage };
