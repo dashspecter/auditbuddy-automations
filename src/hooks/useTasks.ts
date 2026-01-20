@@ -276,64 +276,107 @@ export const useMyTasks = () => {
             assigned_role:employee_roles(id, name)
           `;
 
-          // 1) Tasks where primary location matches
-          // HARDENED FILTER: Include non-completed tasks PLUS completed recurring templates
-          // Recurring templates (recurrence_type not null/none) still generate new occurrences
-          const { data: roleTasksPrimary, error: rolePrimaryError } = await supabase
+          // === DUAL-QUERY APPROACH: Fetch non-completed + completed recurring separately ===
+          // Query A: Non-completed tasks (primary location)
+          const { data: primaryNonCompleted, error: primaryNonCompletedErr } = await supabase
             .from("tasks")
             .select(baseRoleTaskSelect)
             .eq("company_id", companyId)
             .eq("assigned_role_id", matchingRole.id)
             .in("location_id", activeLocationIds)
             .is("assigned_to", null)
-            .or("status.neq.completed,and(status.eq.completed,recurrence_type.not.is.null,recurrence_type.neq.none)")
+            .neq("status", "completed")
             .order("due_at", { ascending: true, nullsFirst: false });
 
-          if (rolePrimaryError && import.meta.env.DEV) {
-            console.error("[useMyTasks] Role tasks (primary) error:", rolePrimaryError);
+          // Query B: Completed recurring templates only (primary location)
+          const { data: primaryCompletedRecurring, error: primaryCompletedRecurringErr } = await supabase
+            .from("tasks")
+            .select(baseRoleTaskSelect)
+            .eq("company_id", companyId)
+            .eq("assigned_role_id", matchingRole.id)
+            .in("location_id", activeLocationIds)
+            .is("assigned_to", null)
+            .eq("status", "completed")
+            .not("recurrence_type", "is", null)
+            .neq("recurrence_type", "none")
+            .order("due_at", { ascending: true, nullsFirst: false });
+
+          if ((primaryNonCompletedErr || primaryCompletedRecurringErr) && import.meta.env.DEV) {
+            console.error("[useMyTasks] Primary fetch errors:", { primaryNonCompletedErr, primaryCompletedRecurringErr });
           }
 
-          // 2) Tasks where location is attached via task_locations
-          // HARDENED FILTER: non-completed OR (completed AND recurring)
+          const roleTasksPrimary = [...(primaryNonCompleted || []), ...(primaryCompletedRecurring || [])];
+
+          // 2) Tasks via task_locations join
           let roleTasksViaLocations: any[] = [];
           if (locationTaskIds.length > 0) {
-            const { data: roleTasksLocData, error: roleLocError } = await supabase
+            // Query A: Non-completed via task_locations
+            const { data: locNonCompleted, error: locNonCompletedErr } = await supabase
               .from("tasks")
               .select(baseRoleTaskSelect)
               .eq("company_id", companyId)
               .eq("assigned_role_id", matchingRole.id)
               .in("id", locationTaskIds)
               .is("assigned_to", null)
-              .or("status.neq.completed,and(status.eq.completed,recurrence_type.not.is.null,recurrence_type.neq.none)")
+              .neq("status", "completed")
               .order("due_at", { ascending: true, nullsFirst: false });
 
-            if (roleLocError && import.meta.env.DEV) {
-              console.error("[useMyTasks] Role tasks (task_locations) error:", roleLocError);
+            // Query B: Completed recurring via task_locations
+            const { data: locCompletedRecurring, error: locCompletedRecurringErr } = await supabase
+              .from("tasks")
+              .select(baseRoleTaskSelect)
+              .eq("company_id", companyId)
+              .eq("assigned_role_id", matchingRole.id)
+              .in("id", locationTaskIds)
+              .is("assigned_to", null)
+              .eq("status", "completed")
+              .not("recurrence_type", "is", null)
+              .neq("recurrence_type", "none")
+              .order("due_at", { ascending: true, nullsFirst: false });
+
+            if ((locNonCompletedErr || locCompletedRecurringErr) && import.meta.env.DEV) {
+              console.error("[useMyTasks] task_locations fetch errors:", { locNonCompletedErr, locCompletedRecurringErr });
             }
 
-            roleTasksViaLocations = roleTasksLocData || [];
+            roleTasksViaLocations = [...(locNonCompleted || []), ...(locCompletedRecurring || [])];
           }
 
-          // 3) Optional: global role tasks (no location)
-          // HARDENED FILTER: non-completed OR (completed AND recurring)
-          const { data: roleTasksGlobal, error: roleGlobalError } = await supabase
+          // 3) Global role tasks (no location)
+          // Query A: Non-completed global
+          const { data: globalNonCompleted, error: globalNonCompletedErr } = await supabase
             .from("tasks")
             .select(baseRoleTaskSelect)
             .eq("company_id", companyId)
             .eq("assigned_role_id", matchingRole.id)
             .is("location_id", null)
             .is("assigned_to", null)
-            .or("status.neq.completed,and(status.eq.completed,recurrence_type.not.is.null,recurrence_type.neq.none)")
+            .neq("status", "completed")
             .order("due_at", { ascending: true, nullsFirst: false });
 
-          if (roleGlobalError && import.meta.env.DEV) {
-            console.error("[useMyTasks] Role tasks (global) error:", roleGlobalError);
+          // Query B: Completed recurring global
+          const { data: globalCompletedRecurring, error: globalCompletedRecurringErr } = await supabase
+            .from("tasks")
+            .select(baseRoleTaskSelect)
+            .eq("company_id", companyId)
+            .eq("assigned_role_id", matchingRole.id)
+            .is("location_id", null)
+            .is("assigned_to", null)
+            .eq("status", "completed")
+            .not("recurrence_type", "is", null)
+            .neq("recurrence_type", "none")
+            .order("due_at", { ascending: true, nullsFirst: false });
+
+          if ((globalNonCompletedErr || globalCompletedRecurringErr) && import.meta.env.DEV) {
+            console.error("[useMyTasks] Global fetch errors:", { globalNonCompletedErr, globalCompletedRecurringErr });
           }
 
+          const roleTasksGlobal = [...(globalNonCompleted || []), ...(globalCompletedRecurring || [])];
+
+          // Merge all role tasks and deduplicate
           const mergedRoleTasks = [
-            ...(roleTasksPrimary || []),
+            ...roleTasksPrimary,
             ...roleTasksViaLocations,
-            ...(roleTasksGlobal || []),
+            ...roleTasksGlobal,
           ];
 
           roleTasks = mergedRoleTasks.filter(
