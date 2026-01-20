@@ -16,7 +16,7 @@ import { ManagerDashboardStats } from "@/components/staff/ManagerDashboardStats"
 import { ManagerAuditStats } from "@/components/staff/ManagerAuditStats";
 import { ManagerAuditsCard } from "@/components/staff/ManagerAuditsCard";
 import { OfferedShiftsCard } from "@/components/staff/OfferedShiftsCard";
-import { useMyTasks } from "@/hooks/useTasks";
+import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { ClockInOutButtons } from "@/components/staff/ClockInOutButtons";
 import { StaffLocationLeaderboard } from "@/components/staff/StaffLocationLeaderboard";
 import { ActiveTasksCard } from "@/components/staff/ActiveTasksCard";
@@ -30,7 +30,8 @@ const StaffHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
-  const { data: myTasks = [] } = useMyTasks();
+  // Use unified occurrence hook for consistent counts with the StaffTasks page
+  const { todayGrouped, upcomingTasks, activeTasks, debug: taskDebug } = useMyTaskOccurrences();
   const [employee, setEmployee] = useState<any>(null);
   const [todayShift, setTodayShift] = useState<any>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
@@ -57,8 +58,22 @@ const StaffHome = () => {
     ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
     : null;
 
-  // Count active (non-completed) tasks
-  const activeTaskCount = myTasks.filter(t => t.status !== 'completed').length;
+  // Count active (pending + overdue + upcoming) tasks using unified hook
+  // This ensures badge matches what's shown on the StaffTasks page
+  const activeTaskCount = activeTasks.length + upcomingTasks.length;
+  
+  // Debug logging for parity verification
+  if (import.meta.env.DEV) {
+    console.log("[StaffHome] Task badge count from unified hook:", {
+      activeTasks: activeTasks.length,
+      upcomingTasks: upcomingTasks.length,
+      pendingTasks: todayGrouped.pending.length,
+      overdueTasks: todayGrouped.overdue.length,
+      completedTasks: todayGrouped.completed.length,
+      badgeCount: activeTaskCount,
+      debug: taskDebug,
+    });
+  }
 
   // Check platform role, company role, and employee role for manager access
   const isManager = roleData?.isManager || roleData?.isAdmin || 

@@ -128,6 +128,33 @@ const StaffTasks = () => {
     (t) => t.status === "completed"
   );
 
+  // Badge consistency check: active + upcoming should match home badge
+  const badgeCount = activePendingTasks.length + upcomingTasks.length;
+
+  // DEV-only comprehensive logging for parity verification
+  if (import.meta.env.DEV) {
+    console.log("[StaffTasks] Full pipeline debug:", {
+      rawTasksCount: rawTasks.length,
+      recurringTemplatesCount: recurringTemplates.length,
+      completedRecurringCount: completedRecurring.length,
+      pipeline: {
+        generated: debug?.today?.generated ?? 'N/A',
+        covered: debug?.today?.covered ?? 'N/A',
+        visible: debug?.today?.visible ?? 'N/A',
+      },
+      display: {
+        activePending: activePendingTasks.length,
+        upcoming: upcomingTasks.length,
+        completed: completedTasks.length,
+        overdue: todayGrouped.overdue.length,
+        noCoverage: todayGrouped.noCoverage.length,
+      },
+      badgeCount,
+      // Parity check: this should equal the StaffHome badge
+      consistency: `Badge should show: ${badgeCount}`,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -174,15 +201,19 @@ const StaffTasks = () => {
               <div>rawTasks: {rawTasks.length}</div>
               <div>recurringTemplates: {recurringTemplates.length}</div>
               <div>completedRecurring: {completedRecurring.length}</div>
+              <div className="col-span-2 border-t pt-1 mt-1 font-bold">Pipeline Stages:</div>
               <div>today.generated: {debug?.today?.generated ?? 'N/A'}</div>
               <div>today.covered: {debug?.today?.covered ?? 'N/A'}</div>
               <div>today.visible: {debug?.today?.visible ?? 'N/A'}</div>
+              <div className="col-span-2 border-t pt-1 mt-1 font-bold">Display Buckets:</div>
               <div>activePending: {activePendingTasks.length}</div>
               <div>upcoming: {upcomingTasks.length}</div>
               <div>overdue: {todayGrouped.overdue.length}</div>
               <div>completed: {completedTasks.length}</div>
               <div>noCoverage: {todayGrouped.noCoverage.length}</div>
-              <div>tomorrow.generated: {debug?.tomorrow?.generated ?? 'N/A'}</div>
+              <div className="col-span-2 border-t pt-1 mt-1 font-bold text-primary">
+                Badge should show: {badgeCount}
+              </div>
             </div>
             {rawTasks.length > 0 && (
               <div className="mt-2">
