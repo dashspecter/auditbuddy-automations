@@ -68,6 +68,11 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     const tomorrow = getCanonicalTomorrow();
     const now = new Date();
 
+    // Count recurring templates in raw tasks
+    const recurringTemplates = rawTasks.filter(
+      (t) => t.recurrence_type && t.recurrence_type !== "none"
+    );
+
     // Apply unified pipeline for Today (execution mode = only covered tasks)
     const todayResult = runPipelineForDate(rawTasks, today, {
       viewMode: "execution",
@@ -100,6 +105,28 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       if (!task.start_at) return false;
       return new Date(task.start_at) > now;
     });
+
+    // DEBUG: Log pipeline stages for mobile parity verification
+    if (import.meta.env.DEV) {
+      console.log("[useMyTaskOccurrences] Mobile task pipeline:", {
+        rawTasksCount: rawTasks.length,
+        recurringTemplatesCount: recurringTemplates.length,
+        shiftsCount: shifts.length,
+        today: {
+          generated: todayResult.debug.generated,
+          covered: todayResult.debug.covered,
+          noCoverage: todayResult.debug.noCoverage,
+          visible: todayResult.debug.visible,
+        },
+        tomorrow: {
+          generated: tomorrowResult.debug.generated,
+          covered: tomorrowResult.debug.covered,
+          visible: tomorrowResult.debug.visible,
+        },
+        activeTasksCount: activeTasks.length,
+        upcomingTasksCount: upcomingTasks.length,
+      });
+    }
 
     return {
       todayTasks: todayResult.tasks,
