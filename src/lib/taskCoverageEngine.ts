@@ -53,6 +53,8 @@ export interface CoverageResult {
 export interface TaskWithCoverage extends Task {
   /** Coverage information computed by the engine */
   coverage?: CoverageResult;
+  /** Why this task is visible to the user (used for UI badges / debug) */
+  visibility_reason?: "missed_after_shift";
 }
 
 export interface CoverageCheckOptions {

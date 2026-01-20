@@ -268,6 +268,11 @@ const StaffTasks = () => {
                               <Badge variant={priorityColor(task.priority) as any} className="text-xs">
                                 {task.priority}
                               </Badge>
+                              {(task as any).visibility_reason === "missed_after_shift" && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Missed
+                                </Badge>
+                              )}
                               {isExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-muted-foreground" />
                               ) : (
