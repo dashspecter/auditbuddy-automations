@@ -9,6 +9,7 @@
 import { useMemo } from "react";
 import { useMyTasks, Task } from "./useTasks";
 import { useShiftCoverage } from "./useShiftCoverage";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import {
   runPipelineForDate,
   groupTasksByStatusShiftAware,
@@ -56,11 +57,13 @@ export interface MyTaskOccurrences {
  */
 export function useMyTaskOccurrences(): MyTaskOccurrences {
   const { data: rawTasks = [], isLoading, error } = useMyTasks();
+  const { company } = useCompanyContext();
 
-  // Fetch shifts for today + tomorrow
+  // Fetch shifts for today + tomorrow - only when company is available
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(new Date()),
     endDate: endOfDay(addDays(new Date(), 1)),
+    enabled: !!company?.id, // Only fetch when company context is ready
   });
 
   const result = useMemo(() => {

@@ -80,11 +80,15 @@ const StaffTasks = () => {
   const { user } = useAuth();
   const { 
     todayGrouped, 
+    tomorrowTasks,
     upcomingTasks, 
-    isLoading 
+    isLoading,
+    rawTasks,
+    debug
   } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const toggleTask = (taskId: string, currentStatus: string) => {
     if (currentStatus !== 'completed') {
@@ -116,13 +120,31 @@ const StaffTasks = () => {
   const activePendingTasks = [...todayGrouped.pending, ...todayGrouped.overdue];
   const completedTasks = todayGrouped.completed;
 
+  // Count recurring templates for debug
+  const recurringTemplates = rawTasks.filter(
+    (t) => t.recurrence_type && t.recurrence_type !== "none"
+  );
+  const completedRecurring = recurringTemplates.filter(
+    (t) => t.status === "completed"
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">{t('tasks.staff.title')}</h1>
-          <div className="flex gap-2">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-bold">{t('tasks.staff.title')}</h1>
+            {import.meta.env.DEV && (
+              <button 
+                onClick={() => setShowDebug(!showDebug)}
+                className="text-xs text-muted-foreground hover:text-primary"
+              >
+                {showDebug ? "Hide Debug" : "Debug"}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
             <Badge variant="secondary">
               {activePendingTasks.length} {t('tasks.staff.active')}
             </Badge>
@@ -134,11 +156,46 @@ const StaffTasks = () => {
             <Badge variant="outline">
               {completedTasks.length} {t('tasks.completed')}
             </Badge>
+            {tomorrowTasks.length > 0 && (
+              <Badge variant="outline" className="border-dashed">
+                {tomorrowTasks.length} Tomorrow
+              </Badge>
+            )}
           </div>
         </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
+        {/* Debug Panel */}
+        {showDebug && import.meta.env.DEV && (
+          <Card className="p-4 bg-muted/50 text-xs font-mono">
+            <h3 className="font-bold mb-2">Pipeline Debug:</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div>rawTasks: {rawTasks.length}</div>
+              <div>recurringTemplates: {recurringTemplates.length}</div>
+              <div>completedRecurring: {completedRecurring.length}</div>
+              <div>today.generated: {debug?.today?.generated ?? 'N/A'}</div>
+              <div>today.covered: {debug?.today?.covered ?? 'N/A'}</div>
+              <div>today.visible: {debug?.today?.visible ?? 'N/A'}</div>
+              <div>activePending: {activePendingTasks.length}</div>
+              <div>upcoming: {upcomingTasks.length}</div>
+              <div>overdue: {todayGrouped.overdue.length}</div>
+              <div>completed: {completedTasks.length}</div>
+              <div>noCoverage: {todayGrouped.noCoverage.length}</div>
+              <div>tomorrow.generated: {debug?.tomorrow?.generated ?? 'N/A'}</div>
+            </div>
+            {rawTasks.length > 0 && (
+              <div className="mt-2">
+                <div className="font-bold">Sample tasks:</div>
+                {rawTasks.slice(0, 3).map((t) => (
+                  <div key={t.id} className="truncate text-[10px]">
+                    {t.title} | {t.status} | {t.recurrence_type || 'none'} | {t.location?.name || 'no-loc'}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
         {/* Active Tasks */}
         {activePendingTasks.length > 0 && (
           <div>
