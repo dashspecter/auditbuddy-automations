@@ -277,6 +277,9 @@ export const useMyTasks = () => {
           `;
 
           // 1) Tasks where primary location matches
+          // IMPORTANT: Include ALL role tasks including completed ones, because:
+          // - Recurring tasks with status=completed still generate new daily occurrences
+          // - The occurrence engine in useMyTaskOccurrences handles filtering properly
           const { data: roleTasksPrimary, error: rolePrimaryError } = await supabase
             .from("tasks")
             .select(baseRoleTaskSelect)
@@ -284,7 +287,6 @@ export const useMyTasks = () => {
             .eq("assigned_role_id", matchingRole.id)
             .in("location_id", activeLocationIds)
             .is("assigned_to", null)
-            .neq("status", "completed")
             .order("due_at", { ascending: true, nullsFirst: false });
 
           if (rolePrimaryError && import.meta.env.DEV) {
@@ -292,6 +294,7 @@ export const useMyTasks = () => {
           }
 
           // 2) Tasks where location is attached via task_locations
+          // Include ALL tasks - occurrence engine handles completion filtering
           let roleTasksViaLocations: any[] = [];
           if (locationTaskIds.length > 0) {
             const { data: roleTasksLocData, error: roleLocError } = await supabase
@@ -301,7 +304,6 @@ export const useMyTasks = () => {
               .eq("assigned_role_id", matchingRole.id)
               .in("id", locationTaskIds)
               .is("assigned_to", null)
-              .neq("status", "completed")
               .order("due_at", { ascending: true, nullsFirst: false });
 
             if (roleLocError && import.meta.env.DEV) {
@@ -312,6 +314,7 @@ export const useMyTasks = () => {
           }
 
           // 3) Optional: global role tasks (no location)
+          // Include ALL tasks - occurrence engine handles completion filtering
           const { data: roleTasksGlobal, error: roleGlobalError } = await supabase
             .from("tasks")
             .select(baseRoleTaskSelect)
@@ -319,7 +322,6 @@ export const useMyTasks = () => {
             .eq("assigned_role_id", matchingRole.id)
             .is("location_id", null)
             .is("assigned_to", null)
-            .neq("status", "completed")
             .order("due_at", { ascending: true, nullsFirst: false });
 
           if (roleGlobalError && import.meta.env.DEV) {
