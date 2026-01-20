@@ -166,8 +166,10 @@ export const useMyTasks = () => {
         companyId 
       });
 
-      // Get today's date for shift checking
-      const today = new Date().toISOString().split('T')[0];
+      // Get today's date using canonical day window (avoids UTC/local mismatch)
+      const { toDayKey, getCompanyDayWindow } = await import("@/lib/companyDayUtils");
+      const todayWindow = getCompanyDayWindow();
+      const today = todayWindow.dayKey;
 
       // Check if employee has a shift today
       const { data: todayShifts } = await supabase

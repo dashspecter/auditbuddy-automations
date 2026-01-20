@@ -1,13 +1,15 @@
 /**
  * Hook for fetching shift coverage data for task filtering
+ * Uses canonical day window to ensure consistent date handling
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/contexts/CompanyContext";
-import { format, startOfDay, endOfDay, addDays } from "date-fns";
+import { startOfDay, endOfDay, addDays } from "date-fns";
 import { Shift, CoverageResult, checkTaskCoverage, applyShiftCoverage, groupTasksByCoverage } from "@/lib/taskCoverageEngine";
 import { Task } from "./useTasks";
+import { getCompanyDayWindow, toDayKey } from "@/lib/companyDayUtils";
 
 export interface UseShiftCoverageOptions {
   /** Start date for shift coverage check */
@@ -25,15 +27,19 @@ export interface UseShiftCoverageOptions {
  */
 export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
   const { company } = useCompanyContext();
+  
+  // Use canonical day window for consistent "today" definition
+  const todayWindow = getCompanyDayWindow();
   const {
-    startDate = startOfDay(new Date()),
-    endDate = endOfDay(addDays(new Date(), 7)),
+    startDate = todayWindow.dayStart,
+    endDate = endOfDay(addDays(todayWindow.now, 7)),
     locationId,
     enabled = true,
   } = options;
 
-  const startStr = format(startDate, 'yyyy-MM-dd');
-  const endStr = format(endDate, 'yyyy-MM-dd');
+  // Use canonical day keys to avoid UTC/local mismatch
+  const startStr = toDayKey(startDate);
+  const endStr = toDayKey(endDate);
 
   return useQuery({
     queryKey: ["shift-coverage", company?.id, startStr, endStr, locationId],
