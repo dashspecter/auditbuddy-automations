@@ -11,6 +11,7 @@
 
 import { Task } from "@/hooks/useTasks";
 import { format, parseISO, startOfDay, endOfDay, addMinutes } from "date-fns";
+import { normalizeRoleName, rolesMatch, toDayKey, getCompanyDayWindow } from "./companyDayUtils";
 
 // =============================================================
 // TYPES
@@ -22,7 +23,10 @@ export interface Shift {
   shift_date: string;
   start_time: string;
   end_time: string;
+  /** Role name (string) from shifts table */
   role: string;
+  /** Optional: resolved role_id if available */
+  role_id?: string;
   is_published?: boolean;
   shift_assignments?: Array<{
     id: string;
@@ -123,14 +127,16 @@ export function checkTaskCoverage(
     };
   }
   
-  const taskDateStr = format(targetDate, 'yyyy-MM-dd');
+  // Use canonical day key to avoid UTC/local mismatch
+  const dayWindow = getCompanyDayWindow(targetDate);
+  const taskDateStr = dayWindow.dayKey;
   const taskTime = task.start_at ? getTimeFromDate(task.start_at) : null;
   const locationId = task.location_id;
   const roleId = task.assigned_role_id;
   const roleName = task.assigned_role?.name;
   const assignedTo = task.assigned_to;
   
-  // Find matching shifts for this date
+  // Find matching shifts for this date using canonical day key
   const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false);
   
   if (dateShifts.length === 0) {
@@ -156,11 +162,15 @@ export function checkTaskCoverage(
     }
     
     // CRITICAL: Role check - if task requires a role, shift MUST have that role
+    // Use rolesMatch() for normalized comparison (case-insensitive, trim, diacritics removed)
     if (roleId || roleName) {
       const taskRoleName = roleName || '';
-      // Compare shift.role (role name string) with task's role name
-      // Case-insensitive comparison for robustness
-      if (shift.role.toLowerCase() !== taskRoleName.toLowerCase()) {
+      // Prefer role_id match if available on shift, fallback to normalized name match
+      const roleMatches = shift.role_id 
+        ? shift.role_id === roleId
+        : rolesMatch(shift.role, taskRoleName);
+      
+      if (!roleMatches) {
         continue; // Skip this shift - role doesn't match
       }
     }
