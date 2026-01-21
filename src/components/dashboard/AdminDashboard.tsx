@@ -119,13 +119,16 @@ export const AdminDashboard = () => {
         status: a.status || '',
       }));
 
-    const allAuditsForScore = filteredAudits.map(a => ({
-      id: a.id,
-      location: a.locations?.name || a.location || 'Unknown',
-      audit_date: a.audit_date,
-      overall_score: a.overall_score,
-      status: a.status || '',
-    })).sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
+    const allAuditsForScore = filteredAudits
+      .filter(a => a.overall_score && a.overall_score > 0) // Exclude 0% audits
+      .map(a => ({
+        id: a.id,
+        location: a.locations?.name || a.location || 'Unknown',
+        audit_date: a.audit_date,
+        overall_score: a.overall_score,
+        status: a.status || '',
+      }))
+      .sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
 
     // Location rankings
     const locationScores = new Map<string, { total: number; count: number; name: string }>();
