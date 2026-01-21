@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,9 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Trophy } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, Trophy, CalendarIcon } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { LocationPerformance } from "@/hooks/usePerformanceTrends";
 
 interface LocationPerformanceDetailProps {
@@ -23,7 +31,23 @@ export const LocationPerformanceDetail = ({
   open,
   onOpenChange,
 }: LocationPerformanceDetailProps) => {
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+
   if (!location) return null;
+
+  // Filter audits by date range
+  const filteredAudits = location.audits.filter(audit => {
+    const auditDate = new Date(audit.audit_date);
+    if (dateFrom && auditDate < dateFrom) return false;
+    if (dateTo && auditDate > dateTo) return false;
+    return true;
+  });
+
+  // Recalculate stats based on filtered audits
+  const avgScore = filteredAudits.length > 0
+    ? Math.round(filteredAudits.reduce((sum, a) => sum + (a.overall_score || 0), 0) / filteredAudits.length)
+    : 0;
 
   const getTrendIcon = (trend: 'improving' | 'declining' | 'stable') => {
     switch (trend) {
@@ -46,12 +70,16 @@ export const LocationPerformanceDetail = ({
     return <Badge className={className}>{text}</Badge>;
   };
 
-  const overallTrendData = location.audits
+  const overallTrendData = filteredAudits
     .sort((a, b) => new Date(a.audit_date).getTime() - new Date(b.audit_date).getTime())
     .map(audit => ({
       date: audit.audit_date,
       score: audit.overall_score || 0
     }));
+
+  const dateRangeLabel = dateFrom || dateTo
+    ? `${dateFrom ? format(dateFrom, 'MMM dd, yyyy') : 'Start'} - ${dateTo ? format(dateTo, 'MMM dd, yyyy') : 'Now'}`
+    : 'All Time';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,6 +89,40 @@ export const LocationPerformanceDetail = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Date Range Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-muted-foreground">Date Range:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "MMM dd, yyyy") : "From"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            <span className="text-muted-foreground">–</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "MMM dd, yyyy") : "To"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+            {(dateFrom || dateTo) && (
+              <Button variant="ghost" size="sm" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>
+                Clear
+              </Button>
+            )}
+            <Badge variant="secondary" className="ml-auto">{dateRangeLabel}</Badge>
+          </div>
+
           {/* Overview Card */}
           <Card className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -73,11 +135,11 @@ export const LocationPerformanceDetail = ({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Average Score</p>
-                <p className="text-3xl font-bold mt-1">{location.avgScore}%</p>
+                <p className="text-3xl font-bold mt-1">{avgScore}%</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Audits</p>
-                <p className="text-3xl font-bold mt-1">{location.audits.length}</p>
+                <p className="text-3xl font-bold mt-1">{filteredAudits.length}</p>
               </div>
             </div>
           </Card>
