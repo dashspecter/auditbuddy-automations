@@ -31,7 +31,10 @@ export const RecentAudits = () => {
   const thisWeekAudits = (locationAudits || [])
     .filter((audit) => {
       const auditDate = new Date(audit.audit_date);
-      return auditDate >= weekStart && auditDate <= weekEnd;
+      const isThisWeek = auditDate >= weekStart && auditDate <= weekEnd;
+      // Only show completed audits (compliant, non-compliant, or has overall_score)
+      const isCompleted = audit.status === 'compliant' || audit.status === 'non-compliant' || audit.overall_score !== null;
+      return isThisWeek && isCompleted;
     })
     .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime());
 
