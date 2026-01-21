@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 
+/**
+ * Resolve virtual task IDs (e.g., "uuid-virtual-2024-01-21") to real task IDs
+ * Inline to avoid circular dependency with taskOccurrenceEngine
+ */
+const resolveTaskId = (id: string): string => {
+  const match = id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  return match ? match[1] : id;
+};
+
 export interface Task {
   id: string;
   company_id: string;
@@ -620,11 +629,14 @@ export const useCompleteTask = () => {
 
   return useMutation({
     mutationFn: async (taskId: string) => {
+      // Resolve virtual IDs (e.g., "uuid-virtual-2024-01-21") to real task IDs
+      const resolvedId = resolveTaskId(taskId);
+      
       // First, get the full task to check recurrence and other fields
       const { data: existingTask } = await supabase
         .from("tasks")
         .select("*")
-        .eq("id", taskId)
+        .eq("id", resolvedId)
         .single();
 
       if (!existingTask) throw new Error("Task not found");
@@ -657,7 +669,7 @@ export const useCompleteTask = () => {
           completed_late: completedLate,
           completed_by: employeeId,
         })
-        .eq("id", taskId)
+        .eq("id", resolvedId)
         .select()
         .single();
 
@@ -713,7 +725,7 @@ export const useCompleteTask = () => {
             const { data: taskLocations } = await supabase
               .from("task_locations")
               .select("location_id")
-              .eq("task_id", taskId);
+              .eq("task_id", resolvedId);
 
             if (taskLocations && taskLocations.length > 0) {
               await supabase
@@ -728,7 +740,7 @@ export const useCompleteTask = () => {
             const { data: taskRoles } = await supabase
               .from("task_roles")
               .select("role_id")
-              .eq("task_id", taskId);
+              .eq("task_id", resolvedId);
 
             if (taskRoles && taskRoles.length > 0) {
               await supabase
