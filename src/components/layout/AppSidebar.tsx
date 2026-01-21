@@ -630,27 +630,29 @@ export function AppSidebar() {
 
         {/* AI Guide at bottom */}
         <div className="px-3 py-3 border-t border-sidebar-border/40">
-          <AIGuideChat
-            trigger={
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out bg-primary/10 text-primary hover:bg-primary/20 group ${isCollapsed ? 'justify-center' : ''}`}
-                  >
-                    <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors duration-200">
-                      <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
-                    </div>
-                    {!isCollapsed && <span>{t('nav.aiGuide')}</span>}
-                  </button>
-                </TooltipTrigger>
-                {isCollapsed && (
-                  <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                    {t('nav.aiGuide')}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            }
-          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <AIGuideChat
+                  trigger={
+                    <button
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out bg-primary/10 text-primary hover:bg-primary/20 group ${isCollapsed ? 'justify-center' : ''}`}
+                    >
+                      <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors duration-200">
+                        <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
+                      </div>
+                      {!isCollapsed && <span>{t('nav.aiGuide')}</span>}
+                    </button>
+                  }
+                />
+              </div>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" className="bg-popover text-popover-foreground border">
+                {t('nav.aiGuide')}
+              </TooltipContent>
+            )}
+          </Tooltip>
         </div>
       </aside>
     </TooltipProvider>
