@@ -92,6 +92,48 @@ const AuditDetail = () => {
     }
   };
 
+  // Helper to check if a field type is binary (yes/no, checkbox)
+  const isBinaryField = (fieldType: string) => 
+    fieldType === "yes_no" || fieldType === "yesno" || fieldType === "checkbox";
+
+  // Dynamically calculate score from template sections and custom_data
+  const calculatedScore = useMemo(() => {
+    if (!templateSections.length || !audit?.custom_data) {
+      return audit?.overall_score ?? 0;
+    }
+
+    const customData = audit.custom_data as Record<string, any>;
+    let totalScore = 0;
+    let maxPossibleScore = 0;
+
+    templateSections.forEach(section => {
+      section.fields?.forEach((field: any) => {
+        const value = customData[field.id];
+        
+        // Include rating fields in score
+        if (field.field_type === 'rating') {
+          const maxValue = field.options?.max || 5;
+          maxPossibleScore += maxValue;
+          if (value !== undefined && value !== null && value !== '') {
+            totalScore += Number(value);
+          }
+        }
+        
+        // Include binary fields (yes_no, yesno, checkbox) in score
+        if (isBinaryField(field.field_type)) {
+          maxPossibleScore += 1;
+          if (value === 'yes' || value === true || value === 'Yes') {
+            totalScore += 1;
+          }
+        }
+      });
+    });
+
+    return maxPossibleScore > 0 
+      ? Math.round((totalScore / maxPossibleScore) * 100) 
+      : (audit?.overall_score ?? 0);
+  }, [templateSections, audit?.custom_data, audit?.overall_score]);
+
   // Find adjacent audits for navigation
   const { prevAuditId, nextAuditId } = useMemo(() => {
     if (!allAudits || !id) return { prevAuditId: null, nextAuditId: null };
@@ -176,8 +218,8 @@ const AuditDetail = () => {
         location: audit.locations?.name || audit.location || 'Unknown Location',
         checker: "Audit User",
         date: format(new Date(audit.audit_date || audit.created_at), 'yyyy-MM-dd'),
-        status: (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD ? "compliant" : "non-compliant",
-        score: audit.overall_score || 0,
+        status: calculatedScore >= COMPLIANCE_THRESHOLD ? "compliant" : "non-compliant",
+        score: calculatedScore,
         sections: [
           { name: "Compliance", score: Math.round(((audit.compliance_licenses || 0) + (audit.compliance_permits || 0) + (audit.compliance_signage || 0) + (audit.compliance_documentation || 0)) / 4), items: [] },
           { name: "Back of House", score: Math.round(((audit.boh_storage || 0) + (audit.boh_temperature || 0) + (audit.boh_preparation || 0) + (audit.boh_equipment || 0)) / 4), items: [] },
@@ -224,7 +266,7 @@ const AuditDetail = () => {
     );
   }
 
-  const isCompliant = (audit.overall_score || 0) >= COMPLIANCE_THRESHOLD;
+  const isCompliant = calculatedScore >= COMPLIANCE_THRESHOLD;
 
   return (
     <div {...handlers} className="relative touch-pan-y">
@@ -417,7 +459,7 @@ const AuditDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Score</p>
-                  <p className="font-semibold text-foreground text-2xl">{audit.overall_score || 0}%</p>
+                  <p className="font-semibold text-foreground text-2xl">{calculatedScore}%</p>
                 </div>
               </div>
             </div>
