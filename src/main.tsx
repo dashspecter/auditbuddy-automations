@@ -81,6 +81,14 @@ const checkBuildVersion = async (): Promise<boolean> => {
   const VERSION_KEY = "app_build_version";
   const RELOAD_KEY = "app_build_reload_pending";
 
+  const parseNumericVersion = (v: string | null): number | null => {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (!/^\d+$/.test(s)) return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+
   try {
     // Prevent infinite reload loops
     if (sessionStorage.getItem(RELOAD_KEY) === "1") {
@@ -96,7 +104,7 @@ const checkBuildVersion = async (): Promise<boolean> => {
     }
 
     const data = await res.json();
-    const serverVersion = data.buildTime || data.version || "";
+    const serverVersion: string = String(data.buildTime || data.version || "");
 
     // Skip in development (placeholder value)
     if (!serverVersion || serverVersion === "__BUILD_TIME__") {
@@ -105,20 +113,33 @@ const checkBuildVersion = async (): Promise<boolean> => {
 
     const storedVersion = localStorage.getItem(VERSION_KEY);
 
+    // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
+    const storedNum = parseNumericVersion(storedVersion);
+    const serverNum = parseNumericVersion(serverVersion);
+    const pinnedVersion =
+      storedNum !== null && serverNum !== null
+        ? String(Math.max(storedNum, serverNum))
+        : storedVersion || serverVersion;
+
     // First visit - just store the version
     if (!storedVersion) {
-      localStorage.setItem(VERSION_KEY, serverVersion);
+      localStorage.setItem(VERSION_KEY, pinnedVersion);
       return false;
     }
 
     // Same version - no action needed
-    if (storedVersion === serverVersion) {
+    if (storedVersion === pinnedVersion) {
+      return false;
+    }
+
+    // If the server looks older than what we already have, do not downgrade.
+    if (pinnedVersion === storedVersion) {
       return false;
     }
 
     // Version mismatch detected - clear caches and reload
     console.info(
-      `[BuildGuard] Version mismatch: ${storedVersion} → ${serverVersion}. Clearing caches...`
+      `[BuildGuard] Version mismatch: ${storedVersion} → ${pinnedVersion}. Clearing caches...`
     );
 
     // Mark that we're about to reload to prevent loops
@@ -137,7 +158,7 @@ const checkBuildVersion = async (): Promise<boolean> => {
     }
 
     // Update stored version before reload
-    localStorage.setItem(VERSION_KEY, serverVersion);
+    localStorage.setItem(VERSION_KEY, pinnedVersion);
 
     // Hard reload to get fresh assets
     window.location.reload();

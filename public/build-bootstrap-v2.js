@@ -21,6 +21,14 @@
   const VERSION_KEY = "app_build_version";
   const VERSION_REDIRECT_GUARD_KEY = "bootstrap:version-redirected";
 
+  const parseNumericVersion = (v) => {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (!/^\d+$/.test(s)) return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+
   // Clear reload guard on fresh browser sessions to allow new builds to reload
   const currentSession = Date.now().toString();
   if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
@@ -39,27 +47,46 @@
       const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
-      const serverVersion = data.buildTime || data.version || "";
-      if (!serverVersion) return;
+      const serverVersion = String(data.buildTime || data.version || "");
+      const storedVersion = (() => {
+        try {
+          return localStorage.getItem(VERSION_KEY) || "";
+        } catch {
+          return "";
+        }
+      })();
+
+      // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
+      const storedNum = parseNumericVersion(storedVersion);
+      const serverNum = parseNumericVersion(serverVersion);
+      const pinnedVersion =
+        storedNum !== null && serverNum !== null
+          ? String(Math.max(storedNum, serverNum))
+          : storedVersion || serverVersion;
+
+      if (!pinnedVersion) return;
 
       try {
-        localStorage.setItem(VERSION_KEY, String(serverVersion));
+        localStorage.setItem(VERSION_KEY, pinnedVersion);
       } catch {
         // ignore
       }
 
       const currentV = url.searchParams.get("v");
-      if (currentV === String(serverVersion)) return;
+      if (currentV === pinnedVersion) return;
 
-      // Guard by version so we never loop.
-      if (sessionStorage.getItem(VERSION_REDIRECT_GUARD_KEY) === String(serverVersion)) return;
-      sessionStorage.setItem(VERSION_REDIRECT_GUARD_KEY, String(serverVersion));
+      // Guard by pinned version so we never loop.
+      if (sessionStorage.getItem(VERSION_REDIRECT_GUARD_KEY) === pinnedVersion) return;
+      sessionStorage.setItem(VERSION_REDIRECT_GUARD_KEY, pinnedVersion);
 
-      url.searchParams.set("v", String(serverVersion));
+      url.searchParams.set("v", pinnedVersion);
       window.location.replace(url.pathname + url.search + url.hash);
+      return true;
     } catch {
       // ignore
     }
+
+    return false;
   }
 
   async function unregisterAllServiceWorkers() {
@@ -120,6 +147,9 @@
 
   async function boot() {
     try {
+      const redirected = await ensureVersionedUrl();
+      if (redirected) return;
+
       // Pre-clean once per session: if an old service worker or Cache Storage exists,
       // wipe them and reload to avoid stale UI/bundle mismatches.
       try {
