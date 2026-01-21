@@ -73,9 +73,12 @@ const calculateSectionScore = (
     // Binary fields (yes_no, checkbox)
     if (isBinaryField(fieldType)) {
       maxPossibleScore += 1;
-      if (value === 'yes' || value === true || value === 'Yes') {
+      // Handle various formats: "yes", "Yes", true, "true", etc.
+      const positiveValues = ['yes', 'Yes', 'true', 'TRUE', 'True'];
+      if (value === true || positiveValues.includes(String(value))) {
         totalScore += 1;
       }
+      // "no", "false", false values contribute 0 to totalScore but still count toward maxPossibleScore
     }
   });
 
