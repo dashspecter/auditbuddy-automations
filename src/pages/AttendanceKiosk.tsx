@@ -10,6 +10,13 @@ import { KioskDashboard } from "@/components/kiosk/KioskDashboard";
 
 const AttendanceKiosk = () => {
   const { token } = useParams<{ token: string }>();
+  const kioskToken = (() => {
+    try {
+      return decodeURIComponent(token ?? "").trim();
+    } catch {
+      return (token ?? "").trim();
+    }
+  })();
   const { data: kiosk, isLoading, error, refetch } = useKioskByToken(token);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [qrData, setQrData] = useState("");
@@ -289,6 +296,7 @@ const AttendanceKiosk = () => {
           <KioskDashboard 
             locationId={kiosk.location_id} 
             companyId={kiosk.company_id} 
+            kioskToken={kioskToken}
           />
         </div>
       </div>
