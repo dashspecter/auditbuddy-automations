@@ -255,24 +255,38 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
       // Recalculate score if custom_data changed
       let overallScore = audit.overall_score;
       if (changes.custom_data) {
-        let totalRatings = 0;
+        let totalScore = 0;
         let maxPossibleScore = 0;
+
+        // Helper to check if a field type is binary (yes/no, checkbox)
+        const isBinaryField = (fieldType: string) => 
+          fieldType === "yes_no" || fieldType === "yesno" || fieldType === "checkbox";
 
         templateSections.forEach(section => {
           section.fields.forEach((field: any) => {
+            const value = newCustomData[field.id];
+            
+            // Include rating fields in score
             if (field.field_type === 'rating') {
-              const value = newCustomData[field.id];
               const maxValue = field.options?.max || 5;
-              if (typeof value === 'number') {
-                totalRatings += value;
-                maxPossibleScore += maxValue;
+              maxPossibleScore += maxValue;
+              if (value !== undefined && value !== null && value !== '') {
+                totalScore += Number(value);
+              }
+            }
+            
+            // Include binary fields (yes_no, yesno, checkbox) in score - matching SectionScoreBreakdown
+            if (isBinaryField(field.field_type)) {
+              maxPossibleScore += 1;
+              if (value === 'yes' || value === true || value === 'Yes') {
+                totalScore += 1;
               }
             }
           });
         });
 
         overallScore = maxPossibleScore > 0 
-          ? Math.round((totalRatings / maxPossibleScore) * 100) 
+          ? Math.round((totalScore / maxPossibleScore) * 100) 
           : 0;
       }
 
