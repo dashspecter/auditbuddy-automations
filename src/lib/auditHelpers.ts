@@ -73,13 +73,17 @@ export const isScheduledAudit = (audit: AuditStatusFields): boolean => {
 };
 
 /**
- * Get the best date for sorting completed audits
- * Uses updated_at first, then created_at
+ * Get the best date for sorting audits
+ * Uses audit_date first (the actual date of the audit), then created_at
+ * This ensures edited audits don't jump to the top of the list
  */
 export const getCompletionDate = (audit: {
+  audit_date?: string | null;
   updated_at?: string | null;
   created_at: string;
 }): Date => {
-  const dateStr = audit.updated_at || audit.created_at;
+  // Prioritize audit_date (the date the audit was performed)
+  // Fall back to created_at, NOT updated_at
+  const dateStr = audit.audit_date || audit.created_at;
   return new Date(dateStr);
 };
