@@ -67,8 +67,10 @@ interface Task {
 
 export const KioskDashboard = ({ locationId, companyId }: KioskDashboardProps) => {
   const today = new Date();
-  const todayStart = startOfDay(today).toISOString();
-  const todayEnd = endOfDay(today).toISOString();
+  // Use UTC-based date boundaries to match server timestamps
+  const todayDateStr = format(today, "yyyy-MM-dd");
+  const todayStart = `${todayDateStr}T00:00:00`;
+  const todayEnd = `${todayDateStr}T23:59:59`;
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 }).toISOString();
 
