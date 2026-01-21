@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createClient } from "@supabase/supabase-js";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
 import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 import type { Task as BaseTask } from "@/hooks/useTasks";
@@ -76,23 +75,6 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 }).toISOString();
 
-  // Public kiosk route is anonymous; create a scoped client that sends the kiosk token header.
-  // The backend policy allows reading attendance ONLY when this header matches an active kiosk.
-  const kioskSupabase = useMemo(() => {
-    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
-
-    if (!url || !key || !kioskToken) return supabase;
-
-    return createClient(url, key, {
-      global: {
-        headers: {
-          "x-kiosk-token": kioskToken,
-        },
-      },
-    });
-  }, [kioskToken]);
-
   // Fetch employees at this location
   const { data: employees = [] } = useQuery({
     queryKey: ["kiosk-employees", locationId],
@@ -113,12 +95,12 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   const { data: attendance = [] } = useQuery({
     queryKey: ["kiosk-attendance", locationId, format(today, "yyyy-MM-dd")],
     queryFn: async () => {
-      const { data, error } = await kioskSupabase
-        .from("attendance_logs")
-        .select("id, staff_id, check_in_at, check_out_at")
-        .eq("location_id", locationId)
-        .gte("check_in_at", todayStart)
-        .lte("check_in_at", todayEnd);
+      const { data, error } = await supabase.rpc("get_kiosk_attendance_logs", {
+        p_token: kioskToken,
+        p_location_id: locationId,
+        p_start: todayStart,
+        p_end: todayEnd,
+      });
       if (error) throw error;
       return data as AttendanceLog[];
     },
