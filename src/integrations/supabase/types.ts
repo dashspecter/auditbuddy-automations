@@ -7538,6 +7538,20 @@ export type Database = {
       }
       generate_short_code: { Args: never; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
+      get_kiosk_attendance_logs: {
+        Args: {
+          p_end: string
+          p_location_id: string
+          p_start: string
+          p_token: string
+        }
+        Returns: {
+          check_in_at: string
+          check_out_at: string
+          id: string
+          staff_id: string
+        }[]
+      }
       get_mystery_shopper_template_by_token: {
         Args: { p_token: string }
         Returns: {
