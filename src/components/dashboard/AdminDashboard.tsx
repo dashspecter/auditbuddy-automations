@@ -11,6 +11,7 @@ import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
 import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { MaintenanceInterventions } from "./MaintenanceInterventions";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { StatsDetailDialog, StatsDialogType } from "./StatsDetailDialog";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,12 +20,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { subMonths } from "date-fns";
+import { subWeeks, startOfDay, endOfDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 
 export const AdminDashboard = () => {
   const { t } = useTranslation();
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(subMonths(new Date(), 1));
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subWeeks(new Date(), 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const { data: audits, isLoading: auditsLoading } = useLocationAudits();
   const dashboardStats = useDashboardStats({ dateFrom, dateTo });
@@ -32,6 +33,10 @@ export const AdminDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<StatsDialogType>("completed");
   
   const { data: usersCount } = useQuery({
     queryKey: ['users_count'],
@@ -71,6 +76,117 @@ export const AdminDashboard = () => {
       toast.error(t('dashboard.failedRefresh'));
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Filter audits by date range
+  const filteredAudits = useMemo(() => {
+    if (!audits) return [];
+    return audits.filter(audit => {
+      const auditDate = new Date(audit.audit_date);
+      if (dateFrom && auditDate < startOfDay(dateFrom)) return false;
+      if (dateTo && auditDate > endOfDay(dateTo)) return false;
+      return true;
+    });
+  }, [audits, dateFrom, dateTo]);
+
+  // Prepare dialog data
+  const dialogData = useMemo(() => {
+    const completedAudits = filteredAudits
+      .filter(a => a.status === 'compliant')
+      .map(a => ({
+        id: a.id,
+        location: a.locations?.name || a.location || 'Unknown',
+        audit_date: a.audit_date,
+        overall_score: a.overall_score,
+        status: a.status || '',
+      }));
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const overdueAudits = filteredAudits
+      .filter(a => {
+        if (a.status === 'compliant') return false;
+        const auditDate = new Date(a.audit_date);
+        auditDate.setHours(0, 0, 0, 0);
+        return auditDate < now && (a.status === 'pending' || a.status === 'draft');
+      })
+      .map(a => ({
+        id: a.id,
+        location: a.locations?.name || a.location || 'Unknown',
+        audit_date: a.audit_date,
+        overall_score: a.overall_score,
+        status: a.status || '',
+      }));
+
+    const allAuditsForScore = filteredAudits.map(a => ({
+      id: a.id,
+      location: a.locations?.name || a.location || 'Unknown',
+      audit_date: a.audit_date,
+      overall_score: a.overall_score,
+      status: a.status || '',
+    })).sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
+
+    // Location rankings
+    const locationScores = new Map<string, { total: number; count: number; name: string }>();
+    filteredAudits.forEach(audit => {
+      const locationName = audit.locations?.name || audit.location || 'Unknown';
+      const locationId = audit.location_id || locationName;
+      
+      if (!locationScores.has(locationId)) {
+        locationScores.set(locationId, { total: 0, count: 0, name: locationName });
+      }
+      
+      const loc = locationScores.get(locationId)!;
+      loc.total += audit.overall_score || 0;
+      loc.count += 1;
+    });
+
+    const locationRankings = Array.from(locationScores.entries())
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        avgScore: data.count > 0 ? Math.round(data.total / data.count) : 0,
+        auditCount: data.count,
+      }))
+      .sort((a, b) => a.avgScore - b.avgScore);
+
+    const worstLocations = locationRankings.slice(0, 10);
+    const bestLocations = [...locationRankings].reverse().slice(0, 10);
+
+    return { completedAudits, overdueAudits, allAuditsForScore, worstLocations, bestLocations };
+  }, [filteredAudits]);
+
+  const handleCardClick = (type: StatsDialogType) => {
+    setDialogType(type);
+    setDialogOpen(true);
+  };
+
+  const getDialogTitle = () => {
+    switch (dialogType) {
+      case "completed": return t('dashboard.stats.completedAudits');
+      case "overdue": return t('dashboard.stats.overdueAudits');
+      case "averageScore": return t('dashboard.stats.allAuditScores');
+      case "worstLocation": return t('dashboard.stats.lowestPerformingLocations');
+      case "bestLocation": return t('dashboard.stats.topPerformingLocations');
+      default: return "";
+    }
+  };
+
+  const getDialogAudits = () => {
+    switch (dialogType) {
+      case "completed": return dialogData.completedAudits;
+      case "overdue": return dialogData.overdueAudits;
+      case "averageScore": return dialogData.allAuditsForScore;
+      default: return [];
+    }
+  };
+
+  const getDialogLocations = () => {
+    switch (dialogType) {
+      case "worstLocation": return dialogData.worstLocations;
+      case "bestLocation": return dialogData.bestLocations;
+      default: return [];
     }
   };
 
@@ -133,30 +249,35 @@ export const AdminDashboard = () => {
                 value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
                 icon={ClipboardCheck}
                 description={t('dashboard.stats.finishedAudits')}
+                onClick={() => handleCardClick("completed")}
               />
               <StatsCard
                 title={t('dashboard.stats.overdue')}
                 value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
                 icon={ClipboardCheck}
                 description={t('dashboard.stats.pastDeadline')}
+                onClick={() => handleCardClick("overdue")}
               />
               <StatsCard
                 title={t('dashboard.stats.averageScore')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
                 icon={TrendingUp}
                 description={t('dashboard.stats.overallAverage')}
+                onClick={() => handleCardClick("averageScore")}
               />
               <StatsCard
                 title={t('dashboard.stats.worstLocation')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
                 icon={TrendingDown}
                 description={dashboardStats.worstLocation.name}
+                onClick={() => handleCardClick("worstLocation")}
               />
               <StatsCard
                 title={t('dashboard.stats.bestLocation')}
                 value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
                 icon={TrendingUp}
                 description={dashboardStats.bestLocation.name}
+                onClick={() => handleCardClick("bestLocation")}
               />
             </div>
           </CollapsibleContent>
@@ -169,33 +290,47 @@ export const AdminDashboard = () => {
             value={dashboardStats.isLoading ? "..." : dashboardStats.completedAudits.toString()}
             icon={ClipboardCheck}
             description={t('dashboard.stats.finishedAudits')}
+            onClick={() => handleCardClick("completed")}
           />
           <StatsCard
             title={t('dashboard.stats.overdue')}
             value={dashboardStats.isLoading ? "..." : dashboardStats.overdueAudits.toString()}
             icon={ClipboardCheck}
             description={t('dashboard.stats.pastDeadline')}
+            onClick={() => handleCardClick("overdue")}
           />
           <StatsCard
             title={t('dashboard.stats.averageScore')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.avgScore}%`}
             icon={TrendingUp}
             description={t('dashboard.stats.overallAverage')}
+            onClick={() => handleCardClick("averageScore")}
           />
           <StatsCard
             title={t('dashboard.stats.worstLocation')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.worstLocation.score}%`}
             icon={TrendingDown}
             description={dashboardStats.worstLocation.name}
+            onClick={() => handleCardClick("worstLocation")}
           />
           <StatsCard
             title={t('dashboard.stats.bestLocation')}
             value={dashboardStats.isLoading ? "..." : `${dashboardStats.bestLocation.score}%`}
             icon={TrendingUp}
             description={dashboardStats.bestLocation.name}
+            onClick={() => handleCardClick("bestLocation")}
           />
         </div>
       )}
+
+      <StatsDetailDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        type={dialogType}
+        audits={getDialogAudits()}
+        locations={getDialogLocations()}
+        title={getDialogTitle()}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <CompliancePieChart dateFrom={dateFrom} dateTo={dateTo} />

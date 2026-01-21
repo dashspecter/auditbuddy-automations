@@ -9,6 +9,8 @@ interface StatsCardProps {
   trend?: string;
   trendLabel?: string;
   description?: string;
+  onClick?: () => void;
+  clickable?: boolean;
 }
 
 export const StatsCard = ({ 
@@ -17,12 +19,20 @@ export const StatsCard = ({
   icon: Icon, 
   trend, 
   trendLabel,
-  description 
+  description,
+  onClick,
+  clickable = false,
 }: StatsCardProps) => {
   const isPositiveTrend = trend?.startsWith("+");
   
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
+    <Card 
+      className={cn(
+        "p-6 hover:shadow-lg transition-shadow",
+        (clickable || onClick) && "cursor-pointer hover:bg-accent/50"
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

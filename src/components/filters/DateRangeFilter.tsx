@@ -34,6 +34,7 @@ interface DateRangeFilterProps {
   onDateToChange: (date: Date | undefined) => void;
   className?: string;
   showPresets?: boolean;
+  defaultPreset?: DateRangePreset;
 }
 
 const presets: { value: DateRangePreset; label: string }[] = [
@@ -54,8 +55,9 @@ export const DateRangeFilter = ({
   onDateToChange,
   className,
   showPresets = true,
+  defaultPreset = "last_7_days",
 }: DateRangeFilterProps) => {
-  const [preset, setPreset] = useState<DateRangePreset>("last_30_days");
+  const [preset, setPreset] = useState<DateRangePreset>(defaultPreset);
 
   const handlePresetChange = (value: DateRangePreset) => {
     setPreset(value);
