@@ -130,20 +130,22 @@ export const AdminDashboard = () => {
       }))
       .sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
 
-    // Location rankings
+    // Location rankings - only include audits with meaningful scores (> 0)
     const locationScores = new Map<string, { total: number; count: number; name: string }>();
-    filteredAudits.forEach(audit => {
-      const locationName = audit.locations?.name || audit.location || 'Unknown';
-      const locationId = audit.location_id || locationName;
-      
-      if (!locationScores.has(locationId)) {
-        locationScores.set(locationId, { total: 0, count: 0, name: locationName });
-      }
-      
-      const loc = locationScores.get(locationId)!;
-      loc.total += audit.overall_score || 0;
-      loc.count += 1;
-    });
+    filteredAudits
+      .filter(audit => audit.overall_score && audit.overall_score > 0)
+      .forEach(audit => {
+        const locationName = audit.locations?.name || audit.location || 'Unknown';
+        const locationId = audit.location_id || locationName;
+        
+        if (!locationScores.has(locationId)) {
+          locationScores.set(locationId, { total: 0, count: 0, name: locationName });
+        }
+        
+        const loc = locationScores.get(locationId)!;
+        loc.total += audit.overall_score || 0;
+        loc.count += 1;
+      });
 
     const locationRankings = Array.from(locationScores.entries())
       .map(([id, data]) => ({
