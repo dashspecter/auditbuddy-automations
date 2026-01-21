@@ -20,6 +20,7 @@ export interface KioskTask {
   start_at: string | null;
   completed_at: string | null;
   completed_late: boolean | null;
+  completed_by: string | null; // Employee ID who actually completed the task
 }
 
 export interface ScheduledEmployee {
@@ -122,10 +123,18 @@ function isTaskDueInRangeOrOverdue(
 }
 
 /**
- * Check if a task was completed on a specific date
+ * Check if a task was completed on a specific date BY a specific employee
+ * CRITICAL: Only count completions if the employee actually completed the task
  */
-function wasCompletedOnDate(task: KioskTask, targetDate: Date): boolean {
+function wasCompletedOnDateByEmployee(
+  task: KioskTask, 
+  targetDate: Date, 
+  employeeId: string
+): boolean {
   if (task.status !== "completed" || !task.completed_at) return false;
+  
+  // CRITICAL FIX: Only count if this employee actually completed the task
+  if (task.completed_by !== employeeId) return false;
   
   const completedAt = parseISO(task.completed_at);
   const targetStart = startOfDay(targetDate);
@@ -135,14 +144,19 @@ function wasCompletedOnDate(task: KioskTask, targetDate: Date): boolean {
 }
 
 /**
- * Check if a task was completed within a date range
+ * Check if a task was completed within a date range BY a specific employee
+ * CRITICAL: Only count completions if the employee actually completed the task
  */
-function wasCompletedInRange(
+function wasCompletedInRangeByEmployee(
   task: KioskTask, 
   rangeStart: Date, 
-  rangeEnd: Date
+  rangeEnd: Date,
+  employeeId: string
 ): boolean {
   if (task.status !== "completed" || !task.completed_at) return false;
+  
+  // CRITICAL FIX: Only count if this employee actually completed the task
+  if (task.completed_by !== employeeId) return false;
   
   const completedAt = parseISO(task.completed_at);
   const rangeStartDay = startOfDay(rangeStart);
@@ -176,9 +190,9 @@ export function computeKioskTaskMetrics(
       return isTaskDueOnDateOrOverdue(task, today);
     });
     
-    // Completed today
+    // Completed today - ONLY count tasks this employee actually completed
     const completedToday = employeeTasks.filter(task => 
-      wasCompletedOnDate(task, today)
+      wasCompletedOnDateByEmployee(task, today, employee.id)
     );
     
     // Completed on time today
@@ -191,9 +205,9 @@ export function computeKioskTaskMetrics(
       return isTaskDueInRangeOrOverdue(task, weekStart, weekEnd);
     });
     
-    // Completed this week
+    // Completed this week - ONLY count tasks this employee actually completed
     const completedWeek = employeeTasks.filter(task =>
-      wasCompletedInRange(task, weekStart, weekEnd)
+      wasCompletedInRangeByEmployee(task, weekStart, weekEnd, employee.id)
     );
     
     // Completed on time this week

@@ -352,6 +352,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       start_at: task.start_at,
       completed_at: task.completed_at,
       completed_late: task.completed_late,
+      completed_by: task.completed_by, // Include actual completer for attribution
     }));
   }, [rawTasks]);
 
