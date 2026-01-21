@@ -254,7 +254,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
   // Create attendance status map
   const attendanceMap = new Map<string, { checkedIn: boolean; checkedOut: boolean }>();
+  // IMPORTANT:
+  // The RPC returns multiple logs per staff member, ordered by newest first.
+  // We must only use the latest log for status; otherwise an older checked-out
+  // record can incorrectly overwrite a newer checked-in record.
   attendance.forEach((log) => {
+    if (attendanceMap.has(log.staff_id)) return; // keep newest status
+
     attendanceMap.set(log.staff_id, {
       checkedIn: true,
       checkedOut: !!log.check_out_at,
