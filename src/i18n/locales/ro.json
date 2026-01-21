@@ -73,7 +73,9 @@
     "pullToRefresh": {
       "pull": "Trage pentru reîmprospătare",
       "release": "Eliberează pentru reîmprospătare"
-    }
+    },
+    "audit": "audit",
+    "audits": "audituri"
   },
   "nav": {
     "navigation": "Navigare",
@@ -295,6 +297,11 @@
       "thisWeekAudits": "Audituri săptămâna aceasta",
       "currentWeek": "Săptămâna curentă",
       "thisWeeksAudits": "Auditurile săptămânii",
+      "completedAudits": "Audituri finalizate",
+      "overdueAudits": "Audituri întârziate",
+      "allAuditScores": "Toate scorurile",
+      "lowestPerformingLocations": "Locații cu performanță scăzută",
+      "topPerformingLocations": "Locații cu performanță ridicată",
       "noAuditsThisWeek": "Niciun audit săptămâna aceasta"
     },
     "compliance": {

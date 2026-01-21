@@ -73,7 +73,9 @@
     "pullToRefresh": {
       "pull": "Pull to refresh",
       "release": "Release to refresh"
-    }
+    },
+    "audit": "audit",
+    "audits": "audits"
   },
   "nav": {
     "navigation": "Navigation",
@@ -295,6 +297,11 @@
       "thisWeekAudits": "This Week Audits",
       "currentWeek": "Current week",
       "thisWeeksAudits": "This Week's Audits",
+      "completedAudits": "Completed Audits",
+      "overdueAudits": "Overdue Audits",
+      "allAuditScores": "All Audit Scores",
+      "lowestPerformingLocations": "Lowest Performing Locations",
+      "topPerformingLocations": "Top Performing Locations",
       "noAuditsThisWeek": "No audits this week"
     },
     "compliance": {
