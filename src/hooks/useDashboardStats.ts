@@ -46,12 +46,15 @@ export const useDashboardStats = (options?: DashboardStatsOptions) => {
       return auditDate < now && (a.status === 'pending' || a.status === 'draft');
     }).length;
 
-    const totalScore = filteredAudits.reduce((sum, a) => sum + (a.overall_score || 0), 0);
-    const avgScore = totalAudits > 0 ? Math.round(totalScore / totalAudits) : 0;
+    // Only include audits with meaningful scores (> 0) for average calculations
+    const auditsWithScores = filteredAudits.filter(a => a.overall_score && a.overall_score > 0);
+    const totalScore = auditsWithScores.reduce((sum, a) => sum + (a.overall_score || 0), 0);
+    const avgScore = auditsWithScores.length > 0 ? Math.round(totalScore / auditsWithScores.length) : 0;
 
     const locationScores = new Map<string, { total: number; count: number; name: string }>();
     
-    filteredAudits.forEach(audit => {
+    // Only include audits with meaningful scores for location rankings
+    auditsWithScores.forEach(audit => {
       const locationName = audit.locations?.name || audit.location || 'Unknown';
       const locationId = audit.location_id || locationName;
       
