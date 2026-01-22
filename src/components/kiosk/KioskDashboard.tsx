@@ -423,9 +423,17 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       }
     });
 
-    // Sort tasks within each group by start_at
+    // Sort tasks within each group: OVERDUE FIRST, then by start_at
     Object.values(roleGroups).forEach(group => {
       group.tasks.sort((a, b) => {
+        const aOverdue = a.due_at && isPast(new Date(a.due_at));
+        const bOverdue = b.due_at && isPast(new Date(b.due_at));
+        
+        // Overdue tasks always come first
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+        
+        // Within same category, sort by time
         const timeA = a.start_at || a.due_at || "";
         const timeB = b.start_at || b.due_at || "";
         return timeA.localeCompare(timeB);
@@ -463,6 +471,26 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
+      {/* Overdue Alert Banner - Prominent when there are overdue tasks */}
+      {overdueTasksCount > 0 && (
+        <div className="animate-pulse bg-destructive/90 text-destructive-foreground rounded-lg p-4 flex items-center justify-between shadow-lg border-2 border-destructive">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 rounded-full p-2">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="font-bold text-lg">
+                {overdueTasksCount} {overdueTasksCount === 1 ? 'Task' : 'Tasks'} Overdue!
+              </div>
+              <div className="text-sm opacity-90">
+                Action required - check tasks below
+              </div>
+            </div>
+          </div>
+          <div className="text-4xl font-bold">{overdueTasksCount}</div>
+        </div>
+      )}
+
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 bg-green-500/10 border-green-500/20">
@@ -483,12 +511,20 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
             </div>
           </div>
         </Card>
-        <Card className="p-3 bg-orange-500/10 border-orange-500/20">
+        <Card className={`p-3 ${overdueTasksCount > 0 ? 'bg-destructive/10 border-destructive/30' : 'bg-orange-500/10 border-orange-500/20'}`}>
           <div className="flex items-center gap-2">
-            <Timer className="h-5 w-5 text-orange-500" />
+            {overdueTasksCount > 0 ? (
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            ) : (
+              <Timer className="h-5 w-5 text-orange-500" />
+            )}
             <div>
-              <div className="text-2xl font-bold text-orange-600">{pendingTasksCount}</div>
-              <div className="text-xs text-muted-foreground">Pending</div>
+              <div className={`text-2xl font-bold ${overdueTasksCount > 0 ? 'text-destructive' : 'text-orange-600'}`}>
+                {pendingTasksCount}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {overdueTasksCount > 0 ? `Pending (${overdueTasksCount} overdue)` : 'Pending'}
+              </div>
             </div>
           </div>
         </Card>
@@ -605,26 +641,32 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
                       return (
                         <div
                           key={task.id}
-                          className="rounded-lg bg-muted/30 p-2 flex items-center gap-2"
+                          className={`rounded-lg p-2 flex items-center gap-2 transition-all ${
+                            isOverdue 
+                              ? 'bg-destructive/15 border-2 border-destructive/40 shadow-sm animate-pulse' 
+                              : 'bg-muted/30'
+                          }`}
                         >
                           {isOverdue ? (
-                            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                            <div className="bg-destructive rounded-full p-1.5 flex-shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-destructive-foreground" />
+                            </div>
                           ) : (
                             <Timer className="h-4 w-4 text-primary flex-shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <span className={`text-sm truncate block ${isOverdue ? 'text-destructive font-medium' : ''}`}>
+                            <span className={`text-sm truncate block ${isOverdue ? 'text-destructive font-bold' : ''}`}>
                               {task.title}
                             </span>
                             {taskTime && (
-                              <span className="text-xs text-muted-foreground">
-                                Scheduled: {taskTime}
+                              <span className={`text-xs ${isOverdue ? 'text-destructive/70' : 'text-muted-foreground'}`}>
+                                {isOverdue ? 'Was due: ' : 'Scheduled: '}{taskTime}
                               </span>
                             )}
                           </div>
                           {isOverdue ? (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                              Overdue
+                            <Badge variant="destructive" className="text-xs px-2 py-0.5 font-bold animate-pulse">
+                              ⚠ OVERDUE
                             </Badge>
                           ) : task.start_at ? (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
