@@ -236,18 +236,17 @@ export function computeKioskTaskMetrics(
 
 /**
  * Get Today's Champions - ranked by completed tasks today
+ * Only shows employees who have actually completed at least 1 task today
  */
 export function getTodaysChampions(
   metrics: KioskEmployeeTaskMetrics[],
   limit: number = 3
 ): KioskEmployeeTaskMetrics[] {
-  // Only include employees with any activity (completed OR assigned open tasks)
-  const withActivity = metrics.filter(
-    m => m.completed_today > 0 || m.assigned_open_today > 0
-  );
+  // Only include employees who have completed at least 1 task today
+  const withCompletions = metrics.filter(m => m.completed_today > 0);
   
   // Sort: completed_today (desc), completed_on_time_today (desc), fewer open tasks (asc)
-  return withActivity
+  return withCompletions
     .sort((a, b) => {
       // Primary: completed today
       if (b.completed_today !== a.completed_today) {
