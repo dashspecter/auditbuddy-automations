@@ -424,10 +424,15 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     });
 
     // Sort tasks within each group: OVERDUE FIRST, then by start_at
+    // Overdue = due_at past OR (no due_at AND start_at past)
+    const checkOverdue = (t: Task) => 
+      (t.due_at && isPast(new Date(t.due_at))) || 
+      (!t.due_at && t.start_at && isPast(new Date(t.start_at)));
+    
     Object.values(roleGroups).forEach(group => {
       group.tasks.sort((a, b) => {
-        const aOverdue = a.due_at && isPast(new Date(a.due_at));
-        const bOverdue = b.due_at && isPast(new Date(b.due_at));
+        const aOverdue = checkOverdue(a);
+        const bOverdue = checkOverdue(b);
         
         // Overdue tasks always come first
         if (aOverdue && !bOverdue) return -1;
@@ -465,9 +470,16 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
   const completedTasksCount = tasks.filter((t) => t.status === "completed").length;
   const pendingTasksCount = tasks.filter((t) => t.status !== "completed").length;
-  const overdueTasksCount = tasks.filter((t) => 
-    t.status !== "completed" && t.due_at && isPast(new Date(t.due_at))
-  ).length;
+  
+  // Check if task is overdue: due_at is past, OR if no due_at, check if start_at is past
+  const isTaskOverdue = (t: Task) => {
+    if (t.status === "completed") return false;
+    if (t.due_at && isPast(new Date(t.due_at))) return true;
+    if (!t.due_at && t.start_at && isPast(new Date(t.start_at))) return true;
+    return false;
+  };
+  
+  const overdueTasksCount = tasks.filter(isTaskOverdue).length;
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
@@ -636,7 +648,9 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
                     {/* Tasks for this role */}
                     {roleTasks.map((task) => {
-                      const isOverdue = task.due_at && isPast(new Date(task.due_at));
+                      // Overdue: due_at is past, OR if no due_at, start_at is past
+                      const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
+                                        (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
                       const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
                       return (
                         <div
