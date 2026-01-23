@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Star, AlertCircle, Upload, X, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { optimizeImage } from "@/lib/fileOptimization";
 
 const RatingInput = ({ 
   question, 
@@ -70,19 +71,28 @@ const PhotoInput = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
-      return;
-    }
-
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `mystery-shopper-photos/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Compress image to fit within storage bucket limit (2MB)
+      // This handles large photos from modern phone cameras
+      const optimized = await optimizeImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.85,
+        maxSizeBytes: 10 * 1024 * 1024, // Allow larger input, we'll compress it
+      });
+
+      // Create a File object from the compressed blob
+      const compressedFile = new File([optimized.blob], file.name, {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+
+      const fileName = `mystery-shopper-photos/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('public-assets')
-        .upload(fileName, file, {
+        .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false
         });
