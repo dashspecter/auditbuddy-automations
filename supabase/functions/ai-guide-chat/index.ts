@@ -937,7 +937,7 @@ serve(async (req) => {
     
     const { data: companyUserData, error: companyUserError } = await supabase
       .from("company_users")
-      .select("company_id, role")
+      .select("company_id, company_role")
       .eq("user_id", userId)
       .single();
     
@@ -950,7 +950,7 @@ serve(async (req) => {
     }
     
     const companyId = companyUserData.company_id;
-    const dbRole = companyUserData.role;
+    const dbRole = companyUserData.company_role;
     const displayRole = requestRole;
     
     console.log(`AI Guide request - User: ${userId}, Company: ${companyId}, DB Role: ${dbRole}, Display Role: ${displayRole}`);
