@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
@@ -121,6 +121,12 @@ export const EmployeePerformanceDashboard = () => {
               <div className="flex items-center gap-2">
                 <span className="font-medium truncate">{employee.employee_name}</span>
                 <Badge variant="outline" className="text-xs">{employee.role}</Badge>
+                {(employee.warning_count || 0) > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                    {employee.warning_count}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
@@ -302,6 +308,41 @@ export const EmployeePerformanceDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Warning Penalty Section */}
+            {(employee.warning_count > 0 || employee.warning_penalty > 0) && (
+              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <span className="font-medium text-orange-800 dark:text-orange-200">
+                    Warnings Impact
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {employee.warning_count} warnings (last 90d)
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Base Score:</span>
+                    <span className="ml-2 font-medium">{employee.base_score?.toFixed(1) || '100.0'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Warnings:</span>
+                    <span className="ml-2 font-medium text-red-600">-{employee.warning_penalty?.toFixed(1) || '0.0'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Final Score:</span>
+                    <span className={`ml-2 font-bold ${getScoreColor(employee.overall_score)}`}>{employee.overall_score.toFixed(1)}</span>
+                  </div>
+                </div>
+                {employee.warning_monthly_caps && Object.entries(employee.warning_monthly_caps).some(([_, v]) => v.raw > v.capped) && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">
+                    <Info className="h-3 w-3" />
+                    Monthly cap applied
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -347,7 +388,7 @@ export const EmployeePerformanceDashboard = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -384,6 +425,23 @@ export const EmployeePerformanceDashboard = () => {
                 <p className="text-sm text-muted-foreground">Top Performer</p>
                 <p className="text-lg font-bold truncate">
                   {leaderboard[0]?.employee_name || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0) > 0 ? "border-orange-200" : ""}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Active Warnings</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {allScores.filter(s => (s.warning_count || 0) > 0).length} employees
                 </p>
               </div>
             </div>
