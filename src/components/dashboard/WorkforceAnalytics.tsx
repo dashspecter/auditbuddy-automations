@@ -110,6 +110,11 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
   const topPerformers = allScores.filter(s => s.overall_score >= 90).length;
   const atRiskEmployees = allScores.filter(s => s.overall_score < 50).length;
 
+  // Warning stats
+  const totalWarnings = allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0);
+  const totalWarningPenalty = allScores.reduce((sum, s) => sum + (s.warning_penalty || 0), 0);
+  const employeesWithWarnings = allScores.filter(s => (s.warning_count || 0) > 0).length;
+
   if (performanceLoading || payrollLoading) {
     return (
       <div className="space-y-6">
@@ -138,7 +143,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
       )}
       
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -186,10 +191,25 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
+        <Card className={totalWarnings > 0 ? "border-orange-200" : ""}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              Active Warnings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{totalWarnings}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {employeesWithWarnings} employees • -{totalWarningPenalty.toFixed(1)} pts
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
+              <TrendingDown className="h-4 w-4 text-red-500" />
               At Risk
             </CardTitle>
           </CardHeader>
@@ -305,7 +325,15 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{employee.employee_name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{employee.employee_name}</span>
+                      {employee.warning_count > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
+                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                          {employee.warning_count}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" />
                       {employee.location_name}
@@ -322,6 +350,11 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
                       <span className={getScoreColor(employee.task_score)}>
                         T:{employee.task_score}
                       </span>
+                      {employee.warning_penalty > 0 && (
+                        <span className="text-orange-600">
+                          W:-{employee.warning_penalty.toFixed(0)}
+                        </span>
+                      )}
                     </div>
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
                       <span className={`font-bold ${getScoreColor(employee.overall_score)}`}>
@@ -363,9 +396,20 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{employee.employee_name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{employee.employee_name}</span>
+                        {employee.warning_count > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-100 text-orange-700 border-orange-300">
+                            <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                            {employee.warning_count} warnings
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {employee.shifts_missed} missed shifts • {employee.late_count} late • {employee.tasks_overdue} overdue tasks
+                        {employee.warning_penalty > 0 && (
+                          <span className="text-orange-600 ml-1">• -{employee.warning_penalty.toFixed(1)} warning penalty</span>
+                        )}
                       </div>
                     </div>
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
