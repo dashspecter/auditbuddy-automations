@@ -125,6 +125,12 @@ const EmployeePerformance = () => {
               <div className="flex items-center gap-2">
                 <span className="font-medium truncate">{employee.employee_name}</span>
                 <Badge variant="outline" className="text-xs">{employee.role}</Badge>
+                {(employee.warning_count || 0) > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                    {employee.warning_count}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
@@ -388,7 +394,7 @@ const EmployeePerformance = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -425,6 +431,23 @@ const EmployeePerformance = () => {
                 <p className="text-sm text-muted-foreground">Top Performer</p>
                 <p className="text-lg font-bold truncate">
                   {leaderboard[0]?.employee_name || "-"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0) > 0 ? "border-orange-200" : ""}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Active Warnings</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {allScores.filter(s => (s.warning_count || 0) > 0).length} employees
                 </p>
               </div>
             </div>
