@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info, Download } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { 
   computeEffectiveScores, 
   sortByEffectiveScore, 
@@ -25,6 +26,8 @@ import {
   calculateAverageEffectiveScore,
   EffectiveEmployeeScore 
 } from "@/lib/effectiveScore";
+import { generateLocationPerformancePDF } from "@/lib/locationPerformancePdf";
+import { toast } from "sonner";
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -66,6 +69,15 @@ export const EmployeePerformanceDashboard = () => {
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const { data: locations = [] } = useLocations();
 
+  const getDateRangeLabel = (range: string) => {
+    switch (range) {
+      case "week": return "Last 7 days";
+      case "month": return "This month";
+      case "quarter": return "Last 90 days";
+      default: return "This month";
+    }
+  };
+
   const getDateRange = () => {
     const now = new Date();
     switch (dateRange) {
@@ -73,22 +85,40 @@ export const EmployeePerformanceDashboard = () => {
         return {
           start: format(subDays(now, 7), "yyyy-MM-dd"),
           end: format(now, "yyyy-MM-dd"),
+          label: getDateRangeLabel(dateRange),
         };
       case "month":
         return {
           start: format(startOfMonth(now), "yyyy-MM-dd"),
           end: format(endOfMonth(now), "yyyy-MM-dd"),
+          label: getDateRangeLabel(dateRange),
         };
       case "quarter":
         return {
           start: format(subDays(now, 90), "yyyy-MM-dd"),
           end: format(now, "yyyy-MM-dd"),
+          label: getDateRangeLabel(dateRange),
         };
       default:
         return {
           start: format(startOfMonth(now), "yyyy-MM-dd"),
           end: format(endOfMonth(now), "yyyy-MM-dd"),
+          label: getDateRangeLabel(dateRange),
         };
+    }
+  };
+
+  const handleDownloadLocationPDF = (locationData: { location_id: string; location_name: string; employees: EffectiveEmployeeScore[] }) => {
+    try {
+      const { start, end, label } = getDateRange();
+      generateLocationPerformancePDF({
+        ...locationData,
+        dateRange: { start, end, label },
+      });
+      toast.success(`Downloaded ${locationData.location_name} performance report`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF report');
     }
   };
 
@@ -568,16 +598,27 @@ export const EmployeePerformanceDashboard = () => {
                 const locationAvg = calculateAverageEffectiveScore(locationData.employees);
                 return (
                   <Card key={locationData.location_id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-muted-foreground" />
-                        {locationData.location_name}
-                      </CardTitle>
-                      <CardDescription>
-                        {locationData.employees.length} employees • Avg score: {
-                          locationAvg !== null ? Math.round(locationAvg) : '—'
-                        }
-                      </CardDescription>
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-muted-foreground" />
+                          {locationData.location_name}
+                        </CardTitle>
+                        <CardDescription>
+                          {locationData.employees.length} employees • Avg score: {
+                            locationAvg !== null ? Math.round(locationAvg) : '—'
+                          }
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => handleDownloadLocationPDF(locationData)}
+                      >
+                        <Download className="h-4 w-4" />
+                        <span className="hidden sm:inline">Download PDF</span>
+                      </Button>
                     </CardHeader>
                     <CardContent>
                       <div className="divide-y">
