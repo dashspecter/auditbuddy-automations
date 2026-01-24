@@ -10,12 +10,77 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_RESULT_ROWS = 200;
 
-// ============= TIMEZONE HELPERS =============
+// ============= TIMEZONE HELPERS (using Postgres RPC for DST-safety) =============
 
 /**
- * Get YYYY-MM-DD date key in the specified timezone
+ * Get UTC timestamp range from local date range using Postgres RPC (DST-safe)
  */
-function getDateKeyInTZ(isoTimestamp: string, tz: string): string {
+async function getUTCDateRange(supabase: any, fromDate: string, toDate: string, tz: string = DEFAULT_TIMEZONE): Promise<{ fromUtc: string; toUtc: string } | null> {
+  try {
+    const { data, error } = await supabase.rpc('tz_date_range_to_utc', {
+      from_date: fromDate,
+      to_date: toDate,
+      tz: tz
+    });
+    
+    if (error || !data || data.length === 0) {
+      console.error('Failed to get UTC date range:', error);
+      return null;
+    }
+    
+    return {
+      fromUtc: data[0].from_utc,
+      toUtc: data[0].to_utc
+    };
+  } catch (e) {
+    console.error('UTC date range RPC failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Get local date from UTC timestamp using Postgres RPC (DST-safe)
+ */
+async function getLocalDate(supabase: any, timestamp: string, tz: string = DEFAULT_TIMEZONE): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc('tz_timestamp_to_local_date', {
+      ts: timestamp,
+      tz: tz
+    });
+    
+    if (error || data === null) {
+      console.error('Failed to get local date:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (e) {
+    console.error('Local date RPC failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Batch convert timestamps to local dates (more efficient)
+ */
+async function batchGetLocalDates(supabase: any, timestamps: string[], tz: string = DEFAULT_TIMEZONE): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  
+  // Process in batches to avoid too many RPC calls
+  for (const ts of timestamps) {
+    const localDate = await getLocalDate(supabase, ts, tz);
+    if (localDate) {
+      result.set(ts, localDate);
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Fallback: Get YYYY-MM-DD date key in the specified timezone using Intl (for when RPC fails)
+ */
+function getDateKeyInTZFallback(isoTimestamp: string, tz: string): string {
   try {
     const date = new Date(isoTimestamp);
     const formatter = new Intl.DateTimeFormat("en-CA", { 
@@ -24,83 +89,9 @@ function getDateKeyInTZ(isoTimestamp: string, tz: string): string {
       month: "2-digit", 
       day: "2-digit" 
     });
-    return formatter.format(date); // Returns YYYY-MM-DD format in en-CA locale
+    return formatter.format(date);
   } catch {
-    // Fallback to UTC if timezone is invalid
     return new Date(isoTimestamp).toISOString().split("T")[0];
-  }
-}
-
-/**
- * Convert a local date (YYYY-MM-DD) to UTC ISO timestamp at start of day in that timezone
- */
-function localDateToUTCStart(localDate: string, tz: string): string {
-  try {
-    // Parse the local date
-    const [year, month, day] = localDate.split("-").map(Number);
-    
-    // Create a date string that represents midnight in the target timezone
-    const localDateTimeStr = `${localDate}T00:00:00`;
-    
-    // Use Intl to figure out the offset
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    });
-    
-    // Create a test date at the start of day
-    // We need to find what UTC time corresponds to midnight in the target TZ
-    // Approach: iterate to find the right UTC time (simple approximation)
-    const baseDate = new Date(`${localDate}T12:00:00Z`); // Start at noon UTC
-    const parts = formatter.formatToParts(baseDate);
-    
-    // For simplicity, use a direct calculation approach
-    // Create date at midnight UTC, then adjust based on timezone
-    const midnightUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    
-    // Get the offset by comparing formatted local time vs UTC
-    const testFormatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false
-    });
-    
-    // Sample a known time to determine offset
-    const sampleTime = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-    const sampleParts = testFormatter.formatToParts(sampleTime);
-    const localHour = parseInt(sampleParts.find(p => p.type === "hour")?.value || "12");
-    
-    // Offset in hours (positive means TZ is ahead of UTC)
-    const offsetHours = localHour - 12;
-    
-    // To get midnight local time, we need to go back by the offset from midnight UTC
-    const midnightLocal = new Date(midnightUTC.getTime() - offsetHours * 60 * 60 * 1000);
-    
-    return midnightLocal.toISOString();
-  } catch {
-    return `${localDate}T00:00:00Z`;
-  }
-}
-
-/**
- * Convert a local date (YYYY-MM-DD) to UTC ISO timestamp at end of day (start of next day) in that timezone
- */
-function localDateToUTCEnd(localDate: string, tz: string): string {
-  try {
-    const [year, month, day] = localDate.split("-").map(Number);
-    // Get start of next day
-    const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0));
-    const nextDayStr = nextDay.toISOString().split("T")[0];
-    return localDateToUTCStart(nextDayStr, tz);
-  } catch {
-    return `${localDate}T23:59:59.999Z`;
   }
 }
 
@@ -227,6 +218,23 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "compute_missed_shifts",
+      description: "Find shifts where employee was assigned but did not check in (no attendance log linked and no approved time off).",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_id: { type: "string", description: "UUID of the employee" },
+          from: { type: "string", description: "Start date (YYYY-MM-DD)" },
+          to: { type: "string", description: "End date (YYYY-MM-DD)" },
+          timezone: { type: "string", description: "Timezone (default: Europe/Bucharest)" }
+        },
+        required: ["employee_id", "from", "to"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "list_warnings",
       description: "List warnings/discipline events for an employee within a date range.",
       parameters: {
@@ -285,9 +293,8 @@ async function executeSearchEmployees(supabase: any, args: { query: string; limi
 async function executeGetEmployeeProfile(
   supabase: any, 
   args: { employee_id: string; include_pii?: boolean }, 
-  dbRole: string // SECURITY: This is the authoritative role from DB, not from request
+  dbRole: string
 ) {
-  // SECURITY: Only admin/manager can see PII - using dbRole (from company_users table)
   const canSeePii = (args.include_pii === true) && (dbRole === "admin" || dbRole === "manager" || dbRole === "company_admin" || dbRole === "company_owner");
   
   const selectFields = canSeePii 
@@ -325,8 +332,12 @@ async function executeGetEmployeeProfile(
 
 async function executeListShifts(supabase: any, args: { employee_id: string; from: string; to: string; location_id?: string }) {
   const tz = DEFAULT_TIMEZONE;
-  const fromUTC = localDateToUTCStart(args.from, tz);
-  const toUTC = localDateToUTCEnd(args.to, tz);
+  
+  // Use Postgres RPC for DST-safe date range conversion
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  if (!utcRange) {
+    return { error: "Failed to convert date range to UTC" };
+  }
   
   let query = supabase
     .from("shift_assignments")
@@ -336,8 +347,8 @@ async function executeListShifts(supabase: any, args: { employee_id: string; fro
       shifts!inner(id, start_time, end_time, location_id, locations(name))
     `)
     .eq("staff_id", args.employee_id)
-    .gte("shifts.start_time", fromUTC)
-    .lt("shifts.start_time", toUTC);
+    .gte("shifts.start_time", utcRange.fromUtc)
+    .lt("shifts.start_time", utcRange.toUtc);
   
   if (args.location_id) {
     query = query.eq("shifts.location_id", args.location_id);
@@ -368,15 +379,19 @@ async function executeListShifts(supabase: any, args: { employee_id: string; fro
 
 async function executeListAttendanceLogs(supabase: any, args: { employee_id: string; from: string; to: string; location_id?: string }) {
   const tz = DEFAULT_TIMEZONE;
-  const fromUTC = localDateToUTCStart(args.from, tz);
-  const toUTC = localDateToUTCEnd(args.to, tz);
+  
+  // Use Postgres RPC for DST-safe date range conversion
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  if (!utcRange) {
+    return { error: "Failed to convert date range to UTC" };
+  }
   
   let query = supabase
     .from("attendance_logs")
     .select("id, check_in_at, check_out_at, method, location_id, locations(name), shift_id, is_late, late_minutes, auto_clocked_out")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", fromUTC)
-    .lt("check_in_at", toUTC);
+    .gte("check_in_at", utcRange.fromUtc)
+    .lt("check_in_at", utcRange.toUtc);
   
   if (args.location_id) {
     query = query.eq("location_id", args.location_id);
@@ -410,15 +425,19 @@ async function executeListAttendanceLogs(supabase: any, args: { employee_id: str
 
 async function executeComputeHoursWorked(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
   const tz = args.timezone || DEFAULT_TIMEZONE;
-  const fromUTC = localDateToUTCStart(args.from, tz);
-  const toUTC = localDateToUTCEnd(args.to, tz);
+  
+  // Use Postgres RPC for DST-safe date range conversion
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  if (!utcRange) {
+    return { error: "Failed to convert date range to UTC" };
+  }
   
   const { data, error } = await supabase
     .from("attendance_logs")
     .select("id, check_in_at, check_out_at")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", fromUTC)
-    .lt("check_in_at", toUTC)
+    .gte("check_in_at", utcRange.fromUtc)
+    .lt("check_in_at", utcRange.toUtc)
     .order("check_in_at", { ascending: true });
   
   if (error) return { error: error.message };
@@ -429,9 +448,13 @@ async function executeComputeHoursWorked(supabase: any, args: { employee_id: str
   const dailyMinutes: Record<string, { minutes: number; sessions: number }> = {};
   let totalMinutes = 0;
   
+  // Get local dates for all check-in timestamps using RPC
+  const timestamps = (capped.items as any[]).map(log => log.check_in_at);
+  const localDates = await batchGetLocalDates(supabase, timestamps, tz);
+  
   for (const log of capped.items as any[]) {
-    // FIXED: Use timezone-aware date key
-    const dateKey = getDateKeyInTZ(log.check_in_at, tz);
+    // Use RPC result or fallback to Intl
+    const dateKey = localDates.get(log.check_in_at) || getDateKeyInTZFallback(log.check_in_at, tz);
     
     if (!dailyMinutes[dateKey]) {
       dailyMinutes[dateKey] = { minutes: 0, sessions: 0 };
@@ -475,24 +498,31 @@ async function executeComputeHoursWorked(supabase: any, args: { employee_id: str
 
 async function executeComputeDaysWorked(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
   const tz = args.timezone || DEFAULT_TIMEZONE;
-  const fromUTC = localDateToUTCStart(args.from, tz);
-  const toUTC = localDateToUTCEnd(args.to, tz);
+  
+  // Use Postgres RPC for DST-safe date range conversion
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  if (!utcRange) {
+    return { error: "Failed to convert date range to UTC" };
+  }
   
   const { data, error } = await supabase
     .from("attendance_logs")
     .select("check_in_at")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", fromUTC)
-    .lt("check_in_at", toUTC);
+    .gte("check_in_at", utcRange.fromUtc)
+    .lt("check_in_at", utcRange.toUtc);
   
   if (error) return { error: error.message };
   
   const capped = capResults(data);
   
+  // Get local dates for all check-in timestamps using RPC
+  const timestamps = (capped.items as any[]).map(log => log.check_in_at);
+  const localDates = await batchGetLocalDates(supabase, timestamps, tz);
+  
   const uniqueDates = new Set<string>();
   for (const log of capped.items as any[]) {
-    // FIXED: Use timezone-aware date key
-    const date = getDateKeyInTZ(log.check_in_at, tz);
+    const date = localDates.get(log.check_in_at) || getDateKeyInTZFallback(log.check_in_at, tz);
     uniqueDates.add(date);
   }
   
@@ -509,6 +539,147 @@ async function executeComputeDaysWorked(supabase: any, args: { employee_id: stri
   };
 }
 
+async function executeComputeMissedShifts(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
+  const tz = args.timezone || DEFAULT_TIMEZONE;
+  
+  // Use Postgres RPC for DST-safe date range conversion
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  if (!utcRange) {
+    return { error: "Failed to convert date range to UTC" };
+  }
+  
+  // Get all assigned shifts in range
+  const { data: assignedShifts, error: shiftsError } = await supabase
+    .from("shift_assignments")
+    .select(`
+      id,
+      status,
+      shifts!inner(id, start_time, end_time, shift_date, location_id, locations(name))
+    `)
+    .eq("staff_id", args.employee_id)
+    .eq("approval_status", "approved")
+    .gte("shifts.start_time", utcRange.fromUtc)
+    .lt("shifts.start_time", utcRange.toUtc)
+    .order("shifts(start_time)", { ascending: true });
+  
+  if (shiftsError) return { error: shiftsError.message };
+  
+  if (!assignedShifts || assignedShifts.length === 0) {
+    return {
+      timezone: tz,
+      date_range: { from: args.from, to: args.to },
+      total_assigned_shifts: 0,
+      missed_count: 0,
+      missed_shifts: [],
+      summary: { no_check_in: 0, partial_attendance: 0, time_off_covered: 0 }
+    };
+  }
+  
+  // Get all attendance logs for this employee in range (to check which shifts were attended)
+  const { data: attendanceLogs, error: logsError } = await supabase
+    .from("attendance_logs")
+    .select("id, shift_id, check_in_at, check_out_at")
+    .eq("staff_id", args.employee_id)
+    .gte("check_in_at", utcRange.fromUtc)
+    .lt("check_in_at", utcRange.toUtc);
+  
+  if (logsError) return { error: logsError.message };
+  
+  // Build set of attended shift IDs
+  const attendedShiftIds = new Set<string>();
+  const attendanceByShift = new Map<string, any>();
+  for (const log of attendanceLogs || []) {
+    if (log.shift_id) {
+      attendedShiftIds.add(log.shift_id);
+      attendanceByShift.set(log.shift_id, log);
+    }
+  }
+  
+  // Get approved time off for this employee
+  const { data: timeOffData, error: timeOffError } = await supabase
+    .from("time_off_requests")
+    .select("start_date, end_date")
+    .eq("employee_id", args.employee_id)
+    .eq("status", "approved")
+    .gte("end_date", args.from)
+    .lte("start_date", args.to);
+  
+  // Build list of dates with approved time off
+  const timeOffDates = new Set<string>();
+  if (!timeOffError && timeOffData) {
+    for (const req of timeOffData) {
+      const start = new Date(req.start_date);
+      const end = new Date(req.end_date);
+      let current = new Date(start);
+      while (current <= end) {
+        timeOffDates.add(current.toISOString().split("T")[0]);
+        current.setDate(current.getDate() + 1);
+      }
+    }
+  }
+  
+  // Analyze each shift
+  const missedShifts: any[] = [];
+  const summary = { no_check_in: 0, partial_attendance: 0, time_off_covered: 0 };
+  
+  for (const assignment of assignedShifts) {
+    const shift = assignment.shifts;
+    const shiftId = shift?.id;
+    const shiftDate = shift?.shift_date || getDateKeyInTZFallback(shift?.start_time, tz);
+    
+    // Check if this date is covered by approved time off
+    if (timeOffDates.has(shiftDate)) {
+      summary.time_off_covered++;
+      continue; // Not counted as missed
+    }
+    
+    // Check if there's an attendance log for this shift
+    if (!attendedShiftIds.has(shiftId)) {
+      // No check-in at all
+      missedShifts.push({
+        assignment_id: assignment.id,
+        shift_id: shiftId,
+        shift_date: shiftDate,
+        start_time: shift?.start_time,
+        end_time: shift?.end_time,
+        location: shift?.locations?.name || null,
+        reason: "no_check_in",
+        details: "Employee did not check in for this shift"
+      });
+      summary.no_check_in++;
+    } else {
+      // Has attendance - check if partial (missing checkout)
+      const attendance = attendanceByShift.get(shiftId);
+      if (attendance && !attendance.check_out_at) {
+        missedShifts.push({
+          assignment_id: assignment.id,
+          shift_id: shiftId,
+          shift_date: shiftDate,
+          start_time: shift?.start_time,
+          end_time: shift?.end_time,
+          location: shift?.locations?.name || null,
+          reason: "partial_attendance",
+          details: "Employee checked in but did not check out",
+          check_in_at: attendance.check_in_at
+        });
+        summary.partial_attendance++;
+      }
+    }
+  }
+  
+  const capped = capResults(missedShifts);
+  
+  return {
+    timezone: tz,
+    date_range: { from: args.from, to: args.to },
+    total_assigned_shifts: assignedShifts.length,
+    missed_count: missedShifts.length,
+    missed_shifts: capped.items,
+    truncated: capped.truncated,
+    summary
+  };
+}
+
 async function executeListWarnings(supabase: any, args: { employee_id: string; from: string; to: string }) {
   // staff_events table with event_type = 'warning' or 'coaching_note'
   const { data, error } = await supabase
@@ -521,7 +692,6 @@ async function executeListWarnings(supabase: any, args: { employee_id: string; f
     .order("event_date", { ascending: false });
   
   if (error) {
-    // Table might not exist or no access
     return { supported: false, reason: error.message };
   }
   
@@ -561,7 +731,6 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
   
   const capped = capResults(data);
   
-  // Calculate days for each request
   const summary = {
     approved: 0,
     pending: 0,
@@ -601,7 +770,7 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
   };
 }
 
-// Execute a tool call - SECURITY: dbRole is authoritative role from DB
+// Execute a tool call - dbRole is authoritative role from DB
 async function executeTool(supabase: any, toolName: string, args: any, dbRole: string): Promise<any> {
   console.log(`Executing tool: ${toolName}`, args);
   
@@ -618,6 +787,8 @@ async function executeTool(supabase: any, toolName: string, args: any, dbRole: s
       return executeComputeHoursWorked(supabase, args);
     case "compute_days_worked":
       return executeComputeDaysWorked(supabase, args);
+    case "compute_missed_shifts":
+      return executeComputeMissedShifts(supabase, args);
     case "list_warnings":
       return executeListWarnings(supabase, args);
     case "leave_balance":
@@ -627,7 +798,6 @@ async function executeTool(supabase: any, toolName: string, args: any, dbRole: s
   }
 }
 
-// Display role is for AI tone, not permissions
 const getSystemPrompt = (displayRole: string, modules: string[]) => {
   const baseKnowledge = `You are Dashspect Intelligence, an AI assistant that provides accurate, data-driven answers about employee activity and platform operations.
 
@@ -638,6 +808,7 @@ You have access to real-time data through tools. Use them to answer questions ab
 - Employee shifts and schedules
 - Attendance logs (clock-in/clock-out times)
 - Hours worked and days worked calculations
+- Missed shifts (no-shows, partial attendance)
 - Warnings and discipline records
 - Leave/time-off balances
 
@@ -646,7 +817,7 @@ When answering data questions, you MUST:
 1. Always include the date range used
 2. Always mention the timezone (default: Europe/Bucharest)
 3. State evidence summary: "Based on X attendance logs, Y shifts..."
-4. Mention any anomalies found (missing checkouts, open sessions)
+4. Mention any anomalies found (missing checkouts, open sessions, missed shifts)
 5. For ambiguous employee names, search first and ask user to confirm if multiple matches
 
 **PII Access Rules:**
@@ -747,12 +918,10 @@ serve(async (req) => {
       throw new Error("Supabase environment variables not configured");
     }
 
-    // Create Supabase client with user's JWT for RLS
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Validate user token
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     
@@ -766,7 +935,6 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub;
     
-    // SECURITY FIX: Get authoritative role from database, not from request body
     const { data: companyUserData, error: companyUserError } = await supabase
       .from("company_users")
       .select("company_id, role")
@@ -782,22 +950,18 @@ serve(async (req) => {
     }
     
     const companyId = companyUserData.company_id;
-    const dbRole = companyUserData.role; // AUTHORITATIVE role from DB
-    
-    // requestRole is only used for display/tone in system prompt, not for permissions
+    const dbRole = companyUserData.role;
     const displayRole = requestRole;
     
     console.log(`AI Guide request - User: ${userId}, Company: ${companyId}, DB Role: ${dbRole}, Display Role: ${displayRole}`);
 
     const systemPrompt = getSystemPrompt(displayRole, modules);
     
-    // Prepare messages for the model
     let conversationMessages = [
       { role: "system", content: systemPrompt },
       ...messages
     ];
 
-    // Tool call loop (max 4 iterations)
     const maxIterations = 4;
     let iteration = 0;
     const toolsUsed: string[] = [];
@@ -821,7 +985,7 @@ serve(async (req) => {
           messages: conversationMessages,
           tools,
           tool_choice: "auto",
-          stream: false, // Non-streaming for tool calls
+          stream: false,
         }),
       });
 
@@ -855,12 +1019,9 @@ serve(async (req) => {
 
       const assistantMessage = choice.message;
       
-      // Check if there are tool calls
       if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-        // Add assistant message with tool calls
         conversationMessages.push(assistantMessage);
         
-        // Execute each tool call
         for (const toolCall of assistantMessage.tool_calls) {
           const toolName = toolCall.function.name;
           let args: any;
@@ -871,7 +1032,6 @@ serve(async (req) => {
             args = {};
           }
           
-          // Track tool usage for audit
           toolsUsed.push(toolName);
           
           if (args.employee_id && !employeeIds.includes(args.employee_id)) {
@@ -882,15 +1042,12 @@ serve(async (req) => {
           if (args.from && (!dateRangeFrom || args.from < dateRangeFrom)) dateRangeFrom = args.from;
           if (args.to && (!dateRangeTo || args.to > dateRangeTo)) dateRangeTo = args.to;
           
-          // SECURITY: Use dbRole (from DB) for permissions, not requestRole
           const toolResult = await executeTool(supabase, toolName, args, dbRole);
           
-          // Track if PII was released
           if (toolName === "get_employee_profile" && toolResult.pii_included) {
             piiReleased = true;
           }
           
-          // Add tool result to conversation
           conversationMessages.push({
             role: "tool",
             tool_call_id: toolCall.id,
@@ -898,19 +1055,16 @@ serve(async (req) => {
           });
         }
         
-        // Continue the loop to get next response
         continue;
       }
       
-      // No tool calls - we have the final response
       const finalContent = assistantMessage.content || "";
       
-      // Log the interaction for audit
       try {
         await supabase.from("ai_guide_audit_logs").insert({
           company_id: companyId,
           user_id: userId,
-          role: dbRole, // Log the actual DB role, not the spoofable requestRole
+          role: dbRole,
           question: messages[messages.length - 1]?.content || "",
           answer_preview: finalContent.substring(0, 500),
           tools_used: toolsUsed,
@@ -922,17 +1076,13 @@ serve(async (req) => {
         });
       } catch (logError) {
         console.error("Failed to log AI Guide interaction:", logError);
-        // Don't fail the request if logging fails
       }
       
-      // DETERMINISTIC STREAMING FIX: Instead of calling model again,
-      // stream the already-computed finalContent ourselves
       const encoder = new TextEncoder();
       
       const stream = new ReadableStream({
         start(controller) {
-          // Split content into chunks for streaming effect
-          const chunkSize = 20; // Characters per chunk
+          const chunkSize = 20;
           let position = 0;
           
           const sendChunks = () => {
@@ -940,7 +1090,6 @@ serve(async (req) => {
               const chunk = finalContent.slice(position, position + chunkSize);
               position += chunkSize;
               
-              // Format as SSE data event matching OpenAI format
               const sseData = {
                 id: `chatcmpl-${Date.now()}`,
                 object: "chat.completion.chunk",
@@ -955,10 +1104,8 @@ serve(async (req) => {
               
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
               
-              // Use setTimeout to create streaming effect
               setTimeout(sendChunks, 10);
             } else {
-              // Send final chunk with finish_reason
               const finalSseData = {
                 id: `chatcmpl-${Date.now()}`,
                 object: "chat.completion.chunk",
@@ -991,7 +1138,6 @@ serve(async (req) => {
       });
     }
 
-    // Max iterations reached - return what we have
     return new Response(JSON.stringify({ 
       error: "Request processing exceeded maximum iterations" 
     }), {

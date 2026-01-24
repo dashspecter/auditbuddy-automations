@@ -7698,6 +7698,17 @@ export type Database = {
         Args: { assignment_id: string }
         Returns: Json
       }
+      tz_date_range_to_utc: {
+        Args: { from_date: string; to_date: string; tz?: string }
+        Returns: {
+          from_utc: string
+          to_utc: string
+        }[]
+      }
+      tz_timestamp_to_local_date: {
+        Args: { ts: string; tz?: string }
+        Returns: string
+      }
       update_overdue_interventions: { Args: never; Returns: undefined }
     }
     Enums: {
