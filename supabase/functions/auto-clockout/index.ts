@@ -11,7 +11,18 @@ Deno.serve(async (req) => {
   }
 
   // Validate cron secret to prevent unauthorized access
-  const cronSecret = req.headers.get('x-cron-secret')
+  // Check header first, then body for flexibility
+  let cronSecret = req.headers.get('x-cron-secret')
+  
+  if (!cronSecret) {
+    try {
+      const body = await req.clone().json()
+      cronSecret = body.cron_secret
+    } catch {
+      // No body or invalid JSON
+    }
+  }
+  
   if (cronSecret !== Deno.env.get('CRON_SECRET')) {
     console.error('Unauthorized: Invalid or missing cron secret')
     return new Response(

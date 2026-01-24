@@ -398,6 +398,24 @@ export type Database = {
           },
         ]
       }
+      app_secrets: {
+        Row: {
+          created_at: string | null
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           company_id: string
