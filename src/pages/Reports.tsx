@@ -806,12 +806,6 @@ const Reports = () => {
             <TabsContent value="employee" className="space-y-6 mt-6">
               {/* Employee Performance Dashboard with Stats and Leaderboard */}
               <EmployeePerformanceDashboard />
-
-              {/* Employee Performance Charts */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <EmployeePerformanceChart />
-                <EmployeeLeaderboard />
-              </div>
               
               <StaffLeaderboard />
 
@@ -861,6 +855,12 @@ const Reports = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Employee Performance Charts - moved to end */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <EmployeePerformanceChart />
+                <EmployeeLeaderboard />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
