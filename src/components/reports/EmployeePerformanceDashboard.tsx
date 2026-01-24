@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
+import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { useLocations } from "@/hooks/useLocations";
 import { format, subDays, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { 
+  computeEffectiveScores, 
+  sortByEffectiveScore, 
+  formatEffectiveScore, 
+  formatComponentScore,
+  calculateAverageEffectiveScore,
+  EffectiveEmployeeScore 
+} from "@/lib/effectiveScore";
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -85,18 +93,46 @@ export const EmployeePerformanceDashboard = () => {
   };
 
   const { start: startDate, end: endDate } = getDateRange();
-  const { leaderboard, byLocation, allScores, isLoading } = usePerformanceLeaderboard(
+  const { leaderboard: rawLeaderboard, byLocation: rawByLocation, allScores: rawAllScores, isLoading } = usePerformanceLeaderboard(
     startDate,
     endDate,
     selectedLocationId === "all" ? undefined : selectedLocationId,
-    20
+    100
   );
+
+  // Compute effective scores for all employees
+  const effectiveScores = useMemo(() => 
+    sortByEffectiveScore(computeEffectiveScores(rawAllScores)), 
+    [rawAllScores]
+  );
+
+  // Filter to top 20 for leaderboard
+  const leaderboard = effectiveScores.slice(0, 20);
+
+  // Group by location with effective scores
+  const byLocation = useMemo(() => {
+    const grouped: Record<string, { location_id: string; location_name: string; employees: EffectiveEmployeeScore[] }> = {};
+    for (const score of effectiveScores) {
+      if (!grouped[score.location_id]) {
+        grouped[score.location_id] = {
+          location_id: score.location_id,
+          location_name: score.location_name,
+          employees: [],
+        };
+      }
+      grouped[score.location_id].employees.push(score);
+    }
+    return Object.values(grouped);
+  }, [effectiveScores]);
+
+  // Use effectiveScores for all calculations
+  const allScores = effectiveScores;
 
   const toggleEmployee = (employeeId: string) => {
     setExpandedEmployee(expandedEmployee === employeeId ? null : employeeId);
   };
 
-  const renderEmployeeCard = (employee: EmployeePerformanceScore, rank: number) => {
+  const renderEmployeeCard = (employee: EffectiveEmployeeScore, rank: number) => {
     const isExpanded = expandedEmployee === employee.employee_id;
 
     return (
@@ -135,41 +171,41 @@ export const EmployeePerformanceDashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex items-center gap-2">
-                <div className="text-center">
+                <div className="text-center min-w-[60px]">
                   <div className="text-xs text-muted-foreground">Attendance</div>
-                  <div className={`font-medium ${getScoreColor(employee.attendance_score)}`}>
-                    {employee.attendance_score.toFixed(1)}
+                  <div className={`font-medium ${employee.attendance_used ? getScoreColor(employee.attendance_score) : 'text-muted-foreground'}`}>
+                    {formatComponentScore(employee.attendance_score, employee.attendance_used)}
                   </div>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-[60px]">
                   <div className="text-xs text-muted-foreground">Punctuality</div>
-                  <div className={`font-medium ${getScoreColor(employee.punctuality_score)}`}>
-                    {employee.punctuality_score.toFixed(1)}
+                  <div className={`font-medium ${employee.punctuality_used ? getScoreColor(employee.punctuality_score) : 'text-muted-foreground'}`}>
+                    {formatComponentScore(employee.punctuality_score, employee.punctuality_used)}
                   </div>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-[50px]">
                   <div className="text-xs text-muted-foreground">Tasks</div>
-                  <div className={`font-medium ${getScoreColor(employee.task_score)}`}>
-                    {employee.task_score.toFixed(1)}
+                  <div className={`font-medium ${employee.task_used ? getScoreColor(employee.task_score) : 'text-muted-foreground'}`}>
+                    {formatComponentScore(employee.task_score, employee.task_used)}
                   </div>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-[45px]">
                   <div className="text-xs text-muted-foreground">Tests</div>
-                  <div className={`font-medium ${getScoreColor(employee.test_score)}`}>
-                    {employee.test_score.toFixed(1)}
+                  <div className={`font-medium ${employee.test_used ? getScoreColor(employee.test_score) : 'text-muted-foreground'}`}>
+                    {formatComponentScore(employee.test_score, employee.test_used)}
                   </div>
                 </div>
-                <div className="text-center">
+                <div className="text-center min-w-[55px]">
                   <div className="text-xs text-muted-foreground">Reviews</div>
-                  <div className={`font-medium ${getScoreColor(employee.performance_review_score)}`}>
-                    {employee.performance_review_score.toFixed(1)}
+                  <div className={`font-medium ${employee.review_used ? getScoreColor(employee.performance_review_score) : 'text-muted-foreground'}`}>
+                    {formatComponentScore(employee.performance_review_score, employee.review_used)}
                   </div>
                 </div>
               </div>
               
-              <div className={`flex items-center justify-center w-14 h-14 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
-                <span className={`text-lg font-bold ${getScoreColor(employee.overall_score)}`}>
-                  {employee.overall_score}
+              <div className={`flex items-center justify-center w-14 h-14 rounded-full ${employee.effective_score !== null ? getScoreBgColor(employee.effective_score) : 'bg-muted'}`}>
+                <span className={`text-lg font-bold ${employee.effective_score !== null ? getScoreColor(employee.effective_score) : 'text-muted-foreground'}`}>
+                  {formatEffectiveScore(employee.effective_score)}
                 </span>
               </div>
               
@@ -335,7 +371,7 @@ export const EmployeePerformanceDashboard = () => {
                     <span className={`ml-2 font-bold ${getScoreColor(employee.overall_score)}`}>{employee.overall_score.toFixed(1)}</span>
                   </div>
                 </div>
-                {employee.warning_monthly_caps && Object.entries(employee.warning_monthly_caps).some(([_, v]) => v.raw > v.capped) && (
+                {employee.warning_monthly_caps && Object.entries(employee.warning_monthly_caps).some(([_, v]) => (v as { raw: number; capped: number }).raw > (v as { raw: number; capped: number }).capped) && (
                   <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">
                     <Info className="h-3 w-3" />
                     Monthly cap applied
@@ -408,9 +444,10 @@ export const EmployeePerformanceDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Avg Score</p>
                 <p className="text-2xl font-bold">
-                  {allScores.length > 0
-                    ? Math.round(allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length)
-                    : 0}
+                  {(() => {
+                    const avgScore = calculateAverageEffectiveScore(allScores);
+                    return avgScore !== null ? Math.round(avgScore) : '—';
+                  })()}
                 </p>
               </div>
             </div>
@@ -455,7 +492,7 @@ export const EmployeePerformanceDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">90+ Scorers</p>
                 <p className="text-2xl font-bold">
-                  {allScores.filter(s => s.overall_score >= 90).length}
+                  {allScores.filter(s => s.effective_score !== null && s.effective_score >= 90).length}
                 </p>
               </div>
             </div>
@@ -527,28 +564,31 @@ export const EmployeePerformanceDashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              byLocation.map((locationData) => (
-                <Card key={locationData.location_id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      {locationData.location_name}
-                    </CardTitle>
-                    <CardDescription>
-                      {locationData.employees.length} employees • Avg score: {
-                        Math.round(locationData.employees.reduce((sum, e) => sum + e.overall_score, 0) / locationData.employees.length)
-                      }
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="divide-y">
-                      {locationData.employees.map((employee, index) =>
-                        renderEmployeeCard(employee, index + 1)
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              byLocation.map((locationData) => {
+                const locationAvg = calculateAverageEffectiveScore(locationData.employees);
+                return (
+                  <Card key={locationData.location_id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        {locationData.location_name}
+                      </CardTitle>
+                      <CardDescription>
+                        {locationData.employees.length} employees • Avg score: {
+                          locationAvg !== null ? Math.round(locationAvg) : '—'
+                        }
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="divide-y">
+                        {locationData.employees.map((employee, index) =>
+                          renderEmployeeCard(employee, index + 1)
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
           </div>
         </TabsContent>
