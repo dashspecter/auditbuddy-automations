@@ -6,6 +6,124 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Default timezone for Dashspect
+const DEFAULT_TIMEZONE = "Europe/Bucharest";
+const MAX_TOOL_RESULT_ROWS = 200;
+
+// ============= TIMEZONE HELPERS =============
+
+/**
+ * Get YYYY-MM-DD date key in the specified timezone
+ */
+function getDateKeyInTZ(isoTimestamp: string, tz: string): string {
+  try {
+    const date = new Date(isoTimestamp);
+    const formatter = new Intl.DateTimeFormat("en-CA", { 
+      timeZone: tz, 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    });
+    return formatter.format(date); // Returns YYYY-MM-DD format in en-CA locale
+  } catch {
+    // Fallback to UTC if timezone is invalid
+    return new Date(isoTimestamp).toISOString().split("T")[0];
+  }
+}
+
+/**
+ * Convert a local date (YYYY-MM-DD) to UTC ISO timestamp at start of day in that timezone
+ */
+function localDateToUTCStart(localDate: string, tz: string): string {
+  try {
+    // Parse the local date
+    const [year, month, day] = localDate.split("-").map(Number);
+    
+    // Create a date string that represents midnight in the target timezone
+    const localDateTimeStr = `${localDate}T00:00:00`;
+    
+    // Use Intl to figure out the offset
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+    
+    // Create a test date at the start of day
+    // We need to find what UTC time corresponds to midnight in the target TZ
+    // Approach: iterate to find the right UTC time (simple approximation)
+    const baseDate = new Date(`${localDate}T12:00:00Z`); // Start at noon UTC
+    const parts = formatter.formatToParts(baseDate);
+    
+    // For simplicity, use a direct calculation approach
+    // Create date at midnight UTC, then adjust based on timezone
+    const midnightUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    
+    // Get the offset by comparing formatted local time vs UTC
+    const testFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false
+    });
+    
+    // Sample a known time to determine offset
+    const sampleTime = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const sampleParts = testFormatter.formatToParts(sampleTime);
+    const localHour = parseInt(sampleParts.find(p => p.type === "hour")?.value || "12");
+    
+    // Offset in hours (positive means TZ is ahead of UTC)
+    const offsetHours = localHour - 12;
+    
+    // To get midnight local time, we need to go back by the offset from midnight UTC
+    const midnightLocal = new Date(midnightUTC.getTime() - offsetHours * 60 * 60 * 1000);
+    
+    return midnightLocal.toISOString();
+  } catch {
+    return `${localDate}T00:00:00Z`;
+  }
+}
+
+/**
+ * Convert a local date (YYYY-MM-DD) to UTC ISO timestamp at end of day (start of next day) in that timezone
+ */
+function localDateToUTCEnd(localDate: string, tz: string): string {
+  try {
+    const [year, month, day] = localDate.split("-").map(Number);
+    // Get start of next day
+    const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0));
+    const nextDayStr = nextDay.toISOString().split("T")[0];
+    return localDateToUTCStart(nextDayStr, tz);
+  } catch {
+    return `${localDate}T23:59:59.999Z`;
+  }
+}
+
+/**
+ * Cap tool results to prevent token blowups
+ */
+function capResults<T>(data: T[] | null, limit: number = MAX_TOOL_RESULT_ROWS): { 
+  items: T[]; 
+  count_total: number; 
+  count_returned: number; 
+  truncated: boolean 
+} {
+  const items = data || [];
+  const total = items.length;
+  const truncated = total > limit;
+  return {
+    items: items.slice(0, limit),
+    count_total: total,
+    count_returned: Math.min(total, limit),
+    truncated
+  };
+}
+
 // Tool definitions for Lovable AI gateway
 const tools = [
   {
@@ -47,8 +165,8 @@ const tools = [
         type: "object",
         properties: {
           employee_id: { type: "string", description: "UUID of the employee" },
-          from: { type: "string", description: "Start date (YYYY-MM-DD)" },
-          to: { type: "string", description: "End date (YYYY-MM-DD)" },
+          from: { type: "string", description: "Start date (YYYY-MM-DD) in Europe/Bucharest timezone" },
+          to: { type: "string", description: "End date (YYYY-MM-DD) in Europe/Bucharest timezone" },
           location_id: { type: "string", description: "Optional location UUID filter" }
         },
         required: ["employee_id", "from", "to"]
@@ -64,8 +182,8 @@ const tools = [
         type: "object",
         properties: {
           employee_id: { type: "string", description: "UUID of the employee" },
-          from: { type: "string", description: "Start date (YYYY-MM-DD)" },
-          to: { type: "string", description: "End date (YYYY-MM-DD)" },
+          from: { type: "string", description: "Start date (YYYY-MM-DD) in Europe/Bucharest timezone" },
+          to: { type: "string", description: "End date (YYYY-MM-DD) in Europe/Bucharest timezone" },
           location_id: { type: "string", description: "Optional location UUID filter" }
         },
         required: ["employee_id", "from", "to"]
@@ -141,7 +259,7 @@ const tools = [
 
 // Tool execution functions
 async function executeSearchEmployees(supabase: any, args: { query: string; limit?: number }) {
-  const limit = args.limit || 10;
+  const limit = Math.min(args.limit || 10, MAX_TOOL_RESULT_ROWS);
   const searchTerm = `%${args.query}%`;
   
   const { data, error } = await supabase
@@ -164,8 +282,13 @@ async function executeSearchEmployees(supabase: any, args: { query: string; limi
   };
 }
 
-async function executeGetEmployeeProfile(supabase: any, args: { employee_id: string; include_pii?: boolean }, userRole: string) {
-  const canSeePii = (args.include_pii === true) && (userRole === "admin" || userRole === "manager");
+async function executeGetEmployeeProfile(
+  supabase: any, 
+  args: { employee_id: string; include_pii?: boolean }, 
+  dbRole: string // SECURITY: This is the authoritative role from DB, not from request
+) {
+  // SECURITY: Only admin/manager can see PII - using dbRole (from company_users table)
+  const canSeePii = (args.include_pii === true) && (dbRole === "admin" || dbRole === "manager" || dbRole === "company_admin" || dbRole === "company_owner");
   
   const selectFields = canSeePii 
     ? "id, full_name, role, status, phone, email, location_id, locations(name)"
@@ -201,6 +324,10 @@ async function executeGetEmployeeProfile(supabase: any, args: { employee_id: str
 }
 
 async function executeListShifts(supabase: any, args: { employee_id: string; from: string; to: string; location_id?: string }) {
+  const tz = DEFAULT_TIMEZONE;
+  const fromUTC = localDateToUTCStart(args.from, tz);
+  const toUTC = localDateToUTCEnd(args.to, tz);
+  
   let query = supabase
     .from("shift_assignments")
     .select(`
@@ -209,8 +336,8 @@ async function executeListShifts(supabase: any, args: { employee_id: string; fro
       shifts!inner(id, start_time, end_time, location_id, locations(name))
     `)
     .eq("staff_id", args.employee_id)
-    .gte("shifts.start_time", `${args.from}T00:00:00`)
-    .lte("shifts.start_time", `${args.to}T23:59:59`);
+    .gte("shifts.start_time", fromUTC)
+    .lt("shifts.start_time", toUTC);
   
   if (args.location_id) {
     query = query.eq("shifts.location_id", args.location_id);
@@ -220,27 +347,36 @@ async function executeListShifts(supabase: any, args: { employee_id: string; fro
   
   if (error) return { error: error.message };
   
+  const capped = capResults(data);
+  
   return {
-    count: data?.length || 0,
+    count_total: capped.count_total,
+    count_returned: capped.count_returned,
+    truncated: capped.truncated,
+    timezone: tz,
     date_range: { from: args.from, to: args.to },
-    shifts: data?.map((sa: any) => ({
+    shifts: capped.items.map((sa: any) => ({
       shift_id: sa.shifts?.id,
       assignment_id: sa.id,
       start_time: sa.shifts?.start_time,
       end_time: sa.shifts?.end_time,
       location: sa.shifts?.locations?.name || null,
       status: sa.status
-    })) || []
+    }))
   };
 }
 
 async function executeListAttendanceLogs(supabase: any, args: { employee_id: string; from: string; to: string; location_id?: string }) {
+  const tz = DEFAULT_TIMEZONE;
+  const fromUTC = localDateToUTCStart(args.from, tz);
+  const toUTC = localDateToUTCEnd(args.to, tz);
+  
   let query = supabase
     .from("attendance_logs")
     .select("id, check_in_at, check_out_at, method, location_id, locations(name), shift_id, is_late, late_minutes, auto_clocked_out")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", `${args.from}T00:00:00`)
-    .lte("check_in_at", `${args.to}T23:59:59`);
+    .gte("check_in_at", fromUTC)
+    .lt("check_in_at", toUTC);
   
   if (args.location_id) {
     query = query.eq("location_id", args.location_id);
@@ -250,10 +386,15 @@ async function executeListAttendanceLogs(supabase: any, args: { employee_id: str
   
   if (error) return { error: error.message };
   
+  const capped = capResults(data);
+  
   return {
-    count: data?.length || 0,
+    count_total: capped.count_total,
+    count_returned: capped.count_returned,
+    truncated: capped.truncated,
+    timezone: tz,
     date_range: { from: args.from, to: args.to },
-    logs: data?.map((log: any) => ({
+    logs: capped.items.map((log: any) => ({
       id: log.id,
       check_in_at: log.check_in_at,
       check_out_at: log.check_out_at,
@@ -263,30 +404,34 @@ async function executeListAttendanceLogs(supabase: any, args: { employee_id: str
       is_late: log.is_late,
       late_minutes: log.late_minutes,
       auto_clocked_out: log.auto_clocked_out
-    })) || []
+    }))
   };
 }
 
 async function executeComputeHoursWorked(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
-  const timezone = args.timezone || "Europe/Bucharest";
+  const tz = args.timezone || DEFAULT_TIMEZONE;
+  const fromUTC = localDateToUTCStart(args.from, tz);
+  const toUTC = localDateToUTCEnd(args.to, tz);
   
   const { data, error } = await supabase
     .from("attendance_logs")
     .select("id, check_in_at, check_out_at")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", `${args.from}T00:00:00`)
-    .lte("check_in_at", `${args.to}T23:59:59`)
+    .gte("check_in_at", fromUTC)
+    .lt("check_in_at", toUTC)
     .order("check_in_at", { ascending: true });
   
   if (error) return { error: error.message };
+  
+  const capped = capResults(data);
   
   const anomalies: any[] = [];
   const dailyMinutes: Record<string, { minutes: number; sessions: number }> = {};
   let totalMinutes = 0;
   
-  for (const log of data || []) {
-    const checkIn = new Date(log.check_in_at);
-    const dateKey = checkIn.toISOString().split("T")[0];
+  for (const log of capped.items as any[]) {
+    // FIXED: Use timezone-aware date key
+    const dateKey = getDateKeyInTZ(log.check_in_at, tz);
     
     if (!dailyMinutes[dateKey]) {
       dailyMinutes[dateKey] = { minutes: 0, sessions: 0 };
@@ -301,6 +446,7 @@ async function executeComputeHoursWorked(supabase: any, args: { employee_id: str
       });
       dailyMinutes[dateKey].sessions++;
     } else {
+      const checkIn = new Date(log.check_in_at);
       const checkOut = new Date(log.check_out_at);
       const minutes = Math.round((checkOut.getTime() - checkIn.getTime()) / 60000);
       totalMinutes += minutes;
@@ -310,11 +456,13 @@ async function executeComputeHoursWorked(supabase: any, args: { employee_id: str
   }
   
   return {
-    timezone,
+    timezone: tz,
     date_range: { from: args.from, to: args.to },
     total_minutes: totalMinutes,
     total_hours: Math.round(totalMinutes / 60 * 100) / 100,
-    logs_analyzed: data?.length || 0,
+    logs_analyzed: capped.count_total,
+    logs_returned: capped.count_returned,
+    truncated: capped.truncated,
     days: Object.entries(dailyMinutes).map(([date, stats]) => ({
       date,
       minutes: stats.minutes,
@@ -326,31 +474,38 @@ async function executeComputeHoursWorked(supabase: any, args: { employee_id: str
 }
 
 async function executeComputeDaysWorked(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
-  const timezone = args.timezone || "Europe/Bucharest";
+  const tz = args.timezone || DEFAULT_TIMEZONE;
+  const fromUTC = localDateToUTCStart(args.from, tz);
+  const toUTC = localDateToUTCEnd(args.to, tz);
   
   const { data, error } = await supabase
     .from("attendance_logs")
     .select("check_in_at")
     .eq("staff_id", args.employee_id)
-    .gte("check_in_at", `${args.from}T00:00:00`)
-    .lte("check_in_at", `${args.to}T23:59:59`);
+    .gte("check_in_at", fromUTC)
+    .lt("check_in_at", toUTC);
   
   if (error) return { error: error.message };
   
+  const capped = capResults(data);
+  
   const uniqueDates = new Set<string>();
-  for (const log of data || []) {
-    const date = new Date(log.check_in_at).toISOString().split("T")[0];
+  for (const log of capped.items as any[]) {
+    // FIXED: Use timezone-aware date key
+    const date = getDateKeyInTZ(log.check_in_at, tz);
     uniqueDates.add(date);
   }
   
   const sortedDates = Array.from(uniqueDates).sort();
   
   return {
-    timezone,
+    timezone: tz,
     date_range: { from: args.from, to: args.to },
     days_worked: sortedDates.length,
     dates: sortedDates,
-    logs_analyzed: data?.length || 0
+    logs_analyzed: capped.count_total,
+    logs_returned: capped.count_returned,
+    truncated: capped.truncated
   };
 }
 
@@ -370,17 +525,21 @@ async function executeListWarnings(supabase: any, args: { employee_id: string; f
     return { supported: false, reason: error.message };
   }
   
+  const capped = capResults(data);
+  
   return {
     supported: true,
-    count: data?.length || 0,
+    count_total: capped.count_total,
+    count_returned: capped.count_returned,
+    truncated: capped.truncated,
     date_range: { from: args.from, to: args.to },
-    warnings: data?.map((w: any) => ({
+    warnings: capped.items.map((w: any) => ({
       id: w.id,
       type: w.event_type,
       date: w.event_date,
       description: w.description,
       created_at: w.created_at
-    })) || []
+    }))
   };
 }
 
@@ -400,6 +559,8 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
     return { supported: false, reason: error.message };
   }
   
+  const capped = capResults(data);
+  
   // Calculate days for each request
   const summary = {
     approved: 0,
@@ -408,7 +569,7 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
     by_type: {} as Record<string, { approved: number; pending: number }>
   };
   
-  for (const req of data || []) {
+  for (const req of capped.items as any[]) {
     const start = new Date(req.start_date);
     const end = new Date(req.end_date);
     const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -432,7 +593,7 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
   return {
     supported: true,
     year,
-    total_requests: data?.length || 0,
+    total_requests: capped.count_total,
     days_approved: summary.approved,
     days_pending: summary.pending,
     days_rejected: summary.rejected,
@@ -440,15 +601,15 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
   };
 }
 
-// Execute a tool call
-async function executeTool(supabase: any, toolName: string, args: any, userRole: string): Promise<any> {
+// Execute a tool call - SECURITY: dbRole is authoritative role from DB
+async function executeTool(supabase: any, toolName: string, args: any, dbRole: string): Promise<any> {
   console.log(`Executing tool: ${toolName}`, args);
   
   switch (toolName) {
     case "search_employees":
       return executeSearchEmployees(supabase, args);
     case "get_employee_profile":
-      return executeGetEmployeeProfile(supabase, args, userRole);
+      return executeGetEmployeeProfile(supabase, args, dbRole);
     case "list_shifts":
       return executeListShifts(supabase, args);
     case "list_attendance_logs":
@@ -466,7 +627,8 @@ async function executeTool(supabase: any, toolName: string, args: any, userRole:
   }
 }
 
-const getSystemPrompt = (role: string, modules: string[]) => {
+// Display role is for AI tone, not permissions
+const getSystemPrompt = (displayRole: string, modules: string[]) => {
   const baseKnowledge = `You are Dashspect Intelligence, an AI assistant that provides accurate, data-driven answers about employee activity and platform operations.
 
 IMPORTANT: Always refer to the platform as "Dashspect" (lowercase 's'), never "DashSpect".
@@ -524,6 +686,18 @@ You can view all company data, manage users, and access detailed reports.`,
 As a Manager, you can view PII (phone, email) for employees in your locations.
 You oversee operations, approve requests, and manage your team.`,
 
+    company_admin: `
+
+**Your Role: Company Administrator**
+As a Company Admin, you have full access including PII (phone, email) for employees.
+You can view all company data, manage users, and access detailed reports.`,
+
+    company_owner: `
+
+**Your Role: Company Owner**
+As a Company Owner, you have full access including PII (phone, email) for employees.
+You own the company data and have unrestricted access.`,
+
     checker: `
 
 **Your Role: Checker**
@@ -535,7 +709,7 @@ You perform audits and equipment checks. You cannot access employee PII.`,
 You can view your own schedule and attendance. You cannot access other employees' PII.`
   };
 
-  let roleKnowledge = roleSpecificKnowledge[role] || roleSpecificKnowledge.staff;
+  let roleKnowledge = roleSpecificKnowledge[displayRole] || roleSpecificKnowledge.staff;
   
   const moduleContext = modules.length > 0 
     ? `\n\n**Active Modules:** ${modules.join(", ")}`
@@ -560,7 +734,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, role = "staff", modules = [] } = await req.json();
+    const { messages, role: requestRole = "staff", modules = [] } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -591,9 +765,31 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    console.log(`AI Guide request - User: ${userId}, Role: ${role}, Modules: ${modules.join(", ")}`);
+    
+    // SECURITY FIX: Get authoritative role from database, not from request body
+    const { data: companyUserData, error: companyUserError } = await supabase
+      .from("company_users")
+      .select("company_id, role")
+      .eq("user_id", userId)
+      .single();
+    
+    if (companyUserError || !companyUserData) {
+      console.error("Failed to get user company data:", companyUserError);
+      return new Response(JSON.stringify({ error: "User not found in any company" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    
+    const companyId = companyUserData.company_id;
+    const dbRole = companyUserData.role; // AUTHORITATIVE role from DB
+    
+    // requestRole is only used for display/tone in system prompt, not for permissions
+    const displayRole = requestRole;
+    
+    console.log(`AI Guide request - User: ${userId}, Company: ${companyId}, DB Role: ${dbRole}, Display Role: ${displayRole}`);
 
-    const systemPrompt = getSystemPrompt(role, modules);
+    const systemPrompt = getSystemPrompt(displayRole, modules);
     
     // Prepare messages for the model
     let conversationMessages = [
@@ -686,8 +882,8 @@ serve(async (req) => {
           if (args.from && (!dateRangeFrom || args.from < dateRangeFrom)) dateRangeFrom = args.from;
           if (args.to && (!dateRangeTo || args.to > dateRangeTo)) dateRangeTo = args.to;
           
-          // Execute the tool
-          const toolResult = await executeTool(supabase, toolName, args, role);
+          // SECURITY: Use dbRole (from DB) for permissions, not requestRole
+          const toolResult = await executeTool(supabase, toolName, args, dbRole);
           
           // Track if PII was released
           if (toolName === "get_employee_profile" && toolResult.pii_included) {
@@ -707,60 +903,91 @@ serve(async (req) => {
       }
       
       // No tool calls - we have the final response
-      // Now stream it to the user
       const finalContent = assistantMessage.content || "";
       
       // Log the interaction for audit
       try {
-        // Get company_id from user's profile or first employee query
-        const { data: profileData } = await supabase
-          .from("company_users")
-          .select("company_id")
-          .eq("user_id", userId)
-          .single();
-        
-        const companyId = profileData?.company_id;
-        
-        if (companyId) {
-          await supabase.from("ai_guide_audit_logs").insert({
-            company_id: companyId,
-            user_id: userId,
-            role,
-            question: messages[messages.length - 1]?.content || "",
-            answer_preview: finalContent.substring(0, 500),
-            tools_used: toolsUsed,
-            employee_ids: employeeIds,
-            pii_requested: piiRequested,
-            pii_released: piiReleased,
-            range_from: dateRangeFrom,
-            range_to: dateRangeTo
-          });
-        }
+        await supabase.from("ai_guide_audit_logs").insert({
+          company_id: companyId,
+          user_id: userId,
+          role: dbRole, // Log the actual DB role, not the spoofable requestRole
+          question: messages[messages.length - 1]?.content || "",
+          answer_preview: finalContent.substring(0, 500),
+          tools_used: toolsUsed,
+          employee_ids: employeeIds,
+          pii_requested: piiRequested,
+          pii_released: piiReleased,
+          range_from: dateRangeFrom,
+          range_to: dateRangeTo
+        });
       } catch (logError) {
         console.error("Failed to log AI Guide interaction:", logError);
         // Don't fail the request if logging fails
       }
       
-      // Stream the final response
-      const streamResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: conversationMessages,
-          stream: true,
-        }),
+      // DETERMINISTIC STREAMING FIX: Instead of calling model again,
+      // stream the already-computed finalContent ourselves
+      const encoder = new TextEncoder();
+      
+      const stream = new ReadableStream({
+        start(controller) {
+          // Split content into chunks for streaming effect
+          const chunkSize = 20; // Characters per chunk
+          let position = 0;
+          
+          const sendChunks = () => {
+            if (position < finalContent.length) {
+              const chunk = finalContent.slice(position, position + chunkSize);
+              position += chunkSize;
+              
+              // Format as SSE data event matching OpenAI format
+              const sseData = {
+                id: `chatcmpl-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Math.floor(Date.now() / 1000),
+                model: "google/gemini-2.5-flash",
+                choices: [{
+                  index: 0,
+                  delta: { content: chunk },
+                  finish_reason: null
+                }]
+              };
+              
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+              
+              // Use setTimeout to create streaming effect
+              setTimeout(sendChunks, 10);
+            } else {
+              // Send final chunk with finish_reason
+              const finalSseData = {
+                id: `chatcmpl-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Math.floor(Date.now() / 1000),
+                model: "google/gemini-2.5-flash",
+                choices: [{
+                  index: 0,
+                  delta: {},
+                  finish_reason: "stop"
+                }]
+              };
+              
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalSseData)}\n\n`));
+              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+              controller.close();
+            }
+          };
+          
+          sendChunks();
+        }
       });
 
-      if (!streamResponse.ok) {
-        throw new Error("Failed to stream final response");
-      }
-
-      return new Response(streamResponse.body, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      return new Response(stream, {
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive"
+        },
       });
     }
 
