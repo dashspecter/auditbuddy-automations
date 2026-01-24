@@ -269,6 +269,62 @@ export type Database = {
           },
         ]
       }
+      ai_guide_audit_logs: {
+        Row: {
+          answer_preview: string | null
+          company_id: string
+          created_at: string
+          employee_ids: Json | null
+          id: string
+          pii_released: boolean | null
+          pii_requested: boolean | null
+          question: string
+          range_from: string | null
+          range_to: string | null
+          role: string
+          tools_used: Json | null
+          user_id: string
+        }
+        Insert: {
+          answer_preview?: string | null
+          company_id: string
+          created_at?: string
+          employee_ids?: Json | null
+          id?: string
+          pii_released?: boolean | null
+          pii_requested?: boolean | null
+          question: string
+          range_from?: string | null
+          range_to?: string | null
+          role: string
+          tools_used?: Json | null
+          user_id: string
+        }
+        Update: {
+          answer_preview?: string | null
+          company_id?: string
+          created_at?: string
+          employee_ids?: Json | null
+          id?: string
+          pii_released?: boolean | null
+          pii_requested?: boolean | null
+          question?: string
+          range_from?: string | null
+          range_to?: string | null
+          role?: string
+          tools_used?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_guide_audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           category: string
