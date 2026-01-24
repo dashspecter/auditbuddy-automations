@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck } from "lucide-react";
 import { useUpdateTask, useTasks } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -39,6 +39,7 @@ const TaskEdit = () => {
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
+  const [isIndividual, setIsIndividual] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const task = tasks.find(t => t.id === id);
@@ -80,6 +81,7 @@ const TaskEdit = () => {
         recurrence_days_of_month: task.recurrence_days_of_month || [],
       });
       setAssignmentType(task.assigned_to ? 'employee' : 'role');
+      setIsIndividual(task.is_individual || false);
       setIsInitialized(true);
     }
   }, [task, isInitialized]);
@@ -104,6 +106,7 @@ const TaskEdit = () => {
         duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : null,
         assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : null,
+        is_individual: assignmentType === 'role' ? isIndividual : false,
         location_id: formData.location_ids[0] || null,
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : null,
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : null,
@@ -347,6 +350,59 @@ const TaskEdit = () => {
                         ))}
                       </SelectContent>
                     </Select>
+
+                    {/* Shared vs Individual toggle */}
+                    {formData.assigned_role_id && (
+                      <div className="pt-3 border-t border-border mt-3">
+                        <Label className="text-sm font-medium mb-2 block">Completion Type</Label>
+                        <div className="flex gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant={!isIndividual ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setIsIndividual(false)}
+                                  className="flex-1"
+                                >
+                                  <Share2 className="h-4 w-4 mr-1" />
+                                  Shared
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                                <p className="text-sm">Any employee can complete - done for everyone once completed</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant={isIndividual ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setIsIndividual(true)}
+                                  className="flex-1"
+                                >
+                                  <UserCheck className="h-4 w-4 mr-1" />
+                                  Individual
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
+                                <p className="text-sm">Each employee must complete the task themselves</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {isIndividual 
+                            ? "Each employee with the selected role will need to complete this task individually"
+                            : "The task is shared - any employee can complete it for everyone"
+                          }
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
