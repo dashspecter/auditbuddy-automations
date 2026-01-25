@@ -262,6 +262,23 @@ const tools = [
         required: ["employee_id"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "debug_employee_workforce_access",
+      description: "Diagnostic tool to investigate data visibility issues. Use when data queries return 0 unexpectedly (e.g., '0 shifts' for an employee who should have shifts). Returns RLS visibility checks, sample rows, ID mismatch detection, and report source hints.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_id: { type: "string", description: "UUID of the employee to diagnose" },
+          from: { type: "string", description: "Start date (YYYY-MM-DD) in Europe/Bucharest timezone" },
+          to: { type: "string", description: "End date (YYYY-MM-DD) in Europe/Bucharest timezone" },
+          timezone: { type: "string", description: "Timezone (default: Europe/Bucharest)" }
+        },
+        required: ["employee_id", "from", "to"]
+      }
+    }
   }
 ];
 
@@ -770,8 +787,268 @@ async function executeLeaveBalance(supabase: any, args: { employee_id: string; y
   };
 }
 
+/**
+ * Diagnostic tool to investigate workforce data visibility issues
+ */
+async function executeDebugEmployeeWorkforceAccess(
+  supabase: any, 
+  args: { employee_id: string; from: string; to: string; timezone?: string },
+  companyId: string
+) {
+  const tz = args.timezone || DEFAULT_TIMEZONE;
+  const employeeId = args.employee_id;
+  
+  console.log(`[DEBUG] Running workforce access diagnostic for employee: ${employeeId}`);
+  
+  // Get UTC date range for queries
+  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
+  
+  const diagnosticResult: any = {
+    employee_id: employeeId,
+    company_id: companyId,
+    db_role: null,
+    date_range: { from: args.from, to: args.to, timezone: tz },
+    utc_range: utcRange || { error: "Failed to convert date range" },
+    rls_visibility_checks: {
+      employee_exists: false,
+      employee_company_id: null,
+      employee_status: null,
+      attendance_logs_count: 0,
+      shift_assignments_count: 0,
+      shifts_joinable_count: 0
+    },
+    sample_rows: {
+      attendance_logs: [],
+      shift_assignments: [],
+      shifts: []
+    },
+    id_mismatch_detector: {
+      flags: [],
+      employee_id_format: null,
+      sample_staff_ids_in_attendance: [],
+      sample_staff_ids_in_assignments: []
+    },
+    report_source_hint: {
+      shifts_table: "public.shifts",
+      assignments_table: "public.shift_assignments",
+      attendance_table: "public.attendance_logs",
+      join_pattern: "shift_assignments.staff_id → employees.id, shift_assignments.shift_id → shifts.id",
+      notes: "Reports page uses useShifts hook which queries shifts + shift_assignments with approval_status filter"
+    }
+  };
+
+  // 1. Check if employee exists and get their data
+  const { data: employeeData, error: employeeError } = await supabase
+    .from("employees")
+    .select("id, full_name, company_id, status, user_id")
+    .eq("id", employeeId)
+    .single();
+
+  if (employeeError || !employeeData) {
+    diagnosticResult.rls_visibility_checks.employee_exists = false;
+    diagnosticResult.rls_visibility_checks.employee_error = employeeError?.message || "Not found";
+    
+    // Try to check if the ID exists but in a different format or table
+    const { data: anyEmployee } = await supabase
+      .from("employees")
+      .select("id")
+      .limit(3);
+    
+    if (anyEmployee && anyEmployee.length > 0) {
+      diagnosticResult.id_mismatch_detector.sample_employee_ids = anyEmployee.map((e: any) => e.id);
+      diagnosticResult.id_mismatch_detector.employee_id_format = anyEmployee[0].id.length === 36 ? "UUID" : "Other";
+    }
+    
+    diagnosticResult.id_mismatch_detector.flags.push("EMPLOYEE_NOT_FOUND: The provided employee_id does not exist or is not visible via RLS");
+  } else {
+    diagnosticResult.rls_visibility_checks.employee_exists = true;
+    diagnosticResult.rls_visibility_checks.employee_company_id = employeeData.company_id;
+    diagnosticResult.rls_visibility_checks.employee_status = employeeData.status;
+    diagnosticResult.rls_visibility_checks.employee_user_id = employeeData.user_id;
+    diagnosticResult.id_mismatch_detector.employee_id_format = employeeId.length === 36 ? "UUID" : "Other";
+    
+    // Check if employee belongs to the querying user's company
+    if (employeeData.company_id !== companyId) {
+      diagnosticResult.id_mismatch_detector.flags.push(`COMPANY_MISMATCH: Employee belongs to company ${employeeData.company_id}, but query is from company ${companyId}`);
+    }
+  }
+
+  // 2. Check attendance_logs count and samples
+  if (utcRange) {
+    const { data: attendanceLogs, error: attendanceError, count: attendanceCount } = await supabase
+      .from("attendance_logs")
+      .select("id, staff_id, check_in_at, shift_id, location_id", { count: "exact" })
+      .eq("staff_id", employeeId)
+      .gte("check_in_at", utcRange.fromUtc)
+      .lt("check_in_at", utcRange.toUtc)
+      .limit(3);
+
+    diagnosticResult.rls_visibility_checks.attendance_logs_count = attendanceCount || 0;
+    
+    if (attendanceError) {
+      diagnosticResult.rls_visibility_checks.attendance_error = attendanceError.message;
+    }
+    
+    if (attendanceLogs && attendanceLogs.length > 0) {
+      diagnosticResult.sample_rows.attendance_logs = attendanceLogs.map((log: any) => ({
+        id: log.id,
+        staff_id: log.staff_id,
+        check_in_at: log.check_in_at,
+        shift_id: log.shift_id
+      }));
+    }
+    
+    // Get sample staff_ids from attendance_logs (any employee) to check ID patterns
+    const { data: sampleAttendance } = await supabase
+      .from("attendance_logs")
+      .select("staff_id")
+      .gte("check_in_at", utcRange.fromUtc)
+      .lt("check_in_at", utcRange.toUtc)
+      .limit(5);
+    
+    if (sampleAttendance) {
+      const uniqueStaffIds = [...new Set(sampleAttendance.map((a: any) => a.staff_id))];
+      diagnosticResult.id_mismatch_detector.sample_staff_ids_in_attendance = uniqueStaffIds.slice(0, 5);
+    }
+  }
+
+  // 3. Check shift_assignments count and samples
+  if (utcRange) {
+    const { data: shiftAssignments, error: assignmentError, count: assignmentCount } = await supabase
+      .from("shift_assignments")
+      .select(`
+        id, 
+        staff_id, 
+        shift_id, 
+        approval_status,
+        shifts!inner(id, start_time, end_time, shift_date)
+      `, { count: "exact" })
+      .eq("staff_id", employeeId)
+      .gte("shifts.start_time", utcRange.fromUtc)
+      .lt("shifts.start_time", utcRange.toUtc)
+      .limit(3);
+
+    diagnosticResult.rls_visibility_checks.shift_assignments_count = assignmentCount || 0;
+    
+    if (assignmentError) {
+      diagnosticResult.rls_visibility_checks.assignment_error = assignmentError.message;
+    }
+    
+    if (shiftAssignments && shiftAssignments.length > 0) {
+      diagnosticResult.sample_rows.shift_assignments = shiftAssignments.map((sa: any) => ({
+        id: sa.id,
+        staff_id: sa.staff_id,
+        shift_id: sa.shift_id,
+        approval_status: sa.approval_status
+      }));
+    }
+    
+    // Get sample staff_ids from shift_assignments (any employee) to check ID patterns
+    const { data: sampleAssignments } = await supabase
+      .from("shift_assignments")
+      .select("staff_id, shifts!inner(start_time)")
+      .gte("shifts.start_time", utcRange.fromUtc)
+      .lt("shifts.start_time", utcRange.toUtc)
+      .limit(5);
+    
+    if (sampleAssignments) {
+      const uniqueStaffIds = [...new Set(sampleAssignments.map((a: any) => a.staff_id))];
+      diagnosticResult.id_mismatch_detector.sample_staff_ids_in_assignments = uniqueStaffIds.slice(0, 5);
+    }
+  }
+
+  // 4. Check shifts directly joinable from shift_assignments
+  if (utcRange) {
+    const { data: shifts, error: shiftsError, count: shiftsCount } = await supabase
+      .from("shifts")
+      .select("id, start_time, end_time, shift_date, location_id", { count: "exact" })
+      .gte("start_time", utcRange.fromUtc)
+      .lt("start_time", utcRange.toUtc)
+      .limit(3);
+
+    diagnosticResult.rls_visibility_checks.shifts_in_range_count = shiftsCount || 0;
+    
+    if (shiftsError) {
+      diagnosticResult.rls_visibility_checks.shifts_error = shiftsError.message;
+    }
+    
+    if (shifts && shifts.length > 0) {
+      diagnosticResult.sample_rows.shifts = shifts.map((s: any) => ({
+        id: s.id,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        shift_date: s.shift_date
+      }));
+    }
+  }
+
+  // 5. Detect ID mismatches
+  const staffIdsInAttendance = diagnosticResult.id_mismatch_detector.sample_staff_ids_in_attendance;
+  const staffIdsInAssignments = diagnosticResult.id_mismatch_detector.sample_staff_ids_in_assignments;
+  
+  // Check if employee ID format matches what's in the tables
+  if (staffIdsInAttendance.length > 0 && !staffIdsInAttendance.includes(employeeId)) {
+    const sampleFormat = staffIdsInAttendance[0]?.length === 36 ? "UUID" : "Other";
+    const queryFormat = employeeId.length === 36 ? "UUID" : "Other";
+    
+    if (sampleFormat !== queryFormat) {
+      diagnosticResult.id_mismatch_detector.flags.push(`ID_FORMAT_MISMATCH: attendance_logs uses ${sampleFormat} format, but query uses ${queryFormat}`);
+    }
+  }
+  
+  if (staffIdsInAssignments.length > 0 && !staffIdsInAssignments.includes(employeeId)) {
+    const sampleFormat = staffIdsInAssignments[0]?.length === 36 ? "UUID" : "Other";
+    const queryFormat = employeeId.length === 36 ? "UUID" : "Other";
+    
+    if (sampleFormat !== queryFormat) {
+      diagnosticResult.id_mismatch_detector.flags.push(`ID_FORMAT_MISMATCH: shift_assignments uses ${sampleFormat} format, but query uses ${queryFormat}`);
+    }
+  }
+
+  // 6. Check if there's data but just not for this employee
+  if (diagnosticResult.rls_visibility_checks.attendance_logs_count === 0 && 
+      diagnosticResult.rls_visibility_checks.shift_assignments_count === 0) {
+    
+    // Check if there's any data in the date range
+    if (utcRange) {
+      const { count: anyAttendanceCount } = await supabase
+        .from("attendance_logs")
+        .select("id", { count: "exact", head: true })
+        .gte("check_in_at", utcRange.fromUtc)
+        .lt("check_in_at", utcRange.toUtc);
+      
+      const { count: anyAssignmentCount } = await supabase
+        .from("shift_assignments")
+        .select("id, shifts!inner(start_time)", { count: "exact", head: true })
+        .gte("shifts.start_time", utcRange.fromUtc)
+        .lt("shifts.start_time", utcRange.toUtc);
+      
+      diagnosticResult.rls_visibility_checks.any_attendance_in_range = anyAttendanceCount || 0;
+      diagnosticResult.rls_visibility_checks.any_assignments_in_range = anyAssignmentCount || 0;
+      
+      if (anyAttendanceCount > 0 || anyAssignmentCount > 0) {
+        diagnosticResult.id_mismatch_detector.flags.push("DATA_EXISTS_FOR_OTHERS: Data exists in range but not for this employee - check if employee_id is correct or if they're assigned elsewhere");
+      } else {
+        diagnosticResult.id_mismatch_detector.flags.push("NO_DATA_IN_RANGE: No attendance or shift assignments found for anyone in this date range");
+      }
+    }
+  }
+
+  // 7. Summary
+  diagnosticResult.summary = {
+    total_flags: diagnosticResult.id_mismatch_detector.flags.length,
+    likely_issue: diagnosticResult.id_mismatch_detector.flags.length > 0 
+      ? diagnosticResult.id_mismatch_detector.flags[0] 
+      : "No obvious issues detected - data may genuinely be empty for this employee/range"
+  };
+
+  console.log(`[DEBUG] Diagnostic complete:`, JSON.stringify(diagnosticResult.summary));
+
+  return diagnosticResult;
+}
+
 // Execute a tool call - dbRole is authoritative role from DB
-async function executeTool(supabase: any, toolName: string, args: any, dbRole: string): Promise<any> {
+async function executeTool(supabase: any, toolName: string, args: any, dbRole: string, companyId?: string): Promise<any> {
   console.log(`Executing tool: ${toolName}`, args);
   
   switch (toolName) {
@@ -793,6 +1070,8 @@ async function executeTool(supabase: any, toolName: string, args: any, dbRole: s
       return executeListWarnings(supabase, args);
     case "leave_balance":
       return executeLeaveBalance(supabase, args);
+    case "debug_employee_workforce_access":
+      return executeDebugEmployeeWorkforceAccess(supabase, args, companyId || "");
     default:
       return { error: `Unknown tool: ${toolName}` };
   }
@@ -811,6 +1090,7 @@ You have access to real-time data through tools. Use them to answer questions ab
 - Missed shifts (no-shows, partial attendance)
 - Warnings and discipline records
 - Leave/time-off balances
+- Diagnostic checks for data visibility issues
 
 **Evidence-Backed Answers (CRITICAL):**
 When answering data questions, you MUST:
@@ -819,6 +1099,19 @@ When answering data questions, you MUST:
 3. State evidence summary: "Based on X attendance logs, Y shifts..."
 4. Mention any anomalies found (missing checkouts, open sessions, missed shifts)
 5. For ambiguous employee names, search first and ask user to confirm if multiple matches
+
+**CRITICAL: Zero-Result Diagnostic Protocol:**
+When a data query returns 0 results unexpectedly (e.g., "0 shifts" or "0 attendance logs" for an employee who the user believes should have data):
+1. DO NOT simply report "0 results found"
+2. IMMEDIATELY call the debug_employee_workforce_access tool to diagnose the issue
+3. Analyze the diagnostic results to identify potential causes:
+   - Employee ID mismatch (wrong ID format, wrong employee)
+   - Company mismatch (employee belongs to different company)
+   - RLS visibility issues
+   - Date range problems
+   - Data genuinely doesn't exist
+4. Report your findings clearly: explain what was checked and what the likely cause is
+5. Suggest corrective actions (e.g., "try searching for the employee by name first", "verify the employee ID")
 
 **PII Access Rules:**
 - Phone numbers and email addresses are protected PII
@@ -1042,7 +1335,7 @@ serve(async (req) => {
           if (args.from && (!dateRangeFrom || args.from < dateRangeFrom)) dateRangeFrom = args.from;
           if (args.to && (!dateRangeTo || args.to > dateRangeTo)) dateRangeTo = args.to;
           
-          const toolResult = await executeTool(supabase, toolName, args, dbRole);
+          const toolResult = await executeTool(supabase, toolName, args, dbRole, companyId);
           
           if (toolName === "get_employee_profile" && toolResult.pii_included) {
             piiReleased = true;
