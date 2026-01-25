@@ -350,30 +350,37 @@ async function executeGetEmployeeProfile(
 async function executeListShifts(supabase: any, args: { employee_id: string; from: string; to: string; location_id?: string }) {
   const tz = DEFAULT_TIMEZONE;
   
-  // Use Postgres RPC for DST-safe date range conversion
-  const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
-  if (!utcRange) {
-    return { error: "Failed to convert date range to UTC" };
-  }
-  
+  // IMPORTANT: shifts.start_time is a TIME type, not TIMESTAMP
+  // We must filter by shifts.shift_date (DATE type) using local date strings
   let query = supabase
     .from("shift_assignments")
     .select(`
       id,
       status,
-      shifts!inner(id, start_time, end_time, location_id, locations(name))
+      approval_status,
+      shifts!inner(id, start_time, end_time, shift_date, location_id, locations(name))
     `)
     .eq("staff_id", args.employee_id)
-    .gte("shifts.start_time", utcRange.fromUtc)
-    .lt("shifts.start_time", utcRange.toUtc);
+    .gte("shifts.shift_date", args.from)
+    .lte("shifts.shift_date", args.to);
   
   if (args.location_id) {
     query = query.eq("shifts.location_id", args.location_id);
   }
   
-  const { data, error } = await query.order("shifts(start_time)", { ascending: true });
+  const { data, error } = await query.order("shifts(shift_date)", { ascending: true });
   
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("list_shifts query error:", error.message);
+    // Check for type mismatch error
+    if (error.message.includes("type time")) {
+      return { 
+        error: "SHIFT_TIME_TYPE_MISMATCH: Query attempted to filter TIME column with timestamp. This has been fixed - please retry.",
+        hint: "shifts.start_time is TIME type; filtering by shift_date instead"
+      };
+    }
+    return { error: error.message };
+  }
   
   const capped = capResults(data);
   
@@ -386,10 +393,12 @@ async function executeListShifts(supabase: any, args: { employee_id: string; fro
     shifts: capped.items.map((sa: any) => ({
       shift_id: sa.shifts?.id,
       assignment_id: sa.id,
+      shift_date: sa.shifts?.shift_date,
       start_time: sa.shifts?.start_time,
       end_time: sa.shifts?.end_time,
       location: sa.shifts?.locations?.name || null,
-      status: sa.status
+      status: sa.status,
+      approval_status: sa.approval_status
     }))
   };
 }
@@ -559,27 +568,38 @@ async function executeComputeDaysWorked(supabase: any, args: { employee_id: stri
 async function executeComputeMissedShifts(supabase: any, args: { employee_id: string; from: string; to: string; timezone?: string }) {
   const tz = args.timezone || DEFAULT_TIMEZONE;
   
-  // Use Postgres RPC for DST-safe date range conversion
+  // Use Postgres RPC for DST-safe date range conversion (for attendance_logs which use TIMESTAMPTZ)
   const utcRange = await getUTCDateRange(supabase, args.from, args.to, tz);
   if (!utcRange) {
     return { error: "Failed to convert date range to UTC" };
   }
   
   // Get all assigned shifts in range
+  // IMPORTANT: Filter by shifts.shift_date (DATE type), NOT shifts.start_time (TIME type)
   const { data: assignedShifts, error: shiftsError } = await supabase
     .from("shift_assignments")
     .select(`
       id,
       status,
+      approval_status,
       shifts!inner(id, start_time, end_time, shift_date, location_id, locations(name))
     `)
     .eq("staff_id", args.employee_id)
     .eq("approval_status", "approved")
-    .gte("shifts.start_time", utcRange.fromUtc)
-    .lt("shifts.start_time", utcRange.toUtc)
-    .order("shifts(start_time)", { ascending: true });
+    .gte("shifts.shift_date", args.from)
+    .lte("shifts.shift_date", args.to)
+    .order("shifts(shift_date)", { ascending: true });
   
-  if (shiftsError) return { error: shiftsError.message };
+  if (shiftsError) {
+    console.error("compute_missed_shifts query error:", shiftsError.message);
+    if (shiftsError.message.includes("type time")) {
+      return { 
+        error: "SHIFT_TIME_TYPE_MISMATCH: Query attempted to filter TIME column with timestamp.",
+        hint: "shifts.start_time is TIME type; must filter by shift_date"
+      };
+    }
+    return { error: shiftsError.message };
+  }
   
   if (!assignedShifts || assignedShifts.length === 0) {
     return {
@@ -592,7 +612,7 @@ async function executeComputeMissedShifts(supabase: any, args: { employee_id: st
     };
   }
   
-  // Get all attendance logs for this employee in range (to check which shifts were attended)
+  // Get all attendance logs for this employee in range (attendance_logs.check_in_at is TIMESTAMPTZ)
   const { data: attendanceLogs, error: logsError } = await supabase
     .from("attendance_logs")
     .select("id, shift_id, check_in_at, check_out_at")
@@ -642,7 +662,9 @@ async function executeComputeMissedShifts(supabase: any, args: { employee_id: st
   for (const assignment of assignedShifts) {
     const shift = assignment.shifts;
     const shiftId = shift?.id;
-    const shiftDate = shift?.shift_date || getDateKeyInTZFallback(shift?.start_time, tz);
+    const shiftDate = shift?.shift_date;
+    
+    if (!shiftDate) continue;
     
     // Check if this date is covered by approved time off
     if (timeOffDates.has(shiftDate)) {
@@ -913,7 +935,8 @@ async function executeDebugEmployeeWorkforceAccess(
   }
 
   // 3. Check shift_assignments count and samples
-  if (utcRange) {
+  // IMPORTANT: Filter by shifts.shift_date (DATE type), NOT shifts.start_time (TIME type)
+  {
     const { data: shiftAssignments, error: assignmentError, count: assignmentCount } = await supabase
       .from("shift_assignments")
       .select(`
@@ -924,14 +947,18 @@ async function executeDebugEmployeeWorkforceAccess(
         shifts!inner(id, start_time, end_time, shift_date)
       `, { count: "exact" })
       .eq("staff_id", employeeId)
-      .gte("shifts.start_time", utcRange.fromUtc)
-      .lt("shifts.start_time", utcRange.toUtc)
+      .gte("shifts.shift_date", args.from)
+      .lte("shifts.shift_date", args.to)
       .limit(3);
 
     diagnosticResult.rls_visibility_checks.shift_assignments_count = assignmentCount || 0;
     
     if (assignmentError) {
       diagnosticResult.rls_visibility_checks.assignment_error = assignmentError.message;
+      // Check for TIME type mismatch error
+      if (assignmentError.message.includes("type time")) {
+        diagnosticResult.id_mismatch_detector.flags.push("SHIFT_TIME_TYPE_MISMATCH: shifts.start_time is TIME type; must filter by shift_date");
+      }
     }
     
     if (shiftAssignments && shiftAssignments.length > 0) {
@@ -939,16 +966,17 @@ async function executeDebugEmployeeWorkforceAccess(
         id: sa.id,
         staff_id: sa.staff_id,
         shift_id: sa.shift_id,
-        approval_status: sa.approval_status
+        approval_status: sa.approval_status,
+        shift_date: sa.shifts?.shift_date
       }));
     }
     
     // Get sample staff_ids from shift_assignments (any employee) to check ID patterns
     const { data: sampleAssignments } = await supabase
       .from("shift_assignments")
-      .select("staff_id, shifts!inner(start_time)")
-      .gte("shifts.start_time", utcRange.fromUtc)
-      .lt("shifts.start_time", utcRange.toUtc)
+      .select("staff_id, shifts!inner(shift_date)")
+      .gte("shifts.shift_date", args.from)
+      .lte("shifts.shift_date", args.to)
       .limit(5);
     
     if (sampleAssignments) {
@@ -957,19 +985,23 @@ async function executeDebugEmployeeWorkforceAccess(
     }
   }
 
-  // 4. Check shifts directly joinable from shift_assignments
-  if (utcRange) {
+  // 4. Check shifts directly in range
+  // IMPORTANT: Filter by shift_date (DATE type), NOT start_time (TIME type)
+  {
     const { data: shifts, error: shiftsError, count: shiftsCount } = await supabase
       .from("shifts")
       .select("id, start_time, end_time, shift_date, location_id", { count: "exact" })
-      .gte("start_time", utcRange.fromUtc)
-      .lt("start_time", utcRange.toUtc)
+      .gte("shift_date", args.from)
+      .lte("shift_date", args.to)
       .limit(3);
 
     diagnosticResult.rls_visibility_checks.shifts_in_range_count = shiftsCount || 0;
     
     if (shiftsError) {
       diagnosticResult.rls_visibility_checks.shifts_error = shiftsError.message;
+      if (shiftsError.message.includes("type time")) {
+        diagnosticResult.id_mismatch_detector.flags.push("SHIFT_TIME_TYPE_MISMATCH: shifts.start_time is TIME type; must filter by shift_date");
+      }
     }
     
     if (shifts && shifts.length > 0) {
@@ -1010,6 +1042,7 @@ async function executeDebugEmployeeWorkforceAccess(
       diagnosticResult.rls_visibility_checks.shift_assignments_count === 0) {
     
     // Check if there's any data in the date range
+    // Use UTC range for attendance (TIMESTAMPTZ) and date range for shifts (DATE)
     if (utcRange) {
       const { count: anyAttendanceCount } = await supabase
         .from("attendance_logs")
@@ -1017,11 +1050,12 @@ async function executeDebugEmployeeWorkforceAccess(
         .gte("check_in_at", utcRange.fromUtc)
         .lt("check_in_at", utcRange.toUtc);
       
+      // Use shift_date for assignments, not start_time (TIME type)
       const { count: anyAssignmentCount } = await supabase
         .from("shift_assignments")
-        .select("id, shifts!inner(start_time)", { count: "exact", head: true })
-        .gte("shifts.start_time", utcRange.fromUtc)
-        .lt("shifts.start_time", utcRange.toUtc);
+        .select("id, shifts!inner(shift_date)", { count: "exact", head: true })
+        .gte("shifts.shift_date", args.from)
+        .lte("shifts.shift_date", args.to);
       
       diagnosticResult.rls_visibility_checks.any_attendance_in_range = anyAttendanceCount || 0;
       diagnosticResult.rls_visibility_checks.any_assignments_in_range = anyAssignmentCount || 0;
@@ -1109,9 +1143,16 @@ When a data query returns 0 results unexpectedly (e.g., "0 shifts" or "0 attenda
    - Company mismatch (employee belongs to different company)
    - RLS visibility issues
    - Date range problems
+   - SHIFT_TIME_TYPE_MISMATCH errors (if any query tried to filter TIME column)
    - Data genuinely doesn't exist
 4. Report your findings clearly: explain what was checked and what the likely cause is
 5. Suggest corrective actions (e.g., "try searching for the employee by name first", "verify the employee ID")
+
+**SPECIAL CASE: Shifts + Attendance Mismatch:**
+If list_shifts returns 0 but you know attendance_logs exist (either from a previous query or from context):
+- Say: "Attendance exists, but scheduled shifts returned 0; running diagnostics."
+- Call debug_employee_workforce_access automatically
+- This prevents confident but wrong "0 shifts worked" answers
 
 **PII Access Rules:**
 - Phone numbers and email addresses are protected PII
