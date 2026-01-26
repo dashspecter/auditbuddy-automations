@@ -75,7 +75,11 @@ const resetAppCacheIfRequested = async () => {
 /**
  * Build version guard: ensures the app always loads the latest build.
  * Fetches /version.json (never cached) and compares against localStorage.
- * If different, clears caches and reloads once.
+ * If a NEWER version is detected, clears caches and reloads once.
+ * 
+ * STALE UI PREVENTION: This is our final defense against old UI.
+ * The bootstrap script handles this too, but this catches edge cases
+ * where the bootstrap might have missed something.
  */
 const checkBuildVersion = async (): Promise<boolean> => {
   const VERSION_KEY = "app_build_version";
@@ -90,14 +94,17 @@ const checkBuildVersion = async (): Promise<boolean> => {
   };
 
   try {
-    // Prevent infinite reload loops
+    // Prevent infinite reload loops - this key is set before reload
     if (sessionStorage.getItem(RELOAD_KEY) === "1") {
       sessionStorage.removeItem(RELOAD_KEY);
       return false;
     }
 
-    // Fetch version.json with cache disabled to always get the latest
-    const res = await fetch("/version.json", { cache: "no-store" });
+    // Fetch version.json with aggressive cache busting
+    const res = await fetch(`/version.json?ts=${Date.now()}&r=${Math.random()}`, { 
+      cache: "no-store",
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
     if (!res.ok) {
       console.warn("[BuildGuard] Failed to fetch version.json:", res.status);
       return false;
@@ -116,6 +123,9 @@ const checkBuildVersion = async (): Promise<boolean> => {
     // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
     const storedNum = parseNumericVersion(storedVersion);
     const serverNum = parseNumericVersion(serverVersion);
+    
+    // If we can parse both as numbers, use the higher one
+    // This prevents "downgrade" loops when different CDN edges serve different versions
     const pinnedVersion =
       storedNum !== null && serverNum !== null
         ? String(Math.max(storedNum, serverNum))
@@ -129,11 +139,6 @@ const checkBuildVersion = async (): Promise<boolean> => {
 
     // Same version - no action needed
     if (storedVersion === pinnedVersion) {
-      return false;
-    }
-
-    // If the server looks older than what we already have, do not downgrade.
-    if (pinnedVersion === storedVersion) {
       return false;
     }
 
@@ -160,8 +165,15 @@ const checkBuildVersion = async (): Promise<boolean> => {
     // Update stored version before reload
     localStorage.setItem(VERSION_KEY, pinnedVersion);
 
-    // Hard reload to get fresh assets
-    window.location.reload();
+    // Update URL with version param to bust CDN cache
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("v") !== pinnedVersion) {
+      url.searchParams.set("v", pinnedVersion);
+      window.location.replace(url.pathname + url.search + url.hash);
+    } else {
+      // If URL already has correct version, just reload
+      window.location.reload();
+    }
     return true;
   } catch (err) {
     console.warn("[BuildGuard] Error checking version:", err);
