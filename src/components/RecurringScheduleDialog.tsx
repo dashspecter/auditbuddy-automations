@@ -26,17 +26,22 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useCreateRecurringSchedule, useUpdateRecurringSchedule, RecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useLocations } from '@/hooks/useLocations';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Repeat } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { SchedulePreviewDates } from '@/components/recurring-schedules/SchedulePreviewDates';
+import { BulkLocationSelector } from '@/components/recurring-schedules/BulkLocationSelector';
+import { toast } from 'sonner';
 
 const recurringScheduleSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  location_id: z.string().min(1, 'Location is required'),
+  location_id: z.string().optional(), // Now optional when bulk mode is enabled
   template_id: z.string().min(1, 'Template is required'),
   assigned_user_id: z.string().min(1, 'Assigned user is required'),
   recurrence_pattern: z.enum(['daily', 'weekly', 'monthly']),
@@ -72,6 +77,11 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
   const { data: templates } = useTemplates();
   const createSchedule = useCreateRecurringSchedule();
   const updateSchedule = useUpdateRecurringSchedule();
+  
+  // Bulk location mode state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
+  const [isCreatingBulk, setIsCreatingBulk] = useState(false);
 
   const { data: users } = useQuery({
     queryKey: ['users_for_scheduling'],
@@ -103,6 +113,17 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
       notes: '',
     },
   });
+  
+  // Reset bulk mode when dialog closes or when editing
+  useEffect(() => {
+    if (!open) {
+      setBulkMode(false);
+      setSelectedLocationIds([]);
+    }
+    if (schedule) {
+      setBulkMode(false);
+    }
+  }, [open, schedule]);
 
   useEffect(() => {
     if (schedule) {
@@ -124,11 +145,57 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
   }, [schedule, form]);
 
   const recurrencePattern = form.watch('recurrence_pattern');
+  const startDate = form.watch('start_date');
+  const dayOfWeek = form.watch('day_of_week');
+  const dayOfMonth = form.watch('day_of_month');
 
   const onSubmit = async (values: FormValues) => {
+    // Bulk mode: create one schedule per selected location
+    if (bulkMode && selectedLocationIds.length > 0 && !schedule) {
+      setIsCreatingBulk(true);
+      try {
+        let successCount = 0;
+        for (const locationId of selectedLocationIds) {
+          const location = locations?.find((l) => l.id === locationId);
+          const scheduleData = {
+            name: `${values.name}${selectedLocationIds.length > 1 ? ` - ${location?.name || ''}` : ''}`,
+            location_id: locationId,
+            template_id: values.template_id,
+            assigned_user_id: values.assigned_user_id,
+            recurrence_pattern: values.recurrence_pattern,
+            day_of_week: recurrencePattern === 'weekly' ? parseInt(values.day_of_week || '1') : undefined,
+            day_of_month: recurrencePattern === 'monthly' ? parseInt(values.day_of_month || '1') : undefined,
+            start_time: values.start_time,
+            duration_hours: parseInt(values.duration_hours),
+            start_date: values.start_date,
+            end_date: values.end_date || undefined,
+            notes: values.notes,
+          };
+          try {
+            await createSchedule.mutateAsync(scheduleData);
+            successCount++;
+          } catch (err) {
+            console.error(`Failed to create schedule for ${location?.name}:`, err);
+          }
+        }
+        toast.success(`Created ${successCount} recurring schedule${successCount > 1 ? 's' : ''}`);
+        form.reset();
+        onOpenChange(false);
+      } finally {
+        setIsCreatingBulk(false);
+      }
+      return;
+    }
+
+    // Single location mode (edit or create)
+    if (!bulkMode && !values.location_id) {
+      toast.error('Please select a location');
+      return;
+    }
+
     const scheduleData = {
       name: values.name,
-      location_id: values.location_id,
+      location_id: values.location_id!,
       template_id: values.template_id,
       assigned_user_id: values.assigned_user_id,
       recurrence_pattern: values.recurrence_pattern,
@@ -141,7 +208,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
       notes: values.notes,
     };
 
-    if (schedule) {
+    if (schedule?.id) {
       await updateSchedule.mutateAsync({ id: schedule.id, ...scheduleData });
     } else {
       await createSchedule.mutateAsync(scheduleData);
@@ -157,7 +224,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Repeat className="h-5 w-5" />
-            {schedule ? 'Edit' : 'Create'} Recurring Schedule
+            {schedule?.id ? 'Edit' : 'Create'} Recurring Schedule
           </DialogTitle>
         </DialogHeader>
 
@@ -177,31 +244,68 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
               )}
             />
 
+            {/* Location selection - single or bulk mode */}
+            {!schedule && (
+              <div className="flex items-center space-x-2 pb-2">
+                <Switch
+                  id="bulk-mode"
+                  checked={bulkMode}
+                  onCheckedChange={(checked) => {
+                    setBulkMode(checked);
+                    if (checked) {
+                      form.setValue('location_id', '');
+                    } else {
+                      setSelectedLocationIds([]);
+                    }
+                  }}
+                />
+                <Label htmlFor="bulk-mode" className="text-sm">
+                  Schedule for multiple locations
+                </Label>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations?.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name} {location.city && `- ${location.city}`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {bulkMode && !schedule ? (
+                <FormItem>
+                  <FormLabel>Locations</FormLabel>
+                  <BulkLocationSelector
+                    locations={locations || []}
+                    selectedLocationIds={selectedLocationIds}
+                    onSelectionChange={setSelectedLocationIds}
+                  />
+                  {selectedLocationIds.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Select at least one location
+                    </p>
+                  )}
+                </FormItem>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="location_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {locations?.map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                              {location.name} {location.city && `- ${location.city}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -334,6 +438,16 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
               />
             )}
 
+            {/* Preview upcoming dates */}
+            {startDate && (
+              <SchedulePreviewDates
+                pattern={recurrencePattern}
+                startDate={startDate}
+                dayOfWeek={recurrencePattern === 'weekly' ? parseInt(dayOfWeek || '1') : undefined}
+                dayOfMonth={recurrencePattern === 'monthly' ? parseInt(dayOfMonth || '1') : undefined}
+              />
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -424,11 +538,20 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
               </Button>
               <Button 
                 type="submit" 
-                disabled={createSchedule.isPending || updateSchedule.isPending}
+                disabled={
+                  createSchedule.isPending || 
+                  updateSchedule.isPending || 
+                  isCreatingBulk ||
+                  (bulkMode && selectedLocationIds.length === 0)
+                }
               >
-                {createSchedule.isPending || updateSchedule.isPending 
-                  ? (schedule ? 'Updating...' : 'Creating...') 
-                  : (schedule ? 'Update' : 'Create')}
+                {isCreatingBulk 
+                  ? `Creating ${selectedLocationIds.length} schedules...`
+                  : createSchedule.isPending || updateSchedule.isPending 
+                    ? (schedule?.id ? 'Updating...' : 'Creating...') 
+                    : bulkMode && selectedLocationIds.length > 1
+                      ? `Create ${selectedLocationIds.length} Schedules`
+                      : (schedule?.id ? 'Update' : 'Create')}
               </Button>
             </div>
           </form>

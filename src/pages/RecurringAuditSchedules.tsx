@@ -28,7 +28,7 @@ import {
   useDeleteRecurringSchedule,
   RecurringSchedule,
 } from '@/hooks/useRecurringSchedules';
-import { Plus, Repeat, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Repeat, Edit, Trash2, Calendar, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,6 +45,21 @@ const RecurringAuditSchedules = () => {
 
   const handleEdit = (schedule: RecurringSchedule) => {
     setEditingSchedule(schedule);
+    setDialogOpen(true);
+  };
+
+  const handleDuplicate = (schedule: RecurringSchedule) => {
+    // Create a copy of the schedule without the id, resetting start_date to today
+    const duplicateSchedule: RecurringSchedule = {
+      ...schedule,
+      id: '', // Will be ignored since we're creating new
+      name: `${schedule.name} (Copy)`,
+      start_date: new Date().toISOString().split('T')[0],
+      last_generated_date: null,
+      created_at: '',
+      updated_at: '',
+    };
+    setEditingSchedule(duplicateSchedule);
     setDialogOpen(true);
   };
 
@@ -174,11 +189,20 @@ const RecurringAuditSchedules = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDuplicate(schedule)}
+                              title="Duplicate schedule"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => handleEdit(schedule)}
+                              title="Edit schedule"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -186,6 +210,7 @@ const RecurringAuditSchedules = () => {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(schedule.id)}
+                              title="Delete schedule"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
