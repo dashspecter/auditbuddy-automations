@@ -1,11 +1,19 @@
 /*
-  Stable build bootstrap loader.
-  - Works even if index.html is stale-cached: it always fetches the latest build manifest with no-store.
-  - If it detects a new build, it unregisters any existing service workers and clears Cache Storage, then reloads once.
-
+  Stable build bootstrap loader v3.1 - Enhanced stale UI prevention
+  
+  Problem: Users sometimes see old UI even after Cmd+Shift+R because:
+  - CDN/browser may cache index.html despite no-cache headers
+  - Service workers can serve stale app shells
+  - Edge caches may ignore cache-control headers
+  
+  Solution: Multiple layers of defense:
+  1. ALWAYS fetch version.json on every load (never cached)
+  2. Compare against localStorage pinned version (always use highest seen)
+  3. Force clear ALL caches + SW before reloading if version differs
+  4. Add URL version param to bust CDN caches for index.html
+  5. Pre-clean on fresh session if any SW/caches exist
+  
   This file lives in /public so it is served as-is (not hashed), keeping index.html stable.
-
-  v3: Renamed file again to bust any edge/CDN caches that might ignore no-store headers.
 */
 
 (function () {
@@ -14,9 +22,9 @@
   const RELOAD_GUARD_KEY = "bootstrap:reloaded";
   const SESSION_MARKER_KEY = "bootstrap:session";
   const PRECLEAN_GUARD_KEY = "bootstrap:precleaned";
+  const FORCE_RELOAD_KEY = "bootstrap:force-reload";
 
-  // Secondary guard: force a versioned URL per build to defeat stubborn edge/CDN caches
-  // that might ignore no-store headers for HTML documents.
+  // Version-based cache busting to defeat stubborn edge/CDN caches
   const VERSION_URL = "/version.json";
   const VERSION_KEY = "app_build_version";
   const VERSION_REDIRECT_GUARD_KEY = "bootstrap:version-redirected";
@@ -29,65 +37,17 @@
     return Number.isFinite(n) ? n : null;
   };
 
-  // Clear reload guard on fresh browser sessions to allow new builds to reload
+  // Clear guards on fresh browser sessions to allow new builds to work
   const currentSession = Date.now().toString();
   if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
     sessionStorage.setItem(SESSION_MARKER_KEY, currentSession);
     sessionStorage.removeItem(RELOAD_GUARD_KEY);
+    sessionStorage.removeItem(VERSION_REDIRECT_GUARD_KEY);
+    sessionStorage.removeItem(PRECLEAN_GUARD_KEY);
+    sessionStorage.removeItem(FORCE_RELOAD_KEY);
   }
 
   const normalizeAssetPath = (p) => `/${String(p || "").replace(/^\/+/, "")}`;
-
-  async function ensureVersionedUrl() {
-    try {
-      const url = new URL(window.location.href);
-      // Don't interfere with the explicit reset flow.
-      if (url.searchParams.get("resetApp") === "1") return;
-
-      const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const serverVersion = String(data.buildTime || data.version || "");
-      const storedVersion = (() => {
-        try {
-          return localStorage.getItem(VERSION_KEY) || "";
-        } catch {
-          return "";
-        }
-      })();
-
-      // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
-      const storedNum = parseNumericVersion(storedVersion);
-      const serverNum = parseNumericVersion(serverVersion);
-      const pinnedVersion =
-        storedNum !== null && serverNum !== null
-          ? String(Math.max(storedNum, serverNum))
-          : storedVersion || serverVersion;
-
-      if (!pinnedVersion) return;
-
-      try {
-        localStorage.setItem(VERSION_KEY, pinnedVersion);
-      } catch {
-        // ignore
-      }
-
-      const currentV = url.searchParams.get("v");
-      if (currentV === pinnedVersion) return;
-
-      // Guard by pinned version so we never loop.
-      if (sessionStorage.getItem(VERSION_REDIRECT_GUARD_KEY) === pinnedVersion) return;
-      sessionStorage.setItem(VERSION_REDIRECT_GUARD_KEY, pinnedVersion);
-
-      url.searchParams.set("v", pinnedVersion);
-      window.location.replace(url.pathname + url.search + url.hash);
-      return true;
-    } catch {
-      // ignore
-    }
-
-    return false;
-  }
 
   async function unregisterAllServiceWorkers() {
     if (!("serviceWorker" in navigator)) return;
@@ -112,6 +72,89 @@
   async function cleanupCachingArtifacts() {
     await unregisterAllServiceWorkers();
     await clearCacheStorage();
+  }
+
+  /**
+   * Version check with aggressive cache busting.
+   * Returns true if we're about to redirect/reload.
+   */
+  async function ensureLatestVersion() {
+    try {
+      const url = new URL(window.location.href);
+      
+      // Don't interfere with the explicit reset flow.
+      if (url.searchParams.get("resetApp") === "1") return false;
+
+      // Prevent infinite reload loops
+      if (sessionStorage.getItem(FORCE_RELOAD_KEY) === "1") {
+        sessionStorage.removeItem(FORCE_RELOAD_KEY);
+        return false;
+      }
+
+      // Fetch version.json with aggressive cache busting
+      const res = await fetch(`${VERSION_URL}?ts=${Date.now()}&r=${Math.random()}`, { 
+        cache: "no-store",
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+      if (!res.ok) return false;
+      
+      const data = await res.json();
+      const serverVersion = String(data.buildTime || data.version || "");
+      
+      // Skip in development (placeholder value)
+      if (!serverVersion || serverVersion === "__BUILD_TIME__") return false;
+
+      const storedVersion = (() => {
+        try {
+          return localStorage.getItem(VERSION_KEY) || "";
+        } catch {
+          return "";
+        }
+      })();
+
+      // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
+      const storedNum = parseNumericVersion(storedVersion);
+      const serverNum = parseNumericVersion(serverVersion);
+      const pinnedVersion =
+        storedNum !== null && serverNum !== null
+          ? String(Math.max(storedNum, serverNum))
+          : storedVersion || serverVersion;
+
+      if (!pinnedVersion) return false;
+
+      // Always update localStorage to the highest version
+      try {
+        localStorage.setItem(VERSION_KEY, pinnedVersion);
+      } catch {
+        // ignore
+      }
+
+      // Check if URL already has correct version param
+      const currentV = url.searchParams.get("v");
+      if (currentV === pinnedVersion) return false;
+
+      // Guard by pinned version so we never loop within a session
+      const guardedVersion = sessionStorage.getItem(VERSION_REDIRECT_GUARD_KEY);
+      if (guardedVersion === pinnedVersion) return false;
+      
+      // We have a version mismatch - need to update
+      console.info(`[Bootstrap] Version mismatch: URL=${currentV || 'none'} → ${pinnedVersion}. Clearing caches...`);
+      
+      // Set guard BEFORE any async operations
+      sessionStorage.setItem(VERSION_REDIRECT_GUARD_KEY, pinnedVersion);
+      sessionStorage.setItem(FORCE_RELOAD_KEY, "1");
+      
+      // Clear all caches before redirect to ensure fresh load
+      await cleanupCachingArtifacts();
+
+      // Redirect with new version param to bust CDN cache
+      url.searchParams.set("v", pinnedVersion);
+      window.location.replace(url.pathname + url.search + url.hash);
+      return true;
+    } catch (e) {
+      console.warn("[Bootstrap] Version check error:", e);
+      return false;
+    }
   }
 
   function injectStylesheets(cssFiles, buildId) {
@@ -147,12 +190,11 @@
 
   async function boot() {
     try {
-      // Ensure the URL is pinned to the latest seen build to avoid serving stale HTML/app bundles.
-      const redirected = await ensureVersionedUrl();
-      if (redirected) return;
+      // STEP 1: Always check version first and redirect if needed
+      const redirected = await ensureLatestVersion();
+      if (redirected) return; // Stop - page is redirecting
 
-      // Pre-clean once per session: if an old service worker or Cache Storage exists,
-      // wipe them and reload to avoid stale UI/bundle mismatches.
+      // STEP 2: Pre-clean once per session if old SW/caches exist
       try {
         if (sessionStorage.getItem(PRECLEAN_GUARD_KEY) !== "1") {
           sessionStorage.setItem(PRECLEAN_GUARD_KEY, "1");
@@ -171,6 +213,7 @@
           }
 
           if (hasSW || hasCaches) {
+            console.info("[Bootstrap] Found stale SW/caches, cleaning up...");
             await cleanupCachingArtifacts();
             window.location.reload();
             return;
@@ -180,6 +223,7 @@
         // ignore
       }
 
+      // STEP 3: Fetch build manifest and inject app
       const res = await fetch(`${BUILD_MANIFEST_URL}?ts=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`manifest fetch failed: ${res.status}`);
 
@@ -192,6 +236,7 @@
 
       // If build changed since last load, clear SW + caches and reload ONCE.
       if (previousBuildId && previousBuildId !== buildId && sessionStorage.getItem(RELOAD_GUARD_KEY) !== "1") {
+        console.info(`[Bootstrap] Build ID changed, reloading...`);
         sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
         localStorage.setItem(BUILD_ID_KEY, buildId);
         await cleanupCachingArtifacts();
@@ -202,7 +247,8 @@
       localStorage.setItem(BUILD_ID_KEY, buildId);
       injectStylesheets(entry.css, buildId);
       injectModuleScript(entry.file, buildId);
-    } catch {
+    } catch (e) {
+      console.warn("[Bootstrap] Error, falling back to dev mode:", e);
       // Dev fallback: Vite serves source modules directly, so load the standard entry.
       injectModuleScript("/src/main.tsx", String(Date.now()));
     }
