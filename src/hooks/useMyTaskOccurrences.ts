@@ -44,6 +44,8 @@ export interface MyTaskOccurrences {
   error: Error | null;
   /** Raw tasks from useMyTasks */
   rawTasks: Task[];
+  /** Shifts fetched for coverage */
+  shifts: import("@/lib/taskCoverageEngine").Shift[];
   /** Debug stats for diagnostics */
   debug?: {
     today: { generated: number; covered: number; visible: number; noCoverage: number };
@@ -231,5 +233,6 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     isLoading: isLoading || shiftsLoading,
     error: error as Error | null,
     rawTasks,
+    shifts, // Expose shifts for debug panel
   };
 }

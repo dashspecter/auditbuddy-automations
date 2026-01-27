@@ -40,6 +40,8 @@ export interface UseUnifiedTasksOptions {
   includeCompleted?: boolean;
   /** Provide shifts externally (skip fetching) */
   shifts?: Shift[];
+  /** Company ID for shift lookup (REQUIRED for shifts to be fetched) */
+  companyId?: string;
 }
 
 export interface UnifiedTasksResult {
@@ -84,17 +86,19 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
     roleId,
     includeCompleted = true,
     shifts: providedShifts,
+    companyId,
   } = options;
 
   // Fetch tasks
   const { data: rawTasks = [], isLoading: isLoadingTasks } = useTasks();
 
-  // Fetch shifts for the date range
+  // Fetch shifts for the date range (requires companyId)
   const { data: fetchedShifts = [], isLoading: isLoadingShifts } = useShiftCoverage({
     startDate,
     endDate,
     locationId,
-    enabled: !providedShifts,
+    enabled: !providedShifts && !!companyId,
+    companyId,
   });
 
   const shifts = providedShifts || fetchedShifts;
@@ -170,6 +174,7 @@ export function useUnifiedTasksForDate(
     roleId,
     includeCompleted = true,
     shifts: providedShifts,
+    companyId,
   } = options;
 
   const { data: rawTasks = [], isLoading: isLoadingTasks } = useTasks();
@@ -178,7 +183,8 @@ export function useUnifiedTasksForDate(
     startDate: startOfDay(targetDate),
     endDate: endOfDay(targetDate),
     locationId,
-    enabled: !providedShifts,
+    enabled: !providedShifts && !!companyId,
+    companyId,
   });
 
   const shifts = providedShifts || fetchedShifts;

@@ -1,11 +1,16 @@
 /**
  * Hook for fetching shift coverage data for task filtering
  * Uses canonical day window to ensure consistent date handling
+ * 
+ * IMPORTANT: This hook is CONTEXT-INDEPENDENT. It does NOT call useCompanyContext().
+ * All callers MUST provide companyId explicitly. This ensures the hook works for:
+ * - Staff users (who are NOT in company_users table)
+ * - Manager views (who get companyId from CompanyContext at their call site)
+ * - Any route that may lack CompanyProvider
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/contexts/CompanyContext";
 import { startOfDay, endOfDay, addDays } from "date-fns";
 import { Shift, CoverageResult, checkTaskCoverage, applyShiftCoverage, groupTasksByCoverage } from "@/lib/taskCoverageEngine";
 import { Task } from "./useTasks";
@@ -21,8 +26,9 @@ export interface UseShiftCoverageOptions {
   /** Enable the query */
   enabled?: boolean;
   /** 
-   * Override company ID (for staff users who may not have CompanyContext).
-   * If provided, this takes precedence over company from context.
+   * Company ID for shift lookup (REQUIRED for shifts to be fetched).
+   * Staff views: pass from employee.company_id
+   * Manager views: pass from useCompanyContext().company.id at call site
    */
   companyId?: string;
 }
@@ -30,16 +36,10 @@ export interface UseShiftCoverageOptions {
 /**
  * Fetch shifts for a date range to enable coverage checking.
  * 
- * IMPORTANT: For staff users (who don't have CompanyContext), you MUST pass
- * companyId explicitly via options. The hook will try to use CompanyContext
- * as a fallback for manager views.
+ * CONTEXT-INDEPENDENT: Does NOT call useCompanyContext().
+ * Caller MUST provide companyId explicitly for shifts to be fetched.
  */
 export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
-  // Try to get company from context (works for managers)
-  // This will be undefined for staff users who don't have CompanyContext
-  const companyContext = useCompanyContext();
-  const contextCompanyId = companyContext?.company?.id;
-  
   // Use canonical day window for consistent "today" definition
   const todayWindow = getCompanyDayWindow();
   const {
@@ -47,22 +47,19 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
     endDate = endOfDay(addDays(todayWindow.now, 7)),
     locationId,
     enabled = true,
-    companyId: providedCompanyId,
+    companyId,
   } = options;
-
-  // Prefer provided companyId, fallback to context company
-  const effectiveCompanyId = providedCompanyId || contextCompanyId;
 
   // Use canonical day keys to avoid UTC/local mismatch
   const startStr = toDayKey(startDate);
   const endStr = toDayKey(endDate);
 
   return useQuery({
-    queryKey: ["shift-coverage", effectiveCompanyId, startStr, endStr, locationId],
+    queryKey: ["shift-coverage", companyId, startStr, endStr, locationId],
     queryFn: async (): Promise<Shift[]> => {
-      if (!effectiveCompanyId) {
+      if (!companyId) {
         if (import.meta.env.DEV) {
-          console.log("[useShiftCoverage] No company ID available (context or options)");
+          console.log("[useShiftCoverage] No companyId provided - returning empty shifts");
         }
         return [];
       }
@@ -79,7 +76,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
           is_published,
           shift_assignments!left(id, staff_id, approval_status)
         `)
-        .eq("company_id", effectiveCompanyId)
+        .eq("company_id", companyId)
         .gte("shift_date", startStr)
         .lte("shift_date", endStr);
 
@@ -103,12 +100,14 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
         shift_assignments: shift.shift_assignments || [],
       })) as Shift[];
     },
-    enabled: enabled && !!effectiveCompanyId,
+    enabled: enabled && !!companyId,
   });
 };
 
 /**
  * Hook that applies coverage filtering to tasks
+ * 
+ * CONTEXT-INDEPENDENT: Requires companyId to be passed explicitly
  */
 export const useTasksWithCoverage = (
   tasks: Task[],
@@ -116,15 +115,17 @@ export const useTasksWithCoverage = (
   options: {
     filterNoCoverage?: boolean;
     shifts?: Shift[];
+    companyId?: string;
   } = {}
 ) => {
-  const { filterNoCoverage = true, shifts: providedShifts } = options;
+  const { filterNoCoverage = true, shifts: providedShifts, companyId } = options;
 
-  // Fetch shifts if not provided
+  // Fetch shifts if not provided (requires companyId)
   const { data: fetchedShifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(targetDate),
     endDate: endOfDay(targetDate),
-    enabled: !providedShifts,
+    enabled: !providedShifts && !!companyId,
+    companyId,
   });
 
   const shifts = providedShifts || fetchedShifts;
@@ -146,12 +147,19 @@ export const useTasksWithCoverage = (
 
 /**
  * Check coverage for a single task
+ * 
+ * CONTEXT-INDEPENDENT: Requires companyId to be passed explicitly
  */
-export const useSingleTaskCoverage = (task: Task | null, targetDate: Date) => {
+export const useSingleTaskCoverage = (
+  task: Task | null, 
+  targetDate: Date,
+  companyId?: string
+) => {
   const { data: shifts = [], isLoading } = useShiftCoverage({
     startDate: startOfDay(targetDate),
     endDate: endOfDay(targetDate),
-    enabled: !!task,
+    enabled: !!task && !!companyId,
+    companyId,
   });
 
   if (!task) {

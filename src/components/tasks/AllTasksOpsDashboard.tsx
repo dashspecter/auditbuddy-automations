@@ -34,6 +34,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useShiftCoverage } from "@/hooks/useShiftCoverage";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, startOfWeek, endOfWeek, addWeeks, getDay, startOfDay, endOfDay, addDays } from "date-fns";
 import { 
@@ -249,6 +250,7 @@ export const AllTasksOpsDashboard = ({
   isLoading
 }: AllTasksOpsDashboardProps) => {
   const { t } = useTranslation();
+  const { company } = useCompanyContext();
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: employees = [] } = useEmployees();
@@ -289,10 +291,11 @@ export const AllTasksOpsDashboard = ({
     }
   }, [dateRange]);
 
-  // Fetch shifts for coverage check
+  // Fetch shifts for coverage check (pass companyId explicitly)
   const { data: shifts = [] } = useShiftCoverage({
     startDate: rangeStart,
     endDate: rangeEnd,
+    companyId: company?.id,
   });
 
   // Get all occurrences in range using unified pipeline

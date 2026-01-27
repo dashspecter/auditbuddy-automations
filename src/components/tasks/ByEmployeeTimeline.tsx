@@ -36,6 +36,7 @@ import { Employee } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useScheduledEmployees, ScheduledEmployee } from "@/hooks/useScheduledEmployees";
 import { useShiftCoverage } from "@/hooks/useShiftCoverage";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { format, addDays, startOfDay, isSameDay, parseISO } from "date-fns";
 import { 
   isTaskOverdue, 
@@ -417,6 +418,7 @@ export const ByEmployeeTimeline = ({
   isLoading: isLoadingTasks
 }: ByEmployeeTimelineProps) => {
   const { t } = useTranslation();
+  const { company } = useCompanyContext();
   const { data: locations = [] } = useLocations();
   
   // State
@@ -429,11 +431,12 @@ export const ByEmployeeTimeline = ({
     locationId: locationFilter === "all" ? undefined : locationFilter,
   });
   
-  // Fetch shifts for coverage checking
+  // Fetch shifts for coverage checking (pass companyId explicitly)
   const { data: shifts = [] } = useShiftCoverage({
     startDate: selectedDate,
     endDate: selectedDate,
     locationId: locationFilter === "all" ? undefined : locationFilter,
+    companyId: company?.id,
   });
   
   // Helper: check if task time falls within shift window (with 30 min grace)

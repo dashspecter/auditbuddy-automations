@@ -17,6 +17,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useShiftCoverage } from "@/hooks/useShiftCoverage";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { addMonths, startOfDay, endOfDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { runPipelineForDateRange, ViewMode } from "@/lib/unifiedTaskPipeline";
@@ -25,6 +26,7 @@ const localizer = momentLocalizer(moment);
 
 const TasksCalendar = () => {
   const navigate = useNavigate();
+  const { company } = useCompanyContext();
   const { data: tasks = [], isLoading } = useTasks();
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
@@ -37,10 +39,11 @@ const TasksCalendar = () => {
   const rangeStart = useMemo(() => startOfDay(addMonths(new Date(), -1)), []);
   const rangeEnd = useMemo(() => endOfDay(addMonths(new Date(), 3)), []);
 
-  // Fetch shifts for coverage check
+  // Fetch shifts for coverage check (pass companyId explicitly)
   const { data: shifts = [], isLoading: isLoadingShifts } = useShiftCoverage({
     startDate: rangeStart,
     endDate: rangeEnd,
+    companyId: company?.id,
   });
 
   // Get unique roles from employees
