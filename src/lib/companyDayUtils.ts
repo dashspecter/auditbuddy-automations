@@ -91,6 +91,7 @@ export function normalizeRoleName(name: string | null | undefined): string {
 
 /**
  * Check if two role names match (normalized comparison)
+ * Logs in DEV for diagnostics.
  */
 export function rolesMatch(
   roleA: string | null | undefined,
@@ -99,9 +100,26 @@ export function rolesMatch(
   const normalizedA = normalizeRoleName(roleA);
   const normalizedB = normalizeRoleName(roleB);
   
-  if (!normalizedA || !normalizedB) return false;
+  if (!normalizedA || !normalizedB) {
+    if (import.meta.env.DEV) {
+      console.log("[rolesMatch] Empty role:", { roleA, roleB, normalizedA, normalizedB });
+    }
+    return false;
+  }
   
-  return normalizedA === normalizedB;
+  const matches = normalizedA === normalizedB;
+  
+  // DEV logging for role comparison diagnostics (only log mismatches to avoid noise)
+  if (import.meta.env.DEV && !matches) {
+    console.log("[rolesMatch] Mismatch:", { 
+      shiftRole: roleA, 
+      taskRole: roleB, 
+      normShiftRole: normalizedA, 
+      normTaskRole: normalizedB 
+    });
+  }
+  
+  return matches;
 }
 
 /**
