@@ -84,6 +84,23 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       (t) => t.recurrence_type && t.recurrence_type !== "none"
     );
 
+    // DEV: Log shifts being passed to coverage engine
+    if (import.meta.env.DEV) {
+      console.log("[useMyTaskOccurrences] Shifts for coverage:", {
+        shiftsCount: shifts.length,
+        shiftDetails: shifts.slice(0, 3).map((s) => ({
+          id: s.id?.slice(0, 8),
+          date: s.shift_date,
+          role: s.role,
+          location_id: s.location_id?.slice(0, 8),
+          assignmentsCount: s.shift_assignments?.length || 0,
+          approvedCount: (s.shift_assignments || []).filter(
+            (a: any) => a.approval_status === "approved" || a.approval_status === "confirmed"
+          ).length,
+        })),
+      });
+    }
+
     // Apply unified pipeline for Today (execution mode = only covered tasks)
     // dayBasedCoverage=true ensures tasks remain visible after shift ends until end-of-day
     const todayResult = runPipelineForDate(rawTasks, today, {

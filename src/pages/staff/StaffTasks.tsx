@@ -97,6 +97,8 @@ const StaffTasks = () => {
   const [employeeInfo, setEmployeeInfo] = useState<any>(null);
   const [shiftsInfo, setShiftsInfo] = useState<any[]>([]);
 
+  const [testQueryResult, setTestQueryResult] = useState<any>(null);
+
   // Fetch employee + shift info for enhanced debugging
   useEffect(() => {
     const fetchDebugInfo = async () => {
@@ -114,7 +116,7 @@ const StaffTasks = () => {
       if (emp) {
         // Get today's shifts for this employee
         const today = new Date().toISOString().split('T')[0];
-        const { data: assignments } = await supabase
+        const { data: assignments, error: assignmentsError } = await supabase
           .from("shift_assignments")
           .select(`
             id,
@@ -133,6 +135,37 @@ const StaffTasks = () => {
           .eq("shifts.shift_date", today);
         
         setShiftsInfo(assignments || []);
+        
+        if (import.meta.env.DEV) {
+          // Log all distinct approval statuses for diagnostics
+          const statuses = [...new Set((assignments || []).map((a: any) => a.approval_status))];
+          console.log("[StaffTasks Debug] Shift assignments:", {
+            count: assignments?.length || 0,
+            statuses,
+            error: assignmentsError?.message,
+          });
+        }
+        
+        // DEV-ONLY: Test query to verify RLS allows reading tasks for this company
+        if (import.meta.env.DEV && emp.company_id) {
+          const { data: testTasks, error: testError } = await supabase
+            .from("tasks")
+            .select("id, title, status, assigned_role_id, location_id")
+            .eq("company_id", emp.company_id)
+            .limit(5);
+          
+          setTestQueryResult({
+            count: testTasks?.length ?? 0,
+            error: testError?.message || null,
+            sample: testTasks?.slice(0, 2).map((t: any) => ({ id: t.id?.slice(0, 8), title: t.title?.slice(0, 20) })),
+          });
+          
+          console.log("[StaffTasks Debug] RLS test query:", {
+            companyId: emp.company_id,
+            tasksFound: testTasks?.length ?? 0,
+            error: testError?.message,
+          });
+        }
       }
     };
     
@@ -305,6 +338,23 @@ const StaffTasks = () => {
               </div>
             )}
 
+            {/* RLS Test Query (DEV only) */}
+            {import.meta.env.DEV && testQueryResult && (
+              <div className="mb-3 p-2 bg-background/50 rounded">
+                <div className="font-bold mb-1">RLS Test Query (company tasks):</div>
+                <div className={testQueryResult.error ? "text-destructive" : "text-green-600"}>
+                  {testQueryResult.error 
+                    ? `❌ Error: ${testQueryResult.error}` 
+                    : `✅ Found ${testQueryResult.count} tasks`}
+                </div>
+                {testQueryResult.sample && testQueryResult.sample.length > 0 && (
+                  <div className="text-[10px] mt-1">
+                    Sample: {testQueryResult.sample.map((t: any) => `${t.id}...`).join(", ")}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Display Buckets */}
             <div className="grid grid-cols-2 gap-2 p-2 bg-background/50 rounded">
               <div className="col-span-2 font-bold">Display Buckets:</div>
@@ -333,10 +383,22 @@ const StaffTasks = () => {
                     </div>
                     <div className="pl-2">
                       loc: {t.location?.name || t.location_id?.slice(0,8) || 'none'} | 
-                      recur: {t.recurrence_type || 'none'}
+                      recur: {t.recurrence_type || 'none'} |
+                      exec_mode: {(t as any).execution_mode || 'shift_based'}
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Empty state explanation */}
+            {rawTasks.length === 0 && (
+              <div className="mt-3 p-2 bg-destructive/10 rounded">
+                <div className="font-bold mb-1 text-destructive">⚠ rawTasks is EMPTY</div>
+                <div className="text-[10px]">
+                  This is NOT a coverage issue - tasks are not being fetched at all.<br/>
+                  Check: RLS policies, employee.role matching, employee.company_id, shift existence.
+                </div>
               </div>
             )}
           </Card>

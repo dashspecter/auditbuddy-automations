@@ -219,6 +219,17 @@ export function checkTaskCoverage(
     );
     
     if (approvedAssignments.length === 0) {
+      // DEV logging for diagnostics
+      if (import.meta.env.DEV) {
+        const allStatuses = (shift.shift_assignments || []).map((a: any) => a.approval_status);
+        if (allStatuses.length > 0) {
+          console.log("[checkTaskCoverage] Shift has assignments but none approved:", {
+            taskId: task.id?.slice(0, 8),
+            shiftId: shift.id?.slice(0, 8),
+            assignmentStatuses: allStatuses,
+          });
+        }
+      }
       lastMismatchReason = "no_approved_assignments";
       continue;
     }
