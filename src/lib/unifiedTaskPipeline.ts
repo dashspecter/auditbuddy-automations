@@ -124,8 +124,12 @@ export function runPipelineForDate(
   const dedupedOccurrences = generatedOccurrences;
 
   // STAGE 3+4: Resolve shift coverage
+  // dayBasedCoverage=true ensures tasks remain visible all day once a shift existed
   const tasksWithCoverage: TaskWithCoverage[] = dedupedOccurrences.map((task) => {
-    const coverage = checkTaskCoverage(task, shifts, targetDate, { graceWindowMinutes });
+    const coverage = checkTaskCoverage(task, shifts, targetDate, { 
+      graceWindowMinutes,
+      dayBasedCoverage: true, // Tasks stay visible after shift ends until end-of-day
+    });
     return { ...task, coverage };
   });
 
@@ -240,7 +244,10 @@ export function runPipelineForDateRange(
     for (const occ of dayOccurrences) {
       if (!seenIds.has(occ.id)) {
         seenIds.add(occ.id);
-        const coverage = checkTaskCoverage(occ, shifts, currentDate, { graceWindowMinutes });
+        const coverage = checkTaskCoverage(occ, shifts, currentDate, { 
+          graceWindowMinutes,
+          dayBasedCoverage: true, // Tasks stay visible after shift ends until end-of-day
+        });
         allOccurrences.push({ ...occ, coverage });
       }
     }

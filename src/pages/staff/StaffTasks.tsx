@@ -298,6 +298,9 @@ const StaffTasks = () => {
                   <div>roleMismatch: {debug.coverageReasons.roleMismatch}</div>
                   <div>locationMismatch: {debug.coverageReasons.locationMismatch}</div>
                   <div>noApproved: {debug.coverageReasons.noApprovedAssignments}</div>
+                  <div className={debug.coverageReasons.taskRoleNameMissing > 0 ? "text-destructive font-bold" : ""}>
+                    roleNameMissing: {debug.coverageReasons.taskRoleNameMissing}
+                  </div>
                 </div>
               </div>
             )}
@@ -320,10 +323,18 @@ const StaffTasks = () => {
               <div className="mt-3 p-2 bg-background/50 rounded">
                 <div className="font-bold mb-1">Sample Raw Tasks:</div>
                 {rawTasks.slice(0, 3).map((t) => (
-                  <div key={t.id} className="text-[10px] truncate">
-                    {t.title} | status:{t.status} | role_id:{t.assigned_role_id?.slice(0,8) || 'none'} | 
-                    loc:{t.location?.name || t.location_id?.slice(0,8) || 'none'} | 
-                    recur:{t.recurrence_type || 'none'}
+                  <div key={t.id} className="text-[10px] truncate mb-1">
+                    <div>{t.title} | status:{t.status}</div>
+                    <div className="pl-2">
+                      role_id: {t.assigned_role_id?.slice(0,8) || 'none'} | 
+                      role_name: <span className={!t.assigned_role?.name ? "text-destructive font-bold" : "text-green-600"}>
+                        {t.assigned_role?.name || 'MISSING'}
+                      </span>
+                    </div>
+                    <div className="pl-2">
+                      loc: {t.location?.name || t.location_id?.slice(0,8) || 'none'} | 
+                      recur: {t.recurrence_type || 'none'}
+                    </div>
                   </div>
                 ))}
               </div>

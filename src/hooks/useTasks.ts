@@ -432,6 +432,20 @@ export const useMyTasks = () => {
         roleTasks: roleTasks.length,
         uniqueTotal: uniqueTasks.length 
       });
+      
+      // DEV: Log sample tasks to verify role name resolution
+      if (import.meta.env.DEV && uniqueTasks.length > 0) {
+        console.log("[useMyTasks] Sample tasks (role resolution check):", 
+          uniqueTasks.slice(0, 3).map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            assigned_role_id: t.assigned_role_id,
+            assigned_role_name: t.assigned_role?.name,
+            execution_mode: t.execution_mode,
+          }))
+        );
+      }
 
       // Add employee info
       const { data: emp } = await supabase
