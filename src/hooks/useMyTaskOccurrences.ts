@@ -6,10 +6,11 @@
  * Uses the unified pipeline for shift-aware task visibility.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMyTasks, Task } from "./useTasks";
 import { useShiftCoverage } from "./useShiftCoverage";
-import { useCompanyContext } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   runPipelineForDate,
   groupTasksByStatusShiftAware,
@@ -65,13 +66,38 @@ export interface MyTaskOccurrences {
  */
 export function useMyTaskOccurrences(): MyTaskOccurrences {
   const { data: rawTasks = [], isLoading, error } = useMyTasks();
-  const { company } = useCompanyContext();
+  const { user } = useAuth();
+  const [employeeCompanyId, setEmployeeCompanyId] = useState<string | null>(null);
 
-  // Fetch shifts for today + tomorrow - only when company is available
+  // Fetch employee's company_id directly from employees table (not CompanyContext)
+  // This is critical because staff users are NOT in company_users table
+  useEffect(() => {
+    const fetchEmployeeCompanyId = async () => {
+      if (!user?.id) return;
+      
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (emp?.company_id) {
+        setEmployeeCompanyId(emp.company_id);
+        if (import.meta.env.DEV) {
+          console.log("[useMyTaskOccurrences] Employee company_id:", emp.company_id);
+        }
+      }
+    };
+    
+    fetchEmployeeCompanyId();
+  }, [user?.id]);
+
+  // Fetch shifts for today + tomorrow using employee's company_id
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(new Date()),
     endDate: endOfDay(addDays(new Date(), 1)),
-    enabled: !!company?.id, // Only fetch when company context is ready
+    enabled: !!employeeCompanyId, // Only fetch when we have employee's company
+    companyId: employeeCompanyId || undefined, // Pass company_id explicitly
   });
 
   const result = useMemo(() => {

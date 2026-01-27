@@ -20,13 +20,25 @@ export interface UseShiftCoverageOptions {
   locationId?: string;
   /** Enable the query */
   enabled?: boolean;
+  /** 
+   * Override company ID (for staff users who may not have CompanyContext).
+   * If provided, this takes precedence over company from context.
+   */
+  companyId?: string;
 }
 
 /**
- * Fetch shifts for a date range to enable coverage checking
+ * Fetch shifts for a date range to enable coverage checking.
+ * 
+ * IMPORTANT: For staff users (who don't have CompanyContext), you MUST pass
+ * companyId explicitly via options. The hook will try to use CompanyContext
+ * as a fallback for manager views.
  */
 export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
-  const { company } = useCompanyContext();
+  // Try to get company from context (works for managers)
+  // This will be undefined for staff users who don't have CompanyContext
+  const companyContext = useCompanyContext();
+  const contextCompanyId = companyContext?.company?.id;
   
   // Use canonical day window for consistent "today" definition
   const todayWindow = getCompanyDayWindow();
@@ -35,16 +47,25 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
     endDate = endOfDay(addDays(todayWindow.now, 7)),
     locationId,
     enabled = true,
+    companyId: providedCompanyId,
   } = options;
+
+  // Prefer provided companyId, fallback to context company
+  const effectiveCompanyId = providedCompanyId || contextCompanyId;
 
   // Use canonical day keys to avoid UTC/local mismatch
   const startStr = toDayKey(startDate);
   const endStr = toDayKey(endDate);
 
   return useQuery({
-    queryKey: ["shift-coverage", company?.id, startStr, endStr, locationId],
+    queryKey: ["shift-coverage", effectiveCompanyId, startStr, endStr, locationId],
     queryFn: async (): Promise<Shift[]> => {
-      if (!company?.id) return [];
+      if (!effectiveCompanyId) {
+        if (import.meta.env.DEV) {
+          console.log("[useShiftCoverage] No company ID available (context or options)");
+        }
+        return [];
+      }
 
       let query = supabase
         .from("shifts")
@@ -58,7 +79,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
           is_published,
           shift_assignments!left(id, staff_id, approval_status)
         `)
-        .eq("company_id", company.id)
+        .eq("company_id", effectiveCompanyId)
         .gte("shift_date", startStr)
         .lte("shift_date", endStr);
 
@@ -82,7 +103,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
         shift_assignments: shift.shift_assignments || [],
       })) as Shift[];
     },
-    enabled: enabled && !!company?.id,
+    enabled: enabled && !!effectiveCompanyId,
   });
 };
 
