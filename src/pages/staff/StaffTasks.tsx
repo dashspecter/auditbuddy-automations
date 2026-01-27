@@ -87,7 +87,8 @@ const StaffTasks = () => {
     upcomingTasks, 
     isLoading,
     rawTasks,
-    debug
+    debug,
+    shifts, // Shifts from coverage hook for debug panel
   } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -315,6 +316,9 @@ const StaffTasks = () => {
             <div className="grid grid-cols-2 gap-2 p-2 bg-background/50 rounded mb-3">
               <div className="col-span-2 font-bold">Pipeline Stages:</div>
               <div>rawTasks: {rawTasks.length}</div>
+              <div className={shifts.length === 0 ? "text-destructive font-bold" : ""}>
+                shiftsCount: {shifts.length}
+              </div>
               <div>recurringTemplates: {recurringTemplates.length}</div>
               <div>today.generated: {debug?.today?.generated ?? 'N/A'}</div>
               <div>today.covered: {debug?.today?.covered ?? 'N/A'}</div>
