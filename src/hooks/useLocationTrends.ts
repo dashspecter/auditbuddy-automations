@@ -23,7 +23,8 @@ export const useLocationTrends = () => {
     const locationMap = new Map<string, any[]>();
     
     audits.forEach(audit => {
-      const location = audit.location || 'Unknown Location';
+      // Prefer the joined location name over legacy text field
+      const location = audit.locations?.name || audit.location || 'Unknown Location';
       if (!locationMap.has(location)) {
         locationMap.set(location, []);
       }
