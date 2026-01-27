@@ -43,10 +43,17 @@ export interface MyTaskOccurrences {
   error: Error | null;
   /** Raw tasks from useMyTasks */
   rawTasks: Task[];
-  /** Debug stats */
+  /** Debug stats for diagnostics */
   debug?: {
-    today: { generated: number; covered: number; visible: number };
-    tomorrow: { generated: number; covered: number; visible: number };
+    today: { generated: number; covered: number; visible: number; noCoverage: number };
+    tomorrow: { generated: number; covered: number; visible: number; noCoverage: number };
+    /** Coverage reason buckets */
+    coverageReasons?: {
+      noShift: number;
+      roleMismatch: number;
+      locationMismatch: number;
+      noApprovedAssignments: number;
+    };
   };
 }
 
@@ -77,6 +84,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     );
 
     // Apply unified pipeline for Today (execution mode = only covered tasks)
+    // dayBasedCoverage=true ensures tasks remain visible after shift ends until end-of-day
     const todayResult = runPipelineForDate(rawTasks, today, {
       viewMode: "execution",
       includeCompleted: true,
@@ -109,6 +117,22 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       return new Date(task.start_at) > now;
     });
 
+    // Compute coverage reason buckets for diagnostics
+    const coverageReasons = {
+      noShift: 0,
+      roleMismatch: 0,
+      locationMismatch: 0,
+      noApprovedAssignments: 0,
+    };
+    
+    for (const task of todayResult.noCoverage) {
+      const reason = task.coverage?.noCoverageReason;
+      if (reason === "no_shift") coverageReasons.noShift++;
+      else if (reason === "role_mismatch") coverageReasons.roleMismatch++;
+      else if (reason === "location_mismatch") coverageReasons.locationMismatch++;
+      else if (reason === "no_approved_assignments") coverageReasons.noApprovedAssignments++;
+    }
+
     // DEBUG: Log pipeline stages for mobile parity verification
     if (import.meta.env.DEV) {
       console.log("[useMyTaskOccurrences] Mobile task pipeline:", {
@@ -126,6 +150,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
           covered: tomorrowResult.debug.covered,
           visible: tomorrowResult.debug.visible,
         },
+        coverageReasons,
         activeTasksCount: activeTasks.length,
         upcomingTasksCount: upcomingTasks.length,
       });
@@ -141,13 +166,16 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
         today: {
           generated: todayResult.debug.generated,
           covered: todayResult.debug.covered,
+          noCoverage: todayResult.debug.noCoverage,
           visible: todayResult.debug.visible,
         },
         tomorrow: {
           generated: tomorrowResult.debug.generated,
           covered: tomorrowResult.debug.covered,
+          noCoverage: tomorrowResult.debug.noCoverage,
           visible: tomorrowResult.debug.visible,
         },
+        coverageReasons,
       },
     };
   }, [rawTasks, shifts]);

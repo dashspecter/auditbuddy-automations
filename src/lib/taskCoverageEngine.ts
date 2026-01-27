@@ -40,13 +40,19 @@ export interface CoverageResult {
   hasCoverage: boolean;
   /** List of scheduled employee IDs who can cover this task */
   coveredByEmployees: string[];
-  /** Reason if no coverage */
-  noCoverageReason?: string;
+  /** Reason if no coverage (for debugging) */
+  noCoverageReason?: "no_shift" | "role_mismatch" | "location_mismatch" | "day_mismatch" | "no_approved_assignments";
   /** Details for managers */
   coverageDetails?: {
     locationName?: string;
     requiredRole?: string;
     timeWindow?: string;
+  };
+  /** Debug info for diagnostics */
+  debugInfo?: {
+    shiftsChecked: number;
+    roleChecks: number;
+    locationChecks: number;
   };
 }
 
@@ -64,6 +70,12 @@ export interface CoverageCheckOptions {
   includeAlwaysOn?: boolean;
   /** Whether to filter out tasks without coverage */
   filterNoCoverage?: boolean;
+  /** 
+   * If true, only check that shift EXISTS on day (not that task time is within shift window).
+   * This ensures tasks remain visible after shift ends until end-of-day.
+   * Default: true for mobile/execution views.
+   */
+  dayBasedCoverage?: boolean;
 }
 
 // =============================================================
@@ -117,7 +129,7 @@ export function checkTaskCoverage(
   targetDate: Date,
   options: CoverageCheckOptions = {}
 ): CoverageResult {
-  const { graceWindowMinutes = 30 } = options;
+  const { graceWindowMinutes = 30, dayBasedCoverage = true } = options;
   
   // Always-on tasks always have coverage (they don't depend on schedule)
   const executionMode = (task as any).execution_mode || 'shift_based';
@@ -141,39 +153,66 @@ export function checkTaskCoverage(
   // Find matching shifts for this date using canonical day key
   const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false);
   
+  // Debug tracking
+  let roleChecks = 0;
+  let locationChecks = 0;
+  
   if (dateShifts.length === 0) {
     return {
       hasCoverage: false,
       coveredByEmployees: [],
-      noCoverageReason: 'No shifts scheduled for this date',
+      noCoverageReason: "no_shift",
       coverageDetails: { timeWindow: taskDateStr },
+      debugInfo: { shiftsChecked: 0, roleChecks: 0, locationChecks: 0 },
     };
   }
   
-  // Find shifts that match location, role, and time
+  // Find shifts that match location, role (and optionally time)
   const matchingShifts: Shift[] = [];
   const coveredEmployees: string[] = [];
+  let lastMismatchReason: CoverageResult["noCoverageReason"] = undefined;
   
   for (const shift of dateShifts) {
     // Location check (global tasks with NULL location match any location)
-    if (locationId && shift.location_id !== locationId) continue;
+    locationChecks++;
+    if (locationId && shift.location_id !== locationId) {
+      lastMismatchReason = "location_mismatch";
+      continue;
+    }
     
-    // Time window check
-    if (taskTime && !isTimeWithinShift(taskTime, shift.start_time, shift.end_time, graceWindowMinutes)) {
+    // Time window check - ONLY if dayBasedCoverage is false (legacy behavior)
+    // When dayBasedCoverage is true (default), tasks remain visible all day if shift existed
+    if (!dayBasedCoverage && taskTime && !isTimeWithinShift(taskTime, shift.start_time, shift.end_time, graceWindowMinutes)) {
       continue;
     }
     
     // CRITICAL: Role check - if task requires a role, shift MUST have that role
-    // Use rolesMatch() for normalized comparison (case-insensitive, trim, diacritics removed)
+    // PRIORITY: role_id match takes precedence, fallback to normalized name match only if role_id missing
+    roleChecks++;
     if (roleId || roleName) {
-      const taskRoleName = roleName || '';
-      // Prefer role_id match if available on shift, fallback to normalized name match
-      const roleMatches = shift.role_id 
-        ? shift.role_id === roleId
-        : rolesMatch(shift.role, taskRoleName);
+      let roleMatches = false;
+      
+      // Primary: compare by role_id if both are available
+      if (roleId && shift.role_id) {
+        roleMatches = shift.role_id === roleId;
+      } else if (roleId && !shift.role_id && roleName) {
+        // Fallback: task has roleId but shift only has role name - use normalized name match
+        roleMatches = rolesMatch(shift.role, roleName);
+        if (import.meta.env.DEV && roleMatches) {
+          console.warn("[checkTaskCoverage] Role matched by NAME fallback (shift missing role_id):", {
+            taskRoleId: roleId,
+            taskRoleName: roleName,
+            shiftRole: shift.role,
+          });
+        }
+      } else if (!roleId && roleName) {
+        // Legacy: task only has role name - use normalized comparison
+        roleMatches = rolesMatch(shift.role, roleName);
+      }
       
       if (!roleMatches) {
-        continue; // Skip this shift - role doesn't match
+        lastMismatchReason = "role_mismatch";
+        continue;
       }
     }
     
@@ -182,7 +221,10 @@ export function checkTaskCoverage(
       a => a.approval_status === 'approved' || a.approval_status === 'confirmed'
     );
     
-    if (approvedAssignments.length === 0) continue;
+    if (approvedAssignments.length === 0) {
+      lastMismatchReason = "no_approved_assignments";
+      continue;
+    }
     
     // If task is assigned to specific employee, check if that employee is in this shift
     if (assignedTo) {
@@ -202,21 +244,19 @@ export function checkTaskCoverage(
     return {
       hasCoverage: false,
       coveredByEmployees: [],
-      noCoverageReason: roleName 
-        ? `No ${roleName} scheduled${locationId ? ' at this location' : ''}${taskTime ? ` during ${taskTime}` : ''}`
-        : locationId 
-          ? `No staff scheduled at this location${taskTime ? ` during ${taskTime}` : ''}`
-          : 'No matching shifts found',
+      noCoverageReason: lastMismatchReason || "no_shift",
       coverageDetails: {
         requiredRole: roleName,
         timeWindow: taskTime || undefined,
       },
+      debugInfo: { shiftsChecked: dateShifts.length, roleChecks, locationChecks },
     };
   }
   
   return {
     hasCoverage: true,
     coveredByEmployees: coveredEmployees,
+    debugInfo: { shiftsChecked: dateShifts.length, roleChecks, locationChecks },
   };
 }
 

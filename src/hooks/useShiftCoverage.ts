@@ -69,6 +69,8 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Note: shifts.role is a text field (not role_id)
+      // The coverage engine will use normalized name matching
       return (data || []).map((shift: any) => ({
         id: shift.id,
         location_id: shift.location_id,
@@ -76,6 +78,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
         start_time: shift.start_time,
         end_time: shift.end_time,
         role: shift.role,
+        // role_id is NOT in shifts table - coverage engine handles this via name matching
         is_published: shift.is_published,
         shift_assignments: shift.shift_assignments || [],
       })) as Shift[];

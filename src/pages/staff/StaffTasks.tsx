@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw, Bug } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompleteTask, Task } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { supabase } from "@/integrations/supabase/client";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -78,6 +80,7 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
 const StaffTasks = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const { 
     todayGrouped, 
     tomorrowTasks,
@@ -88,7 +91,53 @@ const StaffTasks = () => {
   } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
+  // Show debug if ?debugTasks=1 query param or DEV toggle
+  const debugFromUrl = searchParams.get("debugTasks") === "1";
+  const [showDebug, setShowDebug] = useState(debugFromUrl);
+  const [employeeInfo, setEmployeeInfo] = useState<any>(null);
+  const [shiftsInfo, setShiftsInfo] = useState<any[]>([]);
+
+  // Fetch employee + shift info for enhanced debugging
+  useEffect(() => {
+    const fetchDebugInfo = async () => {
+      if (!user?.id || (!showDebug && !debugFromUrl)) return;
+      
+      // Get employee info
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("id, role, location_id, company_id, locations(name)")
+        .eq("user_id", user.id)
+        .single();
+      
+      setEmployeeInfo(emp);
+      
+      if (emp) {
+        // Get today's shifts for this employee
+        const today = new Date().toISOString().split('T')[0];
+        const { data: assignments } = await supabase
+          .from("shift_assignments")
+          .select(`
+            id,
+            approval_status,
+            shifts!inner(
+              id,
+              shift_date,
+              start_time,
+              end_time,
+              role,
+              location_id,
+              locations(name)
+            )
+          `)
+          .eq("staff_id", emp.id)
+          .eq("shifts.shift_date", today);
+        
+        setShiftsInfo(assignments || []);
+      }
+    };
+    
+    fetchDebugInfo();
+  }, [user?.id, showDebug, debugFromUrl]);
 
   const toggleTask = (taskId: string, currentStatus: string) => {
     if (currentStatus !== 'completed') {
@@ -194,33 +243,87 @@ const StaffTasks = () => {
 
       <div className="px-4 py-4 space-y-4">
         {/* Debug Panel */}
-        {showDebug && import.meta.env.DEV && (
-          <Card className="p-4 bg-muted/50 text-xs font-mono">
-            <h3 className="font-bold mb-2">Pipeline Debug:</h3>
-            <div className="grid grid-cols-2 gap-2">
+        {(showDebug || debugFromUrl) && (
+          <Card className="p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 text-xs font-mono overflow-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <Bug className="h-4 w-4 text-amber-600" />
+              <h3 className="font-bold text-amber-800 dark:text-amber-200">Task Debug Panel</h3>
+            </div>
+            
+            {/* Employee Info */}
+            {employeeInfo && (
+              <div className="mb-3 p-2 bg-background/50 rounded">
+                <div className="font-bold mb-1">Employee:</div>
+                <div>ID: {employeeInfo.id?.slice(0, 8)}...</div>
+                <div>Role: {employeeInfo.role || 'None'}</div>
+                <div>Location: {employeeInfo.locations?.name || employeeInfo.location_id?.slice(0, 8) || 'None'}</div>
+                <div>Company: {employeeInfo.company_id?.slice(0, 8)}...</div>
+              </div>
+            )}
+            
+            {/* Today's Shifts */}
+            <div className="mb-3 p-2 bg-background/50 rounded">
+              <div className="font-bold mb-1">Today's Shifts ({shiftsInfo.length}):</div>
+              {shiftsInfo.length === 0 ? (
+                <div className="text-destructive">⚠ No shifts found for today</div>
+              ) : (
+                shiftsInfo.map((a: any, i: number) => (
+                  <div key={i} className="text-[10px] border-b border-dashed pb-1 mb-1">
+                    {a.shifts?.start_time?.slice(0,5)}-{a.shifts?.end_time?.slice(0,5)} | 
+                    Role: "{a.shifts?.role}" | 
+                    Loc: {a.shifts?.locations?.name || a.shifts?.location_id?.slice(0,8)} | 
+                    Status: {a.approval_status}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Pipeline Stats */}
+            <div className="grid grid-cols-2 gap-2 p-2 bg-background/50 rounded mb-3">
+              <div className="col-span-2 font-bold">Pipeline Stages:</div>
               <div>rawTasks: {rawTasks.length}</div>
               <div>recurringTemplates: {recurringTemplates.length}</div>
-              <div>completedRecurring: {completedRecurring.length}</div>
-              <div className="col-span-2 border-t pt-1 mt-1 font-bold">Pipeline Stages:</div>
               <div>today.generated: {debug?.today?.generated ?? 'N/A'}</div>
               <div>today.covered: {debug?.today?.covered ?? 'N/A'}</div>
+              <div>today.noCoverage: {debug?.today?.noCoverage ?? 'N/A'}</div>
               <div>today.visible: {debug?.today?.visible ?? 'N/A'}</div>
-              <div className="col-span-2 border-t pt-1 mt-1 font-bold">Display Buckets:</div>
+            </div>
+
+            {/* Coverage Reasons */}
+            {debug?.coverageReasons && (
+              <div className="mb-3 p-2 bg-background/50 rounded">
+                <div className="font-bold mb-1">No-Coverage Reasons:</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <div>noShift: {debug.coverageReasons.noShift}</div>
+                  <div>roleMismatch: {debug.coverageReasons.roleMismatch}</div>
+                  <div>locationMismatch: {debug.coverageReasons.locationMismatch}</div>
+                  <div>noApproved: {debug.coverageReasons.noApprovedAssignments}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Display Buckets */}
+            <div className="grid grid-cols-2 gap-2 p-2 bg-background/50 rounded">
+              <div className="col-span-2 font-bold">Display Buckets:</div>
               <div>activePending: {activePendingTasks.length}</div>
               <div>upcoming: {upcomingTasks.length}</div>
               <div>overdue: {todayGrouped.overdue.length}</div>
               <div>completed: {completedTasks.length}</div>
               <div>noCoverage: {todayGrouped.noCoverage.length}</div>
-              <div className="col-span-2 border-t pt-1 mt-1 font-bold text-primary">
-                Badge should show: {badgeCount}
+              <div className="col-span-2 font-bold text-primary">
+                Badge Count: {badgeCount}
               </div>
             </div>
+
+            {/* Sample Tasks */}
             {rawTasks.length > 0 && (
-              <div className="mt-2">
-                <div className="font-bold">Sample tasks:</div>
+              <div className="mt-3 p-2 bg-background/50 rounded">
+                <div className="font-bold mb-1">Sample Raw Tasks:</div>
                 {rawTasks.slice(0, 3).map((t) => (
-                  <div key={t.id} className="truncate text-[10px]">
-                    {t.title} | {t.status} | {t.recurrence_type || 'none'} | {t.location?.name || 'no-loc'}
+                  <div key={t.id} className="text-[10px] truncate">
+                    {t.title} | status:{t.status} | role_id:{t.assigned_role_id?.slice(0,8) || 'none'} | 
+                    loc:{t.location?.name || t.location_id?.slice(0,8) || 'none'} | 
+                    recur:{t.recurrence_type || 'none'}
                   </div>
                 ))}
               </div>
@@ -543,6 +646,24 @@ const StaffTasks = () => {
           <Card className="p-8 text-center">
             <ListTodo className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">{t('tasks.staff.noTasks')}</p>
+            {(showDebug || debugFromUrl) && (
+              <div className="mt-4 p-3 bg-muted/50 rounded text-xs text-left font-mono">
+                <p className="font-bold text-amber-600 mb-2">Debug: Why no tasks?</p>
+                <p>• rawTasks: {rawTasks.length}</p>
+                <p>• today.generated: {debug?.today?.generated ?? 0}</p>
+                <p>• today.covered: {debug?.today?.covered ?? 0}</p>
+                <p>• shiftsToday: {shiftsInfo.length}</p>
+                {rawTasks.length > 0 && debug?.today?.covered === 0 && (
+                  <p className="text-destructive mt-1">→ Tasks exist but none have shift coverage</p>
+                )}
+                {rawTasks.length === 0 && (
+                  <p className="text-destructive mt-1">→ No tasks assigned to you or your role</p>
+                )}
+                {shiftsInfo.length === 0 && (
+                  <p className="text-destructive mt-1">→ No approved shifts for today</p>
+                )}
+              </div>
+            )}
           </Card>
         )}
       </div>
