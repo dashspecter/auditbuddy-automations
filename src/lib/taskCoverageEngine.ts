@@ -23,10 +23,8 @@ export interface Shift {
   shift_date: string;
   start_time: string;
   end_time: string;
-  /** Role name (string) from shifts table */
+  /** Role name (string) from shifts table - this is the ONLY role field available */
   role: string;
-  /** Optional: resolved role_id if available */
-  role_id?: string;
   is_published?: boolean;
   shift_assignments?: Array<{
     id: string;
@@ -41,7 +39,7 @@ export interface CoverageResult {
   /** List of scheduled employee IDs who can cover this task */
   coveredByEmployees: string[];
   /** Reason if no coverage (for debugging) */
-  noCoverageReason?: "no_shift" | "role_mismatch" | "location_mismatch" | "day_mismatch" | "no_approved_assignments";
+  noCoverageReason?: "no_shift" | "role_mismatch" | "location_mismatch" | "day_mismatch" | "no_approved_assignments" | "task_role_name_missing";
   /** Details for managers */
   coverageDetails?: {
     locationName?: string;
@@ -186,29 +184,28 @@ export function checkTaskCoverage(
       continue;
     }
     
-    // CRITICAL: Role check - if task requires a role, shift MUST have that role
-    // PRIORITY: role_id match takes precedence, fallback to normalized name match only if role_id missing
+    // CRITICAL: Role check - if task requires a role, shift MUST have matching role name
+    // NOTE: shifts table only has 'role' (text), there is NO role_id column
     roleChecks++;
     if (roleId || roleName) {
-      let roleMatches = false;
-      
-      // Primary: compare by role_id if both are available
-      if (roleId && shift.role_id) {
-        roleMatches = shift.role_id === roleId;
-      } else if (roleId && !shift.role_id && roleName) {
-        // Fallback: task has roleId but shift only has role name - use normalized name match
-        roleMatches = rolesMatch(shift.role, roleName);
-        if (import.meta.env.DEV && roleMatches) {
-          console.warn("[checkTaskCoverage] Role matched by NAME fallback (shift missing role_id):", {
-            taskRoleId: roleId,
-            taskRoleName: roleName,
-            shiftRole: shift.role,
+      // Task requires a role - we MUST have a role name to compare
+      if (!roleName) {
+        // Task has assigned_role_id but the join didn't resolve the name
+        // This is a data issue - log it in DEV and mark as no coverage
+        if (import.meta.env.DEV) {
+          console.warn("[checkTaskCoverage] Task has assigned_role_id but missing role name:", {
+            taskId: task.id,
+            taskTitle: task.title,
+            assigned_role_id: roleId,
+            assigned_role: task.assigned_role,
           });
         }
-      } else if (!roleId && roleName) {
-        // Legacy: task only has role name - use normalized comparison
-        roleMatches = rolesMatch(shift.role, roleName);
+        lastMismatchReason = "task_role_name_missing";
+        continue;
       }
+      
+      // Use normalized name comparison (case-insensitive, trimmed, diacritics removed)
+      const roleMatches = rolesMatch(shift.role, roleName);
       
       if (!roleMatches) {
         lastMismatchReason = "role_mismatch";

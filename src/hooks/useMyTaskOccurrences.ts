@@ -53,6 +53,7 @@ export interface MyTaskOccurrences {
       roleMismatch: number;
       locationMismatch: number;
       noApprovedAssignments: number;
+      taskRoleNameMissing: number;
     };
   };
 }
@@ -123,6 +124,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       roleMismatch: 0,
       locationMismatch: 0,
       noApprovedAssignments: 0,
+      taskRoleNameMissing: 0,
     };
     
     for (const task of todayResult.noCoverage) {
@@ -131,6 +133,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       else if (reason === "role_mismatch") coverageReasons.roleMismatch++;
       else if (reason === "location_mismatch") coverageReasons.locationMismatch++;
       else if (reason === "no_approved_assignments") coverageReasons.noApprovedAssignments++;
+      else if (reason === "task_role_name_missing") coverageReasons.taskRoleNameMissing++;
     }
 
     // DEBUG: Log pipeline stages for mobile parity verification
