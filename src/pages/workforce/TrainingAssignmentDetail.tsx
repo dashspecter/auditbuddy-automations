@@ -52,7 +52,7 @@ const TrainingAssignmentDetail = () => {
   
   const [evalDialogOpen, setEvalDialogOpen] = useState(false);
   const [evalForm, setEvalForm] = useState({
-    module_day_id: "",
+    module_day_id: "__general__",
     score: 0,
     passed: false,
     notes: "",
@@ -108,7 +108,7 @@ const TrainingAssignmentDetail = () => {
       assignment_id: id!,
       trainee_employee_id: assignment.trainee_employee_id,
       trainer_employee_id: currentEmployee.id,
-      module_day_id: evalForm.module_day_id || null,
+      module_day_id: evalForm.module_day_id === "__general__" ? null : evalForm.module_day_id,
       evaluation_date: format(new Date(), 'yyyy-MM-dd'),
       score: evalForm.score,
       passed: evalForm.passed,
@@ -116,7 +116,7 @@ const TrainingAssignmentDetail = () => {
     });
     
     setEvalDialogOpen(false);
-    setEvalForm({ module_day_id: "", score: 0, passed: false, notes: "" });
+    setEvalForm({ module_day_id: "__general__", score: 0, passed: false, notes: "" });
   };
 
   const handleStartAuditEvaluation = async (requiredEval: any) => {
@@ -374,7 +374,7 @@ const TrainingAssignmentDetail = () => {
                         <SelectValue placeholder={t('training.selectDay', 'Select day (optional)')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">General evaluation</SelectItem>
+                        <SelectItem value="__general__">General evaluation</SelectItem>
                         {days.map(day => (
                           <SelectItem key={day.id} value={day.id}>
                             Day {day.day_number}: {day.title}
