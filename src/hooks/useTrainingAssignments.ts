@@ -586,6 +586,175 @@ export const useStartAuditEvaluation = () => {
   });
 };
 
+// Generate training sessions (shifts) for an assignment
+export const useGenerateTrainingSessions = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { company } = useCompanyContext();
+
+  return useMutation({
+    mutationFn: async (assignmentId: string) => {
+      if (!user || !company?.id) throw new Error("Not authenticated");
+
+      // Fetch assignment with module info
+      const { data: assignment, error: assignmentError } = await supabase
+        .from("training_assignments")
+        .select(`
+          *,
+          module:training_programs(id, name, duration_days),
+          location:locations(id, name)
+        `)
+        .eq("id", assignmentId)
+        .single();
+
+      if (assignmentError) throw assignmentError;
+      if (!assignment.module) throw new Error("Module not found");
+
+      const startDate = new Date(assignment.start_date);
+      const durationDays = assignment.module.duration_days || 5;
+      const createdSessions: any[] = [];
+
+      // Default training hours (9:00-17:00)
+      const defaultStartTime = "09:00:00";
+      const defaultEndTime = "17:00:00";
+
+      // Get existing sessions to avoid duplicates
+      const { data: existingSessions } = await supabase
+        .from("training_sessions")
+        .select("session_date")
+        .eq("assignment_id", assignmentId);
+
+      const existingDates = new Set((existingSessions || []).map(s => s.session_date));
+
+      // Create a session for each training day
+      for (let dayOffset = 0; dayOffset < durationDays; dayOffset++) {
+        const sessionDate = new Date(startDate);
+        sessionDate.setDate(sessionDate.getDate() + dayOffset);
+        
+        // Skip weekends
+        const dayOfWeek = sessionDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          continue;
+        }
+
+        const dateStr = sessionDate.toISOString().split('T')[0];
+        
+        // Skip if session already exists for this date
+        if (existingDates.has(dateStr)) {
+          continue;
+        }
+
+        // Create the training session
+        const { data: session, error: sessionError } = await supabase
+          .from("training_sessions")
+          .insert({
+            company_id: company.id,
+            assignment_id: assignmentId,
+            module_id: assignment.module_id,
+            location_id: assignment.location_id,
+            session_date: dateStr,
+            start_time: defaultStartTime,
+            end_time: defaultEndTime,
+            trainer_employee_id: assignment.trainer_employee_id,
+            title: `${assignment.module.name} - Day ${dayOffset + 1}`,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (sessionError) {
+          console.error(`Failed to create session for day ${dayOffset + 1}:`, sessionError);
+          continue;
+        }
+
+        // Add trainer as attendee
+        if (assignment.trainer_employee_id) {
+          await supabase.from("training_session_attendees").insert({
+            session_id: session.id,
+            employee_id: assignment.trainer_employee_id,
+            attendee_role: 'trainer',
+          });
+        }
+
+        // Add trainee as attendee
+        await supabase.from("training_session_attendees").insert({
+          session_id: session.id,
+          employee_id: assignment.trainee_employee_id,
+          attendee_role: 'trainee',
+        });
+
+        // Calculate required_count
+        const requiredCount = (assignment.trainer_employee_id ? 1 : 0) + 1; // trainer + trainee
+
+        // Create corresponding shift
+        const { data: shift, error: shiftError } = await supabase
+          .from("shifts")
+          .insert({
+            company_id: company.id,
+            location_id: assignment.location_id,
+            shift_date: dateStr,
+            start_time: defaultStartTime,
+            end_time: defaultEndTime,
+            role: 'Training',
+            shift_type: 'training',
+            training_session_id: session.id,
+            training_module_id: assignment.module_id,
+            trainer_employee_id: assignment.trainer_employee_id,
+            cohort_label: `${assignment.module.name} - Day ${dayOffset + 1}`,
+            created_by: user.id,
+            status: 'published',
+            is_published: true,
+            required_count: requiredCount,
+          })
+          .select()
+          .single();
+
+        if (shiftError) {
+          console.error(`Failed to create shift for day ${dayOffset + 1}:`, shiftError);
+          continue;
+        }
+
+        // Create shift assignments for trainer and trainee
+        const shiftAssignments = [];
+        
+        if (assignment.trainer_employee_id) {
+          shiftAssignments.push({
+            shift_id: shift.id,
+            staff_id: assignment.trainer_employee_id,
+            status: 'assigned',
+            assigned_by: user.id,
+            approval_status: 'approved',
+          });
+        }
+
+        shiftAssignments.push({
+          shift_id: shift.id,
+          staff_id: assignment.trainee_employee_id,
+          status: 'assigned',
+          assigned_by: user.id,
+          approval_status: 'approved',
+        });
+
+        await supabase.from("shift_assignments").insert(shiftAssignments);
+
+        createdSessions.push(session);
+      }
+
+      return createdSessions;
+    },
+    onSuccess: (sessions) => {
+      queryClient.invalidateQueries({ queryKey: ["training_sessions"] });
+      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "shifts" });
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["shift_assignments"] });
+      toast.success(`Scheduled ${sessions.length} training days`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to schedule sessions: ${error.message}`);
+    },
+  });
+};
+
 // Generate tasks for assignment
 export const useGenerateTrainingTasks = () => {
   const queryClient = useQueryClient();
