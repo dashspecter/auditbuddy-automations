@@ -789,17 +789,22 @@ export const useGenerateTrainingTasks = () => {
         .order("day_number");
 
       if (daysError) throw daysError;
+      
+      console.log("[Training] Module days fetched:", days);
+      console.log("[Training] Assignment module_id:", assignment.module_id);
 
       const startDate = new Date(assignment.start_date);
       const generatedTasks: any[] = [];
 
       // Generate tasks for each day
       for (const day of days as any[]) {
+        console.log("[Training] Processing day:", day.day_number, "with tasks:", day.tasks?.length || 0);
         const scheduledDate = new Date(startDate);
         scheduledDate.setDate(scheduledDate.getDate() + day.day_number - 1);
         const dateStr = scheduledDate.toISOString().split('T')[0];
 
         for (const templateTask of day.tasks || []) {
+          console.log("[Training] Creating task from template:", templateTask.task_title);
           // Check if already generated
           const { data: existing } = await supabase
             .from("training_generated_tasks")
