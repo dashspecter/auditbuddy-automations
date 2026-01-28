@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { Users, Calendar, Clock, DollarSign, UserPlus, Briefcase, AlertTriangle, BarChart, CalendarClock } from "lucide-react";
+import { Users, Calendar, Clock, DollarSign, UserPlus, Briefcase, AlertTriangle, BarChart, CalendarClock, GraduationCap } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { ModuleGate } from "@/components/ModuleGate";
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const workforceSubItems = [
   { titleKey: "workforce.subItems.staff", url: "/workforce/staff", icon: Users, descKey: "workforce.subItems.staffDesc" },
   { titleKey: "workforce.subItems.shifts", url: "/workforce/shifts", icon: Calendar, descKey: "workforce.subItems.shiftsDesc" },
+  { titleKey: "workforce.subItems.training", url: "/workforce/training", icon: GraduationCap, descKey: "workforce.subItems.trainingDesc" },
   { titleKey: "workforce.subItems.attendance", url: "/workforce/attendance", icon: Clock, descKey: "workforce.subItems.attendanceDesc" },
   { titleKey: "workforce.subItems.timeOff", url: "/workforce/time-off", icon: CalendarClock, descKey: "workforce.subItems.timeOffDesc" },
   { titleKey: "workforce.subItems.payroll", url: "/workforce/payroll", icon: DollarSign, descKey: "workforce.subItems.payrollDesc" },
