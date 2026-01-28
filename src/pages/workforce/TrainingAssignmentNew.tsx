@@ -34,10 +34,10 @@ const TrainingAssignmentNew = () => {
   const [formData, setFormData] = useState({
     trainee_employee_id: "",
     module_id: "",
-    trainer_employee_id: "",
-    location_id: "",
+    trainer_employee_id: "__none__",
+    location_id: "__any__",
     start_date: format(new Date(), 'yyyy-MM-dd'),
-    experience_level: "",
+    experience_level: "__none__",
     notes: "",
   });
 
@@ -54,10 +54,10 @@ const TrainingAssignmentNew = () => {
       const result = await createAssignment.mutateAsync({
         trainee_employee_id: formData.trainee_employee_id,
         module_id: formData.module_id,
-        trainer_employee_id: formData.trainer_employee_id || null,
-        location_id: formData.location_id || null,
+        trainer_employee_id: formData.trainer_employee_id === "__none__" ? null : formData.trainer_employee_id,
+        location_id: formData.location_id === "__any__" ? null : formData.location_id,
         start_date: formData.start_date,
-        experience_level: formData.experience_level || null,
+        experience_level: formData.experience_level === "__none__" ? null : formData.experience_level,
         notes: formData.notes || null,
         status: 'active',
       });
@@ -149,7 +149,7 @@ const TrainingAssignmentNew = () => {
                     <SelectValue placeholder={t('training.selectTrainer', 'Select trainer (optional)')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No trainer assigned</SelectItem>
+                    <SelectItem value="__none__">No trainer assigned</SelectItem>
                     {potentialTrainers.map(emp => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.full_name} {emp.role && `(${emp.role})`}
@@ -169,7 +169,7 @@ const TrainingAssignmentNew = () => {
                     <SelectValue placeholder={t('common.selectLocation', 'Select location (optional)')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any location</SelectItem>
+                    <SelectItem value="__any__">Any location</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}
@@ -199,7 +199,7 @@ const TrainingAssignmentNew = () => {
                     <SelectValue placeholder={t('training.selectLevel', 'Select level (optional)')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Not specified</SelectItem>
+                    <SelectItem value="__none__">Not specified</SelectItem>
                     <SelectItem value="junior">Junior / Entry-level</SelectItem>
                     <SelectItem value="mid">Mid-level</SelectItem>
                     <SelectItem value="senior">Senior / Experienced</SelectItem>
