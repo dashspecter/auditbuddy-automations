@@ -52,14 +52,14 @@ const Training = () => {
     category: "",
     duration_days: 5,
     difficulty_level: 1,
-    target_role_id: "",
+    target_role_id: "__any__",
   });
 
   const handleCreateModule = async (e: React.FormEvent) => {
     e.preventDefault();
     await createModule.mutateAsync({
       ...formData,
-      target_role_id: formData.target_role_id || null,
+      target_role_id: formData.target_role_id === "__any__" ? null : formData.target_role_id,
     });
     setCreateOpen(false);
     setFormData({
@@ -68,7 +68,7 @@ const Training = () => {
       category: "",
       duration_days: 5,
       difficulty_level: 1,
-      target_role_id: "",
+      target_role_id: "__any__",
     });
   };
 
@@ -198,7 +198,7 @@ const Training = () => {
                         <SelectValue placeholder="Any role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any role</SelectItem>
+                         <SelectItem value="__any__">Any role</SelectItem>
                         {roles.map(role => (
                           <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                         ))}
