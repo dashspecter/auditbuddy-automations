@@ -53,8 +53,13 @@ export interface Shift {
 }
 
 export const useShifts = (locationId?: string, startDate?: string, endDate?: string, shiftTypeFilter?: 'all' | 'regular' | 'training') => {
+  // Normalize inputs for consistent behavior
+  const normalizedLocationId = (!locationId || locationId === 'all') ? null : locationId;
+  const normalizedType = shiftTypeFilter ?? 'all';
+  
   return useQuery({
-    queryKey: ["shifts", locationId, startDate, endDate, shiftTypeFilter],
+    // Include normalized values in cache key for proper cache management
+    queryKey: ["shifts", normalizedLocationId ?? 'all', startDate, endDate, normalizedType],
     queryFn: async () => {
       let query = supabase
         .from("shifts")
@@ -74,13 +79,14 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
             )
           ),
           training_module:training_programs(id, name)
-        `)
-        .order("shift_date", { ascending: true })
-        .order("start_time", { ascending: true });
+        `);
       
-      if (locationId) {
-        query = query.eq("location_id", locationId);
+      // Apply location filter ONLY if we have a real location ID
+      if (normalizedLocationId) {
+        query = query.eq("location_id", normalizedLocationId);
       }
+      
+      // Apply date range filters
       if (startDate) {
         query = query.gte("shift_date", startDate);
       }
@@ -88,14 +94,34 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         query = query.lte("shift_date", endDate);
       }
       
-      // Filter by shift type
-      if (shiftTypeFilter === 'regular') {
-        query = query.or('shift_type.eq.regular,shift_type.is.null');
-      } else if (shiftTypeFilter === 'training') {
+      // Filter by shift type - handle 'all', 'regular', and 'training'
+      if (normalizedType === 'training') {
         query = query.eq('shift_type', 'training');
+      } else if (normalizedType === 'regular') {
+        // Include both explicit 'regular' AND legacy NULL shift_type rows
+        query = query.or('shift_type.eq.regular,shift_type.is.null');
       }
+      // For 'all': no shift_type filter is applied
+      
+      // Apply ordering after all filters
+      query = query
+        .order("shift_date", { ascending: true })
+        .order("start_time", { ascending: true });
       
       const { data, error } = await query;
+      
+      // DEV-only diagnostic logging
+      if (import.meta.env.DEV) {
+        console.log('[useShifts] Query params:', {
+          normalizedLocationId,
+          startDate,
+          endDate,
+          normalizedType,
+          resultCount: data?.length ?? 0,
+          error: error?.message ?? null,
+        });
+      }
+      
       if (error) throw error;
       
       return (data as any[]).map((shift: any) => ({
