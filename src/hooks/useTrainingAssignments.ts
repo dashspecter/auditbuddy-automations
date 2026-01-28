@@ -207,41 +207,45 @@ async function rollbackTrainingCreation(
     shiftId?: string;
   }
 ) {
-  // Delete in FK-safe order: assignments → shift → attendees → session
-  if (shiftId) {
-    const { error: assignDelErr } = await supabaseClient
-      .from("shift_assignments")
-      .delete()
-      .eq("shift_id", shiftId);
-    if (assignDelErr) {
-      console.error("[rollbackTrainingCreation] Failed to delete shift_assignments:", assignDelErr);
+  try {
+    // Delete in FK-safe order: assignments → shift → attendees → session
+    if (shiftId) {
+      const { error: assignDelErr } = await supabaseClient
+        .from("shift_assignments")
+        .delete()
+        .eq("shift_id", shiftId);
+      if (assignDelErr) {
+        console.error("[rollbackTrainingCreation] Failed to delete shift_assignments:", assignDelErr);
+      }
+
+      const { error: shiftDelErr } = await supabaseClient
+        .from("shifts")
+        .delete()
+        .eq("id", shiftId);
+      if (shiftDelErr) {
+        console.error("[rollbackTrainingCreation] Failed to delete shift:", shiftDelErr);
+      }
     }
 
-    const { error: shiftDelErr } = await supabaseClient
-      .from("shifts")
-      .delete()
-      .eq("id", shiftId);
-    if (shiftDelErr) {
-      console.error("[rollbackTrainingCreation] Failed to delete shift:", shiftDelErr);
-    }
-  }
+    if (sessionId) {
+      const { error: attendeeDelErr } = await supabaseClient
+        .from("training_session_attendees")
+        .delete()
+        .eq("session_id", sessionId);
+      if (attendeeDelErr) {
+        console.error("[rollbackTrainingCreation] Failed to delete attendees:", attendeeDelErr);
+      }
 
-  if (sessionId) {
-    const { error: attendeeDelErr } = await supabaseClient
-      .from("training_session_attendees")
-      .delete()
-      .eq("session_id", sessionId);
-    if (attendeeDelErr) {
-      console.error("[rollbackTrainingCreation] Failed to delete attendees:", attendeeDelErr);
+      const { error: sessionDelErr } = await supabaseClient
+        .from("training_sessions")
+        .delete()
+        .eq("id", sessionId);
+      if (sessionDelErr) {
+        console.error("[rollbackTrainingCreation] Failed to delete session:", sessionDelErr);
+      }
     }
-
-    const { error: sessionDelErr } = await supabaseClient
-      .from("training_sessions")
-      .delete()
-      .eq("id", sessionId);
-    if (sessionDelErr) {
-      console.error("[rollbackTrainingCreation] Failed to delete session:", sessionDelErr);
-    }
+  } catch (e) {
+    console.error("[rollbackTrainingCreation] Unexpected rollback error:", e);
   }
 }
 
