@@ -410,15 +410,15 @@ export const useCreateTrainingSession = () => {
       return sessionData;
     },
     onSuccess: () => {
-      // Invalidate all relevant queries to ensure UI refresh
+      // Invalidate training + schedule queries using predicate to catch parameterized keys
       queryClient.invalidateQueries({ queryKey: ["training_sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && query.queryKey[0] === "shifts" 
+      });
+      // Invalidate both key variants until standardized
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
-      // Additional keys used by various schedule/coverage views
       queryClient.invalidateQueries({ queryKey: ["shift_assignments"] });
-      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
-      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Training session created");
     },
     onError: (error: Error) => {
