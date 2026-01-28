@@ -195,6 +195,52 @@ export const useTrainingSessions = (filters?: {
   });
 };
 
+// Helper: FK-safe rollback that never throws during cleanup
+async function rollbackTrainingCreation({
+  sessionId,
+  shiftId,
+}: {
+  sessionId?: string;
+  shiftId?: string;
+}) {
+  // Delete in FK-safe order: assignments → shift → attendees → session
+  if (shiftId) {
+    const { error: assignDelErr } = await supabase
+      .from("shift_assignments")
+      .delete()
+      .eq("shift_id", shiftId);
+    if (assignDelErr) {
+      console.error("[rollbackTrainingCreation] Failed to delete shift_assignments:", assignDelErr);
+    }
+
+    const { error: shiftDelErr } = await supabase
+      .from("shifts")
+      .delete()
+      .eq("id", shiftId);
+    if (shiftDelErr) {
+      console.error("[rollbackTrainingCreation] Failed to delete shift:", shiftDelErr);
+    }
+  }
+
+  if (sessionId) {
+    const { error: attendeeDelErr } = await supabase
+      .from("training_session_attendees")
+      .delete()
+      .eq("session_id", sessionId);
+    if (attendeeDelErr) {
+      console.error("[rollbackTrainingCreation] Failed to delete attendees:", attendeeDelErr);
+    }
+
+    const { error: sessionDelErr } = await supabase
+      .from("training_sessions")
+      .delete()
+      .eq("id", sessionId);
+    if (sessionDelErr) {
+      console.error("[rollbackTrainingCreation] Failed to delete session:", sessionDelErr);
+    }
+  }
+}
+
 export const useCreateTrainingSession = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -225,20 +271,26 @@ export const useCreateTrainingSession = () => {
 
       if (sessionError) throw sessionError;
 
-      // Add trainer as attendee
+      // Add trainer as attendee (with error check)
       if (session.trainer_employee_id) {
-        await supabase
+        const { error: trainerAttendeeErr } = await supabase
           .from("training_session_attendees")
           .insert({
             session_id: sessionData.id,
             employee_id: session.trainer_employee_id,
             attendee_role: 'trainer',
           });
+        
+        if (trainerAttendeeErr) {
+          console.error("[useCreateTrainingSession] Trainer attendee insert failed, rolling back:", trainerAttendeeErr);
+          await rollbackTrainingCreation({ sessionId: sessionData.id });
+          throw new Error(`Failed to add trainer as attendee: ${trainerAttendeeErr.message}`);
+        }
       }
 
-      // Add trainees as attendees
+      // Add trainees as attendees (with error check)
       if (session.traineeIds?.length) {
-        await supabase
+        const { error: traineeAttendeeErr } = await supabase
           .from("training_session_attendees")
           .insert(
             session.traineeIds.map(tid => ({
@@ -247,7 +299,18 @@ export const useCreateTrainingSession = () => {
               attendee_role: 'trainee',
             }))
           );
+        
+        if (traineeAttendeeErr) {
+          console.error("[useCreateTrainingSession] Trainee attendees insert failed, rolling back:", traineeAttendeeErr);
+          await rollbackTrainingCreation({ sessionId: sessionData.id });
+          throw new Error(`Failed to add trainees as attendees: ${traineeAttendeeErr.message}`);
+        }
       }
+
+      // Calculate required_count safely (trainer may not exist)
+      const traineeCount = session.traineeIds?.length || 0;
+      const trainerCount = session.trainer_employee_id ? 1 : 0;
+      const requiredCount = traineeCount + trainerCount;
 
       // Create corresponding training shift
       const { data: shiftData, error: shiftError } = await supabase
@@ -267,21 +330,18 @@ export const useCreateTrainingSession = () => {
           created_by: user.id,
           status: 'published',
           is_published: true,
-          required_count: (session.traineeIds?.length || 0) + 1,
+          required_count: requiredCount,
         })
         .select()
         .single();
 
       if (shiftError) {
-        // COMPENSATING ROLLBACK: Delete session if shift creation fails
         console.error("[useCreateTrainingSession] Shift creation failed, rolling back session:", shiftError);
-        await supabase.from("training_session_attendees").delete().eq("session_id", sessionData.id);
-        await supabase.from("training_sessions").delete().eq("id", sessionData.id);
+        await rollbackTrainingCreation({ sessionId: sessionData.id });
         throw new Error(`Failed to create training shift: ${shiftError.message}`);
       }
       
-      // CRITICAL: Create shift_assignments for trainer and trainees so they appear on schedules
-      // Build assignments with ALL required fields (assigned_by is NOT NULL)
+      // Build shift_assignments for trainer and trainees
       const assignmentsToInsert: Array<{
         shift_id: string;
         staff_id: string;
@@ -290,7 +350,6 @@ export const useCreateTrainingSession = () => {
         approval_status: string;
       }> = [];
 
-      // Add trainer assignment
       if (session.trainer_employee_id) {
         assignmentsToInsert.push({
           shift_id: shiftData.id,
@@ -301,7 +360,6 @@ export const useCreateTrainingSession = () => {
         });
       }
 
-      // Add trainee assignments
       if (session.traineeIds?.length) {
         session.traineeIds.forEach(traineeId => {
           assignmentsToInsert.push({
@@ -315,7 +373,6 @@ export const useCreateTrainingSession = () => {
       }
 
       if (assignmentsToInsert.length > 0) {
-        // Use upsert with the unique index on (shift_id, staff_id)
         const { error: assignError } = await supabase
           .from("shift_assignments")
           .upsert(assignmentsToInsert, { 
@@ -324,11 +381,8 @@ export const useCreateTrainingSession = () => {
           });
         
         if (assignError) {
-          // COMPENSATING ROLLBACK: Delete shift and session if assignments fail
           console.error("[useCreateTrainingSession] Assignment creation failed, rolling back:", assignError);
-          await supabase.from("shifts").delete().eq("id", shiftData.id);
-          await supabase.from("training_session_attendees").delete().eq("session_id", sessionData.id);
-          await supabase.from("training_sessions").delete().eq("id", sessionData.id);
+          await rollbackTrainingCreation({ sessionId: sessionData.id, shiftId: shiftData.id });
           throw new Error(`Failed to create shift assignments: ${assignError.message}`);
         }
         
