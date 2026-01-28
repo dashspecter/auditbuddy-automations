@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTrainingModules } from "@/hooks/useTrainingModules";
-import { useCreateTrainingAssignment, useGenerateTrainingTasks } from "@/hooks/useTrainingAssignments";
+import { useCreateTrainingAssignment, useGenerateTrainingTasks, useGenerateTrainingSessions } from "@/hooks/useTrainingAssignments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
@@ -30,6 +30,7 @@ const TrainingAssignmentNew = () => {
   
   const createAssignment = useCreateTrainingAssignment();
   const generateTasks = useGenerateTrainingTasks();
+  const generateSessions = useGenerateTrainingSessions();
   
   const [formData, setFormData] = useState({
     trainee_employee_id: "",
@@ -62,9 +63,13 @@ const TrainingAssignmentNew = () => {
         status: 'active',
       });
       
-      // Generate training tasks for the assignment
+      // Generate training tasks and sessions for the assignment
       if (result?.id) {
-        await generateTasks.mutateAsync(result.id);
+        // Run both in parallel for efficiency
+        await Promise.all([
+          generateTasks.mutateAsync(result.id),
+          generateSessions.mutateAsync(result.id),
+        ]);
       }
       
       navigate('/workforce/training');
@@ -236,9 +241,9 @@ const TrainingAssignmentNew = () => {
               </Button>
               <Button 
                 type="submit" 
-                disabled={createAssignment.isPending || generateTasks.isPending}
+                disabled={createAssignment.isPending || generateTasks.isPending || generateSessions.isPending}
               >
-                {createAssignment.isPending || generateTasks.isPending 
+                {createAssignment.isPending || generateTasks.isPending || generateSessions.isPending
                   ? t('common.saving', 'Saving...') 
                   : t('training.createAssignment', 'Create Assignment')}
               </Button>
