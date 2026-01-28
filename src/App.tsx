@@ -90,6 +90,10 @@ import TimeOffApprovals from "./pages/workforce/TimeOffApprovals";
 import Payroll from "./pages/workforce/Payroll";
 import EmployeePerformance from "./pages/workforce/EmployeePerformance";
 import SalesManagement from "./pages/workforce/SalesManagement";
+import Training from "./pages/workforce/Training";
+import TrainingModuleDetail from "./pages/workforce/TrainingModuleDetail";
+import TrainingAssignmentNew from "./pages/workforce/TrainingAssignmentNew";
+import TrainingAssignmentDetail from "./pages/workforce/TrainingAssignmentDetail";
 import StaffLogin from "./pages/StaffLogin";
 import StaffHome from "./pages/staff/StaffHome";
 import StaffSchedule from "./pages/staff/StaffSchedule";
@@ -287,6 +291,10 @@ const App = () => (
                       <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
                       <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
                       <Route path="/workforce/warnings" element={<ManagerRoute requiredPermission="manage_employees"><Warnings /></ManagerRoute>} />
+                      <Route path="/workforce/training" element={<ManagerRoute requiredPermission="manage_employees"><Training /></ManagerRoute>} />
+                      <Route path="/workforce/training/modules/:id" element={<ManagerRoute requiredPermission="manage_employees"><TrainingModuleDetail /></ManagerRoute>} />
+                      <Route path="/workforce/training/assignments/new" element={<ManagerRoute requiredPermission="manage_employees"><TrainingAssignmentNew /></ManagerRoute>} />
+                      <Route path="/workforce/training/assignments/:id" element={<ManagerRoute requiredPermission="manage_employees"><TrainingAssignmentDetail /></ManagerRoute>} />
                       
                       {/* CMMS Routes */}
                       <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
