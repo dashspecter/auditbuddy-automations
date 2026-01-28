@@ -778,13 +778,11 @@ export const useGenerateTrainingTasks = () => {
 
       if (assignmentError) throw assignmentError;
 
-      // Fetch module days with tasks
+      // Two-phase fetch: First fetch days, then fetch tasks separately
+      // (PostgREST nested join fails without FK constraint)
       const { data: days, error: daysError } = await supabase
         .from("training_module_days")
-        .select(`
-          *,
-          tasks:training_module_day_tasks(*)
-        `)
+        .select("*")
         .eq("module_id", assignment.module_id)
         .order("day_number");
 
@@ -793,11 +791,43 @@ export const useGenerateTrainingTasks = () => {
       console.log("[Training] Module days fetched:", days);
       console.log("[Training] Assignment module_id:", assignment.module_id);
 
+      // Fetch all tasks for these days
+      const dayIds = (days || []).map(d => d.id);
+      let allTasks: any[] = [];
+      
+      if (dayIds.length > 0) {
+        const { data: tasks, error: tasksError } = await supabase
+          .from("training_module_day_tasks")
+          .select("*")
+          .in("module_day_id", dayIds)
+          .order("sort_order");
+        
+        if (tasksError) {
+          console.error("[Training] Failed to fetch day tasks:", tasksError);
+        } else {
+          allTasks = tasks || [];
+          console.log("[Training] Found", allTasks.length, "template tasks across", dayIds.length, "days");
+        }
+      }
+
+      // Group tasks by day
+      const tasksByDayId = allTasks.reduce((acc: Record<string, any[]>, task: any) => {
+        if (!acc[task.module_day_id]) acc[task.module_day_id] = [];
+        acc[task.module_day_id].push(task);
+        return acc;
+      }, {});
+
+      // Attach tasks to days
+      const daysWithTasks = (days || []).map(day => ({
+        ...day,
+        tasks: tasksByDayId[day.id] || []
+      }));
+
       const startDate = new Date(assignment.start_date);
       const generatedTasks: any[] = [];
 
       // Generate tasks for each day
-      for (const day of days as any[]) {
+      for (const day of daysWithTasks) {
         console.log("[Training] Processing day:", day.day_number, "with tasks:", day.tasks?.length || 0);
         const scheduledDate = new Date(startDate);
         scheduledDate.setDate(scheduledDate.getDate() + day.day_number - 1);
