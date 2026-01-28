@@ -387,6 +387,7 @@ export const useDeleteDayTask = () => {
 
 // Hooks for training module evaluations (audit templates linked to modules)
 // NOTE: training_module_evaluations does NOT have day_number column - must join module_day for ordering
+// Using explicit FK name for robust join resolution
 export const useTrainingModuleEvaluations = (moduleId: string | undefined) => {
   return useQuery({
     queryKey: ["training_module_evaluations", moduleId],
@@ -397,8 +398,8 @@ export const useTrainingModuleEvaluations = (moduleId: string | undefined) => {
         .from("training_module_evaluations")
         .select(`
           *,
-          audit_template:audit_templates(id, name, description),
-          module_day:training_module_days(id, day_number, title)
+          audit_template:audit_templates!training_module_evaluations_audit_template_id_fkey(id, name, description),
+          module_day:training_module_days!training_module_evaluations_module_day_id_fkey(id, day_number, title)
         `)
         .eq("module_id", moduleId);
 
