@@ -274,51 +274,63 @@ export const useCreateTrainingSession = () => {
 
       if (shiftError) {
         console.error("Failed to create training shift:", shiftError);
-      } else {
-        // CRITICAL: Create shift_assignments for trainer and trainees so they appear on schedules
-        const assignmentsToInsert: Array<{
-          shift_id: string;
-          staff_id: string;
-          status: string;
-          assigned_by: string;
-          approval_status: string;
-          approved_at: string;
-        }> = [];
+        throw new Error(`Failed to create training shift: ${shiftError.message}`);
+      }
+      
+      // CRITICAL: Create shift_assignments for trainer and trainees so they appear on schedules
+      // Uses upsert with unique constraint on (shift_id, staff_id) for idempotency
+      const assignmentsToInsert: Array<{
+        shift_id: string;
+        staff_id: string;
+        status: string;
+        assigned_by: string;
+        approval_status: string;
+      }> = [];
 
-        // Add trainer assignment
-        if (session.trainer_employee_id) {
+      // Add trainer assignment
+      if (session.trainer_employee_id) {
+        assignmentsToInsert.push({
+          shift_id: shiftData.id,
+          staff_id: session.trainer_employee_id,
+          status: 'assigned',
+          assigned_by: user.id,
+          approval_status: 'approved',
+        });
+      }
+
+      // Add trainee assignments
+      if (session.traineeIds?.length) {
+        session.traineeIds.forEach(traineeId => {
           assignmentsToInsert.push({
             shift_id: shiftData.id,
-            staff_id: session.trainer_employee_id,
+            staff_id: traineeId,
             status: 'assigned',
             assigned_by: user.id,
             approval_status: 'approved',
-            approved_at: new Date().toISOString(),
           });
-        }
+        });
+      }
 
-        // Add trainee assignments
-        if (session.traineeIds?.length) {
-          session.traineeIds.forEach(traineeId => {
-            assignmentsToInsert.push({
-              shift_id: shiftData.id,
-              staff_id: traineeId,
-              status: 'assigned',
-              assigned_by: user.id,
-              approval_status: 'approved',
-              approved_at: new Date().toISOString(),
-            });
+      if (assignmentsToInsert.length > 0) {
+        // Use upsert with the unique index on (shift_id, staff_id)
+        const { error: assignError } = await supabase
+          .from("shift_assignments")
+          .upsert(assignmentsToInsert, { 
+            onConflict: 'shift_id,staff_id', 
+            ignoreDuplicates: true 
           });
-        }
-
-        if (assignmentsToInsert.length > 0) {
-          const { error: assignError } = await supabase
-            .from("shift_assignments")
-            .upsert(assignmentsToInsert, { onConflict: 'shift_id,staff_id', ignoreDuplicates: true });
-          
-          if (assignError) {
-            console.error("Failed to create shift assignments:", assignError);
-          }
+        
+        if (assignError) {
+          console.error("Failed to create shift assignments:", assignError);
+          // Don't throw - the shift was created successfully, just log the assignment error
+          // This ensures partial success is still useful
+        } else if (import.meta.env.DEV) {
+          console.log("[useCreateTrainingSession] Created shift assignments:", {
+            shiftId: shiftData.id,
+            assignmentsCount: assignmentsToInsert.length,
+            trainerId: session.trainer_employee_id,
+            traineeIds: session.traineeIds,
+          });
         }
       }
 
@@ -417,6 +429,19 @@ export const useStartAuditEvaluation = () => {
     }) => {
       if (!company?.id || !user) throw new Error("Not authenticated");
 
+      // Get location name for the audit (location column is required NOT NULL text)
+      let locationName = 'Training Evaluation';
+      if (params.locationId) {
+        const { data: loc } = await supabase
+          .from("locations")
+          .select("name")
+          .eq("id", params.locationId)
+          .single();
+        if (loc?.name) {
+          locationName = loc.name;
+        }
+      }
+
       // Create the audit instance (location_audit)
       const { data: auditInstance, error: auditError } = await supabase
         .from("location_audits")
@@ -427,7 +452,7 @@ export const useStartAuditEvaluation = () => {
           location_id: params.locationId || null,
           audit_date: new Date().toISOString().split('T')[0],
           status: 'in_progress',
-          location: params.locationId ? null : 'Training Evaluation',
+          location: locationName, // Required NOT NULL text column
         })
         .select()
         .single();

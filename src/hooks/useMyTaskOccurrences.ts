@@ -4,6 +4,11 @@
  * 
  * This ensures mobile parity with desktop Today/Tomorrow tabs.
  * Uses the unified pipeline for shift-aware task visibility.
+ * 
+ * TRAINING TASK VISIBILITY:
+ * Training-generated tasks are ONLY visible on dates where the employee
+ * has an APPROVED training shift assignment. This is enforced by filtering
+ * out training tasks that don't match the employee's training schedule.
  */
 
 import { useMemo, useState, useEffect } from "react";
@@ -20,7 +25,7 @@ import {
   getCanonicalToday,
   getCanonicalTomorrow,
 } from "@/lib/taskOccurrenceEngine";
-import { startOfDay, endOfDay, addDays } from "date-fns";
+import { startOfDay, endOfDay, addDays, format } from "date-fns";
 
 export interface MyTaskOccurrences {
   /** All tasks for today (pending, overdue, completed) */
@@ -61,6 +66,16 @@ export interface MyTaskOccurrences {
   };
 }
 
+// Types for training task visibility
+interface TrainingTaskInfo {
+  task_id: string;
+  scheduled_date: string;
+}
+
+interface TrainingShiftDate {
+  shift_date: string;
+}
+
 /**
  * Get the current user's tasks with occurrence expansion applied.
  * This mirrors the desktop Today/Tomorrow logic for mobile parity.
@@ -69,38 +84,159 @@ export interface MyTaskOccurrences {
 export function useMyTaskOccurrences(): MyTaskOccurrences {
   const { data: rawTasks = [], isLoading, error } = useMyTasks();
   const { user } = useAuth();
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [employeeCompanyId, setEmployeeCompanyId] = useState<string | null>(null);
+  
+  // Training task visibility state
+  const [trainingTasksInfo, setTrainingTasksInfo] = useState<TrainingTaskInfo[]>([]);
+  const [trainingShiftDates, setTrainingShiftDates] = useState<Set<string>>(new Set());
+  const [trainingDataLoaded, setTrainingDataLoaded] = useState(false);
 
-  // Fetch employee's company_id directly from employees table (not CompanyContext)
-  // This is critical because staff users are NOT in company_users table
+  // Fetch employee's company_id and id directly from employees table
   useEffect(() => {
-    const fetchEmployeeCompanyId = async () => {
+    const fetchEmployeeData = async () => {
       if (!user?.id) return;
       
       const { data: emp } = await supabase
         .from("employees")
-        .select("company_id")
+        .select("id, company_id")
         .eq("user_id", user.id)
         .single();
       
-      if (emp?.company_id) {
+      if (emp) {
+        setEmployeeId(emp.id);
         setEmployeeCompanyId(emp.company_id);
         if (import.meta.env.DEV) {
-          console.log("[useMyTaskOccurrences] Employee company_id:", emp.company_id);
+          console.log("[useMyTaskOccurrences] Employee data:", { id: emp.id, company_id: emp.company_id });
         }
       }
     };
     
-    fetchEmployeeCompanyId();
+    fetchEmployeeData();
   }, [user?.id]);
+
+  // Fetch training task visibility data (training task IDs + training shift dates)
+  useEffect(() => {
+    const fetchTrainingVisibility = async () => {
+      if (!employeeId) return;
+      
+      try {
+        // 1. Get all training assignments for this employee (planned/active)
+        const { data: assignments, error: assignmentsError } = await supabase
+          .from("training_assignments")
+          .select("id")
+          .eq("trainee_employee_id", employeeId)
+          .in("status", ["planned", "active"]);
+        
+        if (assignmentsError) {
+          console.error("[useMyTaskOccurrences] Error fetching training assignments:", assignmentsError);
+          setTrainingDataLoaded(true);
+          return;
+        }
+        
+        const assignmentIds = assignments?.map(a => a.id) || [];
+        
+        // 2. Get all training-generated task IDs + their scheduled dates
+        let taskInfos: TrainingTaskInfo[] = [];
+        if (assignmentIds.length > 0) {
+          const { data: generatedTasks, error: tasksError } = await supabase
+            .from("training_generated_tasks")
+            .select("task_id, scheduled_date")
+            .in("assignment_id", assignmentIds);
+          
+          if (tasksError) {
+            console.error("[useMyTaskOccurrences] Error fetching training_generated_tasks:", tasksError);
+          } else {
+            taskInfos = (generatedTasks || []).filter(t => t.task_id && t.scheduled_date) as TrainingTaskInfo[];
+          }
+        }
+        
+        // 3. Get all training shift dates where this employee has an approved assignment
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const { data: shiftAssignments, error: shiftsError } = await supabase
+          .from("shift_assignments")
+          .select(`
+            shifts!inner(shift_date, shift_type)
+          `)
+          .eq("staff_id", employeeId)
+          .eq("approval_status", "approved")
+          .gte("shifts.shift_date", today);
+        
+        if (shiftsError) {
+          console.error("[useMyTaskOccurrences] Error fetching training shift assignments:", shiftsError);
+        }
+        
+        // Filter to only training shifts and extract dates
+        const trainingDates = new Set<string>();
+        (shiftAssignments || []).forEach((sa: any) => {
+          if (sa.shifts?.shift_type === 'training' && sa.shifts?.shift_date) {
+            trainingDates.add(sa.shifts.shift_date);
+          }
+        });
+        
+        setTrainingTasksInfo(taskInfos);
+        setTrainingShiftDates(trainingDates);
+        setTrainingDataLoaded(true);
+        
+        if (import.meta.env.DEV) {
+          console.log("[useMyTaskOccurrences] Training visibility data:", {
+            assignmentsCount: assignmentIds.length,
+            trainingTasksCount: taskInfos.length,
+            trainingDatesCount: trainingDates.size,
+            trainingDates: Array.from(trainingDates),
+          });
+        }
+      } catch (err) {
+        console.error("[useMyTaskOccurrences] Error in training visibility fetch:", err);
+        setTrainingDataLoaded(true);
+      }
+    };
+    
+    fetchTrainingVisibility();
+  }, [employeeId]);
 
   // Fetch shifts for today + tomorrow using employee's company_id
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(new Date()),
     endDate: endOfDay(addDays(new Date(), 1)),
-    enabled: !!employeeCompanyId, // Only fetch when we have employee's company
-    companyId: employeeCompanyId || undefined, // Pass company_id explicitly
+    enabled: !!employeeCompanyId,
+    companyId: employeeCompanyId || undefined,
   });
+  
+  // Build a map for quick training task lookup: taskId -> scheduled_date
+  const trainingTaskMap = useMemo(() => {
+    const map = new Map<string, string>();
+    trainingTasksInfo.forEach(t => {
+      if (t.task_id) {
+        map.set(t.task_id, t.scheduled_date);
+      }
+    });
+    return map;
+  }, [trainingTasksInfo]);
+  
+  /**
+   * Filter function to enforce training task visibility:
+   * - Non-training tasks: always visible
+   * - Training tasks: only visible if their scheduled_date is in trainingShiftDates
+   */
+  const filterTrainingTaskVisibility = useMemo(() => {
+    return (task: TaskWithCoverage): boolean => {
+      const scheduledDate = trainingTaskMap.get(task.id);
+      
+      // Not a training task - always visible
+      if (!scheduledDate) {
+        return true;
+      }
+      
+      // Training task - only visible if scheduled on a training day
+      // If scheduled_date is missing or trainingShiftDates is empty, hide the task
+      if (!scheduledDate || trainingShiftDates.size === 0) {
+        return false;
+      }
+      
+      return trainingShiftDates.has(scheduledDate);
+    };
+  }, [trainingTaskMap, trainingShiftDates]);
 
   const result = useMemo(() => {
     const today = getCanonicalToday();
@@ -130,7 +266,6 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     }
 
     // Apply unified pipeline for Today (execution mode = only covered tasks)
-    // dayBasedCoverage=true ensures tasks remain visible after shift ends until end-of-day
     const todayResult = runPipelineForDate(rawTasks, today, {
       viewMode: "execution",
       includeCompleted: true,
@@ -145,8 +280,25 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       shifts,
     });
 
-    // Group today's tasks using shift-aware grouping
-    const todayGrouped = groupTasksByStatusShiftAware(todayResult.tasks);
+    // TRAINING TASK VISIBILITY FILTER:
+    // Apply the filter to hide training tasks on non-training days
+    const filteredTodayTasks = todayResult.tasks.filter(filterTrainingTaskVisibility);
+    const filteredTomorrowTasks = tomorrowResult.tasks.filter(filterTrainingTaskVisibility);
+    
+    // Log training filter results
+    if (import.meta.env.DEV && trainingTaskMap.size > 0) {
+      const todayFiltered = todayResult.tasks.length - filteredTodayTasks.length;
+      const tomorrowFiltered = tomorrowResult.tasks.length - filteredTomorrowTasks.length;
+      console.log("[useMyTaskOccurrences] Training task filter applied:", {
+        trainingTasksTotal: trainingTaskMap.size,
+        trainingDatesCount: trainingShiftDates.size,
+        todayFiltered,
+        tomorrowFiltered,
+      });
+    }
+
+    // Group today's tasks using shift-aware grouping (with training filter applied)
+    const todayGrouped = groupTasksByStatusShiftAware(filteredTodayTasks);
 
     // Active = pending tasks that have started (start_at <= now)
     const activeTasks = todayGrouped.pending.filter((task) => {
@@ -191,12 +343,12 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
           generated: todayResult.debug.generated,
           covered: todayResult.debug.covered,
           noCoverage: todayResult.debug.noCoverage,
-          visible: todayResult.debug.visible,
+          visible: filteredTodayTasks.length,
         },
         tomorrow: {
           generated: tomorrowResult.debug.generated,
           covered: tomorrowResult.debug.covered,
-          visible: tomorrowResult.debug.visible,
+          visible: filteredTomorrowTasks.length,
         },
         coverageReasons,
         activeTasksCount: activeTasks.length,
@@ -205,8 +357,8 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
     }
 
     return {
-      todayTasks: todayResult.tasks,
-      tomorrowTasks: tomorrowResult.tasks,
+      todayTasks: filteredTodayTasks,
+      tomorrowTasks: filteredTomorrowTasks,
       todayGrouped,
       activeTasks,
       upcomingTasks,
@@ -215,22 +367,22 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
           generated: todayResult.debug.generated,
           covered: todayResult.debug.covered,
           noCoverage: todayResult.debug.noCoverage,
-          visible: todayResult.debug.visible,
+          visible: filteredTodayTasks.length,
         },
         tomorrow: {
           generated: tomorrowResult.debug.generated,
           covered: tomorrowResult.debug.covered,
           noCoverage: tomorrowResult.debug.noCoverage,
-          visible: tomorrowResult.debug.visible,
+          visible: filteredTomorrowTasks.length,
         },
         coverageReasons,
       },
     };
-  }, [rawTasks, shifts]);
+  }, [rawTasks, shifts, filterTrainingTaskVisibility, trainingTaskMap, trainingShiftDates]);
 
   return {
     ...result,
-    isLoading: isLoading || shiftsLoading,
+    isLoading: isLoading || shiftsLoading || !trainingDataLoaded,
     error: error as Error | null,
     rawTasks,
     shifts, // Expose shifts for debug panel
