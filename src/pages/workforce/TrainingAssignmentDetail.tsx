@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, GraduationCap, Calendar, MapPin, User, 
   CheckCircle2, Circle, Clock, Play, Pause, CheckCheck,
-  XCircle, ClipboardList, Plus
+  XCircle, ClipboardList, Plus, ExternalLink, FileCheck
 } from "lucide-react";
 import {
   Select,
@@ -28,8 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useTrainingAssignment, useUpdateTrainingAssignment, useTrainingEvaluations, useCreateTrainingEvaluation } from "@/hooks/useTrainingAssignments";
-import { useTrainingModuleDays } from "@/hooks/useTrainingModules";
+import { useTrainingAssignment, useUpdateTrainingAssignment, useTrainingEvaluations, useCreateTrainingEvaluation, useStartAuditEvaluation } from "@/hooks/useTrainingAssignments";
+import { useTrainingModuleDays, useTrainingModuleEvaluations } from "@/hooks/useTrainingModules";
 import { format, addDays, differenceInDays, isAfter, isBefore, parseISO } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -44,9 +44,11 @@ const TrainingAssignmentDetail = () => {
   const { data: assignment, isLoading } = useTrainingAssignment(id);
   const { data: days = [] } = useTrainingModuleDays(assignment?.module_id);
   const { data: evaluations = [] } = useTrainingEvaluations(id);
+  const { data: requiredEvaluations = [] } = useTrainingModuleEvaluations(assignment?.module_id);
   
   const updateAssignment = useUpdateTrainingAssignment();
   const createEvaluation = useCreateTrainingEvaluation();
+  const startAuditEvaluation = useStartAuditEvaluation();
   
   const [evalDialogOpen, setEvalDialogOpen] = useState(false);
   const [evalForm, setEvalForm] = useState({
@@ -74,6 +76,22 @@ const TrainingAssignmentDetail = () => {
     enabled: !!id,
   });
 
+  // Fetch current user's employee record
+  const { data: currentEmployee } = useQuery({
+    queryKey: ["current-employee", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("user_id", user.id)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const handleStatusChange = async (newStatus: string) => {
     if (!id) return;
     await updateAssignment.mutateAsync({ id, status: newStatus as any });
@@ -81,16 +99,7 @@ const TrainingAssignmentDetail = () => {
 
   const handleSubmitEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignment || !user) return;
-    
-    // Get trainer employee ID
-    const { data: trainerEmp } = await supabase
-      .from("employees")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-    
-    if (!trainerEmp) {
+    if (!assignment || !currentEmployee) {
       alert("You must be an employee to submit evaluations");
       return;
     }
@@ -98,7 +107,7 @@ const TrainingAssignmentDetail = () => {
     await createEvaluation.mutateAsync({
       assignment_id: id!,
       trainee_employee_id: assignment.trainee_employee_id,
-      trainer_employee_id: trainerEmp.id,
+      trainer_employee_id: currentEmployee.id,
       module_day_id: evalForm.module_day_id || null,
       evaluation_date: format(new Date(), 'yyyy-MM-dd'),
       score: evalForm.score,
@@ -108,6 +117,27 @@ const TrainingAssignmentDetail = () => {
     
     setEvalDialogOpen(false);
     setEvalForm({ module_day_id: "", score: 0, passed: false, notes: "" });
+  };
+
+  const handleStartAuditEvaluation = async (requiredEval: any) => {
+    if (!assignment || !currentEmployee) {
+      alert("You must be an employee to start evaluations");
+      return;
+    }
+
+    const result = await startAuditEvaluation.mutateAsync({
+      assignmentId: id!,
+      traineeEmployeeId: assignment.trainee_employee_id,
+      trainerEmployeeId: currentEmployee.id,
+      moduleDayId: requiredEval.module_day_id || undefined,
+      auditTemplateId: requiredEval.audit_template_id,
+      locationId: assignment.location_id || undefined,
+    });
+
+    // Navigate to the audit
+    if (result.auditInstance?.id) {
+      navigate(`/audits/${result.auditInstance.id}`);
+    }
   };
 
   if (isLoading) {
@@ -138,6 +168,23 @@ const TrainingAssignmentDetail = () => {
   const completedTasks = generatedTasks.filter(gt => gt.task?.status === 'completed').length;
   const totalTasks = generatedTasks.length;
   const taskProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Check which required evaluations have been completed
+  const getEvaluationStatus = (requiredEval: any) => {
+    const existingEval = evaluations.find(e => 
+      e.audit_instance_id && 
+      (e.module_day_id === requiredEval.module_day_id || 
+       (!e.module_day_id && !requiredEval.module_day_id))
+    );
+    
+    if (!existingEval) return 'not_started';
+    if (existingEval.audit_instance?.status === 'completed' || 
+        existingEval.audit_instance?.status === 'compliant' ||
+        existingEval.audit_instance?.status === 'non_compliant') {
+      return 'completed';
+    }
+    return 'in_progress';
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -307,14 +354,14 @@ const TrainingAssignmentDetail = () => {
             </CardTitle>
             <Dialog open={evalDialogOpen} onOpenChange={setEvalDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" variant="outline">
                   <Plus className="mr-1 h-4 w-4" />
-                  {t('training.addEvaluation', 'Add')}
+                  {t('training.manualScore', 'Manual Score')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{t('training.newEvaluation', 'New Evaluation')}</DialogTitle>
+                  <DialogTitle>{t('training.newEvaluation', 'New Manual Evaluation')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmitEvaluation} className="space-y-4">
                   <div>
@@ -377,33 +424,134 @@ const TrainingAssignmentDetail = () => {
             </Dialog>
           </CardHeader>
           <CardContent>
-            {evaluations.length === 0 ? (
+            {/* Required Audit-Based Evaluations */}
+            {requiredEvaluations.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileCheck className="h-4 w-4" />
+                  {t('training.requiredEvaluations', 'Required Evaluations')}
+                </h4>
+                <div className="space-y-2">
+                  {requiredEvaluations.map((reqEval) => {
+                    const status = getEvaluationStatus(reqEval);
+                    const existingEval = evaluations.find(e => 
+                      e.audit_instance_id && 
+                      (e.module_day_id === reqEval.module_day_id || (!e.module_day_id && !reqEval.module_day_id))
+                    );
+                    
+                    return (
+                      <div key={reqEval.id} className="p-3 rounded-lg border flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-1.5 rounded-full ${
+                            status === 'completed' ? 'bg-green-100' : 
+                            status === 'in_progress' ? 'bg-yellow-100' : 'bg-gray-100'
+                          }`}>
+                            {status === 'completed' ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ) : status === 'in_progress' ? (
+                              <Clock className="h-4 w-4 text-yellow-600" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-gray-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {reqEval.audit_template?.name || 'Evaluation'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {reqEval.day_number ? `Day ${reqEval.day_number}` : 'General'} 
+                              {reqEval.is_required && ' • Required'}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          {status === 'completed' && existingEval?.audit_instance && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => navigate(`/audits/${existingEval.audit_instance_id}`)}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              {t('common.view', 'View')}
+                            </Button>
+                          )}
+                          {status === 'in_progress' && existingEval?.audit_instance_id && (
+                            <Button 
+                              size="sm"
+                              onClick={() => navigate(`/audits/${existingEval.audit_instance_id}`)}
+                            >
+                              {t('common.continue', 'Continue')}
+                            </Button>
+                          )}
+                          {status === 'not_started' && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleStartAuditEvaluation(reqEval)}
+                              disabled={startAuditEvaluation.isPending}
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              {t('training.startEvaluation', 'Start')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Existing Evaluations (including manual scores) */}
+            {evaluations.length === 0 && requiredEvaluations.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-50" />
                 <p>{t('training.noEvaluations', 'No evaluations yet')}</p>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {evaluations.map((evaluation) => (
-                  <div key={evaluation.id} className="p-3 rounded-lg border">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={evaluation.passed ? 'default' : 'destructive'}>
-                            {evaluation.passed ? t('training.passed', 'Passed') : t('training.failed', 'Failed')}
-                          </Badge>
-                          <span className="font-medium">{evaluation.score}/100</span>
+            ) : evaluations.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">{t('training.completedEvaluations', 'Completed Evaluations')}</h4>
+                <div className="space-y-3">
+                  {evaluations.map((evaluation) => (
+                    <div key={evaluation.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {evaluation.audit_instance ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {evaluation.audit_instance.template?.name || 'Audit'}
+                              </Badge>
+                            ) : (
+                              <Badge variant={evaluation.passed ? 'default' : 'destructive'}>
+                                {evaluation.passed ? t('training.passed', 'Passed') : t('training.failed', 'Failed')}
+                              </Badge>
+                            )}
+                            {evaluation.score !== null && (
+                              <span className="font-medium">{evaluation.score}/100</span>
+                            )}
+                            {evaluation.audit_instance?.overall_score !== undefined && evaluation.audit_instance.overall_score !== null && (
+                              <span className="font-medium">{evaluation.audit_instance.overall_score}%</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {t('training.by', 'By')} {evaluation.trainer?.full_name} • {format(parseISO(evaluation.evaluation_date), 'MMM d, yyyy')}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {t('training.by', 'By')} {evaluation.trainer?.full_name} • {format(parseISO(evaluation.evaluation_date), 'MMM d, yyyy')}
-                        </p>
+                        {evaluation.audit_instance_id && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => navigate(`/audits/${evaluation.audit_instance_id}`)}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
+                      {evaluation.notes && (
+                        <p className="text-sm mt-2 text-muted-foreground">{evaluation.notes}</p>
+                      )}
                     </div>
-                    {evaluation.notes && (
-                      <p className="text-sm mt-2 text-muted-foreground">{evaluation.notes}</p>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>

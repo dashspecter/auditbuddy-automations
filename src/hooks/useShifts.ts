@@ -21,6 +21,11 @@ export interface Shift {
   close_duty?: boolean;
   break_duration_minutes?: number;
   breaks?: Array<{ start: string; end: string }>;
+  shift_type?: 'regular' | 'training' | null;
+  training_session_id?: string | null;
+  training_module_id?: string | null;
+  trainer_employee_id?: string | null;
+  cohort_label?: string | null;
   locations?: {
     name: string;
   };
@@ -30,18 +35,45 @@ export interface Shift {
     shift_id: string;
     approval_status: string;
   }>;
+  training_session?: {
+    id: string;
+    title: string | null;
+    trainer?: { id: string; full_name: string } | null;
+    attendees?: Array<{
+      id: string;
+      employee_id: string;
+      attendee_role: string;
+      employee?: { id: string; full_name: string };
+    }>;
+  } | null;
+  training_module?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-export const useShifts = (locationId?: string, startDate?: string, endDate?: string) => {
+export const useShifts = (locationId?: string, startDate?: string, endDate?: string, shiftTypeFilter?: 'all' | 'regular' | 'training') => {
   return useQuery({
-    queryKey: ["shifts", locationId, startDate, endDate],
+    queryKey: ["shifts", locationId, startDate, endDate, shiftTypeFilter],
     queryFn: async () => {
       let query = supabase
         .from("shifts")
         .select(`
           *,
           locations(name),
-          shift_assignments(id, staff_id, shift_id, approval_status)
+          shift_assignments(id, staff_id, shift_id, approval_status),
+          training_session:training_sessions(
+            id,
+            title,
+            trainer:employees!training_sessions_trainer_employee_id_fkey(id, full_name),
+            attendees:training_session_attendees(
+              id,
+              employee_id,
+              attendee_role,
+              employee:employees(id, full_name)
+            )
+          ),
+          training_module:training_programs(id, name)
         `)
         .order("shift_date", { ascending: true })
         .order("start_time", { ascending: true });
@@ -56,13 +88,22 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         query = query.lte("shift_date", endDate);
       }
       
+      // Filter by shift type
+      if (shiftTypeFilter === 'regular') {
+        query = query.or('shift_type.eq.regular,shift_type.is.null');
+      } else if (shiftTypeFilter === 'training') {
+        query = query.eq('shift_type', 'training');
+      }
+      
       const { data, error } = await query;
       if (error) throw error;
       
       return (data as any[]).map((shift: any) => ({
         ...shift,
         breaks: (shift.breaks || []) as Array<{ start: string; end: string }>,
-        shift_assignments: shift.shift_assignments || []
+        shift_assignments: shift.shift_assignments || [],
+        training_session: shift.training_session || null,
+        training_module: shift.training_module || null,
       })) as Shift[];
     },
   });

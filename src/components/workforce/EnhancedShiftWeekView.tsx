@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2, GraduationCap } from "lucide-react";
 import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests, useDeleteTimeOffRequest } from "@/hooks/useTimeOffRequests";
@@ -18,6 +18,7 @@ import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
 import { AddTimeOffDialog } from "./AddTimeOffDialog";
 import { SchedulePresenceIndicator } from "./SchedulePresenceIndicator";
+import { TrainingShiftCard } from "./TrainingShiftCard";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
 import { useSchedulePresence } from "@/hooks/useSchedulePresence";
@@ -62,6 +63,7 @@ export const EnhancedShiftWeekView = () => {
   const [view, setView] = useState<"day" | "week">("week");
   const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
   const [timeOffToDelete, setTimeOffToDelete] = useState<{ id: string; employeeName: string } | null>(null);
+  const [shiftTypeFilter, setShiftTypeFilter] = useState<"all" | "regular" | "training">("all");
   
   const deleteTimeOff = useDeleteTimeOffRequest();
   
@@ -81,7 +83,8 @@ export const EnhancedShiftWeekView = () => {
   const { data: shifts = [], isLoading } = useShifts(
     selectedLocation === "all" ? undefined : selectedLocation,
     format(currentWeekStart, 'yyyy-MM-dd'),
-    format(weekEnd, 'yyyy-MM-dd')
+    format(weekEnd, 'yyyy-MM-dd'),
+    shiftTypeFilter
   );
   const { data: employees = [] } = useEmployees(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: timeOffRequests = [] } = useTimeOffRequests(
@@ -397,6 +400,23 @@ export const EnhancedShiftWeekView = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Shift Type Filter Chips */}
+          <ToggleGroup type="single" value={shiftTypeFilter} onValueChange={(v) => v && setShiftTypeFilter(v as "all" | "regular" | "training")}>
+            <ToggleGroupItem value="all" aria-label="All shifts" className="gap-1 text-xs px-2">
+              {t('common.all', 'All')}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="regular" aria-label="Regular shifts" className="gap-1 text-xs px-2">
+              <Clock className="h-3 w-3" />
+              {t('workforce.shifts.regular', 'Regular')}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="training" aria-label="Training shifts" className="gap-1 text-xs px-2">
+              <GraduationCap className="h-3 w-3" />
+              {t('training.title', 'Training')}
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div className="h-6 w-px bg-border" />
+          
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "employee" | "location")}>
             <ToggleGroupItem value="employee" aria-label={t('workforce.shifts.employeeView')} className="gap-1">
               <Users className="h-4 w-4" />
@@ -520,6 +540,12 @@ export const EnhancedShiftWeekView = () => {
             <Calendar className="h-2.5 w-2.5 text-muted-foreground" />
           </div>
           <span>{t('workforce.shifts.openShiftLegend')}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded bg-purple-100 dark:bg-purple-900/30 border-l-2 border-l-purple-500 flex items-center justify-center">
+            <GraduationCap className="h-2.5 w-2.5 text-purple-600" />
+          </div>
+          <span>{t('training.shift', 'Training')}</span>
         </div>
       </div>
 
@@ -796,6 +822,12 @@ export const EnhancedShiftWeekView = () => {
                           const isPending = assignment?.approval_status === 'pending';
                           const isUnpublished = !shift.is_published;
                           const attendance = getAttendanceForEmployeeAndDate(employee.id, day);
+                          const isTrainingShift = shift.shift_type === 'training';
+                          
+                          // Use TrainingShiftCard for training shifts
+                          if (isTrainingShift) {
+                            return <TrainingShiftCard key={shift.id} shift={shift} compact />;
+                          }
                           
                           return (
                             <div

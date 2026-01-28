@@ -250,7 +250,7 @@ export const useCreateTrainingSession = () => {
       }
 
       // Create corresponding training shift
-      const { error: shiftError } = await supabase
+      const { data: shiftData, error: shiftError } = await supabase
         .from("shifts")
         .insert({
           company_id: company.id,
@@ -268,10 +268,58 @@ export const useCreateTrainingSession = () => {
           status: 'published',
           is_published: true,
           required_count: (session.traineeIds?.length || 0) + 1,
-        });
+        })
+        .select()
+        .single();
 
       if (shiftError) {
         console.error("Failed to create training shift:", shiftError);
+      } else {
+        // CRITICAL: Create shift_assignments for trainer and trainees so they appear on schedules
+        const assignmentsToInsert: Array<{
+          shift_id: string;
+          staff_id: string;
+          status: string;
+          assigned_by: string;
+          approval_status: string;
+          approved_at: string;
+        }> = [];
+
+        // Add trainer assignment
+        if (session.trainer_employee_id) {
+          assignmentsToInsert.push({
+            shift_id: shiftData.id,
+            staff_id: session.trainer_employee_id,
+            status: 'assigned',
+            assigned_by: user.id,
+            approval_status: 'approved',
+            approved_at: new Date().toISOString(),
+          });
+        }
+
+        // Add trainee assignments
+        if (session.traineeIds?.length) {
+          session.traineeIds.forEach(traineeId => {
+            assignmentsToInsert.push({
+              shift_id: shiftData.id,
+              staff_id: traineeId,
+              status: 'assigned',
+              assigned_by: user.id,
+              approval_status: 'approved',
+              approved_at: new Date().toISOString(),
+            });
+          });
+        }
+
+        if (assignmentsToInsert.length > 0) {
+          const { error: assignError } = await supabase
+            .from("shift_assignments")
+            .upsert(assignmentsToInsert, { onConflict: 'shift_id,staff_id', ignoreDuplicates: true });
+          
+          if (assignError) {
+            console.error("Failed to create shift assignments:", assignError);
+          }
+        }
       }
 
       return sessionData;
@@ -279,6 +327,7 @@ export const useCreateTrainingSession = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["training_sessions"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       toast.success("Training session created");
     },
     onError: (error: Error) => {
@@ -299,7 +348,8 @@ export const useTrainingEvaluations = (assignmentId?: string) => {
         .select(`
           *,
           trainee:employees!training_evaluations_trainee_employee_id_fkey(id, full_name),
-          trainer:employees!training_evaluations_trainer_employee_id_fkey(id, full_name)
+          trainer:employees!training_evaluations_trainer_employee_id_fkey(id, full_name),
+          audit_instance:location_audits(id, status, overall_score, template:audit_templates(id, name))
         `)
         .eq("assignment_id", assignmentId)
         .order("evaluation_date", { ascending: false });
@@ -332,6 +382,7 @@ export const useCreateTrainingEvaluation = () => {
           score: evaluation.score,
           passed: evaluation.passed,
           notes: evaluation.notes,
+          audit_instance_id: evaluation.audit_instance_id,
         })
         .select()
         .single();
@@ -345,6 +396,69 @@ export const useCreateTrainingEvaluation = () => {
     },
     onError: (error: Error) => {
       toast.error(`Failed to save evaluation: ${error.message}`);
+    },
+  });
+};
+
+// Start an audit-based evaluation (create audit instance and link to training evaluation)
+export const useStartAuditEvaluation = () => {
+  const queryClient = useQueryClient();
+  const { company } = useCompanyContext();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: {
+      assignmentId: string;
+      traineeEmployeeId: string;
+      trainerEmployeeId: string;
+      moduleDayId?: string;
+      auditTemplateId: string;
+      locationId?: string;
+    }) => {
+      if (!company?.id || !user) throw new Error("Not authenticated");
+
+      // Create the audit instance (location_audit)
+      const { data: auditInstance, error: auditError } = await supabase
+        .from("location_audits")
+        .insert({
+          company_id: company.id,
+          user_id: user.id,
+          template_id: params.auditTemplateId,
+          location_id: params.locationId || null,
+          audit_date: new Date().toISOString().split('T')[0],
+          status: 'in_progress',
+          location: params.locationId ? null : 'Training Evaluation',
+        })
+        .select()
+        .single();
+
+      if (auditError) throw auditError;
+
+      // Create the training evaluation linking to the audit
+      const { data: evaluation, error: evalError } = await supabase
+        .from("training_evaluations")
+        .insert({
+          company_id: company.id,
+          assignment_id: params.assignmentId,
+          module_day_id: params.moduleDayId || null,
+          trainee_employee_id: params.traineeEmployeeId,
+          trainer_employee_id: params.trainerEmployeeId,
+          evaluation_date: new Date().toISOString().split('T')[0],
+          audit_instance_id: auditInstance.id,
+        })
+        .select()
+        .single();
+
+      if (evalError) throw evalError;
+
+      return { evaluation, auditInstance };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["training_evaluations"] });
+      toast.success("Evaluation started");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to start evaluation: ${error.message}`);
     },
   });
 };
