@@ -61,24 +61,15 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
     // Include normalized values in cache key for proper cache management
     queryKey: ["shifts", normalizedLocationId ?? 'all', startDate, endDate, normalizedType],
     queryFn: async () => {
+      // IMPORTANT: keep this base query extremely stable.
+      // Training-related joins have caused /rest/v1/shifts to 500 in the past (e.g. due to RLS/policy recursion).
+      // We therefore fetch training details in follow-up queries and merge client-side.
       let query = supabase
         .from("shifts")
         .select(`
           *,
           locations(name),
-          shift_assignments(id, staff_id, shift_id, approval_status),
-          training_session:training_sessions(
-            id,
-            title,
-            trainer:employees!training_sessions_trainer_employee_id_fkey(id, full_name),
-            attendees:training_session_attendees(
-              id,
-              employee_id,
-              attendee_role,
-              employee:employees(id, full_name)
-            )
-          ),
-          training_module:training_programs(id, name)
+          shift_assignments(id, staff_id, shift_id, approval_status)
         `);
       
       // Apply location filter ONLY if we have a real location ID
@@ -122,14 +113,160 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
         });
       }
       
-      if (error) throw error;
-      
-      return (data as any[]).map((shift: any) => ({
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error("[useShifts] Base shifts query failed:", {
+            message: error.message,
+            details: (error as any).details,
+            hint: (error as any).hint,
+            code: (error as any).code,
+          });
+        }
+        throw error;
+      }
+
+      const baseShifts = ((data as any[]) || []).map((shift: any) => ({
         ...shift,
         breaks: (shift.breaks || []) as Array<{ start: string; end: string }>,
         shift_assignments: shift.shift_assignments || [],
-        training_session: shift.training_session || null,
-        training_module: shift.training_module || null,
+      }));
+
+      // Follow-up: training session + module details (best-effort; MUST NOT break base shift loading)
+      const trainingSessionIds = Array.from(
+        new Set(
+          baseShifts
+            .map((s: any) => s.training_session_id)
+            .filter(Boolean)
+        )
+      ) as string[];
+
+      const trainingModuleIds = Array.from(
+        new Set(
+          baseShifts
+            .map((s: any) => s.training_module_id)
+            .filter(Boolean)
+        )
+      ) as string[];
+
+      const sessionsById = new Map<string, NonNullable<Shift["training_session"]>>();
+      const modulesById = new Map<string, NonNullable<Shift["training_module"]>>();
+
+      // Sessions (no joins)
+      if (trainingSessionIds.length > 0) {
+        const { data: sessions, error: sessionsErr } = await supabase
+          .from("training_sessions")
+          .select("id, title, trainer_employee_id")
+          .in("id", trainingSessionIds);
+
+        if (sessionsErr) {
+          if (import.meta.env.DEV) {
+            console.error("[useShifts] training_sessions fetch failed:", sessionsErr);
+          }
+        } else {
+          (sessions || []).forEach((s: any) => {
+            sessionsById.set(s.id, {
+              id: s.id,
+              title: s.title ?? null,
+              trainer: null,
+              attendees: [],
+            });
+          });
+
+          // Trainers (employees)
+          const trainerIds = Array.from(
+            new Set((sessions || []).map((s: any) => s.trainer_employee_id).filter(Boolean))
+          ) as string[];
+
+          if (trainerIds.length > 0) {
+            const { data: trainers, error: trainersErr } = await supabase
+              .from("employees")
+              .select("id, full_name")
+              .in("id", trainerIds);
+
+            if (trainersErr) {
+              if (import.meta.env.DEV) {
+                console.error("[useShifts] trainer employees fetch failed:", trainersErr);
+              }
+            } else {
+              const trainerMap = new Map<string, any>((trainers || []).map((t: any) => [t.id, t]));
+              (sessions || []).forEach((s: any) => {
+                if (!s?.id) return;
+                const sess = sessionsById.get(s.id);
+                if (!sess) return;
+                sess.trainer = s.trainer_employee_id ? (trainerMap.get(s.trainer_employee_id) || null) : null;
+              });
+            }
+          }
+
+          // Attendees (best-effort; do NOT join employees here to avoid join/policy issues)
+          const { data: attendees, error: attendeesErr } = await supabase
+            .from("training_session_attendees")
+            .select("id, session_id, employee_id, attendee_role")
+            .in("session_id", trainingSessionIds);
+
+          if (attendeesErr) {
+            if (import.meta.env.DEV) {
+              console.error("[useShifts] training_session_attendees fetch failed:", attendeesErr);
+            }
+          } else {
+            const employeeIds = Array.from(
+              new Set((attendees || []).map((a: any) => a.employee_id).filter(Boolean))
+            ) as string[];
+
+            let employeeMap = new Map<string, any>();
+            if (employeeIds.length > 0) {
+              const { data: attendeeEmployees, error: attendeeEmployeesErr } = await supabase
+                .from("employees")
+                .select("id, full_name")
+                .in("id", employeeIds);
+
+              if (attendeeEmployeesErr) {
+                if (import.meta.env.DEV) {
+                  console.error("[useShifts] attendee employees fetch failed:", attendeeEmployeesErr);
+                }
+              } else {
+                employeeMap = new Map<string, any>((attendeeEmployees || []).map((e: any) => [e.id, e]));
+              }
+            }
+
+            (attendees || []).forEach((a: any) => {
+              const sess = sessionsById.get(a.session_id);
+              if (!sess) return;
+
+              sess.attendees = sess.attendees || [];
+              sess.attendees.push({
+                id: a.id,
+                employee_id: a.employee_id,
+                attendee_role: a.attendee_role,
+                employee: a.employee_id ? employeeMap.get(a.employee_id) : undefined,
+              });
+            });
+          }
+        }
+      }
+
+      // Modules (best-effort)
+      if (trainingModuleIds.length > 0) {
+        const { data: modules, error: modulesErr } = await supabase
+          .from("training_programs")
+          .select("id, name")
+          .in("id", trainingModuleIds);
+
+        if (modulesErr) {
+          if (import.meta.env.DEV) {
+            console.error("[useShifts] training_programs fetch failed:", modulesErr);
+          }
+        } else {
+          (modules || []).forEach((m: any) => {
+            modulesById.set(m.id, { id: m.id, name: m.name });
+          });
+        }
+      }
+
+      return baseShifts.map((shift: any) => ({
+        ...shift,
+        training_session: shift.training_session_id ? (sessionsById.get(shift.training_session_id) || null) : null,
+        training_module: shift.training_module_id ? (modulesById.get(shift.training_module_id) || null) : null,
       })) as Shift[];
     },
   });
