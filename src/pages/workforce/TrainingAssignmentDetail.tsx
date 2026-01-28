@@ -459,7 +459,7 @@ const TrainingAssignmentDetail = () => {
                               {reqEval.audit_template?.name || 'Evaluation'}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {reqEval.day_number ? `Day ${reqEval.day_number}` : 'General'} 
+                              {reqEval.module_day?.day_number ? `Day ${reqEval.module_day.day_number}` : 'General'}
                               {reqEval.is_required && ' • Required'}
                             </p>
                           </div>

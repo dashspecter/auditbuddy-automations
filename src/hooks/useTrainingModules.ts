@@ -122,13 +122,17 @@ export interface TrainingModuleEvaluation {
   module_day_id: string | null;
   audit_template_id: string;
   is_required: boolean;
-  day_number: number | null;
   created_at: string;
   audit_template?: {
     id: string;
     name: string;
     description: string | null;
   };
+  module_day?: {
+    id: string;
+    day_number: number;
+    title: string;
+  } | null;
 }
 
 // Hooks
@@ -382,6 +386,7 @@ export const useDeleteDayTask = () => {
 };
 
 // Hooks for training module evaluations (audit templates linked to modules)
+// NOTE: training_module_evaluations does NOT have day_number column - must join module_day for ordering
 export const useTrainingModuleEvaluations = (moduleId: string | undefined) => {
   return useQuery({
     queryKey: ["training_module_evaluations", moduleId],
@@ -392,13 +397,21 @@ export const useTrainingModuleEvaluations = (moduleId: string | undefined) => {
         .from("training_module_evaluations")
         .select(`
           *,
-          audit_template:audit_templates(id, name, description)
+          audit_template:audit_templates(id, name, description),
+          module_day:training_module_days(id, day_number, title)
         `)
-        .eq("module_id", moduleId)
-        .order("day_number", { ascending: true, nullsFirst: false });
+        .eq("module_id", moduleId);
 
       if (error) throw error;
-      return data as unknown as TrainingModuleEvaluation[];
+      
+      // Sort by module_day.day_number (with nulls last for general evaluations)
+      const sorted = (data || []).sort((a: any, b: any) => {
+        const dayA = a.module_day?.day_number ?? 999;
+        const dayB = b.module_day?.day_number ?? 999;
+        return dayA - dayB;
+      });
+      
+      return sorted as unknown as TrainingModuleEvaluation[];
     },
     enabled: !!moduleId,
   });

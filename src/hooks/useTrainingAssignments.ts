@@ -204,7 +204,7 @@ export const useCreateTrainingSession = () => {
     mutationFn: async (session: Partial<TrainingSession> & { traineeIds?: string[] }) => {
       if (!user || !company?.id) throw new Error("Not authenticated");
 
-      // Create session
+      // Create session first
       const { data: sessionData, error: sessionError } = await supabase
         .from("training_sessions")
         .insert({
@@ -273,12 +273,15 @@ export const useCreateTrainingSession = () => {
         .single();
 
       if (shiftError) {
-        console.error("Failed to create training shift:", shiftError);
+        // COMPENSATING ROLLBACK: Delete session if shift creation fails
+        console.error("[useCreateTrainingSession] Shift creation failed, rolling back session:", shiftError);
+        await supabase.from("training_session_attendees").delete().eq("session_id", sessionData.id);
+        await supabase.from("training_sessions").delete().eq("id", sessionData.id);
         throw new Error(`Failed to create training shift: ${shiftError.message}`);
       }
       
       // CRITICAL: Create shift_assignments for trainer and trainees so they appear on schedules
-      // Uses upsert with unique constraint on (shift_id, staff_id) for idempotency
+      // Build assignments with ALL required fields (assigned_by is NOT NULL)
       const assignmentsToInsert: Array<{
         shift_id: string;
         staff_id: string;
@@ -321,10 +324,15 @@ export const useCreateTrainingSession = () => {
           });
         
         if (assignError) {
-          console.error("Failed to create shift assignments:", assignError);
-          // Don't throw - the shift was created successfully, just log the assignment error
-          // This ensures partial success is still useful
-        } else if (import.meta.env.DEV) {
+          // COMPENSATING ROLLBACK: Delete shift and session if assignments fail
+          console.error("[useCreateTrainingSession] Assignment creation failed, rolling back:", assignError);
+          await supabase.from("shifts").delete().eq("id", shiftData.id);
+          await supabase.from("training_session_attendees").delete().eq("session_id", sessionData.id);
+          await supabase.from("training_sessions").delete().eq("id", sessionData.id);
+          throw new Error(`Failed to create shift assignments: ${assignError.message}`);
+        }
+        
+        if (import.meta.env.DEV) {
           console.log("[useCreateTrainingSession] Created shift assignments:", {
             shiftId: shiftData.id,
             assignmentsCount: assignmentsToInsert.length,
@@ -429,20 +437,27 @@ export const useStartAuditEvaluation = () => {
     }) => {
       if (!company?.id || !user) throw new Error("Not authenticated");
 
-      // Get location name for the audit (location column is required NOT NULL text)
+      // ALWAYS get a valid location name for the audit (location column is NOT NULL text)
+      // This is REQUIRED - the DB constraint will reject null values
       let locationName = 'Training Evaluation';
+      
       if (params.locationId) {
-        const { data: loc } = await supabase
+        const { data: loc, error: locError } = await supabase
           .from("locations")
           .select("name")
           .eq("id", params.locationId)
           .single();
-        if (loc?.name) {
+        
+        if (!locError && loc?.name) {
           locationName = loc.name;
         }
+        // If location fetch fails, we still use the default 'Training Evaluation'
       }
 
-      // Create the audit instance (location_audit)
+      // Create the audit instance using correct column names:
+      // - template_id (NOT audit_template_id)
+      // - audit_date (date type)
+      // - location (NOT NULL text - always provide a value)
       const { data: auditInstance, error: auditError } = await supabase
         .from("location_audits")
         .insert({
@@ -452,12 +467,15 @@ export const useStartAuditEvaluation = () => {
           location_id: params.locationId || null,
           audit_date: new Date().toISOString().split('T')[0],
           status: 'in_progress',
-          location: locationName, // Required NOT NULL text column
+          location: locationName, // CRITICAL: NOT NULL - always provide a valid string
         })
         .select()
         .single();
 
-      if (auditError) throw auditError;
+      if (auditError) {
+        console.error("[useStartAuditEvaluation] Failed to create audit instance:", auditError);
+        throw new Error(`Failed to create audit: ${auditError.message}`);
+      }
 
       // Create the training evaluation linking to the audit
       const { data: evaluation, error: evalError } = await supabase
@@ -474,7 +492,12 @@ export const useStartAuditEvaluation = () => {
         .select()
         .single();
 
-      if (evalError) throw evalError;
+      if (evalError) {
+        // Rollback: delete the audit instance if evaluation creation fails
+        console.error("[useStartAuditEvaluation] Failed to create evaluation, rolling back audit:", evalError);
+        await supabase.from("location_audits").delete().eq("id", auditInstance.id);
+        throw new Error(`Failed to create evaluation: ${evalError.message}`);
+      }
 
       return { evaluation, auditInstance };
     },
