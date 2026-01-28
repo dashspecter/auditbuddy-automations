@@ -217,12 +217,10 @@ const Training = () => {
               </form>
             </DialogContent>
           </Dialog>
-          <Link to="/workforce/training/assignments/new">
-            <Button variant="outline">
-              <Users className="mr-2 h-4 w-4" />
-              {t('training.assignTrainee', 'Assign Trainee')}
-            </Button>
-          </Link>
+          <Button variant="outline" onClick={() => navigate('/workforce/training/assignments/new')}>
+            <Users className="mr-2 h-4 w-4" />
+            {t('training.assignTrainee', 'Assign Trainee')}
+          </Button>
         </div>
       </div>
 
@@ -350,12 +348,10 @@ const Training = () => {
               <CardContent className="py-12 text-center">
                 <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">{t('training.noAssignments', 'No training assignments yet')}</p>
-                <Link to="/workforce/training/assignments/new">
-                  <Button className="mt-4">
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t('training.assignFirst', 'Assign first trainee')}
-                  </Button>
-                </Link>
+                <Button className="mt-4" onClick={() => navigate('/workforce/training/assignments/new')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('training.assignFirst', 'Assign first trainee')}
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -405,11 +401,9 @@ const Training = () => {
               <p className="text-muted-foreground">
                 {t('training.calendarComingSoon', 'Training calendar integration with shifts is available in the Shifts page')}
               </p>
-              <Link to="/workforce/shifts">
-                <Button className="mt-4" variant="outline">
-                  {t('training.viewShifts', 'View Shifts Calendar')}
-                </Button>
-              </Link>
+              <Button className="mt-4" variant="outline" onClick={() => navigate('/workforce/shifts')}>
+                {t('training.viewShifts', 'View Shifts Calendar')}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
