@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   ArrowLeft, GraduationCap, Calendar, MapPin, User, 
   CheckCircle2, Circle, Clock, Play, Pause, CheckCheck,
-  XCircle, ClipboardList, Plus, ExternalLink, FileCheck
+  XCircle, ClipboardList, Plus, ExternalLink, FileCheck, CalendarPlus
 } from "lucide-react";
 import {
   Select,
@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useTrainingAssignment, useUpdateTrainingAssignment, useTrainingEvaluations, useCreateTrainingEvaluation, useStartAuditEvaluation } from "@/hooks/useTrainingAssignments";
+import { useTrainingAssignment, useUpdateTrainingAssignment, useTrainingEvaluations, useCreateTrainingEvaluation, useStartAuditEvaluation, useGenerateTrainingSessions, useGenerateTrainingTasks } from "@/hooks/useTrainingAssignments";
 import { useTrainingModuleDays, useTrainingModuleEvaluations } from "@/hooks/useTrainingModules";
 import { format, addDays, differenceInDays, isAfter, isBefore, parseISO } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,6 +49,8 @@ const TrainingAssignmentDetail = () => {
   const updateAssignment = useUpdateTrainingAssignment();
   const createEvaluation = useCreateTrainingEvaluation();
   const startAuditEvaluation = useStartAuditEvaluation();
+  const generateSessions = useGenerateTrainingSessions();
+  const generateTasks = useGenerateTrainingTasks();
   
   const [evalDialogOpen, setEvalDialogOpen] = useState(false);
   const [evalForm, setEvalForm] = useState({
@@ -70,6 +72,22 @@ const TrainingAssignmentDetail = () => {
           task:tasks(id, title, status)
         `)
         .eq("assignment_id", id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch training sessions for this assignment
+  const { data: trainingSessions = [], refetch: refetchSessions } = useQuery({
+    queryKey: ["training_sessions", id],
+    queryFn: async () => {
+      if (!id) return [];
+      const { data, error } = await supabase
+        .from("training_sessions")
+        .select("id, session_date, title")
+        .eq("assignment_id", id)
+        .order("session_date");
       if (error) throw error;
       return data;
     },
@@ -137,6 +155,21 @@ const TrainingAssignmentDetail = () => {
     // Navigate to the audit
     if (result.auditInstance?.id) {
       navigate(`/audits/${result.auditInstance.id}`);
+    }
+  };
+
+  const handleGenerateSchedule = async () => {
+    if (!id) return;
+    try {
+      const [sessions, tasks] = await Promise.all([
+        generateSessions.mutateAsync(id),
+        generateTasks.mutateAsync(id),
+      ]);
+      console.log("Generated sessions:", sessions);
+      console.log("Generated tasks:", tasks);
+      refetchSessions();
+    } catch (error) {
+      console.error("Failed to generate schedule:", error);
     }
   };
 
@@ -225,6 +258,18 @@ const TrainingAssignmentDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {trainingSessions.length === 0 && (
+            <Button 
+              variant="outline"
+              onClick={handleGenerateSchedule}
+              disabled={generateSessions.isPending || generateTasks.isPending}
+            >
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              {generateSessions.isPending || generateTasks.isPending 
+                ? t('common.generating', 'Generating...') 
+                : t('training.generateSchedule', 'Generate Schedule')}
+            </Button>
+          )}
           <Select value={assignment.status} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40">
               <SelectValue />
