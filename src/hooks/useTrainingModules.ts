@@ -104,9 +104,31 @@ export interface TrainingEvaluation {
   score: number | null;
   passed: boolean | null;
   notes: string | null;
+  audit_instance_id: string | null;
   created_at: string;
   trainee?: { id: string; full_name: string };
   trainer?: { id: string; full_name: string };
+  audit_instance?: {
+    id: string;
+    status: string;
+    overall_score: number | null;
+    template?: { id: string; name: string };
+  } | null;
+}
+
+export interface TrainingModuleEvaluation {
+  id: string;
+  module_id: string;
+  module_day_id: string | null;
+  audit_template_id: string;
+  is_required: boolean;
+  day_number: number | null;
+  created_at: string;
+  audit_template?: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
 }
 
 // Hooks
@@ -355,6 +377,88 @@ export const useDeleteDayTask = () => {
     },
     onError: (error: Error) => {
       toast.error(`Failed to remove task: ${error.message}`);
+    },
+  });
+};
+
+// Hooks for training module evaluations (audit templates linked to modules)
+export const useTrainingModuleEvaluations = (moduleId: string | undefined) => {
+  return useQuery({
+    queryKey: ["training_module_evaluations", moduleId],
+    queryFn: async () => {
+      if (!moduleId) return [];
+
+      const { data, error } = await supabase
+        .from("training_module_evaluations")
+        .select(`
+          *,
+          audit_template:audit_templates(id, name, description)
+        `)
+        .eq("module_id", moduleId)
+        .order("day_number", { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data as unknown as TrainingModuleEvaluation[];
+    },
+    enabled: !!moduleId,
+  });
+};
+
+export const useAddModuleEvaluation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (evaluation: {
+      module_id: string;
+      module_day_id?: string;
+      audit_template_id: string;
+      is_required?: boolean;
+      day_number?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("training_module_evaluations")
+        .insert({
+          module_id: evaluation.module_id,
+          module_day_id: evaluation.module_day_id || null,
+          audit_template_id: evaluation.audit_template_id,
+          is_required: evaluation.is_required ?? true,
+          day_number: evaluation.day_number || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["training_module_evaluations", data.module_id] });
+      toast.success("Evaluation template linked");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to link evaluation: ${error.message}`);
+    },
+  });
+};
+
+export const useRemoveModuleEvaluation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, moduleId }: { id: string; moduleId: string }) => {
+      const { error } = await supabase
+        .from("training_module_evaluations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return { id, moduleId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["training_module_evaluations", data.moduleId] });
+      toast.success("Evaluation template removed");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to remove evaluation: ${error.message}`);
     },
   });
 };
