@@ -494,14 +494,14 @@ export const EnhancedShiftDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>
             {shift ? t('workforce.components.enhancedShiftDialog.editShift') : t('workforce.components.enhancedShiftDialog.createShift')}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto flex-1 pr-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('workforce.components.enhancedShiftDialog.location')} *</Label>
