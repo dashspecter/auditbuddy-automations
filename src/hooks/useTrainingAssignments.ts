@@ -196,16 +196,20 @@ export const useTrainingSessions = (filters?: {
 };
 
 // Helper: FK-safe rollback that never throws during cleanup
-async function rollbackTrainingCreation({
-  sessionId,
-  shiftId,
-}: {
-  sessionId?: string;
-  shiftId?: string;
-}) {
+// Accepts supabaseClient as parameter to prevent hidden scope coupling
+async function rollbackTrainingCreation(
+  supabaseClient: typeof supabase,
+  {
+    sessionId,
+    shiftId,
+  }: {
+    sessionId?: string;
+    shiftId?: string;
+  }
+) {
   // Delete in FK-safe order: assignments → shift → attendees → session
   if (shiftId) {
-    const { error: assignDelErr } = await supabase
+    const { error: assignDelErr } = await supabaseClient
       .from("shift_assignments")
       .delete()
       .eq("shift_id", shiftId);
@@ -213,7 +217,7 @@ async function rollbackTrainingCreation({
       console.error("[rollbackTrainingCreation] Failed to delete shift_assignments:", assignDelErr);
     }
 
-    const { error: shiftDelErr } = await supabase
+    const { error: shiftDelErr } = await supabaseClient
       .from("shifts")
       .delete()
       .eq("id", shiftId);
@@ -223,7 +227,7 @@ async function rollbackTrainingCreation({
   }
 
   if (sessionId) {
-    const { error: attendeeDelErr } = await supabase
+    const { error: attendeeDelErr } = await supabaseClient
       .from("training_session_attendees")
       .delete()
       .eq("session_id", sessionId);
@@ -231,7 +235,7 @@ async function rollbackTrainingCreation({
       console.error("[rollbackTrainingCreation] Failed to delete attendees:", attendeeDelErr);
     }
 
-    const { error: sessionDelErr } = await supabase
+    const { error: sessionDelErr } = await supabaseClient
       .from("training_sessions")
       .delete()
       .eq("id", sessionId);
@@ -249,6 +253,13 @@ export const useCreateTrainingSession = () => {
   return useMutation({
     mutationFn: async (session: Partial<TrainingSession> & { traineeIds?: string[] }) => {
       if (!user || !company?.id) throw new Error("Not authenticated");
+
+      // Prevent required_count=0 edge case - must have at least trainer or trainees
+      const hasTrainer = !!session.trainer_employee_id;
+      const hasTrainees = session.traineeIds && session.traineeIds.length > 0;
+      if (!hasTrainer && !hasTrainees) {
+        throw new Error("Select a trainer or at least one trainee");
+      }
 
       // Create session first
       const { data: sessionData, error: sessionError } = await supabase
@@ -283,7 +294,7 @@ export const useCreateTrainingSession = () => {
         
         if (trainerAttendeeErr) {
           console.error("[useCreateTrainingSession] Trainer attendee insert failed, rolling back:", trainerAttendeeErr);
-          await rollbackTrainingCreation({ sessionId: sessionData.id });
+          await rollbackTrainingCreation(supabase, { sessionId: sessionData.id });
           throw new Error(`Failed to add trainer as attendee: ${trainerAttendeeErr.message}`);
         }
       }
@@ -302,7 +313,7 @@ export const useCreateTrainingSession = () => {
         
         if (traineeAttendeeErr) {
           console.error("[useCreateTrainingSession] Trainee attendees insert failed, rolling back:", traineeAttendeeErr);
-          await rollbackTrainingCreation({ sessionId: sessionData.id });
+          await rollbackTrainingCreation(supabase, { sessionId: sessionData.id });
           throw new Error(`Failed to add trainees as attendees: ${traineeAttendeeErr.message}`);
         }
       }
@@ -337,7 +348,7 @@ export const useCreateTrainingSession = () => {
 
       if (shiftError) {
         console.error("[useCreateTrainingSession] Shift creation failed, rolling back session:", shiftError);
-        await rollbackTrainingCreation({ sessionId: sessionData.id });
+        await rollbackTrainingCreation(supabase, { sessionId: sessionData.id });
         throw new Error(`Failed to create training shift: ${shiftError.message}`);
       }
       
@@ -382,7 +393,7 @@ export const useCreateTrainingSession = () => {
         
         if (assignError) {
           console.error("[useCreateTrainingSession] Assignment creation failed, rolling back:", assignError);
-          await rollbackTrainingCreation({ sessionId: sessionData.id, shiftId: shiftData.id });
+          await rollbackTrainingCreation(supabase, { sessionId: sessionData.id, shiftId: shiftData.id });
           throw new Error(`Failed to create shift assignments: ${assignError.message}`);
         }
         
@@ -399,9 +410,15 @@ export const useCreateTrainingSession = () => {
       return sessionData;
     },
     onSuccess: () => {
+      // Invalidate all relevant queries to ensure UI refresh
       queryClient.invalidateQueries({ queryKey: ["training_sessions"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
+      // Additional keys used by various schedule/coverage views
+      queryClient.invalidateQueries({ queryKey: ["shift_assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["team-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Training session created");
     },
     onError: (error: Error) => {
