@@ -223,7 +223,7 @@ export const StaffTable = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('workforce.components.staffTable.allRoles')}</SelectItem>
-                {uniqueRoles.map((role) => (
+                {uniqueRoles.filter(role => role && role.trim() !== "").map((role) => (
                   <SelectItem key={role} value={role}>
                     {role}
                   </SelectItem>
