@@ -590,11 +590,10 @@ export const useStartAuditEvaluation = () => {
 export const useGenerateTrainingSessions = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { company } = useCompanyContext();
 
   return useMutation({
     mutationFn: async (assignmentId: string) => {
-      if (!user || !company?.id) throw new Error("Not authenticated");
+      if (!user) throw new Error("Not authenticated");
 
       // Fetch assignment with module info
       const { data: assignment, error: assignmentError } = await supabase
@@ -609,20 +608,27 @@ export const useGenerateTrainingSessions = () => {
 
       if (assignmentError) throw assignmentError;
       if (!assignment.module) throw new Error("Module not found");
+      if (!assignment.company_id) throw new Error("Assignment is missing company_id");
 
       const startDate = new Date(assignment.start_date);
       const durationDays = assignment.module.duration_days || 5;
       const createdSessions: any[] = [];
+      let firstError: any = null;
 
       // Default training hours (9:00-17:00)
       const defaultStartTime = "09:00:00";
       const defaultEndTime = "17:00:00";
 
       // Get existing sessions to avoid duplicates
-      const { data: existingSessions } = await supabase
+      const { data: existingSessions, error: existingSessionsError } = await supabase
         .from("training_sessions")
         .select("session_date")
         .eq("assignment_id", assignmentId);
+
+      if (existingSessionsError) {
+        // Don’t hard-fail if this lookup fails; we can still try to create.
+        console.error("[Training] Failed to fetch existing sessions:", existingSessionsError);
+      }
 
       const existingDates = new Set((existingSessions || []).map(s => s.session_date));
 
@@ -648,7 +654,7 @@ export const useGenerateTrainingSessions = () => {
         const { data: session, error: sessionError } = await supabase
           .from("training_sessions")
           .insert({
-            company_id: company.id,
+            company_id: assignment.company_id,
             assignment_id: assignmentId,
             module_id: assignment.module_id,
             location_id: assignment.location_id,
@@ -663,25 +669,42 @@ export const useGenerateTrainingSessions = () => {
           .single();
 
         if (sessionError) {
+          if (!firstError) firstError = sessionError;
           console.error(`Failed to create session for day ${dayOffset + 1}:`, sessionError);
+          console.error("[Training] Session error details:", {
+            code: (sessionError as any)?.code,
+            message: (sessionError as any)?.message,
+            details: (sessionError as any)?.details,
+            hint: (sessionError as any)?.hint,
+          });
           continue;
         }
 
         // Add trainer as attendee
         if (assignment.trainer_employee_id) {
-          await supabase.from("training_session_attendees").insert({
+          const { error: trainerAttendeeErr } = await supabase.from("training_session_attendees").insert({
             session_id: session.id,
             employee_id: assignment.trainer_employee_id,
             attendee_role: 'trainer',
           });
+
+          if (trainerAttendeeErr) {
+            if (!firstError) firstError = trainerAttendeeErr;
+            console.error("[Training] Failed to add trainer attendee:", trainerAttendeeErr);
+          }
         }
 
         // Add trainee as attendee
-        await supabase.from("training_session_attendees").insert({
+        const { error: traineeAttendeeErr } = await supabase.from("training_session_attendees").insert({
           session_id: session.id,
           employee_id: assignment.trainee_employee_id,
           attendee_role: 'trainee',
         });
+
+        if (traineeAttendeeErr) {
+          if (!firstError) firstError = traineeAttendeeErr;
+          console.error("[Training] Failed to add trainee attendee:", traineeAttendeeErr);
+        }
 
         // Calculate required_count
         const requiredCount = (assignment.trainer_employee_id ? 1 : 0) + 1; // trainer + trainee
@@ -690,7 +713,7 @@ export const useGenerateTrainingSessions = () => {
         const { data: shift, error: shiftError } = await supabase
           .from("shifts")
           .insert({
-            company_id: company.id,
+            company_id: assignment.company_id,
             location_id: assignment.location_id,
             shift_date: dateStr,
             start_time: defaultStartTime,
@@ -710,12 +733,14 @@ export const useGenerateTrainingSessions = () => {
           .single();
 
         if (shiftError) {
+          if (!firstError) firstError = shiftError;
           console.error(`Failed to create shift for day ${dayOffset + 1}:`, shiftError);
           continue;
         }
 
         // Create shift assignments for trainer and trainee
         const shiftAssignments = [];
+        const assignedAt = new Date().toISOString();
         
         if (assignment.trainer_employee_id) {
           shiftAssignments.push({
@@ -723,6 +748,7 @@ export const useGenerateTrainingSessions = () => {
             staff_id: assignment.trainer_employee_id,
             status: 'assigned',
             assigned_by: user.id,
+            assigned_at: assignedAt,
             approval_status: 'approved',
           });
         }
@@ -732,12 +758,26 @@ export const useGenerateTrainingSessions = () => {
           staff_id: assignment.trainee_employee_id,
           status: 'assigned',
           assigned_by: user.id,
+          assigned_at: assignedAt,
           approval_status: 'approved',
         });
 
-        await supabase.from("shift_assignments").insert(shiftAssignments);
+        const { error: shiftAssignmentsError } = await supabase.from("shift_assignments").insert(shiftAssignments);
+        if (shiftAssignmentsError) {
+          if (!firstError) firstError = shiftAssignmentsError;
+          console.error("[Training] Failed to create shift assignments:", shiftAssignmentsError);
+          // Best-effort: keep the session + shift (schedule still visible), but report the issue.
+        }
 
         createdSessions.push(session);
+      }
+
+      if (createdSessions.length === 0 && firstError) {
+        const msg =
+          (firstError as any)?.message ||
+          (firstError as any)?.details ||
+          "Failed to schedule training sessions";
+        throw new Error(msg);
       }
 
       return createdSessions;
@@ -762,6 +802,8 @@ export const useGenerateTrainingTasks = () => {
 
   return useMutation({
     mutationFn: async (assignmentId: string) => {
+      if (!user) throw new Error("Not authenticated");
+
       // Fetch assignment details
       const { data: assignment, error: assignmentError } = await supabase
         .from("training_assignments")
@@ -855,18 +897,30 @@ export const useGenerateTrainingTasks = () => {
               description: templateTask.task_description,
               status: 'pending',
               priority: 'medium',
+              // REQUIRED (NOT NULL)
+              source: 'training',
               execution_mode: 'assigned',
               assigned_to: assignment.trainee_employee_id,
               location_id: assignment.location_id,
               start_at: `${dateStr}T09:00:00`,
               due_at: `${dateStr}T17:00:00`,
-              created_by: user?.id,
+              created_by: user.id,
+              // keeps tasks visible as personal assignments
+              is_individual: true,
+              // optional but useful for traceability
+              source_reference_id: assignmentId,
             })
             .select()
             .single();
 
           if (taskError) {
             console.error("Failed to create task:", taskError);
+            console.error("[Training] Task error details:", {
+              code: (taskError as any)?.code,
+              message: (taskError as any)?.message,
+              details: (taskError as any)?.details,
+              hint: (taskError as any)?.hint,
+            });
             continue;
           }
 

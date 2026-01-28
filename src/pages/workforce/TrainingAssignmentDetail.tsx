@@ -34,6 +34,7 @@ import { format, addDays, differenceInDays, isAfter, isBefore, parseISO } from "
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const TrainingAssignmentDetail = () => {
   const { id } = useParams();
@@ -170,6 +171,11 @@ const TrainingAssignmentDetail = () => {
       refetchSessions();
     } catch (error) {
       console.error("Failed to generate schedule:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('training.generateScheduleFailed', 'Failed to generate schedule')
+      );
     }
   };
 
