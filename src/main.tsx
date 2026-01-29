@@ -93,6 +93,16 @@ const checkBuildVersion = async (): Promise<boolean> => {
     return Number.isFinite(n) ? n : null;
   };
 
+  const hashToUint32String = (input: string) => {
+    const str = String(input || "");
+    let hash = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return String(hash >>> 0);
+  };
+
   try {
     // Prevent infinite reload loops - this key is set before reload
     if (sessionStorage.getItem(RELOAD_KEY) === "1") {
@@ -111,12 +121,34 @@ const checkBuildVersion = async (): Promise<boolean> => {
     }
 
     const data = await res.json();
-    const serverVersion: string = String(data.buildTime || data.version || "");
+    const buildTime = String(data.buildTime || "");
+    const versionFallback = String(data.version || "");
+    const serverVersionFromJson = buildTime && buildTime !== "__BUILD_TIME__" ? buildTime : "";
 
-    // Skip in development (placeholder value)
-    if (!serverVersion || serverVersion === "__BUILD_TIME__") {
-      return false;
-    }
+    // Fallback: derive a per-build token from build-manifest.json (works even if version.json is static)
+    const serverVersionFromManifest = await (async () => {
+      try {
+        const m = await fetch(`/build-manifest.json?ts=${Date.now()}&r=${Math.random()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+        });
+        if (!m.ok) return "";
+        const manifest = await m.json();
+
+        const keys = Object.keys(manifest || {});
+        const mainKey = keys.find((k) => k.endsWith("src/main.tsx"));
+        const entry = mainKey ? manifest[mainKey] : null;
+        if (!entry || !entry.file) return "";
+
+        const buildId = `${entry.file}|${Array.isArray(entry.css) ? entry.css.join(",") : ""}`;
+        return hashToUint32String(buildId);
+      } catch {
+        return "";
+      }
+    })();
+
+    const serverVersion: string = serverVersionFromJson || serverVersionFromManifest || versionFallback;
+    if (!serverVersion || serverVersion === "__BUILD_TIME__") return false;
 
     const storedVersion = localStorage.getItem(VERSION_KEY);
 
@@ -129,7 +161,7 @@ const checkBuildVersion = async (): Promise<boolean> => {
     const pinnedVersion =
       storedNum !== null && serverNum !== null
         ? String(Math.max(storedNum, serverNum))
-        : storedVersion || serverVersion;
+        : serverVersion;
 
     // First visit - just store the version
     if (!storedVersion) {
