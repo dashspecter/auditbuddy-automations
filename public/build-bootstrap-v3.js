@@ -37,6 +37,31 @@
     return Number.isFinite(n) ? n : null;
   };
 
+  // Small, deterministic hash for long version strings (e.g. build IDs)
+  // Returns an unsigned 32-bit integer as a string.
+  const hashToUint32String = (input) => {
+    const str = String(input || "");
+    let hash = 2166136261; // FNV-1a base
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return String(hash >>> 0);
+  };
+
+  const fetchJsonNoStore = async (url) => {
+    const res = await fetch(`${url}?ts=${Date.now()}&r=${Math.random()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
+    });
+    if (!res.ok) return null;
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
   // Clear guards on fresh browser sessions to allow new builds to work
   const currentSession = Date.now().toString();
   if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
@@ -74,6 +99,18 @@
     await clearCacheStorage();
   }
 
+  async function fetchManifestEntry() {
+    const manifest = await fetchJsonNoStore(BUILD_MANIFEST_URL);
+    if (!manifest) return null;
+    const entry = pickAppEntry(manifest);
+    if (!entry || !entry.file) return null;
+
+    const buildId = `${entry.file}|${Array.isArray(entry.css) ? entry.css.join(",") : ""}`;
+    // Use a short version token for URL/localStorage; still uniquely changes per build.
+    const versionToken = hashToUint32String(buildId);
+    return { entry, buildId, versionToken };
+  }
+
   /**
    * Version check with aggressive cache busting.
    * Returns true if we're about to redirect/reload.
@@ -81,9 +118,14 @@
   async function ensureLatestVersion() {
     try {
       const url = new URL(window.location.href);
-      
-      // Don't interfere with the explicit reset flow.
-      if (url.searchParams.get("resetApp") === "1") return false;
+
+      // Explicit reset flow: clear SW/caches even if the app bundle never boots.
+      if (url.searchParams.get("resetApp") === "1") {
+        const returnTo = url.searchParams.get("returnTo") || "/";
+        await cleanupCachingArtifacts();
+        window.location.replace(returnTo);
+        return true;
+      }
 
       // Prevent infinite reload loops
       if (sessionStorage.getItem(FORCE_RELOAD_KEY) === "1") {
@@ -91,18 +133,19 @@
         return false;
       }
 
-      // Fetch version.json with aggressive cache busting
-      const res = await fetch(`${VERSION_URL}?ts=${Date.now()}&r=${Math.random()}`, { 
-        cache: "no-store",
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-      });
-      if (!res.ok) return false;
-      
-      const data = await res.json();
-      const serverVersion = String(data.buildTime || data.version || "");
-      
-      // Skip in development (placeholder value)
-      if (!serverVersion || serverVersion === "__BUILD_TIME__") return false;
+      // Prefer version.json if it has a real buildTime; otherwise fall back to build manifest.
+      const data = await fetchJsonNoStore(VERSION_URL);
+      const versionFromJson = data
+        ? String(
+            data.buildTime && data.buildTime !== "__BUILD_TIME__"
+              ? data.buildTime
+              : ""
+          )
+        : "";
+
+      const manifestInfo = await fetchManifestEntry();
+      const serverVersion = versionFromJson || (manifestInfo ? manifestInfo.versionToken : "");
+      if (!serverVersion) return false;
 
       const storedVersion = (() => {
         try {
@@ -112,13 +155,14 @@
         }
       })();
 
-      // Pin to the newest version we've ever seen (prevents bouncing between edge caches)
+      // Prefer the server token if it differs.
+      // If numeric tokens exist, keep the higher one (helps in multi-edge environments).
       const storedNum = parseNumericVersion(storedVersion);
       const serverNum = parseNumericVersion(serverVersion);
       const pinnedVersion =
         storedNum !== null && serverNum !== null
           ? String(Math.max(storedNum, serverNum))
-          : storedVersion || serverVersion;
+          : serverVersion;
 
       if (!pinnedVersion) return false;
 
@@ -224,14 +268,11 @@
       }
 
       // STEP 3: Fetch build manifest and inject app
-      const res = await fetch(`${BUILD_MANIFEST_URL}?ts=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`manifest fetch failed: ${res.status}`);
+      const manifestInfo = await fetchManifestEntry();
+      if (!manifestInfo) throw new Error("manifest missing entry.file");
 
-      const manifest = await res.json();
-      const entry = pickAppEntry(manifest);
-      if (!entry || !entry.file) throw new Error("manifest missing entry.file");
-
-      const buildId = `${entry.file}|${Array.isArray(entry.css) ? entry.css.join(",") : ""}`;
+      const entry = manifestInfo.entry;
+      const buildId = manifestInfo.buildId;
       const previousBuildId = localStorage.getItem(BUILD_ID_KEY);
 
       // If build changed since last load, clear SW + caches and reload ONCE.
