@@ -429,13 +429,23 @@ const StaffTasks = () => {
                       onClick={() => toggleExpand(task.id)}
                     >
                       <div className="flex items-start gap-3">
-                        <Checkbox 
-                          checked={task.status === 'completed'}
-                          onCheckedChange={() => toggleTask(task.id, task.status)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-1"
-                          disabled={completeTask.isPending}
-                        />
+                        {/* Mobile-friendly checkbox wrapper with proper touch target */}
+                        <div 
+                          className="relative z-10 flex items-center justify-center min-w-[44px] min-h-[44px] -m-2 touch-manipulation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTask(task.id, task.status);
+                          }}
+                        >
+                          <Checkbox 
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => {
+                              // Handled by parent wrapper onClick for better mobile support
+                            }}
+                            className="pointer-events-none"
+                            disabled={completeTask.isPending}
+                          />
+                        </div>
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">

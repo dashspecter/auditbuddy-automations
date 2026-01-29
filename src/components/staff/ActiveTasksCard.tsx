@@ -85,10 +85,7 @@ export const ActiveTasksCard = () => {
     return null;
   }
 
-  const handleComplete = (taskId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    completeTask.mutate(taskId);
-  };
+  // Removed unused handleComplete - now handled inline in the checkbox wrapper
 
   return (
     <div>
@@ -113,13 +110,25 @@ export const ActiveTasksCard = () => {
             onClick={() => navigate("/staff/tasks")}
           >
             <div className="flex items-start gap-3">
-              <Checkbox 
-                checked={false}
-                onCheckedChange={() => {}}
-                onClick={(e) => handleComplete(task.id, e as any)}
-                className="mt-0.5"
-                disabled={completeTask.isPending}
-              />
+              {/* Mobile-friendly checkbox wrapper with proper touch target */}
+              <div 
+                className="relative z-10 flex items-center justify-center min-w-[44px] min-h-[44px] -m-2 touch-manipulation"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!completeTask.isPending) {
+                    completeTask.mutate(task.id);
+                  }
+                }}
+              >
+                <Checkbox 
+                  checked={false}
+                  onCheckedChange={() => {
+                    // Handled by parent wrapper onClick for better mobile support
+                  }}
+                  className="pointer-events-none"
+                  disabled={completeTask.isPending}
+                />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-medium truncate">{task.title}</h3>
