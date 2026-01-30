@@ -426,20 +426,33 @@ const StaffTasks = () => {
                   >
                     <div 
                       className="p-4 cursor-pointer"
-                      onClick={() => toggleExpand(task.id)}
+                       onPointerDown={() => console.log("[row] pointerdown", task.id)}
+                       onClick={() => {
+                         console.log("[row] click", task.id);
+                         toggleExpand(task.id);
+                       }}
                     >
                       <div className="flex items-start gap-3">
                         {/* Mobile-friendly checkbox wrapper with proper touch target */}
                         <div 
-                          className="relative z-10 flex items-center justify-center min-w-[44px] min-h-[44px] -m-2 touch-manipulation"
-                          onPointerDownCapture={(e) => e.stopPropagation()}
-                          onClickCapture={(e) => e.stopPropagation()}
+                           className="relative z-10 h-11 w-11 flex items-center justify-center touch-manipulation"
+                           onPointerDownCapture={(e) => {
+                             console.log("[wrap] pointerdown", task.id);
+                             e.stopPropagation();
+                           }}
+                           onClickCapture={(e) => {
+                             console.log("[wrap] click", task.id);
+                             e.stopPropagation();
+                           }}
                         >
                           <Checkbox 
                             checked={task.status === 'completed'}
+                             onClick={() => console.log("[cb] click", task.id)}
                             onCheckedChange={(checked) => {
+                               console.log("[cb] checked", task.id, checked);
                               if (completeTask.isPending) return;
-                              toggleTask(task.id, task.status);
+                               if (checked !== true) return;
+                               toggleTask(task.id, task.status);
                             }}
                             disabled={completeTask.isPending}
                             aria-label={`Mark "${task.title}" as ${task.status === 'completed' ? 'pending' : 'complete'}`}
@@ -614,7 +627,11 @@ const StaffTasks = () => {
                   >
                     <div 
                       className="p-4 cursor-pointer"
-                      onClick={() => toggleExpand(task.id)}
+                       onPointerDown={() => console.log("[row] pointerdown", task.id)}
+                       onClick={() => {
+                         console.log("[row] click", task.id);
+                         toggleExpand(task.id);
+                       }}
                     >
                       <div className="flex items-start gap-3">
                         <Checkbox 
