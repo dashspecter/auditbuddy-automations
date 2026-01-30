@@ -113,19 +113,17 @@ export const ActiveTasksCard = () => {
               {/* Mobile-friendly checkbox wrapper with proper touch target */}
               <div 
                 className="relative z-10 flex items-center justify-center min-w-[44px] min-h-[44px] -m-2 touch-manipulation"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!completeTask.isPending) {
-                    completeTask.mutate(task.id);
-                  }
-                }}
+                onPointerDownCapture={(e) => e.stopPropagation()}
+                onClickCapture={(e) => e.stopPropagation()}
               >
                 <Checkbox 
                   checked={false}
-                  onCheckedChange={() => {
-                    // Handled by parent wrapper onClick for better mobile support
+                  onCheckedChange={(checked) => {
+                    if (completeTask.isPending) return;
+                    if (checked === true) {
+                      completeTask.mutate(task.id);
+                    }
                   }}
-                  className="pointer-events-none"
                   disabled={completeTask.isPending}
                 />
               </div>

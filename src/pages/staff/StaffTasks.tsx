@@ -432,17 +432,15 @@ const StaffTasks = () => {
                         {/* Mobile-friendly checkbox wrapper with proper touch target */}
                         <div 
                           className="relative z-10 flex items-center justify-center min-w-[44px] min-h-[44px] -m-2 touch-manipulation"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTask(task.id, task.status);
-                          }}
+                          onPointerDownCapture={(e) => e.stopPropagation()}
+                          onClickCapture={(e) => e.stopPropagation()}
                         >
                           <Checkbox 
                             checked={task.status === 'completed'}
-                            onCheckedChange={() => {
-                              // Handled by parent wrapper onClick for better mobile support
+                            onCheckedChange={(checked) => {
+                              if (completeTask.isPending) return;
+                              toggleTask(task.id, task.status);
                             }}
-                            className="pointer-events-none"
                             disabled={completeTask.isPending}
                           />
                         </div>
