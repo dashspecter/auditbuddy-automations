@@ -40,6 +40,8 @@ const TrainingAssignmentNew = () => {
     start_date: format(new Date(), 'yyyy-MM-dd'),
     experience_level: "__none__",
     notes: "",
+    default_start_time: "09:00",
+    default_end_time: "17:00",
   });
 
   const activeEmployees = employees.filter(e => e.status === 'active');
@@ -65,10 +67,22 @@ const TrainingAssignmentNew = () => {
       
       // Generate training tasks and sessions for the assignment
       if (result?.id) {
+        // Append seconds to time values
+        const startTime = formData.default_start_time.length === 5 
+          ? `${formData.default_start_time}:00` 
+          : formData.default_start_time;
+        const endTime = formData.default_end_time.length === 5 
+          ? `${formData.default_end_time}:00` 
+          : formData.default_end_time;
+        
         // Run both in parallel for efficiency
         await Promise.all([
           generateTasks.mutateAsync(result.id),
-          generateSessions.mutateAsync(result.id),
+          generateSessions.mutateAsync({ 
+            assignmentId: result.id,
+            defaultStartTime: startTime,
+            defaultEndTime: endTime,
+          }),
         ]);
       }
       
@@ -191,6 +205,24 @@ const TrainingAssignmentNew = () => {
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   required
+                />
+              </div>
+
+              <div>
+                <Label>{t('training.defaultStartTime', 'Daily Start Time')}</Label>
+                <Input
+                  type="time"
+                  value={formData.default_start_time}
+                  onChange={(e) => setFormData({ ...formData, default_start_time: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>{t('training.defaultEndTime', 'Daily End Time')}</Label>
+                <Input
+                  type="time"
+                  value={formData.default_end_time}
+                  onChange={(e) => setFormData({ ...formData, default_end_time: e.target.value })}
                 />
               </div>
 
