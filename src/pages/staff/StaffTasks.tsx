@@ -13,6 +13,7 @@ import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileTapDebugOverlay, useTapDebug } from "@/components/staff/MobileTapDebugOverlay";
+import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
 import { toast } from "sonner";
 
 // Countdown timer component
@@ -194,9 +195,11 @@ const StaffTasks = () => {
     fetchDebugInfo();
   }, [user?.id, showDebug, debugFromUrl]);
 
-  const completeTaskRow = async (task: any) => {
-    const resolved = resolveId(task.id);
-    logTap(`[mutate] sending id=${task.id} resolved=${resolved}`);
+  const completeTaskRow = async (task: any, completionId: string) => {
+    const resolved = resolveId(completionId);
+    logTap(
+      `[mutate] sending id=${completionId} from task.id=${task.id} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
+    );
 
     setOptimisticCompletedIds((prev) => {
       const next = new Set(prev);
@@ -205,8 +208,10 @@ const StaffTasks = () => {
     });
 
     try {
-      await completeTask.mutateAsync(task.id);
-      logTap(`[mutate success] resolved=${resolved}`);
+      const updated = await completeTask.mutateAsync(completionId);
+      logTap(
+        `[mutate success] resolved=${resolved} status=${(updated as any)?.status ?? "?"} completed_at=${(updated as any)?.completed_at ? "1" : "0"}`,
+      );
     } catch (e) {
       setOptimisticCompletedIds((prev) => {
         const next = new Set(prev);
@@ -466,48 +471,44 @@ const StaffTasks = () => {
                     <div 
                       className="p-4 cursor-pointer"
                       onPointerDown={() => logTap(`[row pointerdown] ${task.id}`)}
-                      onClick={() => {
-                        logTap(`[row click] ${task.id}`);
-                        toggleExpand(task.id);
-                      }}
+                       onClick={(e) => {
+                         if ((e.target as HTMLElement)?.closest?.('[data-no-row-click="1"]')) {
+                           logTap(`[row click ignored] ${task.id}`);
+                           return;
+                         }
+                         logTap(`[row click] ${task.id}`);
+                         toggleExpand(task.id);
+                       }}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Mobile-friendly checkbox wrapper with elevated z-index and proper touch target */}
-                        <div 
-                          className="relative z-20 h-11 w-11 flex items-center justify-center touch-manipulation"
-                          onPointerDownCapture={(e) => {
-                            logTap(`[wrap pointerdown] ${task.id}`);
-                            e.stopPropagation();
-                          }}
-                          onClickCapture={(e) => {
-                            logTap(`[wrap click] ${task.id}`);
-                            e.stopPropagation();
-                          }}
-                          onTouchEndCapture={(e) => {
-                            // Extra touch handler for iOS reliability
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Checkbox 
-                            onClick={() => logTap(`[cb click] ${task.id}`)}
-                            checked={
-                              optimisticCompletedIds.has(resolveId(task.id)) ||
-                              task.status === 'completed' ||
-                              !!(task as any).completed_at
-                            }
-                            onCheckedChange={(checked) => {
-                              const resolved = resolveId(task.id);
-                              logTap(
-                                `[cb checked ${String(checked)}] task=${task.id} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`
-                              );
-                              if (completeTask.isPending) return;
-                              if (checked !== true) return;
-                              void completeTaskRow(task);
-                            }}
-                            disabled={completeTask.isPending}
-                            aria-label={`Mark "${task.title}" as ${task.status === 'completed' ? 'pending' : 'complete'}`}
-                          />
-                        </div>
+                         {(() => {
+                           const completionId = String(
+                             (task as any).task_occurrence_id ??
+                               (task as any).occurrence_id ??
+                               (task as any).task_id ??
+                               task.id,
+                           );
+                           const resolved = resolveId(completionId);
+                           const serverChecked =
+                             task.status === "completed" || !!(task as any).completed_at || (task as any).is_completed === true;
+                           const checked = optimisticCompletedIds.has(resolved) || serverChecked;
+
+                           return (
+                             <TaskCompleteButton
+                               checked={checked}
+                               disabled={completeTask.isPending || serverChecked}
+                               ariaLabel={`Mark "${task.title}" as complete`}
+                               onPress={() => {
+                                 logTap(
+                                   `[box tap] id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
+                                 );
+                                 if (completeTask.isPending) return;
+                                 if (serverChecked) return;
+                                 void completeTaskRow(task, completionId);
+                               }}
+                             />
+                           );
+                         })()}
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">

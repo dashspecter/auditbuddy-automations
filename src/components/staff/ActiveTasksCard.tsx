@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
 import { useCompleteTask } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
 import { MobileTapDebugOverlay, useTapDebug } from "./MobileTapDebugOverlay";
+import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
 import { toast } from "sonner";
 
 // Countdown timer component
@@ -101,8 +101,11 @@ export const ActiveTasksCard = () => {
   };
 
   const handleComplete = async (task: any) => {
-    const resolved = resolveId(task.id);
-    logTap(`[mutate] sending id=${task.id} resolved=${resolved}`);
+    const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
+    const resolved = resolveId(String(completionId));
+    logTap(
+      `[mutate] sending id=${String(completionId)} from task.id=${task.id} resolved=${resolved} status=${task.status} completed_at=${task.completed_at ? "1" : "0"}`,
+    );
 
     setOptimisticCompletedIds((prev) => {
       const next = new Set(prev);
@@ -111,8 +114,10 @@ export const ActiveTasksCard = () => {
     });
 
     try {
-      await completeTask.mutateAsync(task.id);
-      logTap(`[mutate success] resolved=${resolved}`);
+      const updated = await completeTask.mutateAsync(String(completionId));
+      logTap(
+        `[mutate success] resolved=${resolved} status=${(updated as any)?.status ?? "?"} completed_at=${(updated as any)?.completed_at ? "1" : "0"}`,
+      );
     } catch (e) {
       setOptimisticCompletedIds((prev) => {
         const next = new Set(prev);
@@ -164,39 +169,26 @@ export const ActiveTasksCard = () => {
             }}
           >
             <div className="flex items-start gap-3">
-              {/* Mobile-friendly checkbox wrapper with elevated z-index and proper touch target */}
-              <div 
-                data-no-row-click="1"
-                className="relative z-20 h-11 w-11 flex items-center justify-center touch-manipulation"
-                onPointerDownCapture={(e) => {
-                  logTap(`[wrap pointerdown] ${task.id}`);
-                  e.stopPropagation();
-                }}
-                onClickCapture={(e) => {
-                  logTap(`[wrap click] ${task.id}`);
-                  e.stopPropagation();
-                }}
-                onTouchEndCapture={(e) => {
-                  // Extra touch handler for iOS reliability
-                  e.stopPropagation();
-                }}
-              >
-                <Checkbox 
-                  onClick={() => logTap(`[cb click] ${task.id}`)}
-                  checked={optimisticCompletedIds.has(resolveId(task.id)) || task.status === "completed" || !!task.completed_at}
-                  onCheckedChange={(checked) => {
-                    const resolved = resolveId(task.id);
-                    logTap(
-                      `[cb checked ${String(checked)}] task=${task.id} resolved=${resolved} status=${task.status} completed_at=${task.completed_at ? "1" : "0"}`
-                    );
-                    if (completeTask.isPending) return;
-                    if (checked !== true) return;
-                    void handleComplete(task);
-                  }}
-                  disabled={completeTask.isPending}
-                  aria-label={`Mark "${task.title}" as complete`}
-                />
-              </div>
+              {(() => {
+                const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
+                const resolved = resolveId(String(completionId));
+                const serverChecked = task.status === "completed" || !!task.completed_at || (task as any).is_completed === true;
+                const checked = optimisticCompletedIds.has(resolved) || serverChecked;
+
+                return (
+                  <TaskCompleteButton
+                    checked={checked}
+                    disabled={completeTask.isPending || serverChecked}
+                    ariaLabel={`Mark "${task.title}" as complete`}
+                    onPress={() => {
+                      logTap(`[box tap] id=${task.id} completionId=${String(completionId)} resolved=${resolved}`);
+                      if (completeTask.isPending) return;
+                      if (serverChecked) return;
+                      void handleComplete(task);
+                    }}
+                  />
+                );
+              })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-medium truncate">{task.title}</h3>
