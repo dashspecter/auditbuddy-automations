@@ -10,6 +10,7 @@ import {
   CheckCircle2, Circle, Clock, Play, Pause, CheckCheck,
   XCircle, ClipboardList, Plus, ExternalLink, FileCheck, CalendarPlus
 } from "lucide-react";
+import TrainingScheduleEditor from "@/components/training/TrainingScheduleEditor";
 import {
   Select,
   SelectContent,
@@ -608,6 +609,9 @@ const TrainingAssignmentDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Training Schedule Editor */}
+      <TrainingScheduleEditor assignmentId={id!} />
 
       {assignment.location && (
         <Card>

@@ -592,8 +592,15 @@ export const useGenerateTrainingSessions = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (assignmentId: string) => {
+    mutationFn: async (
+      params: string | { assignmentId: string; defaultStartTime?: string; defaultEndTime?: string }
+    ) => {
       if (!user) throw new Error("Not authenticated");
+
+      // Support both old (string) and new (object) API
+      const assignmentId = typeof params === "string" ? params : params.assignmentId;
+      const customStartTime = typeof params === "object" ? params.defaultStartTime : undefined;
+      const customEndTime = typeof params === "object" ? params.defaultEndTime : undefined;
 
       // Fetch assignment with module info
       const { data: assignment, error: assignmentError } = await supabase
@@ -615,9 +622,9 @@ export const useGenerateTrainingSessions = () => {
       const createdSessions: any[] = [];
       let firstError: any = null;
 
-      // Default training hours (9:00-17:00)
-      const defaultStartTime = "09:00:00";
-      const defaultEndTime = "17:00:00";
+      // Use custom times if provided, otherwise default (9:00-17:00)
+      const defaultStartTime = customStartTime || "09:00:00";
+      const defaultEndTime = customEndTime || "17:00:00";
 
       // Get existing sessions to avoid duplicates
       const { data: existingSessions, error: existingSessionsError } = await supabase
