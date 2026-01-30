@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MobileTapDebugOverlayProps {
@@ -14,19 +15,22 @@ interface MobileTapDebugOverlayProps {
  */
 export const MobileTapDebugOverlay = ({ lastTap }: MobileTapDebugOverlayProps) => {
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
   const [enabled, setEnabled] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setEnabled(localStorage.getItem('DEBUG_TAPS') === '1');
-    }
-  }, []);
+  const urlEnabled = useMemo(() => searchParams.get("debugTasks") === "1", [searchParams]);
 
-  if (!isMobile || !enabled || !lastTap) return null;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storageEnabled = localStorage.getItem("DEBUG_TAPS") === "1";
+    setEnabled(urlEnabled || storageEnabled);
+  }, [urlEnabled]);
+
+  if (!isMobile || !enabled) return null;
 
   return (
     <div className="fixed bottom-20 left-2 right-2 z-[100] bg-black/90 text-green-400 font-mono text-xs p-2 rounded shadow-lg pointer-events-none">
-      <div className="truncate">{lastTap}</div>
+      <div className="truncate">{lastTap || "(debugTasks enabled) tap a checkbox…"}</div>
     </div>
   );
 };

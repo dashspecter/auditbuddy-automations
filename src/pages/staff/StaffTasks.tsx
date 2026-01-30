@@ -13,6 +13,7 @@ import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileTapDebugOverlay, useTapDebug } from "@/components/staff/MobileTapDebugOverlay";
+import { toast } from "sonner";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -94,6 +95,23 @@ const StaffTasks = () => {
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const { lastTap, logTap } = useTapDebug();
+
+  const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
+
+  const resolveId = (id: string) => {
+    const match = id.match(
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+    );
+    return match ? match[1] : id;
+  };
+
+  const summarizeError = (err: unknown) => {
+    const anyErr = err as any;
+    const msg = anyErr?.message ? String(anyErr.message) : "Unknown error";
+    const status = anyErr?.status ? ` ${String(anyErr.status)}` : "";
+    const code = anyErr?.code ? ` ${String(anyErr.code)}` : "";
+    return `${msg}${status}${code}`.trim();
+  };
   
   // Show debug if ?debugTasks=1 query param or DEV toggle
   const debugFromUrl = searchParams.get("debugTasks") === "1";
@@ -176,9 +194,27 @@ const StaffTasks = () => {
     fetchDebugInfo();
   }, [user?.id, showDebug, debugFromUrl]);
 
-  const toggleTask = (taskId: string, currentStatus: string) => {
-    if (currentStatus !== 'completed') {
-      completeTask.mutate(taskId);
+  const completeTaskRow = async (task: any) => {
+    const resolved = resolveId(task.id);
+    logTap(`[mutate] sending id=${task.id} resolved=${resolved}`);
+
+    setOptimisticCompletedIds((prev) => {
+      const next = new Set(prev);
+      next.add(resolved);
+      return next;
+    });
+
+    try {
+      await completeTask.mutateAsync(task.id);
+      logTap(`[mutate success] resolved=${resolved}`);
+    } catch (e) {
+      setOptimisticCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(resolved);
+        return next;
+      });
+      logTap(`[mutate error] ${summarizeError(e)}`);
+      toast.error("Couldn’t complete task. Please try again.");
     }
   };
 
@@ -453,12 +489,20 @@ const StaffTasks = () => {
                           }}
                         >
                           <Checkbox 
-                            checked={task.status === 'completed'}
+                            onClick={() => logTap(`[cb click] ${task.id}`)}
+                            checked={
+                              optimisticCompletedIds.has(resolveId(task.id)) ||
+                              task.status === 'completed' ||
+                              !!(task as any).completed_at
+                            }
                             onCheckedChange={(checked) => {
-                              logTap(`[cb checked ${String(checked)}] ${task.id}`);
+                              const resolved = resolveId(task.id);
+                              logTap(
+                                `[cb checked ${String(checked)}] task=${task.id} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`
+                              );
                               if (completeTask.isPending) return;
                               if (checked !== true) return;
-                              toggleTask(task.id, task.status);
+                              void completeTaskRow(task);
                             }}
                             disabled={completeTask.isPending}
                             aria-label={`Mark "${task.title}" as ${task.status === 'completed' ? 'pending' : 'complete'}`}
