@@ -442,6 +442,7 @@ const StaffTasks = () => {
                               toggleTask(task.id, task.status);
                             }}
                             disabled={completeTask.isPending}
+                            aria-label={`Mark "${task.title}" as ${task.status === 'completed' ? 'pending' : 'complete'}`}
                           />
                         </div>
                         <div className="flex-1">

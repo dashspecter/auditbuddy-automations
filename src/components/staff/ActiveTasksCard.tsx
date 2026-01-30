@@ -125,6 +125,7 @@ export const ActiveTasksCard = () => {
                     }
                   }}
                   disabled={completeTask.isPending}
+                  aria-label={`Mark "${task.title}" as complete`}
                 />
               </div>
               <div className="flex-1 min-w-0">
