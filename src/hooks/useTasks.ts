@@ -647,22 +647,30 @@ export const useCompleteTask = () => {
       const resolvedId = resolveTaskId(taskId);
       
       // First, get the full task to check recurrence and other fields
-      const { data: existingTask } = await supabase
+      const { data: existingTask, error: existingTaskError } = await supabase
         .from("tasks")
         .select("*")
         .eq("id", resolvedId)
         .single();
+
+      // IMPORTANT: don't swallow backend/RLS errors — surface them to the UI
+      if (existingTaskError) throw existingTaskError;
 
       if (!existingTask) throw new Error("Task not found");
 
       // Get the employee record for the current user to set completed_by
       let employeeId: string | null = null;
       if (user?.id) {
-        const { data: employee } = await supabase
+        const { data: employee, error: employeeError } = await supabase
           .from("employees")
           .select("id")
           .eq("user_id", user.id)
           .single();
+
+        // Best-effort: completion can still proceed with completed_by=null
+        if (employeeError && import.meta.env.DEV) {
+          console.error("[useCompleteTask] Error fetching employee id:", employeeError);
+        }
         employeeId = employee?.id || null;
       }
 

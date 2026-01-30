@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { useCompleteTask } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
 import { MobileTapDebugOverlay, useTapDebug } from "./MobileTapDebugOverlay";
+import { toast } from "sonner";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -80,6 +81,49 @@ export const ActiveTasksCard = () => {
   const completeTask = useCompleteTask();
   const { lastTap, logTap } = useTapDebug();
 
+  const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
+
+  const resolveId = useMemo(() => {
+    return (id: string) => {
+      const match = id.match(
+        /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+      );
+      return match ? match[1] : id;
+    };
+  }, []);
+
+  const summarizeError = (err: unknown) => {
+    const anyErr = err as any;
+    const msg = anyErr?.message ? String(anyErr.message) : "Unknown error";
+    const status = anyErr?.status ? ` ${String(anyErr.status)}` : "";
+    const code = anyErr?.code ? ` ${String(anyErr.code)}` : "";
+    return `${msg}${status}${code}`.trim();
+  };
+
+  const handleComplete = async (task: any) => {
+    const resolved = resolveId(task.id);
+    logTap(`[mutate] sending id=${task.id} resolved=${resolved}`);
+
+    setOptimisticCompletedIds((prev) => {
+      const next = new Set(prev);
+      next.add(resolved);
+      return next;
+    });
+
+    try {
+      await completeTask.mutateAsync(task.id);
+      logTap(`[mutate success] resolved=${resolved}`);
+    } catch (e) {
+      setOptimisticCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(resolved);
+        return next;
+      });
+      logTap(`[mutate error] ${summarizeError(e)}`);
+      toast.error("Couldn’t complete task. Please try again.");
+    }
+  };
+
   // Show max 3 tasks
   const activeTasks = allActiveTasks.slice(0, 3);
 
@@ -110,7 +154,11 @@ export const ActiveTasksCard = () => {
             key={task.id} 
             className="p-4 border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent cursor-pointer hover:bg-accent/10 transition-colors"
             onPointerDown={() => logTap(`[row pointerdown] ${task.id}`)}
-            onClick={() => {
+            onClick={(e) => {
+              if ((e.target as HTMLElement)?.closest?.('[data-no-row-click="1"]')) {
+                logTap(`[row click ignored] ${task.id}`);
+                return;
+              }
               logTap(`[row click] ${task.id}`);
               navigate("/staff/tasks");
             }}
@@ -118,6 +166,7 @@ export const ActiveTasksCard = () => {
             <div className="flex items-start gap-3">
               {/* Mobile-friendly checkbox wrapper with elevated z-index and proper touch target */}
               <div 
+                data-no-row-click="1"
                 className="relative z-20 h-11 w-11 flex items-center justify-center touch-manipulation"
                 onPointerDownCapture={(e) => {
                   logTap(`[wrap pointerdown] ${task.id}`);
@@ -133,12 +182,16 @@ export const ActiveTasksCard = () => {
                 }}
               >
                 <Checkbox 
-                  checked={task.status === "completed"}
+                  onClick={() => logTap(`[cb click] ${task.id}`)}
+                  checked={optimisticCompletedIds.has(resolveId(task.id)) || task.status === "completed" || !!task.completed_at}
                   onCheckedChange={(checked) => {
-                    logTap(`[cb checked ${String(checked)}] ${task.id}`);
+                    const resolved = resolveId(task.id);
+                    logTap(
+                      `[cb checked ${String(checked)}] task=${task.id} resolved=${resolved} status=${task.status} completed_at=${task.completed_at ? "1" : "0"}`
+                    );
                     if (completeTask.isPending) return;
                     if (checked !== true) return;
-                    completeTask.mutate(task.id);
+                    void handleComplete(task);
                   }}
                   disabled={completeTask.isPending}
                   aria-label={`Mark "${task.title}" as complete`}
