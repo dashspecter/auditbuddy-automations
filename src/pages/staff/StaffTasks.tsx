@@ -12,7 +12,7 @@ import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-import { MobileTapDebugOverlay, useTapDebug } from "@/components/staff/MobileTapDebugOverlay";
+import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "@/components/staff/MobileTapDebugOverlay";
 import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
 import { toast } from "sonner";
 
@@ -96,6 +96,7 @@ const StaffTasks = () => {
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const { lastTap, logTap } = useTapDebug();
+  const isOnline = useNetworkStatus();
 
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
 
@@ -196,6 +197,13 @@ const StaffTasks = () => {
   }, [user?.id, showDebug, debugFromUrl]);
 
   const completeTaskRow = async (task: any, completionId: string) => {
+    // Network check before attempting mutation
+    if (!isOnline) {
+      logTap(`[offline blocked] task.id=${task.id}`);
+      toast.error("No internet. Can't complete right now.");
+      return;
+    }
+
     const resolved = resolveId(completionId);
     logTap(
       `[mutate] sending id=${completionId} from task.id=${task.id} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,

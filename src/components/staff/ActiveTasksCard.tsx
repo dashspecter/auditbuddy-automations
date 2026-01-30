@@ -7,7 +7,7 @@ import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
 import { useCompleteTask } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
-import { MobileTapDebugOverlay, useTapDebug } from "./MobileTapDebugOverlay";
+import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "./MobileTapDebugOverlay";
 import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
 import { toast } from "sonner";
 
@@ -80,6 +80,7 @@ export const ActiveTasksCard = () => {
   const { activeTasks: allActiveTasks } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
   const { lastTap, logTap } = useTapDebug();
+  const isOnline = useNetworkStatus();
 
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
 
@@ -101,6 +102,13 @@ export const ActiveTasksCard = () => {
   };
 
   const handleComplete = async (task: any) => {
+    // Network check before attempting mutation
+    if (!isOnline) {
+      logTap(`[offline blocked] task.id=${task.id}`);
+      toast.error("No internet. Can't complete right now.");
+      return;
+    }
+
     const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
     const resolved = resolveId(String(completionId));
     logTap(
