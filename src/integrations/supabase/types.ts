@@ -3187,6 +3187,42 @@ export type Database = {
           },
         ]
       }
+      employee_warning_views: {
+        Row: {
+          employee_id: string
+          id: string
+          seen_at: string
+          warning_id: string
+        }
+        Insert: {
+          employee_id: string
+          id?: string
+          seen_at?: string
+          warning_id: string
+        }
+        Update: {
+          employee_id?: string
+          id?: string
+          seen_at?: string
+          warning_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_warning_views_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_warning_views_warning_id_fkey"
+            columns: ["warning_id"]
+            isOneToOne: false
+            referencedRelation: "staff_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           annual_vacation_days: number | null

@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy } from "lucide-react";
+import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { useMyWarningsStats } from "@/hooks/useMyWarnings";
 
 const StaffProfile = () => {
   const { user } = useAuth();
@@ -23,6 +24,9 @@ const StaffProfile = () => {
   const myPerformanceScore = employee && performanceScores 
     ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
     : null;
+
+  // Get warnings stats
+  const { stats: warningsStats } = useMyWarningsStats();
 
   useEffect(() => {
     if (user) loadData();
@@ -140,6 +144,7 @@ const StaffProfile = () => {
   // Menu items - only navigate to pages that exist
   const menuItems = [
     ...(!hideEarnings ? [{ icon: Wallet, label: "My Earnings", path: "/staff/earnings" }] : []),
+    { icon: AlertTriangle, label: "My Warnings", path: "/staff/warnings", badge: warningsStats.unseen > 0 ? warningsStats.unseen : undefined },
     { icon: Calendar, label: "My Availability", action: () => toast.info("Availability settings coming soon") },
     { icon: User, label: "Personal Information", action: () => toast.info("Personal information editing coming soon") },
     { icon: MapPin, label: "Emergency Contacts", action: () => toast.info("Emergency contacts editing coming soon") },
@@ -252,6 +257,11 @@ const StaffProfile = () => {
                 <div className="flex items-center gap-3">
                   <item.icon className="h-5 w-5 text-muted-foreground" />
                   <span>{item.label}</span>
+                  {'badge' in item && item.badge && (
+                    <span className="bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5 font-medium">
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>

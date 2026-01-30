@@ -112,6 +112,7 @@ import StaffLocationAuditDetail from "./pages/staff/StaffLocationAuditDetail";
 import StaffEmployeeAudit from "./pages/staff/StaffEmployeeAudit";
 import StaffStaffAudit from "./pages/staff/StaffStaffAudit";
 import StaffPerformanceReview from "./pages/staff/StaffPerformanceReview";
+import StaffWarnings from "./pages/staff/StaffWarnings";
 import TeamView from "./pages/staff/TeamView";
 import Tasks from "./pages/Tasks";
 import TaskNew from "./pages/TaskNew";
@@ -215,6 +216,7 @@ const App = () => (
                       <Route path="/staff/employee-audit" element={<ProtectedRoute><StaffEmployeeAudit /></ProtectedRoute>} />
                       <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
                       <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
+                      <Route path="/staff/warnings" element={<ProtectedRoute><StaffWarnings /></ProtectedRoute>} />
                       <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
                       {/* Legacy route - redirect to new path */}
                       <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
