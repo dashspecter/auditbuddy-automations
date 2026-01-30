@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
-import { useCompleteTask, Task } from "@/hooks/useTasks";
+import { useCompleteTask } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
+import { MobileTapDebugOverlay, useTapDebug } from "./MobileTapDebugOverlay";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -77,6 +78,7 @@ export const ActiveTasksCard = () => {
   const navigate = useNavigate();
   const { activeTasks: allActiveTasks } = useMyTaskOccurrences();
   const completeTask = useCompleteTask();
+  const { lastTap, logTap } = useTapDebug();
 
   // Show max 3 tasks
   const activeTasks = allActiveTasks.slice(0, 3);
@@ -85,10 +87,10 @@ export const ActiveTasksCard = () => {
     return null;
   }
 
-  // Removed unused handleComplete - now handled inline in the checkbox wrapper
-
   return (
     <div>
+      <MobileTapDebugOverlay lastTap={lastTap} />
+      
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
@@ -107,33 +109,36 @@ export const ActiveTasksCard = () => {
           <Card 
             key={task.id} 
             className="p-4 border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent cursor-pointer hover:bg-accent/10 transition-colors"
-             onPointerDown={() => console.log("[row] pointerdown", task.id)}
-             onClick={() => {
-               console.log("[row] click", task.id);
-               navigate("/staff/tasks");
-             }}
+            onPointerDown={() => logTap(`[row pointerdown] ${task.id}`)}
+            onClick={() => {
+              logTap(`[row click] ${task.id}`);
+              navigate("/staff/tasks");
+            }}
           >
             <div className="flex items-start gap-3">
-              {/* Mobile-friendly checkbox wrapper with proper touch target */}
+              {/* Mobile-friendly checkbox wrapper with elevated z-index and proper touch target */}
               <div 
-                 className="relative z-10 h-11 w-11 flex items-center justify-center touch-manipulation"
-                 onPointerDownCapture={(e) => {
-                   console.log("[wrap] pointerdown", task.id);
-                   e.stopPropagation();
-                 }}
-                 onClickCapture={(e) => {
-                   console.log("[wrap] click", task.id);
-                   e.stopPropagation();
-                 }}
+                className="relative z-20 h-11 w-11 flex items-center justify-center touch-manipulation"
+                onPointerDownCapture={(e) => {
+                  logTap(`[wrap pointerdown] ${task.id}`);
+                  e.stopPropagation();
+                }}
+                onClickCapture={(e) => {
+                  logTap(`[wrap click] ${task.id}`);
+                  e.stopPropagation();
+                }}
+                onTouchEndCapture={(e) => {
+                  // Extra touch handler for iOS reliability
+                  e.stopPropagation();
+                }}
               >
                 <Checkbox 
-                   checked={task.status === "completed"}
-                   onClick={() => console.log("[cb] click", task.id)}
+                  checked={task.status === "completed"}
                   onCheckedChange={(checked) => {
-                     console.log("[cb] checked", task.id, checked);
+                    logTap(`[cb checked ${String(checked)}] ${task.id}`);
                     if (completeTask.isPending) return;
-                     if (checked !== true) return;
-                     completeTask.mutate(task.id);
+                    if (checked !== true) return;
+                    completeTask.mutate(task.id);
                   }}
                   disabled={completeTask.isPending}
                   aria-label={`Mark "${task.title}" as complete`}
@@ -179,3 +184,4 @@ export const ActiveTasksCard = () => {
     </div>
   );
 };
+
