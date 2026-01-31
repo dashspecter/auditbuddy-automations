@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
   GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
-  AlertTriangle,
+  AlertTriangle, Trash2,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -216,6 +216,7 @@ export const navigationItems: NavItem[] = [
       { id: "reports-location", title: "Location Performance", url: "/reports?tab=location", companyPermission: 'view_reports' },
       { id: "reports-employee", title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' },
       { id: "reports-vouchers", title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' },
+      { id: "reports-waste", title: "Wastage", url: "/reports/waste", companyPermission: 'view_reports' },
     ]
   },
   { 
@@ -291,6 +292,24 @@ export const navigationItems: NavItem[] = [
       { id: "operations-daily", title: "Daily Ops", url: "/operations/daily" },
       { id: "operations-maintenance", title: "Maintenance Tasks", url: "/operations/maintenance" },
       { id: "operations-sla", title: "SLA Management", url: "/operations/slas" },
+      { id: "operations-waste", title: "Wastage", url: "/waste/add" },
+    ]
+  },
+  { 
+    id: "wastage",
+    title: "Wastage", 
+    url: "/waste", 
+    icon: Trash2,
+    module: "wastage",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports',
+    subItems: [
+      { id: "waste-add", title: "Add Entry", url: "/waste/add" },
+      { id: "waste-entries", title: "My Entries", url: "/waste/entries" },
+      { id: "waste-reports", title: "Reports", url: "/reports/waste", companyPermission: 'view_reports' },
+      { id: "waste-products", title: "Products", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
+      { id: "waste-reasons", title: "Reasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
+      { id: "waste-settings", title: "Settings", url: "/admin/waste/settings", allowedRoles: ['admin', 'manager'] },
     ]
   },
 ];
