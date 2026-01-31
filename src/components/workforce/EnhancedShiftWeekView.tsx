@@ -18,11 +18,15 @@ import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { LocationScheduleDialog } from "./LocationScheduleDialog";
 import { AddTimeOffDialog } from "./AddTimeOffDialog";
 import { SchedulePresenceIndicator } from "./SchedulePresenceIndicator";
+import { SchedulePeriodBanner } from "./SchedulePeriodBanner";
+import { ChangeRequestDialog } from "./ChangeRequestDialog";
 import { TrainingShiftCard } from "./TrainingShiftCard";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
 import { useSchedulePresence } from "@/hooks/useSchedulePresence";
 import { useRealtimeShifts } from "@/hooks/useRealtimeShifts";
+import { useScheduleGovernanceEnabled, useSchedulePeriod, useSchedulePeriodsForWeek } from "@/hooks/useScheduleGovernance";
+import { useCompany } from "@/hooks/useCompany";
 import {
   Select,
   SelectContent,
@@ -64,8 +68,20 @@ export const EnhancedShiftWeekView = () => {
   const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
   const [timeOffToDelete, setTimeOffToDelete] = useState<{ id: string; employeeName: string } | null>(null);
   const [shiftTypeFilter, setShiftTypeFilter] = useState<"all" | "regular" | "training">("all");
+  const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
+  const [pendingChangeRequest, setPendingChangeRequest] = useState<{
+    changeType: 'add' | 'edit' | 'delete';
+    targetShiftId?: string;
+    payloadBefore?: Record<string, any>;
+    payloadAfter: Record<string, any>;
+    shiftSummary?: string;
+  } | null>(null);
   
   const deleteTimeOff = useDeleteTimeOffRequest();
+  
+  // Schedule governance hooks
+  const { data: company } = useCompany();
+  const isGovernanceEnabled = useScheduleGovernanceEnabled();
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -108,6 +124,25 @@ export const EnhancedShiftWeekView = () => {
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
+
+  // Schedule governance - get period for selected location (or all periods for aggregate view)
+  const { data: schedulePeriod, isLoading: periodLoading } = useSchedulePeriod(
+    selectedLocation !== "all" ? selectedLocation : null,
+    currentWeekStart
+  );
+  const { data: allPeriods = [] } = useSchedulePeriodsForWeek(currentWeekStart);
+  
+  // Determine aggregate period state when "all locations" is selected
+  const aggregatePeriodState = useMemo(() => {
+    if (selectedLocation !== "all" || allPeriods.length === 0) return null;
+    const states = new Set(allPeriods.map(p => p.state));
+    if (states.size === 1) return Array.from(states)[0];
+    return 'mixed'; // Different states across locations
+  }, [selectedLocation, allPeriods]);
+  
+  // Check if the current period is locked (for mutation gating)
+  const isPeriodLocked = schedulePeriod?.state === 'locked';
+  const selectedLocationName = locations.find(l => l.id === selectedLocation)?.name;
 
   // Get selected location's coordinates for weather
   const selectedLocationData = selectedLocation !== "all" 
@@ -379,6 +414,29 @@ export const EnhancedShiftWeekView = () => {
 
   return (
     <div className="space-y-4">
+      {/* Schedule Governance Banner - only show when governance is enabled */}
+      {isGovernanceEnabled && selectedLocation !== "all" && schedulePeriod && (
+        <SchedulePeriodBanner
+          period={schedulePeriod}
+          isLoading={periodLoading}
+          locationName={selectedLocationName}
+          onViewChangeRequests={() => {
+            // Navigate to pending approvals or open a dialog
+            // For now, we'll just log - this can be wired to the Pending Approvals dialog
+          }}
+        />
+      )}
+      
+      {/* Aggregate state indicator when "All Locations" is selected */}
+      {isGovernanceEnabled && selectedLocation === "all" && aggregatePeriodState && (
+        <div className="rounded-lg border px-4 py-2 bg-muted/50 text-sm text-muted-foreground flex items-center gap-2">
+          <Info className="h-4 w-4" />
+          {aggregatePeriodState === 'mixed' 
+            ? 'Schedule periods have different states across locations. Select a specific location to manage.'
+            : `All locations are in ${aggregatePeriodState} state.`
+          }
+        </div>
+      )}
       {/* Header with week navigation */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2 flex-wrap">
@@ -1141,6 +1199,25 @@ export const EnhancedShiftWeekView = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Request Dialog for locked schedule edits */}
+      {pendingChangeRequest && company?.id && selectedLocation !== "all" && schedulePeriod && (
+        <ChangeRequestDialog
+          open={changeRequestDialogOpen}
+          onOpenChange={(open) => {
+            setChangeRequestDialogOpen(open);
+            if (!open) setPendingChangeRequest(null);
+          }}
+          changeType={pendingChangeRequest.changeType}
+          companyId={company.id}
+          locationId={selectedLocation}
+          periodId={schedulePeriod.id}
+          targetShiftId={pendingChangeRequest.targetShiftId}
+          payloadBefore={pendingChangeRequest.payloadBefore}
+          payloadAfter={pendingChangeRequest.payloadAfter}
+          shiftSummary={pendingChangeRequest.shiftSummary}
+        />
+      )}
     </div>
   );
 };

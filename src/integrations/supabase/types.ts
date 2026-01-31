@@ -8789,6 +8789,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_workforce_exception: {
+        Args: {
+          p_attendance_id?: string
+          p_company_id: string
+          p_employee_id: string
+          p_exception_type: string
+          p_location_id: string
+          p_metadata?: Json
+          p_note?: string
+          p_reason_code?: string
+          p_shift_date?: string
+          p_shift_id?: string
+        }
+        Returns: string
+      }
       employee_has_time_off: {
         Args: { _check_date: string; _employee_id: string }
         Returns: boolean
@@ -8804,22 +8819,40 @@ export type Database = {
         }
         Returns: string
       }
-      find_scheduled_shift_for_clockin: {
-        Args: {
-          p_check_time: string
-          p_employee_id: string
-          p_grace_minutes?: number
-          p_location_id: string
-        }
-        Returns: {
-          end_time: string
-          is_late: boolean
-          late_minutes: number
-          shift_date: string
-          shift_id: string
-          start_time: string
-        }[]
-      }
+      find_scheduled_shift_for_clockin:
+        | {
+            Args: {
+              p_check_time: string
+              p_company_id: string
+              p_employee_id: string
+              p_grace_minutes?: number
+              p_location_id: string
+            }
+            Returns: {
+              end_time: string
+              is_late: boolean
+              late_minutes: number
+              shift_date: string
+              shift_id: string
+              start_time: string
+            }[]
+          }
+        | {
+            Args: {
+              p_check_time: string
+              p_employee_id: string
+              p_grace_minutes?: number
+              p_location_id: string
+            }
+            Returns: {
+              end_time: string
+              is_late: boolean
+              late_minutes: number
+              shift_date: string
+              shift_id: string
+              start_time: string
+            }[]
+          }
       generate_audit_draft_key: {
         Args: {
           p_company_id: string
@@ -8835,6 +8868,7 @@ export type Database = {
         Returns: string
       }
       generate_short_code: { Args: never; Returns: string }
+      get_company_timezone: { Args: { p_company_id: string }; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
       get_kiosk_attendance_logs: {
         Args: {
