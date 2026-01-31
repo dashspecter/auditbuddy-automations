@@ -19,6 +19,17 @@ export default function AddWasteEntry() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: company } = useCompany();
+
+  // Safe back handler - fallback to My Entries if no history
+  const handleBack = () => {
+    // Check if we have actual navigation history (more than the current page)
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      // Fallback to My Entries list
+      navigate('/staff/waste', { replace: true });
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: products, isLoading: productsLoading } = useWasteProducts();
@@ -160,7 +171,7 @@ export default function AddWasteEntry() {
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold">Add Waste Entry</h1>
