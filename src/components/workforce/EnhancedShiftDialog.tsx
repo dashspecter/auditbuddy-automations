@@ -539,6 +539,12 @@ export const EnhancedShiftDialog = ({
       // Regular mode: Create one shift with multiple assignments
       // CRITICAL: Check if we should route through change request (locked period) BEFORE any mutation
       if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+        // Block "apply to days" in locked mode since each day would need separate approval
+        if (applyToDays.length > 0) {
+          toast.error("Cannot apply to multiple days when schedule is locked. Please add each day individually for approval.");
+          return;
+        }
+        
         toast.info("Schedule is locked. Your change will require approval.");
         onLockedChangeRequest({
           changeType: 'add',
@@ -571,6 +577,7 @@ export const EnhancedShiftDialog = ({
       }
       
       // If apply to multiple days is selected, create shifts for those days too
+      // (Only runs when NOT locked - governance check above exits early)
       if (applyToDays.length > 0) {
         const currentDate = new Date(formData.shift_date);
         const currentDayOfWeek = (currentDate.getDay() + 6) % 7;
