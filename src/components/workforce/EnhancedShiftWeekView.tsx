@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2, GraduationCap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2, GraduationCap, Lock, ClipboardCheck, AlertCircle } from "lucide-react";
 import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests, useDeleteTimeOffRequest } from "@/hooks/useTimeOffRequests";
@@ -26,7 +26,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
 import { useSchedulePresence } from "@/hooks/useSchedulePresence";
 import { useRealtimeShifts } from "@/hooks/useRealtimeShifts";
-import { useScheduleGovernanceEnabled, useSchedulePeriod, useSchedulePeriodsForWeek } from "@/hooks/useScheduleGovernance";
+import { useScheduleGovernanceEnabled, useSchedulePeriod, useSchedulePeriodsForWeek, usePendingChangeRequests, useWorkforceExceptions } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
 import {
   Select,
@@ -155,6 +155,20 @@ export const EnhancedShiftWeekView = () => {
     if (states.size === 1) return Array.from(states)[0];
     return 'mixed'; // Different states across locations
   }, [selectedLocation, allPeriods]);
+  
+  // Pending governance items for combined count (only when governance enabled)
+  const { data: pendingChangeRequests = [] } = usePendingChangeRequests(
+    selectedLocation !== "all" ? schedulePeriod?.id : undefined
+  );
+  const { data: pendingExceptions = [] } = useWorkforceExceptions({
+    status: 'pending',
+    locationId: selectedLocation !== "all" ? selectedLocation : undefined
+  });
+  
+  // Combined governance approvals count
+  const governanceApprovalsCount = isGovernanceEnabled 
+    ? pendingChangeRequests.length + pendingExceptions.length 
+    : 0;
   
   // Check if the current period is locked (for mutation gating)
   const isPeriodLocked = schedulePeriod?.state === 'locked';
@@ -553,6 +567,38 @@ export const EnhancedShiftWeekView = () => {
             </TooltipProvider>
           )}
 
+          {/* Pending Approvals button - visible when governance enabled */}
+          {isGovernanceEnabled && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      setPendingApprovalsFilter({ 
+                        periodId: schedulePeriod?.id, 
+                        locationId: selectedLocation !== "all" ? selectedLocation : undefined 
+                      });
+                      setPendingApprovalsOpen(true);
+                    }}
+                  >
+                    <ClipboardCheck className="h-4 w-4" />
+                    <span className="hidden sm:inline">Approvals</span>
+                    {governanceApprovalsCount > 0 && (
+                      <Badge variant="destructive" className="h-5 px-1.5">
+                        {governanceApprovalsCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View pending schedule changes and exceptions</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           <Button 
             variant="outline" 
             onClick={() => {
@@ -572,6 +618,16 @@ export const EnhancedShiftWeekView = () => {
           </Button>
         </div>
       </div>
+      
+      {/* Locked schedule notice - show when period is locked */}
+      {isGovernanceEnabled && isPeriodLocked && selectedLocation !== "all" && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 text-sm">
+          <Lock className="h-4 w-4 text-amber-600" />
+          <span className="text-amber-800 dark:text-amber-200">
+            <strong>Schedule locked</strong> — Edits will create change requests for manager approval
+          </span>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 px-3 py-2 bg-muted/50 rounded-lg border text-xs">

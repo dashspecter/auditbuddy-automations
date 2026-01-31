@@ -131,7 +131,7 @@ export const SchedulePeriodBanner = ({
               <StateIcon className={`h-5 w-5 ${stateInfo.color}`} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium">Schedule Status:</span>
                 <Badge variant={stateInfo.variant}>{stateInfo.label}</Badge>
                 {locationName && (
@@ -141,6 +141,22 @@ export const SchedulePeriodBanner = ({
               <p className="text-sm text-muted-foreground mt-0.5">
                 {stateInfo.description}
               </p>
+              {/* Timestamps for published/locked states */}
+              {period?.state === 'published' && period.published_at && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Published {format(new Date(period.published_at), 'MMM d, h:mm a')}
+                </p>
+              )}
+              {period?.state === 'locked' && (
+                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  {period.published_at && (
+                    <p>Published {format(new Date(period.published_at), 'MMM d, h:mm a')}</p>
+                  )}
+                  {period.locked_at && (
+                    <p>Locked {format(new Date(period.locked_at), 'MMM d, h:mm a')}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -218,9 +234,7 @@ export const SchedulePeriodBanner = ({
             {period?.state === 'locked' && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>
-                  Locked {period.locked_at && format(new Date(period.locked_at), 'MMM d, h:mm a')}
-                </span>
+                <span>Finalized</span>
               </div>
             )}
           </div>
