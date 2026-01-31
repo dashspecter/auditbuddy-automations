@@ -1,4 +1,8 @@
-// Legacy: This component is unused. Active scheduling uses EnhancedShiftWeekView.
+/**
+ * LEGACY / UNUSED
+ * ShiftWeekView is not used in active routes. The app uses EnhancedShiftWeekView instead.
+ * This file remains only for reference. Do not reintroduce without adding schedule governance gating.
+ */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
