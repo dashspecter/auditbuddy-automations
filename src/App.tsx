@@ -162,6 +162,13 @@ import AttendanceAlerts from "./pages/workforce/AttendanceAlerts";
 import SchedulingInsights from "./pages/workforce/SchedulingInsights";
 import Warnings from "./pages/workforce/Warnings";
 import StaffDocuments from "./pages/staff/StaffDocuments";
+import AddWasteEntry from "./pages/staff/AddWasteEntry";
+import MyWasteEntries from "./pages/staff/MyWasteEntries";
+import WasteProducts from "./pages/admin/waste/WasteProducts";
+import WasteReasons from "./pages/admin/waste/WasteReasons";
+import WasteSettings from "./pages/admin/waste/WasteSettings";
+import WasteReports from "./pages/reports/WasteReports";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -218,6 +225,8 @@ const App = () => (
                       <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
                       <Route path="/staff/warnings" element={<ProtectedRoute><StaffWarnings /></ProtectedRoute>} />
                       <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
+                      <Route path="/staff/waste" element={<ProtectedRoute><MyWasteEntries /></ProtectedRoute>} />
+                      <Route path="/staff/waste/new" element={<ProtectedRoute><AddWasteEntry /></ProtectedRoute>} />
                       {/* Legacy route - redirect to new path */}
                       <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
                       <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />
@@ -262,6 +271,12 @@ const App = () => (
                       <Route path="/audit/:id/photos" element={<ProtectedRoute><PhotoGalleryPage /></ProtectedRoute>} />
                       <Route path="/documents" element={<ManagerRoute requiredPermission="manage_audits"><DocumentManagement /></ManagerRoute>} />
                       <Route path="/documents/:id" element={<ManagerRoute requiredPermission="manage_audits"><DocumentDetail /></ManagerRoute>} />
+                      {/* Waste Module Admin Routes */}
+                      <Route path="/admin/waste/products" element={<ManagerRoute requiredPermission="manage_audits"><WasteProducts /></ManagerRoute>} />
+                      <Route path="/admin/waste/reasons" element={<ManagerRoute requiredPermission="manage_audits"><WasteReasons /></ManagerRoute>} />
+                      <Route path="/admin/waste/settings" element={<ManagerRoute requiredPermission="manage_audits"><WasteSettings /></ManagerRoute>} />
+                      {/* Waste Reports */}
+                      <Route path="/reports/waste" element={<ManagerRoute requiredPermission="view_reports"><WasteReports /></ManagerRoute>} />
                       <Route path="/test-creation" element={<ManagerRoute requiredPermission="manage_audits"><TestCreation /></ManagerRoute>} />
                       <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_audits"><TestManagement /></ManagerRoute>} />
                       <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_audits"><TestEdit /></ManagerRoute>} />

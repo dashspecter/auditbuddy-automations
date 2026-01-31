@@ -8053,6 +8053,294 @@ export type Database = {
           },
         ]
       }
+      waste_daily_rollups: {
+        Row: {
+          company_id: string
+          day: string
+          entry_count: number
+          location_id: string
+          total_cost: number
+          total_weight_g: number
+        }
+        Insert: {
+          company_id: string
+          day: string
+          entry_count?: number
+          location_id: string
+          total_cost?: number
+          total_weight_g?: number
+        }
+        Update: {
+          company_id?: string
+          day?: string
+          entry_count?: number
+          location_id?: string
+          total_cost?: number
+          total_weight_g?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_daily_rollups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_daily_rollups_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waste_entries: {
+        Row: {
+          company_id: string
+          cost_total: number
+          created_at: string
+          created_by: string
+          id: string
+          location_id: string
+          notes: string | null
+          occurred_at: string
+          photo_path: string | null
+          status: string
+          unit_cost_used: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          waste_product_id: string
+          waste_reason_id: string | null
+          weight_g: number
+        }
+        Insert: {
+          company_id: string
+          cost_total?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          occurred_at?: string
+          photo_path?: string | null
+          status?: string
+          unit_cost_used?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waste_product_id: string
+          waste_reason_id?: string | null
+          weight_g: number
+        }
+        Update: {
+          company_id?: string
+          cost_total?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          occurred_at?: string
+          photo_path?: string | null
+          status?: string
+          unit_cost_used?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waste_product_id?: string
+          waste_reason_id?: string | null
+          weight_g?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_entries_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_entries_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_entries_waste_product_id_fkey"
+            columns: ["waste_product_id"]
+            isOneToOne: false
+            referencedRelation: "waste_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_entries_waste_reason_id_fkey"
+            columns: ["waste_reason_id"]
+            isOneToOne: false
+            referencedRelation: "waste_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waste_products: {
+        Row: {
+          active: boolean
+          category: string | null
+          company_id: string
+          cost_model: string
+          created_at: string
+          id: string
+          name: string
+          photo_hint_url: string | null
+          unit_cost: number
+          uom: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          company_id: string
+          cost_model?: string
+          created_at?: string
+          id?: string
+          name: string
+          photo_hint_url?: string | null
+          unit_cost?: number
+          uom?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          company_id?: string
+          cost_model?: string
+          created_at?: string
+          id?: string
+          name?: string
+          photo_hint_url?: string | null
+          unit_cost?: number
+          uom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waste_reasons: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_reasons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waste_thresholds: {
+        Row: {
+          active: boolean
+          category: string | null
+          company_id: string
+          created_at: string
+          id: string
+          location_id: string | null
+          threshold_type: string
+          threshold_value: number
+          waste_product_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          threshold_type?: string
+          threshold_value?: number
+          waste_product_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          threshold_type?: string
+          threshold_value?: number
+          waste_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_thresholds_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_thresholds_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_thresholds_waste_product_id_fkey"
+            columns: ["waste_product_id"]
+            isOneToOne: false
+            referencedRelation: "waste_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_logs: {
         Row: {
           company_id: string
@@ -8245,6 +8533,19 @@ export type Database = {
         Returns: string
       }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
+      get_waste_report: {
+        Args: {
+          p_category?: string
+          p_company_id: string
+          p_from?: string
+          p_location_ids?: string[]
+          p_product_id?: string
+          p_reason_id?: string
+          p_to?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       has_company_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["company_permission"]
