@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo } from "react";
-import { ShiftDialog } from "@/components/workforce/ShiftDialog";
+import { EnhancedShiftDialog, LockedChangeRequestPayload } from "@/components/workforce/EnhancedShiftDialog";
+import { ChangeRequestDialog } from "@/components/workforce/ChangeRequestDialog";
 import { useShifts } from "@/hooks/useShifts";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +17,9 @@ import { usePendingApprovals } from "@/hooks/useShiftAssignments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScheduleGovernanceEnabled, useSchedulePeriod } from "@/hooks/useScheduleGovernance";
+import { useCompany } from "@/hooks/useCompany";
+import { startOfWeek, format } from "date-fns";
 
 const Shifts = () => {
   const { t } = useTranslation();
@@ -25,14 +29,31 @@ const Shifts = () => {
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [view, setView] = useState<"day" | "week">("week");
   const [editingShift, setEditingShift] = useState<any>(null);
+  const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
+  const [pendingChangeRequest, setPendingChangeRequest] = useState<LockedChangeRequestPayload | null>(null);
   const isMobile = useIsMobile();
   
+  // Data hooks - must come before governance location lookup
   const dateStr = date ? date.toISOString().split('T')[0] : "";
   const { data: shifts = [], isLoading } = useShifts(undefined, dateStr, dateStr);
   const { data: pendingApprovals } = usePendingApprovals();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useLocations();
   const pendingCount = pendingApprovals?.length || 0;
+  
+  // Governance hooks
+  const { data: company } = useCompany();
+  const isGovernanceEnabled = useScheduleGovernanceEnabled();
+  
+  // Get period for the selected date's week - we need to know which location for governance
+  // In day view, we don't have a single location selected, so governance is limited
+  // For safety, we'll check if the editing shift's location's period is locked
+  const currentWeekStart = date ? startOfWeek(date, { weekStartsOn: 1 }) : startOfWeek(new Date(), { weekStartsOn: 1 });
+  
+  // For governance, use the editing shift's location or first location as fallback
+  const governanceLocationId = editingShift?.location_id || (locations.length > 0 ? locations[0].id : null);
+  const { data: schedulePeriod } = useSchedulePeriod(governanceLocationId, currentWeekStart);
+  const isPeriodLocked = schedulePeriod?.state === 'locked';
 
   // Group shifts by location
   const shiftsByLocation = useMemo(() => {
@@ -325,7 +346,7 @@ const Shifts = () => {
         </div>
       )}
       
-      <ShiftDialog
+      <EnhancedShiftDialog
         open={shiftDialogOpen} 
         onOpenChange={(open) => {
           setShiftDialogOpen(open);
@@ -333,7 +354,32 @@ const Shifts = () => {
         }}
         defaultDate={date}
         shift={editingShift}
+        isPeriodLocked={isPeriodLocked}
+        isGovernanceEnabled={isGovernanceEnabled}
+        onLockedChangeRequest={(payload) => {
+          setPendingChangeRequest(payload);
+          setChangeRequestDialogOpen(true);
+        }}
       />
+
+      {/* Change Request Dialog for governance */}
+      {pendingChangeRequest && company?.id && governanceLocationId && schedulePeriod && (
+        <ChangeRequestDialog
+          open={changeRequestDialogOpen}
+          onOpenChange={(open) => {
+            setChangeRequestDialogOpen(open);
+            if (!open) setPendingChangeRequest(null);
+          }}
+          changeType={pendingChangeRequest.changeType}
+          companyId={company.id}
+          locationId={governanceLocationId}
+          periodId={schedulePeriod.id}
+          targetShiftId={pendingChangeRequest.targetShiftId}
+          payloadBefore={pendingChangeRequest.payloadBefore}
+          payloadAfter={pendingChangeRequest.payloadAfter}
+          shiftSummary={pendingChangeRequest.shiftSummary}
+        />
+      )}
 
       <PendingApprovalsDialog 
         open={pendingDialogOpen}
