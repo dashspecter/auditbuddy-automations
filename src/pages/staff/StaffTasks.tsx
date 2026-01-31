@@ -13,7 +13,7 @@ import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "@/components/staff/MobileTapDebugOverlay";
-import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
+import { MobileTaskCard } from "@/components/staff/MobileTaskCard";
 import { toast } from "sonner";
 
 // Countdown timer component
@@ -470,102 +470,79 @@ const StaffTasks = () => {
               {activePendingTasks.map((task) => {
                 const isExpanded = expandedTaskId === task.id;
                 const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+                const completionId = String(
+                  (task as any).task_occurrence_id ??
+                    (task as any).occurrence_id ??
+                    (task as any).task_id ??
+                    task.id,
+                );
+                const resolved = resolveId(completionId);
+                const serverChecked =
+                  task.status === "completed" || !!(task as any).completed_at || (task as any).is_completed === true;
+                const checked = optimisticCompletedIds.has(resolved) || serverChecked;
                 
                 return (
-                  <Card 
-                    key={task.id} 
-                    className="overflow-hidden"
+                  <MobileTaskCard
+                    key={task.id}
+                    taskId={task.id}
+                    checked={checked}
+                    disabled={completeTask.isPending || serverChecked}
+                    onComplete={() => {
+                      logTap(
+                        `[box tap] id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
+                      );
+                      if (completeTask.isPending) return;
+                      if (serverChecked) return;
+                      void completeTaskRow(task, completionId);
+                    }}
+                    onDetailsClick={() => toggleExpand(task.id)}
+                    logTap={logTap}
                   >
-                    <div 
-                      className="p-4 cursor-pointer"
-                      onPointerDown={() => logTap(`[row pointerdown] ${task.id}`)}
-                       onClick={(e) => {
-                         if ((e.target as HTMLElement)?.closest?.('[data-no-row-click="1"]')) {
-                           logTap(`[row click ignored] ${task.id}`);
-                           return;
-                         }
-                         logTap(`[row click] ${task.id}`);
-                         toggleExpand(task.id);
-                       }}
-                    >
-                      <div className="flex items-start gap-3">
-                         {(() => {
-                           const completionId = String(
-                             (task as any).task_occurrence_id ??
-                               (task as any).occurrence_id ??
-                               (task as any).task_id ??
-                               task.id,
-                           );
-                           const resolved = resolveId(completionId);
-                           const serverChecked =
-                             task.status === "completed" || !!(task as any).completed_at || (task as any).is_completed === true;
-                           const checked = optimisticCompletedIds.has(resolved) || serverChecked;
-
-                           return (
-                             <TaskCompleteButton
-                               checked={checked}
-                               disabled={completeTask.isPending || serverChecked}
-                               ariaLabel={`Mark "${task.title}" as complete`}
-                               onPress={() => {
-                                 logTap(
-                                   `[box tap] id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
-                                 );
-                                 if (completeTask.isPending) return;
-                                 if (serverChecked) return;
-                                 void completeTaskRow(task, completionId);
-                               }}
-                             />
-                           );
-                         })()}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{task.title}</h3>
-                              {isRecurring && (
-                                <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={priorityColor(task.priority) as any} className="text-xs">
-                                {task.priority}
-                              </Badge>
-                              {(task as any).visibility_reason === "missed_after_shift" && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Missed
-                                </Badge>
-                              )}
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                          </div>
-                          {task.description && !isExpanded && (
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{task.description}</p>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{task.title}</h3>
+                          {isRecurring && (
+                            <RefreshCw className="h-3.5 w-3.5 text-primary" />
                           )}
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            {task.start_at && task.duration_minutes && (
-                              <CountdownTimer 
-                                startAt={task.start_at} 
-                                durationMinutes={task.duration_minutes} 
-                              />
-                            )}
-                            {task.location?.name && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{task.location.name}</span>
-                              </div>
-                            )}
-                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={priorityColor(task.priority) as any} className="text-xs">
+                            {task.priority}
+                          </Badge>
+                          {(task as any).visibility_reason === "missed_after_shift" && (
+                            <Badge variant="destructive" className="text-xs">
+                              Missed
+                            </Badge>
+                          )}
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Expanded Details */}
-                    {isExpanded && (
-                      <div className="px-4 pb-4 pt-0 border-t bg-muted/30">
-                        <div className="pt-3 space-y-3">
+                      {task.description && !isExpanded && (
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{task.description}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {task.start_at && task.duration_minutes && (
+                          <CountdownTimer 
+                            startAt={task.start_at} 
+                            durationMinutes={task.duration_minutes} 
+                          />
+                        )}
+                        {task.location?.name && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>{task.location.name}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="mt-3 pt-3 border-t space-y-3">
                           {task.description && (
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">{t('tasks.staff.description')}</p>
@@ -633,9 +610,9 @@ const StaffTasks = () => {
                             </div>
                           )}
                         </div>
-                      </div>
-                    )}
-                  </Card>
+                      )}
+                    </div>
+                  </MobileTaskCard>
                 );
               })}
             </div>
