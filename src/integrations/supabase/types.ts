@@ -8600,6 +8600,10 @@ export type Database = {
         Returns: string
       }
       update_overdue_interventions: { Args: never; Returns: undefined }
+      user_has_location_access: {
+        Args: { _location_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "checker" | "manager" | "hr"

@@ -22,7 +22,7 @@ import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, Was
 import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -36,6 +36,7 @@ const COLORS = [
 
 export default function WasteReports() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState<Date>(subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date>(new Date());
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -64,7 +65,7 @@ export default function WasteReports() {
 
   const handleExportCSV = () => {
     if (!entries || entries.length === 0) {
-      toast.error("No data to export");
+      toast({ title: "No data", description: "No data to export", variant: "destructive" });
       return;
     }
 
@@ -90,12 +91,12 @@ export default function WasteReports() {
     link.href = URL.createObjectURL(blob);
     link.download = `waste-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
-    toast.success("CSV exported");
+    toast({ title: "Success", description: "CSV exported" });
   };
 
   const handleExportPDF = () => {
     if (!report) {
-      toast.error("No data to export");
+      toast({ title: "No data", description: "No data to export", variant: "destructive" });
       return;
     }
 
@@ -131,7 +132,7 @@ export default function WasteReports() {
     }
 
     doc.save(`waste-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    toast.success("PDF exported");
+    toast({ title: "Success", description: "PDF exported" });
   };
 
   const isLoading = reportLoading || entriesLoading;
