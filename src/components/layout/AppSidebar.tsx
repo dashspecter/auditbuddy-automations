@@ -183,6 +183,7 @@ const navigationItems = [
       { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.wastage", url: "/reports/waste", module: "wastage" as const, companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -251,6 +252,7 @@ const navigationItems = [
       { titleKey: "nav.dailyOps", url: "/operations/daily" },
       { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
       { titleKey: "nav.slaManagement", url: "/operations/slas" },
+      { titleKey: "nav.wastage", url: "/waste", module: "wastage" as const },
     ]
   },
 ];
@@ -398,6 +400,11 @@ export function AppSidebar() {
   };
 
   const shouldShowSubItem = (subItem: any) => {
+    // Check module access for sub-items that have a module requirement
+    if (subItem.module && !canAccessModule(subItem.module)) {
+      return false;
+    }
+
     // Company owners and admins always have access
     if (isOwner || isCompanyAdmin) {
       return true;
