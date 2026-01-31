@@ -30,7 +30,7 @@ const DEBOUNCE_MS = 500;
 
 /**
  * iOS-proof task card with split tap zones:
- * - Mobile: Left 45% = completion zone, Right 55% = details zone
+ * - Mobile: Left 35% = completion zone, 4px dead gap, Right = details zone
  * - Desktop: Small checkbox + rest of card clickable for details
  * 
  * The completion zone is the ONLY interactive completion control on mobile,
@@ -59,30 +59,31 @@ export function MobileTaskCard({
 
   const handleComplete = useCallback(() => {
     if (disabled) {
-      log(`[complete blocked disabled] ${taskId}`);
+      log(`[ZONE complete BLOCKED disabled] ${taskId}`);
       return;
     }
 
     const now = Date.now();
     // Debounce: ignore if same task within 500ms
     if (lastTapRef.current.id === taskId && now - lastTapRef.current.ts < DEBOUNCE_MS) {
-      log(`[complete debounced] ${taskId}`);
+      log(`[ZONE complete DEBOUNCED] ${taskId}`);
       return;
     }
     lastTapRef.current = { id: taskId, ts: now };
 
-    log(`[complete zone tap] ${taskId}`);
+    log(`[ZONE complete] taskId=${taskId}`);
     onComplete();
   }, [taskId, disabled, onComplete, log]);
 
   const handleDetailsClick = useCallback(
     (e: React.MouseEvent | React.PointerEvent) => {
-      // Guard: ignore clicks from completion zone
-      if ((e.target as HTMLElement)?.closest?.('[data-no-row-click="1"]')) {
-        log(`[details click ignored - completion zone] ${taskId}`);
+      // Guard: ignore clicks from completion zone or dead gap
+      const target = e.target as HTMLElement;
+      if (target?.closest?.('[data-no-row-click="1"]') || target?.closest?.('[data-dead-gap="1"]')) {
+        log(`[ZONE details IGNORED - completion/gap zone] ${taskId}`);
         return;
       }
-      log(`[details zone tap] ${taskId}`);
+      log(`[ZONE details] taskId=${taskId}`);
       onDetailsClick?.();
     },
     [taskId, onDetailsClick, log]
@@ -112,10 +113,10 @@ export function MobileTaskCard({
   );
 
   if (isMobile) {
-    // Mobile: Split tap zones
+    // Mobile: Split tap zones with dead gap
     return (
       <Card className={cn("relative overflow-hidden", borderClass, className)}>
-        {/* Completion Zone: Left 45% */}
+        {/* Completion Zone: Left 35% - reduced from 45% to minimize accidental hits */}
         <button
           type="button"
           data-no-row-click="1"
@@ -124,22 +125,22 @@ export function MobileTaskCard({
           aria-label="Complete task"
           disabled={disabled}
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[45%] z-40",
+            "absolute left-0 top-0 bottom-0 w-[35%] z-40",
             "flex items-center justify-center",
             "touch-manipulation select-none",
             "active:bg-primary/10 transition-colors",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           )}
-          onPointerDown={(e) => {
+          onPointerDownCapture={(e) => {
             e.stopPropagation();
-            log(`[complete zone pointerdown] ${taskId}`);
+            log(`[ZONE complete pointerdown] ${taskId}`);
           }}
-          onTouchEnd={(e) => {
+          onTouchEndCapture={(e) => {
             e.stopPropagation();
             // Primary handler for iOS
             handleComplete();
           }}
-          onClick={(e) => {
+          onClickCapture={(e) => {
             e.stopPropagation();
             // Fallback handler - debounce will prevent double-fire
             handleComplete();
@@ -151,11 +152,29 @@ export function MobileTaskCard({
           </div>
         </button>
 
-        {/* Details Zone: Right 55% + visual content */}
+        {/* Dead Gap: 4px transparent separator to prevent ambiguous touches */}
+        <div 
+          data-dead-gap="1"
+          className="absolute left-[35%] top-0 bottom-0 w-1 z-50 bg-transparent"
+          onPointerDownCapture={(e) => {
+            e.stopPropagation();
+            log(`[ZONE dead-gap hit] ${taskId}`);
+          }}
+          onTouchEndCapture={(e) => {
+            e.stopPropagation();
+            // Do nothing - this is a dead zone
+          }}
+          onClickCapture={(e) => {
+            e.stopPropagation();
+            // Do nothing - this is a dead zone
+          }}
+        />
+
+        {/* Details Zone: Right side (starts at 35% + 4px gap) + visual content */}
         <div
-          className="relative pl-14 pr-4 py-4 cursor-pointer min-h-[60px]"
+          className="relative pl-[38%] pr-4 py-4 cursor-pointer min-h-[60px]"
           onClick={handleDetailsClick}
-          onPointerDown={() => log(`[details zone pointerdown] ${taskId}`)}
+          onPointerDown={() => log(`[ZONE details pointerdown] ${taskId}`)}
         >
           {children}
         </div>

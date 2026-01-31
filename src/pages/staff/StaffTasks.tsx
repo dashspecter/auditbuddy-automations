@@ -98,7 +98,10 @@ const StaffTasks = () => {
   const { lastTap, logTap } = useTapDebug();
   const isOnline = useNetworkStatus();
 
+  // Optimistic completion state with pending confirmation lock
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
+  // Tracks tasks currently waiting for server confirmation: Map<resolvedId, startTimestamp>
+  const [pendingCompletionIds, setPendingCompletionIds] = useState<Map<string, number>>(() => new Map());
 
   const resolveId = (id: string) => {
     const match = id.match(
@@ -113,6 +116,11 @@ const StaffTasks = () => {
     const status = anyErr?.status ? ` ${String(anyErr.status)}` : "";
     const code = anyErr?.code ? ` ${String(anyErr.code)}` : "";
     return `${msg}${status}${code}`.trim();
+  };
+
+  // Check if a task is server-confirmed as completed
+  const isServerChecked = (task: any): boolean => {
+    return task.status === "completed" || !!task.completed_at || task.is_completed === true;
   };
   
   // Show debug if ?debugTasks=1 query param or DEV toggle
@@ -205,29 +213,92 @@ const StaffTasks = () => {
     }
 
     const resolved = resolveId(completionId);
+    
+    // Prevent duplicate submissions while pending
+    if (pendingCompletionIds.has(resolved)) {
+      logTap(`[MUTATE blocked - already pending] resolved=${resolved}`);
+      return;
+    }
+
     logTap(
-      `[mutate] sending id=${completionId} from task.id=${task.id} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
+      `[MUTATE] task.id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
     );
 
+    const startedAt = Date.now();
+
+    // Immediately set optimistic checked ON and add to pending
     setOptimisticCompletedIds((prev) => {
       const next = new Set(prev);
       next.add(resolved);
+      return next;
+    });
+    setPendingCompletionIds((prev) => {
+      const next = new Map(prev);
+      next.set(resolved, startedAt);
       return next;
     });
 
     try {
       const updated = await completeTask.mutateAsync(completionId);
       logTap(
-        `[mutate success] resolved=${resolved} status=${(updated as any)?.status ?? "?"} completed_at=${(updated as any)?.completed_at ? "1" : "0"}`,
+        `[MUTATE RESULT] resolved=${resolved} status=${(updated as any)?.status ?? "?"} completed_at=${(updated as any)?.completed_at ? "1" : "0"}`,
       );
+
+      // Check if server confirmed completion
+      const serverConfirmed = (updated as any)?.status === "completed" || !!(updated as any)?.completed_at;
+      
+      if (serverConfirmed) {
+        logTap(`[CONFIRM SUCCESS] resolved=${resolved}`);
+        // Keep optimistic, remove from pending
+        setPendingCompletionIds((prev) => {
+          const next = new Map(prev);
+          next.delete(resolved);
+          return next;
+        });
+      } else {
+        // Server didn't confirm - wait then verify
+        logTap(`[CONFIRM PENDING] resolved=${resolved} - waiting for refetch`);
+        
+        setTimeout(() => {
+          // Check if task is now in completed list
+          const taskInCompleted = completedTasks.some((t) => {
+            const tid = resolveId(String((t as any).task_occurrence_id ?? (t as any).occurrence_id ?? (t as any).task_id ?? t.id));
+            return tid === resolved;
+          });
+          
+          if (!taskInCompleted && !isServerChecked(task)) {
+            logTap(`[CONFIRM FAIL] id=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`);
+            // Revert optimistic
+            setOptimisticCompletedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(resolved);
+              return next;
+            });
+            toast.error("Task completion didn't save. Please try again.");
+          }
+          
+          // Always remove from pending after timeout
+          setPendingCompletionIds((prev) => {
+            const next = new Map(prev);
+            next.delete(resolved);
+            return next;
+          });
+        }, 2000);
+      }
     } catch (e) {
+      // Revert optimistic and remove pending on error
       setOptimisticCompletedIds((prev) => {
         const next = new Set(prev);
         next.delete(resolved);
         return next;
       });
-      logTap(`[mutate error] ${summarizeError(e)}`);
-      toast.error("Couldn’t complete task. Please try again.");
+      setPendingCompletionIds((prev) => {
+        const next = new Map(prev);
+        next.delete(resolved);
+        return next;
+      });
+      logTap(`[MUTATE ERROR] ${summarizeError(e)}`);
+      toast.error("Couldn't complete task. Please try again.");
     }
   };
 
@@ -477,8 +548,9 @@ const StaffTasks = () => {
                     task.id,
                 );
                 const resolved = resolveId(completionId);
-                const serverChecked =
-                  task.status === "completed" || !!(task as any).completed_at || (task as any).is_completed === true;
+                const serverChecked = isServerChecked(task);
+                // Locked check: optimistic OR server confirmed OR pending confirmation
+                const isLocked = pendingCompletionIds.has(resolved);
                 const checked = optimisticCompletedIds.has(resolved) || serverChecked;
                 
                 return (
@@ -486,13 +558,12 @@ const StaffTasks = () => {
                     key={task.id}
                     taskId={task.id}
                     checked={checked}
-                    disabled={completeTask.isPending || serverChecked}
+                    disabled={completeTask.isPending || serverChecked || isLocked}
                     onComplete={() => {
                       logTap(
-                        `[box tap] id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
+                        `[box tap] id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"} pending=${isLocked}`,
                       );
-                      if (completeTask.isPending) return;
-                      if (serverChecked) return;
+                      if (completeTask.isPending || serverChecked || isLocked) return;
                       void completeTaskRow(task, completionId);
                     }}
                     onDetailsClick={() => toggleExpand(task.id)}
