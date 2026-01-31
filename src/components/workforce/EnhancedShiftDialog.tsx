@@ -397,8 +397,9 @@ export const EnhancedShiftDialog = ({
       return;
     }
     
-    // Build the payload for governance
+    // Build the payload for governance - must include location_id for apply_schedule_change_request
     const buildPayloadAfter = () => ({
+      location_id: formData.location_id,
       shift_date: formData.shift_date,
       start_time: formData.start_time,
       end_time: formData.end_time,
@@ -412,6 +413,7 @@ export const EnhancedShiftDialog = ({
     });
     
     const buildPayloadBefore = (existingShift: any) => ({
+      location_id: existingShift.location_id,
       shift_date: existingShift.shift_date,
       start_time: existingShift.start_time,
       end_time: existingShift.end_time,
@@ -535,17 +537,19 @@ export const EnhancedShiftDialog = ({
       onOpenChange(false);
     } else {
       // Regular mode: Create one shift with multiple assignments
-      // Check if we should route through change request (locked period)
+      // CRITICAL: Check if we should route through change request (locked period) BEFORE any mutation
       if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+        toast.info("Schedule is locked. Your change will require approval.");
         onLockedChangeRequest({
           changeType: 'add',
           payloadAfter: buildPayloadAfter(),
           shiftSummary: buildShiftSummary(),
         });
         onOpenChange(false);
-        return;
+        return; // EXIT - do NOT proceed with direct mutation
       }
-      // Regular mode: Create one shift with multiple assignments
+      
+      // Only proceed with direct mutation if not locked
       const submitData = {
         ...formData,
         required_count: parseInt(formData.required_count),
