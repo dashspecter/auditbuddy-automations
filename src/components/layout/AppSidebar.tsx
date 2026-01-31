@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog
+  MessageCircleQuestion, Cog, Trash2
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -183,7 +183,21 @@ const navigationItems = [
       { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
-      { titleKey: "nav.wastage", url: "/reports/waste", module: "wastage" as const, companyPermission: 'view_reports' as CompanyPermission },
+    ]
+  },
+  { 
+    titleKey: "nav.wastage", 
+    url: "/waste", 
+    icon: Trash2,
+    module: "wastage",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.wasteAdd", url: "/waste/add" },
+      { titleKey: "nav.wasteEntries", url: "/waste/entries" },
+      { titleKey: "nav.wasteReports", url: "/reports/waste", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.wasteProducts", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.wasteReasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
     ]
   },
   { 
@@ -252,7 +266,6 @@ const navigationItems = [
       { titleKey: "nav.dailyOps", url: "/operations/daily" },
       { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
       { titleKey: "nav.slaManagement", url: "/operations/slas" },
-      { titleKey: "nav.wastage", url: "/waste", module: "wastage" as const },
     ]
   },
 ];
