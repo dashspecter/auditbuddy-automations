@@ -39,11 +39,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
+export interface LockedChangeRequestPayload {
+  changeType: 'add' | 'edit' | 'delete';
+  targetShiftId?: string;
+  payloadBefore?: Record<string, any>;
+  payloadAfter: Record<string, any>;
+  shiftSummary: string;
+}
+
 interface EnhancedShiftDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shift?: any;
   defaultDate?: Date;
+  isPeriodLocked?: boolean;
+  isGovernanceEnabled?: boolean;
+  onLockedChangeRequest?: (payload: LockedChangeRequestPayload) => void;
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -53,6 +64,9 @@ export const EnhancedShiftDialog = ({
   onOpenChange,
   shift,
   defaultDate,
+  isPeriodLocked = false,
+  isGovernanceEnabled = false,
+  onLockedChangeRequest,
 }: EnhancedShiftDialogProps) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
@@ -331,10 +345,39 @@ export const EnhancedShiftDialog = ({
   };
 
   const handleDelete = async () => {
-    if (shift && window.confirm("Are you sure you want to delete this shift?")) {
-      await deleteShift.mutateAsync(shift.id);
+    if (!shift) return;
+    
+    if (!window.confirm("Are you sure you want to delete this shift?")) return;
+    
+    // Check if we should route through change request
+    if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+      const roleName = roles.find(r => r.name === shift.role)?.name || shift.role;
+      const shiftSummary = `${roleName} • ${shift.shift_date} • ${shift.start_time.slice(0,5)}-${shift.end_time.slice(0,5)}`;
+      
+      onLockedChangeRequest({
+        changeType: 'delete',
+        targetShiftId: shift.id,
+        payloadBefore: {
+          shift_date: shift.shift_date,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          role: shift.role,
+          required_count: shift.required_count,
+          notes: shift.notes,
+          is_open_shift: shift.is_open_shift,
+          close_duty: shift.close_duty,
+          break_duration_minutes: shift.break_duration_minutes,
+          shift_type: shift.shift_type || 'regular',
+        },
+        payloadAfter: {},
+        shiftSummary,
+      });
       onOpenChange(false);
+      return;
     }
+    
+    await deleteShift.mutateAsync(shift.id);
+    onOpenChange(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -354,8 +397,54 @@ export const EnhancedShiftDialog = ({
       return;
     }
     
+    // Build the payload for governance
+    const buildPayloadAfter = () => ({
+      shift_date: formData.shift_date,
+      start_time: formData.start_time,
+      end_time: formData.end_time,
+      role: formData.role,
+      required_count: parseInt(formData.required_count),
+      notes: formData.notes || null,
+      is_open_shift: formData.is_open_shift,
+      close_duty: formData.close_duty,
+      break_duration_minutes: parseInt(formData.break_duration_minutes),
+      shift_type: 'regular',
+    });
+    
+    const buildPayloadBefore = (existingShift: any) => ({
+      shift_date: existingShift.shift_date,
+      start_time: existingShift.start_time,
+      end_time: existingShift.end_time,
+      role: existingShift.role,
+      required_count: existingShift.required_count,
+      notes: existingShift.notes,
+      is_open_shift: existingShift.is_open_shift,
+      close_duty: existingShift.close_duty,
+      break_duration_minutes: existingShift.break_duration_minutes,
+      shift_type: existingShift.shift_type || 'regular',
+    });
+    
+    const buildShiftSummary = () => {
+      const roleName = roles.find(r => r.name === formData.role)?.name || formData.role;
+      return `${roleName} • ${formData.shift_date} • ${formData.start_time}-${formData.end_time}`;
+    };
+    
     if (shift) {
       // Update existing shift
+      // Check if we should route through change request (locked period)
+      if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+        onLockedChangeRequest({
+          changeType: 'edit',
+          targetShiftId: shift.id,
+          payloadBefore: buildPayloadBefore(shift),
+          payloadAfter: buildPayloadAfter(),
+          shiftSummary: buildShiftSummary(),
+        });
+        onOpenChange(false);
+        return;
+      }
+      
+      // Normal update flow
       const submitData = {
         ...formData,
         required_count: parseInt(formData.required_count),
@@ -382,6 +471,12 @@ export const EnhancedShiftDialog = ({
       
       onOpenChange(false);
     } else if (batchMode && selectedEmployees.length > 0) {
+      // Batch mode - for locked periods, we don't support batch mode through change requests yet
+      if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+        toast.error("Batch mode is not supported when schedule is locked. Please add shifts individually.");
+        return;
+      }
+      
       // Batch mode: Create individual shifts for each employee
       for (const employeeId of selectedEmployees) {
         const employeeTimes = individualTimes[employeeId] || {
@@ -439,6 +534,17 @@ export const EnhancedShiftDialog = ({
       
       onOpenChange(false);
     } else {
+      // Regular mode: Create one shift with multiple assignments
+      // Check if we should route through change request (locked period)
+      if (isGovernanceEnabled && isPeriodLocked && onLockedChangeRequest) {
+        onLockedChangeRequest({
+          changeType: 'add',
+          payloadAfter: buildPayloadAfter(),
+          shiftSummary: buildShiftSummary(),
+        });
+        onOpenChange(false);
+        return;
+      }
       // Regular mode: Create one shift with multiple assignments
       const submitData = {
         ...formData,

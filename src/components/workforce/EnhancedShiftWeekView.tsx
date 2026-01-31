@@ -421,8 +421,10 @@ export const EnhancedShiftWeekView = () => {
           isLoading={periodLoading}
           locationName={selectedLocationName}
           onViewChangeRequests={() => {
-            // Navigate to pending approvals or open a dialog
-            // For now, we'll just log - this can be wired to the Pending Approvals dialog
+            // Open pending approvals dialog - wire to parent via state or navigation
+            window.dispatchEvent(new CustomEvent('open-pending-approvals', { 
+              detail: { periodId: schedulePeriod?.id, locationId: selectedLocation } 
+            }));
           }}
         />
       )}
@@ -1150,6 +1152,12 @@ export const EnhancedShiftWeekView = () => {
         }}
         shift={selectedShift}
         defaultDate={selectedDate}
+        isPeriodLocked={isPeriodLocked}
+        isGovernanceEnabled={isGovernanceEnabled}
+        onLockedChangeRequest={(payload) => {
+          setPendingChangeRequest(payload);
+          setChangeRequestDialogOpen(true);
+        }}
       />
       
       {selectedLocation !== "all" && (
