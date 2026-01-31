@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
@@ -227,6 +227,9 @@ const App = () => (
                       <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
                       <Route path="/staff/waste" element={<ProtectedRoute><MyWasteEntries /></ProtectedRoute>} />
                       <Route path="/staff/waste/new" element={<ProtectedRoute><AddWasteEntry /></ProtectedRoute>} />
+                      {/* Legacy waste routes - redirect to new paths */}
+                      <Route path="/waste/add" element={<Navigate to="/staff/waste/new" replace />} />
+                      <Route path="/waste/entries" element={<Navigate to="/staff/waste" replace />} />
                       {/* Legacy route - redirect to new path */}
                       <Route path="/staff-dashboard" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
                       <Route path="/pending-approval" element={<ProtectedRoute><PendingApproval /></ProtectedRoute>} />

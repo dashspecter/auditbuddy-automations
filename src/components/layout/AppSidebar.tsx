@@ -193,8 +193,8 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { titleKey: "nav.wasteAdd", url: "/waste/add" },
-      { titleKey: "nav.wasteEntries", url: "/waste/entries" },
+      { titleKey: "nav.wasteAdd", url: "/staff/waste/new" },
+      { titleKey: "nav.wasteEntries", url: "/staff/waste" },
       { titleKey: "nav.wasteReports", url: "/reports/waste", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.wasteProducts", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.wasteReasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
