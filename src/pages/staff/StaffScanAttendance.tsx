@@ -755,13 +755,29 @@ const StaffScanAttendance = () => {
           <Card className={`p-6 ${todayStatus.checkedIn ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : ''}`}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-muted-foreground">Today's Status</span>
-              <Badge 
-                variant={todayStatus.checkedIn ? "default" : "secondary"}
-                className={todayStatus.checkedIn ? "bg-green-500 hover:bg-green-600" : ""}
-              >
-                {todayStatus.checkedIn ? "✓ Clocked In" : "Not Checked In"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                {todayStatus.pendingException && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Pending Approval
+                  </Badge>
+                )}
+                <Badge 
+                  variant={todayStatus.checkedIn ? "default" : "secondary"}
+                  className={todayStatus.checkedIn ? "bg-green-500 hover:bg-green-600" : ""}
+                >
+                  {todayStatus.checkedIn ? "✓ Clocked In" : "Not Checked In"}
+                </Badge>
+              </div>
             </div>
+            
+            {todayStatus.pendingException && (
+              <div className="mb-3 p-2 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Your clock-in is pending manager approval (no scheduled shift)
+                </p>
+              </div>
+            )}
             
             {todayStatus.checkInTime && (
               <div className="space-y-2 text-sm">
