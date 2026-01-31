@@ -2,18 +2,17 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Scale, Package, AlertCircle, Check, ArrowLeft, Loader2 } from "lucide-react";
-import { useWasteProducts, useWasteReasons, useCreateWasteEntry, uploadWastePhoto } from "@/hooks/useWaste";
+import { Camera, Scale, Package, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { useWasteProducts, useWasteReasons, useCreateWasteEntry, useUpdateWasteEntry, uploadWastePhoto } from "@/hooks/useWaste";
 import { useLocations } from "@/hooks/useLocations";
 import { useCompany } from "@/hooks/useCompany";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleGate } from "@/components/ModuleGate";
-import { EmptyState } from "@/components/EmptyState";
 
 export default function AddWasteEntry() {
   const { t } = useTranslation();
@@ -26,6 +25,7 @@ export default function AddWasteEntry() {
   const { data: reasons } = useWasteReasons();
   const { data: locations } = useLocations();
   const createEntry = useCreateWasteEntry();
+  const updateEntry = useUpdateWasteEntry();
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -92,8 +92,8 @@ export default function AddWasteEntry() {
         notes: formData.notes || undefined,
       });
 
-      // Upload photo
-      if (company?.id) {
+      // Upload photo and update entry with photo_path
+      if (company?.id && photoFile) {
         try {
           const photoPath = await uploadWastePhoto(
             company.id,
@@ -103,14 +103,15 @@ export default function AddWasteEntry() {
           );
 
           // Update entry with photo path
-          // Note: We don't await this since entry is already created
-          // Could add retry logic here for offline support
+          await updateEntry.mutateAsync({ 
+            id: entry.id, 
+            photo_path: photoPath 
+          });
         } catch (photoError) {
           console.error('Photo upload failed:', photoError);
           toast({
             title: "Warning",
-            description: "Entry saved but photo upload failed. You can retry later.",
-            variant: "default",
+            description: "Entry saved but photo upload failed. You can retry from My Entries.",
           });
         }
       }

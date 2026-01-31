@@ -1,32 +1,79 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowLeft, Trash2, Eye, Clock } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Clock, Upload, Camera, ImageOff } from "lucide-react";
 import { format } from "date-fns";
-import { useMyWasteEntries, getWastePhotoUrl } from "@/hooks/useWaste";
+import { useMyWasteEntries, getWastePhotoUrl, uploadWastePhoto, useUpdateWasteEntry } from "@/hooks/useWaste";
+import { useCompany } from "@/hooks/useCompany";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MyWasteEntries() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: company } = useCompany();
   const { data: entries, isLoading } = useMyWasteEntries();
+  const updateEntry = useUpdateWasteEntry();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedEntry, setSelectedEntry] = useState<typeof entries extends (infer T)[] ? T : never | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleViewEntry = async (entry: NonNullable<typeof selectedEntry>) => {
     setSelectedEntry(entry);
     setDialogOpen(true);
+    setPhotoUrl(null);
     
     if (entry.photo_path) {
       const url = await getWastePhotoUrl(entry.photo_path);
       setPhotoUrl(url);
+    }
+  };
+
+  const handleRetryUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedEntry || !company?.id) return;
+    
+    setIsUploading(true);
+    try {
+      const photoPath = await uploadWastePhoto(
+        company.id,
+        selectedEntry.location_id,
+        selectedEntry.id,
+        file
+      );
+      
+      await updateEntry.mutateAsync({
+        id: selectedEntry.id,
+        photo_path: photoPath,
+      });
+      
+      // Reload photo URL
+      const url = await getWastePhotoUrl(photoPath);
+      setPhotoUrl(url);
+      
+      toast({ title: "Success", description: "Photo uploaded successfully" });
+    } catch (error) {
+      console.error('Photo upload failed:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to upload photo. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -74,7 +121,15 @@ export default function MyWasteEntries() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <p className="font-medium">{entry.waste_products?.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{entry.waste_products?.name}</p>
+                        {!entry.photo_path && entry.status === 'recorded' && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <ImageOff className="h-3 w-3" />
+                            No Photo
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-3.5 w-3.5" />
                         {format(new Date(entry.occurred_at), 'MMM d, HH:mm')}
@@ -107,13 +162,42 @@ export default function MyWasteEntries() {
             </DialogHeader>
             {selectedEntry && (
               <div className="space-y-4">
-                {photoUrl && (
+                {/* Hidden file input for photo retry */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                
+                {/* Photo section */}
+                {photoUrl ? (
                   <img
                     src={photoUrl}
                     alt="Waste photo"
                     className="w-full h-48 object-cover rounded-lg"
                   />
-                )}
+                ) : selectedEntry.status === 'recorded' ? (
+                  <button
+                    onClick={handleRetryUpload}
+                    disabled={isUploading}
+                    className="w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <span className="text-sm text-muted-foreground">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Tap to add photo</span>
+                      </>
+                    )}
+                  </button>
+                ) : null}
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
