@@ -9,7 +9,8 @@ import { useCompany } from "@/hooks/useCompany";
 import { Link } from "react-router-dom";
 import { 
   MapPin, ListTodo, Package, FileText, Lightbulb, 
-  Plug, Bell, BarChart, CreditCard, Building2, Store, Settings2, GraduationCap, ClipboardList
+  Plug, Bell, BarChart, CreditCard, Building2, Store, Settings2, GraduationCap, ClipboardList,
+  Trash2
 } from "lucide-react";
 
 const mainNavItems = [
@@ -24,6 +25,7 @@ const moreNavItems = [
   { title: "Tasks", url: "/tasks", icon: ListTodo },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Reports", url: "/reports", icon: BarChart },
+  { title: "Wastage", url: "/waste", icon: Trash2, module: "wastage" },
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Training", url: "/training", icon: GraduationCap },
@@ -94,7 +96,9 @@ export function MobileBottomNav() {
                 <SheetTitle>More Options</SheetTitle>
               </SheetHeader>
               <div className="grid grid-cols-3 gap-4 py-6 overflow-y-auto">
-                {moreNavItems.map((item) => {
+                {moreNavItems
+                  .filter((item) => !item.module || hasModule(item.module))
+                  .map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.url);
                   return (

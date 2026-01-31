@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useCompanyModules, useToggleModule } from '@/hooks/useCompany';
 import { PRICING_TIERS, getAvailableModulesForTier } from '@/config/pricingTiers';
-import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock } from 'lucide-react';
+import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -52,6 +52,15 @@ const MODULE_CONFIG = [
     icon: Briefcase,
     color: 'hsl(var(--chart-5))',
     features: ['Custom reports', 'Data visualization', 'Export capabilities', 'Trend analysis'],
+  },
+  {
+    id: 'wastage',
+    name: 'Wastage',
+    description: 'Track food waste with photos, weights, and cost analytics',
+    icon: Trash2,
+    color: 'hsl(var(--destructive))',
+    features: ['Photo capture', 'Weight tracking', 'Cost analytics', 'Daily rollups'],
+    category: 'Operations',
   },
 ];
 
