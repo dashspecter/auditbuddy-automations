@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
@@ -8,7 +7,7 @@ import { useCompleteTask } from "@/hooks/useTasks";
 import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
 import { differenceInSeconds } from "date-fns";
 import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "./MobileTapDebugOverlay";
-import { TaskCompleteButton } from "@/components/staff/TaskCompleteButton";
+import { MobileTaskCard } from "./MobileTaskCard";
 import { toast } from "sonner";
 
 // Countdown timer component
@@ -133,7 +132,7 @@ export const ActiveTasksCard = () => {
         return next;
       });
       logTap(`[mutate error] ${summarizeError(e)}`);
-      toast.error("Couldn’t complete task. Please try again.");
+      toast.error("Couldn't complete task. Please try again.");
     }
   };
 
@@ -162,41 +161,27 @@ export const ActiveTasksCard = () => {
       </div>
       
       <div className="space-y-2">
-        {activeTasks.map((task) => (
-          <Card 
-            key={task.id} 
-            className="p-4 border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent cursor-pointer hover:bg-accent/10 transition-colors"
-            onPointerDown={() => logTap(`[row pointerdown] ${task.id}`)}
-            onClick={(e) => {
-              if ((e.target as HTMLElement)?.closest?.('[data-no-row-click="1"]')) {
-                logTap(`[row click ignored] ${task.id}`);
-                return;
-              }
-              logTap(`[row click] ${task.id}`);
-              navigate("/staff/tasks");
-            }}
-          >
-            <div className="flex items-start gap-3">
-              {(() => {
-                const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
-                const resolved = resolveId(String(completionId));
-                const serverChecked = task.status === "completed" || !!task.completed_at || (task as any).is_completed === true;
-                const checked = optimisticCompletedIds.has(resolved) || serverChecked;
+        {activeTasks.map((task) => {
+          const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
+          const resolved = resolveId(String(completionId));
+          const serverChecked = task.status === "completed" || !!task.completed_at || (task as any).is_completed === true;
+          const checked = optimisticCompletedIds.has(resolved) || serverChecked;
 
-                return (
-                  <TaskCompleteButton
-                    checked={checked}
-                    disabled={completeTask.isPending || serverChecked}
-                    ariaLabel={`Mark "${task.title}" as complete`}
-                    onPress={() => {
-                      logTap(`[box tap] id=${task.id} completionId=${String(completionId)} resolved=${resolved}`);
-                      if (completeTask.isPending) return;
-                      if (serverChecked) return;
-                      void handleComplete(task);
-                    }}
-                  />
-                );
-              })()}
+          return (
+            <MobileTaskCard
+              key={task.id}
+              taskId={task.id}
+              checked={checked}
+              disabled={completeTask.isPending || serverChecked}
+              onComplete={() => {
+                if (completeTask.isPending || serverChecked) return;
+                void handleComplete(task);
+              }}
+              onDetailsClick={() => navigate("/staff/tasks")}
+              logTap={logTap}
+              priorityBorder={task.priority === "high" ? "high" : task.priority === "medium" ? "medium" : "default"}
+              className="bg-gradient-to-r from-primary/5 to-transparent"
+            >
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-medium truncate">{task.title}</h3>
@@ -230,9 +215,9 @@ export const ActiveTasksCard = () => {
                   )}
                 </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </MobileTaskCard>
+          );
+        })}
       </div>
     </div>
   );
