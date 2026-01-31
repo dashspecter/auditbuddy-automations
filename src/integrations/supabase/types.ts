@@ -2698,6 +2698,7 @@ export type Database = {
           auto_clockout_delay_minutes: number | null
           clock_in_enabled: boolean
           created_at: string
+          enable_schedule_governance: boolean
           hide_earnings_from_staff: boolean
           id: string
           industry_id: string | null
@@ -2718,6 +2719,7 @@ export type Database = {
           auto_clockout_delay_minutes?: number | null
           clock_in_enabled?: boolean
           created_at?: string
+          enable_schedule_governance?: boolean
           hide_earnings_from_staff?: boolean
           id?: string
           industry_id?: string | null
@@ -2738,6 +2740,7 @@ export type Database = {
           auto_clockout_delay_minutes?: number | null
           clock_in_enabled?: boolean
           created_at?: string
+          enable_schedule_governance?: boolean
           hide_earnings_from_staff?: boolean
           id?: string
           industry_id?: string | null
@@ -5738,6 +5741,161 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_change_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          change_type: string
+          company_id: string
+          created_at: string
+          id: string
+          location_id: string
+          note: string | null
+          payload_after: Json
+          payload_before: Json | null
+          period_id: string
+          reason_code: string | null
+          requested_at: string
+          requested_by: string
+          status: string
+          target_shift_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_type: string
+          company_id: string
+          created_at?: string
+          id?: string
+          location_id: string
+          note?: string | null
+          payload_after?: Json
+          payload_before?: Json | null
+          period_id: string
+          reason_code?: string | null
+          requested_at?: string
+          requested_by: string
+          status?: string
+          target_shift_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_type?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          location_id?: string
+          note?: string | null
+          payload_after?: Json
+          payload_before?: Json | null
+          period_id?: string
+          reason_code?: string | null
+          requested_at?: string
+          requested_by?: string
+          status?: string
+          target_shift_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_change_requests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_change_requests_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_change_requests_target_shift_id_fkey"
+            columns: ["target_shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_periods: {
+        Row: {
+          auto_lock_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          location_id: string
+          locked_at: string | null
+          locked_by: string | null
+          publish_deadline: string | null
+          published_at: string | null
+          published_by: string | null
+          state: string
+          updated_at: string
+          week_start_date: string
+        }
+        Insert: {
+          auto_lock_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          location_id: string
+          locked_at?: string | null
+          locked_by?: string | null
+          publish_deadline?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          state?: string
+          updated_at?: string
+          week_start_date: string
+        }
+        Update: {
+          auto_lock_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          location_id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          publish_deadline?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          state?: string
+          updated_at?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_periods_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_audits: {
         Row: {
           assigned_to: string
@@ -6000,6 +6158,7 @@ export type Database = {
         Row: {
           break_duration_minutes: number | null
           breaks: Json | null
+          cancelled_at: string | null
           close_duty: boolean | null
           cohort_label: string | null
           company_id: string
@@ -6026,6 +6185,7 @@ export type Database = {
         Insert: {
           break_duration_minutes?: number | null
           breaks?: Json | null
+          cancelled_at?: string | null
           close_duty?: boolean | null
           cohort_label?: string | null
           company_id: string
@@ -6052,6 +6212,7 @@ export type Database = {
         Update: {
           break_duration_minutes?: number | null
           breaks?: Json | null
+          cancelled_at?: string | null
           close_duty?: boolean | null
           cohort_label?: string | null
           company_id?: string
@@ -8398,6 +8559,165 @@ export type Database = {
           },
         ]
       }
+      workforce_exceptions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          attendance_id: string | null
+          company_id: string
+          created_at: string
+          detected_at: string
+          employee_id: string
+          exception_type: string
+          id: string
+          location_id: string
+          metadata: Json
+          note: string | null
+          reason_code: string | null
+          requested_by: string | null
+          resolved_at: string | null
+          shift_date: string
+          shift_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attendance_id?: string | null
+          company_id: string
+          created_at?: string
+          detected_at?: string
+          employee_id: string
+          exception_type: string
+          id?: string
+          location_id: string
+          metadata?: Json
+          note?: string | null
+          reason_code?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          shift_date: string
+          shift_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attendance_id?: string | null
+          company_id?: string
+          created_at?: string
+          detected_at?: string
+          employee_id?: string
+          exception_type?: string
+          id?: string
+          location_id?: string
+          metadata?: Json
+          note?: string | null
+          reason_code?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          shift_date?: string
+          shift_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_exceptions_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_exceptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_exceptions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_exceptions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_policies: {
+        Row: {
+          block_publish_on_critical: boolean
+          company_id: string
+          created_at: string
+          early_leave_threshold_minutes: number
+          grace_minutes: number
+          id: string
+          late_threshold_minutes: number
+          location_id: string | null
+          require_reason_on_locked_edits: boolean
+          unscheduled_clock_in_policy: string
+          updated_at: string
+        }
+        Insert: {
+          block_publish_on_critical?: boolean
+          company_id: string
+          created_at?: string
+          early_leave_threshold_minutes?: number
+          grace_minutes?: number
+          id?: string
+          late_threshold_minutes?: number
+          location_id?: string | null
+          require_reason_on_locked_edits?: boolean
+          unscheduled_clock_in_policy?: string
+          updated_at?: string
+        }
+        Update: {
+          block_publish_on_critical?: boolean
+          company_id?: string
+          created_at?: string
+          early_leave_threshold_minutes?: number
+          grace_minutes?: number
+          id?: string
+          late_threshold_minutes?: number
+          location_id?: string | null
+          require_reason_on_locked_edits?: boolean
+          unscheduled_clock_in_policy?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_policies_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       notification_analytics: {
@@ -8445,6 +8765,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_schedule_change_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       approve_shift_assignment: {
         Args: { assignment_id: string }
         Returns: Json
@@ -8479,6 +8803,22 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      find_scheduled_shift_for_clockin: {
+        Args: {
+          p_check_time: string
+          p_employee_id: string
+          p_grace_minutes?: number
+          p_location_id: string
+        }
+        Returns: {
+          end_time: string
+          is_late: boolean
+          late_minutes: number
+          shift_date: string
+          shift_id: string
+          start_time: string
+        }[]
       }
       generate_audit_draft_key: {
         Args: {
@@ -8532,6 +8872,35 @@ export type Database = {
         }
         Returns: string
       }
+      get_or_create_schedule_period: {
+        Args: {
+          p_company_id: string
+          p_location_id: string
+          p_week_start_date: string
+        }
+        Returns: {
+          auto_lock_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          location_id: string
+          locked_at: string | null
+          locked_by: string | null
+          publish_deadline: string | null
+          published_at: string | null
+          published_by: string | null
+          state: string
+          updated_at: string
+          week_start_date: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "schedule_periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_waste_report: {
         Args: {
@@ -8545,6 +8914,28 @@ export type Database = {
           p_user_id?: string
         }
         Returns: Json
+      }
+      get_workforce_policy: {
+        Args: { p_company_id: string; p_location_id: string }
+        Returns: {
+          block_publish_on_critical: boolean
+          company_id: string
+          created_at: string
+          early_leave_threshold_minutes: number
+          grace_minutes: number
+          id: string
+          late_threshold_minutes: number
+          location_id: string | null
+          require_reason_on_locked_edits: boolean
+          unscheduled_clock_in_policy: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "workforce_policies"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       has_company_permission: {
         Args: {

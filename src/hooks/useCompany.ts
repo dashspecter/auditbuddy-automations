@@ -14,6 +14,9 @@ export interface Company {
   industry_id: string | null;
   created_at: string;
   updated_at: string;
+  enable_schedule_governance?: boolean;
+  clock_in_enabled?: boolean;
+  auto_clockout_delay_minutes?: number;
 }
 
 export interface CompanyUser {
