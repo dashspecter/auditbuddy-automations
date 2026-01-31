@@ -432,15 +432,30 @@ const StaffScanAttendance = () => {
         let isUnscheduled = false;
         let isLate = false;
         let lateMinutes = 0;
+        let policy: any = null; // Fetch ONCE and reuse
         
         if (isGovernanceEnabled && company?.id) {
-          // Use the RPC to find scheduled shift with grace window
+          // FETCH POLICY ONCE at the start - critical for consistent enforcement
+          const { data: policyData } = await supabase.rpc('get_workforce_policy', {
+            p_company_id: company.id,
+            p_location_id: locationId
+          });
+          
+          policy = policyData || { 
+            unscheduled_clock_in_policy: 'allow',
+            late_threshold_minutes: 15,
+            grace_minutes: 60
+          };
+          
+          const graceMinutes = policy.grace_minutes ?? 60;
+          
+          // Use the RPC to find scheduled shift with policy's grace window
           const { data: rpcResult } = await supabase.rpc('find_scheduled_shift_for_clockin', {
             p_company_id: company.id,
             p_employee_id: currentEmployee.id,
             p_location_id: locationId,
             p_check_time: now.toISOString(),
-            p_grace_minutes: 60 // Default grace
+            p_grace_minutes: graceMinutes
           });
           
           // RPC returns an array, get first result
@@ -454,27 +469,16 @@ const StaffScanAttendance = () => {
             isUnscheduled = true;
           }
           
-          // Fetch the workforce policy for this location
-          const { data: policyData } = await supabase.rpc('get_workforce_policy', {
-            p_company_id: company.id,
-            p_location_id: locationId
-          });
-          
-          const policy = policyData || { 
-            unscheduled_clock_in_policy: 'allow',
-            late_threshold_minutes: 15 
-          };
-          
           console.log("Governance enabled. Policy:", policy, "Scheduled:", !!scheduledShift, "Unscheduled:", isUnscheduled);
           
-          // Handle unscheduled clock-in based on policy
+          // Handle unscheduled clock-in based on policy BEFORE creating attendance
           if (isUnscheduled) {
             if (policy.unscheduled_clock_in_policy === 'block') {
-              // Block the clock-in
+              // Block the clock-in - do NOT create attendance record
               console.log("Clock-in blocked - no scheduled shift");
               setBlockedLocationId(locationId);
               setShowBlockedDialog(true);
-              return;
+              return; // EXIT - attendance not created
             }
           }
         } else {
@@ -520,15 +524,29 @@ const StaffScanAttendance = () => {
         }
 
         // Create workforce exception if governance is enabled and conditions met
-        if (isGovernanceEnabled && company?.id && newAttendance) {
+        // Use policy already fetched above - no duplicate fetch
+        if (isGovernanceEnabled && company?.id && newAttendance && policy) {
+          // Helper to check for existing pending exception (dedupe)
+          const checkExistingException = async (exceptionType: string): Promise<boolean> => {
+            const { data: existing } = await supabase
+              .from('workforce_exceptions')
+              .select('id')
+              .eq('company_id', company.id)
+              .eq('location_id', locationId)
+              .eq('employee_id', currentEmployee.id)
+              .eq('exception_type', exceptionType)
+              .eq('shift_date', today)
+              .eq('status', 'pending')
+              .limit(1)
+              .maybeSingle();
+            return !!existing;
+          };
+          
           // Create exception for unscheduled shift (if policy is exception_ticket)
-          if (isUnscheduled) {
-            const { data: policyData } = await supabase.rpc('get_workforce_policy', {
-              p_company_id: company.id,
-              p_location_id: locationId
-            });
-            
-            if (policyData?.unscheduled_clock_in_policy === 'exception_ticket') {
+          if (isUnscheduled && policy.unscheduled_clock_in_policy === 'exception_ticket') {
+            // Dedupe: check if pending exception already exists
+            const alreadyExists = await checkExistingException('unscheduled_shift');
+            if (!alreadyExists) {
               await supabase.from('workforce_exceptions').insert({
                 company_id: company.id,
                 location_id: locationId,
@@ -544,33 +562,36 @@ const StaffScanAttendance = () => {
               
               console.log("Created unscheduled_shift exception");
               toast.info("Clock-in recorded. Pending manager approval.", { duration: 5000 });
+            } else {
+              console.log("Skipping duplicate unscheduled_shift exception");
             }
           }
           
           // Create exception for late start (if above threshold)
           if (isLate && lateMinutes > 0) {
-            const { data: policyData } = await supabase.rpc('get_workforce_policy', {
-              p_company_id: company.id,
-              p_location_id: locationId
-            });
-            
-            const threshold = policyData?.late_threshold_minutes || 15;
+            const threshold = policy.late_threshold_minutes || 15;
             if (lateMinutes >= threshold) {
-              await supabase.from('workforce_exceptions').insert({
-                company_id: company.id,
-                location_id: locationId,
-                employee_id: currentEmployee.id,
-                exception_type: 'late_start',
-                status: 'pending',
-                shift_id: scheduledShift?.shift_id,
-                shift_date: today,
-                detected_at: checkInTime,
-                attendance_id: newAttendance.id,
-                requested_by: user?.id,
-                metadata: { late_minutes: lateMinutes }
-              });
-              
-              console.log("Created late_start exception");
+              // Dedupe: check if pending exception already exists
+              const alreadyExists = await checkExistingException('late_start');
+              if (!alreadyExists) {
+                await supabase.from('workforce_exceptions').insert({
+                  company_id: company.id,
+                  location_id: locationId,
+                  employee_id: currentEmployee.id,
+                  exception_type: 'late_start',
+                  status: 'pending',
+                  shift_id: scheduledShift?.shift_id,
+                  shift_date: today,
+                  detected_at: checkInTime,
+                  attendance_id: newAttendance.id,
+                  requested_by: user?.id,
+                  metadata: { late_minutes: lateMinutes }
+                });
+                
+                console.log("Created late_start exception");
+              } else {
+                console.log("Skipping duplicate late_start exception");
+              }
             }
           }
         }
@@ -633,6 +654,83 @@ const StaffScanAttendance = () => {
         employeeName={employee?.full_name?.split(" ")[0] || ""}
         reminders={reminders.map(r => r.message)}
       />
+      
+      {/* Blocked Clock-in Dialog - shown when policy=block and no scheduled shift */}
+      <AlertDialog open={showBlockedDialog} onOpenChange={setShowBlockedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Clock-In Blocked
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                You don't have a scheduled shift at this location right now.
+              </p>
+              <p className="text-sm">
+                Your company's attendance policy requires a scheduled shift to clock in. 
+                Contact your manager if you believe this is an error.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => {
+              setShowBlockedDialog(false);
+              setBlockedLocationId(null);
+            }}>
+              Close
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                // Request exception - creates workforce_exception without attendance
+                if (company?.id && employee?.id && blockedLocationId && user?.id) {
+                  const today = format(new Date(), "yyyy-MM-dd");
+                  const now = new Date().toISOString();
+                  
+                  // Check for existing pending exception first (dedupe)
+                  const { data: existing } = await supabase
+                    .from('workforce_exceptions')
+                    .select('id')
+                    .eq('company_id', company.id)
+                    .eq('location_id', blockedLocationId)
+                    .eq('employee_id', employee.id)
+                    .eq('exception_type', 'unscheduled_shift')
+                    .eq('shift_date', today)
+                    .eq('status', 'pending')
+                    .limit(1)
+                    .maybeSingle();
+                  
+                  if (existing) {
+                    toast.info("You already have a pending approval request for today.");
+                  } else {
+                    await supabase.from('workforce_exceptions').insert({
+                      company_id: company.id,
+                      location_id: blockedLocationId,
+                      employee_id: employee.id,
+                      exception_type: 'unscheduled_shift',
+                      status: 'pending',
+                      shift_date: today,
+                      detected_at: now,
+                      requested_by: user.id,
+                      metadata: { 
+                        clock_in_time: now, 
+                        reason_requested: true,
+                        blocked_by_policy: true 
+                      }
+                    });
+                    toast.success("Manager approval requested. You'll be notified when approved.");
+                  }
+                }
+                setShowBlockedDialog(false);
+                setBlockedLocationId(null);
+              }}
+              className="bg-primary"
+            >
+              Request Manager Approval
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <div className="min-h-screen bg-background p-4 pb-24">
         <div className="max-w-md mx-auto space-y-6">

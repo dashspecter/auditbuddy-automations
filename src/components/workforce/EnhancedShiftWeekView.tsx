@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { AddTimeOffDialog } from "./AddTimeOffDialog";
 import { SchedulePresenceIndicator } from "./SchedulePresenceIndicator";
 import { SchedulePeriodBanner } from "./SchedulePeriodBanner";
 import { ChangeRequestDialog } from "./ChangeRequestDialog";
+import { PendingApprovalsDialog } from "./PendingApprovalsDialog";
 import { TrainingShiftCard } from "./TrainingShiftCard";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
@@ -69,6 +70,8 @@ export const EnhancedShiftWeekView = () => {
   const [timeOffToDelete, setTimeOffToDelete] = useState<{ id: string; employeeName: string } | null>(null);
   const [shiftTypeFilter, setShiftTypeFilter] = useState<"all" | "regular" | "training">("all");
   const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
+  const [pendingApprovalsOpen, setPendingApprovalsOpen] = useState(false);
+  const [pendingApprovalsFilter, setPendingApprovalsFilter] = useState<{ periodId?: string; locationId?: string }>({});
   const [pendingChangeRequest, setPendingChangeRequest] = useState<{
     changeType: 'add' | 'edit' | 'delete';
     targetShiftId?: string;
@@ -91,6 +94,19 @@ export const EnhancedShiftWeekView = () => {
   
   // Enable realtime updates for shifts
   useRealtimeShifts();
+  
+  // Listen for 'open-pending-approvals' event from SchedulePeriodBanner
+  useEffect(() => {
+    const handleOpenPendingApprovals = (event: CustomEvent<{ periodId?: string; locationId?: string }>) => {
+      setPendingApprovalsFilter(event.detail || {});
+      setPendingApprovalsOpen(true);
+    };
+    
+    window.addEventListener('open-pending-approvals', handleOpenPendingApprovals as EventListener);
+    return () => {
+      window.removeEventListener('open-pending-approvals', handleOpenPendingApprovals as EventListener);
+    };
+  }, []);
   
   // Track who else is viewing this schedule
   const { activeUsers } = useSchedulePresence(weekKey, selectedLocation === "all" ? undefined : selectedLocation);
@@ -1226,6 +1242,14 @@ export const EnhancedShiftWeekView = () => {
           shiftSummary={pendingChangeRequest.shiftSummary}
         />
       )}
+      
+      {/* Pending Approvals Dialog */}
+      <PendingApprovalsDialog
+        open={pendingApprovalsOpen}
+        onOpenChange={setPendingApprovalsOpen}
+        filterPeriodId={pendingApprovalsFilter.periodId}
+        filterLocationId={pendingApprovalsFilter.locationId}
+      />
     </div>
   );
 };
