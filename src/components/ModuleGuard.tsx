@@ -65,6 +65,7 @@ const getModuleName = (module: string): string => {
     'equipment_management': 'Equipment Management',
     'notifications': 'Notifications',
     'reports': 'Reports & Analytics',
+    'wastage': 'Wastage',
   };
   return moduleNames[module] || module;
 };

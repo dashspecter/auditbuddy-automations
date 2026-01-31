@@ -18,9 +18,11 @@ import {
   ListTodo,
   Users as UsersIcon,
   Wrench,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,6 +33,7 @@ export const AppTopBar = () => {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const { data: company } = useCompany();
+  const { hasModule } = useCompanyContext();
   const navigate = useNavigate();
 
   const getInitials = (email: string) => {
@@ -98,6 +101,14 @@ export const AppTopBar = () => {
                 {t("common.addEquipment")}
               </Link>
             </DropdownMenuItem>
+            {hasModule('wastage') && (
+              <DropdownMenuItem asChild>
+                <Link to="/waste/add" className="cursor-pointer">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t("nav.wasteAdd", "Add Waste Entry")}
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

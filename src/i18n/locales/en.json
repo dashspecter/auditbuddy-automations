@@ -178,7 +178,14 @@
     "systemHealth": "System Health",
     "debugData": "Debug Data",
     "aiAgents": "AI Agents",
-    "settingsSection": "Settings"
+    "settingsSection": "Settings",
+    "wastage": "Wastage",
+    "wasteAdd": "Add Entry",
+    "wasteEntries": "My Entries",
+    "wasteReports": "Wastage Reports",
+    "wasteProducts": "Products",
+    "wasteReasons": "Reasons",
+    "wasteSettings": "Settings"
   },
   "auth": {
     "signIn": "Sign In",

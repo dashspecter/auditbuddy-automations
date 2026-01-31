@@ -178,7 +178,14 @@
     "systemHealth": "Stare sistem",
     "debugData": "Date debug",
     "aiAgents": "Agenți AI",
-    "settingsSection": "Setări"
+    "settingsSection": "Setări",
+    "wastage": "Risipă",
+    "wasteAdd": "Adaugă înregistrare",
+    "wasteEntries": "Înregistrările mele",
+    "wasteReports": "Rapoarte risipă",
+    "wasteProducts": "Produse",
+    "wasteReasons": "Motive",
+    "wasteSettings": "Setări"
   },
   "auth": {
     "signIn": "Autentificare",

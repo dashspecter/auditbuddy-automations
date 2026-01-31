@@ -114,6 +114,7 @@ export const MODULES = {
   NOTIFICATIONS: 'notifications',
   MANUAL_METRICS: 'manual_metrics',
   REPORTS: 'reports_analytics',
+  WASTAGE: 'wastage',
 } as const;
 
 // Local storage keys
