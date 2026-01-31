@@ -12,7 +12,8 @@ import {
   LogIn,
   LogOut,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -21,6 +22,18 @@ import { QRScanner } from "@/components/QRScanner";
 import { useNavigate } from "react-router-dom";
 import { WelcomeClockInDialog } from "@/components/staff/WelcomeClockInDialog";
 import { useStaffClockInReminders } from "@/hooks/useClockInReminders";
+import { useScheduleGovernanceEnabled, useWorkforcePolicy } from "@/hooks/useScheduleGovernance";
+import { useCompany } from "@/hooks/useCompany";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Safe time formatter that won't crash
 const safeFormatTime = (dateString: string | null): string => {
@@ -36,9 +49,14 @@ const StaffScanAttendance = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: reminders = [] } = useStaffClockInReminders();
+  const { data: company } = useCompany();
+  const isGovernanceEnabled = useScheduleGovernanceEnabled();
+  
   const [showScanner, setShowScanner] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false);
+  const [blockedLocationId, setBlockedLocationId] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
     time: Date;
@@ -49,6 +67,7 @@ const StaffScanAttendance = () => {
     checkInTime: string | null;
     checkOutTime: string | null;
     locationName: string | null;
+    pendingException?: boolean;
   }>({ checkedIn: false, checkInTime: null, checkOutTime: null, locationName: null });
   const [employee, setEmployee] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -406,29 +425,93 @@ const StaffScanAttendance = () => {
         
         // Find the employee's assigned shift for today at this location
         const today = format(new Date(), "yyyy-MM-dd");
-        const { data: todayShift } = await supabase
-          .from("shift_assignments")
-          .select(`
-            shift_id,
-            shifts!inner(id, shift_date, location_id)
-          `)
-          .eq("staff_id", currentEmployee.id)
-          .eq("shifts.shift_date", today)
-          .eq("shifts.location_id", locationId)
-          .eq("approval_status", "approved")
-          .maybeSingle();
+        const now = new Date();
         
-        console.log("Found shift for today:", todayShift);
+        // Use RPC for governance-enabled check or fallback to simple query
+        let scheduledShift: any = null;
+        let isUnscheduled = false;
+        let isLate = false;
+        let lateMinutes = 0;
         
-        const { error } = await supabase
+        if (isGovernanceEnabled && company?.id) {
+          // Use the RPC to find scheduled shift with grace window
+          const { data: rpcResult } = await supabase.rpc('find_scheduled_shift_for_clockin', {
+            p_company_id: company.id,
+            p_employee_id: currentEmployee.id,
+            p_location_id: locationId,
+            p_check_time: now.toISOString(),
+            p_grace_minutes: 60 // Default grace
+          });
+          
+          // RPC returns an array, get first result
+          const shiftResult = Array.isArray(rpcResult) && rpcResult.length > 0 ? rpcResult[0] : null;
+          
+          if (shiftResult) {
+            scheduledShift = { shift_id: shiftResult.shift_id };
+            isLate = shiftResult.is_late || false;
+            lateMinutes = shiftResult.late_minutes || 0;
+          } else {
+            isUnscheduled = true;
+          }
+          
+          // Fetch the workforce policy for this location
+          const { data: policyData } = await supabase.rpc('get_workforce_policy', {
+            p_company_id: company.id,
+            p_location_id: locationId
+          });
+          
+          const policy = policyData || { 
+            unscheduled_clock_in_policy: 'allow',
+            late_threshold_minutes: 15 
+          };
+          
+          console.log("Governance enabled. Policy:", policy, "Scheduled:", !!scheduledShift, "Unscheduled:", isUnscheduled);
+          
+          // Handle unscheduled clock-in based on policy
+          if (isUnscheduled) {
+            if (policy.unscheduled_clock_in_policy === 'block') {
+              // Block the clock-in
+              console.log("Clock-in blocked - no scheduled shift");
+              setBlockedLocationId(locationId);
+              setShowBlockedDialog(true);
+              return;
+            }
+          }
+        } else {
+          // Non-governance flow - simple shift lookup
+          const { data: todayShift } = await supabase
+            .from("shift_assignments")
+            .select(`
+              shift_id,
+              shifts!inner(id, shift_date, location_id)
+            `)
+            .eq("staff_id", currentEmployee.id)
+            .eq("shifts.shift_date", today)
+            .eq("shifts.location_id", locationId)
+            .eq("approval_status", "approved")
+            .maybeSingle();
+          
+          scheduledShift = todayShift;
+          isUnscheduled = !todayShift;
+        }
+        
+        console.log("Found shift for today:", scheduledShift);
+        
+        // Create attendance log
+        const checkInTime = new Date().toISOString();
+        const { data: newAttendance, error } = await supabase
           .from("attendance_logs")
           .insert({
             staff_id: currentEmployee.id,
             location_id: locationId,
-            check_in_at: new Date().toISOString(),
+            check_in_at: checkInTime,
             method: "app",
-            shift_id: todayShift?.shift_id || null,
-          });
+            shift_id: scheduledShift?.shift_id || null,
+            is_late: isLate,
+            late_minutes: lateMinutes > 0 ? lateMinutes : null,
+          })
+          .select('id')
+          .single();
 
         if (error) {
           console.error("Checkin error:", error);
@@ -436,15 +519,71 @@ const StaffScanAttendance = () => {
           return;
         }
 
+        // Create workforce exception if governance is enabled and conditions met
+        if (isGovernanceEnabled && company?.id && newAttendance) {
+          // Create exception for unscheduled shift (if policy is exception_ticket)
+          if (isUnscheduled) {
+            const { data: policyData } = await supabase.rpc('get_workforce_policy', {
+              p_company_id: company.id,
+              p_location_id: locationId
+            });
+            
+            if (policyData?.unscheduled_clock_in_policy === 'exception_ticket') {
+              await supabase.from('workforce_exceptions').insert({
+                company_id: company.id,
+                location_id: locationId,
+                employee_id: currentEmployee.id,
+                exception_type: 'unscheduled_shift',
+                status: 'pending',
+                shift_date: today,
+                detected_at: checkInTime,
+                attendance_id: newAttendance.id,
+                requested_by: user?.id,
+                metadata: { clock_in_time: checkInTime }
+              });
+              
+              console.log("Created unscheduled_shift exception");
+              toast.info("Clock-in recorded. Pending manager approval.", { duration: 5000 });
+            }
+          }
+          
+          // Create exception for late start (if above threshold)
+          if (isLate && lateMinutes > 0) {
+            const { data: policyData } = await supabase.rpc('get_workforce_policy', {
+              p_company_id: company.id,
+              p_location_id: locationId
+            });
+            
+            const threshold = policyData?.late_threshold_minutes || 15;
+            if (lateMinutes >= threshold) {
+              await supabase.from('workforce_exceptions').insert({
+                company_id: company.id,
+                location_id: locationId,
+                employee_id: currentEmployee.id,
+                exception_type: 'late_start',
+                status: 'pending',
+                shift_id: scheduledShift?.shift_id,
+                shift_date: today,
+                detected_at: checkInTime,
+                attendance_id: newAttendance.id,
+                requested_by: user?.id,
+                metadata: { late_minutes: lateMinutes }
+              });
+              
+              console.log("Created late_start exception");
+            }
+          }
+        }
+
         console.log("Check-in successful, updating state...");
         if (isMountedRef.current) {
           try {
-            const checkInTime = new Date().toISOString();
             const newStatus = {
               checkedIn: true,
               checkInTime,
               checkOutTime: null,
-              locationName: locationData?.name || null
+              locationName: locationData?.name || null,
+              pendingException: isUnscheduled && isGovernanceEnabled
             };
             setTodayStatus(newStatus);
             todayStatusRef.current = newStatus;
