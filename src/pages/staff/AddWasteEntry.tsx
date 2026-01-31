@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,19 +18,38 @@ import { ModuleGate } from "@/components/ModuleGate";
 export default function AddWasteEntry() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { data: company } = useCompany();
 
-  // Safe back handler - fallback to My Entries if no history
+  // Safe back handler - desktop-aware to avoid navigating to mobile routes
   const handleBack = () => {
-    // Check if we have actual navigation history (more than the current page)
-    if (window.history.length > 2) {
+    // On mobile, use standard back navigation
+    if (isMobile) {
+      if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        navigate('/staff/waste', { replace: true });
+      }
+      return;
+    }
+
+    // Desktop: check for safe "from" state
+    const from = (location.state as { from?: string })?.from;
+    const unsafePrefixes = ['/mobile', '/kiosk', '/staff/'];
+    const isSafeFrom = from && !unsafePrefixes.some(prefix => from.startsWith(prefix));
+
+    if (isSafeFrom) {
+      navigate(from);
+    } else if (window.history.length > 2) {
       navigate(-1);
     } else {
-      // Fallback to My Entries list
+      // Desktop fallback to My Entries
       navigate('/staff/waste', { replace: true });
     }
   };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: products, isLoading: productsLoading } = useWasteProducts();
