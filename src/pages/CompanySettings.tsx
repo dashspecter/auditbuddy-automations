@@ -16,6 +16,7 @@ import { StaffVisibilitySettings } from "@/components/settings/StaffVisibilitySe
 import { ClockInRemindersSettings } from "@/components/settings/ClockInRemindersSettings";
 import { ClockInToggleSettings } from "@/components/settings/ClockInToggleSettings";
 import { RolePermissionsManager } from "@/components/settings/RolePermissionsManager";
+import { ScheduleGovernanceSettings } from "@/components/settings/ScheduleGovernanceSettings";
 import {
   Select,
   SelectContent,
@@ -328,6 +329,7 @@ export default function CompanySettings() {
           </TabsContent>
 
           <TabsContent value="workforce" className="space-y-6">
+            <ScheduleGovernanceSettings company={company} />
             <ClockInToggleSettings company={company} />
             <StaffVisibilitySettings company={company} />
             <ClockInRemindersSettings />
