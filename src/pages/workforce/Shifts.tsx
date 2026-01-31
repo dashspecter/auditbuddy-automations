@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo } from "react";
 import { EnhancedShiftDialog, LockedChangeRequestPayload } from "@/components/workforce/EnhancedShiftDialog";
@@ -183,7 +184,18 @@ const Shifts = () => {
       {view === "week" ? (
         <EnhancedShiftWeekView />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          {/* Locked notice for day view */}
+          {isGovernanceEnabled && isPeriodLocked && (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+              <Lock className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                {t('workforce.governance.lockedNotice', 'Schedule locked — edits create change requests for manager approval')}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
@@ -343,6 +355,7 @@ const Shifts = () => {
             )}
           </CardContent>
         </Card>
+          </div>
         </div>
       )}
       
