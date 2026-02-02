@@ -35,7 +35,7 @@ export default function WasteSettings() {
     location_id: "",
     category: "",
     waste_product_id: "",
-    threshold_type: "daily_cost" as 'daily_cost' | 'daily_weight_g',
+    threshold_type: "daily_cost" as 'daily_cost' | 'daily_weight_kg',
     threshold_value: 0,
     active: true,
   });
@@ -253,14 +253,14 @@ export default function WasteSettings() {
                 <Label htmlFor="threshold_type">Threshold Type</Label>
                 <Select
                   value={formData.threshold_type}
-                  onValueChange={(v) => setFormData({ ...formData, threshold_type: v as 'daily_cost' | 'daily_weight_g' })}
+                  onValueChange={(v) => setFormData({ ...formData, threshold_type: v as 'daily_cost' | 'daily_weight_kg' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="daily_cost">Daily Cost (RON)</SelectItem>
-                    <SelectItem value="daily_weight_g">Daily Weight (grams)</SelectItem>
+                    <SelectItem value="daily_weight_kg">Daily Weight (kg)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

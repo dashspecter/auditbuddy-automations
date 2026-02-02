@@ -149,7 +149,7 @@ export default function MyWasteEntries() {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold">{(entry.weight_g / 1000).toFixed(2)} kg</p>
+                      <p className="text-lg font-semibold">{entry.weight_kg.toFixed(2)} kg</p>
                       <p className="text-sm text-muted-foreground">{entry.cost_total.toFixed(2)} RON</p>
                       {entry.status === 'voided' && (
                         <Badge variant="destructive" className="mt-1">Voided</Badge>
@@ -218,7 +218,7 @@ export default function MyWasteEntries() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Weight</p>
-                    <p className="font-medium">{(selectedEntry.weight_g / 1000).toFixed(2)} kg</p>
+                    <p className="font-medium">{selectedEntry.weight_kg.toFixed(2)} kg</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Cost</p>

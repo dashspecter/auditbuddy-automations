@@ -8251,7 +8251,7 @@ export type Database = {
           entry_count: number
           location_id: string
           total_cost: number
-          total_weight_g: number
+          total_weight_kg: number
         }
         Insert: {
           company_id: string
@@ -8259,7 +8259,7 @@ export type Database = {
           entry_count?: number
           location_id: string
           total_cost?: number
-          total_weight_g?: number
+          total_weight_kg?: number
         }
         Update: {
           company_id?: string
@@ -8267,7 +8267,7 @@ export type Database = {
           entry_count?: number
           location_id?: string
           total_cost?: number
-          total_weight_g?: number
+          total_weight_kg?: number
         }
         Relationships: [
           {
@@ -8304,7 +8304,7 @@ export type Database = {
           voided_by: string | null
           waste_product_id: string
           waste_reason_id: string | null
-          weight_g: number
+          weight_kg: number
         }
         Insert: {
           company_id: string
@@ -8323,7 +8323,7 @@ export type Database = {
           voided_by?: string | null
           waste_product_id: string
           waste_reason_id?: string | null
-          weight_g: number
+          weight_kg: number
         }
         Update: {
           company_id?: string
@@ -8342,7 +8342,7 @@ export type Database = {
           voided_by?: string | null
           waste_product_id?: string
           waste_reason_id?: string | null
-          weight_g?: number
+          weight_kg?: number
         }
         Relationships: [
           {

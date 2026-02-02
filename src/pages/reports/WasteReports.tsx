@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -9,16 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Download, Calendar as CalendarIcon, Trash2, TrendingUp, TrendingDown,
-  Scale, DollarSign, AlertTriangle, Package, BarChart3, ArrowLeft
+  Scale, DollarSign, AlertTriangle, Package, BarChart3, ArrowLeft, ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, ComposedChart
 } from "recharts";
-import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, WasteEntryFilters } from "@/hooks/useWaste";
+import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, WasteEntryFilters, getWastePhotoUrl, WasteEntry } from "@/hooks/useWaste";
 import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
@@ -45,6 +46,29 @@ export default function WasteReports() {
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Photo viewing state
+  const [selectedEntry, setSelectedEntry] = useState<WasteEntry | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+
+  // Load photo when entry selected
+  useEffect(() => {
+    const loadPhoto = async () => {
+      if (selectedEntry?.photo_path) {
+        const url = await getWastePhotoUrl(selectedEntry.photo_path);
+        setPhotoUrl(url);
+      } else {
+        setPhotoUrl(null);
+      }
+    };
+    loadPhoto();
+  }, [selectedEntry]);
+
+  const handleViewPhoto = (entry: WasteEntry) => {
+    setSelectedEntry(entry);
+    setPhotoDialogOpen(true);
+  };
 
   const { data: locations } = useLocations();
   const { data: products } = useWasteProducts(false);
@@ -79,7 +103,7 @@ export default function WasteReports() {
       entry.waste_products?.name || '',
       entry.waste_products?.category || '',
       entry.waste_reasons?.name || '',
-      (entry.weight_g / 1000).toFixed(3),
+      entry.weight_kg.toFixed(3),
       entry.cost_total.toFixed(2),
       entry.notes || ''
     ]);
@@ -512,6 +536,7 @@ export default function WasteReports() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">Photo</TableHead>
                           <TableHead>Date/Time</TableHead>
                           <TableHead>Location</TableHead>
                           <TableHead>Product</TableHead>
@@ -524,11 +549,25 @@ export default function WasteReports() {
                       <TableBody>
                         {entries?.slice(0, 100).map((entry) => (
                           <TableRow key={entry.id}>
+                            <TableCell>
+                              {entry.photo_path ? (
+                                <button
+                                  onClick={() => handleViewPhoto(entry)}
+                                  className="w-10 h-10 rounded bg-muted flex items-center justify-center hover:bg-accent transition-colors"
+                                >
+                                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                </button>
+                              ) : (
+                                <div className="w-10 h-10 rounded bg-muted/50 flex items-center justify-center">
+                                  <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>{format(new Date(entry.occurred_at), 'MMM d, HH:mm')}</TableCell>
                             <TableCell>{entry.locations?.name}</TableCell>
                             <TableCell>{entry.waste_products?.name}</TableCell>
                             <TableCell>{entry.waste_reasons?.name || '-'}</TableCell>
-                            <TableCell className="text-right">{(entry.weight_g / 1000).toFixed(3)}</TableCell>
+                            <TableCell className="text-right">{entry.weight_kg.toFixed(3)}</TableCell>
                             <TableCell className="text-right">{entry.cost_total.toFixed(2)}</TableCell>
                             <TableCell>
                               <Badge variant={entry.status === 'recorded' ? 'default' : 'destructive'}>
@@ -550,6 +589,62 @@ export default function WasteReports() {
             </TabsContent>
           </Tabs>
         )}
+
+        {/* Photo Dialog */}
+        <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Waste Entry Photo</DialogTitle>
+            </DialogHeader>
+            {selectedEntry && (
+              <div className="space-y-4">
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Waste entry photo"
+                    className="w-full rounded-lg object-cover max-h-[400px]"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center">
+                    <p className="text-muted-foreground">No photo available</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Product</p>
+                    <p className="font-medium">{selectedEntry.waste_products?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Location</p>
+                    <p className="font-medium">{selectedEntry.locations?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Weight</p>
+                    <p className="font-medium">{selectedEntry.weight_kg.toFixed(2)} kg</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Cost</p>
+                    <p className="font-medium">{selectedEntry.cost_total.toFixed(2)} RON</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Date</p>
+                    <p className="font-medium">{format(new Date(selectedEntry.occurred_at), 'MMM d, yyyy HH:mm')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Reason</p>
+                    <p className="font-medium">{selectedEntry.waste_reasons?.name || '-'}</p>
+                  </div>
+                </div>
+                {selectedEntry.notes && (
+                  <div>
+                    <p className="text-muted-foreground text-sm">Notes</p>
+                    <p className="text-sm">{selectedEntry.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </ModuleGate>
   );
