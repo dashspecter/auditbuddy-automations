@@ -171,6 +171,10 @@ export function checkTaskCoverage(
     };
   }
   
+  // Determine if this is a LOCATION-ONLY task (no specific role or employee assignment)
+  // These tasks should be visible to ALL employees at the location
+  const isLocationOnlyTask = !roleId && !roleName && !assignedTo && !!locationId;
+  
   // Find shifts that match location, role (and optionally time)
   const matchingShifts: Shift[] = [];
   const coveredEmployees: string[] = [];
@@ -190,8 +194,27 @@ export function checkTaskCoverage(
       continue;
     }
     
-    // CRITICAL: Role check - if task requires a role, shift MUST have matching role name
-    // NOTE: shifts table only has 'role' (text), there is NO role_id column
+    // LOCATION-ONLY TASKS: If no role required, ANY shift at this location counts as coverage
+    if (isLocationOnlyTask) {
+      // Check if shift has approved assignments
+      const approvedAssignments = (shift.shift_assignments || []).filter(
+        a => a.approval_status === 'approved' || a.approval_status === 'confirmed'
+      );
+      
+      if (approvedAssignments.length > 0) {
+        matchingShifts.push(shift);
+        approvedAssignments.forEach(a => {
+          if (!coveredEmployees.includes(a.staff_id)) {
+            coveredEmployees.push(a.staff_id);
+          }
+        });
+      } else {
+        lastMismatchReason = "no_approved_assignments";
+      }
+      continue;
+    }
+    
+    // ROLE-BASED or DIRECT ASSIGNMENT tasks: Check role matching
     roleChecks++;
     if (roleId || roleName) {
       // Task requires a role - we MUST have a role name to compare

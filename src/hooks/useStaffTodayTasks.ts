@@ -251,13 +251,13 @@ export function useStaffTodayTasks(
 
   // 2. Fetch tasks for this staff member
   const { data: rawTasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
-    queryKey: ["staff-today-tasks", staffContext?.companyId, staffContext?.employeeId, targetDayKey],
+    queryKey: ["staff-today-tasks", staffContext?.companyId, staffContext?.employeeId, staffContext?.locationId, targetDayKey],
     queryFn: async () => {
       if (!staffContext?.companyId) return [];
       
       const { employeeId, companyId, locationId, resolvedRoleId } = staffContext;
       
-      // A) Direct assignments
+      // A) Direct assignments to this employee
       const { data: directTasks, error: directError } = await supabase
         .from("tasks")
         .select(`
@@ -273,7 +273,6 @@ export function useStaffTodayTasks(
       // B) Role-based tasks (if role resolved)
       let roleTasks: any[] = [];
       if (resolvedRoleId) {
-        // Primary location tasks
         const { data: roleTasksPrimary } = await supabase
           .from("tasks")
           .select(`
@@ -286,12 +285,29 @@ export function useStaffTodayTasks(
           .is("assigned_to", null);
         
         roleTasks = roleTasksPrimary || [];
+      }
+      
+      // C) LOCATION-ONLY tasks - tasks assigned to the location but NOT to specific employee/role
+      // These are shared tasks for EVERYONE at the location (e.g., "Empty Bins")
+      let locationOnlyTasks: any[] = [];
+      if (locationId) {
+        const { data: locTasks } = await supabase
+          .from("tasks")
+          .select(`
+            *,
+            location:locations(id, name),
+            assigned_role:employee_roles(id, name)
+          `)
+          .eq("company_id", companyId)
+          .eq("location_id", locationId)
+          .is("assigned_to", null)
+          .is("assigned_role_id", null);
         
-        // Global tasks (no location) - already included if location_id is null
+        locationOnlyTasks = locTasks || [];
       }
       
       // Combine and deduplicate
-      const allTasks = [...(directTasks || []), ...roleTasks];
+      const allTasks = [...(directTasks || []), ...roleTasks, ...locationOnlyTasks];
       const uniqueTasks = allTasks.filter(
         (task, index, self) => index === self.findIndex((t) => t.id === task.id)
       );
@@ -300,6 +316,7 @@ export function useStaffTodayTasks(
         console.log("[useStaffTodayTasks] Fetched tasks:", {
           direct: directTasks?.length || 0,
           role: roleTasks.length,
+          locationOnly: locationOnlyTasks.length,
           unique: uniqueTasks.length,
         });
       }

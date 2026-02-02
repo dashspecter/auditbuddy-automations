@@ -4,10 +4,14 @@
  * Provides shift-aware task data through the unified pipeline.
  * All views (Calendar, Today, Tomorrow, Ops Dashboard, By Employee, Mobile)
  * should use this hook to ensure consistent task visibility.
+ * 
+ * CRITICAL: This hook automatically uses the company context to fetch shifts.
+ * If no companyId is provided in options, it will use the current company from context.
  */
 
 import { useMemo } from "react";
 import { useTasks, Task } from "./useTasks";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useShiftCoverage } from "./useShiftCoverage";
 import {
   runPipelineForDate,
@@ -77,6 +81,9 @@ export interface UnifiedTasksResult {
  * Hook that provides unified, shift-aware task data
  */
 export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTasksResult {
+  // Get companyId from context if not provided
+  const { company } = useCompanyContext();
+  
   const {
     viewMode = "execution",
     startDate = startOfDay(new Date()),
@@ -86,13 +93,17 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
     roleId,
     includeCompleted = true,
     shifts: providedShifts,
-    companyId,
+    companyId: providedCompanyId,
   } = options;
+
+  // Use provided companyId or fall back to company context
+  const companyId = providedCompanyId || company?.id;
 
   // Fetch tasks
   const { data: rawTasks = [], isLoading: isLoadingTasks } = useTasks();
 
   // Fetch shifts for the date range (requires companyId)
+  // CRITICAL: This was the bug - companyId was never passed, causing empty shifts
   const { data: fetchedShifts = [], isLoading: isLoadingShifts } = useShiftCoverage({
     startDate,
     endDate,
@@ -167,6 +178,9 @@ export function useUnifiedTasksForDate(
   targetDate: Date,
   options: Omit<UseUnifiedTasksOptions, "startDate" | "endDate"> = {}
 ) {
+  // Get companyId from context if not provided
+  const { company } = useCompanyContext();
+  
   const {
     viewMode = "execution",
     locationId,
@@ -174,8 +188,11 @@ export function useUnifiedTasksForDate(
     roleId,
     includeCompleted = true,
     shifts: providedShifts,
-    companyId,
+    companyId: providedCompanyId,
   } = options;
+
+  // Use provided companyId or fall back to company context
+  const companyId = providedCompanyId || company?.id;
 
   const { data: rawTasks = [], isLoading: isLoadingTasks } = useTasks();
 
