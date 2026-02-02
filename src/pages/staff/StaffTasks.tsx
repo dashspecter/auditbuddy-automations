@@ -495,6 +495,38 @@ const StaffTasks = () => {
               </div>
             </div>
 
+            {/* Weekly Recurrence Diagnostics */}
+            {debug?.weeklyRecurrence && (
+              <div className="mt-3 p-2 bg-background/50 rounded">
+                <div className="font-bold mb-1">Weekly Recurrence (Company TZ):</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <div>Today: {debug.weeklyRecurrence.companyTodayKey}</div>
+                  <div>Weekday: {debug.weeklyRecurrence.companyTodayWeekdayName} ({debug.weeklyRecurrence.companyTodayWeekday})</div>
+                  <div>Weekly Templates: {debug.weeklyRecurrence.weeklyTemplatesCount}</div>
+                  <div>With days_of_week: {debug.weeklyRecurrence.weeklyTemplatesWithDaysOfWeek}</div>
+                  <div className={debug.weeklyRecurrence.templatesMatchingToday === 0 && debug.weeklyRecurrence.weeklyTemplatesCount > 0 ? "col-span-2 text-amber-600 font-bold" : "col-span-2"}>
+                    Matching today: {debug.weeklyRecurrence.templatesMatchingToday}
+                    {debug.weeklyRecurrence.templatesMatchingToday === 0 && debug.weeklyRecurrence.weeklyTemplatesCount > 0 && (
+                      <span className="text-xs font-normal ml-2">
+                        (no tasks today - check recurrence_days_of_week)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {debug.weeklyRecurrence.templatesSummary.length > 0 && (
+                  <div className="mt-2 text-[10px]">
+                    <div className="font-bold mb-1">Templates:</div>
+                    {debug.weeklyRecurrence.templatesSummary.map((t, i) => (
+                      <div key={i} className={`border-b border-dashed pb-1 mb-1 ${t.matchesToday ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {t.id}... "{t.title}" | days: [{t.normalizedDays.join(',')}] | 
+                        {t.matchesToday ? ' ✅ matches today' : ' ❌ not today'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Sample Tasks */}
             {rawTasks.length > 0 && (
               <div className="mt-3 p-2 bg-background/50 rounded">
