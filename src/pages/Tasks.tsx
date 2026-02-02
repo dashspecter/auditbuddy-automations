@@ -276,11 +276,24 @@ const Tasks = () => {
     isLoading: isLoadingUnified,
     isLoadingShifts,
     rawTasks,
+    shifts,
+    debug: unifiedDebug,
   } = useUnifiedTasks({
     viewMode: "planning", // Show all tasks including those without coverage
     startDate: startOfDay(new Date()),
     endDate: endOfDay(addDays(new Date(), 7)),
   });
+
+  // DEV: Log pipeline debug info
+  if (import.meta.env.DEV && !isLoadingUnified) {
+    console.log("[Tasks.tsx] Pipeline debug:", {
+      shiftsCount: shifts?.length || 0,
+      todayTasksCount: todayResult?.tasks?.length || 0,
+      todayNoCoverage: todayResult?.noCoverage?.length || 0,
+      todayCovered: todayResult?.covered?.length || 0,
+      tomorrowTasksCount: tomorrowResult?.tasks?.length || 0,
+    });
+  }
 
   const isLoading = isLoadingTasks || isLoadingUnified;
 
@@ -316,8 +329,24 @@ const Tasks = () => {
     return happeningNow.filter(t => todayTaskIds.has(t.id));
   }, [rawTasks, todayTasks]);
 
-  // Group today's tasks by status (shift-aware)
-  const todayGrouped = useMemo(() => groupTasksByStatusShiftAware(todayTasks), [todayTasks]);
+  // Build a Set of IDs for tasks in "Happening Now" to exclude from other sections
+  const happeningNowIds = useMemo(() => {
+    return new Set(tasksHappeningNow.map(t => t.id));
+  }, [tasksHappeningNow]);
+
+  // Group today's tasks by status (shift-aware), excluding "Happening Now" tasks from Pending section
+  const todayGrouped = useMemo(() => {
+    const grouped = groupTasksByStatusShiftAware(todayTasks);
+    
+    // Remove "Happening Now" tasks from pending to avoid duplication
+    // They are NOT overdue (still within window), so only filter from pending
+    const filteredPending = grouped.pending.filter(t => !happeningNowIds.has(t.id));
+    
+    return {
+      ...grouped,
+      pending: filteredPending,
+    };
+  }, [todayTasks, happeningNowIds]);
 
   const filteredTasks = useMemo(() => {
     if (activeTab === "all") return tasks;

@@ -114,6 +114,16 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
 
   const shifts = providedShifts || fetchedShifts;
 
+  // DEV: Log shift coverage debug info
+  if (import.meta.env.DEV) {
+    console.log("[useUnifiedTasks] Shift coverage debug:", {
+      companyId: companyId?.slice(0, 8),
+      shiftsCount: shifts.length,
+      rawTasksCount: rawTasks.length,
+      dateRange: `${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`,
+    });
+  }
+
   // Run unified pipeline for date range
   const rangeResult = useMemo(() => {
     return runPipelineForDateRange(rawTasks, startDate, endDate, {
