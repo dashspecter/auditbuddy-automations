@@ -639,150 +639,103 @@ export const useUpdateTask = () => {
 
 export const useCompleteTask = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (taskId: string) => {
-      // Resolve virtual IDs (e.g., "uuid-virtual-2024-01-21") to real task IDs
+    mutationFn: async (taskIdOrOptions: string | { taskId: string; occurrenceDate?: string }) => {
+      // Support both legacy string input and new options object
+      const { taskId, occurrenceDate } = typeof taskIdOrOptions === "string" 
+        ? { taskId: taskIdOrOptions, occurrenceDate: undefined }
+        : taskIdOrOptions;
+      
+      // Resolve virtual IDs (e.g., "uuid-virtual-2024-01-21") to real task IDs and extract date
       const resolvedId = resolveTaskId(taskId);
       
-      // First, get the full task to check recurrence and other fields
+      // Extract occurrence date from virtual ID if not provided
+      let finalOccurrenceDate = occurrenceDate;
+      if (!finalOccurrenceDate && taskId.includes("-virtual-")) {
+        // Extract date from virtual ID format: "uuid-virtual-2024-01-21"
+        const match = taskId.match(/virtual-(\d{4}-\d{2}-\d{2})/);
+        if (match) {
+          finalOccurrenceDate = match[1];
+        }
+      }
+      
+      // Default to today if no date
+      if (!finalOccurrenceDate) {
+        const { toDayKey, getCompanyDayWindow } = await import("@/lib/companyDayUtils");
+        finalOccurrenceDate = getCompanyDayWindow().dayKey;
+      }
+      
+      // First, get the task to check if it's recurring
       const { data: existingTask, error: existingTaskError } = await supabase
         .from("tasks")
-        .select("*")
+        .select("id, recurrence_type")
         .eq("id", resolvedId)
         .single();
 
-      // IMPORTANT: don't swallow backend/RLS errors — surface them to the UI
       if (existingTaskError) throw existingTaskError;
-
       if (!existingTask) throw new Error("Task not found");
 
-      // Get the employee record for the current user to set completed_by
-      let employeeId: string | null = null;
-      if (user?.id) {
-        const { data: employee, error: employeeError } = await supabase
-          .from("employees")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        // Best-effort: completion can still proceed with completed_by=null
-        if (employeeError && import.meta.env.DEV) {
-          console.error("[useCompleteTask] Error fetching employee id:", employeeError);
+      const isRecurring = existingTask.recurrence_type && existingTask.recurrence_type !== "none";
+      
+      // For recurring tasks, use the guarded RPC (per-occurrence completion)
+      // For non-recurring tasks, we can still use RPC or fallback to direct update
+      const { data: rpcResult, error: rpcError } = await supabase.rpc("complete_task_guarded", {
+        p_task_id: resolvedId,
+        p_occurrence_date: finalOccurrenceDate,
+      });
+      
+      if (rpcError) {
+        // RPC might not exist yet, fallback to direct update for non-recurring
+        if (import.meta.env.DEV) {
+          console.log("[useCompleteTask] RPC error, checking if fallback needed:", rpcError);
         }
-        employeeId = employee?.id || null;
+        throw rpcError;
       }
-
-      const now = new Date();
-      let completedLate = false;
-
-      if (existingTask?.start_at && existingTask?.duration_minutes) {
-        const startTime = new Date(existingTask.start_at);
-        const deadline = new Date(startTime.getTime() + existingTask.duration_minutes * 60000);
-        completedLate = now > deadline;
+      
+      // Parse RPC result
+      const result = rpcResult as any;
+      
+      if (result?.success === false) {
+        // Handle specific errors
+        const error = new Error(result.message || result.error) as any;
+        error.code = result.error;
+        error.unlockAt = result.unlock_at;
+        error.unlockAtFormatted = result.unlock_at_formatted;
+        throw error;
       }
-
-      const { data: task, error } = await supabase
-        .from("tasks")
-        .update({
-          status: "completed",
-          completed_at: now.toISOString(),
-          completed_late: completedLate,
-          completed_by: employeeId,
-        })
-        .eq("id", resolvedId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // If this is a recurring task, create the next instance
-      if (existingTask.recurrence_type && existingTask.recurrence_type !== "none") {
-        const nextStartAt = calculateNextOccurrence(
-          existingTask.start_at || existingTask.due_at,
-          existingTask.recurrence_type,
-          existingTask.recurrence_interval || 1,
-          existingTask.recurrence_days_of_week,
-          existingTask.recurrence_days_of_month
-        );
-
-        // Check if we should still create the next occurrence
-        const shouldCreate = !existingTask.recurrence_end_date || 
-          new Date(nextStartAt) <= new Date(existingTask.recurrence_end_date);
-
-        if (shouldCreate && nextStartAt) {
-          // Create the next recurring task instance
-          const { data: newTask, error: createError } = await supabase
-            .from("tasks")
-            .insert({
-              company_id: existingTask.company_id,
-              title: existingTask.title,
-              description: existingTask.description,
-              priority: existingTask.priority,
-              status: "pending",
-              location_id: existingTask.location_id,
-              assigned_to: existingTask.assigned_to,
-              assigned_role_id: existingTask.assigned_role_id,
-              is_individual: existingTask.is_individual,
-              start_at: existingTask.start_at ? nextStartAt : null,
-              due_at: existingTask.start_at ? null : nextStartAt,
-              duration_minutes: existingTask.duration_minutes,
-              created_by: existingTask.created_by,
-              source: existingTask.source,
-              source_reference_id: existingTask.source_reference_id,
-              recurrence_type: existingTask.recurrence_type,
-              recurrence_interval: existingTask.recurrence_interval,
-              recurrence_end_date: existingTask.recurrence_end_date,
-              recurrence_days_of_week: existingTask.recurrence_days_of_week,
-              recurrence_days_of_month: existingTask.recurrence_days_of_month,
-              parent_task_id: existingTask.parent_task_id || existingTask.id,
-              is_recurring_instance: true,
-            })
-            .select()
-            .single();
-
-          if (!createError && newTask) {
-            // Copy task_locations
-            const { data: taskLocations } = await supabase
-              .from("task_locations")
-              .select("location_id")
-              .eq("task_id", resolvedId);
-
-            if (taskLocations && taskLocations.length > 0) {
-              await supabase
-                .from("task_locations")
-                .insert(taskLocations.map(tl => ({
-                  task_id: newTask.id,
-                  location_id: tl.location_id,
-                })));
-            }
-
-            // Copy task_roles
-            const { data: taskRoles } = await supabase
-              .from("task_roles")
-              .select("role_id")
-              .eq("task_id", resolvedId);
-
-            if (taskRoles && taskRoles.length > 0) {
-              await supabase
-                .from("task_roles")
-                .insert(taskRoles.map(tr => ({
-                  task_id: newTask.id,
-                  role_id: tr.role_id,
-                })));
-            }
-          }
-        }
+      
+      // For non-recurring tasks, also update the task template status for backward compatibility
+      if (!isRecurring) {
+        const now = new Date();
+        await supabase
+          .from("tasks")
+          .update({
+            status: "completed",
+            completed_at: now.toISOString(),
+            completed_late: result.completion_mode === "late",
+          })
+          .eq("id", resolvedId);
       }
-
-      return task;
+      
+      return {
+        id: resolvedId,
+        status: "completed",
+        completed_at: result.completed_at,
+        completion_mode: result.completion_mode,
+        occurrence_date: finalOccurrenceDate,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         predicate: (query) => {
           const key = query.queryKey;
-          return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
+          return key[0] === "tasks" 
+            || key[0] === "task-stats" 
+            || key[0] === "my-tasks"
+            || key[0] === "staff-today-tasks"
+            || key[0] === "task-completions"
+            || key[0] === "kiosk-raw-tasks";
         }
       });
     },

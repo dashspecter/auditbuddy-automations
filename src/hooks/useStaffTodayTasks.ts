@@ -8,9 +8,10 @@
  * 1. Derive staff context from employees table (NOT company_users)
  * 2. Resolve employee role to role_id
  * 3. Fetch tasks: direct assignments + role-based + shared role tasks
- * 4. Expand recurring tasks into occurrences for target date
- * 5. Fetch shifts and apply coverage filtering
- * 6. Apply time-lock rules for task completion
+ * 4. Fetch per-occurrence completions from task_completions table
+ * 5. Expand recurring tasks into occurrences for target date
+ * 6. Fetch shifts and apply coverage filtering (dayBasedCoverage: visible all day if shift exists)
+ * 7. Apply time-lock rules for task completion
  */
 
 import { useMemo, useState, useEffect } from "react";
@@ -27,12 +28,9 @@ import {
 } from "@/lib/unifiedTaskPipeline";
 import {
   getCanonicalToday,
-  getCompanyWeekday,
-  getCompanyDayKey,
-  normalizeDaysOfWeek,
 } from "@/lib/taskOccurrenceEngine";
-import { getCompanyDayWindow, toDayKey, normalizeRoleName, rolesMatch } from "@/lib/companyDayUtils";
-import { startOfDay, endOfDay, addDays, format } from "date-fns";
+import { toDayKey, normalizeRoleName } from "@/lib/companyDayUtils";
+import { startOfDay, endOfDay, format } from "date-fns";
 import { getTimeLockStatus, TimeLockStatus } from "@/lib/taskTimeLock";
 
 // =============================================================
@@ -50,6 +48,8 @@ export interface StaffContext {
 
 export interface StaffTaskWithTimeLock extends TaskWithCoverage {
   timeLock?: TimeLockStatus;
+  /** Whether this occurrence is completed (from task_completions) */
+  isOccurrenceCompleted?: boolean;
 }
 
 export interface StaffTodayTasksResult {
@@ -62,9 +62,9 @@ export interface StaffTodayTasksResult {
     completed: StaffTaskWithTimeLock[];
     noCoverage: StaffTaskWithTimeLock[];
   };
-  /** Active tasks (pending, started) */
+  /** Active tasks (pending, unlocked) */
   activeTasks: StaffTaskWithTimeLock[];
-  /** Upcoming tasks (not yet unlocked) */
+  /** Upcoming tasks (locked) */
   upcomingTasks: StaffTaskWithTimeLock[];
   /** Loading state */
   isLoading: boolean;
@@ -124,6 +124,10 @@ export interface StaffTodayDebugStats {
     noApprovedAssignments: number;
     taskRoleNameMissing: number;
   };
+  /** Now timestamp for debugging */
+  now: string;
+  /** Today's date key */
+  todayKey: string;
 }
 
 export interface UseStaffTodayTasksOptions {
@@ -137,6 +141,15 @@ export interface UseStaffTodayTasksOptions {
   targetDate?: Date;
   /** Enable query */
   enabled?: boolean;
+}
+
+// Completion record from task_completions table
+interface CompletionRecord {
+  task_id: string;
+  occurrence_date: string;
+  completed_by_employee_id: string | null;
+  completed_at: string;
+  completion_mode: string;
 }
 
 // =============================================================
@@ -158,6 +171,8 @@ export function useStaffTodayTasks(
   // Staff context state
   const [staffContext, setStaffContext] = useState<StaffContext | null>(null);
   const [contextLoading, setContextLoading] = useState(true);
+
+  const targetDayKey = toDayKey(targetDate);
 
   // 1. Derive staff context from employees table
   useEffect(() => {
@@ -236,11 +251,11 @@ export function useStaffTodayTasks(
 
   // 2. Fetch tasks for this staff member
   const { data: rawTasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
-    queryKey: ["staff-today-tasks", staffContext?.companyId, staffContext?.employeeId, toDayKey(targetDate)],
+    queryKey: ["staff-today-tasks", staffContext?.companyId, staffContext?.employeeId, targetDayKey],
     queryFn: async () => {
       if (!staffContext?.companyId) return [];
       
-      const { employeeId, companyId, locationId, resolvedRoleId, role } = staffContext;
+      const { employeeId, companyId, locationId, resolvedRoleId } = staffContext;
       
       // A) Direct assignments
       const { data: directTasks, error: directError } = await supabase
@@ -259,8 +274,6 @@ export function useStaffTodayTasks(
       let roleTasks: any[] = [];
       if (resolvedRoleId) {
         // Primary location tasks
-        const locationFilter = locationId ? [locationId] : [];
-        
         const { data: roleTasksPrimary } = await supabase
           .from("tasks")
           .select(`
@@ -274,20 +287,7 @@ export function useStaffTodayTasks(
         
         roleTasks = roleTasksPrimary || [];
         
-        // Global tasks (no location)
-        const { data: globalTasks } = await supabase
-          .from("tasks")
-          .select(`
-            *,
-            location:locations(id, name),
-            assigned_role:employee_roles(id, name)
-          `)
-          .eq("company_id", companyId)
-          .eq("assigned_role_id", resolvedRoleId)
-          .is("location_id", null)
-          .is("assigned_to", null);
-        
-        roleTasks = [...roleTasks, ...(globalTasks || [])];
+        // Global tasks (no location) - already included if location_id is null
       }
       
       // Combine and deduplicate
@@ -309,7 +309,48 @@ export function useStaffTodayTasks(
     enabled: enabled && !!staffContext?.companyId,
   });
 
-  // 3. Fetch shifts for coverage
+  // 3. Fetch per-occurrence completions for today
+  const { data: completions = [] } = useQuery({
+    queryKey: ["task-completions", staffContext?.companyId, targetDayKey, rawTasks.map(t => t.id).join(",")],
+    queryFn: async (): Promise<CompletionRecord[]> => {
+      if (!staffContext?.companyId) return [];
+      
+      // Get task IDs we're interested in
+      const taskIds = rawTasks.map(t => t.id);
+      if (taskIds.length === 0) return [];
+      
+      // Use raw SQL query via rpc to avoid type issues with new table
+      const { data, error } = await supabase.rpc("is_task_occurrence_completed", {
+        p_task_id: taskIds[0], // Dummy call to check if RPC exists
+        p_occurrence_date: targetDayKey,
+      });
+      
+      // Actually query completions directly
+      const { data: completionsData, error: completionsError } = await supabase
+        .from("task_completions" as any)
+        .select("*")
+        .in("task_id", taskIds)
+        .eq("occurrence_date", targetDayKey);
+      
+      if (completionsError) {
+        if (import.meta.env.DEV) {
+          console.log("[useStaffTodayTasks] Completions query error:", completionsError);
+        }
+        return [];
+      }
+      
+      return (completionsData || []).map((c: any) => ({
+        task_id: c.task_id,
+        occurrence_date: c.occurrence_date,
+        completed_by_employee_id: c.completed_by_employee_id,
+        completed_at: c.completed_at,
+        completion_mode: c.completion_mode,
+      })) as CompletionRecord[];
+    },
+    enabled: enabled && !!staffContext?.companyId && rawTasks.length > 0,
+  });
+
+  // 4. Fetch shifts for coverage
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(targetDate),
     endDate: endOfDay(targetDate),
@@ -318,9 +359,15 @@ export function useStaffTodayTasks(
     companyId: staffContext?.companyId,
   });
 
-  // 4. Run unified pipeline + apply time-lock
+  // 5. Run unified pipeline + apply time-lock + apply completions
   const result = useMemo(() => {
     const now = new Date();
+    
+    // Build completions lookup: Map<task_id, CompletionRecord>
+    const completionsByTaskId = new Map<string, CompletionRecord>();
+    for (const c of completions) {
+      completionsByTaskId.set(c.task_id, c);
+    }
     
     // Run pipeline for today
     const pipelineResult = runPipelineForDate(rawTasks, targetDate, {
@@ -331,27 +378,70 @@ export function useStaffTodayTasks(
       employeeId: staffContext?.employeeId,
     });
 
-    // Apply time-lock to each task
+    // Apply time-lock and completion status to each task
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
-      return { ...task, timeLock };
+      
+      // Check if this occurrence is completed (from task_completions)
+      // For virtual occurrences, extract the base task ID
+      const baseTaskId = task.id.includes("-virtual-") 
+        ? task.id.split("-virtual-")[0]
+        : task.id;
+      
+      const completion = completionsByTaskId.get(baseTaskId);
+      const isOccurrenceCompleted = !!completion;
+      
+      // If occurrence is completed, mark it
+      if (isOccurrenceCompleted && task.status !== "completed") {
+        return { 
+          ...task, 
+          timeLock, 
+          isOccurrenceCompleted,
+          // Override status to completed for display
+          status: "completed" as any,
+          completed_at: completion!.completed_at,
+        };
+      }
+      
+      return { ...task, timeLock, isOccurrenceCompleted };
     });
 
-    // Group tasks - cast to our extended type
-    const baseGrouped = groupTasksByStatusShiftAware(pipelineResult.tasks);
+    // Group tasks - but now use occurrence completion status
+    const pendingTasks: StaffTaskWithTimeLock[] = [];
+    const overdueTasks: StaffTaskWithTimeLock[] = [];
+    const completedTasksList: StaffTaskWithTimeLock[] = [];
+    const noCoverageTasks: StaffTaskWithTimeLock[] = [];
     
-    // Map to include time-lock status
-    const mapWithTimeLock = (tasks: TaskWithCoverage[]): StaffTaskWithTimeLock[] => 
-      tasks.map((t) => {
-        const timeLock = getTimeLockStatus(t, now);
-        return { ...t, timeLock } as StaffTaskWithTimeLock;
-      });
+    for (const task of tasksWithTimeLock) {
+      // Check coverage first
+      if (task.coverage && !task.coverage.hasCoverage) {
+        noCoverageTasks.push(task);
+        continue;
+      }
+      
+      // Check if completed (either template or occurrence)
+      if (task.isOccurrenceCompleted || task.status === "completed") {
+        completedTasksList.push(task);
+        continue;
+      }
+      
+      // Check if overdue
+      const deadline = task.start_at && task.duration_minutes
+        ? new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000)
+        : task.due_at ? new Date(task.due_at) : null;
+      
+      if (deadline && now > deadline) {
+        overdueTasks.push(task);
+      } else {
+        pendingTasks.push(task);
+      }
+    }
     
     const grouped = {
-      pending: mapWithTimeLock(baseGrouped.pending),
-      overdue: mapWithTimeLock(baseGrouped.overdue),
-      completed: mapWithTimeLock(baseGrouped.completed),
-      noCoverage: mapWithTimeLock(baseGrouped.noCoverage),
+      pending: pendingTasks,
+      overdue: overdueTasks,
+      completed: completedTasksList,
+      noCoverage: noCoverageTasks,
     };
 
     // Active = pending + overdue that are unlocked
@@ -419,6 +509,8 @@ export function useStaffTodayTasks(
         timeLockStatus: t.timeLock?.canComplete ? "unlocked" : "locked",
       })),
       coverageReasons,
+      now: format(now, "HH:mm:ss"),
+      todayKey: targetDayKey,
     };
 
     return {
@@ -428,7 +520,7 @@ export function useStaffTodayTasks(
       upcomingTasks,
       debug,
     };
-  }, [rawTasks, shifts, targetDate, staffContext]);
+  }, [rawTasks, shifts, targetDate, staffContext, completions, targetDayKey]);
 
   return {
     ...result,
