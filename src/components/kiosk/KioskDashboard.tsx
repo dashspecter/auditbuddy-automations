@@ -21,9 +21,7 @@ import {
 } from "lucide-react";
 import { 
   computeKioskTaskMetrics, 
-  getTodaysChampions, 
   getWeeklyStars,
-  type KioskEmployeeTaskMetrics,
   type KioskTask,
   type ScheduledEmployee
 } from "@/lib/kioskTaskAttribution";
@@ -350,7 +348,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   }, [unifiedTasks, todaysTeam, rawTasks]);
 
   // =====================================================
-  // KIOSK TASK-BASED LEADERBOARDS (role-aware, overdue-aware)
+  // KIOSK TASK-BASED LEADERBOARDS (computed from UNIFIED data)
+  // Champions must use the same per-occurrence completions as the KPIs
   // =====================================================
   
   // Build scheduled employees list (Today's Team as ScheduledEmployee format)
@@ -363,7 +362,74 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     }));
   }, [todaysTeam]);
 
-  // Convert tasks to KioskTask format for attribution
+  // =====================================================
+  // UNIFIED KPI COUNTS (from useKioskTodayTasks)
+  // These MUST match what Web/Mobile show
+  // =====================================================
+  const unifiedCompletedCount = unifiedGrouped.completed.length;
+  const unifiedOverdueCount = unifiedGrouped.overdue.length;
+  const unifiedPendingCount = unifiedGrouped.pending.length + unifiedGrouped.noCoverage.length;
+
+  // DEV: Log unified KPI debug info
+  if (import.meta.env.DEV) {
+    console.log("[KIOSK KPI]", {
+      doneToday: unifiedGrouped.completed.length,
+      overdue: unifiedGrouped.overdue.length,
+      pending: unifiedGrouped.pending.length,
+      noCoverage: unifiedGrouped.noCoverage.length,
+      total: unifiedTasks.length,
+      completionsAttached: unifiedTasks.filter(t => t.isOccurrenceCompleted).length,
+      debug: kioskPipelineDebug,
+    });
+  }
+
+  // =====================================================
+  // TODAY'S CHAMPIONS - computed from unified completed tasks
+  // Uses completed_by_employee_id from task_completions table
+  // =====================================================
+  interface ChampionData {
+    employee_id: string;
+    employee_name: string;
+    role: string;
+    avatar_url: string | null;
+    completed_today: number;
+  }
+  
+  const todaysChampions = useMemo((): ChampionData[] => {
+    // Build completion counts by employee from unified completed tasks
+    const countsByEmployee = new Map<string, number>();
+    
+    for (const task of unifiedGrouped.completed) {
+      const empId = (task as any).completed_by_employee_id;
+      if (empId) {
+        countsByEmployee.set(empId, (countsByEmployee.get(empId) || 0) + 1);
+      }
+    }
+    
+    // Map to scheduled employees only
+    const championsData: ChampionData[] = [];
+    for (const [empId, count] of countsByEmployee.entries()) {
+      const emp = employeeMap.get(empId);
+      if (emp) {
+        championsData.push({
+          employee_id: empId,
+          employee_name: emp.full_name,
+          role: emp.role,
+          avatar_url: emp.avatar_url,
+          completed_today: count,
+        });
+      }
+    }
+    
+    // Sort by completed_today desc, take top 3
+    return championsData
+      .filter(c => c.completed_today > 0)
+      .sort((a, b) => b.completed_today - a.completed_today)
+      .slice(0, 3);
+  }, [unifiedGrouped.completed, employeeMap]);
+
+  // Weekly stars - keep using legacy for now (not affected by per-occurrence bug)
+  // Convert tasks to KioskTask format for weekly attribution
   const kioskTasks: KioskTask[] = useMemo(() => {
     return rawTasks.map(task => ({
       id: task.id,
@@ -376,21 +442,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       start_at: task.start_at,
       completed_at: task.completed_at,
       completed_late: task.completed_late,
-      completed_by: task.completed_by, // Include actual completer for attribution
+      completed_by: task.completed_by,
     }));
   }, [rawTasks]);
 
-  // Compute task metrics with proper role attribution
   const employeeTaskMetrics = useMemo(() => {
     return computeKioskTaskMetrics(kioskTasks, scheduledEmployeesForMetrics, today);
   }, [kioskTasks, scheduledEmployeesForMetrics, today]);
 
-  // Today's Champions: ranked by completed_today
-  const todaysChampions = useMemo(() => {
-    return getTodaysChampions(employeeTaskMetrics, 3);
-  }, [employeeTaskMetrics]);
-
-  // Weekly Stars: ranked by weekly_task_score (avoids 100% default problem)
   const weeklyStars = useMemo(() => {
     return getWeeklyStars(employeeTaskMetrics, 3);
   }, [employeeTaskMetrics]);
@@ -496,23 +555,19 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     return `${hours}h ${mins}m`;
   };
 
-  const completedTasksCount = tasks.filter((t) => t.status === "completed").length;
-  const pendingTasksCount = tasks.filter((t) => t.status !== "completed").length;
-  
-  // Check if task is overdue: due_at is past, OR if no due_at, check if start_at is past
+  // LEGACY: These are now replaced by unified counts from useKioskTodayTasks
+  // Keep isTaskOverdue helper for task list display
   const isTaskOverdue = (t: Task) => {
     if (t.status === "completed") return false;
     if (t.due_at && isPast(new Date(t.due_at))) return true;
     if (!t.due_at && t.start_at && isPast(new Date(t.start_at))) return true;
     return false;
   };
-  
-  const overdueTasksCount = tasks.filter(isTaskOverdue).length;
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
       {/* Overdue Alert Banner - Prominent when there are overdue tasks */}
-      {overdueTasksCount > 0 && (
+      {unifiedOverdueCount > 0 && (
         <div className="animate-pulse bg-destructive/90 text-destructive-foreground rounded-lg p-4 flex items-center justify-between shadow-lg border-2 border-destructive">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 rounded-full p-2">
@@ -520,14 +575,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
             </div>
             <div>
               <div className="font-bold text-lg">
-                {overdueTasksCount} {overdueTasksCount === 1 ? 'Task' : 'Tasks'} Overdue!
+                {unifiedOverdueCount} {unifiedOverdueCount === 1 ? 'Task' : 'Tasks'} Overdue!
               </div>
               <div className="text-sm opacity-90">
                 Action required - check tasks below
               </div>
             </div>
           </div>
-          <div className="text-4xl font-bold">{overdueTasksCount}</div>
+          <div className="text-4xl font-bold">{unifiedOverdueCount}</div>
         </div>
       )}
 
@@ -546,24 +601,24 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-blue-500" />
             <div>
-              <div className="text-2xl font-bold text-blue-600">{completedTasksCount}</div>
+              <div className="text-2xl font-bold text-blue-600">{unifiedCompletedCount}</div>
               <div className="text-xs text-muted-foreground">Done Today</div>
             </div>
           </div>
         </Card>
-        <Card className={`p-3 ${overdueTasksCount > 0 ? 'bg-destructive/10 border-destructive/30' : 'bg-orange-500/10 border-orange-500/20'}`}>
+        <Card className={`p-3 ${unifiedOverdueCount > 0 ? 'bg-destructive/10 border-destructive/30' : 'bg-orange-500/10 border-orange-500/20'}`}>
           <div className="flex items-center gap-2">
-            {overdueTasksCount > 0 ? (
+            {unifiedOverdueCount > 0 ? (
               <AlertTriangle className="h-5 w-5 text-destructive" />
             ) : (
               <Timer className="h-5 w-5 text-orange-500" />
             )}
             <div>
-              <div className={`text-2xl font-bold ${overdueTasksCount > 0 ? 'text-destructive' : 'text-orange-600'}`}>
-                {pendingTasksCount}
+              <div className={`text-2xl font-bold ${unifiedOverdueCount > 0 ? 'text-destructive' : 'text-orange-600'}`}>
+                {unifiedPendingCount}
               </div>
               <div className="text-xs text-muted-foreground">
-                {overdueTasksCount > 0 ? `Pending (${overdueTasksCount} overdue)` : 'Pending'}
+                {unifiedOverdueCount > 0 ? `Pending (${unifiedOverdueCount} overdue)` : 'Pending'}
               </div>
             </div>
           </div>
@@ -647,11 +702,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
                 <ListTodo className="h-4 w-4" />
-                Today's Tasks ({pendingTasksCount})
-                {overdueTasksCount > 0 && (
+                Today's Tasks ({unifiedPendingCount})
+                {unifiedOverdueCount > 0 && (
                   <Badge variant="destructive" className="ml-auto">
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    {overdueTasksCount} Overdue
+                    {unifiedOverdueCount} Overdue
                   </Badge>
                 )}
               </h3>
