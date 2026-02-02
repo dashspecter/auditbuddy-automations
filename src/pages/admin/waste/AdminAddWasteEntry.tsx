@@ -38,7 +38,7 @@ export default function AdminAddWasteEntry() {
     location_id: "",
     waste_product_id: "",
     waste_reason_id: "",
-    weight_g: "",
+    weight_kg: "",
     notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +65,7 @@ export default function AdminAddWasteEntry() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_g) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg) {
       toast({
         title: "Missing required fields",
         description: "Please select a location, product, and enter the weight",
@@ -82,7 +82,7 @@ export default function AdminAddWasteEntry() {
         location_id: formData.location_id,
         waste_product_id: formData.waste_product_id,
         waste_reason_id: formData.waste_reason_id || null,
-        weight_g: parseInt(formData.weight_g),
+        weight_kg: parseFloat(formData.weight_kg),
         notes: formData.notes || null,
       });
 
@@ -134,8 +134,8 @@ export default function AdminAddWasteEntry() {
   };
 
   const selectedProduct = products?.find(p => p.id === formData.waste_product_id);
-  const estimatedCost = selectedProduct && formData.weight_g 
-    ? (selectedProduct.unit_cost * parseInt(formData.weight_g) / 1000).toFixed(2)
+  const estimatedCost = selectedProduct && formData.weight_kg 
+    ? (selectedProduct.unit_cost * parseFloat(formData.weight_kg)).toFixed(2)
     : null;
 
   return (
@@ -233,14 +233,15 @@ export default function AdminAddWasteEntry() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Scale className="h-4 w-4" />
-                  Weight (grams) *
+                  Weight (kg) *
                 </Label>
                 <Input
                   type="number"
-                  min="1"
-                  value={formData.weight_g}
-                  onChange={(e) => setFormData(prev => ({ ...prev, weight_g: e.target.value }))}
-                  placeholder="Enter weight in grams"
+                  min="0.001"
+                  step="0.001"
+                  value={formData.weight_kg}
+                  onChange={(e) => setFormData(prev => ({ ...prev, weight_kg: e.target.value }))}
+                  placeholder="Enter weight in kg"
                 />
                 {estimatedCost && (
                   <p className="text-sm text-muted-foreground">
@@ -307,7 +308,7 @@ export default function AdminAddWasteEntry() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_g}
+                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg}
               >
                 {isSubmitting ? (
                   <>

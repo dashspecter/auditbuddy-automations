@@ -46,7 +46,7 @@ export default function AddWasteEntry() {
     location_id: passedLocationId || "",
     waste_product_id: "",
     waste_reason_id: "",
-    weight_g: "",
+    weight_kg: "",
     notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +77,7 @@ export default function AddWasteEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_g) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -103,7 +103,7 @@ export default function AddWasteEntry() {
         location_id: formData.location_id,
         waste_product_id: formData.waste_product_id,
         waste_reason_id: formData.waste_reason_id || undefined,
-        weight_g: parseFloat(formData.weight_g),
+        weight_kg: parseFloat(formData.weight_kg),
         notes: formData.notes || undefined,
       });
 
@@ -141,7 +141,7 @@ export default function AddWasteEntry() {
         location_id: locations?.length === 1 ? locations[0].id : "",
         waste_product_id: "",
         waste_reason_id: "",
-        weight_g: "",
+        weight_kg: "",
         notes: "",
       });
       setPhotoFile(null);
@@ -318,21 +318,22 @@ export default function AddWasteEntry() {
 
           {/* Weight Input */}
           <div className="space-y-2">
-            <Label>Weight (grams) *</Label>
+            <Label>Weight (kg) *</Label>
             <div className="relative">
               <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="number"
-                inputMode="numeric"
-                placeholder="Enter weight in grams"
-                value={formData.weight_g}
-                onChange={(e) => setFormData({ ...formData, weight_g: e.target.value })}
+                inputMode="decimal"
+                step="0.001"
+                placeholder="Enter weight in kg"
+                value={formData.weight_kg}
+                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
                 className="pl-10"
               />
             </div>
-            {selectedProduct && formData.weight_g && (
+            {selectedProduct && formData.weight_kg && (
               <p className="text-sm text-muted-foreground">
-                Estimated cost: {((parseFloat(formData.weight_g) / 1000) * selectedProduct.unit_cost).toFixed(2)} RON
+                Estimated cost: {(parseFloat(formData.weight_kg) * selectedProduct.unit_cost).toFixed(2)} RON
               </p>
             )}
           </div>
@@ -354,7 +355,7 @@ export default function AddWasteEntry() {
           <Button
             className="w-full h-12 text-base"
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_g || !photoFile}
+            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !photoFile}
           >
             {isSubmitting ? (
               <>

@@ -39,7 +39,7 @@ export interface WasteEntry {
   occurred_at: string;
   waste_product_id: string;
   waste_reason_id: string | null;
-  weight_g: number;
+  weight_kg: number;
   unit_cost_used: number;
   cost_total: number;
   notes: string | null;
@@ -62,7 +62,7 @@ export interface WasteThreshold {
   location_id: string | null;
   category: string | null;
   waste_product_id: string | null;
-  threshold_type: 'daily_cost' | 'daily_weight_g';
+  threshold_type: 'daily_cost' | 'daily_weight_kg';
   threshold_value: number;
   active: boolean;
   created_at: string;
@@ -392,7 +392,7 @@ export const useCreateWasteEntry = () => {
       location_id: string;
       waste_product_id: string;
       waste_reason_id?: string;
-      weight_g: number;
+      weight_kg: number;
       notes?: string;
       photo_path?: string;
       occurred_at?: string;
