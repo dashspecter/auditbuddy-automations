@@ -581,13 +581,13 @@ export function useKioskTodayTasks(options: {
 }) {
   const { locationId, companyId, targetDate = getCanonicalToday(), enabled = true } = options;
 
-  // Fetch all active employees at this location
+  // Fetch all active employees at this location (include user_id for completer mapping)
   const { data: employees = [] } = useQuery({
     queryKey: ["kiosk-employees", locationId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, role, avatar_url")
+        .select("id, full_name, role, avatar_url, user_id")
         .eq("location_id", locationId)
         .eq("status", "active");
       if (error) throw error;
@@ -635,8 +635,12 @@ export function useKioskTodayTasks(options: {
   });
 
   const targetDayKey = toDayKey(targetDate);
+  const dayStart = startOfDay(targetDate);
+  const dayEnd = endOfDay(targetDate);
+  const dayStartISO = dayStart.toISOString();
+  const dayEndISO = dayEnd.toISOString();
 
-  // Fetch per-occurrence completions for kiosk view
+  // Fetch per-occurrence completions for kiosk view (from task_completions table)
   const { data: completions = [] } = useQuery({
     queryKey: ["task-completions-kiosk", companyId, locationId, targetDayKey, rawTasks.length],
     queryFn: async (): Promise<CompletionRecord[]> => {
@@ -665,6 +669,39 @@ export function useKioskTodayTasks(options: {
       }));
     },
     enabled: enabled && rawTasks.length > 0,
+  });
+
+  // ======================================================================
+  // CRITICAL: Query LEGACY completed tasks for today DIRECTLY from tasks table.
+  // This ensures we count tasks that were completed today even if they're
+  // not in rawTasks (e.g., already marked completed at template level).
+  // ======================================================================
+  const { data: legacyCompletedTasks = [] } = useQuery({
+    queryKey: ["kiosk-legacy-completed", companyId, locationId, targetDayKey],
+    queryFn: async (): Promise<Task[]> => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select(`
+          *,
+          location:locations(id, name),
+          assigned_role:employee_roles(id, name)
+        `)
+        .eq("company_id", companyId)
+        .eq("location_id", locationId)
+        .eq("status", "completed")
+        .gte("completed_at", dayStartISO)
+        .lt("completed_at", dayEndISO);
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.log("[useKioskTodayTasks] Legacy completed query error:", error);
+        }
+        return [];
+      }
+      
+      return (data || []) as Task[];
+    },
+    enabled,
   });
 
   // Fetch shifts for coverage
@@ -756,23 +793,24 @@ export function useKioskTodayTasks(options: {
     // IMPORTANT: this must include completions for TODAY even if
     // the task was due earlier (backlog completion).
     // Sources:
-    // 1) task_completions (per-occurrence)
-    // 2) legacy tasks.completed_* (template-level), only if completed today
+    // 1) task_completions (per-occurrence) - preferred
+    // 2) legacy tasks.completed_* (from legacyCompletedTasks query) 
     // =========================================================
     const completedByCompositeKey = new Map<string, StaffTaskWithTimeLock>();
     const completionsFromTableCount = completions.filter(
       (c) => c.occurrence_date === targetDayKey
     ).length;
+    
+    // Source 1: Per-occurrence completions from task_completions table
     for (const c of completions) {
       if (c.occurrence_date !== targetDayKey) continue;
       const tpl = rawTasks.find((t) => t.id === c.task_id);
-      if (!tpl) continue;
+      // Even if template not found, still count the completion for KPI
+      const taskTitle = tpl?.title || "(Unknown task)";
 
       const compositeKey = `${c.task_id}:${c.occurrence_date}`;
-      // Build a stable "completed occurrence" object for KPI/Champions.
-      // Keep it separate from todayTasks (task LIST must remain unchanged).
       completedByCompositeKey.set(compositeKey, {
-        ...(tpl as any),
+        ...(tpl || { id: c.task_id, title: taskTitle } as any),
         id: `${c.task_id}-completed-${c.occurrence_date}`,
         status: "completed" as any,
         isOccurrenceCompleted: true,
@@ -782,7 +820,37 @@ export function useKioskTodayTasks(options: {
       } as StaffTaskWithTimeLock);
     }
 
+    // Source 2: Legacy completed tasks from the direct query (NOT dependent on rawTasks)
     let legacyCompletedTodayCount = 0;
+    for (const t of legacyCompletedTasks) {
+      // Already filtered to today in the query, but double-check
+      if (t.status !== "completed" || !t.completed_at) continue;
+      const completedDayKey = toDayKey(new Date(t.completed_at));
+      if (completedDayKey !== targetDayKey) continue;
+
+      const legacyCompleter =
+        (t as any).completed_by_employee_id ??
+        (t as any).completed_by ??
+        ((t as any).completed_by && typeof (t as any).completed_by === 'object' 
+          ? (t as any).completed_by.id 
+          : null) ??
+        null;
+
+      const { baseTaskId } = getOccurrenceInfoFromTaskId(t.id, targetDayKey);
+      const compositeKey = `${baseTaskId}:${targetDayKey}`;
+      if (completedByCompositeKey.has(compositeKey)) continue; // avoid double counting
+
+      legacyCompletedTodayCount++;
+      completedByCompositeKey.set(compositeKey, {
+        ...(t as any),
+        id: `${baseTaskId}-completed-${targetDayKey}`,
+        status: "completed" as any,
+        isOccurrenceCompleted: false,
+        completed_by_employee_id: legacyCompleter,
+      } as StaffTaskWithTimeLock);
+    }
+
+    // Also check rawTasks for legacy completions (in case legacyCompletedTasks query missed some)
     for (const t of rawTasks) {
       if (t.status !== "completed" || !t.completed_at) continue;
       const completedDayKey = toDayKey(new Date(t.completed_at));
@@ -791,7 +859,9 @@ export function useKioskTodayTasks(options: {
       const legacyCompleter =
         (t as any).completed_by_employee_id ??
         (t as any).completed_by ??
-        (t as any).completed_by?.id ??
+        ((t as any).completed_by && typeof (t as any).completed_by === 'object' 
+          ? (t as any).completed_by.id 
+          : null) ??
         null;
 
       const { baseTaskId } = getOccurrenceInfoFromTaskId(t.id, targetDayKey);
@@ -846,6 +916,8 @@ export function useKioskTodayTasks(options: {
       completionsCount: completions.length,
       completionsFromTableCount,
       legacyCompletedTodayCount,
+      legacyCompletedQueryCount: legacyCompletedTasks.length,
+      completedTodayTotal: completedToday.length,
       completedMissingCompleterCount: completedMissingCompleter.length,
       sampleMissingCompleterTitles: completedMissingCompleter
         .slice(0, 5)
@@ -860,7 +932,7 @@ export function useKioskTodayTasks(options: {
       employees,
       debug,
     };
-  }, [rawTasks, shifts, targetDate, employees, completions, targetDayKey]);
+  }, [rawTasks, shifts, targetDate, employees, completions, legacyCompletedTasks, targetDayKey]);
 
   return {
     ...result,
