@@ -73,6 +73,12 @@ export interface CoverageCheckOptions {
    * This ensures tasks remain visible after shift ends until end-of-day.
    * Default: true for mobile/execution views.
    */
+  /** 
+   * If true, only check that shift EXISTS on day (not that task time is within shift window).
+   * This ensures tasks remain visible after shift ends until end-of-day.
+   * ALSO: Pre-shift visibility - tasks visible even before shift starts if employee is scheduled.
+   * Default: true for mobile/execution views.
+   */
   dayBasedCoverage?: boolean;
 }
 

@@ -301,8 +301,21 @@ const StaffTasks = () => {
         next.delete(resolved);
         return next;
       });
-      logTap(`[MUTATE ERROR] ${summarizeError(e)}`);
-      toast.error("Couldn't complete task. Please try again.");
+      
+      const errorAny = e as any;
+      const errorMessage = errorAny?.message || errorAny?.code || "Unknown error";
+      logTap(`[MUTATE ERROR] ${errorMessage}`);
+      
+      // Handle time-lock error specifically
+      if (errorMessage.includes("TASK_LOCKED_UNTIL") || errorAny?.code === "TASK_LOCKED_UNTIL") {
+        const unlockTime = errorAny?.unlockAtFormatted || errorAny?.unlockAt || "";
+        toast.error(t('tasks.timeLock.lockedToast', { time: unlockTime }));
+      } else if (errorMessage.includes("ALREADY_COMPLETED")) {
+        // Idempotent: treat as success
+        toast.info("Task already completed");
+      } else {
+        toast.error("Couldn't complete task. Please try again.");
+      }
     }
   };
 
@@ -663,30 +676,45 @@ const StaffTasks = () => {
           </div>
         )}
 
-        {/* Upcoming Tasks */}
+        {/* Upcoming Tasks (Locked) */}
         {upcomingTasks.length > 0 && (
           <div>
             <h2 className="font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+              <Lock className="h-4 w-4" />
               {t('tasks.staff.comingUp')}
             </h2>
             <div className="space-y-2">
-              {upcomingTasks.map((task) => (
-                <Card key={task.id} className="p-4 opacity-70 border-dashed">
-                  <div className="flex items-start gap-3">
-                    <Checkbox disabled className="mt-1" />
-                    <div className="flex-1">
-                      <h3 className="font-medium">{task.title}</h3>
-                      {task.start_at && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {t('tasks.staff.starts')}: {format(new Date(task.start_at), "h:mm a")}
-                          {task.duration_minutes && ` • ${task.duration_minutes} ${t('tasks.staff.minToComplete')}`}
-                        </p>
-                      )}
+              {upcomingTasks.map((task) => {
+                const timeLock = task.timeLock;
+                return (
+                  <Card key={task.id} className="p-4 opacity-70 border-dashed border-l-4 border-l-orange-400">
+                    <div className="flex items-start gap-3">
+                      {/* Locked checkbox with visual indicator */}
+                      <div className="relative mt-1">
+                        <Checkbox disabled className="opacity-40" />
+                        <Lock className="absolute -top-1 -right-1 h-3 w-3 text-orange-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-medium">{task.title}</h3>
+                          {timeLock?.unlockAtFormatted && (
+                            <Badge variant="outline" className="text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
+                              <Lock className="h-3 w-3 mr-1" />
+                              {t('tasks.timeLock.availableAt')} {timeLock.unlockAtFormatted}
+                            </Badge>
+                          )}
+                        </div>
+                        {task.start_at && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t('tasks.staff.starts')}: {format(new Date(task.start_at), "h:mm a")}
+                            {task.duration_minutes && ` • ${task.duration_minutes} ${t('tasks.staff.minToComplete')}`}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
 import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 import type { Task as BaseTask } from "@/hooks/useTasks";
+import { useKioskTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,7 +16,8 @@ import {
   Trophy,
   XCircle,
   Timer,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from "lucide-react";
 import { 
   computeKioskTaskMetrics, 
@@ -281,33 +283,50 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // Filter employees to only those with shifts today - MUST be computed before tasks
   const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
 
-  // Apply occurrence engine to get today's tasks (handles recurring tasks)
-  // IMPORTANT: Tasks are only visible if there is shift coverage (scheduled staff)
-  const tasks: Task[] = useMemo(() => {
-    // If no staff scheduled today, return empty - no tasks should be active
+  // ===================================================================
+  // USE UNIFIED KIOSK TASKS HOOK (replaces manual occurrence expansion)
+  // This ensures Kiosk uses the same pipeline as Mobile for consistency
+  // ===================================================================
+  const { 
+    todayTasks: unifiedTasks,
+    grouped: unifiedGrouped,
+    debug: kioskPipelineDebug,
+  } = useKioskTodayTasks({
+    locationId,
+    companyId,
+    targetDate: today,
+    enabled: true,
+  });
+
+  // Map unified tasks to local Task interface for compatibility with existing kiosk code
+  // Also filter by coverage: only show tasks if staff are scheduled
+  const tasks: (Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] })[] = useMemo(() => {
+    // If no staff scheduled today, return empty
     if (todaysTeam.length === 0) {
       return [];
     }
-    
-    const todayOccurrences = getOccurrencesForDate(rawTasks, today, {
-      includeCompleted: true,
-      includeVirtual: true,
-    });
     
     // Get roles that are scheduled today
     const scheduledRoles = new Set(todaysTeam.map(e => e.role?.toLowerCase()).filter(Boolean));
     const scheduledEmployeeIds = new Set(todaysTeam.map(e => e.id));
     
-    // Re-attach role info and filter by coverage
-    return todayOccurrences
+    return unifiedTasks
       .map(task => {
+        // Re-attach role info from rawTasks for display
         const originalId = getOriginalTaskId(task.id);
         const originalTask = rawTasks.find(t => t.id === originalId);
         return {
-          ...task,
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          assigned_to: task.assigned_to,
+          priority: task.priority,
+          start_at: task.start_at,
+          due_at: task.due_at,
           role_ids: originalTask?.role_ids || [],
           role_names: originalTask?.role_names || [],
-        } as Task;
+          timeLock: task.timeLock,
+        } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] };
       })
       .filter(task => {
         // Check if task has coverage:
@@ -320,10 +339,9 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
         if (taskRoles.some(r => scheduledRoles.has(r))) {
           return true;
         }
-        // No coverage - exclude from kiosk
         return false;
       });
-  }, [rawTasks, today, todaysTeam]);
+  }, [unifiedTasks, todaysTeam, rawTasks]);
 
   // =====================================================
   // KIOSK TASK-BASED LEADERBOARDS (role-aware, overdue-aware)
@@ -381,9 +399,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // Group tasks by their assigned roles and find employees on shift with those roles
   // IMPORTANT: Each task only appears ONCE under its PRIMARY role (first assigned role)
   // This matches the main Tasks page behavior where each task is shown once
+  type TaskWithTimeLock = Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] };
   const tasksByRole = useMemo(() => {
     const roleGroups: Record<string, { 
-      tasks: Task[];
+      tasks: TaskWithTimeLock[];
       employees: Employee[];
     }> = {};
     const seenTaskIds = new Set<string>();
@@ -652,12 +671,17 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
                       const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
                                         (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
                       const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
+                      const isLocked = task.timeLock && !task.timeLock.canComplete;
+                      const unlockTime = task.timeLock?.unlockAtFormatted;
+                      
                       return (
                         <div
                           key={task.id}
                           className={`rounded-lg p-2 flex items-center gap-2 transition-all ${
                             isOverdue 
                               ? 'bg-destructive/15 border-2 border-destructive/40 shadow-sm animate-pulse' 
+                              : isLocked
+                              ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800'
                               : 'bg-muted/30'
                           }`}
                         >
@@ -665,22 +689,36 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
                             <div className="bg-destructive rounded-full p-1.5 flex-shrink-0">
                               <AlertTriangle className="h-4 w-4 text-destructive-foreground" />
                             </div>
+                          ) : isLocked ? (
+                            <Lock className="h-4 w-4 text-orange-500 flex-shrink-0" />
                           ) : (
                             <Timer className="h-4 w-4 text-primary flex-shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <span className={`text-sm truncate block ${isOverdue ? 'text-destructive font-bold' : ''}`}>
+                            <span className={`text-sm truncate block ${
+                              isOverdue ? 'text-destructive font-bold' : 
+                              isLocked ? 'text-orange-700 dark:text-orange-400' : ''
+                            }`}>
                               {task.title}
                             </span>
                             {taskTime && (
-                              <span className={`text-xs ${isOverdue ? 'text-destructive/70' : 'text-muted-foreground'}`}>
-                                {isOverdue ? 'Was due: ' : 'Scheduled: '}{taskTime}
+                              <span className={`text-xs ${
+                                isOverdue ? 'text-destructive/70' : 
+                                isLocked ? 'text-orange-600/70 dark:text-orange-400/70' : 
+                                'text-muted-foreground'
+                              }`}>
+                                {isOverdue ? 'Was due: ' : isLocked ? 'Scheduled: ' : 'Scheduled: '}{taskTime}
                               </span>
                             )}
                           </div>
                           {isOverdue ? (
                             <Badge variant="destructive" className="text-xs px-2 py-0.5 font-bold animate-pulse">
                               ⚠ OVERDUE
+                            </Badge>
+                          ) : isLocked && unlockTime ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
+                              <Lock className="h-3 w-3 mr-1" />
+                              {unlockTime}
                             </Badge>
                           ) : task.start_at ? (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
