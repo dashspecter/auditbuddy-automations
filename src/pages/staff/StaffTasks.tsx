@@ -5,10 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw, Bug } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw, Bug, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompleteTask, Task } from "@/hooks/useTasks";
-import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
+import { useStaffTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
 import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,15 +84,19 @@ const StaffTasks = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  
+  // === USE UNIFIED STAFF TASKS HOOK ===
   const { 
-    todayGrouped, 
-    tomorrowTasks,
-    upcomingTasks, 
+    grouped: todayGrouped, 
+    activeTasks: activePendingTasks,
+    upcomingTasks,
     isLoading,
     rawTasks,
     debug,
-    shifts, // Shifts from coverage hook for debug panel
-  } = useMyTaskOccurrences();
+    shifts,
+    staffContext,
+  } = useStaffTodayTasks();
+  
   const completeTask = useCompleteTask();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const { lastTap, logTap } = useTapDebug();
@@ -322,16 +326,12 @@ const StaffTasks = () => {
     }
   };
 
-  // Use occurrence engine groupings - combine pending + overdue for active
-  const activePendingTasks = [...todayGrouped.pending, ...todayGrouped.overdue];
+  // Already have activePendingTasks and upcomingTasks from hook
   const completedTasks = todayGrouped.completed;
 
   // Count recurring templates for debug
   const recurringTemplates = rawTasks.filter(
     (t) => t.recurrence_type && t.recurrence_type !== "none"
-  );
-  const completedRecurring = recurringTemplates.filter(
-    (t) => t.status === "completed"
   );
 
   // Badge consistency check: active + upcoming should match home badge
@@ -342,11 +342,9 @@ const StaffTasks = () => {
     console.log("[StaffTasks] Full pipeline debug:", {
       rawTasksCount: rawTasks.length,
       recurringTemplatesCount: recurringTemplates.length,
-      completedRecurringCount: completedRecurring.length,
       pipeline: {
-        generated: debug?.today?.generated ?? 'N/A',
-        covered: debug?.today?.covered ?? 'N/A',
-        visible: debug?.today?.visible ?? 'N/A',
+        generated: debug?.occurrencesGeneratedCount ?? 'N/A',
+        visible: debug?.visibleCount ?? 'N/A',
       },
       display: {
         activePending: activePendingTasks.length,
@@ -356,8 +354,6 @@ const StaffTasks = () => {
         noCoverage: todayGrouped.noCoverage.length,
       },
       badgeCount,
-      // Parity check: this should equal the StaffHome badge
-      consistency: `Badge should show: ${badgeCount}`,
     });
   }
 
@@ -389,11 +385,6 @@ const StaffTasks = () => {
             <Badge variant="outline">
               {completedTasks.length} {t('tasks.completed')}
             </Badge>
-            {tomorrowTasks.length > 0 && (
-              <Badge variant="outline" className="border-dashed">
-                {tomorrowTasks.length} Tomorrow
-              </Badge>
-            )}
           </div>
         </div>
       </div>
@@ -443,10 +434,10 @@ const StaffTasks = () => {
                 shiftsCount: {shifts.length}
               </div>
               <div>recurringTemplates: {recurringTemplates.length}</div>
-              <div>today.generated: {debug?.today?.generated ?? 'N/A'}</div>
-              <div>today.covered: {debug?.today?.covered ?? 'N/A'}</div>
-              <div>today.noCoverage: {debug?.today?.noCoverage ?? 'N/A'}</div>
-              <div>today.visible: {debug?.today?.visible ?? 'N/A'}</div>
+              <div>generated: {debug?.occurrencesGeneratedCount ?? 'N/A'}</div>
+              <div>visible: {debug?.visibleCount ?? 'N/A'}</div>
+              <div>now: {debug?.now ?? 'N/A'}</div>
+              <div>todayKey: {debug?.todayKey ?? 'N/A'}</div>
             </div>
 
             {/* Coverage Reasons */}
@@ -465,23 +456,6 @@ const StaffTasks = () => {
               </div>
             )}
 
-            {/* RLS Test Query (DEV only) */}
-            {import.meta.env.DEV && testQueryResult && (
-              <div className="mb-3 p-2 bg-background/50 rounded">
-                <div className="font-bold mb-1">RLS Test Query (company tasks):</div>
-                <div className={testQueryResult.error ? "text-destructive" : "text-green-600"}>
-                  {testQueryResult.error 
-                    ? `❌ Error: ${testQueryResult.error}` 
-                    : `✅ Found ${testQueryResult.count} tasks`}
-                </div>
-                {testQueryResult.sample && testQueryResult.sample.length > 0 && (
-                  <div className="text-[10px] mt-1">
-                    Sample: {testQueryResult.sample.map((t: any) => `${t.id}...`).join(", ")}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Display Buckets */}
             <div className="grid grid-cols-2 gap-2 p-2 bg-background/50 rounded">
               <div className="col-span-2 font-bold">Display Buckets:</div>
@@ -494,39 +468,6 @@ const StaffTasks = () => {
                 Badge Count: {badgeCount}
               </div>
             </div>
-
-            {/* Weekly Recurrence Diagnostics */}
-            {debug?.weeklyRecurrence && (
-              <div className="mt-3 p-2 bg-background/50 rounded">
-                <div className="font-bold mb-1">Weekly Recurrence (Company TZ):</div>
-                <div className="grid grid-cols-2 gap-1">
-                  <div>Today: {debug.weeklyRecurrence.companyTodayKey}</div>
-                  <div>Weekday: {debug.weeklyRecurrence.companyTodayWeekdayName} ({debug.weeklyRecurrence.companyTodayWeekday})</div>
-                  <div>Weekly Templates: {debug.weeklyRecurrence.weeklyTemplatesCount}</div>
-                  <div>With days_of_week: {debug.weeklyRecurrence.weeklyTemplatesWithDaysOfWeek}</div>
-                  <div className={debug.weeklyRecurrence.templatesMatchingToday === 0 && debug.weeklyRecurrence.weeklyTemplatesCount > 0 ? "col-span-2 text-amber-600 font-bold" : "col-span-2"}>
-                    Matching today: {debug.weeklyRecurrence.templatesMatchingToday}
-                    {debug.weeklyRecurrence.templatesMatchingToday === 0 && debug.weeklyRecurrence.weeklyTemplatesCount > 0 && (
-                      <span className="text-xs font-normal ml-2">
-                        (no tasks today - check recurrence_days_of_week)
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {debug.weeklyRecurrence.templatesSummary.length > 0 && (
-                  <div className="mt-2 text-[10px]">
-                    <div className="font-bold mb-1">Templates:</div>
-                    {debug.weeklyRecurrence.templatesSummary.map((t, i) => (
-                      <div key={i} className={`border-b border-dashed pb-1 mb-1 ${t.matchesToday ? 'text-green-600' : 'text-muted-foreground'}`}>
-                        {t.id}... "{t.title}" | days: [{t.normalizedDays.join(',')}] | 
-                        {t.matchesToday ? ' ✅ matches today' : ' ❌ not today'}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Sample Tasks */}
             {rawTasks.length > 0 && (
               <div className="mt-3 p-2 bg-background/50 rounded">
@@ -892,10 +833,10 @@ const StaffTasks = () => {
               <div className="mt-4 p-3 bg-muted/50 rounded text-xs text-left font-mono">
                 <p className="font-bold text-amber-600 mb-2">Debug: Why no tasks?</p>
                 <p>• rawTasks: {rawTasks.length}</p>
-                <p>• today.generated: {debug?.today?.generated ?? 0}</p>
-                <p>• today.covered: {debug?.today?.covered ?? 0}</p>
+                <p>• generated: {debug?.occurrencesGeneratedCount ?? 0}</p>
+                <p>• visible: {debug?.visibleCount ?? 0}</p>
                 <p>• shiftsToday: {shiftsInfo.length}</p>
-                {rawTasks.length > 0 && debug?.today?.covered === 0 && (
+                {rawTasks.length > 0 && debug?.visibleCount === 0 && (
                   <p className="text-destructive mt-1">→ Tasks exist but none have shift coverage</p>
                 )}
                 {rawTasks.length === 0 && (

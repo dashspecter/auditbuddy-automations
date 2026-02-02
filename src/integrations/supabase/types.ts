@@ -8814,11 +8814,11 @@ export type Database = {
       complete_task_guarded: {
         Args: {
           p_completed_at?: string
-          p_occurrence_date?: string
-          p_override?: boolean
+          p_completion_photo_url?: string
+          p_completion_reason?: string
+          p_is_manager_override?: boolean
+          p_occurrence_date: string
           p_override_reason?: string
-          p_photo_url?: string
-          p_reason?: string
           p_task_id: string
         }
         Returns: Json
@@ -9036,6 +9036,14 @@ export type Database = {
         Returns: boolean
       }
       is_subscription_active: { Args: { company_id: string }; Returns: boolean }
+      is_task_occurrence_completed: {
+        Args: {
+          p_employee_id?: string
+          p_occurrence_date: string
+          p_task_id: string
+        }
+        Returns: boolean
+      }
       is_trial_valid: { Args: { company_id: string }; Returns: boolean }
       kiosk_can_view_task: { Args: { _task_id: string }; Returns: boolean }
       kiosk_can_view_task_location: {
