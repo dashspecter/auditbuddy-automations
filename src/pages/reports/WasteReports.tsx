@@ -395,9 +395,8 @@ export default function WasteReports() {
                         <Tooltip 
                           labelFormatter={(value) => format(new Date(value), 'MMM d, yyyy')}
                           formatter={(value: number, name: string) => [
-                            name === 'cost' ? `${value.toFixed(2)} RON` : 
-                            name === 'weight_kg' ? `${value.toFixed(2)} kg` : value,
-                            name === 'cost' ? 'Cost' : name === 'weight_kg' ? 'Weight' : 'Entries'
+                            name === 'Cost (RON)' ? `${value.toFixed(2)}` : value,
+                            name
                           ]}
                         />
                         <Legend />
