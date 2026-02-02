@@ -2,13 +2,14 @@ import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Timer, MapPin, ArrowRight, AlertTriangle } from "lucide-react";
+import { Timer, MapPin, ArrowRight, AlertTriangle, Lock } from "lucide-react";
 import { useCompleteTask } from "@/hooks/useTasks";
-import { useMyTaskOccurrences } from "@/hooks/useMyTaskOccurrences";
+import { useStaffTodayTasks } from "@/hooks/useStaffTodayTasks";
 import { differenceInSeconds } from "date-fns";
 import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "./MobileTapDebugOverlay";
 import { MobileTaskCard } from "./MobileTaskCard";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -76,10 +77,18 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
 
 export const ActiveTasksCard = () => {
   const navigate = useNavigate();
-  const { activeTasks: allActiveTasks } = useMyTaskOccurrences();
+  const { t } = useTranslation();
+  const { grouped, isLoading } = useStaffTodayTasks();
   const completeTask = useCompleteTask();
   const { lastTap, logTap } = useTapDebug();
   const isOnline = useNetworkStatus();
+
+  // Active tasks = pending + overdue (unlocked tasks that need attention)
+  const allActiveTasks = useMemo(() => {
+    return [...(grouped?.overdue || []), ...(grouped?.pending || [])].filter(
+      (task) => !task.timeLock || task.timeLock.canComplete
+    );
+  }, [grouped]);
 
   // Optimistic completion state with pending confirmation lock
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
