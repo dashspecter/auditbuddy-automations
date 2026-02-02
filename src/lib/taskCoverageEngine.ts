@@ -162,6 +162,14 @@ export function checkTaskCoverage(
   let locationChecks = 0;
   
   if (dateShifts.length === 0) {
+    if (import.meta.env.DEV && shifts.length > 0) {
+      console.log("[checkTaskCoverage] No shifts for date:", {
+        taskId: task.id?.slice(0, 8),
+        taskTitle: task.title?.slice(0, 20),
+        targetDayKey: taskDateStr,
+        shiftsAvailable: shifts.map(s => s.shift_date),
+      });
+    }
     return {
       hasCoverage: false,
       coveredByEmployees: [],
