@@ -187,14 +187,14 @@ const navigationItems = [
   },
   { 
     titleKey: "nav.wastage", 
-    url: "/waste", 
+    url: "/admin/waste/entries", 
     icon: Trash2,
     module: "wastage",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'view_reports' as CompanyPermission,
     subItems: [
-      { titleKey: "nav.wasteAdd", url: "/staff/waste/new" },
-      { titleKey: "nav.wasteEntries", url: "/staff/waste" },
+      { titleKey: "nav.wasteAdd", url: "/admin/waste/add", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.wasteEntries", url: "/admin/waste/entries", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.wasteReports", url: "/reports/waste", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.wasteProducts", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.wasteReasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
