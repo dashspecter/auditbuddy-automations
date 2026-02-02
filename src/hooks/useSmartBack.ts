@@ -19,7 +19,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
   const location = useLocation();
 
   const {
-    adminFallback = "/dashboard",
+    adminFallback = "/admin/waste/entries",
     staffFallback = "/staff",
   } = options;
 
@@ -30,7 +30,11 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     // Context determined ONLY by pathname prefix - NOT by viewport
     const isAdminContext = currentPath.startsWith('/admin/') || 
                            currentPath.startsWith('/reports/') ||
-                           currentPath.startsWith('/dashboard');
+                           currentPath.startsWith('/dashboard') ||
+                           currentPath.startsWith('/workforce') ||
+                           currentPath.startsWith('/audits') ||
+                           currentPath.startsWith('/equipment') ||
+                           currentPath.startsWith('/cmms');
     const isStaffContext = currentPath.startsWith('/staff/') || 
                            currentPath.startsWith('/mobile/') ||
                            currentPath.startsWith('/kiosk/');
@@ -38,7 +42,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     // Prefixes that are unsafe for admin navigation
     const staffPrefixes = ['/mobile', '/kiosk', '/staff/'];
     // Prefixes that are unsafe for staff navigation  
-    const adminPrefixes = ['/admin/', '/reports/', '/dashboard'];
+    const adminPrefixes = ['/admin/', '/reports/', '/dashboard', '/workforce', '/audits', '/equipment', '/cmms'];
 
     if (isAdminContext) {
       // Admin context: NEVER navigate to staff/mobile/kiosk

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Settings, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Settings, Trash2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useWasteThresholds, useCreateWasteThreshold, useDeleteWasteThreshold, WasteThreshold } from "@/hooks/useWaste";
 import { useWasteProducts } from "@/hooks/useWaste";
 import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function WasteSettings() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = useSmartBack({ adminFallback: "/admin/waste/entries" });
+  
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: thresholds, isLoading } = useWasteThresholds();
@@ -87,11 +93,16 @@ export default function WasteSettings() {
     <ModuleGate module="wastage">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Waste Settings</h1>
-            <p className="text-muted-foreground mt-1">
-              Configure thresholds and alerts for waste monitoring
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={goBack}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Waste Settings</h1>
+              <p className="text-muted-foreground mt-1">
+                Configure thresholds and alerts for waste monitoring
+              </p>
+            </div>
           </div>
           <Button onClick={handleOpenDialog} className="gap-2">
             <Plus className="h-4 w-4" />

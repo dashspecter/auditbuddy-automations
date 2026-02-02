@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Download, Calendar as CalendarIcon, Trash2, TrendingUp, TrendingDown,
-  Scale, DollarSign, AlertTriangle, Package, BarChart3
+  Scale, DollarSign, AlertTriangle, Package, BarChart3, ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -23,6 +23,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -37,6 +38,8 @@ const COLORS = [
 export default function WasteReports() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const goBack = useSmartBack({ adminFallback: "/admin/waste/entries" });
+  
   const [dateFrom, setDateFrom] = useState<Date>(subDays(new Date(), 30));
   const [dateTo, setDateTo] = useState<Date>(new Date());
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -141,11 +144,16 @@ export default function WasteReports() {
     <ModuleGate module="wastage">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Waste Reports</h1>
-            <p className="text-muted-foreground mt-1">
-              Analyze waste patterns and identify opportunities to reduce costs
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={goBack}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Waste Reports</h1>
+              <p className="text-muted-foreground mt-1">
+                Analyze waste patterns and identify opportunities to reduce costs
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportCSV}>
