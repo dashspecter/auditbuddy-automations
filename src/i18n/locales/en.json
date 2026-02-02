@@ -2149,7 +2149,11 @@
     "enterVoucher": "Enter Voucher",
     "claimShift": "Claim Shift",
     "requestTimeOff": "Request Time Off",
-    "myTasks": "My Tasks"
+    "myTasks": "My Tasks",
+    "logWaste": "Log Waste",
+    "duringShiftOnly": "During shift only",
+    "wastageOnShiftOnly": "Available during your shift",
+    "shiftConfirmed": "Shift confirmed - clock-in not required"
   },
   "staffSchedule": {
     "failedLoadSchedule": "Failed to load schedule",

@@ -60,8 +60,12 @@ export default function AddWasteEntry() {
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  
+  // Get locationId from navigation state (passed from StaffHome when on duty)
+  const passedLocationId = (location.state as { locationId?: string })?.locationId;
+  
   const [formData, setFormData] = useState({
-    location_id: "",
+    location_id: passedLocationId || "",
     waste_product_id: "",
     waste_reason_id: "",
     weight_g: "",
@@ -69,12 +73,14 @@ export default function AddWasteEntry() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-select location if only one
+  // Auto-select location if only one, or use passed location
   useEffect(() => {
-    if (locations?.length === 1 && !formData.location_id) {
+    if (passedLocationId && !formData.location_id) {
+      setFormData(prev => ({ ...prev, location_id: passedLocationId }));
+    } else if (locations?.length === 1 && !formData.location_id) {
       setFormData(prev => ({ ...prev, location_id: locations[0].id }));
     }
-  }, [locations, formData.location_id]);
+  }, [locations, formData.location_id, passedLocationId]);
 
   const handlePhotoCapture = () => {
     fileInputRef.current?.click();
@@ -245,8 +251,8 @@ export default function AddWasteEntry() {
             </CardContent>
           </Card>
 
-          {/* Location Selector */}
-          {locations && locations.length > 1 && (
+          {/* Location Selector - hide if passed from on-duty state or only one location */}
+          {locations && locations.length > 1 && !passedLocationId && (
             <div className="space-y-2">
               <Label>Location *</Label>
               <Select
@@ -262,6 +268,13 @@ export default function AddWasteEntry() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          
+          {/* Show selected location when auto-set */}
+          {passedLocationId && (
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+              📍 Recording at: {locations?.find(l => l.id === passedLocationId)?.name || 'Your current location'}
             </div>
           )}
 

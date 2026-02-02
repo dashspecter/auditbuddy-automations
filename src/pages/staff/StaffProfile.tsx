@@ -4,16 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy, AlertTriangle } from "lucide-react";
+import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy, AlertTriangle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { useMyWarningsStats } from "@/hooks/useMyWarnings";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 
 const StaffProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { hasModule } = useCompanyContext();
   const [employee, setEmployee] = useState<any>(null);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,9 @@ const StaffProfile = () => {
 
   // Get warnings stats
   const { stats: warningsStats } = useMyWarningsStats();
+  
+  // Module checks
+  const hasWastageModule = hasModule('wastage');
 
   useEffect(() => {
     if (user) loadData();
@@ -144,6 +149,7 @@ const StaffProfile = () => {
   // Menu items - only navigate to pages that exist
   const menuItems = [
     ...(!hideEarnings ? [{ icon: Wallet, label: "My Earnings", path: "/staff/earnings" }] : []),
+    ...(hasWastageModule ? [{ icon: Trash2, label: "My Waste Entries", path: "/staff/waste" }] : []),
     { icon: AlertTriangle, label: "My Warnings", path: "/staff/warnings", badge: warningsStats.unseen > 0 ? warningsStats.unseen : undefined },
     { icon: Calendar, label: "My Availability", action: () => toast.info("Availability settings coming soon") },
     { icon: User, label: "Personal Information", action: () => toast.info("Personal information editing coming soon") },
