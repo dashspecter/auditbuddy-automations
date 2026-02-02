@@ -310,8 +310,9 @@ export function useStaffTodayTasks(
   });
 
   // 3. Fetch per-occurrence completions for today
+  // Use stable query key that doesn't include full task list to avoid re-fetches
   const { data: completions = [] } = useQuery({
-    queryKey: ["task-completions", staffContext?.companyId, targetDayKey, rawTasks.map(t => t.id).join(",")],
+    queryKey: ["task-completions", staffContext?.companyId, targetDayKey, rawTasks.length],
     queryFn: async (): Promise<CompletionRecord[]> => {
       if (!staffContext?.companyId) return [];
       
@@ -319,16 +320,10 @@ export function useStaffTodayTasks(
       const taskIds = rawTasks.map(t => t.id);
       if (taskIds.length === 0) return [];
       
-      // Use raw SQL query via rpc to avoid type issues with new table
-      const { data, error } = await supabase.rpc("is_task_occurrence_completed", {
-        p_task_id: taskIds[0], // Dummy call to check if RPC exists
-        p_occurrence_date: targetDayKey,
-      });
-      
-      // Actually query completions directly
+      // Query completions directly - no RPC test needed
       const { data: completionsData, error: completionsError } = await supabase
         .from("task_completions" as any)
-        .select("*")
+        .select("task_id, occurrence_date, completed_by_employee_id, completed_at, completion_mode")
         .in("task_id", taskIds)
         .eq("occurrence_date", targetDayKey);
       
@@ -363,10 +358,12 @@ export function useStaffTodayTasks(
   const result = useMemo(() => {
     const now = new Date();
     
-    // Build completions lookup: Map<task_id, CompletionRecord>
-    const completionsByTaskId = new Map<string, CompletionRecord>();
+    // Build completions lookup using COMPOSITE KEY: "task_id:occurrence_date"
+    // This ensures per-occurrence tracking - completing Monday doesn't affect Tuesday
+    const completionsByKey = new Map<string, CompletionRecord>();
     for (const c of completions) {
-      completionsByTaskId.set(c.task_id, c);
+      const key = `${c.task_id}:${c.occurrence_date}`;
+      completionsByKey.set(key, c);
     }
     
     // Run pipeline for today
@@ -382,13 +379,20 @@ export function useStaffTodayTasks(
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
       
-      // Check if this occurrence is completed (from task_completions)
-      // For virtual occurrences, extract the base task ID
-      const baseTaskId = task.id.includes("-virtual-") 
-        ? task.id.split("-virtual-")[0]
-        : task.id;
+      // Extract base task ID and occurrence date from virtual ID
+      // Virtual ID format: "uuid-virtual-2024-01-21"
+      let baseTaskId = task.id;
+      let occurrenceDate = targetDayKey;
       
-      const completion = completionsByTaskId.get(baseTaskId);
+      if (task.id.includes("-virtual-")) {
+        const parts = task.id.split("-virtual-");
+        baseTaskId = parts[0];
+        occurrenceDate = parts[1] || targetDayKey;
+      }
+      
+      // Lookup completion using composite key
+      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      const completion = completionsByKey.get(completionKey);
       const isOccurrenceCompleted = !!completion;
       
       // If occurrence is completed, mark it
@@ -597,6 +601,39 @@ export function useKioskTodayTasks(options: {
     enabled,
   });
 
+  const targetDayKey = toDayKey(targetDate);
+
+  // Fetch per-occurrence completions for kiosk view
+  const { data: completions = [] } = useQuery({
+    queryKey: ["task-completions-kiosk", companyId, locationId, targetDayKey, rawTasks.length],
+    queryFn: async (): Promise<CompletionRecord[]> => {
+      const taskIds = rawTasks.map(t => t.id);
+      if (taskIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("task_completions" as any)
+        .select("task_id, occurrence_date, completed_by_employee_id, completed_at, completion_mode")
+        .in("task_id", taskIds)
+        .eq("occurrence_date", targetDayKey);
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.log("[useKioskTodayTasks] Completions error:", error);
+        }
+        return [];
+      }
+      
+      return (data || []).map((c: any) => ({
+        task_id: c.task_id,
+        occurrence_date: c.occurrence_date,
+        completed_by_employee_id: c.completed_by_employee_id,
+        completed_at: c.completed_at,
+        completion_mode: c.completion_mode,
+      }));
+    },
+    enabled: enabled && rawTasks.length > 0,
+  });
+
   // Fetch shifts for coverage
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
     startDate: startOfDay(targetDate),
@@ -610,6 +647,13 @@ export function useKioskTodayTasks(options: {
   const result = useMemo(() => {
     const now = new Date();
     
+    // Build completions map with composite key
+    const completionsByKey = new Map<string, CompletionRecord>();
+    for (const c of completions) {
+      const key = `${c.task_id}:${c.occurrence_date}`;
+      completionsByKey.set(key, c);
+    }
+    
     const pipelineResult = runPipelineForDate(rawTasks, targetDate, {
       viewMode: "execution",
       includeCompleted: true,
@@ -618,28 +662,69 @@ export function useKioskTodayTasks(options: {
       locationId,
     });
 
-    // Apply time-lock
+    // Apply time-lock and completion status
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
-      return { ...task, timeLock } as StaffTaskWithTimeLock;
+      
+      // Extract base task ID and occurrence date
+      let baseTaskId = task.id;
+      let occurrenceDate = targetDayKey;
+      
+      if (task.id.includes("-virtual-")) {
+        const parts = task.id.split("-virtual-");
+        baseTaskId = parts[0];
+        occurrenceDate = parts[1] || targetDayKey;
+      }
+      
+      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      const completion = completionsByKey.get(completionKey);
+      const isOccurrenceCompleted = !!completion;
+      
+      if (isOccurrenceCompleted && task.status !== "completed") {
+        return { 
+          ...task, 
+          timeLock, 
+          isOccurrenceCompleted,
+          status: "completed" as any,
+          completed_at: completion!.completed_at,
+        };
+      }
+      
+      return { ...task, timeLock, isOccurrenceCompleted } as StaffTaskWithTimeLock;
     });
 
-    const grouped = groupTasksByStatusShiftAware(pipelineResult.tasks);
-    
-    // Map grouped tasks to include timeLock
+    // Re-group based on occurrence completions and time-lock status
     const groupedWithTimeLock = {
-      pending: grouped.pending.map((t) => ({ ...t, timeLock: getTimeLockStatus(t, now) })) as StaffTaskWithTimeLock[],
-      overdue: grouped.overdue.map((t) => ({ ...t, timeLock: getTimeLockStatus(t, now) })) as StaffTaskWithTimeLock[],
-      completed: grouped.completed.map((t) => ({ ...t, timeLock: getTimeLockStatus(t, now) })) as StaffTaskWithTimeLock[],
-      noCoverage: grouped.noCoverage.map((t) => ({ ...t, timeLock: getTimeLockStatus(t, now) })) as StaffTaskWithTimeLock[],
+      pending: tasksWithTimeLock.filter(t => !t.isOccurrenceCompleted && t.status !== "completed" && t.coverage?.hasCoverage !== false),
+      overdue: tasksWithTimeLock.filter(t => {
+        if (t.isOccurrenceCompleted || t.status === "completed") return false;
+        const deadline = t.start_at && t.duration_minutes
+          ? new Date(new Date(t.start_at).getTime() + t.duration_minutes * 60000)
+          : t.due_at ? new Date(t.due_at) : null;
+        return deadline && now > deadline;
+      }),
+      completed: tasksWithTimeLock.filter(t => t.isOccurrenceCompleted || t.status === "completed"),
+      noCoverage: tasksWithTimeLock.filter(t => t.coverage?.hasCoverage === false),
+    };
+
+    // Build debug stats
+    const debug = {
+      rawTasksCount: rawTasks.length,
+      generatedCount: pipelineResult.debug.generated,
+      shiftsCount: shifts.length,
+      visibleCount: tasksWithTimeLock.length,
+      completionsCount: completions.length,
+      now: format(now, "HH:mm:ss"),
+      todayKey: targetDayKey,
     };
 
     return {
       todayTasks: tasksWithTimeLock,
       grouped: groupedWithTimeLock,
       employees,
+      debug,
     };
-  }, [rawTasks, shifts, targetDate, employees]);
+  }, [rawTasks, shifts, targetDate, employees, completions, targetDayKey]);
 
   return {
     ...result,

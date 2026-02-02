@@ -963,7 +963,9 @@
     },
     "timeLock": {
       "available": "Available",
+      "availableAt": "Available at",
       "lockedUntil": "Available at {{time}}",
+      "lockedToast": "This task unlocks at {{time}}",
       "earlyRequiresReason": "Requires reason for early completion",
       "earlyAllowed": "Early completion allowed",
       "late": "Completing late"
