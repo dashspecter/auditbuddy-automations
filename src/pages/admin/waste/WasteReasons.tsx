@@ -8,10 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Search, AlertCircle, GripVertical } from "lucide-react";
+import { Plus, Pencil, AlertCircle, ArrowLeft } from "lucide-react";
 import { useWasteReasons, useCreateWasteReason, useUpdateWasteReason, WasteReason } from "@/hooks/useWaste";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function WasteReasons() {
   const { t } = useTranslation();
