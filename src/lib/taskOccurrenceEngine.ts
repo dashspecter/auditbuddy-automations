@@ -137,6 +137,36 @@ export const getOriginalTaskId = (id: string): string => {
 };
 
 /**
+ * Normalize recurrence_days_of_week to a Set of 0-6 (Sun-Sat)
+ * Handles various input formats:
+ * - null/undefined: defaults to [weekday of start_at]
+ * - [0..6]: already correct format
+ * - [1..7]: legacy format, needs conversion
+ */
+function normalizeDaysOfWeek(
+  input: number[] | null | undefined,
+  fallbackWeekday?: number
+): Set<number> {
+  if (!input || input.length === 0) {
+    // Default to the weekday of the task's start_at
+    if (fallbackWeekday !== undefined) {
+      return new Set([fallbackWeekday]);
+    }
+    return new Set();
+  }
+
+  // Check if any value is > 6, which would indicate 1-7 format
+  const maxVal = Math.max(...input);
+  if (maxVal > 6) {
+    // Convert 1-7 (Mon-Sun) to 0-6 (Sun-Sat)
+    // 1 (Mon) -> 1, 2 (Tue) -> 2, ..., 6 (Sat) -> 6, 7 (Sun) -> 0
+    return new Set(input.map(d => d === 7 ? 0 : d));
+  }
+
+  return new Set(input);
+}
+
+/**
  * CORE RECURRENCE EXPANSION - generates ALL occurrence dates for a recurring task
  * within a given date range. This is the SINGLE algorithm used everywhere.
  */
@@ -159,9 +189,71 @@ export function getRecurrenceOccurrenceDates(
     ? new Date(task.recurrence_end_date) 
     : rangeEnd;
   
-  // Start from the task's original date
-  let currentDate = new Date(taskDate);
   const taskStartDay = startOfDay(taskDate);
+  const taskTimeHours = getHours(taskDate);
+  const taskTimeMinutes = getMinutes(taskDate);
+
+  // For weekly with days_of_week, we need special handling
+  if (task.recurrence_type === 'weekly' && task.recurrence_days_of_week && task.recurrence_days_of_week.length > 0) {
+    const daysOfWeek = normalizeDaysOfWeek(task.recurrence_days_of_week, taskDate.getDay());
+    
+    // DEV logging
+    if (import.meta.env.DEV) {
+      console.log('[recurrence] weekly expansion', {
+        taskId: task.id,
+        title: task.title,
+        daysOfWeekRaw: task.recurrence_days_of_week,
+        normalizedDays: Array.from(daysOfWeek),
+        rangeStart: format(rangeStart, 'yyyy-MM-dd'),
+        rangeEnd: format(rangeEnd, 'yyyy-MM-dd'),
+        interval,
+      });
+    }
+
+    // Iterate day-by-day through range, check if each day matches
+    let currentDay = startOfDay(rangeStart);
+    let weeksSinceStart = 0;
+    let lastWeekNumber = -1;
+
+    while (currentDay <= rangeEnd && currentDay <= recurrenceEnd) {
+      // Calculate week number relative to task start
+      const daysSinceStart = differenceInDays(currentDay, taskStartDay);
+      const currentWeekNumber = Math.floor(daysSinceStart / 7);
+      
+      // Track week changes for interval check
+      if (currentWeekNumber !== lastWeekNumber) {
+        lastWeekNumber = currentWeekNumber;
+        weeksSinceStart = currentWeekNumber;
+      }
+
+      const weekday = currentDay.getDay();
+      const isCorrectDay = daysOfWeek.has(weekday);
+      const isCorrectInterval = weeksSinceStart >= 0 && weeksSinceStart % interval === 0;
+      const isAfterTaskStart = currentDay > taskStartDay;
+
+      if (isCorrectDay && isCorrectInterval && isAfterTaskStart) {
+        // Create occurrence with preserved time
+        const occurrence = setMinutes(setHours(currentDay, taskTimeHours), taskTimeMinutes);
+        dates.push(occurrence);
+
+        if (import.meta.env.DEV) {
+          console.log('[recurrence] weekly occurrence added', {
+            taskId: task.id,
+            date: format(occurrence, 'yyyy-MM-dd HH:mm'),
+            weekday,
+            weeksSinceStart,
+          });
+        }
+      }
+
+      currentDay = addDays(currentDay, 1);
+    }
+
+    return dates;
+  }
+
+  // Original logic for other recurrence types
+  let currentDate = new Date(taskDate);
   
   // Iterate through potential occurrence dates
   while (currentDate <= rangeEnd && currentDate <= recurrenceEnd) {
@@ -179,6 +271,7 @@ export function getRecurrenceOccurrenceDates(
         currentDate = addDays(currentDate, interval);
         break;
       case 'weekly':
+        // Simple weekly without days_of_week - just advance by weeks
         currentDate = addWeeks(currentDate, interval);
         break;
       case 'monthly':
