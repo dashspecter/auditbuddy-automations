@@ -115,7 +115,12 @@ export default function AdminAddWasteEntry() {
         description: "Entry has been recorded successfully",
       });
       
-      navigate("/admin/waste/entries", { replace: true });
+      // Navigate based on current context (pathname), not viewport
+      if (location.pathname.startsWith('/admin')) {
+        navigate("/admin/waste/entries", { replace: true });
+      } else {
+        navigate("/staff/waste", { replace: true });
+      }
     } catch (error) {
       console.error("Failed to create waste entry:", error);
       toast({

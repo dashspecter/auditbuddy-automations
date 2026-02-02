@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SmartBackOptions {
   /** Fallback path if no safe navigation available - for admin pages */
@@ -10,16 +9,14 @@ interface SmartBackOptions {
 }
 
 /**
- * Smart back navigation that respects context.
- * - Desktop admin pages won't navigate to /staff/* routes
- * - Mobile staff pages won't navigate to admin routes
- * - Uses location.state.from when safe
- * - Falls back to appropriate default based on current route context
+ * Smart back navigation that respects context based on PATHNAME ONLY.
+ * - Admin pages (/admin/*) won't navigate to staff/mobile/kiosk routes
+ * - Staff pages (/staff/*) won't navigate to admin routes
+ * - Context is determined ONLY by route prefix, NOT by viewport/isMobile
  */
 export function useSmartBack(options: SmartBackOptions = {}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useIsMobile();
 
   const {
     adminFallback = "/dashboard",
@@ -30,7 +27,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     const from = (location.state as { from?: string })?.from;
     const currentPath = location.pathname;
     
-    // Determine if we're in admin or staff context
+    // Context determined ONLY by pathname prefix - NOT by viewport
     const isAdminContext = currentPath.startsWith('/admin/') || 
                            currentPath.startsWith('/reports/') ||
                            currentPath.startsWith('/dashboard');
@@ -38,27 +35,13 @@ export function useSmartBack(options: SmartBackOptions = {}) {
                            currentPath.startsWith('/mobile/') ||
                            currentPath.startsWith('/kiosk/');
 
-    // Prefixes that are unsafe for desktop admin navigation
+    // Prefixes that are unsafe for admin navigation
     const staffPrefixes = ['/mobile', '/kiosk', '/staff/'];
-    // Prefixes that are unsafe for mobile staff navigation  
+    // Prefixes that are unsafe for staff navigation  
     const adminPrefixes = ['/admin/', '/reports/', '/dashboard'];
 
-    // On mobile (staff context): avoid admin routes
-    if (isMobile || isStaffContext) {
-      const isSafeFrom = from && !adminPrefixes.some(prefix => from.startsWith(prefix));
-      
-      if (isSafeFrom) {
-        navigate(from);
-      } else if (window.history.length > 2) {
-        navigate(-1);
-      } else {
-        navigate(staffFallback, { replace: true });
-      }
-      return;
-    }
-
-    // Desktop (admin context): avoid staff routes
-    if (isAdminContext || !isMobile) {
+    if (isAdminContext) {
+      // Admin context: NEVER navigate to staff/mobile/kiosk
       const isSafeFrom = from && !staffPrefixes.some(prefix => from.startsWith(prefix));
       
       if (isSafeFrom) {
@@ -71,7 +54,21 @@ export function useSmartBack(options: SmartBackOptions = {}) {
       return;
     }
 
-    // Generic fallback
+    if (isStaffContext) {
+      // Staff context: NEVER navigate to admin/dashboard/reports
+      const isSafeFrom = from && !adminPrefixes.some(prefix => from.startsWith(prefix));
+      
+      if (isSafeFrom) {
+        navigate(from);
+      } else if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        navigate(staffFallback, { replace: true });
+      }
+      return;
+    }
+
+    // Generic fallback (neither admin nor staff context)
     if (from) {
       navigate(from);
     } else if (window.history.length > 2) {
@@ -79,7 +76,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     } else {
       navigate(adminFallback, { replace: true });
     }
-  }, [navigate, location.state, location.pathname, isMobile, adminFallback, staffFallback]);
+  }, [navigate, location.state, location.pathname, adminFallback, staffFallback]);
 
   return goBack;
 }
