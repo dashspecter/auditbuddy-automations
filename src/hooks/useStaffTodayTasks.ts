@@ -50,6 +50,10 @@ export interface StaffTaskWithTimeLock extends TaskWithCoverage {
   timeLock?: TimeLockStatus;
   /** Whether this occurrence is completed (from task_completions) */
   isOccurrenceCompleted?: boolean;
+  /** Employee ID who completed this occurrence (for Champions attribution) */
+  completed_by_employee_id?: string | null;
+  /** Completion mode (early, on_time, late, override) */
+  completion_mode?: string;
 }
 
 export interface StaffTodayTasksResult {
@@ -704,7 +708,21 @@ export function useKioskTodayTasks(options: {
           isOccurrenceCompleted,
           status: "completed" as any,
           completed_at: completion!.completed_at,
+          // CRITICAL: Attach completed_by_employee_id for Champions attribution
+          completed_by_employee_id: completion!.completed_by_employee_id,
+          completion_mode: completion!.completion_mode,
         };
+      }
+      
+      // For already-completed template tasks, still attach completion metadata if available
+      if (completion) {
+        return {
+          ...task,
+          timeLock,
+          isOccurrenceCompleted,
+          completed_by_employee_id: completion.completed_by_employee_id,
+          completion_mode: completion.completion_mode,
+        } as StaffTaskWithTimeLock;
       }
       
       return { ...task, timeLock, isOccurrenceCompleted } as StaffTaskWithTimeLock;
