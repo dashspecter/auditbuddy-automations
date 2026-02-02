@@ -19,13 +19,20 @@ import {
   isAfter,
   isBefore,
   differenceInDays,
+  differenceInCalendarWeeks,
   format,
   getHours,
   getMinutes,
   setHours,
   setMinutes,
+  getDay,
 } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import type { Task } from "@/hooks/useTasks";
+import { getCompanyNow, toDayKey } from "@/lib/companyDayUtils";
+
+// Default company timezone (Europe/Bucharest for Romania-based companies)
+const COMPANY_TIMEZONE = "Europe/Bucharest";
 
 // ============================================================
 // TYPES
@@ -60,12 +67,38 @@ export interface OccurrenceQueryOptions {
 }
 
 // ============================================================
-// CANONICAL DATE HELPERS (single source of truth)
+// CANONICAL DATE HELPERS (single source of truth using company timezone)
 // ============================================================
 
-export const getCanonicalNow = (): Date => new Date();
+/**
+ * Get the current time in company timezone
+ */
+export const getCanonicalNow = (): Date => getCompanyNow(COMPANY_TIMEZONE);
+
+/**
+ * Get today's date at start of day in company timezone
+ */
 export const getCanonicalToday = (): Date => startOfDay(getCanonicalNow());
+
+/**
+ * Get tomorrow's date at start of day in company timezone
+ */
 export const getCanonicalTomorrow = (): Date => startOfDay(addDays(getCanonicalNow(), 1));
+
+/**
+ * Get the weekday (0-6, Sun-Sat) for a date in company timezone
+ */
+export const getCompanyWeekday = (date: Date, timezone: string = COMPANY_TIMEZONE): number => {
+  const zonedDate = toZonedTime(date, timezone);
+  return getDay(zonedDate);
+};
+
+/**
+ * Get the day key (yyyy-MM-dd) for a date in company timezone
+ */
+export const getCompanyDayKey = (date: Date, timezone: string = COMPANY_TIMEZONE): string => {
+  return toDayKey(toZonedTime(date, timezone));
+};
 
 /**
  * Get the primary date for a task (start_at takes precedence)
@@ -138,18 +171,23 @@ export const getOriginalTaskId = (id: string): string => {
 
 /**
  * Normalize recurrence_days_of_week to a Set of 0-6 (Sun-Sat)
+ * Uses COMPANY TIMEZONE for fallback weekday calculation.
+ * 
  * Handles various input formats:
- * - null/undefined: defaults to [weekday of start_at]
- * - [0..6]: already correct format
- * - [1..7]: legacy format, needs conversion
+ * - null/undefined: defaults to [weekday of start_at in company TZ]
+ * - [0..6]: already correct format (0=Sunday, 6=Saturday)
+ * - [1..7]: legacy format, needs conversion (7=Sunday -> 0)
+ * 
+ * @param input - Raw recurrence_days_of_week from task
+ * @param fallbackWeekday - Weekday of task start_at (already in company TZ)
  */
-function normalizeDaysOfWeek(
+export function normalizeDaysOfWeek(
   input: number[] | null | undefined,
   fallbackWeekday?: number
 ): Set<number> {
   if (!input || input.length === 0) {
-    // Default to the weekday of the task's start_at
-    if (fallbackWeekday !== undefined) {
+    // Default to the weekday of the task's start_at in company timezone
+    if (fallbackWeekday !== undefined && fallbackWeekday >= 0 && fallbackWeekday <= 6) {
       return new Set([fallbackWeekday]);
     }
     return new Set();
@@ -169,6 +207,9 @@ function normalizeDaysOfWeek(
 /**
  * CORE RECURRENCE EXPANSION - generates ALL occurrence dates for a recurring task
  * within a given date range. This is the SINGLE algorithm used everywhere.
+ * 
+ * Uses COMPANY TIMEZONE for all weekday and day boundary calculations to ensure
+ * consistency across server, browser, and mobile clients.
  */
 export function getRecurrenceOccurrenceDates(
   task: Task,
@@ -189,59 +230,73 @@ export function getRecurrenceOccurrenceDates(
     ? new Date(task.recurrence_end_date) 
     : rangeEnd;
   
-  const taskStartDay = startOfDay(taskDate);
-  const taskTimeHours = getHours(taskDate);
-  const taskTimeMinutes = getMinutes(taskDate);
+  // Use company timezone for day boundaries
+  const taskStartDay = startOfDay(toZonedTime(taskDate, COMPANY_TIMEZONE));
+  const taskTimeHours = getHours(toZonedTime(taskDate, COMPANY_TIMEZONE));
+  const taskTimeMinutes = getMinutes(toZonedTime(taskDate, COMPANY_TIMEZONE));
+  const taskStartWeekday = getCompanyWeekday(taskDate, COMPANY_TIMEZONE);
 
   // For weekly with days_of_week, we need special handling
   if (task.recurrence_type === 'weekly' && task.recurrence_days_of_week && task.recurrence_days_of_week.length > 0) {
-    const daysOfWeek = normalizeDaysOfWeek(task.recurrence_days_of_week, taskDate.getDay());
+    const daysOfWeek = normalizeDaysOfWeek(task.recurrence_days_of_week, taskStartWeekday);
     
-    // DEV logging
+    // DEV logging with full diagnostic info
     if (import.meta.env.DEV) {
-      console.log('[recurrence] weekly expansion', {
+      const todayKey = getCompanyDayKey(new Date(), COMPANY_TIMEZONE);
+      const todayWeekday = getCompanyWeekday(new Date(), COMPANY_TIMEZONE);
+      console.log('[recurrence] weekly expansion start', {
         taskId: task.id,
         title: task.title,
         daysOfWeekRaw: task.recurrence_days_of_week,
         normalizedDays: Array.from(daysOfWeek),
+        taskStartDayKey: format(taskStartDay, 'yyyy-MM-dd'),
+        taskStartWeekday,
         rangeStart: format(rangeStart, 'yyyy-MM-dd'),
         rangeEnd: format(rangeEnd, 'yyyy-MM-dd'),
         interval,
+        timezone: COMPANY_TIMEZONE,
+        companyTodayKey: todayKey,
+        companyTodayWeekday: todayWeekday,
       });
     }
 
-    // Iterate day-by-day through range, check if each day matches
-    let currentDay = startOfDay(rangeStart);
-    let weeksSinceStart = 0;
-    let lastWeekNumber = -1;
+    // Iterate day-by-day through range using company timezone boundaries
+    let currentDay = startOfDay(toZonedTime(rangeStart, COMPANY_TIMEZONE));
+    const rangeEndDay = endOfDay(toZonedTime(rangeEnd, COMPANY_TIMEZONE));
+    const recurrenceEndDay = endOfDay(toZonedTime(recurrenceEnd, COMPANY_TIMEZONE));
+    let occurrenceCount = 0;
 
-    while (currentDay <= rangeEnd && currentDay <= recurrenceEnd) {
-      // Calculate week number relative to task start
-      const daysSinceStart = differenceInDays(currentDay, taskStartDay);
-      const currentWeekNumber = Math.floor(daysSinceStart / 7);
+    while (currentDay <= rangeEndDay && currentDay <= recurrenceEndDay) {
+      // Use differenceInCalendarWeeks for proper week interval math
+      // weekStartsOn: 1 = Monday (ISO standard), 0 = Sunday
+      const weekDiff = differenceInCalendarWeeks(currentDay, taskStartDay, { weekStartsOn: 1 });
       
-      // Track week changes for interval check
-      if (currentWeekNumber !== lastWeekNumber) {
-        lastWeekNumber = currentWeekNumber;
-        weeksSinceStart = currentWeekNumber;
-      }
-
-      const weekday = currentDay.getDay();
+      const weekday = getDay(currentDay); // Already in company TZ since currentDay is zoned
       const isCorrectDay = daysOfWeek.has(weekday);
-      const isCorrectInterval = weeksSinceStart >= 0 && weeksSinceStart % interval === 0;
+      
+      // Week interval check: first occurrence can be week 0 (same week as task start)
+      // but must be AFTER the task start day
+      const isCorrectInterval = weekDiff >= 0 && weekDiff % interval === 0;
+      
+      // TEMPLATE DAY RULE: The original task row represents the first occurrence.
+      // Generated occurrences must be strictly AFTER the template day to avoid duplicates.
+      // The template itself (task row) covers its own scheduled day.
       const isAfterTaskStart = currentDay > taskStartDay;
 
       if (isCorrectDay && isCorrectInterval && isAfterTaskStart) {
-        // Create occurrence with preserved time
-        const occurrence = setMinutes(setHours(currentDay, taskTimeHours), taskTimeMinutes);
+        // Create occurrence with preserved time from template
+        const occurrence = setMinutes(setHours(new Date(currentDay), taskTimeHours), taskTimeMinutes);
         dates.push(occurrence);
+        occurrenceCount++;
 
         if (import.meta.env.DEV) {
           console.log('[recurrence] weekly occurrence added', {
             taskId: task.id,
             date: format(occurrence, 'yyyy-MM-dd HH:mm'),
+            dayKey: format(currentDay, 'yyyy-MM-dd'),
             weekday,
-            weeksSinceStart,
+            weekDiff,
+            interval,
           });
         }
       }
@@ -249,10 +304,18 @@ export function getRecurrenceOccurrenceDates(
       currentDay = addDays(currentDay, 1);
     }
 
+    if (import.meta.env.DEV) {
+      console.log('[recurrence] weekly expansion complete', {
+        taskId: task.id,
+        occurrenceCount,
+        normalizedDays: Array.from(daysOfWeek),
+      });
+    }
+
     return dates;
   }
 
-  // Original logic for other recurrence types
+  // Original logic for other recurrence types (daily, monthly, weekdays, simple weekly)
   let currentDate = new Date(taskDate);
   
   // Iterate through potential occurrence dates

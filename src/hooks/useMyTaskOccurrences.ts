@@ -24,6 +24,9 @@ import {
 import {
   getCanonicalToday,
   getCanonicalTomorrow,
+  getCompanyWeekday,
+  getCompanyDayKey,
+  normalizeDaysOfWeek,
 } from "@/lib/taskOccurrenceEngine";
 import { startOfDay, endOfDay, addDays, format } from "date-fns";
 
@@ -62,6 +65,22 @@ export interface MyTaskOccurrences {
       locationMismatch: number;
       noApprovedAssignments: number;
       taskRoleNameMissing: number;
+    };
+    /** Weekly recurrence diagnostics */
+    weeklyRecurrence?: {
+      companyTodayKey: string;
+      companyTodayWeekday: number;
+      companyTodayWeekdayName: string;
+      weeklyTemplatesCount: number;
+      weeklyTemplatesWithDaysOfWeek: number;
+      templatesMatchingToday: number;
+      templatesSummary: Array<{
+        id: string;
+        title: string;
+        daysOfWeekRaw: number[] | null;
+        normalizedDays: number[];
+        matchesToday: boolean;
+      }>;
     };
   };
 }
@@ -333,6 +352,55 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
       else if (reason === "task_role_name_missing") coverageReasons.taskRoleNameMissing++;
     }
 
+    // WEEKLY RECURRENCE DIAGNOSTICS
+    const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const companyTodayWeekday = getCompanyWeekday(new Date());
+    const companyTodayKey = getCompanyDayKey(new Date());
+    
+    const weeklyTemplates = rawTasks.filter(
+      (t) => t.recurrence_type === "weekly"
+    );
+    const weeklyTemplatesWithDaysOfWeek = weeklyTemplates.filter(
+      (t) => t.recurrence_days_of_week && t.recurrence_days_of_week.length > 0
+    );
+    
+    // Check which templates should recur today
+    const templatesSummary = weeklyTemplates.slice(0, 5).map((t) => {
+      const taskStartWeekday = t.start_at 
+        ? getCompanyWeekday(new Date(t.start_at)) 
+        : undefined;
+      const normalizedDays = Array.from(
+        normalizeDaysOfWeek(t.recurrence_days_of_week, taskStartWeekday)
+      );
+      const matchesToday = normalizedDays.includes(companyTodayWeekday);
+      
+      return {
+        id: t.id.slice(0, 8),
+        title: t.title.slice(0, 20),
+        daysOfWeekRaw: t.recurrence_days_of_week,
+        normalizedDays,
+        matchesToday,
+      };
+    });
+    
+    const templatesMatchingToday = weeklyTemplates.filter((t) => {
+      const taskStartWeekday = t.start_at 
+        ? getCompanyWeekday(new Date(t.start_at)) 
+        : undefined;
+      const normalizedDays = normalizeDaysOfWeek(t.recurrence_days_of_week, taskStartWeekday);
+      return normalizedDays.has(companyTodayWeekday);
+    }).length;
+
+    const weeklyRecurrence = {
+      companyTodayKey,
+      companyTodayWeekday,
+      companyTodayWeekdayName: weekdayNames[companyTodayWeekday],
+      weeklyTemplatesCount: weeklyTemplates.length,
+      weeklyTemplatesWithDaysOfWeek: weeklyTemplatesWithDaysOfWeek.length,
+      templatesMatchingToday,
+      templatesSummary,
+    };
+
     // DEBUG: Log pipeline stages for mobile parity verification
     if (import.meta.env.DEV) {
       console.log("[useMyTaskOccurrences] Mobile task pipeline:", {
@@ -353,6 +421,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
         coverageReasons,
         activeTasksCount: activeTasks.length,
         upcomingTasksCount: upcomingTasks.length,
+        weeklyRecurrence,
       });
     }
 
@@ -376,6 +445,7 @@ export function useMyTaskOccurrences(): MyTaskOccurrences {
           visible: filteredTomorrowTasks.length,
         },
         coverageReasons,
+        weeklyRecurrence,
       },
     };
   }, [rawTasks, shifts, filterTrainingTaskVisibility, trainingTaskMap, trainingShiftDates]);
