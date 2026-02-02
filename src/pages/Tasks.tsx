@@ -32,6 +32,7 @@ import {
   isVirtualId as isVirtualTask,
   getOccurrencesHappeningNow,
   isDateInToday,
+  getOriginalTaskId,
 } from "@/lib/taskOccurrenceEngine";
 import { useUnifiedTasks } from "@/hooks/useUnifiedTasks";
 import { groupTasksByStatusShiftAware } from "@/lib/unifiedTaskPipeline";
@@ -321,32 +322,43 @@ const Tasks = () => {
   const todayTasks = todayResult.tasks;
   const tomorrowTasks = tomorrowResult.tasks;
 
-  // Tasks happening right now (from raw tasks, then filter by coverage)
-  const tasksHappeningNow = useMemo(() => {
-    const happeningNow = getOccurrencesHappeningNow(rawTasks);
-    // Only show tasks that are also in today's covered list
-    const todayTaskIds = new Set(todayTasks.map(t => t.id));
-    return happeningNow.filter(t => todayTaskIds.has(t.id));
-  }, [rawTasks, todayTasks]);
+  // Build "Happening Now" using base IDs to handle virtual occurrence IDs properly
+  // Step 1: Get base IDs of tasks happening right now
+  const happeningNowBaseIds = useMemo(() => {
+    const happeningNowOccurrences = getOccurrencesHappeningNow(rawTasks);
+    return new Set(happeningNowOccurrences.map(t => getOriginalTaskId(t.id)));
+  }, [rawTasks]);
 
-  // Build a Set of IDs for tasks in "Happening Now" to exclude from other sections
-  const happeningNowIds = useMemo(() => {
-    return new Set(tasksHappeningNow.map(t => t.id));
+  // Step 2: Build tasksHappeningNow from todayTasks (enriched with coverage/timeLock/completion)
+  // This ensures we render the SAME objects used elsewhere, avoiding duplication issues
+  const tasksHappeningNow = useMemo(() => {
+    // Only show pending tasks that are happening now (completed ones shouldn't show in "Happening Now")
+    return todayTasks.filter(t => 
+      happeningNowBaseIds.has(getOriginalTaskId(t.id)) && 
+      t.status !== 'completed'
+    );
+  }, [todayTasks, happeningNowBaseIds]);
+
+  // Step 3: Build exclusion set from what we actually rendered in "Happening Now"
+  const happeningExcludeBaseIds = useMemo(() => {
+    return new Set(tasksHappeningNow.map(t => getOriginalTaskId(t.id)));
   }, [tasksHappeningNow]);
 
-  // Group today's tasks by status (shift-aware), excluding "Happening Now" tasks from Pending section
+  // Group today's tasks by status (shift-aware), then filter ALL groups to exclude "Happening Now"
   const todayGrouped = useMemo(() => {
     const grouped = groupTasksByStatusShiftAware(todayTasks);
     
-    // Remove "Happening Now" tasks from pending to avoid duplication
-    // They are NOT overdue (still within window), so only filter from pending
-    const filteredPending = grouped.pending.filter(t => !happeningNowIds.has(t.id));
+    // Helper to check if a task should be excluded (already shown in Happening Now)
+    const notInHappeningNow = (t: Task) => !happeningExcludeBaseIds.has(getOriginalTaskId(t.id));
     
+    // Filter ALL groups to avoid duplication across any section
     return {
-      ...grouped,
-      pending: filteredPending,
+      pending: grouped.pending.filter(notInHappeningNow),
+      overdue: grouped.overdue.filter(notInHappeningNow),
+      noCoverage: grouped.noCoverage.filter(notInHappeningNow),
+      completed: grouped.completed.filter(notInHappeningNow),
     };
-  }, [todayTasks, happeningNowIds]);
+  }, [todayTasks, happeningExcludeBaseIds]);
 
   const filteredTasks = useMemo(() => {
     if (activeTab === "all") return tasks;
