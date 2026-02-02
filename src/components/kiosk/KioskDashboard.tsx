@@ -281,6 +281,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // Filter employees to only those with shifts today - MUST be computed before tasks
   const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
 
+  // Scheduled employee IDs (used for Champions gating)
+  const scheduledEmployeeIds = useMemo(() => {
+    return new Set(todaysTeam.map((e) => e.id));
+  }, [todaysTeam]);
+
   // ===================================================================
   // USE UNIFIED KIOSK TASKS HOOK (replaces manual occurrence expansion)
   // This ensures Kiosk uses the same pipeline as Mobile for consistency
@@ -400,10 +405,24 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     const countsByEmployee = new Map<string, number>();
     
     for (const task of unifiedGrouped.completed) {
-      const empId = (task as any).completed_by_employee_id;
-      if (empId) {
-        countsByEmployee.set(empId, (countsByEmployee.get(empId) || 0) + 1);
+      const rawCompleter =
+        (task as any).completed_by_employee_id ??
+        (task as any).completed_by ??
+        (task as any).completed_by?.id ??
+        null;
+
+      if (!rawCompleter) continue;
+
+      // Prefer employee_id; if legacy stores user_id, map it to employee_id
+      let employeeId: string | null = rawCompleter;
+      if (!scheduledEmployeeIds.has(employeeId)) {
+        const mapped = userIdToEmployeeMap.get(employeeId);
+        if (mapped) employeeId = mapped.id;
       }
+
+      // Kiosk Champions must only include scheduled staff
+      if (!employeeId || !scheduledEmployeeIds.has(employeeId)) continue;
+      countsByEmployee.set(employeeId, (countsByEmployee.get(employeeId) || 0) + 1);
     }
     
     // Map to scheduled employees only
@@ -426,7 +445,43 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       .filter(c => c.completed_today > 0)
       .sort((a, b) => b.completed_today - a.completed_today)
       .slice(0, 3);
-  }, [unifiedGrouped.completed, employeeMap]);
+  }, [unifiedGrouped.completed, employeeMap, scheduledEmployeeIds, userIdToEmployeeMap]);
+
+  // DEV-only sanity check: if Done Today > 0 but Champions is empty, attribution is missing.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (unifiedCompletedCount === 0) return;
+    if (todaysChampions.length > 0) return;
+
+    const missing = unifiedGrouped.completed
+      .map((t) => {
+        const rawCompleter =
+          (t as any).completed_by_employee_id ??
+          (t as any).completed_by ??
+          (t as any).completed_by?.id ??
+          null;
+
+        let mappedEmployeeId: string | null = rawCompleter;
+        if (mappedEmployeeId && !scheduledEmployeeIds.has(mappedEmployeeId)) {
+          const mapped = userIdToEmployeeMap.get(mappedEmployeeId);
+          if (mapped) mappedEmployeeId = mapped.id;
+        }
+
+        return {
+          id: t.id,
+          title: t.title,
+          rawCompleter,
+          mappedEmployeeId,
+        };
+      })
+      .filter((x) => !x.rawCompleter || !x.mappedEmployeeId || !scheduledEmployeeIds.has(x.mappedEmployeeId))
+      .slice(0, 15);
+
+    console.warn("[KIOSK Champions] Done Today > 0 but no champions could be attributed.", {
+      doneToday: unifiedCompletedCount,
+      missing,
+    });
+  }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userIdToEmployeeMap]);
 
   // Weekly stars - keep using legacy for now (not affected by per-occurrence bug)
   // Convert tasks to KioskTask format for weekly attribution
