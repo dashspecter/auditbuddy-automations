@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck, Trash2 } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -24,14 +24,22 @@ import { PendingTestsCard } from "@/components/staff/PendingTestsCard";
 import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCard";
 import { CheckerAuditsCard } from "@/components/staff/CheckerAuditsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
 
 const StaffHome = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: roleData } = useUserRole();
+  const { hasModule } = useCompanyContext();
+  const { isOnDuty, locationId: onDutyLocationId } = useStaffOnDuty();
   // Use unified occurrence hook for consistent counts with the StaffTasks page
   const { todayGrouped, upcomingTasks, activeTasks, debug: taskDebug } = useMyTaskOccurrences();
+  
+  // Module checks
+  const hasWastageModule = hasModule('wastage');
   const [employee, setEmployee] = useState<any>(null);
   const [todayShift, setTodayShift] = useState<any>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
@@ -452,6 +460,27 @@ const StaffHome = () => {
               >
                 <ClipboardCheck className="h-6 w-6 mb-2 text-primary" />
                 <span className="text-xs">{t('nav.audits')}</span>
+              </Button>
+            )}
+            {/* Log Waste - only if module enabled */}
+            {hasWastageModule && (
+              <Button 
+                variant="outline" 
+                className={`h-auto py-4 flex-col touch-target ${isOnDuty ? "border-primary/30 bg-primary/5" : "opacity-60"}`}
+                onClick={() => {
+                  if (isOnDuty) {
+                    navigate("/staff/waste/new", { state: { from: location.pathname, locationId: onDutyLocationId } });
+                  } else {
+                    toast.info(t('staffHome.wastageOnShiftOnly', 'Available during your shift'));
+                  }
+                }}
+                disabled={!isOnDuty}
+              >
+                <Trash2 className={`h-6 w-6 mb-2 ${isOnDuty ? "text-primary" : "text-muted-foreground"}`} />
+                <span className="text-xs">{t('staffHome.logWaste', 'Log Waste')}</span>
+                {!isOnDuty && (
+                  <span className="text-[10px] text-muted-foreground mt-1">{t('staffHome.duringShiftOnly', 'During shift only')}</span>
+                )}
               </Button>
             )}
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/documents")}>
