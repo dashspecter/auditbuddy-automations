@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +9,18 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Search, Package, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, Package, Trash2, ArrowLeft } from "lucide-react";
 import { useWasteProducts, useCreateWasteProduct, useUpdateWasteProduct, WasteProduct } from "@/hooks/useWaste";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function WasteProducts() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = useSmartBack({ adminFallback: "/admin/waste/entries" });
+  
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,11 +88,16 @@ export default function WasteProducts() {
     <ModuleGate module="wastage">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Waste Products</h1>
-            <p className="text-muted-foreground mt-1">
-              Configure products that can be logged as waste
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={goBack}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Waste Products</h1>
+              <p className="text-muted-foreground mt-1">
+                Configure products that can be logged as waste
+              </p>
+            </div>
           </div>
           <Button onClick={() => handleOpenDialog()} className="gap-2">
             <Plus className="h-4 w-4" />

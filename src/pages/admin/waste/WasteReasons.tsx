@@ -16,6 +16,8 @@ import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function WasteReasons() {
   const { t } = useTranslation();
+  const goBack = useSmartBack({ adminFallback: "/admin/waste/entries" });
+  
   const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReason, setEditingReason] = useState<WasteReason | null>(null);
@@ -87,11 +89,16 @@ export default function WasteReasons() {
     <ModuleGate module="wastage">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Waste Reasons</h1>
-            <p className="text-muted-foreground mt-1">
-              Configure reasons for waste to help with analysis
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={goBack}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Waste Reasons</h1>
+              <p className="text-muted-foreground mt-1">
+                Configure reasons for waste to help with analysis
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             {reasons?.length === 0 && (
