@@ -14,6 +14,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useCompany } from "@/hooks/useCompany";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleGate } from "@/components/ModuleGate";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function AddWasteEntry() {
   const { t } = useTranslation();
@@ -22,33 +23,10 @@ export default function AddWasteEntry() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { data: company } = useCompany();
-
-  // Safe back handler - desktop-aware to avoid navigating to mobile routes
-  const handleBack = () => {
-    // On mobile, use standard back navigation
-    if (isMobile) {
-      if (window.history.length > 2) {
-        navigate(-1);
-      } else {
-        navigate('/staff/waste', { replace: true });
-      }
-      return;
-    }
-
-    // Desktop: check for safe "from" state
-    const from = (location.state as { from?: string })?.from;
-    const unsafePrefixes = ['/mobile', '/kiosk', '/staff/'];
-    const isSafeFrom = from && !unsafePrefixes.some(prefix => from.startsWith(prefix));
-
-    if (isSafeFrom) {
-      navigate(from);
-    } else if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      // Desktop fallback to My Entries
-      navigate('/staff/waste', { replace: true });
-    }
-  };
+  const goBack = useSmartBack({ 
+    staffFallback: "/staff/waste",
+    adminFallback: "/admin/waste/entries" 
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,7 +175,7 @@ export default function AddWasteEntry() {
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={handleBack}>
+            <Button variant="ghost" size="icon" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold">Add Waste Entry</h1>

@@ -167,6 +167,8 @@ import MyWasteEntries from "./pages/staff/MyWasteEntries";
 import WasteProducts from "./pages/admin/waste/WasteProducts";
 import WasteReasons from "./pages/admin/waste/WasteReasons";
 import WasteSettings from "./pages/admin/waste/WasteSettings";
+import AdminAddWasteEntry from "./pages/admin/waste/AdminAddWasteEntry";
+import AdminWasteEntries from "./pages/admin/waste/AdminWasteEntries";
 import WasteReports from "./pages/reports/WasteReports";
 
 const queryClient = new QueryClient({
@@ -275,6 +277,8 @@ const App = () => (
                       <Route path="/documents" element={<ManagerRoute requiredPermission="manage_audits"><DocumentManagement /></ManagerRoute>} />
                       <Route path="/documents/:id" element={<ManagerRoute requiredPermission="manage_audits"><DocumentDetail /></ManagerRoute>} />
                       {/* Waste Module Admin Routes */}
+                      <Route path="/admin/waste/add" element={<ManagerRoute requiredPermission="manage_audits"><AdminAddWasteEntry /></ManagerRoute>} />
+                      <Route path="/admin/waste/entries" element={<ManagerRoute requiredPermission="manage_audits"><AdminWasteEntries /></ManagerRoute>} />
                       <Route path="/admin/waste/products" element={<ManagerRoute requiredPermission="manage_audits"><WasteProducts /></ManagerRoute>} />
                       <Route path="/admin/waste/reasons" element={<ManagerRoute requiredPermission="manage_audits"><WasteReasons /></ManagerRoute>} />
                       <Route path="/admin/waste/settings" element={<ManagerRoute requiredPermission="manage_audits"><WasteSettings /></ManagerRoute>} />

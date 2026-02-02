@@ -13,6 +13,7 @@ import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSmartBack } from "@/hooks/useSmartBack";
 
 export default function MyWasteEntries() {
   const { t } = useTranslation();
@@ -24,35 +25,12 @@ export default function MyWasteEntries() {
   const { data: entries, isLoading } = useMyWasteEntries();
   const updateEntry = useUpdateWasteEntry();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const goBack = useSmartBack({ 
+    staffFallback: "/staff",
+    adminFallback: "/dashboard" 
+  });
   
   const [selectedEntry, setSelectedEntry] = useState<typeof entries extends (infer T)[] ? T : never | null>(null);
-
-  // Safe back handler - desktop-aware to avoid navigating to mobile routes
-  const handleBack = () => {
-    // On mobile, use standard back navigation
-    if (isMobile) {
-      if (window.history.length > 2) {
-        navigate(-1);
-      } else {
-        navigate('/staff', { replace: true });
-      }
-      return;
-    }
-
-    // Desktop: check for safe "from" state
-    const from = (location.state as { from?: string })?.from;
-    const unsafePrefixes = ['/mobile', '/kiosk', '/staff/'];
-    const isSafeFrom = from && !unsafePrefixes.some(prefix => from.startsWith(prefix));
-
-    if (isSafeFrom) {
-      navigate(from);
-    } else if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      // Desktop fallback
-      navigate('/dashboard', { replace: true });
-    }
-  };
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -114,7 +92,7 @@ export default function MyWasteEntries() {
         <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={handleBack}>
+            <Button variant="ghost" size="icon" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
               <h1 className="text-lg font-semibold">My Waste Entries</h1>
