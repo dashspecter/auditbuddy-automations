@@ -6858,22 +6858,31 @@ export type Database = {
       }
       tasks: {
         Row: {
+          allow_early_completion: boolean
           assigned_role_id: string | null
           assigned_to: string | null
           company_id: string
           completed_at: string | null
           completed_by: string | null
           completed_late: boolean | null
+          completion_mode: string | null
+          completion_photo_url: string | null
+          completion_reason: string | null
           created_at: string
           created_by: string
           description: string | null
           due_at: string | null
           duration_minutes: number | null
+          early_requires_photo: boolean
+          early_requires_reason: boolean
           execution_mode: string
           id: string
           is_individual: boolean
           is_recurring_instance: boolean | null
           location_id: string | null
+          lock_mode: string
+          overridden_by: string | null
+          overridden_reason: string | null
           parent_task_id: string | null
           priority: string
           recurrence_days_of_month: number[] | null
@@ -6886,25 +6895,35 @@ export type Database = {
           start_at: string | null
           status: string
           title: string
+          unlock_before_minutes: number
           updated_at: string
         }
         Insert: {
+          allow_early_completion?: boolean
           assigned_role_id?: string | null
           assigned_to?: string | null
           company_id: string
           completed_at?: string | null
           completed_by?: string | null
           completed_late?: boolean | null
+          completion_mode?: string | null
+          completion_photo_url?: string | null
+          completion_reason?: string | null
           created_at?: string
           created_by: string
           description?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          early_requires_photo?: boolean
+          early_requires_reason?: boolean
           execution_mode?: string
           id?: string
           is_individual?: boolean
           is_recurring_instance?: boolean | null
           location_id?: string | null
+          lock_mode?: string
+          overridden_by?: string | null
+          overridden_reason?: string | null
           parent_task_id?: string | null
           priority?: string
           recurrence_days_of_month?: number[] | null
@@ -6917,25 +6936,35 @@ export type Database = {
           start_at?: string | null
           status?: string
           title: string
+          unlock_before_minutes?: number
           updated_at?: string
         }
         Update: {
+          allow_early_completion?: boolean
           assigned_role_id?: string | null
           assigned_to?: string | null
           company_id?: string
           completed_at?: string | null
           completed_by?: string | null
           completed_late?: boolean | null
+          completion_mode?: string | null
+          completion_photo_url?: string | null
+          completion_reason?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           due_at?: string | null
           duration_minutes?: number | null
+          early_requires_photo?: boolean
+          early_requires_reason?: boolean
           execution_mode?: string
           id?: string
           is_individual?: boolean
           is_recurring_instance?: boolean | null
           location_id?: string | null
+          lock_mode?: string
+          overridden_by?: string | null
+          overridden_reason?: string | null
           parent_task_id?: string | null
           priority?: string
           recurrence_days_of_month?: number[] | null
@@ -6948,6 +6977,7 @@ export type Database = {
           start_at?: string | null
           status?: string
           title?: string
+          unlock_before_minutes?: number
           updated_at?: string
         }
         Relationships: [
@@ -8780,6 +8810,18 @@ export type Database = {
       company_has_module: {
         Args: { _company_id: string; _module: string }
         Returns: boolean
+      }
+      complete_task_guarded: {
+        Args: {
+          p_completed_at?: string
+          p_occurrence_date?: string
+          p_override?: boolean
+          p_override_reason?: string
+          p_photo_url?: string
+          p_reason?: string
+          p_task_id: string
+        }
+        Returns: Json
       }
       create_employee_user: {
         Args: {

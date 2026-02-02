@@ -950,7 +950,23 @@
       "starts": "Starts",
       "timeExpired": "Time expired!",
       "timeLeft": "left",
-      "noTasks": "No tasks assigned"
+      "noTasks": "No tasks assigned",
+      "lockedUntil": "Available at {{time}}",
+      "locked": "Locked",
+      "unlocks": "Unlocks at",
+      "tapToComplete": "Tap to complete",
+      "completeEarly": "Complete Early",
+      "earlyReasonRequired": "Reason required for early completion",
+      "earlyPhotoRequired": "Photo required for early completion",
+      "reasonPlaceholder": "Why are you completing this early?",
+      "taskLockedToast": "This task unlocks at {{time}}"
+    },
+    "timeLock": {
+      "available": "Available",
+      "lockedUntil": "Available at {{time}}",
+      "earlyRequiresReason": "Requires reason for early completion",
+      "earlyAllowed": "Early completion allowed",
+      "late": "Completing late"
     }
   },
   "staffShifts": {
