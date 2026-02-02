@@ -299,7 +299,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   });
 
   // Map unified tasks to local Task interface for compatibility with existing kiosk code
-  // Also filter by coverage: only show tasks if staff are scheduled
+  // Coverage is already applied by the unified hook - we just need to map the tasks
   const tasks: (Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] })[] = useMemo(() => {
     // If no staff scheduled today, return empty
     if (todaysTeam.length === 0) {
@@ -325,8 +325,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
           due_at: task.due_at,
           role_ids: originalTask?.role_ids || [],
           role_names: originalTask?.role_names || [],
+          // Flag location-only tasks for the General group
+          isLocationOnly: !task.assigned_role_id && !task.assigned_to,
           timeLock: task.timeLock,
-        } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] };
+        } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock']; isLocationOnly?: boolean };
       })
       .filter(task => {
         // Check if task has coverage:
@@ -337,6 +339,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
         // 2. Role assignment matches a scheduled role
         const taskRoles = (task.role_names || []).map(r => r.toLowerCase());
         if (taskRoles.some(r => scheduledRoles.has(r))) {
+          return true;
+        }
+        // 3. Location-only tasks - visible to ALL scheduled employees at this location
+        if ((task as any).isLocationOnly) {
           return true;
         }
         return false;
@@ -398,8 +404,9 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
   // Group tasks by their assigned roles and find employees on shift with those roles
   // IMPORTANT: Each task only appears ONCE under its PRIMARY role (first assigned role)
+  // LOCATION-ONLY tasks (no role) go under "General" group
   // This matches the main Tasks page behavior where each task is shown once
-  type TaskWithTimeLock = Task & { timeLock?: StaffTaskWithTimeLock['timeLock'] };
+  type TaskWithTimeLock = Task & { timeLock?: StaffTaskWithTimeLock['timeLock']; isLocationOnly?: boolean };
   const tasksByRole = useMemo(() => {
     const roleGroups: Record<string, { 
       tasks: TaskWithTimeLock[];
@@ -411,6 +418,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     const pendingTasks = tasks.filter(t => t.status !== "completed");
     
     // Group tasks by their PRIMARY assigned role (first role only to avoid duplicates)
+    // Location-only tasks go to "General" group
     pendingTasks.forEach(task => {
       // Skip if we've already added this task
       const taskBaseId = getOriginalTaskId(task.id);
@@ -418,13 +426,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       seenTaskIds.add(taskBaseId);
       
       const roleNames = task.role_names || [];
+      const isLocationOnly = (task as any).isLocationOnly;
       
-      if (roleNames.length === 0) {
-        // Unassigned to any role - put in "Unassigned" group
-        if (!roleGroups["Unassigned"]) {
-          roleGroups["Unassigned"] = { tasks: [], employees: [] };
+      if (isLocationOnly || roleNames.length === 0) {
+        // Location-only tasks OR unassigned - put in "General" group (for all staff at this location)
+        if (!roleGroups["General"]) {
+          roleGroups["General"] = { tasks: [], employees: todaysTeam };
         }
-        roleGroups["Unassigned"].tasks.push(task);
+        roleGroups["General"].tasks.push(task);
       } else {
         // Add task ONLY to its first/primary assigned role (not all roles)
         const primaryRole = roleNames[0];
@@ -435,9 +444,9 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       }
     });
 
-    // For each role group, find employees on shift today with that role
+    // For each role group (except General), find employees on shift today with that role
     Object.keys(roleGroups).forEach(roleName => {
-      if (roleName !== "Unassigned") {
+      if (roleName !== "General") {
         roleGroups[roleName].employees = todaysTeam.filter(e => e.role === roleName);
       }
     });
@@ -464,11 +473,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       });
     });
 
-    // Sort roles alphabetically, but put "Unassigned" last
+    // Sort roles alphabetically, but put "General" last (it's for all staff)
     return Object.entries(roleGroups)
       .sort(([a], [b]) => {
-        if (a === "Unassigned") return 1;
-        if (b === "Unassigned") return -1;
+        if (a === "General") return 1;
+        if (b === "General") return -1;
         return a.localeCompare(b);
       });
   }, [tasks, todaysTeam, now]);
