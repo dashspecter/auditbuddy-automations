@@ -23,10 +23,11 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     staffFallback = "/staff",
   } = options;
 
+  // Extract from as a string to use in stable deps
+  const from = (location.state as { from?: string } | null)?.from;
+  const currentPath = location.pathname;
+
   const goBack = useCallback(() => {
-    const from = (location.state as { from?: string })?.from;
-    const currentPath = location.pathname;
-    
     // Context determined ONLY by pathname prefix - NOT by viewport
     const isAdminContext = currentPath.startsWith('/admin/') || 
                            currentPath.startsWith('/reports/') ||
@@ -34,7 +35,17 @@ export function useSmartBack(options: SmartBackOptions = {}) {
                            currentPath.startsWith('/workforce') ||
                            currentPath.startsWith('/audits') ||
                            currentPath.startsWith('/equipment') ||
-                           currentPath.startsWith('/cmms');
+                           currentPath.startsWith('/cmms') ||
+                           currentPath.startsWith('/locations') ||
+                           currentPath.startsWith('/tasks') ||
+                           currentPath.startsWith('/notifications') ||
+                           currentPath.startsWith('/documents') ||
+                           currentPath.startsWith('/insights') ||
+                           currentPath.startsWith('/integrations') ||
+                           currentPath.startsWith('/operations') ||
+                           currentPath.startsWith('/marketplace') ||
+                           currentPath.startsWith('/pricing') ||
+                           currentPath.startsWith('/settings');
     const isStaffContext = currentPath.startsWith('/staff/') || 
                            currentPath.startsWith('/mobile/') ||
                            currentPath.startsWith('/kiosk/');
@@ -42,7 +53,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     // Prefixes that are unsafe for admin navigation
     const staffPrefixes = ['/mobile', '/kiosk', '/staff/'];
     // Prefixes that are unsafe for staff navigation  
-    const adminPrefixes = ['/admin/', '/reports/', '/dashboard', '/workforce', '/audits', '/equipment', '/cmms'];
+    const adminPrefixes = ['/admin/', '/reports/', '/dashboard', '/workforce', '/audits', '/equipment', '/cmms', '/locations', '/tasks', '/notifications', '/documents', '/insights', '/integrations', '/operations', '/marketplace', '/pricing', '/settings'];
 
     if (isAdminContext) {
       // Admin context: NEVER navigate to staff/mobile/kiosk
@@ -80,7 +91,7 @@ export function useSmartBack(options: SmartBackOptions = {}) {
     } else {
       navigate(adminFallback, { replace: true });
     }
-  }, [navigate, location.state, location.pathname, adminFallback, staffFallback]);
+  }, [navigate, from, currentPath, adminFallback, staffFallback]);
 
   return goBack;
 }

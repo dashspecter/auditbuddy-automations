@@ -7,14 +7,14 @@ import {
   MessageCircleQuestion, Cog, Trash2
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
 import { usePermissions, CompanyPermission } from "@/hooks/useCompanyPermissions";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AIGuideChat } from "@/components/AIGuideChat";
@@ -318,6 +318,7 @@ const settingsItems = [
 export function AppSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { hasModule, canAccessModule } = useCompanyContext();
   const { expandedGroups, toggleGroup, expandGroup, isCollapsed, toggleCollapsed } = useSidebarContext();
   const { data: roleData } = useUserRole();
@@ -325,6 +326,11 @@ export function AppSidebar() {
   const { hasPermission } = usePermissions();
   
   const currentPath = location.pathname;
+  
+  // Helper to navigate with state.from for proper back navigation
+  const navigateWithFrom = useCallback((url: string) => {
+    navigate(url, { state: { from: currentPath } });
+  }, [navigate, currentPath]);
   const isOwner = company?.userRole === 'company_owner';
   const isCompanyAdmin = company?.userRole === 'company_admin';
   const isMember = company?.userRole === 'company_member';
@@ -544,14 +550,29 @@ export function AppSidebar() {
                               </CollapsibleContent>
                             </Collapsible>
                           ) : (
-                            <NavLink
-                              key={subItem.url}
-                              to={subItem.url}
-                              className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
-                              activeClassName="text-primary font-medium bg-primary/10"
-                            >
-                              {t(subItem.titleKey)}
-                            </NavLink>
+                            // For wastage sub-items, use onClick to pass state.from for proper back navigation
+                            subItem.url.startsWith('/admin/waste') || subItem.url.startsWith('/reports/waste') ? (
+                              <button
+                                key={subItem.url}
+                                onClick={() => navigateWithFrom(subItem.url)}
+                                className={`block w-full text-left px-3 py-2 text-[13px] rounded-lg transition-all duration-200 ${
+                                  currentPath === subItem.url || currentPath.startsWith(subItem.url + '/')
+                                    ? 'text-primary font-medium bg-primary/10'
+                                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted'
+                                }`}
+                              >
+                                {t(subItem.titleKey)}
+                              </button>
+                            ) : (
+                              <NavLink
+                                key={subItem.url}
+                                to={subItem.url}
+                                className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
+                                activeClassName="text-primary font-medium bg-primary/10"
+                              >
+                                {t(subItem.titleKey)}
+                              </NavLink>
+                            )
                           )
                         ))}
                       </CollapsibleContent>
@@ -576,14 +597,29 @@ export function AppSidebar() {
                         <div className="font-medium text-sm mb-2 px-2 text-foreground">{t(item.titleKey)}</div>
                         <div className="space-y-0.5">
                           {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
-                            <NavLink
-                              key={subItem.url}
-                              to={subItem.url}
-                              className="block px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
-                              activeClassName="text-primary font-medium bg-primary/10"
-                            >
-                              {t(subItem.titleKey)}
-                            </NavLink>
+                            // For wastage sub-items, use onClick to pass state.from for proper back navigation
+                            subItem.url.startsWith('/admin/waste') || subItem.url.startsWith('/reports/waste') ? (
+                              <button
+                                key={subItem.url}
+                                onClick={() => navigateWithFrom(subItem.url)}
+                                className={`block w-full text-left px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 ${
+                                  currentPath === subItem.url || currentPath.startsWith(subItem.url + '/')
+                                    ? 'text-primary font-medium bg-primary/10'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                }`}
+                              >
+                                {t(subItem.titleKey)}
+                              </button>
+                            ) : (
+                              <NavLink
+                                key={subItem.url}
+                                to={subItem.url}
+                                className="block px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                activeClassName="text-primary font-medium bg-primary/10"
+                              >
+                                {t(subItem.titleKey)}
+                              </NavLink>
+                            )
                           ))}
                         </div>
                       </PopoverContent>
