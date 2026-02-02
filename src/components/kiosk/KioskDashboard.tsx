@@ -25,6 +25,11 @@ import {
   type KioskTask,
   type ScheduledEmployee
 } from "@/lib/kioskTaskAttribution";
+import { 
+  buildUserToEmployeeIdMap, 
+  resolveCompleterEmployeeId,
+  getAttributionDebugInfo
+} from "@/lib/tasks/resolveCompleterEmployeeId";
 
 interface KioskDashboardProps {
   locationId: string;
@@ -287,14 +292,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   }, [todaysTeam]);
 
   // Map auth user/profile ids -> scheduled employee ids (for resilient completer attribution)
-  const userToEmployeeIdMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const e of todaysTeam) {
-      const userId = (e as any).user_id ?? (e as any).auth_user_id ?? (e as any).profile_id;
-      if (userId) map.set(userId, e.id);
-    }
-    return map;
-  }, [todaysTeam]);
+  // Uses the centralized utility for consistency
+  const userToEmployeeIdMap = useMemo(
+    () => buildUserToEmployeeIdMap(todaysTeam as any[]),
+    [todaysTeam]
+  );
 
   // ===================================================================
   // USE UNIFIED KIOSK TASKS HOOK (replaces manual occurrence expansion)
@@ -400,7 +402,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
 
   // =====================================================
   // TODAY'S CHAMPIONS - computed from unified completed tasks
-  // Uses completed_by_employee_id from task_completions table
+  // Uses centralized resolveCompleterEmployeeId utility for resilient attribution
   // =====================================================
   interface ChampionData {
     employee_id: string;
@@ -409,41 +411,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     avatar_url: string | null;
     completed_today: number;
   }
-
-  function resolveCompleterEmployeeId(task: any): string | null {
-    const raw =
-      task.completed_by_employee_id ??
-      task.completed_by ??
-      task.completed_by?.id ??
-      task.completed_by_user_id ??
-      task.completed_by_profile_id ??
-      null;
-
-    if (!raw) {
-      // Optional last resort: if it was directly assigned and completed today, attribute to assignee
-      if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) return task.assigned_to;
-      return null;
-    }
-
-    // Case 1: raw already an employee id
-    if (scheduledEmployeeIds.has(raw)) return raw;
-
-    // Case 2: raw is a user/profile id -> map to scheduled employee id
-    const mapped = userToEmployeeIdMap.get(raw);
-    if (mapped && scheduledEmployeeIds.has(mapped)) return mapped;
-
-    // Optional last resort: direct assignment is safer than guessing for role-based tasks
-    if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) return task.assigned_to;
-
-    return null;
-  }
   
   const todaysChampions = useMemo((): ChampionData[] => {
     // Build completion counts by employee from unified completed tasks
     const countsByEmployee = new Map<string, number>();
     
     for (const task of unifiedGrouped.completed) {
-      const empId = resolveCompleterEmployeeId(task as any);
+      // Use centralized resolver for resilient attribution
+      const empId = resolveCompleterEmployeeId(task as any, scheduledEmployeeIds, userToEmployeeIdMap);
       if (!empId) continue;
       countsByEmployee.set(empId, (countsByEmployee.get(empId) || 0) + 1);
     }
@@ -474,29 +449,49 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     if (unifiedCompletedCount === 0) return;
+    
+    // Check if champions sum matches done today
+    const championsSum = todaysChampions.reduce((acc, c) => acc + c.completed_today, 0);
+    const hasMismatch = championsSum !== unifiedCompletedCount;
+    
+    if (todaysChampions.length === 0 || hasMismatch) {
+      const missingAttribution = unifiedGrouped.completed.map((t) => {
+        const debugInfo = getAttributionDebugInfo(t as any, scheduledEmployeeIds, userToEmployeeIdMap);
+        return {
+          title: t.title,
+          id: t.id,
+          ...debugInfo,
+        };
+      });
+      
+      console.warn("[KIOSK Champions Attribution Debug]", {
+        doneToday: unifiedCompletedCount,
+        championsSum,
+        championsEmpty: todaysChampions.length === 0,
+        mismatch: hasMismatch,
+        scheduledEmployeeCount: scheduledEmployeeIds.size,
+        userToEmployeeMapSize: userToEmployeeIdMap.size,
+        completedTasks: missingAttribution.slice(0, 10),
+      });
+    }
+  }, [unifiedCompletedCount, todaysChampions, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
+
+  // Legacy DEV check (keeping for compatibility) - now using centralized resolver
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (unifiedCompletedCount === 0) return;
     if (todaysChampions.length > 0) return;
 
     const missing = unifiedGrouped.completed
       .map((t) => {
-        const rawCompleter =
-          (t as any).completed_by_employee_id ??
-          (t as any).completed_by ??
-          (t as any).completed_by?.id ??
-          (t as any).completed_by_user_id ??
-          (t as any).completed_by_profile_id ??
-          null;
-
-        const mappedEmployeeId = rawCompleter ? userToEmployeeIdMap.get(rawCompleter) ?? null : null;
-        const resolved = resolveCompleterEmployeeId(t as any);
-
+        const debugInfo = getAttributionDebugInfo(t as any, scheduledEmployeeIds, userToEmployeeIdMap);
         return {
           id: t.id,
           title: t.title,
-          rawCompleter,
+          rawCompleter: debugInfo.rawCompleter,
           assigned_to: (t as any).assigned_to ?? null,
-          resolvedEmployeeId: resolved,
-          canMapUserToEmployee: !!(rawCompleter && mappedEmployeeId),
-          mappedEmployeeId,
+          resolvedEmployeeId: debugInfo.resolvedEmployeeId,
+          mappedFromUserId: debugInfo.mappedFromUserId,
         };
       })
       .filter((x) => !x.resolvedEmployeeId)
