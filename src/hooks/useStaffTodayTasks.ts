@@ -28,10 +28,22 @@ import {
 } from "@/lib/unifiedTaskPipeline";
 import {
   getCanonicalToday,
+  getOriginalTaskId,
 } from "@/lib/taskOccurrenceEngine";
 import { toDayKey, normalizeRoleName } from "@/lib/companyDayUtils";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { getTimeLockStatus, TimeLockStatus } from "@/lib/taskTimeLock";
+
+function getOccurrenceInfoFromTaskId(taskId: string, fallbackDayKey: string): {
+  baseTaskId: string;
+  occurrenceDate: string;
+} {
+  const baseTaskId = getOriginalTaskId(taskId);
+  // Supports both: uuid-virtual-YYYY-MM-DD and uuid-completed-YYYY-MM-DD
+  const m = taskId.match(/-(?:virtual|completed)-(\d{4}-\d{2}-\d{2})/);
+  const occurrenceDate = m?.[1] || fallbackDayKey;
+  return { baseTaskId, occurrenceDate };
+}
 
 // =============================================================
 // TYPES
@@ -687,15 +699,7 @@ export function useKioskTodayTasks(options: {
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
       
-      // Extract base task ID and occurrence date
-      let baseTaskId = task.id;
-      let occurrenceDate = targetDayKey;
-      
-      if (task.id.includes("-virtual-")) {
-        const parts = task.id.split("-virtual-");
-        baseTaskId = parts[0];
-        occurrenceDate = parts[1] || targetDayKey;
-      }
+      const { baseTaskId, occurrenceDate } = getOccurrenceInfoFromTaskId(task.id, targetDayKey);
       
       const completionKey = `${baseTaskId}:${occurrenceDate}`;
       const completion = completionsByKey.get(completionKey);
@@ -713,6 +717,25 @@ export function useKioskTodayTasks(options: {
           completion_mode: completion!.completion_mode,
         };
       }
+
+      // Legacy completed tasks (from tasks table) still need completer attribution.
+      // Only treat as "completed today" if completed_at is on the target day.
+      if (task.status === "completed" && task.completed_at) {
+        const completedDayKey = toDayKey(new Date(task.completed_at));
+        if (completedDayKey === occurrenceDate) {
+          const legacyCompleter =
+            (task as any).completed_by_employee_id ??
+            (task as any).completed_by ??
+            (task as any).completed_by?.id ??
+            null;
+          return {
+            ...task,
+            timeLock,
+            isOccurrenceCompleted,
+            completed_by_employee_id: legacyCompleter,
+          } as StaffTaskWithTimeLock;
+        }
+      }
       
       // For already-completed template tasks, still attach completion metadata if available
       if (completion) {
@@ -728,18 +751,90 @@ export function useKioskTodayTasks(options: {
       return { ...task, timeLock, isOccurrenceCompleted } as StaffTaskWithTimeLock;
     });
 
-    // Re-group based on occurrence completions and time-lock status
+    // =========================================================
+    // COMPLETED TODAY (KPI + Champions)
+    // IMPORTANT: this must include completions for TODAY even if
+    // the task was due earlier (backlog completion).
+    // Sources:
+    // 1) task_completions (per-occurrence)
+    // 2) legacy tasks.completed_* (template-level), only if completed today
+    // =========================================================
+    const completedByCompositeKey = new Map<string, StaffTaskWithTimeLock>();
+    const completionsFromTableCount = completions.filter(
+      (c) => c.occurrence_date === targetDayKey
+    ).length;
+    for (const c of completions) {
+      if (c.occurrence_date !== targetDayKey) continue;
+      const tpl = rawTasks.find((t) => t.id === c.task_id);
+      if (!tpl) continue;
+
+      const compositeKey = `${c.task_id}:${c.occurrence_date}`;
+      // Build a stable "completed occurrence" object for KPI/Champions.
+      // Keep it separate from todayTasks (task LIST must remain unchanged).
+      completedByCompositeKey.set(compositeKey, {
+        ...(tpl as any),
+        id: `${c.task_id}-completed-${c.occurrence_date}`,
+        status: "completed" as any,
+        isOccurrenceCompleted: true,
+        completed_at: c.completed_at,
+        completed_by_employee_id: c.completed_by_employee_id,
+        completion_mode: c.completion_mode,
+      } as StaffTaskWithTimeLock);
+    }
+
+    let legacyCompletedTodayCount = 0;
+    for (const t of rawTasks) {
+      if (t.status !== "completed" || !t.completed_at) continue;
+      const completedDayKey = toDayKey(new Date(t.completed_at));
+      if (completedDayKey !== targetDayKey) continue;
+
+      const legacyCompleter =
+        (t as any).completed_by_employee_id ??
+        (t as any).completed_by ??
+        (t as any).completed_by?.id ??
+        null;
+
+      const { baseTaskId } = getOccurrenceInfoFromTaskId(t.id, targetDayKey);
+      const compositeKey = `${baseTaskId}:${targetDayKey}`;
+      if (completedByCompositeKey.has(compositeKey)) continue; // avoid double counting
+
+      legacyCompletedTodayCount++;
+      completedByCompositeKey.set(compositeKey, {
+        ...(t as any),
+        id: `${baseTaskId}-completed-${targetDayKey}`,
+        status: "completed" as any,
+        isOccurrenceCompleted: false,
+        completed_by_employee_id: legacyCompleter,
+      } as StaffTaskWithTimeLock);
+    }
+
+    const completedToday = Array.from(completedByCompositeKey.values());
+    const completedMissingCompleter = completedToday.filter(
+      (t) => !(t as any).completed_by_employee_id
+    );
+
+    // Re-group for task LIST behavior (unchanged), and plug-in completedToday for KPI/Champions.
     const groupedWithTimeLock = {
-      pending: tasksWithTimeLock.filter(t => !t.isOccurrenceCompleted && t.status !== "completed" && t.coverage?.hasCoverage !== false),
-      overdue: tasksWithTimeLock.filter(t => {
+      pending: tasksWithTimeLock.filter(
+        (t) =>
+          !t.isOccurrenceCompleted &&
+          t.status !== "completed" &&
+          t.coverage?.hasCoverage !== false
+      ),
+      overdue: tasksWithTimeLock.filter((t) => {
         if (t.isOccurrenceCompleted || t.status === "completed") return false;
-        const deadline = t.start_at && t.duration_minutes
-          ? new Date(new Date(t.start_at).getTime() + t.duration_minutes * 60000)
-          : t.due_at ? new Date(t.due_at) : null;
-        return deadline && now > deadline;
+        const deadline =
+          t.start_at && t.duration_minutes
+            ? new Date(
+                new Date(t.start_at).getTime() + t.duration_minutes * 60000
+              )
+            : t.due_at
+              ? new Date(t.due_at)
+              : null;
+        return !!(deadline && now > deadline);
       }),
-      completed: tasksWithTimeLock.filter(t => t.isOccurrenceCompleted || t.status === "completed"),
-      noCoverage: tasksWithTimeLock.filter(t => t.coverage?.hasCoverage === false),
+      completed: completedToday,
+      noCoverage: tasksWithTimeLock.filter((t) => t.coverage?.hasCoverage === false),
     };
 
     // Build debug stats
@@ -749,6 +844,12 @@ export function useKioskTodayTasks(options: {
       shiftsCount: shifts.length,
       visibleCount: tasksWithTimeLock.length,
       completionsCount: completions.length,
+      completionsFromTableCount,
+      legacyCompletedTodayCount,
+      completedMissingCompleterCount: completedMissingCompleter.length,
+      sampleMissingCompleterTitles: completedMissingCompleter
+        .slice(0, 5)
+        .map((t) => t.title),
       now: format(now, "HH:mm:ss"),
       todayKey: targetDayKey,
     };
