@@ -286,6 +286,16 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     return new Set(todaysTeam.map((e) => e.id));
   }, [todaysTeam]);
 
+  // Map auth user/profile ids -> scheduled employee ids (for resilient completer attribution)
+  const userToEmployeeIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of todaysTeam) {
+      const userId = (e as any).user_id ?? (e as any).auth_user_id ?? (e as any).profile_id;
+      if (userId) map.set(userId, e.id);
+    }
+    return map;
+  }, [todaysTeam]);
+
   // ===================================================================
   // USE UNIFIED KIOSK TASKS HOOK (replaces manual occurrence expansion)
   // This ensures Kiosk uses the same pipeline as Mobile for consistency
@@ -399,30 +409,43 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     avatar_url: string | null;
     completed_today: number;
   }
+
+  function resolveCompleterEmployeeId(task: any): string | null {
+    const raw =
+      task.completed_by_employee_id ??
+      task.completed_by ??
+      task.completed_by?.id ??
+      task.completed_by_user_id ??
+      task.completed_by_profile_id ??
+      null;
+
+    if (!raw) {
+      // Optional last resort: if it was directly assigned and completed today, attribute to assignee
+      if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) return task.assigned_to;
+      return null;
+    }
+
+    // Case 1: raw already an employee id
+    if (scheduledEmployeeIds.has(raw)) return raw;
+
+    // Case 2: raw is a user/profile id -> map to scheduled employee id
+    const mapped = userToEmployeeIdMap.get(raw);
+    if (mapped && scheduledEmployeeIds.has(mapped)) return mapped;
+
+    // Optional last resort: direct assignment is safer than guessing for role-based tasks
+    if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) return task.assigned_to;
+
+    return null;
+  }
   
   const todaysChampions = useMemo((): ChampionData[] => {
     // Build completion counts by employee from unified completed tasks
     const countsByEmployee = new Map<string, number>();
     
     for (const task of unifiedGrouped.completed) {
-      const rawCompleter =
-        (task as any).completed_by_employee_id ??
-        (task as any).completed_by ??
-        (task as any).completed_by?.id ??
-        null;
-
-      if (!rawCompleter) continue;
-
-      // Prefer employee_id; if legacy stores user_id, map it to employee_id
-      let employeeId: string | null = rawCompleter;
-      if (!scheduledEmployeeIds.has(employeeId)) {
-        const mapped = userIdToEmployeeMap.get(employeeId);
-        if (mapped) employeeId = mapped.id;
-      }
-
-      // Kiosk Champions must only include scheduled staff
-      if (!employeeId || !scheduledEmployeeIds.has(employeeId)) continue;
-      countsByEmployee.set(employeeId, (countsByEmployee.get(employeeId) || 0) + 1);
+      const empId = resolveCompleterEmployeeId(task as any);
+      if (!empId) continue;
+      countsByEmployee.set(empId, (countsByEmployee.get(empId) || 0) + 1);
     }
     
     // Map to scheduled employees only
@@ -445,7 +468,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       .filter(c => c.completed_today > 0)
       .sort((a, b) => b.completed_today - a.completed_today)
       .slice(0, 3);
-  }, [unifiedGrouped.completed, employeeMap, scheduledEmployeeIds, userIdToEmployeeMap]);
+  }, [unifiedGrouped.completed, employeeMap, scheduledEmployeeIds, userToEmployeeIdMap]);
 
   // DEV-only sanity check: if Done Today > 0 but Champions is empty, attribution is missing.
   useEffect(() => {
@@ -459,29 +482,31 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
           (t as any).completed_by_employee_id ??
           (t as any).completed_by ??
           (t as any).completed_by?.id ??
+          (t as any).completed_by_user_id ??
+          (t as any).completed_by_profile_id ??
           null;
 
-        let mappedEmployeeId: string | null = rawCompleter;
-        if (mappedEmployeeId && !scheduledEmployeeIds.has(mappedEmployeeId)) {
-          const mapped = userIdToEmployeeMap.get(mappedEmployeeId);
-          if (mapped) mappedEmployeeId = mapped.id;
-        }
+        const mappedEmployeeId = rawCompleter ? userToEmployeeIdMap.get(rawCompleter) ?? null : null;
+        const resolved = resolveCompleterEmployeeId(t as any);
 
         return {
           id: t.id,
           title: t.title,
           rawCompleter,
+          assigned_to: (t as any).assigned_to ?? null,
+          resolvedEmployeeId: resolved,
+          canMapUserToEmployee: !!(rawCompleter && mappedEmployeeId),
           mappedEmployeeId,
         };
       })
-      .filter((x) => !x.rawCompleter || !x.mappedEmployeeId || !scheduledEmployeeIds.has(x.mappedEmployeeId))
+      .filter((x) => !x.resolvedEmployeeId)
       .slice(0, 15);
 
     console.warn("[KIOSK Champions] Done Today > 0 but no champions could be attributed.", {
       doneToday: unifiedCompletedCount,
       missing,
     });
-  }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userIdToEmployeeMap]);
+  }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
 
   // Weekly stars - keep using legacy for now (not affected by per-occurrence bug)
   // Convert tasks to KioskTask format for weekly attribution
