@@ -114,69 +114,70 @@ export function MobileTaskCard({
 
   if (isMobile) {
     // Mobile: Split tap zones with dead gap
+    // Background spans full width, checkbox is absolutely positioned overlay
     return (
       <Card className={cn("relative overflow-hidden", borderClass, className)}>
-        {/* Completion Zone: Left 35% - reduced from 45% to minimize accidental hits */}
-        <button
-          type="button"
-          data-no-row-click="1"
-          role="checkbox"
-          aria-checked={checked}
-          aria-label="Complete task"
-          disabled={disabled}
-          className={cn(
-            "absolute left-0 top-0 bottom-0 w-[35%] z-40",
-            "flex items-center justify-center",
-            "touch-manipulation select-none",
-            "active:bg-primary/10 transition-colors",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          )}
-          onPointerDownCapture={(e) => {
-            e.stopPropagation();
-            log(`[ZONE complete pointerdown] ${taskId}`);
-          }}
-          onTouchEndCapture={(e) => {
-            e.stopPropagation();
-            // Primary handler for iOS
-            handleComplete();
-          }}
-          onClickCapture={(e) => {
-            e.stopPropagation();
-            // Fallback handler - debounce will prevent double-fire
-            handleComplete();
-          }}
-        >
-          {/* Visual hint: larger tap area indicator on left edge */}
-          <div className="absolute left-3 flex items-center justify-center">
+        {/* Full-width content container with proper padding to accommodate checkbox */}
+        <div className="relative min-h-[60px]">
+          {/* Completion Zone: Left area - absolutely positioned over content */}
+          <button
+            type="button"
+            data-no-row-click="1"
+            role="checkbox"
+            aria-checked={checked}
+            aria-label="Complete task"
+            disabled={disabled}
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-16 z-40",
+              "flex items-center justify-center",
+              "touch-manipulation select-none",
+              "active:bg-primary/10 transition-colors",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            )}
+            onPointerDownCapture={(e) => {
+              e.stopPropagation();
+              log(`[ZONE complete pointerdown] ${taskId}`);
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+              // Primary handler for iOS
+              handleComplete();
+            }}
+            onClickCapture={(e) => {
+              e.stopPropagation();
+              // Fallback handler - debounce will prevent double-fire
+              handleComplete();
+            }}
+          >
             {CheckIndicator}
+          </button>
+
+          {/* Dead Gap: 4px transparent separator to prevent ambiguous touches */}
+          <div 
+            data-dead-gap="1"
+            className="absolute left-16 top-0 bottom-0 w-1 z-50 bg-transparent"
+            onPointerDownCapture={(e) => {
+              e.stopPropagation();
+              log(`[ZONE dead-gap hit] ${taskId}`);
+            }}
+            onTouchEndCapture={(e) => {
+              e.stopPropagation();
+              // Do nothing - this is a dead zone
+            }}
+            onClickCapture={(e) => {
+              e.stopPropagation();
+              // Do nothing - this is a dead zone
+            }}
+          />
+
+          {/* Details Zone: Full width but content padded left to avoid checkbox area */}
+          <div
+            className="w-full pl-[68px] pr-4 py-4 cursor-pointer"
+            onClick={handleDetailsClick}
+            onPointerDown={() => log(`[ZONE details pointerdown] ${taskId}`)}
+          >
+            {children}
           </div>
-        </button>
-
-        {/* Dead Gap: 4px transparent separator to prevent ambiguous touches */}
-        <div 
-          data-dead-gap="1"
-          className="absolute left-[35%] top-0 bottom-0 w-1 z-50 bg-transparent"
-          onPointerDownCapture={(e) => {
-            e.stopPropagation();
-            log(`[ZONE dead-gap hit] ${taskId}`);
-          }}
-          onTouchEndCapture={(e) => {
-            e.stopPropagation();
-            // Do nothing - this is a dead zone
-          }}
-          onClickCapture={(e) => {
-            e.stopPropagation();
-            // Do nothing - this is a dead zone
-          }}
-        />
-
-        {/* Details Zone: Right side (starts at 35% + 4px gap) + visual content */}
-        <div
-          className="relative pl-[38%] pr-4 py-4 cursor-pointer min-h-[60px]"
-          onClick={handleDetailsClick}
-          onPointerDown={() => log(`[ZONE details pointerdown] ${taskId}`)}
-        >
-          {children}
         </div>
       </Card>
     );

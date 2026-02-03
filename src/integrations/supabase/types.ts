@@ -6686,6 +6686,63 @@ export type Database = {
           },
         ]
       }
+      task_completions: {
+        Row: {
+          completed_at: string
+          completed_by_employee_id: string | null
+          completion_mode: string
+          completion_photo_url: string | null
+          completion_reason: string | null
+          created_at: string
+          id: string
+          occurrence_date: string
+          overridden_by_user_id: string | null
+          overridden_reason: string | null
+          task_id: string
+        }
+        Insert: {
+          completed_at?: string
+          completed_by_employee_id?: string | null
+          completion_mode?: string
+          completion_photo_url?: string | null
+          completion_reason?: string | null
+          created_at?: string
+          id?: string
+          occurrence_date: string
+          overridden_by_user_id?: string | null
+          overridden_reason?: string | null
+          task_id: string
+        }
+        Update: {
+          completed_at?: string
+          completed_by_employee_id?: string | null
+          completion_mode?: string
+          completion_photo_url?: string | null
+          completion_reason?: string | null
+          created_at?: string
+          id?: string
+          occurrence_date?: string
+          overridden_by_user_id?: string | null
+          overridden_reason?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_completions_completed_by_employee_id_fkey"
+            columns: ["completed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_completions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_locations: {
         Row: {
           created_at: string
