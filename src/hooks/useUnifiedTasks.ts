@@ -7,12 +7,17 @@
  * 
  * CRITICAL: This hook automatically uses the company context to fetch shifts.
  * If no companyId is provided in options, it will use the current company from context.
+ * 
+ * NOTE: This hook now fetches per-occurrence completions from task_completions table
+ * to ensure web admin shows the same completion state as kiosk and mobile.
  */
 
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTasks, Task } from "./useTasks";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useShiftCoverage } from "./useShiftCoverage";
+import { supabase } from "@/integrations/supabase/client";
 import {
   runPipelineForDate,
   runPipelineForDateRange,
@@ -25,7 +30,18 @@ import {
   TaskWithCoverage,
 } from "@/lib/unifiedTaskPipeline";
 import { Shift } from "@/lib/taskCoverageEngine";
-import { startOfDay, endOfDay, addDays } from "date-fns";
+import { toDayKey } from "@/lib/companyDayUtils";
+import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import { startOfDay, endOfDay, addDays, format } from "date-fns";
+
+// Completion record type
+interface CompletionRecord {
+  task_id: string;
+  occurrence_date: string;
+  completed_by_employee_id: string | null;
+  completed_at: string;
+  completion_mode: string;
+}
 
 export interface UseUnifiedTasksOptions {
   /** View mode: execution (covered only) or planning (all + no-coverage flagged) */
@@ -114,19 +130,97 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
 
   const shifts = providedShifts || fetchedShifts;
 
+  // Compute day keys for the date range (for per-occurrence completion lookup)
+  const todayDayKey = toDayKey(new Date());
+  const tomorrowDayKey = toDayKey(addDays(new Date(), 1));
+
+  // Fetch per-occurrence completions from task_completions table
+  // This ensures web admin shows the same completion state as kiosk and mobile
+  const { data: completions = [] } = useQuery({
+    queryKey: ["unified-task-completions", companyId, todayDayKey, rawTasks.length],
+    queryFn: async (): Promise<CompletionRecord[]> => {
+      const taskIds = rawTasks.map(t => t.id);
+      if (taskIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("task_completions" as any)
+        .select("task_id, occurrence_date, completed_by_employee_id, completed_at, completion_mode")
+        .in("task_id", taskIds)
+        .in("occurrence_date", [todayDayKey, tomorrowDayKey]);
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.log("[useUnifiedTasks] Completions error:", error);
+        }
+        return [];
+      }
+      
+      return (data || []).map((c: any) => ({
+        task_id: c.task_id,
+        occurrence_date: c.occurrence_date,
+        completed_by_employee_id: c.completed_by_employee_id,
+        completed_at: c.completed_at,
+        completion_mode: c.completion_mode,
+      }));
+    },
+    enabled: rawTasks.length > 0,
+    staleTime: 0,
+    refetchInterval: 10000, // Poll every 10s for web admin
+  });
+
+  // Build completions lookup map
+  const completionsByKey = useMemo(() => {
+    const map = new Map<string, CompletionRecord>();
+    for (const c of completions) {
+      const key = `${c.task_id}:${c.occurrence_date}`;
+      map.set(key, c);
+    }
+    return map;
+  }, [completions]);
+
   // DEV: Log shift coverage debug info
   if (import.meta.env.DEV) {
     console.log("[useUnifiedTasks] Shift coverage debug:", {
       companyId: companyId?.slice(0, 8),
       shiftsCount: shifts.length,
       rawTasksCount: rawTasks.length,
+      completionsCount: completions.length,
       dateRange: `${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`,
     });
   }
 
+  // Helper to apply per-occurrence completion to tasks
+  const applyCompletions = (tasks: TaskWithCoverage[], targetDayKey: string): TaskWithCoverage[] => {
+    return tasks.map((task) => {
+      // Extract base task ID
+      const baseTaskId = getOriginalTaskId(task.id);
+      
+      // Get occurrence date from virtual ID or use target day
+      let occurrenceDate = targetDayKey;
+      if (task.id.includes("-virtual-")) {
+        const match = task.id.match(/virtual-(\d{4}-\d{2}-\d{2})/);
+        if (match) occurrenceDate = match[1];
+      }
+      
+      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      const completion = completionsByKey.get(completionKey);
+      
+      if (completion && task.status !== "completed") {
+        return {
+          ...task,
+          status: "completed" as any,
+          completed_at: completion.completed_at,
+          completed_by_employee_id: completion.completed_by_employee_id,
+        };
+      }
+      
+      return task;
+    });
+  };
+
   // Run unified pipeline for date range
   const rangeResult = useMemo(() => {
-    return runPipelineForDateRange(rawTasks, startDate, endDate, {
+    const result = runPipelineForDateRange(rawTasks, startDate, endDate, {
       viewMode,
       includeCompleted,
       includeVirtual: true,
@@ -135,34 +229,53 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
       roleId,
       locationId,
     });
-  }, [rawTasks, startDate, endDate, viewMode, includeCompleted, shifts, employeeId, roleId, locationId]);
+    
+    // Apply per-occurrence completions
+    return {
+      ...result,
+      tasks: applyCompletions(result.tasks, todayDayKey),
+    };
+  }, [rawTasks, startDate, endDate, viewMode, includeCompleted, shifts, employeeId, roleId, locationId, completionsByKey, todayDayKey]);
 
   // Today's tasks (always execution mode for action)
   const todayResult = useMemo(() => {
-    return getTodayTasks(rawTasks, shifts, {
+    const result = getTodayTasks(rawTasks, shifts, {
       viewMode,
       includeCompleted: true,
       employeeId,
       roleId,
       locationId,
     });
-  }, [rawTasks, shifts, viewMode, employeeId, roleId, locationId]);
+    
+    // Apply per-occurrence completions
+    return {
+      ...result,
+      tasks: applyCompletions(result.tasks, todayDayKey),
+    };
+  }, [rawTasks, shifts, viewMode, employeeId, roleId, locationId, completionsByKey, todayDayKey]);
 
   // Tomorrow's tasks
   const tomorrowResult = useMemo(() => {
-    return getTomorrowTasks(rawTasks, shifts, {
+    const result = getTomorrowTasks(rawTasks, shifts, {
       viewMode,
       includeCompleted: false,
       employeeId,
       roleId,
       locationId,
     });
-  }, [rawTasks, shifts, viewMode, employeeId, roleId, locationId]);
+    
+    // Apply per-occurrence completions for tomorrow
+    return {
+      ...result,
+      tasks: applyCompletions(result.tasks, tomorrowDayKey),
+    };
+  }, [rawTasks, shifts, viewMode, employeeId, roleId, locationId, completionsByKey, tomorrowDayKey]);
 
   // Group all visible tasks by status
   const grouped = useMemo(() => {
     return groupTasksByStatusShiftAware(rangeResult.tasks);
   }, [rangeResult.tasks]);
+
 
   return {
     tasks: rangeResult.tasks,
@@ -215,9 +328,52 @@ export function useUnifiedTasksForDate(
   });
 
   const shifts = providedShifts || fetchedShifts;
+  const targetDayKey = toDayKey(targetDate);
+
+  // Fetch per-occurrence completions for this date
+  const { data: completions = [] } = useQuery({
+    queryKey: ["unified-task-completions-date", companyId, targetDayKey, rawTasks.length],
+    queryFn: async (): Promise<CompletionRecord[]> => {
+      const taskIds = rawTasks.map(t => t.id);
+      if (taskIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from("task_completions" as any)
+        .select("task_id, occurrence_date, completed_by_employee_id, completed_at, completion_mode")
+        .in("task_id", taskIds)
+        .eq("occurrence_date", targetDayKey);
+      
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.log("[useUnifiedTasksForDate] Completions error:", error);
+        }
+        return [];
+      }
+      
+      return (data || []).map((c: any) => ({
+        task_id: c.task_id,
+        occurrence_date: c.occurrence_date,
+        completed_by_employee_id: c.completed_by_employee_id,
+        completed_at: c.completed_at,
+        completion_mode: c.completion_mode,
+      }));
+    },
+    enabled: rawTasks.length > 0,
+    staleTime: 0,
+  });
+
+  // Build completions lookup map
+  const completionsByKey = useMemo(() => {
+    const map = new Map<string, CompletionRecord>();
+    for (const c of completions) {
+      const key = `${c.task_id}:${c.occurrence_date}`;
+      map.set(key, c);
+    }
+    return map;
+  }, [completions]);
 
   const result = useMemo(() => {
-    return runPipelineForDate(rawTasks, targetDate, {
+    const pipelineResult = runPipelineForDate(rawTasks, targetDate, {
       viewMode,
       includeCompleted,
       includeVirtual: true,
@@ -226,7 +382,37 @@ export function useUnifiedTasksForDate(
       roleId,
       locationId,
     });
-  }, [rawTasks, targetDate, viewMode, includeCompleted, shifts, employeeId, roleId, locationId]);
+
+    // Apply per-occurrence completions
+    const tasksWithCompletions = pipelineResult.tasks.map((task) => {
+      const baseTaskId = getOriginalTaskId(task.id);
+      
+      let occurrenceDate = targetDayKey;
+      if (task.id.includes("-virtual-")) {
+        const match = task.id.match(/virtual-(\d{4}-\d{2}-\d{2})/);
+        if (match) occurrenceDate = match[1];
+      }
+      
+      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      const completion = completionsByKey.get(completionKey);
+      
+      if (completion && task.status !== "completed") {
+        return {
+          ...task,
+          status: "completed" as any,
+          completed_at: completion.completed_at,
+          completed_by_employee_id: completion.completed_by_employee_id,
+        };
+      }
+      
+      return task;
+    });
+
+    return {
+      ...pipelineResult,
+      tasks: tasksWithCompletions,
+    };
+  }, [rawTasks, targetDate, viewMode, includeCompleted, shifts, employeeId, roleId, locationId, completionsByKey, targetDayKey]);
 
   const grouped = useMemo(() => {
     return groupTasksByStatusShiftAware(result.tasks);
