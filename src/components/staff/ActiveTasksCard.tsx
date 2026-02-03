@@ -153,6 +153,18 @@ export const ActiveTasksCard = () => {
     });
 
     try {
+      // DEV: Log the exact IDs being sent
+      if (import.meta.env.DEV) {
+        console.log('[ActiveTasksCard COMPLETE]', {
+          originalTaskId: task.id,
+          completionId,
+          resolved,
+          taskOccurrenceId: (task as any).task_occurrence_id,
+          occurrenceId: (task as any).occurrence_id,
+          taskStatus: task.status
+        });
+      }
+      
       const updated = await completeTask.mutateAsync(String(completionId));
       logTap(
         `[MUTATE RESULT] resolved=${resolved} status=${(updated as any)?.status ?? "?"} completed_at=${(updated as any)?.completed_at ? "1" : "0"}`,
@@ -205,7 +217,23 @@ export const ActiveTasksCard = () => {
         next.delete(resolved);
         return next;
       });
-      logTap(`[MUTATE ERROR] ${summarizeError(e)}`);
+      
+      const errorSummary = summarizeError(e);
+      logTap(`[MUTATE ERROR] ${errorSummary}`);
+      
+      // DEV: Log full error details for debugging
+      if (import.meta.env.DEV) {
+        console.error('[ActiveTasksCard COMPLETE ERROR]', {
+          error: e,
+          originalTaskId: task.id,
+          completionId,
+          resolved,
+          errorMessage: (e as any)?.message,
+          errorCode: (e as any)?.code,
+          errorDetails: (e as any)?.details
+        });
+      }
+      
       toast.error("Couldn't complete task. Please try again.");
     }
   };
