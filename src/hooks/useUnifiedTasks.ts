@@ -200,17 +200,25 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
       if (task.id.includes("-virtual-")) {
         const match = task.id.match(/virtual-(\d{4}-\d{2}-\d{2})/);
         if (match) occurrenceDate = match[1];
+      } else if (task.id.includes("-completed-")) {
+        const match = task.id.match(/-completed-(\d{4}-\d{2}-\d{2})/);
+        if (match) occurrenceDate = match[1];
       }
       
       const completionKey = `${baseTaskId}:${occurrenceDate}`;
       const completion = completionsByKey.get(completionKey);
       
-      if (completion && task.status !== "completed") {
+      // CRITICAL FIX: For recurring tasks, the template's "completed" status may be STALE
+      // (from a previous day's completion). We MUST apply per-occurrence completion data
+      // from task_completions table ALWAYS if it exists for this occurrence_date.
+      if (completion) {
         return {
           ...task,
           status: "completed" as any,
           completed_at: completion.completed_at,
           completed_by_employee_id: completion.completed_by_employee_id,
+          // Mark that this is an occurrence-level completion for tracking
+          isOccurrenceCompleted: true,
         };
       }
       
