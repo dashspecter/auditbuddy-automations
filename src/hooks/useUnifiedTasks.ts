@@ -31,8 +31,11 @@ import {
 } from "@/lib/unifiedTaskPipeline";
 import { Shift } from "@/lib/taskCoverageEngine";
 import { toDayKey } from "@/lib/companyDayUtils";
-import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 import { startOfDay, endOfDay, addDays, format } from "date-fns";
+import {
+  makeCompletionKey,
+  buildCompletionsMap,
+} from "@/lib/tasks/completionIdentity";
 
 // Completion record type
 interface CompletionRecord {
@@ -168,14 +171,9 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
     refetchInterval: 10000, // Poll every 10s for web admin
   });
 
-  // Build completions lookup map
+  // Build completions lookup map using shared helper
   const completionsByKey = useMemo(() => {
-    const map = new Map<string, CompletionRecord>();
-    for (const c of completions) {
-      const key = `${c.task_id}:${c.occurrence_date}`;
-      map.set(key, c);
-    }
-    return map;
+    return buildCompletionsMap(completions);
   }, [completions]);
 
   // DEV: Log shift coverage debug info
@@ -192,20 +190,8 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
   // Helper to apply per-occurrence completion to tasks
   const applyCompletions = (tasks: TaskWithCoverage[], targetDayKey: string): TaskWithCoverage[] => {
     return tasks.map((task) => {
-      // Extract base task ID
-      const baseTaskId = getOriginalTaskId(task.id);
-      
-      // Get occurrence date from virtual ID or use target day
-      let occurrenceDate = targetDayKey;
-      if (task.id.includes("-virtual-")) {
-        const match = task.id.match(/virtual-(\d{4}-\d{2}-\d{2})/);
-        if (match) occurrenceDate = match[1];
-      } else if (task.id.includes("-completed-")) {
-        const match = task.id.match(/-completed-(\d{4}-\d{2}-\d{2})/);
-        if (match) occurrenceDate = match[1];
-      }
-      
-      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      // Use shared helper for consistent ID resolution
+      const { key: completionKey } = makeCompletionKey(task.id, targetDayKey);
       const completion = completionsByKey.get(completionKey);
       
       // CRITICAL FIX: For recurring tasks, the template's "completed" status may be STALE
@@ -370,14 +356,9 @@ export function useUnifiedTasksForDate(
     staleTime: 0,
   });
 
-  // Build completions lookup map
+  // Build completions lookup map using shared helper
   const completionsByKey = useMemo(() => {
-    const map = new Map<string, CompletionRecord>();
-    for (const c of completions) {
-      const key = `${c.task_id}:${c.occurrence_date}`;
-      map.set(key, c);
-    }
-    return map;
+    return buildCompletionsMap(completions);
   }, [completions]);
 
   const result = useMemo(() => {
@@ -391,20 +372,13 @@ export function useUnifiedTasksForDate(
       locationId,
     });
 
-    // Apply per-occurrence completions
+    // Apply per-occurrence completions using shared helper
     const tasksWithCompletions = pipelineResult.tasks.map((task) => {
-      const baseTaskId = getOriginalTaskId(task.id);
-      
-      let occurrenceDate = targetDayKey;
-      if (task.id.includes("-virtual-")) {
-        const match = task.id.match(/virtual-(\d{4}-\d{2}-\d{2})/);
-        if (match) occurrenceDate = match[1];
-      }
-      
-      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      const { key: completionKey } = makeCompletionKey(task.id, targetDayKey);
       const completion = completionsByKey.get(completionKey);
       
-      if (completion && task.status !== "completed") {
+      // Always apply completion if exists (template status may be stale)
+      if (completion) {
         return {
           ...task,
           status: "completed" as any,
