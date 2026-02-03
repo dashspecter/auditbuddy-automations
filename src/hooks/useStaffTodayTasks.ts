@@ -385,13 +385,8 @@ export function useStaffTodayTasks(
   const result = useMemo(() => {
     const now = new Date();
     
-    // Build completions lookup using COMPOSITE KEY: "task_id:occurrence_date"
-    // This ensures per-occurrence tracking - completing Monday doesn't affect Tuesday
-    const completionsByKey = new Map<string, CompletionRecord>();
-    for (const c of completions) {
-      const key = `${c.task_id}:${c.occurrence_date}`;
-      completionsByKey.set(key, c);
-    }
+    // Build completions lookup using shared helper (consistent with kiosk + web)
+    const completionsByKey = buildCompletionsMap(completions);
     
     // Run pipeline for today
     const pipelineResult = runPipelineForDate(rawTasks, targetDate, {
@@ -406,19 +401,8 @@ export function useStaffTodayTasks(
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
       
-      // Extract base task ID and occurrence date from virtual ID
-      // Virtual ID format: "uuid-virtual-2024-01-21"
-      let baseTaskId = task.id;
-      let occurrenceDate = targetDayKey;
-      
-      if (task.id.includes("-virtual-")) {
-        const parts = task.id.split("-virtual-");
-        baseTaskId = parts[0];
-        occurrenceDate = parts[1] || targetDayKey;
-      }
-      
-      // Lookup completion using composite key
-      const completionKey = `${baseTaskId}:${occurrenceDate}`;
+      // Use shared helper for consistent ID resolution across all surfaces
+      const { key: completionKey } = makeCompletionKey(task.id, targetDayKey);
       const completion = completionsByKey.get(completionKey);
       const isOccurrenceCompleted = !!completion;
       
@@ -431,6 +415,9 @@ export function useStaffTodayTasks(
           // Override status to completed for display
           status: "completed" as any,
           completed_at: completion!.completed_at,
+          // Attach completer for attribution
+          completed_by_employee_id: completion!.completed_by_employee_id,
+          completion_mode: completion!.completion_mode,
         };
       }
       
@@ -898,12 +885,8 @@ export function useKioskTodayTasks(options: {
   const result = useMemo(() => {
     const now = new Date();
     
-    // Build completions map with composite key
-    const completionsByKey = new Map<string, CompletionRecord>();
-    for (const c of completions) {
-      const key = `${c.task_id}:${c.occurrence_date}`;
-      completionsByKey.set(key, c);
-    }
+    // Build completions map using shared helper (consistent with mobile + web)
+    const completionsByKey = buildCompletionsMap(completions);
     
     const pipelineResult = runPipelineForDate(rawTasks, targetDate, {
       viewMode: "execution",
