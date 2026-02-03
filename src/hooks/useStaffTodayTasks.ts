@@ -14,7 +14,7 @@
  * 7. Apply time-lock rules for task completion
  */
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -693,12 +693,19 @@ export function useKioskTodayTasks(options: {
   const dayStartISO = dayStart.toISOString();
   const dayEndISO = dayEnd.toISOString();
 
+  // ======================================================================
+  // STABLE TASK IDS for robust query keys (fixes stale data issues)
+  // ======================================================================
+  const taskIds = useMemo(() => (rawTasks ?? []).map((t: any) => t.id).filter(Boolean), [rawTasks]);
+  const taskIdsKey = useMemo(() => [...taskIds].sort().join(","), [taskIds]);
+  const taskIdSet = useMemo(() => new Set(taskIds), [taskIds]);
+
   // Fetch per-occurrence completions for kiosk view (from task_completions table)
   // POLLING: refetch every 5s to catch completions from mobile/web
-  const { data: completions = [] } = useQuery({
-    queryKey: ["task-completions-kiosk", companyId, locationId, targetDayKey, rawTasks.length],
+  // CRITICAL: Query key uses stable taskIdsKey instead of rawTasks.length
+  const { data: completions = [], isLoading: completionsLoading } = useQuery({
+    queryKey: ["kiosk-task-completions", companyId, locationId, targetDayKey, taskIdsKey],
     queryFn: async (): Promise<CompletionRecord[]> => {
-      const taskIds = rawTasks.map(t => t.id);
       if (taskIds.length === 0) return [];
       
       const { data, error } = await supabase
@@ -722,7 +729,7 @@ export function useKioskTodayTasks(options: {
         completion_mode: c.completion_mode,
       }));
     },
-    enabled: enabled && rawTasks.length > 0,
+    enabled: enabled && taskIds.length > 0,
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
     staleTime: 0,
@@ -768,18 +775,29 @@ export function useKioskTodayTasks(options: {
   // ======================================================================
   // REALTIME: Subscribe to task_completions + tasks changes to invalidate
   // kiosk queries immediately when staff completes tasks on mobile/web.
+  // Uses taskIdSet to filter to only relevant task completions.
   // ======================================================================
   const queryClient = useQueryClient();
+  const lastInvalidateRef = useRef<number>(0);
   
   useEffect(() => {
     if (!enabled || !companyId || !locationId || !targetDayKey) return;
+    if (taskIds.length === 0) return;
 
     // Invalidate helper for all kiosk-related queries
     const invalidateKiosk = () => {
+      // Throttle invalidations to avoid spam when multiple rows change quickly
+      const now = Date.now();
+      if (now - lastInvalidateRef.current < 500) return;
+      lastInvalidateRef.current = now;
+
       if (import.meta.env.DEV) {
         console.log("[KIOSK REALTIME] Invalidating queries for:", { companyId, locationId, targetDayKey });
       }
-      queryClient.invalidateQueries({ queryKey: ["task-completions-kiosk", companyId, locationId, targetDayKey] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["kiosk-task-completions", companyId, locationId, targetDayKey],
+        exact: false,
+      });
       queryClient.invalidateQueries({ queryKey: ["kiosk-legacy-completed", companyId, locationId, targetDayKey] });
       queryClient.invalidateQueries({ queryKey: ["kiosk-raw-tasks", companyId, locationId] });
     };
@@ -799,8 +817,11 @@ export function useKioskTodayTasks(options: {
           const row: any = payload.new ?? payload.old;
           if (!row) return;
 
-          // Filter to only this occurrence date (if available in payload)
+          // Filter to only this occurrence date
           if (row.occurrence_date && row.occurrence_date !== targetDayKey) return;
+          
+          // CRITICAL: Only react to tasks in this kiosk's task set
+          if (row.task_id && !taskIdSet.has(row.task_id)) return;
 
           if (import.meta.env.DEV) {
             console.log("[KIOSK REALTIME] task_completions change:", row);
@@ -837,7 +858,7 @@ export function useKioskTodayTasks(options: {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, companyId, locationId, targetDayKey, queryClient]);
+  }, [enabled, companyId, locationId, targetDayKey, taskIds.length, taskIdSet, queryClient]);
 
   // Fetch shifts for coverage
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
@@ -1082,7 +1103,8 @@ export function useKioskTodayTasks(options: {
 
   return {
     ...result,
-    isLoading: tasksLoading || shiftsLoading,
+    isLoading: tasksLoading || shiftsLoading || completionsLoading,
+    completionsLoading,
     rawTasks,
     shifts,
   };
