@@ -144,102 +144,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     refetchInterval: 60000,
   });
 
-  // Fetch ALL tasks for this location (we'll filter by occurrence engine)
-  const { data: rawTasks = [] } = useQuery({
-    queryKey: ["kiosk-raw-tasks", locationId],
-    queryFn: async () => {
-      // Get task IDs from task_locations table
-      const { data: taskLocations, error: tlError } = await supabase
-        .from("task_locations")
-        .select("task_id")
-        .eq("location_id", locationId);
-
-      if (tlError) throw tlError;
-      
-      const taskIdsFromLocations = (taskLocations || []).map((tl) => tl.task_id);
-
-      // Also get tasks that have location_id directly set
-      const { data: directTasks, error: directError } = await (supabase
-        .from("tasks") as any)
-        .select("id")
-        .eq("location_id", locationId);
-      
-      if (directError) throw directError;
-      
-      const taskIdsFromDirect = (directTasks || []).map((t: any) => t.id);
-      
-      // Combine both sources and deduplicate
-      const allTaskIds = [...new Set([...taskIdsFromLocations, ...taskIdsFromDirect])];
-      
-      if (!allTaskIds.length) return [];
-
-      // Get ALL tasks for this location with assigned_role (no date filtering - occurrence engine will handle it)
-      const { data, error } = await (supabase
-        .from("tasks") as any)
-        .select("id, title, status, assigned_to, assigned_role_id, priority, start_at, due_at, recurrence_type, recurrence_interval, recurrence_end_date, duration_minutes, completed_at, completed_by, completed_late")
-        .in("id", allTaskIds);
-
-      if (error) throw error;
-      if (!data?.length) return [];
-
-      // Get role assignments from task_roles table (for multi-role support)
-      const { data: taskRoles, error: trError } = await supabase
-        .from("task_roles")
-        .select("task_id, role_id")
-        .in("task_id", data.map((t: any) => t.id));
-
-      if (trError) throw trError;
-
-      // Collect all role IDs from both sources (task_roles table AND direct assigned_role_id)
-      const directRoleIds = data.map((t: any) => t.assigned_role_id).filter(Boolean);
-      const taskRoleIds = (taskRoles || []).map((tr: any) => tr.role_id);
-      const allRoleIds = [...new Set([...directRoleIds, ...taskRoleIds])];
-      
-      let roleMap: Record<string, string> = {};
-      
-      if (allRoleIds.length > 0) {
-        const { data: roles, error: rolesError } = await supabase
-          .from("employee_roles")
-          .select("id, name")
-          .in("id", allRoleIds);
-        
-        if (!rolesError && roles) {
-          roleMap = Object.fromEntries(roles.map((r: any) => [r.id, r.name]));
-        }
-      }
-
-      // Attach role info to tasks - PRIMARY ROLE from assigned_role_id, additional from task_roles
-      // The PRIMARY role (assigned_role_id) should always come first for display purposes
-      return data.map((task: any) => {
-        const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
-        
-        // Build role list with PRIMARY role first (assigned_role_id)
-        const roleIds: string[] = [];
-        const roleNames: string[] = [];
-        
-        // 1. Add PRIMARY role first (direct assigned_role_id on task)
-        if (task.assigned_role_id && roleMap[task.assigned_role_id]) {
-          roleIds.push(task.assigned_role_id);
-          roleNames.push(roleMap[task.assigned_role_id]);
-        }
-        
-        // 2. Add additional roles from task_roles table (excluding duplicates)
-        taskRoleEntries.forEach((tr: any) => {
-          if (!roleIds.includes(tr.role_id) && roleMap[tr.role_id]) {
-            roleIds.push(tr.role_id);
-            roleNames.push(roleMap[tr.role_id]);
-          }
-        });
-        
-        return {
-          ...task,
-          role_ids: roleIds,
-          role_names: roleNames
-        };
-      }) as (BaseTask & { role_ids?: string[]; role_names?: string[] })[];
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  // NOTE: rawTasks is now fetched by useKioskTodayTasks hook (below)
+  // This removes the duplicate query and ensures data consistency
 
   // Countdown timer state
   const [now, setNow] = useState(new Date());
@@ -301,11 +207,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // ===================================================================
   // USE UNIFIED KIOSK TASKS HOOK (replaces manual occurrence expansion)
   // This ensures Kiosk uses the same pipeline as Mobile for consistency
+  // rawTasks now comes from this hook (single source of truth)
   // ===================================================================
   const { 
     todayTasks: unifiedTasks,
     grouped: unifiedGrouped,
     debug: kioskPipelineDebug,
+    rawTasks,
   } = useKioskTodayTasks({
     locationId,
     companyId,
@@ -329,7 +237,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       .map(task => {
         // Re-attach role info from rawTasks for display
         const originalId = getOriginalTaskId(task.id);
-        const originalTask = rawTasks.find(t => t.id === originalId);
+        const originalTask = (rawTasks as any[]).find(t => t.id === originalId);
         return {
           id: task.id,
           title: task.title,
@@ -506,13 +414,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // Weekly stars - keep using legacy for now (not affected by per-occurrence bug)
   // Convert tasks to KioskTask format for weekly attribution
   const kioskTasks: KioskTask[] = useMemo(() => {
-    return rawTasks.map(task => ({
+    return (rawTasks as any[]).map(task => ({
       id: task.id,
       title: task.title,
       status: task.status,
       assigned_to: task.assigned_to,
-      role_ids: task.role_ids,
-      role_names: task.role_names,
+      role_ids: task.role_ids || [],
+      role_names: task.role_names || [],
       due_at: task.due_at,
       start_at: task.start_at,
       completed_at: task.completed_at,

@@ -597,6 +597,7 @@ export function useKioskTodayTasks(options: {
   });
 
   // Fetch all tasks for this location (templates only, we'll expand)
+  // Now includes role_ids and role_names enrichment for kiosk display consistency
   const { data: rawTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["kiosk-raw-tasks", companyId, locationId],
     queryFn: async () => {
@@ -629,7 +630,59 @@ export function useKioskTodayTasks(options: {
         .in("id", allTaskIds);
       
       if (error) throw error;
-      return data as Task[];
+      if (!data?.length) return [];
+
+      // Get role assignments from task_roles table (for multi-role support)
+      const { data: taskRoles } = await supabase
+        .from("task_roles")
+        .select("task_id, role_id")
+        .in("task_id", data.map((t: any) => t.id));
+
+      // Collect all role IDs from both sources
+      const directRoleIds = data.map((t: any) => t.assigned_role_id).filter(Boolean);
+      const taskRoleIds = (taskRoles || []).map((tr: any) => tr.role_id);
+      const allRoleIds = [...new Set([...directRoleIds, ...taskRoleIds])];
+      
+      let roleMap: Record<string, string> = {};
+      
+      if (allRoleIds.length > 0) {
+        const { data: roles } = await supabase
+          .from("employee_roles")
+          .select("id, name")
+          .in("id", allRoleIds);
+        
+        if (roles) {
+          roleMap = Object.fromEntries(roles.map((r: any) => [r.id, r.name]));
+        }
+      }
+
+      // Attach role_ids and role_names to tasks for kiosk display
+      return data.map((task: any) => {
+        const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
+        
+        const roleIds: string[] = [];
+        const roleNames: string[] = [];
+        
+        // Primary role from assigned_role_id
+        if (task.assigned_role_id && roleMap[task.assigned_role_id]) {
+          roleIds.push(task.assigned_role_id);
+          roleNames.push(roleMap[task.assigned_role_id]);
+        }
+        
+        // Additional roles from task_roles table
+        taskRoleEntries.forEach((tr: any) => {
+          if (!roleIds.includes(tr.role_id) && roleMap[tr.role_id]) {
+            roleIds.push(tr.role_id);
+            roleNames.push(roleMap[tr.role_id]);
+          }
+        });
+        
+        return {
+          ...task,
+          role_ids: roleIds,
+          role_names: roleNames,
+        };
+      }) as Task[];
     },
     enabled,
   });
