@@ -33,17 +33,11 @@ import {
 import { toDayKey, normalizeRoleName } from "@/lib/companyDayUtils";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { getTimeLockStatus, TimeLockStatus } from "@/lib/taskTimeLock";
-
-function getOccurrenceInfoFromTaskId(taskId: string, fallbackDayKey: string): {
-  baseTaskId: string;
-  occurrenceDate: string;
-} {
-  const baseTaskId = getOriginalTaskId(taskId);
-  // Supports both: uuid-virtual-YYYY-MM-DD and uuid-completed-YYYY-MM-DD
-  const m = taskId.match(/-(?:virtual|completed)-(\d{4}-\d{2}-\d{2})/);
-  const occurrenceDate = m?.[1] || fallbackDayKey;
-  return { baseTaskId, occurrenceDate };
-}
+import {
+  getBaseTaskId,
+  makeCompletionKey,
+  buildCompletionsMap,
+} from "@/lib/tasks/completionIdentity";
 
 // =============================================================
 // TYPES
@@ -715,23 +709,48 @@ export function useKioskTodayTasks(options: {
         .eq("occurrence_date", targetDayKey);
       
       if (error) {
+        // DEV-only enhanced error diagnostics
         if (import.meta.env.DEV) {
-          console.log("[useKioskTodayTasks] Completions error:", error);
+          console.error("[KIOSK completions] select failed", {
+            code: error.code,
+            message: error.message,
+            companyId,
+            locationId,
+            targetDayKey,
+            taskIdsCount: taskIds.length,
+          });
         }
         return [];
       }
       
-      return (data || []).map((c: any) => ({
+      const completions = (data || []).map((c: any) => ({
         task_id: c.task_id,
         occurrence_date: c.occurrence_date,
         completed_by_employee_id: c.completed_by_employee_id,
         completed_at: c.completed_at,
         completion_mode: c.completion_mode,
       }));
+      
+      // DEV-only diagnostics to catch RLS/empty reads
+      if (import.meta.env.DEV) {
+        const sampleCompletionKeys = completions.slice(0, 5).map(
+          (c) => `${c.task_id.slice(0, 8)}:${c.occurrence_date}`
+        );
+        console.log("[KIOSK completions] fetch result", {
+          targetDayKey,
+          taskIdsCount: taskIds.length,
+          completionsFetchedCount: completions.length,
+          sampleCompletionKeys,
+        });
+      }
+      
+      return completions;
     },
     enabled: enabled && taskIds.length > 0,
-    refetchInterval: 5000,
+    refetchInterval: 3000, // Poll every 3s for faster updates
     refetchIntervalInBackground: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
     staleTime: 0,
   });
 
@@ -820,11 +839,17 @@ export function useKioskTodayTasks(options: {
           // Filter to only this occurrence date
           if (row.occurrence_date && row.occurrence_date !== targetDayKey) return;
           
-          // CRITICAL: Only react to tasks in this kiosk's task set
-          if (row.task_id && !taskIdSet.has(row.task_id)) return;
+          // CRITICAL: Normalize task_id with getBaseTaskId before membership check
+          // (in case payload contains virtual/occurrence ID format)
+          const normalizedTaskId = row.task_id ? getBaseTaskId(row.task_id) : null;
+          if (normalizedTaskId && !taskIdSet.has(normalizedTaskId)) return;
 
           if (import.meta.env.DEV) {
-            console.log("[KIOSK REALTIME] task_completions change:", row);
+            console.log("[KIOSK REALTIME] task_completions change:", { 
+              taskId: normalizedTaskId, 
+              occurrenceDate: row.occurrence_date,
+              event: payload.eventType,
+            });
           }
           invalidateKiosk();
         }
@@ -892,9 +917,8 @@ export function useKioskTodayTasks(options: {
     const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
       
-      const { baseTaskId, occurrenceDate } = getOccurrenceInfoFromTaskId(task.id, targetDayKey);
+      const { baseTaskId, occurrenceDate, key: completionKey } = makeCompletionKey(task.id, targetDayKey);
       
-      const completionKey = `${baseTaskId}:${occurrenceDate}`;
       const completion = completionsByKey.get(completionKey);
       const isOccurrenceCompleted = !!completion;
       
@@ -992,8 +1016,7 @@ export function useKioskTodayTasks(options: {
           : null) ??
         null;
 
-      const { baseTaskId } = getOccurrenceInfoFromTaskId(t.id, targetDayKey);
-      const compositeKey = `${baseTaskId}:${targetDayKey}`;
+      const { baseTaskId, key: compositeKey } = makeCompletionKey(t.id, targetDayKey);
       if (completedByCompositeKey.has(compositeKey)) continue; // avoid double counting
 
       legacyCompletedTodayCount++;
@@ -1020,8 +1043,7 @@ export function useKioskTodayTasks(options: {
           : null) ??
         null;
 
-      const { baseTaskId } = getOccurrenceInfoFromTaskId(t.id, targetDayKey);
-      const compositeKey = `${baseTaskId}:${targetDayKey}`;
+      const { baseTaskId, key: compositeKey } = makeCompletionKey(t.id, targetDayKey);
       if (completedByCompositeKey.has(compositeKey)) continue; // avoid double counting
 
       legacyCompletedTodayCount++;
