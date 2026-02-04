@@ -512,33 +512,35 @@ interface StickyModuleNavProps {
 }
 
 const StickyModuleNav = ({ modules, activeModule }: StickyModuleNavProps) => (
-  <nav className="hidden lg:block sticky top-20 space-y-1 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
+  <nav className="sticky top-20 w-[260px] shrink-0">
     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-3">
       Modules
     </p>
-    {modules.map((module) => {
-      const Icon = module.icon;
-      const isActive = activeModule === module.id;
-      return (
-        <a
-          key={module.id}
-          href={`#${module.id}`}
-          className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-            isActive
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-        >
-          <Icon className="h-4 w-4 shrink-0" />
-          <span className="truncate">{module.name}</span>
-          {!module.available && (
-            <Badge variant="outline" className="text-[10px] px-1 py-0 ml-auto shrink-0">
-              Optional
-            </Badge>
-          )}
-        </a>
-      );
-    })}
+    <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-2 space-y-1">
+      {modules.map((module) => {
+        const Icon = module.icon;
+        const isActive = activeModule === module.id;
+        return (
+          <a
+            key={module.id}
+            href={`#${module.id}`}
+            className={`flex items-start gap-2 px-2 py-2 text-sm rounded-lg transition-colors ${
+              isActive
+                ? "bg-primary/10 text-primary font-medium"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Icon className="h-4 w-4 shrink-0 mt-0.5" />
+            <span className="whitespace-normal break-words leading-snug flex-1">{module.name}</span>
+            {!module.available && (
+              <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 mt-0.5">
+                Optional
+              </Badge>
+            )}
+          </a>
+        );
+      })}
+    </div>
   </nav>
 );
 
@@ -791,7 +793,7 @@ const FullPresentation = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 mt-6">
               {/* Desktop Sticky Nav */}
-              <div className="hidden lg:block max-w-[260px]">
+              <div className="hidden lg:block w-[260px] shrink-0">
                 <StickyModuleNav modules={modules} activeModule={activeModule} />
               </div>
 
