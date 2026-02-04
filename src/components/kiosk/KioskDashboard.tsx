@@ -219,6 +219,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     companyId,
     targetDate: today,
     enabled: true,
+    kioskToken, // Pass kiosk token for anonymous RPC access to completions
   });
 
   // Map unified tasks to local Task interface for compatibility with existing kiosk code

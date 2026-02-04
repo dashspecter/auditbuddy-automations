@@ -561,8 +561,10 @@ export function useKioskTodayTasks(options: {
   companyId: string;
   targetDate?: Date;
   enabled?: boolean;
+  /** Kiosk token for anonymous RPC access */
+  kioskToken?: string;
 }) {
-  const { locationId, companyId, targetDate = getCanonicalToday(), enabled = true } = options;
+  const { locationId, companyId, targetDate = getCanonicalToday(), enabled = true, kioskToken } = options;
 
   // Fetch all active employees at this location (include user_id for completer mapping)
   const { data: employees = [] } = useQuery({
@@ -726,13 +728,57 @@ export function useKioskTodayTasks(options: {
   const taskIdSet = useMemo(() => new Set(taskIds), [taskIds]);
 
   // Fetch per-occurrence completions for kiosk view (from task_completions table)
-  // POLLING: refetch every 5s to catch completions from mobile/web
-  // CRITICAL: Query key uses stable taskIdsKey instead of rawTasks.length
+  // CRITICAL: Kiosk is anonymous, so we use a SECURITY DEFINER RPC to bypass RLS
+  // POLLING: refetch every 3s to catch completions from mobile/web
   const { data: completions = [], isLoading: completionsLoading } = useQuery({
-    queryKey: ["kiosk-task-completions", companyId, locationId, targetDayKey, taskIdsKey],
+    queryKey: ["kiosk-task-completions", companyId, locationId, targetDayKey, taskIdsKey, kioskToken],
     queryFn: async (): Promise<CompletionRecord[]> => {
       if (taskIds.length === 0) return [];
       
+      // Use RPC for anonymous kiosk access (bypasses RLS via SECURITY DEFINER)
+      if (kioskToken) {
+        const { data, error } = await supabase.rpc("get_kiosk_task_completions", {
+          p_token: kioskToken,
+          p_location_id: locationId,
+          p_company_id: companyId,
+          p_occurrence_date: targetDayKey,
+          p_task_ids: taskIds,
+        });
+        
+        if (error) {
+          if (import.meta.env.DEV) {
+            console.error("[KIOSK completions RPC] failed", {
+              code: error.code,
+              message: error.message,
+              companyId,
+              locationId,
+              targetDayKey,
+              taskIdsCount: taskIds.length,
+            });
+          }
+          return [];
+        }
+        
+        const completions = (data || []).map((c: any) => ({
+          task_id: c.task_id,
+          occurrence_date: c.occurrence_date,
+          completed_by_employee_id: c.completed_by_employee_id,
+          completed_at: c.completed_at,
+          completion_mode: c.completion_mode,
+        }));
+        
+        if (import.meta.env.DEV) {
+          console.log("[KIOSK completions RPC] fetch result", {
+            targetDayKey,
+            taskIdsCount: taskIds.length,
+            completionsFetchedCount: completions.length,
+          });
+        }
+        
+        return completions;
+      }
+      
+      // Fallback: direct query for authenticated users (non-kiosk contexts)
       const { data, error } = await supabase
         .from("task_completions" as any)
         .select("task_id, occurrence_date, completed_by_employee_id, completed_at, completion_mode")
@@ -740,42 +786,22 @@ export function useKioskTodayTasks(options: {
         .eq("occurrence_date", targetDayKey);
       
       if (error) {
-        // DEV-only enhanced error diagnostics
         if (import.meta.env.DEV) {
-          console.error("[KIOSK completions] select failed", {
+          console.error("[KIOSK completions direct] failed", {
             code: error.code,
             message: error.message,
-            companyId,
-            locationId,
-            targetDayKey,
-            taskIdsCount: taskIds.length,
           });
         }
         return [];
       }
       
-      const completions = (data || []).map((c: any) => ({
+      return (data || []).map((c: any) => ({
         task_id: c.task_id,
         occurrence_date: c.occurrence_date,
         completed_by_employee_id: c.completed_by_employee_id,
         completed_at: c.completed_at,
         completion_mode: c.completion_mode,
       }));
-      
-      // DEV-only diagnostics to catch RLS/empty reads
-      if (import.meta.env.DEV) {
-        const sampleCompletionKeys = completions.slice(0, 5).map(
-          (c) => `${c.task_id.slice(0, 8)}:${c.occurrence_date}`
-        );
-        console.log("[KIOSK completions] fetch result", {
-          targetDayKey,
-          taskIdsCount: taskIds.length,
-          completionsFetchedCount: completions.length,
-          sampleCompletionKeys,
-        });
-      }
-      
-      return completions;
     },
     enabled: enabled && taskIds.length > 0,
     refetchInterval: 3000, // Poll every 3s for faster updates
@@ -919,7 +945,7 @@ export function useKioskTodayTasks(options: {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, companyId, locationId, targetDayKey, taskIds.length, taskIdSet, queryClient]);
+  }, [enabled, companyId, locationId, targetDayKey, taskIds.length, taskIdSet, queryClient, kioskToken]);
 
   // Fetch shifts for coverage
   const { data: shifts = [], isLoading: shiftsLoading } = useShiftCoverage({
