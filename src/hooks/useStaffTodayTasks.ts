@@ -676,8 +676,12 @@ export function useKioskTodayTasks(options: {
 
   // ======================================================================
   // STABLE TASK IDS for robust query keys (fixes stale data issues)
+  // Uses getBaseTaskId to normalize any virtual/occurrence IDs
   // ======================================================================
-  const taskIds = useMemo(() => (rawTasks ?? []).map((t: any) => t.id).filter(Boolean), [rawTasks]);
+  const taskIds = useMemo(() => 
+    (rawTasks ?? []).map((t: any) => getBaseTaskId(t.id)).filter(Boolean), 
+    [rawTasks]
+  );
   const taskIdsKey = useMemo(() => [...taskIds].sort().join(","), [taskIds]);
   const taskIdSet = useMemo(() => new Set(taskIds), [taskIds]);
 
@@ -793,19 +797,24 @@ export function useKioskTodayTasks(options: {
     // Invalidate helper for all kiosk-related queries
     const invalidateKiosk = () => {
       // Throttle invalidations to avoid spam when multiple rows change quickly
-      const now = Date.now();
-      if (now - lastInvalidateRef.current < 500) return;
-      lastInvalidateRef.current = now;
+      const nowMs = Date.now();
+      if (nowMs - lastInvalidateRef.current < 750) return;
+      lastInvalidateRef.current = nowMs;
 
       if (import.meta.env.DEV) {
         console.log("[KIOSK REALTIME] Invalidating queries for:", { companyId, locationId, targetDayKey });
       }
+      // CRITICAL: Use exact: false to match all kiosk-task-completions variants
       queryClient.invalidateQueries({ 
         queryKey: ["kiosk-task-completions", companyId, locationId, targetDayKey],
         exact: false,
       });
       queryClient.invalidateQueries({ queryKey: ["kiosk-legacy-completed", companyId, locationId, targetDayKey] });
-      queryClient.invalidateQueries({ queryKey: ["kiosk-raw-tasks", companyId, locationId] });
+      // Also invalidate the main kiosk tasks to force re-render
+      queryClient.invalidateQueries({ 
+        queryKey: ["kiosk-raw-tasks", companyId, locationId],
+        exact: false,
+      });
     };
 
     // Subscribe to per-occurrence completions (main source of truth)
