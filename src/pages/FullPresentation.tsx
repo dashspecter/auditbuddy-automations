@@ -195,13 +195,13 @@ const FullPresentation = () => {
               
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <Link to="/auth">
+                <a href="#get-started-today">
                   <Button size="lg" className="min-h-[48px] w-full sm:w-auto gap-2">
                     Book a demo
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                </Link>
-                <a href="mailto:sales@dashspect.com?subject=Pricing%20Request">
+                </a>
+                <a href="#get-started-today">
                   <Button size="lg" variant="outline" className="min-h-[48px] w-full sm:w-auto">
                     Request pricing
                   </Button>
@@ -501,13 +501,13 @@ const FullPresentation = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
+              <a href="#get-started-today">
                 <Button size="lg" variant="secondary" className="min-h-[48px] w-full sm:w-auto gap-2">
                   Book a demo
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-              </Link>
-              <a href="mailto:sales@dashspect.com?subject=Pricing%20Request">
+              </a>
+              <a href="#get-started-today">
                 <Button
                   size="lg"
                   variant="outline"
@@ -516,6 +516,56 @@ const FullPresentation = () => {
                   Request pricing
                 </Button>
               </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            GET STARTED TODAY - CONTACT SECTION
+        ================================================================ */}
+        <section id="get-started-today" className="py-8 md:py-16 lg:py-24 bg-muted/30 scroll-mt-24">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="text-center mb-6 md:mb-12">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4">
+                  Get Started Today
+                </h2>
+                <p className="text-sm md:text-base md:text-lg text-muted-foreground">
+                  Ready to transform your operations and compliance process?
+                </p>
+              </div>
+
+              <Card className="bg-card border-border">
+                <CardContent className="py-6 md:py-12">
+                  <div className="grid md:grid-cols-2 gap-4 md:gap-8">
+                    <div className="flex flex-col items-center text-center p-4 md:p-6 rounded-lg bg-muted/50">
+                      <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
+                        <Mail className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
+                      </div>
+                      <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Email Us</h3>
+                      <a 
+                        href="mailto:alex@grecea.work" 
+                        className="text-primary hover:underline text-sm md:text-lg"
+                      >
+                        alex@grecea.work
+                      </a>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center p-4 md:p-6 rounded-lg bg-muted/50">
+                      <div className="bg-primary rounded-full p-3 md:p-4 mb-2 md:mb-4">
+                        <Phone className="h-6 w-6 md:h-8 md:w-8 text-primary-foreground" />
+                      </div>
+                      <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">Call Us</h3>
+                      <a 
+                        href="tel:+40741427777" 
+                        className="text-primary hover:underline text-sm md:text-lg"
+                      >
+                        0741 427 777
+                      </a>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
