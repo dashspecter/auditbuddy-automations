@@ -951,6 +951,18 @@
       "timeExpired": "Timp expirat!",
       "timeLeft": "rămas",
       "noTasks": "Nicio sarcină atribuită"
+    },
+    "timeLock": {
+      "available": "Disponibil",
+      "availableAt": "Disponibil la",
+      "lockedUntil": "Disponibil la {{time}}",
+      "lockedToast": "Această sarcină se deblochează la {{time}}",
+      "earlyRequiresReason": "Necesită motiv pentru completare timpurie",
+      "earlyAllowed": "Completare timpurie permisă",
+      "late": "Completare cu întârziere"
+    },
+    "shiftStart": {
+      "beforeShiftToast": "Tura ta începe la {{time}}. Sarcinile pot fi finalizate doar în timpul turei."
     }
   },
   "staffShifts": {

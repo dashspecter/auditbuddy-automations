@@ -700,8 +700,12 @@ export const useCompleteTask = () => {
         // Handle specific errors
         const error = new Error(result.message || result.error) as any;
         error.code = result.error;
+        // Time-lock errors
         error.unlockAt = result.unlock_at;
         error.unlockAtFormatted = result.unlock_at_formatted;
+        // Shift-start errors
+        error.shiftStartAt = result.shift_start_at;
+        error.shiftStartAtFormatted = result.shift_start_at_formatted;
         throw error;
       }
       
