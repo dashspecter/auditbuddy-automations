@@ -8983,6 +8983,22 @@ export type Database = {
           staff_id: string
         }[]
       }
+      get_kiosk_task_completions: {
+        Args: {
+          p_company_id: string
+          p_location_id: string
+          p_occurrence_date: string
+          p_task_ids: string[]
+          p_token: string
+        }
+        Returns: {
+          completed_at: string
+          completed_by_employee_id: string
+          completion_mode: string
+          occurrence_date: string
+          task_id: string
+        }[]
+      }
       get_mystery_shopper_template_by_token: {
         Args: { p_token: string }
         Returns: {
