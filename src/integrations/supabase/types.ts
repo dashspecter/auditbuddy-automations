@@ -8999,6 +8999,54 @@ export type Database = {
           task_id: string
         }[]
       }
+      get_kiosk_tasks: {
+        Args: { p_company_id: string; p_location_id: string; p_token: string }
+        Returns: {
+          allow_early_completion: boolean
+          assigned_role: Json
+          assigned_role_id: string
+          assigned_to: string
+          company_id: string
+          completed_at: string
+          completed_by: string
+          completed_late: boolean
+          completion_mode: string
+          completion_photo_url: string
+          completion_reason: string
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string
+          duration_minutes: number
+          early_requires_photo: boolean
+          early_requires_reason: boolean
+          execution_mode: string
+          id: string
+          is_individual: boolean
+          is_recurring_instance: boolean
+          location: Json
+          location_id: string
+          lock_mode: string
+          overridden_by: string
+          overridden_reason: string
+          parent_task_id: string
+          priority: string
+          recurrence_days_of_month: number[]
+          recurrence_days_of_week: number[]
+          recurrence_end_date: string
+          recurrence_interval: number
+          recurrence_type: string
+          role_ids: string[]
+          role_names: string[]
+          source: string
+          source_reference_id: string
+          start_at: string
+          status: string
+          title: string
+          unlock_before_minutes: number
+          updated_at: string
+        }[]
+      }
       get_mystery_shopper_template_by_token: {
         Args: { p_token: string }
         Returns: {
