@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AppVisibilityManager } from "@/components/AppVisibilityManager";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
+import FullPresentation from "./pages/FullPresentation";
 import Dashboard from "./pages/Dashboard";
 import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
@@ -203,6 +204,8 @@ const App = () => (
                     <PWAInstallPrompt />
                     <Routes>
                       <Route path="/" element={<Index />} />
+                      <Route path="/full-presentation" element={<FullPresentation />} />
+                      <Route path="/full" element={<FullPresentation />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/staff-login" element={<StaffLogin />} />
                       <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />

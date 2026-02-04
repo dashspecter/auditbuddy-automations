@@ -28,7 +28,7 @@ import { useState } from "react";
 export const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const isPublicPage = location.pathname === '/' || location.pathname === '/auth' || location.pathname.startsWith('/equipment/');
+  const isPublicPage = location.pathname === '/' || location.pathname === '/auth' || location.pathname === '/full-presentation' || location.pathname === '/full' || location.pathname.startsWith('/equipment/');
   
   // Only fetch user role for authenticated pages
   const { data: roleData, isLoading } = useUserRole();
@@ -99,14 +99,18 @@ export const Header = () => {
             <span className="text-base md:text-xl font-bold">Dashspect</span>
           </Link>
 
+          <nav className="hidden md:flex items-center gap-4">
+            <Link to="/full-presentation" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Full Presentation
+            </Link>
+          </nav>
+
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              className="min-h-[44px]"
-              onClick={handleResetAppCache}
-            >
-              Reset cache
-            </Button>
+            <Link to="/full-presentation" className="md:hidden">
+              <Button variant="ghost" size="sm" className="min-h-[44px] text-xs">
+                Overview
+              </Button>
+            </Link>
 
             {user ? (
               <>
