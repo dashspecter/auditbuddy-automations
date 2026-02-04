@@ -584,8 +584,36 @@ export function useKioskTodayTasks(options: {
   // Fetch all tasks for this location (templates only, we'll expand)
   // Now includes role_ids and role_names enrichment for kiosk display consistency
   const { data: rawTasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ["kiosk-raw-tasks", companyId, locationId],
+    queryKey: ["kiosk-raw-tasks", companyId, locationId, kioskToken || ""],
     queryFn: async () => {
+      // Anonymous kiosk must not rely on direct table SELECT (RLS may hide completed templates).
+      // Use the SECURITY DEFINER RPC when kioskToken is present.
+      if (kioskToken) {
+        const { data, error } = await supabase.rpc("get_kiosk_tasks", {
+          p_token: kioskToken,
+          p_location_id: locationId,
+          p_company_id: companyId,
+        });
+
+        if (error) {
+          if (import.meta.env.DEV) {
+            console.error("[useKioskTodayTasks] get_kiosk_tasks RPC failed", {
+              code: error.code,
+              message: error.message,
+              companyId,
+              locationId,
+            });
+          }
+          return [];
+        }
+
+        return (data || []).map((t: any) => ({
+          ...t,
+          role_ids: t.role_ids || [],
+          role_names: t.role_names || [],
+        })) as Task[];
+      }
+
       // A) Tasks via task_locations junction
       const { data: taskLocations } = await supabase
         .from("task_locations")
@@ -598,6 +626,7 @@ export function useKioskTodayTasks(options: {
       const { data: directTasks } = await supabase
         .from("tasks")
         .select("id")
+        .eq("company_id", companyId)
         .eq("location_id", locationId);
       
       const taskIdsFromDirect = (directTasks || []).map((t: any) => t.id);
@@ -968,7 +997,6 @@ export function useKioskTodayTasks(options: {
       includeCompleted: true,
       includeVirtual: true,
       shifts,
-      locationId,
     });
 
     // Apply time-lock and completion status

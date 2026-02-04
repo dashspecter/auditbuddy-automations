@@ -229,48 +229,29 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     if (todaysTeam.length === 0) {
       return [];
     }
-    
-    // Get roles that are scheduled today
-    const scheduledRoles = new Set(todaysTeam.map(e => e.role?.toLowerCase()).filter(Boolean));
-    const scheduledEmployeeIds = new Set(todaysTeam.map(e => e.id));
-    
-    return unifiedTasks
-      .map(task => {
-        // Re-attach role info from rawTasks for display
-        const originalId = getOriginalTaskId(task.id);
-        const originalTask = (rawTasks as any[]).find(t => t.id === originalId);
-        return {
-          id: task.id,
-          title: task.title,
-          status: task.status,
-          assigned_to: task.assigned_to,
-          priority: task.priority,
-          start_at: task.start_at,
-          due_at: task.due_at,
-          role_ids: originalTask?.role_ids || [],
-          role_names: originalTask?.role_names || [],
-          // Flag location-only tasks for the General group
-          isLocationOnly: !task.assigned_role_id && !task.assigned_to,
-          timeLock: task.timeLock,
-        } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock']; isLocationOnly?: boolean };
-      })
-      .filter(task => {
-        // Check if task has coverage:
-        // 1. Direct assignment to a scheduled employee
-        if (task.assigned_to && scheduledEmployeeIds.has(task.assigned_to)) {
-          return true;
-        }
-        // 2. Role assignment matches a scheduled role
-        const taskRoles = (task.role_names || []).map(r => r.toLowerCase());
-        if (taskRoles.some(r => scheduledRoles.has(r))) {
-          return true;
-        }
-        // 3. Location-only tasks - visible to ALL scheduled employees at this location
-        if ((task as any).isLocationOnly) {
-          return true;
-        }
-        return false;
-      });
+
+    // IMPORTANT: Do not apply additional kiosk-only filtering here.
+    // The unified pipeline (useKioskTodayTasks) is the single source of truth
+    // for which tasks are visible today. Extra filters here can cause kiosk ↔ mobile drift.
+    return unifiedTasks.map(task => {
+      // Re-attach role info from rawTasks for display
+      const originalId = getOriginalTaskId(task.id);
+      const originalTask = (rawTasks as any[]).find(t => t.id === originalId);
+      return {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        assigned_to: task.assigned_to,
+        priority: task.priority,
+        start_at: task.start_at,
+        due_at: task.due_at,
+        role_ids: originalTask?.role_ids || [],
+        role_names: originalTask?.role_names || [],
+        // Flag shared/location-only tasks for the General group
+        isLocationOnly: !task.assigned_role_id && !task.assigned_to,
+        timeLock: task.timeLock,
+      } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock']; isLocationOnly?: boolean };
+    });
   }, [unifiedTasks, todaysTeam, rawTasks]);
 
   // =====================================================
