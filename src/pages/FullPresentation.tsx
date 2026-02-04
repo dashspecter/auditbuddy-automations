@@ -10,35 +10,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Header } from "@/components/Header";
 import { BackToTop } from "@/components/BackToTop";
 import {
-  LayoutDashboard,
-  ListTodo,
   ClipboardCheck,
   AlertTriangle,
   GraduationCap,
   Users,
-  UserSearch,
-  Trash2,
-  Package,
-  Wrench,
-  Settings2,
-  FileBarChart,
-  Bot,
   Building2,
   Shield,
   Lock,
   Globe,
   Webhook,
-  CheckCircle2,
   ArrowRight,
   Zap,
   Target,
@@ -53,360 +36,11 @@ import {
   Factory,
   Truck,
   Stethoscope,
-  LucideIcon,
+  FileBarChart,
 } from "lucide-react";
-
-// ============================================================================
-// MODULE DATA - Single source of truth. Add new modules here.
-// ============================================================================
-
-interface Module {
-  id: string;
-  name: string;
-  icon: LucideIcon;
-  summary: string;
-  features: string[];
-  outputs: string[];
-  bestFor: string[];
-  available: boolean; // false = "Available on request"
-}
-
-const modules: Module[] = [
-  {
-    id: "dashboard",
-    name: "Operations Dashboard",
-    icon: LayoutDashboard,
-    summary: "Your command center for real-time visibility across all locations. See what's happening now, spot issues early, and act fast.",
-    features: [
-      "View live task completion rates across locations",
-      "Monitor overdue items and pending approvals",
-      "Track audit scores and compliance trends",
-      "Access key performance indicators at a glance",
-      "Drill down from summary to detail instantly",
-      "Filter by location, date range, or team",
-    ],
-    outputs: [
-      "Daily operations snapshot",
-      "Location performance comparison",
-      "Overdue items report",
-      "Weekly trend summary",
-    ],
-    bestFor: ["Owner/COO", "Ops Manager", "Area Manager"],
-    available: true,
-  },
-  {
-    id: "tasks",
-    name: "Tasks & Daily Execution",
-    icon: ListTodo,
-    summary: "Assign, track, and verify daily tasks. Ensure every shift executes the same standards consistently.",
-    features: [
-      "Create recurring daily, weekly, or custom tasks",
-      "Assign tasks to roles or specific team members",
-      "Require photo evidence for completion",
-      "Track completion rates by location and role",
-      "Set priority levels and due times",
-      "Mobile-first task completion for staff",
-    ],
-    outputs: [
-      "Daily completion report by location",
-      "Task completion trends over time",
-      "Non-compliance alerts",
-      "Role-based task performance",
-    ],
-    bestFor: ["Ops Manager", "Store Manager", "Shift Lead"],
-    available: true,
-  },
-  {
-    id: "audits",
-    name: "Audits & Checklists",
-    icon: ClipboardCheck,
-    summary: "Standardize inspections with custom templates. Capture evidence, score performance, and generate instant reports.",
-    features: [
-      "Build custom audit templates with sections and scoring",
-      "Capture photos and notes for each item",
-      "Schedule recurring audits automatically",
-      "Compare scores across locations and time",
-      "Generate PDF reports instantly",
-      "Track corrective action completion",
-    ],
-    outputs: [
-      "Audit score trends by location",
-      "Section-by-section breakdown",
-      "Photo evidence gallery",
-      "Corrective action tracker",
-      "Monthly compliance report",
-    ],
-    bestFor: ["QA Manager", "Ops Manager", "Store Manager", "Auditor"],
-    available: true,
-  },
-  {
-    id: "incidents",
-    name: "Incident Reporting & CAPA",
-    icon: AlertTriangle,
-    summary: "Capture incidents in real-time, assign corrective actions, and prevent recurrence with structured follow-up.",
-    features: [
-      "Log incidents with photos and witness info",
-      "Assign corrective and preventive actions",
-      "Set due dates and track completion",
-      "Categorize by type and severity",
-      "Analyze recurring issues by location",
-      "Escalate overdue items automatically",
-    ],
-    outputs: [
-      "Incident log by location and type",
-      "CAPA completion rates",
-      "Root cause analysis summary",
-      "Recurring issue alerts",
-    ],
-    bestFor: ["Ops Manager", "Store Manager", "QA", "HR"],
-    available: true,
-  },
-  {
-    id: "training",
-    name: "Training & Certifications",
-    icon: GraduationCap,
-    summary: "Assign training modules, track completion, and ensure certifications stay current. Keep your team qualified.",
-    features: [
-      "Create training modules with quizzes",
-      "Assign training by role or individual",
-      "Track completion and quiz scores",
-      "Set certification expiry reminders",
-      "Generate training compliance reports",
-      "Mobile-friendly training for staff",
-    ],
-    outputs: [
-      "Training completion by employee",
-      "Certification expiry alerts",
-      "Quiz score analysis",
-      "Compliance gap report",
-    ],
-    bestFor: ["HR/Training Manager", "Ops Manager", "Store Manager"],
-    available: true,
-  },
-  {
-    id: "workforce",
-    name: "Workforce & Scheduling",
-    icon: Users,
-    summary: "Schedule shifts, manage attendance, and track labor costs. Give staff self-service tools for time-off and availability.",
-    features: [
-      "Build and publish weekly schedules",
-      "Track clock-in/out with QR or kiosk",
-      "Manage time-off requests and approvals",
-      "Monitor late arrivals and absences",
-      "Calculate hours and labor costs",
-      "Staff self-service mobile app",
-    ],
-    outputs: [
-      "Weekly schedule by location",
-      "Attendance summary report",
-      "Late/absence alerts",
-      "Labor cost breakdown",
-      "Time-off balance report",
-    ],
-    bestFor: ["Ops Manager", "Store Manager", "HR", "Shift Lead"],
-    available: true,
-  },
-  {
-    id: "mystery-shopper",
-    name: "Mystery Shopper & Experience Quality",
-    icon: UserSearch,
-    summary: "Capture real guest experiences with anonymous evaluations. Identify service gaps before they become patterns.",
-    features: [
-      "Create custom mystery shopper forms",
-      "Generate unique evaluation links",
-      "Collect anonymous feedback with photos",
-      "Score locations on service quality",
-      "Compare results across locations",
-      "Issue vouchers for participation",
-    ],
-    outputs: [
-      "Mystery shop scores by location",
-      "Service quality trends",
-      "Guest experience breakdown",
-      "Voucher redemption report",
-    ],
-    bestFor: ["Owner/COO", "Ops Manager", "QA"],
-    available: true,
-  },
-  {
-    id: "waste",
-    name: "Waste & Loss Prevention",
-    icon: Trash2,
-    summary: "Track waste by category, identify patterns, and reduce losses. Hold teams accountable with clear reporting.",
-    features: [
-      "Log waste entries by product and reason",
-      "Categorize by type (spoilage, prep, customer)",
-      "Set waste targets by location",
-      "Track variance against sales",
-      "Identify top waste items",
-      "Generate cost impact reports",
-    ],
-    outputs: [
-      "Daily waste summary",
-      "Waste by category and reason",
-      "Cost impact analysis",
-      "Location comparison",
-      "Top 10 waste items",
-    ],
-    bestFor: ["Ops Manager", "Store Manager", "Kitchen Manager"],
-    available: true,
-  },
-  {
-    id: "inventory",
-    name: "Inventory Signals & Variance Tracking",
-    icon: Package,
-    summary: "Monitor stock levels, track variances, and get alerts before issues become problems.",
-    features: [
-      "Track inventory counts by location",
-      "Calculate variance against expected usage",
-      "Set low-stock alerts",
-      "Log receiving and transfers",
-      "Identify shrinkage patterns",
-      "Integrate with POS for usage data",
-    ],
-    outputs: [
-      "Inventory count report",
-      "Variance analysis",
-      "Low-stock alerts",
-      "Shrinkage summary",
-    ],
-    bestFor: ["Ops Manager", "Store Manager", "Kitchen Manager"],
-    available: false, // Available on request
-  },
-  {
-    id: "equipment",
-    name: "Equipment & Asset Register",
-    icon: Wrench,
-    summary: "Maintain a complete asset register with QR tracking. Know what you have, where it is, and its maintenance status.",
-    features: [
-      "Create asset records with photos and specs",
-      "Generate and print QR codes for tracking",
-      "Track warranty and service contracts",
-      "Log maintenance history",
-      "Categorize by type and location",
-      "Scan QR to access asset details",
-    ],
-    outputs: [
-      "Asset register by location",
-      "Warranty expiry alerts",
-      "Maintenance history log",
-      "Asset utilization report",
-    ],
-    bestFor: ["Ops Manager", "Maintenance", "Store Manager"],
-    available: true,
-  },
-  {
-    id: "maintenance",
-    name: "Maintenance & Work Orders (CMMS)",
-    icon: Settings2,
-    summary: "Schedule preventive maintenance, manage work orders, and reduce equipment downtime with a full CMMS solution.",
-    features: [
-      "Create and assign work orders",
-      "Schedule preventive maintenance cycles",
-      "Track parts inventory and usage",
-      "Manage external vendors and contractors",
-      "Log labor hours and costs",
-      "Analyze equipment reliability trends",
-    ],
-    outputs: [
-      "Open work orders by priority",
-      "PM schedule compliance",
-      "Parts usage report",
-      "Downtime analysis",
-      "Vendor performance",
-    ],
-    bestFor: ["Maintenance Manager", "Ops Manager", "Facilities"],
-    available: true,
-  },
-  {
-    id: "vendor",
-    name: "Vendor & Invoice Insights",
-    icon: FileBarChart,
-    summary: "Track vendor performance, manage invoices, and gain visibility into spend across locations.",
-    features: [
-      "Maintain vendor contact database",
-      "Log and track invoices by vendor",
-      "Analyze spend by category and location",
-      "Rate vendor performance",
-      "Set contract reminders",
-      "Compare pricing across vendors",
-    ],
-    outputs: [
-      "Spend analysis by vendor",
-      "Invoice aging report",
-      "Vendor scorecard",
-      "Contract expiry alerts",
-    ],
-    bestFor: ["Owner/COO", "Ops Manager", "Finance"],
-    available: false, // Available on request
-  },
-  {
-    id: "reporting",
-    name: "Reporting & Analytics",
-    icon: FileBarChart,
-    summary: "Generate cross-module reports and dashboards. Turn data into insights that drive decisions.",
-    features: [
-      "Build custom reports from any module",
-      "Schedule automated report delivery",
-      "Export to PDF, Excel, or email",
-      "Create location comparison views",
-      "Trend analysis with charts",
-      "Role-based report access",
-    ],
-    outputs: [
-      "Executive summary dashboard",
-      "Location performance scorecard",
-      "Custom report templates",
-      "Scheduled email reports",
-    ],
-    bestFor: ["Owner/COO", "Ops Manager", "QA Manager"],
-    available: true,
-  },
-  {
-    id: "ai-assistant",
-    name: "AI Assistant & Ops Copilot",
-    icon: Bot,
-    summary: "Ask questions in natural language and get instant answers from your operations data. Your AI-powered operations analyst.",
-    features: [
-      "Query data using natural language",
-      "Get instant insights and summaries",
-      "Identify anomalies and patterns",
-      "Generate recommendations",
-      "Summarize long audit reports",
-      "Answer 'what if' scenarios",
-    ],
-    outputs: [
-      "Natural language insights",
-      "Anomaly detection alerts",
-      "AI-generated summaries",
-      "Predictive recommendations",
-    ],
-    bestFor: ["Owner/COO", "Ops Manager"],
-    available: false, // Available on request
-  },
-  {
-    id: "governance",
-    name: "Multi-location Governance & Permissions",
-    icon: Building2,
-    summary: "Control who sees what across locations. Enforce consistent standards while allowing local flexibility.",
-    features: [
-      "Define roles with granular permissions",
-      "Restrict access by location or region",
-      "Audit user activity and changes",
-      "Enforce approval workflows",
-      "Manage company-wide settings centrally",
-      "Delegate admin rights safely",
-    ],
-    outputs: [
-      "User access report",
-      "Activity audit log",
-      "Permission matrix",
-      "Change history",
-    ],
-    bestFor: ["Owner/COO", "IT/Admin", "Ops Manager"],
-    available: true,
-  },
-];
+import { ModuleCardV2 } from "@/components/presentation/ModuleCardV2";
+import { ModulesFilterBar, type CategoryFilter } from "@/components/presentation/ModulesFilterBar";
+import { modulesV2 } from "@/components/presentation/modulesData";
 
 // ============================================================================
 // SECTION HEADER COMPONENT
@@ -428,147 +62,6 @@ const SectionHeader = ({ title, subtitle, id }: SectionHeaderProps) => (
         {subtitle}
       </p>
     )}
-  </div>
-);
-
-// ============================================================================
-// MODULE CARD COMPONENT
-// ============================================================================
-
-interface ModuleCardProps {
-  module: Module;
-}
-
-const ModuleCard = ({ module }: ModuleCardProps) => {
-  const Icon = module.icon;
-  
-  return (
-    <Card id={module.id} className="scroll-mt-24 h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 rounded-lg p-2.5 shrink-0">
-              <Icon className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-lg md:text-xl">{module.name}</CardTitle>
-          </div>
-          {!module.available && (
-            <Badge variant="secondary" className="text-xs shrink-0">
-              Available on request
-            </Badge>
-          )}
-        </div>
-        <p className="text-muted-foreground text-sm mt-2">{module.summary}</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Features */}
-        <div>
-          <h4 className="font-semibold text-sm mb-2 text-foreground">What you get:</h4>
-          <ul className="space-y-1.5">
-            {module.features.map((feature, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Outputs */}
-        <div>
-          <h4 className="font-semibold text-sm mb-2 text-foreground">Reports & outputs:</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {module.outputs.map((output, i) => (
-              <Badge key={i} variant="outline" className="text-xs font-normal">
-                {output}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Best for */}
-        <div>
-          <h4 className="font-semibold text-sm mb-2 text-foreground">Best for:</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {module.bestFor.map((role, i) => (
-              <Badge key={i} variant="secondary" className="text-xs">
-                {role}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// ============================================================================
-// STICKY NAVIGATION (DESKTOP)
-// ============================================================================
-
-interface StickyModuleNavProps {
-  modules: Module[];
-  activeModule: string;
-}
-
-const StickyModuleNav = ({ modules, activeModule }: StickyModuleNavProps) => (
-  <nav className="sticky top-20 w-[260px] shrink-0">
-    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-3">
-      Modules
-    </p>
-    <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-2 space-y-1">
-      {modules.map((module) => {
-        const Icon = module.icon;
-        const isActive = activeModule === module.id;
-        return (
-          <a
-            key={module.id}
-            href={`#${module.id}`}
-            className={`flex items-start gap-2 px-2 py-2 text-sm rounded-lg transition-colors ${
-              isActive
-                ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4 shrink-0 mt-0.5" />
-            <span className="whitespace-normal break-words leading-snug flex-1">{module.name}</span>
-            {!module.available && (
-              <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 mt-0.5">
-                Optional
-              </Badge>
-            )}
-          </a>
-        );
-      })}
-    </div>
-  </nav>
-);
-
-// ============================================================================
-// MOBILE MODULE NAVIGATION
-// ============================================================================
-
-interface MobileModuleNavProps {
-  modules: Module[];
-  activeModule: string;
-  onSelect: (id: string) => void;
-}
-
-const MobileModuleNav = ({ modules, activeModule, onSelect }: MobileModuleNavProps) => (
-  <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur-sm border-b py-3 px-4">
-    <Select value={activeModule} onValueChange={onSelect}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Jump to module..." />
-      </SelectTrigger>
-      <SelectContent>
-        {modules.map((module) => (
-          <SelectItem key={module.id} value={module.id}>
-            {module.name}
-            {!module.available && " (Optional)"}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   </div>
 );
 
@@ -609,33 +102,64 @@ const faqs = [
 // ============================================================================
 
 const FullPresentation = () => {
-  const [activeModule, setActiveModule] = useState(modules[0].id);
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("All");
+  const [showRecommended, setShowRecommended] = useState(false);
+  
+  // Expand/collapse state for cards
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
-  // Track active section based on scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
-      
-      for (let i = modules.length - 1; i >= 0; i--) {
-        const element = document.getElementById(modules[i].id);
-        if (element && element.offsetTop <= scrollPosition) {
-          setActiveModule(modules[i].id);
-          break;
-        }
+  // Filter modules based on search, category, and recommended
+  const filteredModules = useMemo(() => {
+    return modulesV2.filter((module) => {
+      // Search filter
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch =
+        searchQuery === "" ||
+        module.name.toLowerCase().includes(searchLower) ||
+        module.summary.toLowerCase().includes(searchLower) ||
+        module.category.toLowerCase().includes(searchLower) ||
+        module.highlights.some((h) => h.toLowerCase().includes(searchLower));
+
+      // Category filter
+      const matchesCategory =
+        activeCategory === "All" || module.category === activeCategory;
+
+      // Recommended filter
+      const matchesRecommended = !showRecommended || module.recommended === true;
+
+      return matchesSearch && matchesCategory && matchesRecommended;
+    });
+  }, [searchQuery, activeCategory, showRecommended]);
+
+  // Toggle single module expansion
+  const toggleModule = (moduleId: string) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(moduleId)) {
+        next.delete(moduleId);
+      } else {
+        next.add(moduleId);
       }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleModuleSelect = (id: string) => {
-    setActiveModule(id);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+      return next;
+    });
   };
+
+  // Expand all visible modules
+  const expandAll = () => {
+    setExpandedModules(new Set(filteredModules.map((m) => m.id)));
+  };
+
+  // Collapse all modules
+  const collapseAll = () => {
+    setExpandedModules(new Set());
+  };
+
+  // Check if all visible modules are expanded
+  const allExpanded =
+    filteredModules.length > 0 &&
+    filteredModules.every((m) => expandedModules.has(m.id));
 
   return (
     <>
@@ -775,7 +299,7 @@ const FullPresentation = () => {
         </section>
 
         {/* ================================================================
-            MODULES SECTION - FULL WIDTH
+            MODULES SECTION - FULL WIDTH WITH FILTER BAR
         ================================================================ */}
         <section id="modules" className="w-full py-12 md:py-20 scroll-mt-20">
           <div className="mx-auto w-full max-w-none px-6 lg:px-10 xl:px-12">
@@ -784,27 +308,49 @@ const FullPresentation = () => {
               subtitle="Choose the modules you need. Start simple, add more as you grow."
             />
 
-            {/* Mobile Module Navigation */}
-            <MobileModuleNav
-              modules={modules}
-              activeModule={activeModule}
-              onSelect={handleModuleSelect}
+            {/* Filter Bar */}
+            <ModulesFilterBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              showRecommended={showRecommended}
+              onShowRecommendedChange={setShowRecommended}
+              allExpanded={allExpanded}
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              resultCount={filteredModules.length}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 mt-6">
-              {/* Desktop Sticky Nav */}
-              <div className="hidden lg:block w-[260px] shrink-0">
-                <StickyModuleNav modules={modules} activeModule={activeModule} />
-              </div>
-
-              {/* Module Cards Grid */}
-              <div className="w-full">
-                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-                  {modules.map((module) => (
-                    <ModuleCard key={module.id} module={module} />
+            {/* Module Cards Grid */}
+            <div className="mt-8">
+              {filteredModules.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No modules match your filters.</p>
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setActiveCategory("All");
+                      setShowRecommended(false);
+                    }}
+                    className="mt-2"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+                  {filteredModules.map((module) => (
+                    <ModuleCardV2
+                      key={module.id}
+                      module={module}
+                      isExpanded={expandedModules.has(module.id)}
+                      onToggle={() => toggleModule(module.id)}
+                    />
                   ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
