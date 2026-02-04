@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronDown, Sparkles, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ModuleV2 } from "./modulesData";
 
@@ -117,12 +117,20 @@ export const ModuleCardV2 = ({ module, isExpanded, onToggle }: ModuleCardV2Props
             </Badge>
           </div>
           
-          {/* Optional Badge */}
-          {module.optional && (
-            <Badge variant="secondary" className="text-[10px] shrink-0">
-              Optional
-            </Badge>
-          )}
+          {/* Kiosk Ready + Optional Badges */}
+          <div className="flex items-center gap-2">
+            {module.kioskReady && (
+              <Badge variant="outline" className="text-[10px] shrink-0 border-primary/30 text-primary bg-primary/5">
+                <Monitor className="h-3 w-3 mr-1" />
+                Kiosk-ready
+              </Badge>
+            )}
+            {module.optional && (
+              <Badge variant="secondary" className="text-[10px] shrink-0">
+                Optional
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Title */}

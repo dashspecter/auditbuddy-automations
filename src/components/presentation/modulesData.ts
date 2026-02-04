@@ -39,6 +39,7 @@ export interface ModuleV2 {
     sampleArtifacts: string[];
   };
   recommended?: boolean;
+  kioskReady?: boolean;
 }
 
 export const modulesV2: ModuleV2[] = [
@@ -99,6 +100,7 @@ export const modulesV2: ModuleV2[] = [
       ],
     },
     recommended: true,
+    kioskReady: true,
   },
   {
     id: "audits",
@@ -186,6 +188,7 @@ export const modulesV2: ModuleV2[] = [
       ],
     },
     recommended: true,
+    kioskReady: true,
   },
   {
     id: "workforce",
@@ -215,6 +218,7 @@ export const modulesV2: ModuleV2[] = [
       ],
     },
     recommended: true,
+    kioskReady: true,
   },
   {
     id: "mystery-shopper",

@@ -37,6 +37,13 @@ import {
   Truck,
   Stethoscope,
   FileBarChart,
+  Monitor,
+  QrCode,
+  Camera,
+  RefreshCw,
+  CheckCircle2,
+  HelpCircle,
+  ChefHat,
 } from "lucide-react";
 import { ModuleCardV2 } from "@/components/presentation/ModuleCardV2";
 import { ModulesFilterBar, type CategoryFilter } from "@/components/presentation/ModulesFilterBar";
@@ -88,7 +95,7 @@ const faqs = [
   {
     question: "Does it work on mobile and kiosk?",
     answer:
-      "Yes. Staff access the platform via mobile web (no app download required). Kiosk mode is available for shared devices at locations for clock-in/out and task completion. The full admin experience works on tablet and desktop.",
+      "Yes. Staff access the platform via mobile web (no app download required). Kiosk mode provides a dedicated shared-device experience for clock-in/out, task execution, and training shifts — perfect for kitchens, FOH, or high-turnover teams. All actions sync in real-time with mobile and the manager dashboard, so everyone sees the same live status. Kiosk visibility is shift-relevant: staff only see what matters for their current shift.",
   },
   {
     question: "How do you prevent 'checkbox theatre'?",
@@ -299,9 +306,101 @@ const FullPresentation = () => {
         </section>
 
         {/* ================================================================
+            KIOSK MODE SECTION
+        ================================================================ */}
+        <section id="kiosk-mode" className="py-12 md:py-20 scroll-mt-20">
+          <div className="container mx-auto px-4">
+            <SectionHeader
+              title="Kiosk Mode"
+              subtitle="A shared screen experience for fast, reliable execution — especially for high-turnover teams."
+            />
+            
+            <div className="max-w-5xl mx-auto space-y-8">
+              {/* Two Column Cards */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* What it's for */}
+                <Card className="border-2">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-3">
+                        <Target className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-bold">What it's for</h3>
+                    </div>
+                    <ul className="space-y-3">
+                      {[
+                        { icon: Clock, text: "Shift start / daily briefing" },
+                        { icon: ClipboardCheck, text: "Task execution & verification" },
+                        { icon: GraduationCap, text: "Training shifts visibility (trainer/trainee)" },
+                        { icon: Users, text: "Quick access for staff without personal devices" },
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <item.icon className="h-4 w-4 text-primary shrink-0" />
+                          <span>{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                {/* How it works */}
+                <Card className="border-2">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-3">
+                        <Monitor className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-bold">How it works</h3>
+                    </div>
+                    <ul className="space-y-3">
+                      {[
+                        { icon: QrCode, text: "Staff sign in with PIN / QR code" },
+                        { icon: Zap, text: "Shows only what's relevant for the current shift" },
+                        { icon: Camera, text: "Enforces photo evidence / timestamps where required" },
+                        { icon: RefreshCw, text: "Syncs in real-time with mobile + manager view" },
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <item.icon className="h-4 w-4 text-primary shrink-0" />
+                          <span>{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Key Benefits Row */}
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { icon: CheckCircle2, title: "Higher completion reliability", desc: "Centralized execution drives consistency" },
+                  { icon: HelpCircle, title: "Less 'I didn't know' confusion", desc: "Everyone sees the same priorities" },
+                  { icon: ChefHat, title: "Works great in kitchens + FOH", desc: "Built for fast-paced environments" },
+                ].map((item, i) => (
+                  <Card key={i} className="bg-muted/30 border-0">
+                    <CardContent className="pt-6 text-center">
+                      <div className="bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
+                        <item.icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <h4 className="font-semibold text-sm mb-1">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Optional Badge Note */}
+              <p className="text-center text-sm text-muted-foreground">
+                <Badge variant="secondary" className="mr-2 text-[10px]">Optional</Badge>
+                Kiosk mode can be enabled per location based on your operational needs.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
             MODULES SECTION - FULL WIDTH WITH FILTER BAR
         ================================================================ */}
-        <section id="modules" className="w-full py-12 md:py-20 scroll-mt-20">
+        <section id="modules" className="w-full py-12 md:py-20 bg-muted/30 scroll-mt-20">
           <div className="mx-auto w-full max-w-none px-6 lg:px-10 xl:px-12">
             <SectionHeader
               title="Platform Modules"
@@ -484,38 +583,6 @@ const FullPresentation = () => {
                   </AccordionItem>
                 ))}
               </Accordion>
-            </div>
-          </div>
-        </section>
-
-        {/* ================================================================
-            FINAL CTA SECTION
-        ================================================================ */}
-        <section className="py-12 md:py-20 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              Ready to systematize your operations?
-            </h2>
-            <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-              Book a demo to see how DashSpect can work for your locations. Or request pricing to get started.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="#get-started-today">
-                <Button size="lg" variant="secondary" className="min-h-[48px] w-full sm:w-auto gap-2">
-                  Book a demo
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </a>
-              <a href="#get-started-today">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="min-h-[48px] w-full sm:w-auto border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-                >
-                  Request pricing
-                </Button>
-              </a>
             </div>
           </div>
         </section>
