@@ -234,7 +234,22 @@ export const ActiveTasksCard = () => {
         });
       }
       
-      toast.error("Couldn't complete task. Please try again.");
+      const errorAny = e as any;
+      const errorMessage = errorAny?.message || errorAny?.code || "";
+      
+      // Handle time-lock error specifically
+      if (errorMessage.includes("TASK_LOCKED_UNTIL") || errorAny?.code === "TASK_LOCKED_UNTIL") {
+        const unlockTime = errorAny?.unlockAtFormatted || errorAny?.unlockAt || "";
+        toast.error(t('tasks.timeLock.lockedToast', { time: unlockTime }));
+      } else if (errorMessage.includes("BEFORE_SHIFT_START") || errorAny?.code === "BEFORE_SHIFT_START") {
+        // Shift hasn't started yet
+        const shiftTime = errorAny?.shiftStartAtFormatted || "";
+        toast.error(t('tasks.shiftStart.beforeShiftToast', { time: shiftTime }));
+      } else if (errorMessage.includes("ALREADY_COMPLETED")) {
+        toast.info("Task already completed");
+      } else {
+        toast.error("Couldn't complete task. Please try again.");
+      }
     }
   };
 

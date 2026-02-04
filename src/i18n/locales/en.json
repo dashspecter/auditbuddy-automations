@@ -969,6 +969,9 @@
       "earlyRequiresReason": "Requires reason for early completion",
       "earlyAllowed": "Early completion allowed",
       "late": "Completing late"
+    },
+    "shiftStart": {
+      "beforeShiftToast": "Your shift starts at {{time}}. Tasks can only be completed during your shift."
     }
   },
   "staffShifts": {
