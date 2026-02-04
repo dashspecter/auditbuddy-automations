@@ -773,10 +773,10 @@ const FullPresentation = () => {
         </section>
 
         {/* ================================================================
-            MODULES SECTION
+            MODULES SECTION - FULL WIDTH
         ================================================================ */}
-        <section id="modules" className="py-12 md:py-20 scroll-mt-20">
-          <div className="container mx-auto px-4">
+        <section id="modules" className="w-full py-12 md:py-20 scroll-mt-20">
+          <div className="mx-auto w-full max-w-none px-6 lg:px-10 xl:px-12">
             <SectionHeader
               title="Platform Modules"
               subtitle="Choose the modules you need. Start simple, add more as you grow."
@@ -789,15 +789,15 @@ const FullPresentation = () => {
               onSelect={handleModuleSelect}
             />
 
-            <div className="flex gap-8 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 mt-6">
               {/* Desktop Sticky Nav */}
-              <div className="hidden lg:block w-64 shrink-0">
+              <div className="hidden lg:block max-w-[260px]">
                 <StickyModuleNav modules={modules} activeModule={activeModule} />
               </div>
 
               {/* Module Cards Grid */}
-              <div className="flex-1">
-                <div className="grid md:grid-cols-2 gap-6">
+              <div className="w-full">
+                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
                   {modules.map((module) => (
                     <ModuleCard key={module.id} module={module} />
                   ))}
