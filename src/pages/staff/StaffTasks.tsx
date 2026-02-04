@@ -377,7 +377,7 @@ const StaffTasks = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <MobileTapDebugOverlay lastTap={lastTap} />
-      <div className="bg-card border-b sticky top-0 z-10 pt-safe">
+      <div className="bg-card border-b sticky top-0 z-50 pt-safe">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-bold">{t('tasks.staff.title')}</h1>

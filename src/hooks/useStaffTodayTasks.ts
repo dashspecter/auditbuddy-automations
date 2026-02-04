@@ -584,7 +584,7 @@ export function useKioskTodayTasks(options: {
   const { data: rawTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ["kiosk-raw-tasks", companyId, locationId],
     queryFn: async () => {
-      // Tasks via task_locations
+      // A) Tasks via task_locations junction
       const { data: taskLocations } = await supabase
         .from("task_locations")
         .select("task_id")
@@ -592,14 +592,52 @@ export function useKioskTodayTasks(options: {
       
       const taskIdsFromLocations = (taskLocations || []).map((tl) => tl.task_id);
       
-      // Direct location_id on tasks
+      // B) Direct location_id on tasks
       const { data: directTasks } = await supabase
         .from("tasks")
         .select("id")
         .eq("location_id", locationId);
       
       const taskIdsFromDirect = (directTasks || []).map((t: any) => t.id);
-      const allTaskIds = [...new Set([...taskIdsFromLocations, ...taskIdsFromDirect])];
+      
+      // C) Role-based tasks for employees at this location (global role tasks)
+      // Find roles used by employees at this location
+      const { data: employeesAtLoc } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("location_id", locationId);
+      
+      const employeeRoles = [...new Set((employeesAtLoc || []).map((e: any) => e.role).filter(Boolean))];
+      
+      let roleIds: string[] = [];
+      if (employeeRoles.length > 0) {
+        const { data: roles } = await supabase
+          .from("employee_roles")
+          .select("id, name")
+          .eq("company_id", companyId);
+        
+        roleIds = (roles || [])
+          .filter((r: any) => employeeRoles.some((er: string) => 
+            er.toLowerCase().trim() === r.name.toLowerCase().trim()
+          ))
+          .map((r: any) => r.id);
+      }
+      
+      // Fetch global role-based tasks (no location but assigned to roles at this location)
+      let globalRoleTaskIds: string[] = [];
+      if (roleIds.length > 0) {
+        const { data: globalRoleTasks } = await supabase
+          .from("tasks")
+          .select("id")
+          .eq("company_id", companyId)
+          .is("location_id", null)
+          .is("assigned_to", null)
+          .in("assigned_role_id", roleIds);
+        
+        globalRoleTaskIds = (globalRoleTasks || []).map((t: any) => t.id);
+      }
+      
+      const allTaskIds = [...new Set([...taskIdsFromLocations, ...taskIdsFromDirect, ...globalRoleTaskIds])];
       
       if (!allTaskIds.length) return [];
       
