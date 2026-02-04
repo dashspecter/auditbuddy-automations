@@ -344,7 +344,9 @@ export function useStaffTodayTasks(
       if (!staffContext?.companyId) return [];
       
       // Get task IDs we're interested in
-      const taskIds = rawTasks.map(t => t.id);
+      // CRITICAL: Use getBaseTaskId to normalize virtual/occurrence IDs to base UUIDs
+      // This ensures we match task_completions.task_id which stores base IDs
+      const taskIds = rawTasks.map(t => getBaseTaskId(t.id));
       if (taskIds.length === 0) return [];
       
       // Query completions directly - no RPC test needed
@@ -976,7 +978,10 @@ export function useKioskTodayTasks(options: {
     // Source 1: Per-occurrence completions from task_completions table
     for (const c of completions) {
       if (c.occurrence_date !== targetDayKey) continue;
-      const tpl = rawTasks.find((t) => t.id === c.task_id);
+      // CRITICAL: Normalize both sides when finding template - rawTasks may have virtual IDs
+      // while c.task_id from task_completions is always a base UUID
+      const normalizedTaskId = getBaseTaskId(c.task_id);
+      const tpl = rawTasks.find((t) => getBaseTaskId(t.id) === normalizedTaskId);
       // Even if template not found, still count the completion for KPI
       const taskTitle = tpl?.title || "(Unknown task)";
 
