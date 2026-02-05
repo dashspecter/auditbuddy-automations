@@ -12,10 +12,12 @@ import { PRICING_TIERS, PricingTier } from "@/config/pricingTiers";
 import { useCompany } from "@/hooks/useCompany";
 import { useIndustries } from "@/hooks/useIndustries";
 import { useAvailableModules } from "@/hooks/useModules";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CompanyOnboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: company, isLoading: isCheckingCompany } = useCompany();
   const { data: industries = [], isLoading: industriesLoading } = useIndustries();
   const [step, setStep] = useState<'plan' | 'industry' | 'company' | 'modules'>('plan');
@@ -66,61 +68,20 @@ export default function CompanyOnboarding() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Check if slug is available
-      const { data: existing } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('slug', companySlug)
-        .single();
+      // Create company + link owner + activate modules in one secured backend call.
+      // This avoids client-side multi-step inserts that can be blocked by row-level security.
+      const { data: companyId, error: createError } = await supabase.rpc(
+        'create_company_onboarding' as any,
+        {
+          p_name: companyName,
+          p_slug: companySlug,
+          p_subscription_tier: selectedTier,
+          p_industry_id: selectedIndustry,
+          p_modules: selectedModules,
+        } as any
+      );
 
-      if (existing) {
-        toast({
-          title: "Error",
-          description: "Company slug already taken. Please choose another.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Create company with selected tier and industry
-      const { data: newCompany, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: companyName,
-          slug: companySlug,
-          status: 'active',
-          subscription_tier: selectedTier,
-          industry_id: selectedIndustry,
-        })
-        .select()
-        .single();
-
-      if (companyError) throw companyError;
-
-      // Link user as company owner
-      const { error: userError } = await supabase
-        .from('company_users')
-        .insert({
-          company_id: newCompany.id,
-          user_id: user.id,
-          company_role: 'company_owner',
-        });
-
-      if (userError) throw userError;
-
-      // Activate selected modules
-      const moduleInserts = selectedModules.map(moduleName => ({
-        company_id: newCompany.id,
-        module_name: moduleName,
-        is_active: true,
-      }));
-
-      const { error: modulesError } = await supabase
-        .from('company_modules')
-        .insert(moduleInserts);
-
-      if (modulesError) throw modulesError;
+      if (createError) throw createError;
 
       toast({
         title: "Success!",
@@ -128,12 +89,18 @@ export default function CompanyOnboarding() {
       });
 
       setCompanyCreated(true);
+
+      // Refresh cached company/module queries before redirecting.
+      queryClient.invalidateQueries({ queryKey: ['company'] });
+      queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+      queryClient.invalidateQueries({ queryKey: ['company_users'] });
+
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Error creating company:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error?.message || 'Failed to create company',
         variant: "destructive",
       });
     } finally {
