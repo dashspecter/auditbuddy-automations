@@ -27,15 +27,16 @@ export default function CompanyOnboarding() {
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModulesPreview, setShowModulesPreview] = useState(false);
+  const [companyCreated, setCompanyCreated] = useState(false);
 
   const { data: availableModules = [] } = useAvailableModules(selectedIndustry);
 
   // Redirect if user already has a company
   useEffect(() => {
-    if (!isCheckingCompany && company) {
+    if (!isCheckingCompany && company && !isSubmitting && !companyCreated) {
       navigate('/', { replace: true });
     }
-  }, [company, isCheckingCompany, navigate]);
+  }, [company, isCheckingCompany, navigate, isSubmitting, companyCreated]);
 
   const industryIcons: Record<string, any> = {
     'restaurants_horeca': Store,
@@ -127,6 +128,7 @@ export default function CompanyOnboarding() {
         description: "Your company has been created successfully",
       });
 
+      setCompanyCreated(true);
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Error creating company:', error);
@@ -150,6 +152,17 @@ export default function CompanyOnboarding() {
 
   const allowedModules = PRICING_TIERS[selectedTier].allowedModules;
   const filteredModules = availableModules.filter(m => allowedModules.includes(m.code));
+
+  const selectAllModules = () => {
+    setSelectedModules(filteredModules.map(m => m.code));
+  };
+
+  const deselectAllModules = () => {
+    setSelectedModules([]);
+  };
+
+  const allModulesSelected = filteredModules.length > 0 && 
+    filteredModules.every(m => selectedModules.includes(m.code));
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -376,6 +389,16 @@ export default function CompanyOnboarding() {
                   <p className="text-sm text-muted-foreground">
                     Available modules for your industry and plan
                   </p>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={allModulesSelected ? deselectAllModules : selectAllModules}
+                    >
+                      {allModulesSelected ? 'Deselect All' : 'Select All'}
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filteredModules.map((module) => {
                       const IconComponent = moduleIcons[module.icon_name || ''] || ClipboardList;
@@ -407,7 +430,8 @@ export default function CompanyOnboarding() {
                               </div>
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => toggleModule(module.code)}
+                                onCheckedChange={() => {}}
+                                onClick={(e) => e.stopPropagation()}
                               />
                             </div>
                           </CardHeader>
