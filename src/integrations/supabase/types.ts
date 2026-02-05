@@ -8880,6 +8880,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_company_onboarding: {
+        Args: {
+          p_industry_id: string
+          p_modules: string[]
+          p_name: string
+          p_slug: string
+          p_subscription_tier: string
+        }
+        Returns: string
+      }
       create_employee_user: {
         Args: {
           employee_email: string
