@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -438,11 +437,14 @@ export default function CompanyOnboarding() {
                                   )}
                                 </div>
                               </div>
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => {}}
-                                onClick={(e) => e.stopPropagation()}
-                              />
+                              <div
+                                aria-hidden="true"
+                                className={`h-5 w-5 sm:h-4 sm:w-4 shrink-0 rounded-sm border border-primary ring-offset-background flex items-center justify-center ${
+                                  isSelected ? "bg-primary text-primary-foreground" : "bg-background"
+                                }`}
+                              >
+                                {isSelected && <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" />}
+                              </div>
                             </div>
                           </CardHeader>
                           <CardContent className="pt-0">
