@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,27 +142,37 @@ export default function CompanyOnboarding() {
     }
   };
 
-  const toggleModule = (moduleCode: string) => {
+  const toggleModule = useCallback((moduleCode: string) => {
     setSelectedModules(prev =>
       prev.includes(moduleCode)
         ? prev.filter(id => id !== moduleCode)
         : [...prev, moduleCode]
     );
-  };
+  }, []);
 
   const allowedModules = PRICING_TIERS[selectedTier].allowedModules;
-  const filteredModules = availableModules.filter(m => allowedModules.includes(m.code));
+  const filteredModules = useMemo(() => 
+    availableModules.filter(m => allowedModules.includes(m.code)),
+    [availableModules, allowedModules]
+  );
 
-  const selectAllModules = () => {
-    setSelectedModules(filteredModules.map(m => m.code));
-  };
+  const allModuleCodes = useMemo(() => 
+    filteredModules.map(m => m.code),
+    [filteredModules]
+  );
 
-  const deselectAllModules = () => {
+  const selectAllModules = useCallback(() => {
+    setSelectedModules(allModuleCodes);
+  }, [allModuleCodes]);
+
+  const deselectAllModules = useCallback(() => {
     setSelectedModules([]);
-  };
+  }, []);
 
-  const allModulesSelected = filteredModules.length > 0 && 
-    filteredModules.every(m => selectedModules.includes(m.code));
+  const allModulesSelected = useMemo(() => 
+    filteredModules.length > 0 && filteredModules.every(m => selectedModules.includes(m.code)),
+    [filteredModules, selectedModules]
+  );
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
