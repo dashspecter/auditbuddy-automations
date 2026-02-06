@@ -264,6 +264,7 @@ const App = () => (
                       <Route path="/admin/template-library" element={<ManagerRoute requiredPermission="manage_audits"><TemplateLibrary /></ManagerRoute>} />
                       <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
                       <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
+                      <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/admin/employees" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
                       <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
