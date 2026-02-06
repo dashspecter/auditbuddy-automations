@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logVisibilityChange, logDebug } from '@/lib/debug/logger';
 
 interface AppVisibilityOptions {
   /**
@@ -102,6 +103,8 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
     if (isValidatingRef.current) return;
     isValidatingRef.current = true;
     
+    logDebug('visibility', 'Starting critical data revalidation');
+    
     try {
       // First validate session
       const isValid = await validateSession();
@@ -109,7 +112,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       if (!isValid) {
         // Session is invalid - let AuthContext handle logout
         // Don't hard reload, just let the auth flow take over
-        console.log('[useAppVisibility] Session invalid, auth flow will handle');
+        logDebug('visibility', 'Session invalid, auth flow will handle');
         return;
       }
       
@@ -124,9 +127,9 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
         )
       );
       
-      console.log('[useAppVisibility] Critical data revalidated');
+      logDebug('visibility', 'Critical data revalidated successfully', { keys: criticalQueryKeys });
     } catch (error) {
-      console.error('[useAppVisibility] Error revalidating data:', error);
+      logDebug('visibility', 'Error revalidating data', error);
     } finally {
       isValidatingRef.current = false;
     }
@@ -147,13 +150,18 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
     const handleVisibilityChange = () => {
       const isVisible = document.visibilityState === 'visible';
       
+      logVisibilityChange(isVisible, isVisible ? 'became-visible' : 'became-hidden');
+      
       if (isVisible) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
         
         // Revalidate when coming back after being away long enough.
         // Keep this high enough to avoid wiping unsaved local form state on quick tab switches.
         if (autoRevalidate && user && timeSinceLastVisible > minHiddenMs) {
+          logDebug('visibility', `Revalidating after ${Math.round(timeSinceLastVisible / 1000)}s hidden`);
           revalidateCriticalData();
+        } else if (autoRevalidate && user) {
+          logDebug('visibility', `Skipping revalidation (hidden only ${Math.round(timeSinceLastVisible / 1000)}s, threshold ${minHiddenMs / 1000}s)`);
         }
         
         onVisible?.();
@@ -168,6 +176,7 @@ export function useAppVisibility(options: AppVisibilityOptions = {}): void {
       if (autoRevalidate && user) {
         const timeSinceLastVisible = Date.now() - lastVisibleRef.current;
         if (timeSinceLastVisible > minHiddenMs) {
+          logDebug('visibility', `Focus revalidation after ${Math.round(timeSinceLastVisible / 1000)}s`);
           revalidateCriticalData();
         }
       }

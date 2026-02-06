@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { logDebug, logRouteChange } from '@/lib/debug/logger';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -15,7 +16,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading: authLoading, isStaff, staffCheckComplete } = useAuth();
   const { data: company, isLoading: companyLoading, error: companyError } = useCompany();
   const location = useLocation();
+  const prevPathRef = useRef(location.pathname);
   
+  // Log route changes for stability diagnostics
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      logRouteChange(prevPathRef.current, location.pathname, 'protected-route');
+      prevPathRef.current = location.pathname;
+    }
+  }, [location.pathname]);
   // Track if we've ever had a valid user to prevent redirect during transient null states
   const hadUserRef = useRef(false);
   const [stableNoUser, setStableNoUser] = useState(false);
@@ -53,6 +62,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Show loading state while checking auth and staff status
   if (authLoading || !staffCheckComplete || (companyLoading && !isSpecialRoute && !isStaff)) {
+    logDebug('protected-route', 'Showing loader', { 
+      authLoading, 
+      staffCheckComplete, 
+      companyLoading, 
+      isSpecialRoute, 
+      isStaff,
+      path: location.pathname 
+    });
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -65,6 +82,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Redirect to auth if confirmed no user (not a transient state)
   if (!user && stableNoUser) {
+    logDebug('protected-route', 'Redirecting to auth (no user)', { path: location.pathname });
     return <Navigate to="/auth" replace />;
   }
   
@@ -87,6 +105,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Company admins/owners and platform admins are not considered staff in AuthContext.
 
   if (isStaff && !isStaffRoute) {
+    logDebug('protected-route', 'Redirecting staff user to /staff', { from: location.pathname });
     return <Navigate to="/staff" replace />;
   }
 
