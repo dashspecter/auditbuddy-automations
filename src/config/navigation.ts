@@ -122,7 +122,6 @@ export const navigationItems: NavigationItem[] = [
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'manage_shifts',
     subItems: [
-      { id: 'workforce-overview', titleKey: "nav.overview", url: "/workforce" },
       { id: 'workforce-staff', titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' },
       { id: 'workforce-shifts', titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: 'workforce-training', titleKey: "nav.training", url: "/workforce/training", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' },
