@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-
+import { logAuthChange, logBootstrap, logDebug } from '@/lib/debug/logger';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -158,14 +158,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
+    logBootstrap('start');
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, 'Has session:', !!session);
+        logAuthChange(event, !!session, session?.user?.id);
+        logDebug('auth', `Auth state changed: ${event}, Has session: ${!!session}`);
         
         // If we have a session but no refresh token, force logout
         if (session && !session.refresh_token) {
-          console.error('Invalid session detected - no refresh token');
+          logDebug('auth', 'Invalid session detected - no refresh token');
           await supabase.auth.signOut();
           setSession(null);
           setUser(null);
@@ -179,12 +182,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Keep UI stable on TOKEN_REFRESHED: don't clear cache (clearing causes full-page spinners
         // and feels like a hard refresh). Instead, refetch critical data in the background.
+        // STABILITY FIX: Only clear on SIGNED_IN when there was no previous user (fresh login)
+        // This prevents the "refresh storm" when token refreshes or user updates
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          console.log('[AuthContext] Auth changed, clearing cached queries');
-          queryClient.clear();
+          logDebug('auth', 'Auth changed, invalidating cached queries (not clearing)');
+          // CHANGED: Use invalidate instead of clear to preserve UI stability
+          queryClient.invalidateQueries({ queryKey: ['user_role'] });
+          queryClient.invalidateQueries({ queryKey: ['company'] });
+          queryClient.invalidateQueries({ queryKey: ['company_modules'] });
+          queryClient.invalidateQueries({ queryKey: ['permissions'] });
         }
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (event === 'TOKEN_REFRESHED') {
+          logDebug('auth', 'Token refreshed, background invalidation only');
           queryClient.invalidateQueries({ queryKey: ['user_role'] });
           queryClient.invalidateQueries({ queryKey: ['company'] });
           queryClient.invalidateQueries({ queryKey: ['company_modules'] });
@@ -192,6 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         if (event === 'SIGNED_OUT') {
+          logDebug('auth', 'Signed out, clearing all cached queries');
           queryClient.clear();
           setIsStaff(null);
           setStaffCheckComplete(false);
@@ -206,10 +217,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // THEN check for existing session with validation
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      console.log('Initial session check:', !!session, 'Error:', error);
+      logDebug('auth', `Initial session check: ${!!session}, Error: ${error?.message || 'none'}`);
+      logBootstrap('auth', { hasSession: !!session, error: error?.message });
       
       if (error) {
-        console.error('Session validation error:', error);
+        logDebug('auth', 'Session validation error', error);
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
@@ -219,7 +231,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Validate session has required tokens
       if (session && !session.refresh_token) {
-        console.error('Invalid session - missing refresh token');
+        logDebug('auth', 'Invalid session - missing refresh token');
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
