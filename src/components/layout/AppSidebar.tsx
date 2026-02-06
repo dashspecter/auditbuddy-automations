@@ -83,8 +83,6 @@ const navigationItems = [
           { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches" },
         ]
       },
-      
-      { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -254,6 +252,7 @@ const navigationItems = [
     subItems: [
       { titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 

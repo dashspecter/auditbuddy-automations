@@ -148,7 +148,7 @@ export const navigationItems: NavigationItem[] = [
           { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches" },
         ]
       },
-      { id: 'workforce-insights', titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' },
+      
     ]
   },
   {
@@ -331,6 +331,7 @@ export const navigationItems: NavigationItem[] = [
     subItems: [
       { id: 'insights-overview', titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' },
       { id: 'insights-ai', titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' },
+      { id: 'insights-scheduling', titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' },
     ]
   },
   {
