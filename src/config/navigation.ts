@@ -160,10 +160,8 @@ export const navigationItems: NavigationItem[] = [
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_locations',
     subItems: [
-      { id: 'locations-all', titleKey: "nav.allLocations", url: "/admin/locations" },
+      { id: 'locations-general', titleKey: "nav.locationsGeneral", url: "/admin/locations" },
       { id: 'locations-sales', titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
-      { id: 'locations-clockout', titleKey: "nav.autoClockOut", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' },
-      { id: 'locations-presets', titleKey: "nav.shiftPresets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' },
     ]
   },
   {

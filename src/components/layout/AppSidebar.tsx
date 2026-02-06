@@ -93,10 +93,8 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_locations' as CompanyPermission,
     subItems: [
-      { titleKey: "nav.allLocations", url: "/admin/locations" },
+      { titleKey: "nav.locationsGeneral", url: "/admin/locations" },
       { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
-      { titleKey: "nav.autoClockOut", url: "/admin/locations?tab=auto-clockout", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
-      { titleKey: "nav.shiftPresets", url: "/admin/locations?tab=shift-presets", allowedRoles: ['admin'], companyPermission: 'manage_shifts' as CompanyPermission },
     ]
   },
   { 
