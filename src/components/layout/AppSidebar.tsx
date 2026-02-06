@@ -59,7 +59,6 @@ const navigationItems = [
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'manage_shifts' as CompanyPermission,
     subItems: [
-      { titleKey: "nav.overview", url: "/workforce" },
       { titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
       { titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { titleKey: "nav.training", url: "/workforce/training", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
