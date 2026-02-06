@@ -126,12 +126,29 @@ export const navigationItems: NavigationItem[] = [
       { id: 'workforce-staff', titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' },
       { id: 'workforce-shifts', titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: 'workforce-training', titleKey: "nav.training", url: "/workforce/training", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' },
-      { id: 'workforce-attendance', titleKey: "nav.attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
+      { 
+        id: 'workforce-attendance', 
+        titleKey: "nav.attendance", 
+        url: "/workforce/attendance", 
+        allowedRoles: ['admin', 'manager', 'hr'], 
+        companyPermission: 'manage_shifts',
+        nestedItems: [
+          { titleKey: "nav.attendanceGeneral", url: "/workforce/attendance" },
+          { titleKey: "nav.attendanceAlerts", url: "/workforce/attendance-alerts" },
+        ]
+      },
       { id: 'workforce-warnings', titleKey: "nav.warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' },
       { id: 'workforce-timeoff', titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
-      { id: 'workforce-payroll', titleKey: "nav.payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
-      { id: 'workforce-payroll-batches', titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
-      { id: 'workforce-alerts', titleKey: "nav.attendanceAlerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
+      { 
+        id: 'workforce-payroll', 
+        titleKey: "nav.payroll", 
+        url: "/workforce/payroll", 
+        allowedRoles: ['admin', 'hr'],
+        nestedItems: [
+          { titleKey: "nav.payrollGeneral", url: "/workforce/payroll" },
+          { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches" },
+        ]
+      },
       { id: 'workforce-insights', titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' },
     ]
   },
