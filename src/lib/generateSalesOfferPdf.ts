@@ -26,7 +26,7 @@ interface OfferData {
   offerNumber: string;
 }
 
-const addOfferHeader = (doc: jsPDF) => {
+const addOfferHeader = (doc: jsPDF, logoBase64?: string) => {
   const pageWidth = doc.internal.pageSize.getWidth();
 
   // Full-width orange header
@@ -37,23 +37,30 @@ const addOfferHeader = (doc: jsPDF) => {
   doc.setFillColor(...BRAND_COLORS.primaryDark);
   doc.rect(0, 48, pageWidth, 4, 'F');
 
-  // Logo circle
-  doc.setFillColor(...BRAND_COLORS.white);
-  doc.circle(25, 26, 12, 'F');
-  doc.setTextColor(...BRAND_COLORS.primary);
-  doc.setFontSize(16);
-  doc.setFont(BRAND_FONT, 'bold');
-  doc.text('D', 21, 31);
+  // Logo - use actual image if available, otherwise fallback to circle
+  if (logoBase64) {
+    // White rounded background for logo
+    doc.setFillColor(...BRAND_COLORS.white);
+    doc.roundedRect(11, 12, 28, 28, 4, 4, 'F');
+    doc.addImage(logoBase64, 'PNG', 13, 14, 24, 24);
+  } else {
+    doc.setFillColor(...BRAND_COLORS.white);
+    doc.circle(25, 26, 12, 'F');
+    doc.setTextColor(...BRAND_COLORS.primary);
+    doc.setFontSize(16);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.text('D', 21, 31);
+  }
 
   // Brand name + tagline
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(24);
   doc.setFont(BRAND_FONT, 'bold');
-  doc.text('Dashspect', 42, 24);
+  doc.text('Dashspect', 44, 24);
 
   doc.setFontSize(10);
   doc.setFont(BRAND_FONT, 'normal');
-  doc.text('Operations Management Platform', 42, 32);
+  doc.text('Operations Management Platform', 44, 32);
 
   // "Commercial Offer" label
   doc.setFontSize(12);
@@ -313,7 +320,7 @@ const addTermsSection = (doc: jsPDF, y: number): number => {
   const terms = [
     'This offer is valid for 30 days from the date of issue.',
     'Monthly subscription, billed at the start of each calendar month.',
-    'All prices are in EUR and are exclusive of VAT (19%).',
+    'All prices are in EUR and are exclusive of VAT (21%).',
     'A minimum commitment period of 12 months applies.',
     'Platform setup and onboarding are included at no additional cost.',
     'Technical support is provided via email and in-app chat.',
@@ -359,8 +366,8 @@ const addContactSection = (doc: jsPDF, y: number): number => {
   const contactInfo = [
     'Ready to proceed? Contact us to schedule your onboarding:',
     '',
-    'Email:  hello@dashspect.com',
-    'Phone:  +40 756 123 456',
+    'Email:  alex@grecea.work',
+    'Phone:  +40 741 427 777',
     'Web:    www.dashspect.com',
   ];
 
@@ -372,7 +379,22 @@ const addContactSection = (doc: jsPDF, y: number): number => {
   return y;
 };
 
-export const generateProperPizzaOffer = () => {
+const loadLogoAsBase64 = async (): Promise<string | undefined> => {
+  try {
+    const response = await fetch('/dashspect-logo-512.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(undefined);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+};
+
+export const generateProperPizzaOffer = async () => {
   const today = new Date();
   const validUntil = new Date(today);
   validUntil.setDate(validUntil.getDate() + 30);
@@ -456,10 +478,13 @@ export const generateProperPizzaOffer = () => {
     offerNumber: `DSP-${format(today, 'yyyyMMdd')}-001`,
   };
 
+  // Load logo image
+  const logoBase64 = await loadLogoAsBase64();
+
   const doc = new jsPDF();
 
   // Page 1 - Header + Client + Pricing
-  addOfferHeader(doc);
+  addOfferHeader(doc, logoBase64);
   let y = 62;
   y = addClientSection(doc, offer, y);
   y += 5;
