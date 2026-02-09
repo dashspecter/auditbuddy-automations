@@ -466,21 +466,13 @@ const StaffHome = () => {
             {hasWastageModule && (
               <Button 
                 variant="outline" 
-                className={`h-auto py-4 flex-col touch-target ${isOnDuty ? "border-primary/30 bg-primary/5" : "opacity-60"}`}
+                className="h-auto py-4 flex-col touch-target border-primary/30 bg-primary/5"
                 onClick={() => {
-                  if (isOnDuty) {
-                    navigate("/staff/waste/new", { state: { from: location.pathname, locationId: onDutyLocationId } });
-                  } else {
-                    toast.info(t('staffHome.wastageOnShiftOnly', 'Available during your shift'));
-                  }
+                  navigate("/staff/waste/new", { state: { from: location.pathname, locationId: onDutyLocationId || employee?.location_id } });
                 }}
-                disabled={!isOnDuty}
               >
-                <Trash2 className={`h-6 w-6 mb-2 ${isOnDuty ? "text-primary" : "text-muted-foreground"}`} />
+                <Trash2 className="h-6 w-6 mb-2 text-primary" />
                 <span className="text-xs">{t('staffHome.logWaste', 'Log Waste')}</span>
-                {!isOnDuty && (
-                  <span className="text-[10px] text-muted-foreground mt-1">{t('staffHome.duringShiftOnly', 'During shift only')}</span>
-                )}
               </Button>
             )}
             <Button variant="outline" className="h-auto py-4 flex-col touch-target" onClick={() => navigate("/staff/documents")}>
