@@ -51,7 +51,10 @@ export const useCompany = () => {
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
 
-      // Get user's company
+      // Get user's company - try company_users first
+      let companyId: string | null = null;
+      let userRole: string = 'employee';
+      
       const { data: companyUser, error: cuError } = await supabase
         .from('company_users')
         .select('company_id, company_role')
@@ -62,10 +65,30 @@ export const useCompany = () => {
 
       if (cuError) {
         console.error('[useCompany] Error fetching company_users:', cuError);
-        throw cuError;
       }
 
-      if (!companyUser) {
+      if (companyUser) {
+        companyId = companyUser.company_id;
+        userRole = companyUser.company_role;
+      } else {
+        // Fallback: check employees table for staff users without company_users record
+        const { data: employee, error: empError } = await supabase
+          .from('employees')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (empError) {
+          console.error('[useCompany] Error fetching employee:', empError);
+        }
+
+        if (employee) {
+          companyId = employee.company_id;
+          userRole = 'employee';
+        }
+      }
+
+      if (!companyId) {
         throw new Error('No company association found');
       }
 
@@ -73,7 +96,7 @@ export const useCompany = () => {
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', companyUser.company_id)
+        .eq('id', companyId)
         .maybeSingle();
 
       if (companyError) {
@@ -82,13 +105,13 @@ export const useCompany = () => {
       }
 
       if (!company) {
-        console.error('[useCompany] Company not found for id:', companyUser.company_id);
+        console.error('[useCompany] Company not found for id:', companyId);
         throw new Error('Company not found');
       }
 
       return {
         ...company,
-        userRole: companyUser.company_role,
+        userRole,
       } as Company & { userRole: string };
     },
     retry: 1,
@@ -192,7 +215,9 @@ export const useCompanyModules = () => {
 
       console.log('[useCompanyModules] Fetching modules for user:', user.id);
 
-      // First get the user's company
+      // First try company_users table
+      let companyId: string | null = null;
+      
       const { data: companyUser, error: cuError } = await supabase
         .from('company_users')
         .select('company_id')
@@ -201,21 +226,37 @@ export const useCompanyModules = () => {
 
       if (cuError) {
         console.error('[useCompanyModules] Error fetching company user:', cuError);
-        throw cuError;
       }
 
-      if (!companyUser) {
-        console.log('[useCompanyModules] No company user found');
+      if (companyUser) {
+        companyId = companyUser.company_id;
+      } else {
+        // Fallback: check employees table for staff users without company_users record
+        const { data: employee, error: empError } = await supabase
+          .from('employees')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (empError) {
+          console.error('[useCompanyModules] Error fetching employee:', empError);
+        }
+
+        companyId = employee?.company_id || null;
+      }
+
+      if (!companyId) {
+        console.log('[useCompanyModules] No company found for user');
         return [];
       }
 
-      console.log('[useCompanyModules] Fetching modules for company:', companyUser.company_id);
+      console.log('[useCompanyModules] Fetching modules for company:', companyId);
 
       // Then get the company's modules
       const { data, error } = await supabase
         .from('company_modules')
         .select('*')
-        .eq('company_id', companyUser.company_id)
+        .eq('company_id', companyId)
         .eq('is_active', true)
         .order('module_name');
 
