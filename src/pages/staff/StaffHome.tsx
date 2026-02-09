@@ -39,8 +39,11 @@ const StaffHome = () => {
   const { todayGrouped, upcomingTasks, activeTasks, debug: taskDebug } = useMyTaskOccurrences();
   
   // Module checks
-  const hasWastageModule = hasModule('wastage');
+  const hasWastageModuleFromContext = hasModule('wastage');
   const [employee, setEmployee] = useState<any>(null);
+  const [hasWastageModuleDirect, setHasWastageModuleDirect] = useState(false);
+  // Use context OR direct check as fallback for staff users without company_users record
+  const hasWastageModule = hasWastageModuleFromContext || hasWastageModuleDirect;
   const [todayShift, setTodayShift] = useState<any>(null);
   const [upcomingShifts, setUpcomingShifts] = useState<any[]>([]);
   const [earnings, setEarnings] = useState({ thisWeek: 0, thisMonth: 0 });
@@ -152,6 +155,17 @@ const StaffHome = () => {
           setHideEarnings(companyData.hide_earnings_from_staff === true);
           setClockInEnabled(companyData.clock_in_enabled !== false);
         }
+        
+        // Direct module check as fallback for staff users
+        const { data: wastageModule } = await supabase
+          .from("company_modules")
+          .select("id")
+          .eq("company_id", empData.company_id)
+          .eq("module_name", "wastage")
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        setHasWastageModuleDirect(!!wastageModule);
         
         // Check company role for manager features
         const { data: companyUserData } = await supabase
