@@ -117,8 +117,8 @@ const StaffHome = () => {
         // Check if employee is deactivated
         if (empData.status === "inactive") {
           toast.error(t('staffHome.accountDeactivated'));
-          await supabase.auth.signOut();
-          navigate("/staff-login");
+          await supabase.auth.signOut({ scope: 'local' });
+          navigate("/auth", { replace: true });
           return;
         }
         
