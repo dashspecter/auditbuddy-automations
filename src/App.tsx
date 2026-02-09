@@ -17,6 +17,7 @@ import { AppVisibilityManager } from "@/components/AppVisibilityManager";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import FullPresentation from "./pages/FullPresentation";
+import SalesOffer from "./pages/SalesOffer";
 import Dashboard from "./pages/Dashboard";
 import LocationAudit from "./pages/LocationAudit";
 import Audits from "./pages/Audits";
@@ -206,6 +207,7 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       <Route path="/full-presentation" element={<FullPresentation />} />
                       <Route path="/full" element={<FullPresentation />} />
+                      <Route path="/sales-offer" element={<SalesOffer />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/staff-login" element={<StaffLogin />} />
                       <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
