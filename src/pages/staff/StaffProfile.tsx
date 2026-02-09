@@ -134,8 +134,12 @@ const StaffProfile = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/staff-login");
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.error('[StaffProfile] Sign out error:', e);
+    }
+    navigate("/auth", { replace: true });
   };
 
   if (isLoading) {

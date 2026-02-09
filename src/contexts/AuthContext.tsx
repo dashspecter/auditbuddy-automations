@@ -253,17 +253,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Try to sign out from server
-      await supabase.auth.signOut();
+      // Use scope: 'local' to always clear the local session,
+      // even if the server session is already expired (avoids 403 loops)
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (error) {
       console.error('Error during sign out:', error);
     } finally {
       // Always clear local state and redirect, even if server sign out fails
       setSession(null);
       setUser(null);
-      
-      // Clear local storage manually as backup
-      localStorage.removeItem('sb-lnscfmmwqxlkeunfhfdh-auth-token');
       
       navigate('/auth');
     }
