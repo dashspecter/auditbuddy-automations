@@ -571,6 +571,7 @@ export default function MysteryShopperTemplateEditor() {
                   <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="%">% (Discount)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
