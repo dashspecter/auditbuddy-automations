@@ -44,7 +44,7 @@ const recurringScheduleSchema = z.object({
   location_id: z.string().optional(), // Now optional when bulk mode is enabled
   template_id: z.string().min(1, 'Template is required'),
   assigned_user_id: z.string().min(1, 'Assigned user is required'),
-  recurrence_pattern: z.enum(['daily', 'weekly', 'monthly']),
+  recurrence_pattern: z.enum(['daily', 'weekly', 'monthly', 'every_4_weeks']),
   day_of_week: z.string().optional(),
   day_of_month: z.string().optional(),
   start_time: z.string().min(1, 'Start time is required'),
@@ -163,8 +163,8 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
             template_id: values.template_id,
             assigned_user_id: values.assigned_user_id,
             recurrence_pattern: values.recurrence_pattern,
-            day_of_week: recurrencePattern === 'weekly' ? parseInt(values.day_of_week || '1') : undefined,
-            day_of_month: recurrencePattern === 'monthly' ? parseInt(values.day_of_month || '1') : undefined,
+      day_of_week: (recurrencePattern === 'weekly' || recurrencePattern === 'every_4_weeks') ? parseInt(values.day_of_week || '1') : undefined,
+      day_of_month: recurrencePattern === 'monthly' ? parseInt(values.day_of_month || '1') : undefined,
             start_time: values.start_time,
             duration_hours: parseInt(values.duration_hours),
             start_date: values.start_date,
@@ -199,7 +199,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
       template_id: values.template_id,
       assigned_user_id: values.assigned_user_id,
       recurrence_pattern: values.recurrence_pattern,
-      day_of_week: recurrencePattern === 'weekly' ? parseInt(values.day_of_week || '1') : undefined,
+      day_of_week: (recurrencePattern === 'weekly' || recurrencePattern === 'every_4_weeks') ? parseInt(values.day_of_week || '1') : undefined,
       day_of_month: recurrencePattern === 'monthly' ? parseInt(values.day_of_month || '1') : undefined,
       start_time: values.start_time,
       duration_hours: parseInt(values.duration_hours),
@@ -373,6 +373,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
                     <SelectContent>
                       <SelectItem value="daily">Daily</SelectItem>
                       <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="every_4_weeks">Every 4 Weeks</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
                     </SelectContent>
                   </Select>
@@ -381,7 +382,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
               )}
             />
 
-            {recurrencePattern === 'weekly' && (
+            {(recurrencePattern === 'weekly' || recurrencePattern === 'every_4_weeks') && (
               <FormField
                 control={form.control}
                 name="day_of_week"
@@ -443,7 +444,7 @@ export const RecurringScheduleDialog = ({ open, onOpenChange, schedule }: Recurr
               <SchedulePreviewDates
                 pattern={recurrencePattern}
                 startDate={startDate}
-                dayOfWeek={recurrencePattern === 'weekly' ? parseInt(dayOfWeek || '1') : undefined}
+                dayOfWeek={(recurrencePattern === 'weekly' || recurrencePattern === 'every_4_weeks') ? parseInt(dayOfWeek || '1') : undefined}
                 dayOfMonth={recurrencePattern === 'monthly' ? parseInt(dayOfMonth || '1') : undefined}
               />
             )}

@@ -11,7 +11,7 @@ interface RecurringSchedule {
   location_id: string;
   template_id: string;
   assigned_user_id: string;
-  recurrence_pattern: 'daily' | 'weekly' | 'monthly';
+  recurrence_pattern: 'daily' | 'weekly' | 'monthly' | 'every_4_weeks';
   day_of_week: number | null;
   day_of_month: number | null;
   start_time: string;
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           const startDate = new Date(schedule.start_date);
           startDate.setHours(0, 0, 0, 0);
           
-          if (schedule.recurrence_pattern === 'weekly' && startDate.getDay() !== schedule.day_of_week) {
+          if ((schedule.recurrence_pattern === 'weekly' || schedule.recurrence_pattern === 'every_4_weeks') && startDate.getDay() !== schedule.day_of_week) {
             // Start date doesn't match the day of week, find next occurrence
             nextDate = new Date(startDate);
             while (nextDate.getDay() !== schedule.day_of_week) {
@@ -128,12 +128,21 @@ Deno.serve(async (req) => {
               nextDate.setDate(nextDate.getDate() + 1);
               break;
             
-            case 'weekly': {
+            case 'weekly':
+            case 'every_4_weeks': {
               nextDate = new Date(lastGenerated);
               nextDate.setDate(nextDate.getDate() + 1);
               // Find next occurrence of the specified day of week
               while (nextDate.getDay() !== schedule.day_of_week) {
                 nextDate.setDate(nextDate.getDate() + 1);
+              }
+              // For every_4_weeks, ensure at least 4 weeks gap
+              if (schedule.recurrence_pattern === 'every_4_weeks') {
+                const minNextDate = new Date(lastGenerated);
+                minNextDate.setDate(minNextDate.getDate() + 28);
+                while (nextDate < minNextDate) {
+                  nextDate.setDate(nextDate.getDate() + 7);
+                }
               }
               break;
             }
@@ -172,6 +181,9 @@ Deno.serve(async (req) => {
               break;
             case 'weekly':
               currentDate.setDate(currentDate.getDate() + 7);
+              break;
+            case 'every_4_weeks':
+              currentDate.setDate(currentDate.getDate() + 28);
               break;
             case 'monthly': {
               currentDate.setMonth(currentDate.getMonth() + 1);

@@ -9,7 +9,7 @@ export interface RecurringSchedule {
   location_id: string;
   template_id: string;
   assigned_user_id: string;
-  recurrence_pattern: 'daily' | 'weekly' | 'monthly';
+  recurrence_pattern: 'daily' | 'weekly' | 'monthly' | 'every_4_weeks';
   day_of_week: number | null;
   day_of_month: number | null;
   start_time: string;
@@ -68,7 +68,7 @@ export const useCreateRecurringSchedule = () => {
       location_id: string;
       template_id: string;
       assigned_user_id: string;
-      recurrence_pattern: 'daily' | 'weekly' | 'monthly';
+      recurrence_pattern: 'daily' | 'weekly' | 'monthly' | 'every_4_weeks';
       day_of_week?: number;
       day_of_month?: number;
       start_time: string;
