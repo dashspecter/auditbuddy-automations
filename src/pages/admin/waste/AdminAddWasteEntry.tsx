@@ -121,11 +121,12 @@ export default function AdminAddWasteEntry() {
       } else {
         navigate("/staff/waste", { replace: true });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create waste entry:", error);
+      const msg = error?.message || "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to log waste entry. Please try again.",
+        description: `Failed to log waste entry: ${msg}`,
         variant: "destructive",
       });
     } finally {
