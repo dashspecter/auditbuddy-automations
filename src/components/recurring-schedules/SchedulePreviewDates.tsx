@@ -4,7 +4,7 @@ import { calculateNextDates, RecurrenceConfig } from '@/lib/recurringScheduleUti
 import { format } from 'date-fns';
 
 interface SchedulePreviewDatesProps {
-  pattern: 'daily' | 'weekly' | 'monthly';
+  pattern: 'daily' | 'weekly' | 'monthly' | 'every_4_weeks';
   startDate: string;
   dayOfWeek?: number;
   dayOfMonth?: number;
@@ -26,7 +26,7 @@ export const SchedulePreviewDates = ({
     const config: RecurrenceConfig = {
       pattern,
       startDate,
-      dayOfWeek: pattern === 'weekly' ? dayOfWeek : undefined,
+      dayOfWeek: (pattern === 'weekly' || pattern === 'every_4_weeks') ? dayOfWeek : undefined,
       dayOfMonth: pattern === 'monthly' ? dayOfMonth : undefined,
     };
 

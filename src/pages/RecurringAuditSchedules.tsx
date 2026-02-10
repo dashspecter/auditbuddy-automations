@@ -96,6 +96,8 @@ const RecurringAuditSchedules = () => {
         return 'Daily';
       case 'weekly':
         return `Weekly on ${days[schedule.day_of_week || 0]}`;
+      case 'every_4_weeks':
+        return `Every 4 weeks on ${days[schedule.day_of_week || 0]}`;
       case 'monthly':
         return `Monthly on day ${schedule.day_of_month}`;
       default:

@@ -1,7 +1,7 @@
 import { addDays, addWeeks, addMonths, addYears, format } from "date-fns";
 
 export interface RecurrenceConfig {
-  pattern: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+  pattern: "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "every_4_weeks";
   startDate: string;
   dayOfWeek?: number;
   dayOfMonth?: number;
@@ -22,7 +22,9 @@ export const calculateNextDates = (
         currentDate = addDays(currentDate, 1);
         break;
       case "weekly":
-        currentDate = addWeeks(currentDate, 1);
+      case "every_4_weeks": {
+        const weekIncrement = config.pattern === "every_4_weeks" ? 4 : 1;
+        currentDate = addWeeks(currentDate, weekIncrement);
         if (config.dayOfWeek !== undefined) {
           // Adjust to the specified day of week
           const targetDay = config.dayOfWeek;
@@ -33,6 +35,7 @@ export const calculateNextDates = (
           }
         }
         break;
+      }
       case "monthly":
         currentDate = addMonths(currentDate, 1);
         if (config.dayOfMonth !== undefined) {
