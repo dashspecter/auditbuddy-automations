@@ -147,11 +147,12 @@ export default function AddWasteEntry() {
       setPhotoFile(null);
       setPhotoPreview(null);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create waste entry:', error);
+      const msg = error?.message || "Unknown error";
       toast({
         title: "Error",
-        description: "Failed to record waste entry. Check your connection and try again.",
+        description: `Failed to record waste entry: ${msg}`,
         variant: "destructive",
       });
     } finally {
