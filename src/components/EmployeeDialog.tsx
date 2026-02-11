@@ -596,22 +596,6 @@ export const EmployeeDialog = ({
             </Collapsible>
           </div>
 
-          <div className="space-y-2">
-            <Label>Emergency Contact</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                placeholder="Name"
-                value={formData.emergency_contact_name}
-                onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
-              />
-              <Input
-                placeholder="Phone"
-                type="tel"
-                value={formData.emergency_contact_phone}
-                onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
-              />
-            </div>
-          </div>
 
           <div>
             <Label htmlFor="notes">Notes</Label>
