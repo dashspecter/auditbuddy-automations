@@ -60,9 +60,9 @@ export interface Employee {
   }>;
 }
 
-export const useEmployees = (locationId?: string) => {
+export const useEmployees = (locationId?: string, statusFilter?: string) => {
   return useQuery({
-    queryKey: ["employees", locationId],
+    queryKey: ["employees", locationId, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from("employees")
@@ -71,6 +71,10 @@ export const useEmployees = (locationId?: string) => {
       
       if (locationId) {
         query = query.eq("location_id", locationId);
+      }
+      
+      if (statusFilter) {
+        query = query.eq("status", statusFilter);
       }
       
       const { data, error } = await query;
