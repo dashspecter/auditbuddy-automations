@@ -231,6 +231,7 @@ const StaffSchedule = () => {
           start_time,
           end_time,
           role,
+          notes,
           location_id,
           locations:location_id (
             name
@@ -604,6 +605,11 @@ const StaffSchedule = () => {
                         <div className="text-xs text-muted-foreground">
                           {assignment.shifts.locations?.name}
                         </div>
+                        {assignment.shifts.notes && (
+                          <div className="mt-2 text-xs text-muted-foreground border-t pt-2">
+                            <span className="font-medium">{t('staffSchedule.note')}:</span> {assignment.shifts.notes}
+                          </div>
+                        )}
                         {assignment.status === "offered" && (
                           <div className={`mt-3 p-2 border rounded text-xs ${
                             dayStr < today 
