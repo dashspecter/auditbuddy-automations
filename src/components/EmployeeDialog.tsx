@@ -668,69 +668,83 @@ export const EmployeeDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="base_salary">Base Salary</Label>
-              <Input
-                id="base_salary"
-                type="number"
-                step="0.01"
-                value={formData.base_salary}
-                onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })}
-                placeholder="Annual salary"
-              />
-            </div>
+          <Collapsible
+            defaultOpen={!!(
+              formData.base_salary || formData.hourly_rate || formData.overtime_rate ||
+              formData.expected_weekly_hours || formData.expected_shifts_per_week
+            )}
+            className="border rounded-lg"
+          >
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors rounded-lg">
+              <h3 className="text-sm font-semibold text-foreground">Salary & Hours</h3>
+              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="base_salary">Base Salary</Label>
+                  <Input
+                    id="base_salary"
+                    type="number"
+                    step="0.01"
+                    value={formData.base_salary}
+                    onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })}
+                    placeholder="Annual salary"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="hourly_rate">Hourly Rate</Label>
-              <Input
-                id="hourly_rate"
-                type="number"
-                step="0.01"
-                value={formData.hourly_rate}
-                onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                placeholder="Per hour"
-              />
-            </div>
+                <div>
+                  <Label htmlFor="hourly_rate">Hourly Rate</Label>
+                  <Input
+                    id="hourly_rate"
+                    type="number"
+                    step="0.01"
+                    value={formData.hourly_rate}
+                    onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
+                    placeholder="Per hour"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="overtime_rate">Overtime Rate (Extra Shifts)</Label>
-              <Input
-                id="overtime_rate"
-                type="number"
-                step="0.01"
-                value={formData.overtime_rate}
-                onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })}
-                placeholder="Per hour for extra shifts"
-              />
-            </div>
-          </div>
+                <div>
+                  <Label htmlFor="overtime_rate">Overtime Rate (Extra Shifts)</Label>
+                  <Input
+                    id="overtime_rate"
+                    type="number"
+                    step="0.01"
+                    value={formData.overtime_rate}
+                    onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })}
+                    placeholder="Per hour for extra shifts"
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
-              <Input
-                id="expected_weekly_hours"
-                type="number"
-                step="0.5"
-                value={formData.expected_weekly_hours}
-                onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })}
-                placeholder="e.g. 40"
-              />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
+                  <Input
+                    id="expected_weekly_hours"
+                    type="number"
+                    step="0.5"
+                    value={formData.expected_weekly_hours}
+                    onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })}
+                    placeholder="e.g. 40"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
-              <Input
-                id="expected_shifts_per_week"
-                type="number"
-                step="1"
-                value={formData.expected_shifts_per_week}
-                onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })}
-                placeholder="e.g. 5"
-              />
-            </div>
-          </div>
+                <div>
+                  <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
+                  <Input
+                    id="expected_shifts_per_week"
+                    type="number"
+                    step="1"
+                    value={formData.expected_shifts_per_week}
+                    onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })}
+                    placeholder="e.g. 5"
+                  />
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <div className="space-y-2">
             <Label>Emergency Contact</Label>
