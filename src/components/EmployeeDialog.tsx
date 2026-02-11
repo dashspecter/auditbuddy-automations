@@ -361,26 +361,6 @@ export const EmployeeDialog = ({
             />
           </div>
 
-          {/* Employee Type Toggle */}
-          <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg border border-border">
-            <Checkbox 
-              id="is_foreign" 
-              checked={formData.is_foreign}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_foreign: checked as boolean })}
-            />
-            <div className="grid gap-1.5 leading-none">
-              <Label
-                htmlFor="is_foreign"
-                className="text-sm font-medium leading-none cursor-pointer"
-              >
-                Angajat Străin
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Bifați pentru angajați care nu sunt cetățeni români
-              </p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
@@ -453,6 +433,26 @@ export const EmployeeDialog = ({
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-4 pb-4 space-y-4">
+                {/* Employee Type Toggle */}
+                <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border border-border">
+                  <Checkbox 
+                    id="is_foreign" 
+                    checked={formData.is_foreign}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_foreign: checked as boolean })}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label
+                      htmlFor="is_foreign"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Angajat Străin
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Bifați pentru angajați care nu sunt cetățeni români
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="cnp">CNP</Label>
