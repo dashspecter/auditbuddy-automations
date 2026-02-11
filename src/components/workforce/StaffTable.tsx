@@ -29,34 +29,41 @@ export const StaffTable = () => {
   const pageSize = 20;
   const isMobile = useIsMobile();
   
+  // Debounce search to avoid too many queries
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Debounce the search term
+  useState(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  });
+
+  // Use effect for debouncing
+  const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    if (searchTimer) clearTimeout(searchTimer);
+    const timer = setTimeout(() => setDebouncedSearch(value), 300);
+    setSearchTimer(timer);
+  };
+
   const { data: employeesData, isLoading } = useEmployeesPaginated({ 
     locationId: locationFilter || undefined,
+    searchTerm: debouncedSearch || undefined,
+    roleFilter: roleFilter || undefined,
+    statusFilter: statusFilter || undefined,
     page: currentPage,
     pageSize 
   });
   const { data: locations } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
-  
-  const staff = employeesData?.data || [];
+  const filteredStaff = employeesData?.data || [];
 
   // Create a map of role names to role objects for quick lookup
   const roleMap = new Map(roles.map(role => [role.name, role]));
 
-  // Client-side filtering for search, role, and status (after server-side location filtering)
-  const filteredStaff = staff.filter((member) => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = !searchTerm || 
-      member.full_name?.toLowerCase().includes(searchLower) ||
-      member.role?.toLowerCase().includes(searchLower) ||
-      member.email?.toLowerCase().includes(searchLower);
-    
-    const matchesRole = !roleFilter || member.role === roleFilter;
-    const matchesStatus = !statusFilter || member.status === statusFilter;
-    
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const uniqueRoles = [...new Set(staff.map(s => s.role) || [])];
+  const uniqueRoles: string[] = roles.map(r => r.name).filter(Boolean);
 
   const activeFilterCount = [searchTerm, locationFilter, roleFilter, statusFilter].filter(Boolean).length;
 
@@ -198,12 +205,12 @@ export const StaffTable = () => {
               placeholder={t('workforce.components.staffTable.searchPlaceholder')}
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
           
           <div className="grid grid-cols-3 gap-2">
-            <Select value={locationFilter || "all"} onValueChange={(value) => setLocationFilter(value === "all" ? "" : value)}>
+            <Select value={locationFilter || "all"} onValueChange={(value) => { setLocationFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.location')} />
               </SelectTrigger>
@@ -217,7 +224,7 @@ export const StaffTable = () => {
               </SelectContent>
             </Select>
 
-            <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
+            <Select value={roleFilter || "all"} onValueChange={(value) => { setRoleFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.role')} />
               </SelectTrigger>
@@ -231,7 +238,7 @@ export const StaffTable = () => {
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+            <Select value={statusFilter || "all"} onValueChange={(value) => { setStatusFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.status')} />
               </SelectTrigger>
@@ -251,7 +258,7 @@ export const StaffTable = () => {
               <Filter className="h-4 w-4" />
               <span>
                 {t('workforce.components.staffTable.filtersActive', { count: activeFilterCount })}
-                {filteredStaff && ` • ${t('workforce.components.staffTable.results', { count: filteredStaff.length })}`}
+                {` • ${t('workforce.components.staffTable.results', { count: employeesData?.count || 0 })}`}
               </span>
             </div>
             <Button

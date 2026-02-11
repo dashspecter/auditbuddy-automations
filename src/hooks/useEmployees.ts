@@ -83,15 +83,18 @@ export const useEmployees = (locationId?: string) => {
 
 interface UseEmployeesPaginatedOptions {
   locationId?: string;
+  searchTerm?: string;
+  roleFilter?: string;
+  statusFilter?: string;
   page?: number;
   pageSize?: number;
 }
 
 export const useEmployeesPaginated = (options?: UseEmployeesPaginatedOptions) => {
-  const { locationId, page = 1, pageSize = 20 } = options || {};
+  const { locationId, searchTerm, roleFilter, statusFilter, page = 1, pageSize = 20 } = options || {};
   
   return useQuery({
-    queryKey: ["employees-paginated", locationId, page, pageSize],
+    queryKey: ["employees-paginated", locationId, searchTerm, roleFilter, statusFilter, page, pageSize],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -99,12 +102,25 @@ export const useEmployeesPaginated = (options?: UseEmployeesPaginatedOptions) =>
       let query = supabase
         .from("employees")
         .select("*, locations(name), staff_locations(id, location_id, is_primary, locations(name))", { count: 'exact' })
-        .order("full_name")
-        .range(from, to);
+        .order("full_name");
       
       if (locationId) {
         query = query.eq("location_id", locationId);
       }
+
+      if (searchTerm) {
+        query = query.or(`full_name.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      }
+
+      if (roleFilter) {
+        query = query.eq("role", roleFilter);
+      }
+
+      if (statusFilter) {
+        query = query.eq("status", statusFilter);
+      }
+
+      query = query.range(from, to);
       
       const { data, error, count } = await query;
       
