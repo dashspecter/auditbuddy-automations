@@ -381,241 +381,6 @@ export const EmployeeDialog = ({
             </div>
           </div>
 
-          {/* Contract Document Section - Collapsible */}
-          <Collapsible
-            defaultOpen={!!(
-              formData.cnp || formData.domiciliu || formData.emisa_de || 
-              formData.serie_id || formData.numar_id || formData.valabila_de_la || 
-              formData.valabilitate_id || formData.ocupatia || formData.cod_cor || 
-              formData.valoare_tichet || formData.spor_weekend || formData.perioada_proba_end ||
-              formData.nr_permis_sedere || formData.permis_institutie_emitenta ||
-              formData.permis_data_eliberare || formData.permis_data_expirare ||
-              formData.numar_aviz || formData.aviz_institutie || formData.aviz_data_eliberare
-            )}
-          >
-            <div className="border border-border rounded-lg bg-muted/30">
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-lg transition-colors">
-                <h3 className="font-medium text-sm text-foreground">
-                  {formData.is_foreign ? "Date Contract / Permis Ședere" : "Date Contract / Buletin"}
-                </h3>
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-4 pb-4 space-y-4">
-                {/* Personal Identification - Common fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="cnp">CNP</Label>
-                    <Input
-                      id="cnp"
-                      value={formData.cnp}
-                      onChange={(e) => setFormData({ ...formData, cnp: e.target.value })}
-                      placeholder="e.g., 1234567890123"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="domiciliu">Domiciliu</Label>
-                    <Input
-                      id="domiciliu"
-                      value={formData.domiciliu}
-                      onChange={(e) => setFormData({ ...formData, domiciliu: e.target.value })}
-                      placeholder="Adresa completă"
-                    />
-                  </div>
-                </div>
-
-                {/* Romanian Employee ID Card Details */}
-                {!formData.is_foreign && (
-                  <>
-                    <div>
-                      <Label htmlFor="emisa_de">CI Emis de</Label>
-                      <Input
-                        id="emisa_de"
-                        value={formData.emisa_de}
-                        onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })}
-                        placeholder="e.g., SPCEP Sector 1"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div>
-                        <Label htmlFor="serie_id">Serie CI</Label>
-                        <Input
-                          id="serie_id"
-                          value={formData.serie_id}
-                          onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })}
-                          placeholder="e.g., XY"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="numar_id">Număr CI</Label>
-                        <Input
-                          id="numar_id"
-                          value={formData.numar_id}
-                          onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })}
-                          placeholder="e.g., 123456"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="valabila_de_la">Valabilă de la</Label>
-                        <Input
-                          id="valabila_de_la"
-                          type="date"
-                          value={formData.valabila_de_la}
-                          onChange={(e) => setFormData({ ...formData, valabila_de_la: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="valabilitate_id">Până la</Label>
-                        <Input
-                          id="valabilitate_id"
-                          type="date"
-                          value={formData.valabilitate_id}
-                          onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Foreign Employee Residence Permit Details */}
-                {formData.is_foreign && (
-                  <>
-                    <h4 className="font-medium text-sm text-muted-foreground pt-2">Permis de Ședere</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="nr_permis_sedere">Nr. Permis Ședere</Label>
-                        <Input
-                          id="nr_permis_sedere"
-                          value={formData.nr_permis_sedere}
-                          onChange={(e) => setFormData({ ...formData, nr_permis_sedere: e.target.value })}
-                          placeholder="Numărul permisului"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="permis_institutie_emitenta">Instituție Emitentă</Label>
-                        <Input
-                          id="permis_institutie_emitenta"
-                          value={formData.permis_institutie_emitenta}
-                          onChange={(e) => setFormData({ ...formData, permis_institutie_emitenta: e.target.value })}
-                          placeholder="e.g., IGI"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="permis_data_eliberare">Data Eliberare Permis</Label>
-                        <Input
-                          id="permis_data_eliberare"
-                          type="date"
-                          value={formData.permis_data_eliberare}
-                          onChange={(e) => setFormData({ ...formData, permis_data_eliberare: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="permis_data_expirare">Data Expirare Permis</Label>
-                        <Input
-                          id="permis_data_expirare"
-                          type="date"
-                          value={formData.permis_data_expirare}
-                          onChange={(e) => setFormData({ ...formData, permis_data_expirare: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <h4 className="font-medium text-sm text-muted-foreground pt-2">Aviz de Muncă</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="numar_aviz">Număr Aviz</Label>
-                        <Input
-                          id="numar_aviz"
-                          value={formData.numar_aviz}
-                          onChange={(e) => setFormData({ ...formData, numar_aviz: e.target.value })}
-                          placeholder="Numărul avizului de muncă"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="aviz_institutie">Instituție Aviz</Label>
-                        <Input
-                          id="aviz_institutie"
-                          value={formData.aviz_institutie}
-                          onChange={(e) => setFormData({ ...formData, aviz_institutie: e.target.value })}
-                          placeholder="e.g., ITM București"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="aviz_data_eliberare">Data Eliberare Aviz</Label>
-                      <Input
-                        id="aviz_data_eliberare"
-                        type="date"
-                        value={formData.aviz_data_eliberare}
-                        onChange={(e) => setFormData({ ...formData, aviz_data_eliberare: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Job Details for Contract */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="ocupatia">Ocupația</Label>
-                    <Input
-                      id="ocupatia"
-                      value={formData.ocupatia}
-                      onChange={(e) => setFormData({ ...formData, ocupatia: e.target.value })}
-                      placeholder="e.g., Ospătar"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cod_cor">Cod COR</Label>
-                    <Input
-                      id="cod_cor"
-                      value={formData.cod_cor}
-                      onChange={(e) => setFormData({ ...formData, cod_cor: e.target.value })}
-                      placeholder="e.g., 513102"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="valoare_tichet">Valoare Tichet Masă (lei/zi)</Label>
-                    <Input
-                      id="valoare_tichet"
-                      type="number"
-                      step="0.01"
-                      value={formData.valoare_tichet}
-                      onChange={(e) => setFormData({ ...formData, valoare_tichet: e.target.value })}
-                      placeholder="e.g., 40"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="spor_weekend">Spor Weekend (lei)</Label>
-                    <Input
-                      id="spor_weekend"
-                      type="number"
-                      step="0.01"
-                      value={formData.spor_weekend}
-                      onChange={(e) => setFormData({ ...formData, spor_weekend: e.target.value })}
-                      placeholder="e.g., 100"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="perioada_proba_end">Sfârșit Perioadă Probă</Label>
-                    <Input
-                      id="perioada_proba_end"
-                      type="date"
-                      value={formData.perioada_proba_end}
-                      onChange={(e) => setFormData({ ...formData, perioada_proba_end: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="email">Email</Label>
@@ -626,7 +391,6 @@ export const EmployeeDialog = ({
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
-
             <div>
               <Label htmlFor="phone">Phone</Label>
               <Input
@@ -656,7 +420,6 @@ export const EmployeeDialog = ({
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label htmlFor="hire_date">Hire Date</Label>
               <Input
@@ -668,83 +431,170 @@ export const EmployeeDialog = ({
             </div>
           </div>
 
-          <Collapsible
-            defaultOpen={!!(
-              formData.base_salary || formData.hourly_rate || formData.overtime_rate ||
-              formData.expected_weekly_hours || formData.expected_shifts_per_week
-            )}
-            className="border rounded-lg"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors rounded-lg">
-              <h3 className="text-sm font-semibold text-foreground">Salary & Hours</h3>
-              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-4 pb-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="base_salary">Base Salary</Label>
-                  <Input
-                    id="base_salary"
-                    type="number"
-                    step="0.01"
-                    value={formData.base_salary}
-                    onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })}
-                    placeholder="Annual salary"
-                  />
+          {/* Collapsible Sections */}
+          <div className="space-y-3">
+            {/* Contract Document Section - Collapsible */}
+            <Collapsible
+              defaultOpen={!!(
+                formData.cnp || formData.domiciliu || formData.emisa_de || 
+                formData.serie_id || formData.numar_id || formData.valabila_de_la || 
+                formData.valabilitate_id || formData.ocupatia || formData.cod_cor || 
+                formData.valoare_tichet || formData.spor_weekend || formData.perioada_proba_end ||
+                formData.nr_permis_sedere || formData.permis_institutie_emitenta ||
+                formData.permis_data_eliberare || formData.permis_data_expirare ||
+                formData.numar_aviz || formData.aviz_institutie || formData.aviz_data_eliberare
+              )}
+              className="border border-border rounded-lg bg-muted/20"
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 rounded-lg transition-colors">
+                <h3 className="font-medium text-sm text-foreground">
+                  {formData.is_foreign ? "Date Contract / Permis Ședere" : "Date Contract / Buletin"}
+                </h3>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-4 pb-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cnp">CNP</Label>
+                    <Input id="cnp" value={formData.cnp} onChange={(e) => setFormData({ ...formData, cnp: e.target.value })} placeholder="e.g., 1234567890123" />
+                  </div>
+                  <div>
+                    <Label htmlFor="domiciliu">Domiciliu</Label>
+                    <Input id="domiciliu" value={formData.domiciliu} onChange={(e) => setFormData({ ...formData, domiciliu: e.target.value })} placeholder="Adresa completă" />
+                  </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="hourly_rate">Hourly Rate</Label>
-                  <Input
-                    id="hourly_rate"
-                    type="number"
-                    step="0.01"
-                    value={formData.hourly_rate}
-                    onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                    placeholder="Per hour"
-                  />
+                {!formData.is_foreign && (
+                  <>
+                    <div>
+                      <Label htmlFor="emisa_de">CI Emis de</Label>
+                      <Input id="emisa_de" value={formData.emisa_de} onChange={(e) => setFormData({ ...formData, emisa_de: e.target.value })} placeholder="e.g., SPCEP Sector 1" />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div>
+                        <Label htmlFor="serie_id">Serie CI</Label>
+                        <Input id="serie_id" value={formData.serie_id} onChange={(e) => setFormData({ ...formData, serie_id: e.target.value })} placeholder="e.g., XY" />
+                      </div>
+                      <div>
+                        <Label htmlFor="numar_id">Număr CI</Label>
+                        <Input id="numar_id" value={formData.numar_id} onChange={(e) => setFormData({ ...formData, numar_id: e.target.value })} placeholder="e.g., 123456" />
+                      </div>
+                      <div>
+                        <Label htmlFor="valabila_de_la">Valabilă de la</Label>
+                        <Input id="valabila_de_la" type="date" value={formData.valabila_de_la} onChange={(e) => setFormData({ ...formData, valabila_de_la: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="valabilitate_id">Până la</Label>
+                        <Input id="valabilitate_id" type="date" value={formData.valabilitate_id} onChange={(e) => setFormData({ ...formData, valabilitate_id: e.target.value })} />
+                      </div>
+                    </div>
+                  </>
+                )}
+                {formData.is_foreign && (
+                  <>
+                    <h4 className="font-medium text-sm text-muted-foreground pt-2">Permis de Ședere</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="nr_permis_sedere">Nr. Permis Ședere</Label>
+                        <Input id="nr_permis_sedere" value={formData.nr_permis_sedere} onChange={(e) => setFormData({ ...formData, nr_permis_sedere: e.target.value })} placeholder="Numărul permisului" />
+                      </div>
+                      <div>
+                        <Label htmlFor="permis_institutie_emitenta">Instituție Emitentă</Label>
+                        <Input id="permis_institutie_emitenta" value={formData.permis_institutie_emitenta} onChange={(e) => setFormData({ ...formData, permis_institutie_emitenta: e.target.value })} placeholder="e.g., IGI" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="permis_data_eliberare">Data Eliberare Permis</Label>
+                        <Input id="permis_data_eliberare" type="date" value={formData.permis_data_eliberare} onChange={(e) => setFormData({ ...formData, permis_data_eliberare: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label htmlFor="permis_data_expirare">Data Expirare Permis</Label>
+                        <Input id="permis_data_expirare" type="date" value={formData.permis_data_expirare} onChange={(e) => setFormData({ ...formData, permis_data_expirare: e.target.value })} />
+                      </div>
+                    </div>
+                    <h4 className="font-medium text-sm text-muted-foreground pt-2">Aviz de Muncă</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="numar_aviz">Număr Aviz</Label>
+                        <Input id="numar_aviz" value={formData.numar_aviz} onChange={(e) => setFormData({ ...formData, numar_aviz: e.target.value })} placeholder="Numărul avizului de muncă" />
+                      </div>
+                      <div>
+                        <Label htmlFor="aviz_institutie">Instituție Aviz</Label>
+                        <Input id="aviz_institutie" value={formData.aviz_institutie} onChange={(e) => setFormData({ ...formData, aviz_institutie: e.target.value })} placeholder="e.g., ITM București" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="aviz_data_eliberare">Data Eliberare Aviz</Label>
+                      <Input id="aviz_data_eliberare" type="date" value={formData.aviz_data_eliberare} onChange={(e) => setFormData({ ...formData, aviz_data_eliberare: e.target.value })} />
+                    </div>
+                  </>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ocupatia">Ocupația</Label>
+                    <Input id="ocupatia" value={formData.ocupatia} onChange={(e) => setFormData({ ...formData, ocupatia: e.target.value })} placeholder="e.g., Ospătar" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cod_cor">Cod COR</Label>
+                    <Input id="cod_cor" value={formData.cod_cor} onChange={(e) => setFormData({ ...formData, cod_cor: e.target.value })} placeholder="e.g., 513102" />
+                  </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="overtime_rate">Overtime Rate (Extra Shifts)</Label>
-                  <Input
-                    id="overtime_rate"
-                    type="number"
-                    step="0.01"
-                    value={formData.overtime_rate}
-                    onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })}
-                    placeholder="Per hour for extra shifts"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="valoare_tichet">Valoare Tichet Masă (lei/zi)</Label>
+                    <Input id="valoare_tichet" type="number" step="0.01" value={formData.valoare_tichet} onChange={(e) => setFormData({ ...formData, valoare_tichet: e.target.value })} placeholder="e.g., 40" />
+                  </div>
+                  <div>
+                    <Label htmlFor="spor_weekend">Spor Weekend (lei)</Label>
+                    <Input id="spor_weekend" type="number" step="0.01" value={formData.spor_weekend} onChange={(e) => setFormData({ ...formData, spor_weekend: e.target.value })} placeholder="e.g., 100" />
+                  </div>
+                  <div>
+                    <Label htmlFor="perioada_proba_end">Sfârșit Perioadă Probă</Label>
+                    <Input id="perioada_proba_end" type="date" value={formData.perioada_proba_end} onChange={(e) => setFormData({ ...formData, perioada_proba_end: e.target.value })} />
+                  </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
-                  <Input
-                    id="expected_weekly_hours"
-                    type="number"
-                    step="0.5"
-                    value={formData.expected_weekly_hours}
-                    onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })}
-                    placeholder="e.g. 40"
-                  />
+              </CollapsibleContent>
+            </Collapsible>
+            {/* Salary & Hours - Collapsible */}
+            <Collapsible
+              defaultOpen={!!(
+                formData.base_salary || formData.hourly_rate || formData.overtime_rate ||
+                formData.expected_weekly_hours || formData.expected_shifts_per_week
+              )}
+              className="border border-border rounded-lg bg-muted/20"
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors rounded-lg">
+                <h3 className="font-medium text-sm text-foreground">Salary & Hours</h3>
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-4 pb-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="base_salary">Base Salary</Label>
+                    <Input id="base_salary" type="number" step="0.01" value={formData.base_salary} onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })} placeholder="Annual salary" />
+                  </div>
+                  <div>
+                    <Label htmlFor="hourly_rate">Hourly Rate</Label>
+                    <Input id="hourly_rate" type="number" step="0.01" value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })} placeholder="Per hour" />
+                  </div>
+                  <div>
+                    <Label htmlFor="overtime_rate">Overtime Rate (Extra Shifts)</Label>
+                    <Input id="overtime_rate" type="number" step="0.01" value={formData.overtime_rate} onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })} placeholder="Per hour for extra shifts" />
+                  </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
-                  <Input
-                    id="expected_shifts_per_week"
-                    type="number"
-                    step="1"
-                    value={formData.expected_shifts_per_week}
-                    onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })}
-                    placeholder="e.g. 5"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
+                    <Input id="expected_weekly_hours" type="number" step="0.5" value={formData.expected_weekly_hours} onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })} placeholder="e.g. 40" />
+                  </div>
+                  <div>
+                    <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
+                    <Input id="expected_shifts_per_week" type="number" step="1" value={formData.expected_shifts_per_week} onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })} placeholder="e.g. 5" />
+                  </div>
                 </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
 
           <div className="space-y-2">
             <Label>Emergency Contact</Label>
