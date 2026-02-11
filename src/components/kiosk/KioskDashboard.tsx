@@ -214,6 +214,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     grouped: unifiedGrouped,
     debug: kioskPipelineDebug,
     rawTasks,
+    completionsLoading,
   } = useKioskTodayTasks({
     locationId,
     companyId,
@@ -532,7 +533,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
       {/* Overdue Alert Banner - Prominent when there are overdue tasks */}
-      {unifiedOverdueCount > 0 && (
+      {/* CRITICAL: Wait for completions to load before showing banner to prevent flash */}
+      {!completionsLoading && unifiedOverdueCount > 0 && (
         <div className="animate-pulse bg-destructive/90 text-destructive-foreground rounded-lg p-4 flex items-center justify-between shadow-lg border-2 border-destructive">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 rounded-full p-2">
