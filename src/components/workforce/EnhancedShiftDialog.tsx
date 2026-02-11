@@ -620,7 +620,7 @@ export const EnhancedShiftDialog = ({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto flex-1 pr-2">
+        <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto flex-1 px-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('workforce.components.enhancedShiftDialog.location')} *</Label>
