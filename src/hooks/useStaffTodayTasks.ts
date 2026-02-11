@@ -838,6 +838,10 @@ export function useKioskTodayTasks(options: {
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
+    // CRITICAL: Keep previous completions data when queryKey changes (e.g. taskIdsKey
+    // recomputes during rawTasks refetch). Without this, completions briefly becomes []
+    // causing overdue banner to flash for ~1s before new data arrives.
+    placeholderData: (prev: CompletionRecord[] | undefined) => prev ?? [],
   });
 
   // ======================================================================
