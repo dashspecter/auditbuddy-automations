@@ -119,7 +119,7 @@ export const EnhancedShiftWeekView = () => {
     format(weekEnd, 'yyyy-MM-dd'),
     shiftTypeFilter
   );
-  const { data: employees = [] } = useEmployees(selectedLocation === "all" ? undefined : selectedLocation);
+  const { data: employees = [] } = useEmployees(selectedLocation === "all" ? undefined : selectedLocation, "active");
   const { data: timeOffRequests = [] } = useTimeOffRequests(
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
