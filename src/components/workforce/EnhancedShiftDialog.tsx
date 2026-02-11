@@ -88,6 +88,7 @@ export const EnhancedShiftDialog = ({
   const [allowCrossDepartment, setAllowCrossDepartment] = useState(false);
   const [showAllLocations, setShowAllLocations] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [individualTimes, setIndividualTimes] = useState<Record<string, { start_time: string; end_time: string }>>({});
   const [selectedPreset, setSelectedPreset] = useState<string>("custom");
   const [individualPresets, setIndividualPresets] = useState<Record<string, string>>({});
@@ -290,6 +291,7 @@ export const EnhancedShiftDialog = ({
       setSelectedEmployees([]);
       setAllowCrossDepartment(false);
       setBatchMode(false);
+      setEmployeeSearch("");
       setIndividualTimes({});
       setSelectedPreset("custom");
       setIndividualPresets({});
@@ -923,6 +925,12 @@ export const EnhancedShiftDialog = ({
                 </Label>
               </div>
             </div>
+            <Input
+              placeholder={t('workforce.components.enhancedShiftDialog.searchEmployees', 'Search employees...')}
+              value={employeeSearch}
+              onChange={(e) => setEmployeeSearch(e.target.value)}
+              className="h-8 text-sm"
+            />
             {batchMode ? (
               <div className="space-y-3">
                 {availableEmployees.length === 0 ? (
@@ -932,6 +940,7 @@ export const EnhancedShiftDialog = ({
                 ) : (
                   availableEmployees
                     .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role || selectedEmployees.includes(emp.id))
+                    .filter(emp => !employeeSearch || emp.full_name.toLowerCase().includes(employeeSearch.toLowerCase()) || emp.role?.toLowerCase().includes(employeeSearch.toLowerCase()))
                     .map((employee) => {
                       const isSelected = selectedEmployees.includes(employee.id);
                       const times = individualTimes[employee.id] || {
@@ -1090,6 +1099,7 @@ export const EnhancedShiftDialog = ({
                 ) : (
                   availableEmployees
                     .filter(emp => allowCrossDepartment || emp.role === formData.role || !formData.role || selectedEmployees.includes(emp.id))
+                    .filter(emp => !employeeSearch || emp.full_name.toLowerCase().includes(employeeSearch.toLowerCase()) || emp.role?.toLowerCase().includes(employeeSearch.toLowerCase()))
                     .map((employee) => {
                       const isDisabled = !selectedEmployees.includes(employee.id) && 
                                         !batchMode &&
