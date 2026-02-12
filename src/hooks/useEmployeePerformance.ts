@@ -156,7 +156,7 @@ export const useEmployeePerformance = (
 
       if (attendanceError) throw attendanceError;
 
-      // Get tasks for the period
+      // Get tasks for the period (directly assigned)
       let tasksQuery = supabase
         .from("tasks")
         .select("id, assigned_to, status, completed_at, completed_late, due_at")
@@ -166,6 +166,42 @@ export const useEmployeePerformance = (
 
       const { data: tasks, error: tasksError } = await tasksQuery;
       if (tasksError) throw tasksError;
+
+      // Get task_completions for the period (includes role/location-based task completions)
+      const { data: taskCompletions, error: taskCompletionsError } = await supabase
+        .from("task_completions")
+        .select("id, task_id, completed_by_employee_id, completed_at, occurrence_date")
+        .gte("occurrence_date", startDate)
+        .lte("occurrence_date", endDate)
+        .not("completed_by_employee_id", "is", null);
+
+      if (taskCompletionsError) throw taskCompletionsError;
+
+      // Build a map of task details for looking up due_at / completed_late
+      // Fetch parent tasks for completions that aren't already in the tasks list
+      const completionTaskIds = [...new Set((taskCompletions || []).map(c => c.task_id))];
+      const existingTaskIds = new Set((tasks || []).map(t => t.id));
+      const missingTaskIds = completionTaskIds.filter(id => !existingTaskIds.has(id));
+      
+      let extraTasks: typeof tasks = [];
+      if (missingTaskIds.length > 0) {
+        // Fetch in batches of 100 to avoid URL length limits
+        for (let i = 0; i < missingTaskIds.length; i += 100) {
+          const batch = missingTaskIds.slice(i, i + 100);
+          const { data: batchTasks, error: batchError } = await supabase
+            .from("tasks")
+            .select("id, assigned_to, status, completed_at, completed_late, due_at")
+            .in("id", batch);
+          if (batchError) throw batchError;
+          if (batchTasks) extraTasks = [...extraTasks!, ...batchTasks];
+        }
+      }
+
+      // Combined task lookup map
+      const allTasksMap = new Map<string, { due_at: string | null; completed_late: boolean | null }>();
+      for (const t of [...(tasks || []), ...(extraTasks || [])]) {
+        allTasksMap.set(t.id, { due_at: t.due_at, completed_late: t.completed_late });
+      }
 
       // Get test submissions for the period
       const { data: testSubmissions, error: testError } = await supabase
@@ -263,18 +299,44 @@ export const useEmployeePerformance = (
           0
         );
 
-        // Calculate task metrics
-        const employeeTasks = (tasks || []).filter(
+        // Calculate task metrics - merge directly assigned tasks AND task_completions
+        const directTasks = (tasks || []).filter(
           (task) => task.assigned_to === employeeId
         );
-        const tasksAssigned = employeeTasks.length;
-        const tasksCompleted = employeeTasks.filter(
-          (t) => t.status === "completed"
+        const directTaskIds = new Set(directTasks.map(t => t.id));
+        
+        // Get completions from task_completions for this employee (excluding already-counted direct tasks)
+        const employeeCompletions = (taskCompletions || []).filter(
+          (c) => c.completed_by_employee_id === employeeId && !directTaskIds.has(c.task_id)
+        );
+        
+        // Direct task metrics
+        const directAssigned = directTasks.length;
+        const directCompleted = directTasks.filter(t => t.status === "completed").length;
+        const directCompletedOnTime = directTasks.filter(
+          t => t.status === "completed" && !t.completed_late
         ).length;
-        const tasksCompletedOnTime = employeeTasks.filter(
-          (t) => t.status === "completed" && !t.completed_late
-        ).length;
-        const tasksOverdue = employeeTasks.filter(
+        
+        // Completion-based metrics (role/location assigned tasks completed by this employee)
+        const completionCount = employeeCompletions.length;
+        const completionOnTimeCount = employeeCompletions.filter(c => {
+          const parentTask = allTasksMap.get(c.task_id);
+          if (!parentTask) return true; // If we can't find parent, assume on time
+          // Check completed_late flag on parent task, or compare completion time vs due_at
+          if (parentTask.completed_late === true) return false;
+          if (parentTask.completed_late === false) return true;
+          // Fallback: if due_at exists, compare
+          if (parentTask.due_at && c.completed_at) {
+            return new Date(c.completed_at) <= new Date(parentTask.due_at);
+          }
+          return true; // No due date = on time
+        }).length;
+        
+        // Merged totals
+        const tasksAssigned = directAssigned + completionCount;
+        const tasksCompleted = directCompleted + completionCount; // all completions count as completed
+        const tasksCompletedOnTime = directCompletedOnTime + completionOnTimeCount;
+        const tasksOverdue = directTasks.filter(
           (t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date()
         ).length;
 
