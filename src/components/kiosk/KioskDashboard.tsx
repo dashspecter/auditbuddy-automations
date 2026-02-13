@@ -3,7 +3,7 @@ import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveScore";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, startOfMonth, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
 import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 import type { Task as BaseTask } from "@/hooks/useTasks";
 import { useKioskTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
@@ -395,12 +395,12 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     });
   }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
 
-  // Weekly Score - use general performance score (same as Performance Rankings)
-  const weekStartFormatted = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const weekEndFormatted = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  // MTD Score - use general performance score (same as Performance Rankings)
+  const mtdStartFormatted = format(startOfMonth(today), 'yyyy-MM-dd');
+  const mtdEndFormatted = format(today, 'yyyy-MM-dd');
   const { allScores: weeklyAllScores } = usePerformanceLeaderboard(
-    weekStartFormatted,
-    weekEndFormatted,
+    mtdStartFormatted,
+    mtdEndFormatted,
     locationId,
     999
   );
@@ -811,12 +811,12 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
             </ScrollArea>
           </Card>
 
-          {/* Weekly Leaderboard - Weekly Score */}
-          <Card className="flex-1 overflow-hidden">
+           {/* MTD Leaderboard - Month-to-Date Score */}
+           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-purple-500" />
-                Weekly Score
+                MTD Score
               </h3>
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
