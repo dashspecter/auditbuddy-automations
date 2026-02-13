@@ -13,6 +13,7 @@ import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBat
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2 } from "lucide-react";
+import { LocationSelector } from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ export default function PayrollBatches() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<PayrollBatch | null>(null);
   const [newPeriod, setNewPeriod] = useState({ start: "", end: "" });
+  const [selectedLocationId, setSelectedLocationId] = useState("__all__");
 
   const { data: batches, isLoading, refetch } = usePayrollBatches();
   const updateBatch = useUpdatePayrollBatch();
@@ -54,10 +56,12 @@ export default function PayrollBatches() {
       await preparePayroll.mutateAsync({
         periodStart: newPeriod.start,
         periodEnd: newPeriod.end,
+        locationId: selectedLocationId,
       });
       toast.success(t('workforce.payrollBatches.batchPrepared'));
       setIsDialogOpen(false);
       setNewPeriod({ start: "", end: "" });
+      setSelectedLocationId("__all__");
       refetch();
     } catch (error: any) {
       toast.error(error.message || t('workforce.payrollBatches.failedPrepare'));
@@ -120,8 +124,21 @@ export default function PayrollBatches() {
                     value={newPeriod.end}
                     onChange={(e) => setNewPeriod({ ...newPeriod, end: e.target.value })}
                   />
-                </div>
               </div>
+              <div className="space-y-2">
+                <Label>{t('common.location')}</Label>
+                <LocationSelector
+                  value={selectedLocationId}
+                  onValueChange={setSelectedLocationId}
+                  allowAll
+                />
+                <p className="text-xs text-muted-foreground">
+                  {selectedLocationId === "__all__"
+                    ? t('workforce.payrollBatches.allLocationsHint', 'Payroll will include all locations')
+                    : t('workforce.payrollBatches.singleLocationHint', 'Payroll will only include employees from this location')}
+                </p>
+              </div>
+            </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
