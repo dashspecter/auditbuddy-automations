@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
@@ -21,7 +22,6 @@ import {
 } from "lucide-react";
 import { 
   computeKioskTaskMetrics, 
-  getWeeklyStars,
   type KioskTask,
   type ScheduledEmployee
 } from "@/lib/kioskTaskAttribution";
@@ -394,31 +394,15 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     });
   }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
 
-  // Weekly stars - keep using legacy for now (not affected by per-occurrence bug)
-  // Convert tasks to KioskTask format for weekly attribution
-  const kioskTasks: KioskTask[] = useMemo(() => {
-    return (rawTasks as any[]).map(task => ({
-      id: task.id,
-      title: task.title,
-      status: task.status,
-      assigned_to: task.assigned_to,
-      role_ids: task.role_ids || [],
-      role_names: task.role_names || [],
-      due_at: task.due_at,
-      start_at: task.start_at,
-      completed_at: task.completed_at,
-      completed_late: task.completed_late,
-      completed_by: task.completed_by,
-    }));
-  }, [rawTasks]);
-
-  const employeeTaskMetrics = useMemo(() => {
-    return computeKioskTaskMetrics(kioskTasks, scheduledEmployeesForMetrics, today);
-  }, [kioskTasks, scheduledEmployeesForMetrics, today]);
-
-  const weeklyStars = useMemo(() => {
-    return getWeeklyStars(employeeTaskMetrics, 3);
-  }, [employeeTaskMetrics]);
+  // Weekly Score - use general performance score (same as Performance Rankings)
+  const weekStartFormatted = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const weekEndFormatted = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const { leaderboard: weeklyScoreLeaderboard } = usePerformanceLeaderboard(
+    weekStartFormatted,
+    weekEndFormatted,
+    locationId,
+    10
+  );
 
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
@@ -822,19 +806,19 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
             </ScrollArea>
           </Card>
 
-          {/* Weekly Leaderboard - Weekly Stars */}
+          {/* Weekly Leaderboard - Weekly Score */}
           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
               <h3 className="font-semibold flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-purple-500" />
-                Weekly Stars
+                Weekly Score
               </h3>
             </div>
             <ScrollArea className="h-[calc(100%-48px)]">
               <div className="p-2 space-y-1">
-                {weeklyStars.map((star, index) => (
+                {weeklyScoreLeaderboard.map((emp, index) => (
                   <div
-                    key={star.employee_id}
+                    key={emp.employee_id}
                     className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
                   >
                     <div
@@ -851,23 +835,21 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{star.employee_name}</div>
-                      <div className="text-xs text-muted-foreground">{star.role}</div>
+                      <div className="font-medium text-sm truncate">{emp.employee_name}</div>
+                      <div className="text-xs text-muted-foreground">{emp.role}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-purple-600">
-                        {star.weekly_task_score !== null 
-                          ? star.weekly_task_score.toFixed(0) 
-                          : "-"}
+                        {emp.overall_score.toFixed(0)}
                       </div>
                       <div className="text-xs text-muted-foreground">score</div>
                     </div>
                   </div>
                 ))}
-                {weeklyStars.length === 0 && (
+                {weeklyScoreLeaderboard.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     <Trophy className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                    No completions this week yet
+                    No scores this week yet
                   </div>
                 )}
               </div>
