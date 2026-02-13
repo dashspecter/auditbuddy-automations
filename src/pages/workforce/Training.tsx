@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, BookOpen, Users, Calendar, Clock, ChevronRight, 
-  GraduationCap, Target, Search, Filter
+  GraduationCap, Target, Search, Filter, Trash2
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useTrainingModules } from "@/hooks/useTrainingModules";
+import { useTrainingModules, useDeleteTrainingModule } from "@/hooks/useTrainingModules";
 import { useTrainingAssignments } from "@/hooks/useTrainingAssignments";
 import {
   Dialog,
@@ -21,6 +21,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -44,7 +54,9 @@ const Training = () => {
   );
   const { data: roles = [] } = useEmployeeRoles();
   const createModule = useCreateTrainingModule();
+  const deleteModule = useDeleteTrainingModule();
   
+  const [moduleToDelete, setModuleToDelete] = useState<{ id: string; name: string } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -298,7 +310,18 @@ const Training = () => {
                         <div className="p-2 rounded-lg bg-primary/10">
                           <BookOpen className="h-5 w-5 text-primary" />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModuleToDelete({ id: module.id, name: module.name });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                           {!module.is_active && (
                             <Badge variant="secondary">Inactive</Badge>
                           )}
@@ -408,6 +431,31 @@ const Training = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Delete Module Confirmation */}
+      <AlertDialog open={!!moduleToDelete} onOpenChange={(open) => !open && setModuleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Training Module</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{moduleToDelete?.name}"? This will also remove all associated days, tasks, and evaluations. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (moduleToDelete) {
+                  deleteModule.mutate(moduleToDelete.id);
+                  setModuleToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
