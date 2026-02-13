@@ -82,7 +82,7 @@ export default function AdminAddWasteEntry() {
         location_id: formData.location_id,
         waste_product_id: formData.waste_product_id,
         waste_reason_id: formData.waste_reason_id || null,
-        weight_kg: parseFloat(formData.weight_kg),
+        weight_kg: parseFloat(formData.weight_kg.replace(',', '.')),
         notes: formData.notes || null,
       });
 
@@ -136,7 +136,7 @@ export default function AdminAddWasteEntry() {
 
   const selectedProduct = products?.find(p => p.id === formData.waste_product_id);
   const estimatedCost = selectedProduct && formData.weight_kg 
-    ? (selectedProduct.unit_cost * parseFloat(formData.weight_kg)).toFixed(2)
+    ? (selectedProduct.unit_cost * parseFloat(formData.weight_kg.replace(',', '.'))).toFixed(2)
     : null;
 
   return (
@@ -237,12 +237,14 @@ export default function AdminAddWasteEntry() {
                   Weight (kg) *
                 </Label>
                 <Input
-                  type="number"
-                  min="0.001"
-                  step="0.001"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.weight_kg}
-                  onChange={(e) => setFormData(prev => ({ ...prev, weight_kg: e.target.value }))}
-                  placeholder="Enter weight in kg"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.,]/g, '');
+                    setFormData(prev => ({ ...prev, weight_kg: val }));
+                  }}
+                  placeholder="e.g. 1,50"
                 />
                 {estimatedCost && (
                   <p className="text-sm text-muted-foreground">
