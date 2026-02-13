@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
+import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveScore";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
@@ -397,12 +398,16 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   // Weekly Score - use general performance score (same as Performance Rankings)
   const weekStartFormatted = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const weekEndFormatted = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const { leaderboard: weeklyScoreLeaderboard } = usePerformanceLeaderboard(
+  const { allScores: weeklyAllScores } = usePerformanceLeaderboard(
     weekStartFormatted,
     weekEndFormatted,
     locationId,
-    10
+    999
   );
+  const weeklyScoreLeaderboard = useMemo(() => {
+    const effective = computeEffectiveScores(weeklyAllScores, true);
+    return sortByEffectiveScore(effective).slice(0, 10);
+  }, [weeklyAllScores]);
 
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
@@ -840,7 +845,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-purple-600">
-                        {emp.overall_score.toFixed(0)}
+                        {emp.effective_score !== null ? emp.effective_score.toFixed(0) : "—"}
                       </div>
                       <div className="text-xs text-muted-foreground">score</div>
                     </div>
