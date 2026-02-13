@@ -170,7 +170,7 @@ export const useEmployeePerformance = (
       // Get task_completions for the period (includes role/location-based task completions)
       const { data: taskCompletions, error: taskCompletionsError } = await supabase
         .from("task_completions")
-        .select("id, task_id, completed_by_employee_id, completed_at, occurrence_date")
+        .select("id, task_id, completed_by_employee_id, completed_at, occurrence_date, completed_late")
         .gte("occurrence_date", startDate)
         .lte("occurrence_date", endDate)
         .not("completed_by_employee_id", "is", null);
@@ -318,14 +318,22 @@ export const useEmployeePerformance = (
         ).length;
         
         // Completion-based metrics (role/location assigned tasks completed by this employee)
+        // NOTE: Task late status is now tracked per-completion (task_completions.completed_late)
+        // Priority: per-completion flag > parent task flag > due_at comparison
         const completionCount = employeeCompletions.length;
+        // Use per-completion completed_late flag; if null/undefined, fall back to parent task data
         const completionOnTimeCount = employeeCompletions.filter(c => {
+          // If this completion has the completed_late flag set, use it (preferred, per-occurrence tracking)
+          if (c.completed_late === true) return false;
+          if (c.completed_late === false) return true;
+          
+          // Fallback to parent task data if per-completion flag not set
           const parentTask = allTasksMap.get(c.task_id);
           if (!parentTask) return true; // If we can't find parent, assume on time
-          // Check completed_late flag on parent task, or compare completion time vs due_at
           if (parentTask.completed_late === true) return false;
           if (parentTask.completed_late === false) return true;
-          // Fallback: if due_at exists, compare
+          
+          // Last fallback: if due_at exists, compare completion time vs due date
           if (parentTask.due_at && c.completed_at) {
             return new Date(c.completed_at) <= new Date(parentTask.due_at);
           }
