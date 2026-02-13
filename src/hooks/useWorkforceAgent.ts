@@ -279,13 +279,14 @@ export function usePreparePayroll() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ periodStart, periodEnd }: { periodStart: string; periodEnd: string }) => {
+    mutationFn: async ({ periodStart, periodEnd, locationId }: { periodStart: string; periodEnd: string; locationId?: string }) => {
       const { data, error } = await supabase.functions.invoke("workforce-agent", {
         body: {
           action: "prepare-payroll",
           company_id: company?.id,
           period_start: periodStart,
           period_end: periodEnd,
+          ...(locationId && locationId !== "__all__" ? { location_id: locationId } : {}),
         },
       });
       if (error) throw error;
