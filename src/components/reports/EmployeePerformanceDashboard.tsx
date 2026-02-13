@@ -396,10 +396,10 @@ export const EmployeePerformanceDashboard = () => {
                     <span className="text-muted-foreground">Warnings:</span>
                     <span className="ml-2 font-medium text-red-600">-{employee.warning_penalty?.toFixed(1) || '0.0'}</span>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Final Score:</span>
-                    <span className={`ml-2 font-bold ${getScoreColor(employee.overall_score)}`}>{employee.overall_score.toFixed(1)}</span>
-                  </div>
+                   <div>
+                     <span className="text-muted-foreground">Final Score:</span>
+                     <span className={`ml-2 font-bold ${employee.effective_score !== null ? getScoreColor(employee.effective_score) : 'text-muted-foreground'}`}>{employee.effective_score !== null ? employee.effective_score.toFixed(1) : "—"}</span>
+                   </div>
                 </div>
                 {employee.warning_monthly_caps && Object.entries(employee.warning_monthly_caps).some(([_, v]) => (v as { raw: number; capped: number }).raw > (v as { raw: number; capped: number }).capped) && (
                   <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">

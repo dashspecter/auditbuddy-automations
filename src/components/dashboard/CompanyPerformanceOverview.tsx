@@ -9,6 +9,8 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { computeEffectiveScores, sortByEffectiveScore, calculateAverageEffectiveScore } from "@/lib/effectiveScore";
+import { useMemo } from "react";
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'];
 
@@ -43,16 +45,19 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
     endDate
   );
 
-  // Calculate company-wide metrics
-  const avgPerformanceScore = allScores.length > 0
-    ? allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length
-    : 0;
+  // Calculate company-wide metrics using effective scores
+  const effectiveScores = useMemo(() => 
+    computeEffectiveScores(allScores, true),
+    [allScores]
+  );
 
-  const totalEmployees = allScores.length;
-  const excellentPerformers = allScores.filter(s => s.overall_score >= 90).length;
-  const goodPerformers = allScores.filter(s => s.overall_score >= 70 && s.overall_score < 90).length;
-  const averagePerformers = allScores.filter(s => s.overall_score >= 50 && s.overall_score < 70).length;
-  const belowAveragePerformers = allScores.filter(s => s.overall_score < 50).length;
+  const avgPerformanceScore = calculateAverageEffectiveScore(effectiveScores) ?? 0;
+
+  const totalEmployees = effectiveScores.length;
+  const excellentPerformers = effectiveScores.filter(s => s.effective_score !== null && s.effective_score >= 90).length;
+  const goodPerformers = effectiveScores.filter(s => s.effective_score !== null && s.effective_score >= 70 && s.effective_score < 90).length;
+  const averagePerformers = effectiveScores.filter(s => s.effective_score !== null && s.effective_score >= 50 && s.effective_score < 70).length;
+  const belowAveragePerformers = effectiveScores.filter(s => s.effective_score !== null && s.effective_score < 50).length;
 
   // Performance distribution for pie chart
   const performanceDistribution = [
@@ -62,13 +67,20 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
     { name: 'Needs Improvement (<50)', value: belowAveragePerformers, color: '#ef4444' },
   ].filter(d => d.value > 0);
 
-  // Location performance comparison
-  const locationPerformance = byLocation.map(loc => ({
-    name: loc.location_name.length > 15 ? loc.location_name.substring(0, 15) + '...' : loc.location_name,
-    fullName: loc.location_name,
-    score: parseFloat((loc.employees.reduce((sum, e) => sum + e.overall_score, 0) / loc.employees.length).toFixed(1)),
-    employees: loc.employees.length,
-  })).sort((a, b) => b.score - a.score);
+  // Location performance comparison using effective scores
+  const locationPerformance = useMemo(() => {
+    const locEffectiveScores = byLocation.map(loc => {
+      const locEffective = computeEffectiveScores(loc.employees, true);
+      const avgScore = calculateAverageEffectiveScore(locEffective) ?? 0;
+      return {
+        name: loc.location_name.length > 15 ? loc.location_name.substring(0, 15) + '...' : loc.location_name,
+        fullName: loc.location_name,
+        score: parseFloat(avgScore.toFixed(1)),
+        employees: loc.employees.length,
+      };
+    });
+    return locEffectiveScores.sort((a, b) => b.score - a.score);
+  }, [byLocation]);
 
   // Calculate attendance and task rates
   const totalShiftsScheduled = allScores.reduce((sum, s) => sum + s.shifts_scheduled, 0);
@@ -306,20 +318,20 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
             </div>
           ) : (
             <div className="space-y-4">
-              {byLocation.map((location) => {
-                const locAvgScore = parseFloat(
-                  (location.employees.reduce((sum, e) => sum + e.overall_score, 0) / location.employees.length).toFixed(1)
-                );
-                const locAvgAttendance = parseFloat(
-                  (location.employees.reduce((sum, e) => sum + e.attendance_score, 0) / location.employees.length).toFixed(1)
-                );
-                const locAvgPunctuality = parseFloat(
-                  (location.employees.reduce((sum, e) => sum + e.punctuality_score, 0) / location.employees.length).toFixed(1)
-                );
-                const locAvgTasks = parseFloat(
-                  (location.employees.reduce((sum, e) => sum + e.task_score, 0) / location.employees.length).toFixed(1)
-                );
-                const topPerformer = location.employees.sort((a, b) => b.overall_score - a.overall_score)[0];
+               {byLocation.map((location) => {
+                 const locEffective = computeEffectiveScores(location.employees, true);
+                 const locAvgScore = calculateAverageEffectiveScore(locEffective) ?? 0;
+                 const locAvgAttendance = parseFloat(
+                   (location.employees.reduce((sum, e) => sum + e.attendance_score, 0) / location.employees.length).toFixed(1)
+                 );
+                 const locAvgPunctuality = parseFloat(
+                   (location.employees.reduce((sum, e) => sum + e.punctuality_score, 0) / location.employees.length).toFixed(1)
+                 );
+                 const locAvgTasks = parseFloat(
+                   (location.employees.reduce((sum, e) => sum + e.task_score, 0) / location.employees.length).toFixed(1)
+                 );
+                 const sortedByEffective = locEffective.sort((a, b) => (b.effective_score ?? -1) - (a.effective_score ?? -1));
+                 const topPerformer = sortedByEffective[0];
 
                 return (
                   <div key={location.location_id} className="border rounded-lg p-4">
@@ -355,13 +367,13 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
                     </div>
                     
                     {topPerformer && (
-                      <div className="mt-3 pt-3 border-t flex items-center gap-2 text-sm">
-                        <Trophy className="h-4 w-4 text-yellow-500" />
-                        <span className="text-muted-foreground">Top performer:</span>
-                        <span className="font-medium">{topPerformer.employee_name}</span>
-                        <Badge variant="outline" className="text-xs">{topPerformer.overall_score.toFixed(1)}%</Badge>
-                      </div>
-                    )}
+                       <div className="mt-3 pt-3 border-t flex items-center gap-2 text-sm">
+                         <Trophy className="h-4 w-4 text-yellow-500" />
+                         <span className="text-muted-foreground">Top performer:</span>
+                         <span className="font-medium">{topPerformer.employee_name}</span>
+                         <Badge variant="outline" className="text-xs">{topPerformer.effective_score !== null ? topPerformer.effective_score.toFixed(1) : "—"}%</Badge>
+                       </div>
+                     )}
                   </div>
                 );
               })}
