@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Mail,
   Phone,
+  Download,
   UtensilsCrossed,
   ShoppingBag,
   Building,
@@ -48,6 +49,7 @@ import {
 import { ModuleCardV2 } from "@/components/presentation/ModuleCardV2";
 import { ModulesFilterBar, type CategoryFilter } from "@/components/presentation/ModulesFilterBar";
 import { modulesV2 } from "@/components/presentation/modulesData";
+import { generateFullPresentationPDF } from "@/lib/presentationPdfExport";
 
 // ============================================================================
 // SECTION HEADER COMPONENT
@@ -213,6 +215,15 @@ const FullPresentation = () => {
                     Request pricing
                   </Button>
                 </a>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="min-h-[48px] w-full sm:w-auto gap-2"
+                  onClick={() => generateFullPresentationPDF()}
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
               </div>
 
               {/* Proof Points */}
