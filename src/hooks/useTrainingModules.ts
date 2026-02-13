@@ -268,6 +268,28 @@ export const useUpdateTrainingModule = () => {
   });
 };
 
+export const useDeleteTrainingModule = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("training_programs")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["training_modules"] });
+      toast.success("Training module deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete module: ${error.message}`);
+    },
+  });
+};
+
 export const useCreateModuleDay = () => {
   const queryClient = useQueryClient();
 
