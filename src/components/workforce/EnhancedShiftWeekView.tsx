@@ -973,6 +973,15 @@ export const EnhancedShiftWeekView = () => {
                           const attendance = getAttendanceForEmployeeAndDate(employee.id, day);
                           const isTrainingShift = shift.shift_type === 'training';
                           
+                          // Determine if this is a "missing" shift: published, past end time, no attendance
+                          const isMissing = (() => {
+                            if (!shift.is_published || attendance || isPending || isUnpublished) return false;
+                            const [endH, endM] = shift.end_time.split(':').map(Number);
+                            const shiftEnd = new Date(shift.shift_date + 'T00:00:00');
+                            shiftEnd.setHours(endH, endM, 0, 0);
+                            return new Date() > shiftEnd;
+                          })();
+                          
                           // Use TrainingShiftCard for training shifts
                           if (isTrainingShift) {
                             return <TrainingShiftCard key={shift.id} shift={shift} compact />;
@@ -983,16 +992,25 @@ export const EnhancedShiftWeekView = () => {
                               key={shift.id}
                               onClick={() => handleEditShift(shift)}
                               style={{
-                                backgroundColor: isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
-                                borderColor: isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
+                                backgroundColor: isMissing 
+                                  ? 'hsl(var(--destructive) / 0.1)' 
+                                  : isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
+                                borderColor: isMissing 
+                                  ? 'hsl(var(--destructive))' 
+                                  : isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
                               }}
                               className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
                                 isPending ? 'opacity-60 border-dashed' : ''
-                              } ${isUnpublished ? 'opacity-50 border-dashed' : ''}`}
+                              } ${isUnpublished ? 'opacity-50 border-dashed' : ''} ${isMissing ? 'border-dashed border-2' : ''}`}
                             >
                               <div className="flex items-center justify-between">
-                                <div className="font-medium">{shift.role}</div>
+                                <div className={`font-medium ${isMissing ? 'text-destructive' : ''}`}>{shift.role}</div>
                                 <div className="flex items-center gap-1">
+                                  {isMissing && (
+                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                      Missing
+                                    </Badge>
+                                  )}
                                   {attendance && (
                                     <div className="flex items-center gap-0.5">
                                       <Tooltip>
@@ -1023,7 +1041,7 @@ export const EnhancedShiftWeekView = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="text-muted-foreground">
+                              <div className={`${isMissing ? 'text-destructive/70' : 'text-muted-foreground'}`}>
                                 {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
                               </div>
                               {selectedLocation === "all" && shift.locations?.name && (
