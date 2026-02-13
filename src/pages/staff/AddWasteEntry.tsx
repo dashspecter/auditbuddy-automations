@@ -103,7 +103,7 @@ export default function AddWasteEntry() {
         location_id: formData.location_id,
         waste_product_id: formData.waste_product_id,
         waste_reason_id: formData.waste_reason_id || undefined,
-        weight_kg: parseFloat(formData.weight_kg),
+        weight_kg: parseFloat(formData.weight_kg.replace(',', '.')),
         notes: formData.notes || undefined,
       });
 
@@ -323,18 +323,20 @@ export default function AddWasteEntry() {
             <div className="relative">
               <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step="0.001"
-                placeholder="Enter weight in kg"
+                placeholder="e.g. 1,50"
                 value={formData.weight_kg}
-                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.,]/g, '');
+                  setFormData({ ...formData, weight_kg: val });
+                }}
                 className="pl-10"
               />
             </div>
             {selectedProduct && formData.weight_kg && (
               <p className="text-sm text-muted-foreground">
-                Estimated cost: {(parseFloat(formData.weight_kg) * selectedProduct.unit_cost).toFixed(2)} RON
+                Estimated cost: {(parseFloat(formData.weight_kg.replace(',', '.')) * selectedProduct.unit_cost).toFixed(2)} RON
               </p>
             )}
           </div>
