@@ -159,7 +159,7 @@ export const useEmployeePerformance = (
       // Get tasks for the period (directly assigned)
       let tasksQuery = supabase
         .from("tasks")
-        .select("id, assigned_to, status, completed_at, completed_late, due_at")
+        .select("id, assigned_to, status, completed_at, completed_late, due_at, start_at, duration_minutes")
         .gte("created_at", `${startDate}T00:00:00`)
         .lte("created_at", `${endDate}T23:59:59`)
         .not("assigned_to", "is", null);
@@ -190,17 +190,17 @@ export const useEmployeePerformance = (
           const batch = missingTaskIds.slice(i, i + 100);
           const { data: batchTasks, error: batchError } = await supabase
             .from("tasks")
-            .select("id, assigned_to, status, completed_at, completed_late, due_at")
+            .select("id, assigned_to, status, completed_at, completed_late, due_at, start_at, duration_minutes")
             .in("id", batch);
           if (batchError) throw batchError;
           if (batchTasks) extraTasks = [...extraTasks!, ...batchTasks];
         }
       }
 
-      // Combined task lookup map
-      const allTasksMap = new Map<string, { due_at: string | null; completed_late: boolean | null }>();
+      // Combined task lookup map (includes deadline-relevant fields)
+      const allTasksMap = new Map<string, { due_at: string | null; completed_late: boolean | null; start_at: string | null; duration_minutes: number | null }>();
       for (const t of [...(tasks || []), ...(extraTasks || [])]) {
-        allTasksMap.set(t.id, { due_at: t.due_at, completed_late: t.completed_late });
+        allTasksMap.set(t.id, { due_at: t.due_at, completed_late: t.completed_late, start_at: t.start_at, duration_minutes: t.duration_minutes });
       }
 
       // Get test submissions for the period
@@ -317,11 +317,9 @@ export const useEmployeePerformance = (
           t => t.status === "completed" && !t.completed_late
         ).length;
         
-        // Completion-based metrics (role/location assigned tasks completed by this employee)
         // NOTE: Task late status is now tracked per-completion (task_completions.completed_late)
-        // Priority: per-completion flag > parent task flag > due_at comparison
+        // Deadline logic: start_at + duration_minutes > due_at (matches getTaskDeadline)
         const completionCount = employeeCompletions.length;
-        // Use per-completion completed_late flag; if null/undefined, fall back to parent task data
         const completionOnTimeCount = employeeCompletions.filter(c => {
           // If this completion has the completed_late flag set, use it (preferred, per-occurrence tracking)
           if (c.completed_late === true) return false;
@@ -330,14 +328,17 @@ export const useEmployeePerformance = (
           // Fallback to parent task data if per-completion flag not set
           const parentTask = allTasksMap.get(c.task_id);
           if (!parentTask) return true; // If we can't find parent, assume on time
-          if (parentTask.completed_late === true) return false;
-          if (parentTask.completed_late === false) return true;
           
-          // Last fallback: if due_at exists, compare completion time vs due date
-          if (parentTask.due_at && c.completed_at) {
-            return new Date(c.completed_at) <= new Date(parentTask.due_at);
+          // Calculate deadline: start_at + duration_minutes OR due_at
+          let deadline: Date | null = null;
+          if (parentTask.start_at && parentTask.duration_minutes) {
+            deadline = new Date(new Date(parentTask.start_at).getTime() + parentTask.duration_minutes * 60000);
+          } else if (parentTask.due_at) {
+            deadline = new Date(parentTask.due_at);
           }
-          return true; // No due date = on time
+          
+          if (!deadline || !c.completed_at) return true; // No deadline = on time
+          return new Date(c.completed_at) <= deadline;
         }).length;
         
         // Merged totals
