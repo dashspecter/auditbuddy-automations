@@ -6690,6 +6690,7 @@ export type Database = {
         Row: {
           completed_at: string
           completed_by_employee_id: string | null
+          completed_late: boolean | null
           completion_mode: string
           completion_photo_url: string | null
           completion_reason: string | null
@@ -6703,6 +6704,7 @@ export type Database = {
         Insert: {
           completed_at?: string
           completed_by_employee_id?: string | null
+          completed_late?: boolean | null
           completion_mode?: string
           completion_photo_url?: string | null
           completion_reason?: string | null
@@ -6716,6 +6718,7 @@ export type Database = {
         Update: {
           completed_at?: string
           completed_by_employee_id?: string | null
+          completed_late?: boolean | null
           completion_mode?: string
           completion_photo_url?: string | null
           completion_reason?: string | null
