@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScheduleAuditDialog } from '@/components/ScheduleAuditDialog';
 import { useScheduledAudits, useUpdateAuditStatus } from '@/hooks/useScheduledAudits';
 import { useScheduledAuditsNew } from '@/hooks/useScheduledAuditsNew';
+import { useRecurringSchedules } from '@/hooks/useRecurringSchedules';
 import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -68,6 +69,7 @@ const AuditsCalendar = () => {
   const { data: roleData } = useUserRole();
   const { data: audits, isLoading } = useScheduledAudits();
   const { data: scheduledAuditsNew, isLoading: isLoadingNew } = useScheduledAuditsNew();
+  const { data: recurringSchedules } = useRecurringSchedules();
   const { data: locations } = useLocations();
   const updateStatus = useUpdateAuditStatus();
   const navigate = useNavigate();
@@ -166,8 +168,99 @@ const AuditsCalendar = () => {
       }
     });
 
-    return [...eventsFromLocationAudits, ...eventsFromScheduledAudits];
-  }, [audits, scheduledAuditsNew, user?.id]);
+    // Generate occurrences from recurring_audit_schedules
+    const recurringEvents: CalendarEvent[] = [];
+    const recurringRangeStart = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days back
+    const recurringRangeEnd = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days ahead
+
+    (recurringSchedules || []).filter(s => s.is_active).forEach((schedule) => {
+      const startDate = new Date(schedule.start_date);
+      const endDate = schedule.end_date ? new Date(schedule.end_date) : recurringRangeEnd;
+      const [hours, minutes] = (schedule.start_time || '12:00:00').split(':').map(Number);
+      const locationName = schedule.locations?.name || 'Unknown Location';
+      const templateName = schedule.audit_templates?.name || 'Unknown Template';
+      const assignedName = schedule.profiles?.full_name || schedule.profiles?.email || 'Unassigned';
+      const title = `${locationName} - ${templateName}`;
+
+      let currentDate = new Date(startDate);
+      currentDate.setHours(0, 0, 0, 0);
+
+      // For weekly/every_4_weeks, align to the correct day_of_week
+      if ((schedule.recurrence_pattern === 'weekly' || schedule.recurrence_pattern === 'every_4_weeks') && schedule.day_of_week !== null) {
+        while (currentDate.getDay() !== schedule.day_of_week) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+      // For monthly, align to day_of_month
+      if (schedule.recurrence_pattern === 'monthly' && schedule.day_of_month !== null) {
+        const targetDay = schedule.day_of_month;
+        if (currentDate.getDate() > targetDay) {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        currentDate.setDate(Math.min(targetDay, new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()));
+      }
+
+      let instanceIndex = 0;
+      while (currentDate <= recurringRangeEnd && currentDate <= endDate && instanceIndex < 200) {
+        if (currentDate >= recurringRangeStart) {
+          const eventDate = new Date(currentDate);
+          eventDate.setHours(hours, minutes, 0, 0);
+          const eventEnd = new Date(eventDate);
+          eventEnd.setHours(eventEnd.getHours() + (schedule.duration_hours || 1));
+
+          // Skip if a generated location_audit already exists for this date+location
+          const dateKey = eventDate.toISOString().split('T')[0];
+          const alreadyGenerated = (audits || []).some(a => {
+            const auditDate = new Date(a.scheduled_start).toISOString().split('T')[0];
+            return auditDate === dateKey && a.location_id === schedule.location_id && a.assigned_user_id === schedule.assigned_user_id;
+          });
+
+          if (!alreadyGenerated) {
+            recurringEvents.push({
+              id: `recurring-schedule-${schedule.id}-${instanceIndex}`,
+              title,
+              start: eventDate,
+              end: eventEnd,
+              resource: {
+                status: 'scheduled',
+                location: locationName,
+                template: templateName,
+                templateType: 'location',
+                assignedTo: assignedName,
+                assignedUserId: schedule.assigned_user_id,
+                isOwnAudit: schedule.assigned_user_id === user?.id,
+                source: 'location_audits' as const,
+              },
+            });
+          }
+        }
+
+        // Advance to next occurrence
+        switch (schedule.recurrence_pattern) {
+          case 'daily':
+            currentDate.setDate(currentDate.getDate() + 1);
+            break;
+          case 'weekly':
+            currentDate.setDate(currentDate.getDate() + 7);
+            break;
+          case 'every_4_weeks':
+            currentDate.setDate(currentDate.getDate() + 28);
+            break;
+          case 'monthly': {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            const targetDay = schedule.day_of_month || 1;
+            currentDate.setDate(Math.min(targetDay, new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()));
+            break;
+          }
+          default:
+            currentDate = new Date(recurringRangeEnd.getTime() + 1);
+        }
+        instanceIndex++;
+      }
+    });
+
+    return [...eventsFromLocationAudits, ...eventsFromScheduledAudits, ...recurringEvents];
+  }, [audits, scheduledAuditsNew, recurringSchedules, user?.id]);
 
   // Filter events by location
   const filteredEvents = useMemo(() => {
