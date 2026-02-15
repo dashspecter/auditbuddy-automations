@@ -1,0 +1,2 @@
+ALTER TABLE recurring_audit_schedules DROP CONSTRAINT recurring_audit_schedules_recurrence_pattern_check;
+ALTER TABLE recurring_audit_schedules ADD CONSTRAINT recurring_audit_schedules_recurrence_pattern_check CHECK (recurrence_pattern = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text, 'every_4_weeks'::text]));
