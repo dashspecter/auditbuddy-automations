@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.submit-mystery-shopper]
 verify_jwt = false
+
+[functions.rls-integration-test]
+verify_jwt = false
