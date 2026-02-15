@@ -23,13 +23,18 @@ serve(async (req) => {
   }
 
   try {
+    console.log("RLS test: starting, method:", req.method);
+    
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     // Get the caller's auth token
     const authHeader = req.headers.get("authorization");
+    console.log("RLS test: auth header present:", !!authHeader);
+    
     if (!authHeader) {
+      console.error("RLS test: No authorization header found");
       return new Response(
         JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
