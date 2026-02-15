@@ -30,11 +30,13 @@ export const RLSIntegrationTestContent = () => {
     setReport(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("rls-integration-test");
+      const { data, error } = await supabase.functions.invoke("rls-integration-test", {
+        body: { action: "run" },
+      });
 
       if (error) {
         console.error("RLS test error:", error);
-        toast.error("Failed to run RLS tests. Make sure you're logged in.");
+        toast.error(`RLS test failed: ${error.message || "Unknown error"}`);
         return;
       }
 
