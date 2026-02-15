@@ -12,6 +12,7 @@ import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2, Bot } from
 import { format, addDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AITestAgentContent } from "@/components/AITestAgent";
+import { RLSIntegrationTestContent } from "@/components/RLSIntegrationTest";
 
 interface Company {
   id: string;
@@ -561,7 +562,10 @@ export default function PlatformAdmin() {
           </TabsContent>
 
           <TabsContent value="ai-testing">
-            <AITestAgentContent />
+            <div className="space-y-6">
+              <RLSIntegrationTestContent />
+              <AITestAgentContent />
+            </div>
           </TabsContent>
         </Tabs>
 
