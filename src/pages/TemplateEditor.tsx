@@ -46,6 +46,9 @@ const TemplateEditor = () => {
   const updateSection = useUpdateSection();
   const deleteSection = useDeleteSection();
   const updateTemplate = useUpdateTemplate();
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
   
   const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any>(null);
@@ -166,7 +169,58 @@ const TemplateEditor = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-foreground">{template.name}</h1>
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="text-2xl font-bold h-auto py-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (editName.trim() && id) {
+                      updateTemplate.mutate({ id, name: editName.trim() }, {
+                        onSuccess: () => {
+                          toast.success('Template name updated');
+                          setIsEditingName(false);
+                        },
+                      });
+                    }
+                  } else if (e.key === 'Escape') {
+                    setIsEditingName(false);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (editName.trim() && id) {
+                    updateTemplate.mutate({ id, name: editName.trim() }, {
+                      onSuccess: () => {
+                        toast.success('Template name updated');
+                        setIsEditingName(false);
+                      },
+                    });
+                  }
+                }}
+                disabled={!editName.trim() || updateTemplate.isPending}
+              >
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditingName(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <h1
+              className="text-3xl font-bold text-foreground cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
+              onClick={() => { setEditName(template.name); setIsEditingName(true); }}
+              title="Click to edit name"
+            >
+              {template.name}
+              <Edit2 className="h-4 w-4 text-muted-foreground" />
+            </h1>
+          )}
           <p className="text-muted-foreground mt-1">Configure sections and fields</p>
         </div>
         <div className="flex gap-2">
