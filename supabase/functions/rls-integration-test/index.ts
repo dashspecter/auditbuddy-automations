@@ -42,6 +42,7 @@ serve(async (req) => {
     }
 
     // Service client for admin queries (to get test data)
+    console.log("RLS test: creating clients...");
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // User client (restricted by RLS)
@@ -49,28 +50,43 @@ serve(async (req) => {
       global: { headers: { authorization: authHeader } },
     });
 
-    // Get current user
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
+    // Get current user using getClaims for efficiency
+    console.log("RLS test: verifying user...");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("RLS test: claims error:", claimsError);
       return new Response(
         JSON.stringify({ error: "Invalid auth token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const userId = claimsData.claims.sub as string;
+    console.log("RLS test: user verified:", userId);
+
     const results: TestResult[] = [];
 
     // === TEST SUITE 1: Cross-Tenant Isolation ===
-    await runCrossTenantTests(serviceClient, userClient, user.id, results);
+    console.log("RLS test: running suite 1...");
+    try { await runCrossTenantTests(serviceClient, userClient, userId, results); }
+    catch (e) { console.error("Suite 1 error:", e); results.push({ suite: "Cross-Tenant Isolation", test: "Suite error", status: "fail", detail: String(e) }); }
 
     // === TEST SUITE 2: Role-Based Access ===
-    await runRoleAccessTests(serviceClient, userClient, user.id, results);
+    console.log("RLS test: running suite 2...");
+    try { await runRoleAccessTests(serviceClient, userClient, userId, results); }
+    catch (e) { console.error("Suite 2 error:", e); results.push({ suite: "Role-Based Access", test: "Suite error", status: "fail", detail: String(e) }); }
 
     // === TEST SUITE 3: Data Boundary Tests ===
-    await runDataBoundaryTests(serviceClient, userClient, user.id, results);
+    console.log("RLS test: running suite 3...");
+    try { await runDataBoundaryTests(serviceClient, userClient, userId, results); }
+    catch (e) { console.error("Suite 3 error:", e); results.push({ suite: "Data Boundary", test: "Suite error", status: "fail", detail: String(e) }); }
 
     // === TEST SUITE 4: Sensitive Table Protection ===
-    await runSensitiveTableTests(userClient, results);
+    console.log("RLS test: running suite 4...");
+    try { await runSensitiveTableTests(userClient, results); }
+    catch (e) { console.error("Suite 4 error:", e); results.push({ suite: "Sensitive Data Protection", test: "Suite error", status: "fail", detail: String(e) }); }
 
     // Summary
     const passed = results.filter((r) => r.status === "pass").length;
