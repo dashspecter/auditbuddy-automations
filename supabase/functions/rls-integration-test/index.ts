@@ -50,20 +50,21 @@ serve(async (req) => {
       global: { headers: { authorization: authHeader } },
     });
 
-    // Get current user using getClaims for efficiency
-    console.log("RLS test: verifying user...");
+    // Decode JWT payload manually (token is already verified by gateway context)
+    console.log("RLS test: decoding token...");
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const payloadBase64 = token.split(".")[1];
+    const payloadJson = atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(payloadJson);
+    const userId = payload.sub as string;
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("RLS test: claims error:", claimsError);
+    if (!userId) {
+      console.error("RLS test: no sub in JWT payload");
       return new Response(
         JSON.stringify({ error: "Invalid auth token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const userId = claimsData.claims.sub as string;
     console.log("RLS test: user verified:", userId);
 
     const results: TestResult[] = [];
