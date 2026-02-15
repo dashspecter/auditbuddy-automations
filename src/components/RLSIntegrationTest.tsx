@@ -30,8 +30,20 @@ export const RLSIntegrationTestContent = () => {
     setReport(null);
 
     try {
+      // Get current session token explicitly
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      if (!token) {
+        toast.error("You must be logged in to run isolation tests.");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("rls-integration-test", {
         body: { action: "run" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (error) {
