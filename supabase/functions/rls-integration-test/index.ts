@@ -98,7 +98,7 @@ serve(async (req) => {
       JSON.stringify({
         summary: { total: results.length, passed, failed, skipped },
         timestamp: new Date().toISOString(),
-        userId: user.id,
+        userId,
         results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
