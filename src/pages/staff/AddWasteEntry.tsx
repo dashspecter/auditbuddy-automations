@@ -89,6 +89,13 @@ export default function AddWasteEntry() {
     // Photo is optional — Android may kill the page when camera opens,
     // losing the captured file from memory after reload.
 
+    if (!photoFile) {
+      toast({
+        title: "No photo attached",
+        description: "Entry will be saved without a photo. You can add one later from My Entries.",
+      });
+    }
+
     setIsSubmitting(true);
 
     try {
