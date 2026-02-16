@@ -835,6 +835,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "audit_field_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
+          },
+          {
             foreignKeyName: "audit_field_responses_field_id_fkey"
             columns: ["field_id"]
             isOneToOne: false
@@ -933,6 +940,13 @@ export type Database = {
             referencedRelation: "location_audits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_photos_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
+          },
         ]
       }
       audit_revisions: {
@@ -974,6 +988,13 @@ export type Database = {
             referencedRelation: "location_audits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_revisions_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
+          },
         ]
       }
       audit_section_responses: {
@@ -1014,6 +1035,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "location_audits"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_section_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
           },
           {
             foreignKeyName: "audit_section_responses_section_id_fkey"
@@ -5341,6 +5369,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notifications_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
+          },
+          {
             foreignKeyName: "notifications_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -7625,6 +7660,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "training_evaluations_audit_instance_id_fkey"
+            columns: ["audit_instance_id"]
+            isOneToOne: false
+            referencedRelation: "mv_audit_section_scores"
+            referencedColumns: ["audit_id"]
+          },
+          {
             foreignKeyName: "training_evaluations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -8810,6 +8852,137 @@ export type Database = {
       }
     }
     Views: {
+      mv_attendance_daily_stats: {
+        Row: {
+          auto_clockout_count: number | null
+          company_id: string | null
+          late_count: number | null
+          location_id: string | null
+          location_name: string | null
+          shift_date: string | null
+          staff_checked_in: number | null
+          staff_scheduled: number | null
+          total_late_minutes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mv_audit_section_scores: {
+        Row: {
+          audit_date: string | null
+          audit_id: string | null
+          company_id: string | null
+          field_count: number | null
+          location_id: string | null
+          section_id: string | null
+          section_name: string | null
+          section_score: number | null
+          template_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_field_responses_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_audits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "audit_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mv_audit_stats_by_location: {
+        Row: {
+          avg_score: number | null
+          company_id: string | null
+          completed_audits: number | null
+          latest_audit_date: string | null
+          location_id: string | null
+          location_name: string | null
+          max_score: number | null
+          min_score: number | null
+          overdue_audits: number | null
+          scored_audit_count: number | null
+          total_audits: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_audits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mv_task_completion_stats: {
+        Row: {
+          company_id: string | null
+          late_completions: number | null
+          location_id: string | null
+          location_name: string | null
+          occurrence_date: string | null
+          on_time_completions: number | null
+          tasks_with_completions: number | null
+          total_completions: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_analytics: {
         Row: {
           created_at: string | null
@@ -9060,6 +9233,95 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_mv_attendance_stats: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: {
+          auto_clockout_count: number | null
+          company_id: string | null
+          late_count: number | null
+          location_id: string | null
+          location_name: string | null
+          shift_date: string | null
+          staff_checked_in: number | null
+          staff_scheduled: number | null
+          total_late_minutes: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_attendance_daily_stats"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_mv_audit_stats: {
+        Args: { p_company_id: string }
+        Returns: {
+          avg_score: number | null
+          company_id: string | null
+          completed_audits: number | null
+          latest_audit_date: string | null
+          location_id: string | null
+          location_name: string | null
+          max_score: number | null
+          min_score: number | null
+          overdue_audits: number | null
+          scored_audit_count: number | null
+          total_audits: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_audit_stats_by_location"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_mv_section_scores: {
+        Args: { p_company_id: string }
+        Returns: {
+          audit_date: string | null
+          audit_id: string | null
+          company_id: string | null
+          field_count: number | null
+          location_id: string | null
+          section_id: string | null
+          section_name: string | null
+          section_score: number | null
+          template_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_audit_section_scores"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_mv_task_stats: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: {
+          company_id: string | null
+          late_completions: number | null
+          location_id: string | null
+          location_name: string | null
+          occurrence_date: string | null
+          on_time_completions: number | null
+          tasks_with_completions: number | null
+          total_completions: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_task_completion_stats"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_mystery_shopper_template_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -9193,6 +9455,7 @@ export type Database = {
         }
         Returns: string
       }
+      refresh_dashboard_materialized_views: { Args: never; Returns: undefined }
       reject_shift_assignment: {
         Args: { assignment_id: string }
         Returns: Json

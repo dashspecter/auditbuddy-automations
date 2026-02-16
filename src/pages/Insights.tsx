@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Minus, Sparkles, Calendar, Download, MapPin, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocations } from "@/hooks/useLocations";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMvDashboardOverview } from "@/hooks/useMaterializedViews";
 import { useLocationTrends } from "@/hooks/useLocationTrends";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { useInsightSummaries, useSaveInsightSummary } from "@/hooks/useInsightSummaries";
@@ -26,7 +26,7 @@ const Insights = () => {
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
   
   const { data: locations } = useLocations();
-  const { totalAudits, avgScore, isLoading: statsLoading } = useDashboardStats();
+  const { totalAudits, avgScore, isLoading: statsLoading } = useMvDashboardOverview();
   const { locationTrends, isLoading: trendsLoading } = useLocationTrends();
   const { sectionPerformance, locationPerformance } = usePerformanceTrends(
     locationFilter === "all" ? undefined : locationFilter
