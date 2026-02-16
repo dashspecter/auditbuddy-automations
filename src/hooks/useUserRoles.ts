@@ -58,6 +58,6 @@ export const useUserRoles = () => {
       return roleData;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - roles rarely change
   });
 };

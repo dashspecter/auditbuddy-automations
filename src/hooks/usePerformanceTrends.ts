@@ -139,7 +139,7 @@ const useAllFieldResponses = () => {
       if (error) throw error;
       return (data || []) as FieldResponseWithDetails[];
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - historical data changes infrequently
   });
 };
 

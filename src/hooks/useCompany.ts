@@ -116,8 +116,8 @@ export const useCompany = () => {
     },
     retry: 1,
     retryDelay: 500,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - company config rarely changes
+    gcTime: 15 * 60 * 1000,
   });
 };
 
@@ -197,7 +197,7 @@ export const useCompanyUsers = () => {
       return result;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes
   });
 };
 
@@ -269,7 +269,7 @@ export const useCompanyModules = () => {
       return data as CompanyModule[];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes
   });
 };
 

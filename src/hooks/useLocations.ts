@@ -34,6 +34,7 @@ export const useLocations = (includeInactive = false) => {
       if (error) throw error;
       return data as Location[];
     },
+    staleTime: 15 * 60 * 1000, // 15 minutes - locations rarely change
   });
 };
 
