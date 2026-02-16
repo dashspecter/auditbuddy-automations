@@ -86,14 +86,8 @@ export default function AddWasteEntry() {
       return;
     }
 
-    if (!photoFile) {
-      toast({
-        title: "Photo Required",
-        description: "Please take a photo of the waste item",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Photo is optional — Android may kill the page when camera opens,
+    // losing the captured file from memory after reload.
 
     setIsSubmitting(true);
 
@@ -358,7 +352,7 @@ export default function AddWasteEntry() {
           <Button
             className="w-full h-12 text-base"
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !photoFile}
+            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg}
           >
             {isSubmitting ? (
               <>
