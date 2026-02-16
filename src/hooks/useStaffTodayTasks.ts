@@ -15,6 +15,7 @@
  */
 
 import { useMemo, useState, useEffect, useRef } from "react";
+import { useSmartPolling } from "./useSmartPolling";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -566,6 +567,10 @@ export function useKioskTodayTasks(options: {
 }) {
   const { locationId, companyId, targetDate = getCanonicalToday(), enabled = true, kioskToken } = options;
 
+  // Smart polling: fast when page visible, slow when backgrounded
+  const completionsPollInterval = useSmartPolling({ activeInterval: 5000, backgroundInterval: 60000, enabled });
+  const legacyPollInterval = useSmartPolling({ activeInterval: 8000, backgroundInterval: 60000, enabled });
+
   // Fetch all active employees at this location (include user_id for completer mapping)
   const { data: employees = [] } = useQuery({
     queryKey: ["kiosk-employees", locationId],
@@ -833,7 +838,7 @@ export function useKioskTodayTasks(options: {
       }));
     },
     enabled: enabled && taskIds.length > 0,
-    refetchInterval: 3000, // Poll every 3s for faster updates
+    refetchInterval: completionsPollInterval,
     refetchIntervalInBackground: true,
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
@@ -876,7 +881,7 @@ export function useKioskTodayTasks(options: {
       return (data || []) as Task[];
     },
     enabled,
-    refetchInterval: 8000,
+    refetchInterval: legacyPollInterval,
     refetchIntervalInBackground: true,
     staleTime: 0,
   });
