@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useEmployeesPaginated, type Employee } from "@/hooks/useEmployees";
+import { useEmployeesCursor, type Employee, type CursorPage } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,68 +15,96 @@ import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
+interface CursorState {
+  val: string;
+  id: string;
+}
+
 export const StaffTable = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
-  const [currentPage, setCurrentPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [employeeToResetPassword, setEmployeeToResetPassword] = useState<Employee | null>(null);
   const pageSize = 20;
   const isMobile = useIsMobile();
-  
-  // Debounce search to avoid too many queries
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  
-  // Debounce the search term
-  useState(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
-    return () => clearTimeout(timer);
-  });
 
-  // Use effect for debouncing
+  // Cursor-based pagination state
+  const [cursor, setCursor] = useState<CursorState | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<(CursorState | null)[]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
+  
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
+    resetPagination();
     if (searchTimer) clearTimeout(searchTimer);
     const timer = setTimeout(() => setDebouncedSearch(value), 300);
     setSearchTimer(timer);
   };
 
-  const { data: employeesData, isLoading } = useEmployeesPaginated({ 
+  const resetPagination = useCallback(() => {
+    setCursor(null);
+    setCursorHistory([]);
+    setPageIndex(0);
+  }, []);
+
+  const { data: employeesData, isLoading } = useEmployeesCursor({ 
     locationId: locationFilter || undefined,
     searchTerm: debouncedSearch || undefined,
     roleFilter: roleFilter || undefined,
     statusFilter: statusFilter || undefined,
-    page: currentPage,
-    pageSize 
+    pageSize,
+    cursor: cursor?.val,
+    cursorId: cursor?.id,
   });
   const { data: locations } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
   const filteredStaff = employeesData?.data || [];
 
-  // Create a map of role names to role objects for quick lookup
   const roleMap = new Map(roles.map(role => [role.name, role]));
-
   const uniqueRoles: string[] = roles.map(r => r.name).filter(Boolean);
-
   const activeFilterCount = [searchTerm, locationFilter, roleFilter, statusFilter].filter(Boolean).length;
 
   const clearAllFilters = () => {
     setSearchTerm("");
+    setDebouncedSearch("");
     setLocationFilter("");
     setRoleFilter("");
     setStatusFilter("");
-    setCurrentPage(1);
+    resetPagination();
   };
-  
-  const totalPages = employeesData?.pageCount || 1;
-  const totalCount = employeesData?.count || 0;
+
+  const totalCount = employeesData?.totalCount || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = pageIndex + 1;
+  const hasMore = employeesData?.hasMore || false;
+
+  const goNext = () => {
+    if (!employeesData?.nextCursor || !employeesData?.nextCursorId) return;
+    setCursorHistory(h => [...h, cursor]);
+    setCursor({ val: employeesData.nextCursor, id: employeesData.nextCursorId });
+    setPageIndex(p => p + 1);
+  };
+
+  const goPrev = () => {
+    if (cursorHistory.length === 0) return;
+    const prev = cursorHistory[cursorHistory.length - 1];
+    setCursorHistory(h => h.slice(0, -1));
+    setCursor(prev);
+    setPageIndex(p => Math.max(0, p - 1));
+  };
+
+  const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
+    setter(value === "all" ? "" : value);
+    resetPagination();
+  };
 
   const renderMobileCard = (member: Employee) => {
     const roleData = roleMap.get(member.role);
@@ -197,7 +225,6 @@ export const StaffTable = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
-        {/* Filter Controls Row */}
         <div className="flex flex-col gap-3">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -210,7 +237,7 @@ export const StaffTable = () => {
           </div>
           
           <div className="grid grid-cols-3 gap-2">
-            <Select value={locationFilter || "all"} onValueChange={(value) => { setLocationFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
+            <Select value={locationFilter || "all"} onValueChange={handleFilterChange(setLocationFilter)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.location')} />
               </SelectTrigger>
@@ -224,7 +251,7 @@ export const StaffTable = () => {
               </SelectContent>
             </Select>
 
-            <Select value={roleFilter || "all"} onValueChange={(value) => { setRoleFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
+            <Select value={roleFilter || "all"} onValueChange={handleFilterChange(setRoleFilter)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.role')} />
               </SelectTrigger>
@@ -238,7 +265,7 @@ export const StaffTable = () => {
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter || "all"} onValueChange={(value) => { setStatusFilter(value === "all" ? "" : value); setCurrentPage(1); }}>
+            <Select value={statusFilter || "all"} onValueChange={handleFilterChange(setStatusFilter)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('workforce.components.staffTable.status')} />
               </SelectTrigger>
@@ -251,14 +278,13 @@ export const StaffTable = () => {
           </div>
         </div>
 
-        {/* Active Filters Info & Clear Button */}
         {activeFilterCount > 0 && (
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="h-4 w-4" />
               <span>
                 {t('workforce.components.staffTable.filtersActive', { count: activeFilterCount })}
-                {` • ${t('workforce.components.staffTable.results', { count: employeesData?.count || 0 })}`}
+                {` • ${t('workforce.components.staffTable.results', { count: totalCount })}`}
               </span>
             </div>
             <Button
@@ -386,14 +412,14 @@ export const StaffTable = () => {
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
               <div className="text-sm text-muted-foreground text-center sm:text-left">
-                {t('workforce.components.staffTable.showing', { from: ((currentPage - 1) * pageSize) + 1, to: Math.min(currentPage * pageSize, totalCount), total: totalCount })}
+                {t('workforce.components.staffTable.showing', { from: (pageIndex * pageSize) + 1, to: Math.min((pageIndex + 1) * pageSize, totalCount), total: totalCount })}
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  onClick={goPrev}
+                  disabled={pageIndex === 0}
                   className="h-10 sm:h-9"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -405,8 +431,8 @@ export const StaffTable = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={goNext}
+                  disabled={!hasMore}
                   className="h-10 sm:h-9"
                 >
                   <span className="hidden sm:inline mr-1">{t('workforce.components.staffTable.next')}</span>
