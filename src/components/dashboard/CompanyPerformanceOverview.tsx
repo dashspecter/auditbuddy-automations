@@ -5,7 +5,7 @@ import { Building2, Users, MapPin, TrendingUp, TrendingDown, CheckCircle, Clock,
 import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { usePayrollSummary } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMvDashboardOverview } from "@/hooks/useMaterializedViews";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -31,7 +31,7 @@ export const CompanyPerformanceOverview = ({ period = "month" }: CompanyPerforma
   const endDate = format(endOfMonth(now), "yyyy-MM-dd");
 
   const { data: locations = [] } = useLocations();
-  const { totalAudits, avgScore, isLoading: statsLoading } = useDashboardStats();
+  const { totalAudits, avgScore, isLoading: statsLoading } = useMvDashboardOverview();
   
   const { byLocation, allScores, isLoading: performanceLoading } = usePerformanceLeaderboard(
     startDate,
