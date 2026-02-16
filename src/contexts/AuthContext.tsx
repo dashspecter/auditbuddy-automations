@@ -85,8 +85,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
-  // Check if user is a staff member (but NOT a company admin/owner) - runs once when user changes
+  // Check if user is a staff member (but NOT a company admin/owner) - runs once when user *identity* changes.
+  // STABILITY FIX: Track by user.id instead of user object reference.
+  // Token refreshes create a new user object with the same id, which was resetting staffCheckComplete
+  // to false, causing ProtectedRoute to unmount children (losing form state on tab switch).
+  const userIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    
+    // Skip if the user identity hasn't actually changed
+    if (currentUserId === userIdRef.current) {
+      return;
+    }
+    userIdRef.current = currentUserId;
+    
     const checkStaffStatus = async () => {
       if (!user) {
         setIsStaff(null);
@@ -155,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setStaffCheckComplete(false);
     checkStaffStatus();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     logBootstrap('start');
