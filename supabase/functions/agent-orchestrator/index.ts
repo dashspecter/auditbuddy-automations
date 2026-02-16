@@ -3,8 +3,60 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Auth helper: validate JWT, check company membership & admin/manager role
+async function authenticateAndAuthorize(req: Request, requiredCompanyId?: string) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw { status: 401, message: "Missing or invalid Authorization header" };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    throw { status: 401, message: "Invalid or expired token" };
+  }
+
+  const userId = claimsData.claims.sub as string;
+
+  // Check company membership if a company_id is required
+  if (requiredCompanyId) {
+    const serviceClient = getSupabase();
+    const { data: membership, error: memError } = await serviceClient
+      .from("company_users")
+      .select("company_role")
+      .eq("user_id", userId)
+      .eq("company_id", requiredCompanyId)
+      .single();
+
+    if (memError || !membership) {
+      throw { status: 403, message: "You do not belong to this company" };
+    }
+
+    const allowedRoles = ["company_owner", "company_admin"];
+    if (!allowedRoles.includes((membership as any).company_role)) {
+      // Also check platform admin role
+      const { data: platformRoles } = await serviceClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const isAdmin = (platformRoles || []).some((r: any) => r.role === "admin");
+      if (!isAdmin) {
+        throw { status: 403, message: "Insufficient permissions. Admin or owner role required." };
+      }
+    }
+  }
+
+  return userId;
+}
 
 // Types
 interface PolicyCondition {
@@ -252,22 +304,29 @@ serve(async (req) => {
       if (!company_id || !agent_type || !goal) {
         return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      await authenticateAndAuthorize(req, company_id);
       const result = await AgentOrchestrator.runAgent(company_id, agent_type, goal, input || {}, mode);
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (req.method === "GET" && path === "/logs") {
-      const supabase = getSupabase();
       const companyId = url.searchParams.get("company_id");
+      if (!companyId) {
+        return new Response(JSON.stringify({ error: "company_id query param required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      await authenticateAndAuthorize(req, companyId);
+      const supabase = getSupabase();
       let query = supabase.from("agent_logs").select("*").order("occurred_at", { ascending: false }).limit(100);
-      if (companyId) query = query.eq("company_id", companyId);
+      query = query.eq("company_id", companyId);
       const { data } = await query;
       return new Response(JSON.stringify(data || []), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (error) {
-    console.error("[agent-orchestrator] Error:", error);
-    return new Response(JSON.stringify({ error: String(error) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (error: any) {
+    const status = error?.status || 500;
+    const message = error?.message || String(error);
+    console.error("[agent-orchestrator] Error:", message);
+    return new Response(JSON.stringify({ error: message }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
