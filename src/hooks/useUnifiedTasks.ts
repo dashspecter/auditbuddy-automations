@@ -13,6 +13,7 @@
  */
 
 import { useMemo } from "react";
+import { useSmartPolling } from "./useSmartPolling";
 import { useQuery } from "@tanstack/react-query";
 import { useTasks, Task } from "./useTasks";
 import { useCompanyContext } from "@/contexts/CompanyContext";
@@ -118,6 +119,9 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
   // Use provided companyId or fall back to company context
   const companyId = providedCompanyId || company?.id;
 
+  // Smart polling: fast when page visible, slow when backgrounded
+  const completionsPollInterval = useSmartPolling({ activeInterval: 10000, backgroundInterval: 60000 });
+
   // Fetch tasks
   const { data: rawTasks = [], isLoading: isLoadingTasks } = useTasks();
 
@@ -168,7 +172,7 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
     },
     enabled: rawTasks.length > 0,
     staleTime: 0,
-    refetchInterval: 10000, // Poll every 10s for web admin
+    refetchInterval: completionsPollInterval,
   });
 
   // Build completions lookup map using shared helper
