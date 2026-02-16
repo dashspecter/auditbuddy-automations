@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useEquipmentPaginated } from "@/hooks/useEquipment";
+import { useState, useCallback } from "react";
+import { useEquipmentCursor, type Equipment, type EquipmentCursorPage } from "@/hooks/useEquipment";
 import { useLocations } from "@/hooks/useLocations";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -12,33 +12,66 @@ import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
+interface CursorState {
+  val: string;
+  id: string;
+}
+
 export const EquipmentListTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
   const isMobile = useIsMobile();
+
+  // Cursor-based pagination state
+  const [cursor, setCursor] = useState<CursorState | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<(CursorState | null)[]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
+
+  const resetPagination = useCallback(() => {
+    setCursor(null);
+    setCursorHistory([]);
+    setPageIndex(0);
+  }, []);
   
-  const { data: equipmentData, isLoading } = useEquipmentPaginated({ 
+  const { data: equipmentData, isLoading } = useEquipmentCursor({ 
     locationId: locationFilter !== "all" ? locationFilter : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
-    page: currentPage,
-    pageSize 
+    pageSize,
+    cursor: cursor?.val,
+    cursorId: cursor?.id,
   });
   const { data: locations } = useLocations();
   
   const equipment = equipmentData?.data || [];
 
-  // Client-side search filtering (after server-side location and status filtering)
+  // Client-side search filtering
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (item.model_type && item.model_type.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesSearch;
   });
   
-  const totalPages = equipmentData?.pageCount || 1;
-  const totalCount = equipmentData?.count || 0;
+  const totalCount = equipmentData?.totalCount || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = pageIndex + 1;
+  const hasMore = equipmentData?.hasMore || false;
+
+  const goNext = () => {
+    if (!equipmentData?.nextCursor || !equipmentData?.nextCursorId) return;
+    setCursorHistory(h => [...h, cursor]);
+    setCursor({ val: equipmentData.nextCursor, id: equipmentData.nextCursorId });
+    setPageIndex(p => p + 1);
+  };
+
+  const goPrev = () => {
+    if (cursorHistory.length === 0) return;
+    const prev = cursorHistory[cursorHistory.length - 1];
+    setCursorHistory(h => h.slice(0, -1));
+    setCursor(prev);
+    setPageIndex(p => Math.max(0, p - 1));
+  };
 
   const renderMobileCard = (item: typeof filteredEquipment[0]) => (
     <MobileCard key={item.id}>
@@ -101,7 +134,7 @@ export const EquipmentListTable = () => {
         </div>
         
         <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-4">
-          <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <Select value={locationFilter} onValueChange={(v) => { setLocationFilter(v); resetPagination(); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
@@ -115,7 +148,7 @@ export const EquipmentListTable = () => {
             </SelectContent>
           </Select>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); resetPagination(); }}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -186,14 +219,14 @@ export const EquipmentListTable = () => {
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
               <div className="text-sm text-muted-foreground text-center sm:text-left">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+                Showing {(pageIndex * pageSize) + 1} to {Math.min((pageIndex + 1) * pageSize, totalCount)} of {totalCount}
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  onClick={goPrev}
+                  disabled={pageIndex === 0}
                   className="h-10 sm:h-9"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -205,8 +238,8 @@ export const EquipmentListTable = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={goNext}
+                  disabled={!hasMore}
                   className="h-10 sm:h-9"
                 >
                   <span className="hidden sm:inline mr-1">Next</span>
