@@ -13,7 +13,8 @@ import { useRecurringSchedules } from '@/hooks/useRecurringSchedules';
 import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List, MapPin, Trash2, Pencil } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Play, AlertCircle, X, List, MapPin, Trash2, Pencil, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -566,16 +567,30 @@ const AuditsCalendar = () => {
           
           {isAdminOrManager && (
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-              <Button 
-                variant="outline" 
-                onClick={handleGenerateAudits}
-                disabled={isGenerating}
-                className="w-full sm:w-auto"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">{isGenerating ? 'Generating...' : 'Generate Audits Now'}</span>
-                <span className="sm:hidden">{isGenerating ? 'Generating...' : 'Generate'}</span>
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  onClick={handleGenerateAudits}
+                  disabled={isGenerating}
+                  className="w-full sm:w-auto"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">{isGenerating ? 'Generating...' : 'Generate Audits Now'}</span>
+                  <span className="sm:hidden">{isGenerating ? 'Generating...' : 'Generate'}</span>
+                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-sm">
+                      <p>This button creates actual audit records from your recurring schedules for the next 8 weeks. Once generated, assigned staff will see these audits on their mobile view and can start completing them.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Button onClick={() => setScheduleDialogOpen(true)} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Audit
