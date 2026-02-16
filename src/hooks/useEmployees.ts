@@ -218,11 +218,104 @@ export const useDeleteEmployee = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+      queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
       toast.success("Employee deleted successfully");
     },
     onError: (error) => {
       const friendly = getToastError(error, 'employees');
       toast.error(friendly.title, { description: friendly.description });
+    },
+  });
+};
+
+// ─── Cursor-based pagination (Phase 3) ─────────────────────
+
+interface UseEmployeesCursorOptions {
+  locationId?: string;
+  searchTerm?: string;
+  roleFilter?: string;
+  statusFilter?: string;
+  pageSize?: number;
+  cursor?: string; // full_name of last item (cursor field)
+  cursorId?: string; // id of last item (tie-breaker)
+  direction?: "next" | "prev";
+}
+
+export interface CursorPage<T> {
+  data: T[];
+  hasMore: boolean;
+  nextCursor: string | null;
+  nextCursorId: string | null;
+  prevCursor: string | null;
+  prevCursorId: string | null;
+  totalCount: number;
+}
+
+export const useEmployeesCursor = (options?: UseEmployeesCursorOptions) => {
+  const {
+    locationId, searchTerm, roleFilter, statusFilter,
+    pageSize = 20, cursor, cursorId, direction = "next",
+  } = options || {};
+
+  return useQuery({
+    queryKey: ["employees-cursor", locationId, searchTerm, roleFilter, statusFilter, pageSize, cursor, cursorId, direction],
+    queryFn: async () => {
+      // Count query
+      let countQuery = supabase
+        .from("employees")
+        .select("id", { count: "exact", head: true });
+
+      if (locationId) countQuery = countQuery.eq("location_id", locationId);
+      if (searchTerm) countQuery = countQuery.or(`full_name.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      if (roleFilter) countQuery = countQuery.eq("role", roleFilter);
+      if (statusFilter) countQuery = countQuery.eq("status", statusFilter);
+
+      const { count } = await countQuery;
+
+      // Data query
+      let query = supabase
+        .from("employees")
+        .select("*, locations(name), staff_locations(id, location_id, is_primary, locations(name))")
+        .order("full_name", { ascending: direction === "next" })
+        .order("id", { ascending: direction === "next" })
+        .limit(pageSize + 1); // fetch one extra to detect hasMore
+
+      if (locationId) query = query.eq("location_id", locationId);
+      if (searchTerm) query = query.or(`full_name.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      if (roleFilter) query = query.eq("role", roleFilter);
+      if (statusFilter) query = query.eq("status", statusFilter);
+
+      // Apply cursor
+      if (cursor && cursorId) {
+        if (direction === "next") {
+          query = query.or(`full_name.gt.${cursor},and(full_name.eq.${cursor},id.gt.${cursorId})`);
+        } else {
+          query = query.or(`full_name.lt.${cursor},and(full_name.eq.${cursor},id.lt.${cursorId})`);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      let rows = (data || []) as Employee[];
+
+      // If going backwards, reverse to restore natural order
+      if (direction === "prev") rows = rows.reverse();
+
+      const hasMore = rows.length > pageSize;
+      if (hasMore) rows = rows.slice(0, pageSize);
+
+      const result: CursorPage<Employee> = {
+        data: rows,
+        hasMore,
+        nextCursor: rows.length > 0 ? rows[rows.length - 1].full_name : null,
+        nextCursorId: rows.length > 0 ? rows[rows.length - 1].id : null,
+        prevCursor: rows.length > 0 ? rows[0].full_name : null,
+        prevCursorId: rows.length > 0 ? rows[0].id : null,
+        totalCount: count || 0,
+      };
+
+      return result;
     },
   });
 };

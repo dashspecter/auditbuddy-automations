@@ -4226,6 +4226,7 @@ export type Database = {
           boh_preparation: number | null
           boh_storage: number | null
           boh_temperature: number | null
+          cached_section_scores: Json | null
           cleaning_equipment: number | null
           cleaning_floors: number | null
           cleaning_surfaces: number | null
@@ -4263,6 +4264,7 @@ export type Database = {
           boh_preparation?: number | null
           boh_storage?: number | null
           boh_temperature?: number | null
+          cached_section_scores?: Json | null
           cleaning_equipment?: number | null
           cleaning_floors?: number | null
           cleaning_surfaces?: number | null
@@ -4300,6 +4302,7 @@ export type Database = {
           boh_preparation?: number | null
           boh_storage?: number | null
           boh_temperature?: number | null
+          cached_section_scores?: Json | null
           cleaning_equipment?: number | null
           cleaning_floors?: number | null
           cleaning_surfaces?: number | null
@@ -9454,6 +9457,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      recompute_audit_section_scores: {
+        Args: { p_audit_id: string }
+        Returns: undefined
       }
       refresh_dashboard_materialized_views: { Args: never; Returns: undefined }
       reject_shift_assignment: {
