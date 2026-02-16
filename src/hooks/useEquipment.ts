@@ -205,3 +205,83 @@ export const useUpdateEquipment = () => {
 };
 
 // Equipment deletion is disabled - equipment can only be marked as inactive or transferred
+
+// ─── Cursor-based pagination (Phase 3) ─────────────────────
+
+interface UseEquipmentCursorOptions {
+  locationId?: string;
+  status?: string;
+  pageSize?: number;
+  cursor?: string;
+  cursorId?: string;
+  direction?: "next" | "prev";
+}
+
+export interface EquipmentCursorPage {
+  data: Equipment[];
+  hasMore: boolean;
+  nextCursor: string | null;
+  nextCursorId: string | null;
+  prevCursor: string | null;
+  prevCursorId: string | null;
+  totalCount: number;
+}
+
+export const useEquipmentCursor = (options?: UseEquipmentCursorOptions) => {
+  const {
+    locationId, status, pageSize = 20,
+    cursor, cursorId, direction = "next",
+  } = options || {};
+
+  return useQuery({
+    queryKey: ["equipment-cursor", locationId, status, pageSize, cursor, cursorId, direction],
+    queryFn: async () => {
+      // Count
+      let countQuery = supabase
+        .from("equipment")
+        .select("id", { count: "exact", head: true });
+      if (locationId && locationId !== "__all__") countQuery = countQuery.eq("location_id", locationId);
+      if (status) countQuery = countQuery.eq("status", status);
+      const { count } = await countQuery;
+
+      // Data
+      let query = supabase
+        .from("equipment")
+        .select(`*, locations(name, city)`)
+        .order("name", { ascending: direction === "next" })
+        .order("id", { ascending: direction === "next" })
+        .limit(pageSize + 1);
+
+      if (locationId && locationId !== "__all__") query = query.eq("location_id", locationId);
+      if (status) query = query.eq("status", status);
+
+      if (cursor && cursorId) {
+        if (direction === "next") {
+          query = query.or(`name.gt.${cursor},and(name.eq.${cursor},id.gt.${cursorId})`);
+        } else {
+          query = query.or(`name.lt.${cursor},and(name.eq.${cursor},id.lt.${cursorId})`);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      let rows = (data || []) as Equipment[];
+      if (direction === "prev") rows = rows.reverse();
+
+      const hasMore = rows.length > pageSize;
+      if (hasMore) rows = rows.slice(0, pageSize);
+
+      const result: EquipmentCursorPage = {
+        data: rows,
+        hasMore,
+        nextCursor: rows.length > 0 ? rows[rows.length - 1].name : null,
+        nextCursorId: rows.length > 0 ? rows[rows.length - 1].id : null,
+        prevCursor: rows.length > 0 ? rows[0].name : null,
+        prevCursorId: rows.length > 0 ? rows[0].id : null,
+        totalCount: count || 0,
+      };
+      return result;
+    },
+  });
+};
