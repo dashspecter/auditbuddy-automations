@@ -52,6 +52,6 @@ export function useAuditTemplateFields(templateIds: string[]) {
 
       return map;
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 minutes - template fields rarely change
   });
 }
