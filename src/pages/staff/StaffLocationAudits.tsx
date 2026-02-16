@@ -28,6 +28,7 @@ export default function StaffLocationAudits() {
     const todayEnd = endOfDay(now);
     const tomorrowEnd = endOfDay(addDays(now, 1));
     const next14Days = endOfDay(addDays(now, 14));
+    const oneWeekAgo = startOfDay(addDays(now, -7));
 
     const overdue: typeof scheduledAudits = [];
     const today: typeof scheduledAudits = [];
@@ -44,7 +45,7 @@ export default function StaffLocationAudits() {
       const scheduledStart = audit.scheduled_start ? parseISO(audit.scheduled_start) : null;
       if (!scheduledStart) return;
 
-      if (isPast(scheduledStart) && scheduledStart < todayStart) {
+      if (isPast(scheduledStart) && scheduledStart < todayStart && scheduledStart >= oneWeekAgo) {
         overdue.push(audit);
       } else if (scheduledStart >= todayStart && scheduledStart <= todayEnd) {
         today.push(audit);
