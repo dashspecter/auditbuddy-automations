@@ -139,6 +139,8 @@ export const navigationItems: NavItem[] = [
       { id: "audits-calendar", title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: "audits-schedules", title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' },
       { id: "audits-photos", title: "Photo Gallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
+      { id: "audits-tests-management", title: "Test Management", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
+      { id: "audits-tests-create", title: "Create Test", url: "/test-creation", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
     ]
   },
   { 
@@ -217,6 +219,9 @@ export const navigationItems: NavItem[] = [
       { id: "reports-employee", title: "Employee Performance", url: "/reports?tab=employee", companyPermission: 'view_reports' },
       { id: "reports-vouchers", title: "Vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' },
       { id: "reports-waste", title: "Wastage", url: "/reports/waste", companyPermission: 'view_reports' },
+      { id: "reports-insights-overview", title: "Overview", url: "/insights", companyPermission: 'view_reports' },
+      { id: "reports-insights-ai", title: "AI Feed", url: "/ai-feed", companyPermission: 'view_reports' },
+      { id: "reports-scheduling-insights", title: "Scheduling Insights", url: "/workforce/scheduling-insights", companyPermission: 'view_reports' },
     ]
   },
   { 
@@ -238,33 +243,7 @@ export const navigationItems: NavItem[] = [
       { id: "documents-all", title: "All Documents", url: "/documents" },
     ]
   },
-  { 
-    id: "tests",
-    title: "Tests", 
-    url: "/test-management", 
-    icon: GraduationCap,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees',
-    subItems: [
-      { id: "tests-management", title: "Test Management", url: "/test-management" },
-      { id: "tests-create", title: "Create Test", url: "/test-creation" },
-    ]
-  },
-  { 
-    id: "insights",
-    title: "Insights", 
-    url: "/insights", 
-    icon: Lightbulb,
-    module: "insights",
-    allowedRoles: ['admin', 'manager', 'hr'],
-    companyPermission: 'view_reports',
-    subItems: [
-      { id: "insights-overview", title: "Overview", url: "/insights", companyPermission: 'view_reports' },
-      { id: "insights-ai", title: "AI Feed", url: "/ai-feed", companyPermission: 'view_reports' },
-    ]
-  },
-  { 
+  {
     id: "integrations",
     title: "Integrations", 
     url: "/integrations", 
