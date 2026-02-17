@@ -503,21 +503,6 @@ const ModulesSection = () => (
           </CardContent>
         </Card>
       ))}
-
-      {/* Network effect card */}
-      <Card className="border-2 border-primary/20 bg-primary/5">
-        <CardContent className="p-6 flex flex-col justify-center h-full space-y-4">
-          <TrendingUp className="h-8 w-8 text-primary" />
-          <h3 className="text-lg font-bold text-foreground">
-            The Network Effect
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Every module feeds data into a shared intelligence layer. The more
-            locations you run, the smarter DashSpect gets at telling you where
-            to focus.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   </Section>
 );
