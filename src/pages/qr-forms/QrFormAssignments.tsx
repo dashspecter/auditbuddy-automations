@@ -254,19 +254,6 @@ export default function QrFormAssignments() {
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All locations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {locations?.map((l: any) => (
-                <SelectItem key={l.id} value={l.id}>
-                  {l.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -369,6 +356,23 @@ export default function QrFormAssignments() {
           </DialogContent>
         </Dialog>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-3">
+        <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All locations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Locations</SelectItem>
+            {locations?.map((l: any) => (
+              <SelectItem key={l.id} value={l.id}>
+                {l.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {(() => {
