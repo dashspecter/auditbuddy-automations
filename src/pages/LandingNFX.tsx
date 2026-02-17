@@ -26,6 +26,11 @@ import {
   Clock,
   Menu,
   X,
+  Users,
+  Trash2,
+  QrCode,
+  Package,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -366,6 +371,16 @@ const modules = [
     ],
   },
   {
+    icon: Users,
+    title: "Workforce",
+    outcome: "Schedule, track attendance, and manage your team—all in one place.",
+    bullets: [
+      "Shift scheduling with drag & drop",
+      "Clock-in/out with kiosk & QR support",
+      "Payroll-ready attendance reports",
+    ],
+  },
+  {
     icon: ListTodo,
     title: "Tasks",
     outcome: "Turn every finding into an accountable action—with proof of completion.",
@@ -376,8 +391,48 @@ const modules = [
     ],
   },
   {
+    icon: Trash2,
+    title: "Wastage",
+    outcome: "Track, measure, and reduce waste across every location.",
+    bullets: [
+      "Log waste by product & reason",
+      "Cost tracking per entry",
+      "Daily & weekly trend reports",
+    ],
+  },
+  {
+    icon: QrCode,
+    title: "QR Forms",
+    outcome: "Digitise compliance records—temperature logs, HACCP, and more.",
+    bullets: [
+      "Scan-to-fill QR-based forms",
+      "Scheduled checkpoint reminders",
+      "Immutable audit trail for inspectors",
+    ],
+  },
+  {
+    icon: Package,
+    title: "Inventory",
+    outcome: "Keep stock levels accurate without the guesswork.",
+    bullets: [
+      "Location-level stock tracking",
+      "Low-stock alerts & reorder points",
+      "Supplier & purchase management",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "Documents",
+    outcome: "Centralise SOPs, policies, and compliance docs for every site.",
+    bullets: [
+      "Version-controlled document library",
+      "Role-based access & sharing",
+      "Read-receipt tracking",
+    ],
+  },
+  {
     icon: Wrench,
-    title: "Assets & CMMS‑lite",
+    title: "Assets & CMMS",
     outcome: "Stop equipment breakdowns before they cost you a shift.",
     bullets: [
       "QR-based asset tracking",
@@ -411,7 +466,7 @@ const ModulesSection = () => (
   <Section id="modules" className="bg-muted/30">
     <div className="text-center">
       <SectionLabel>Platform Modules</SectionLabel>
-      <SectionTitle>Five modules. One system. Zero gaps.</SectionTitle>
+      <SectionTitle>Ten modules. One system. Zero gaps.</SectionTitle>
       <p className="mt-4 text-muted-foreground text-lg max-w-xl mx-auto">
         Each module is powerful alone. Together, they create the closed-loop
         accountability that makes multi-location operations scalable.
