@@ -117,6 +117,16 @@ const navigationItems = [
         ]
       },
       { 
+        titleKey: "nav.employeeTests",
+        url: "/test-management",
+        allowedRoles: ['admin', 'manager'],
+        companyPermission: 'manage_employees' as CompanyPermission,
+        nestedItems: [
+          { titleKey: "nav.testManagement", url: "/test-management" },
+          { titleKey: "nav.createTest", url: "/test-creation" },
+        ]
+      },
+      { 
         titleKey: "nav.calendar",
         url: "/audits-calendar",
         allowedRoles: ['admin', 'manager', 'hr', 'checker'],
@@ -137,17 +147,6 @@ const navigationItems = [
         ]
       },
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-      
-      { 
-        titleKey: "nav.tests",
-        url: "/test-management",
-        allowedRoles: ['admin', 'manager'],
-        companyPermission: 'manage_employees' as CompanyPermission,
-        nestedItems: [
-          { titleKey: "nav.testManagement", url: "/test-management" },
-          { titleKey: "nav.createTest", url: "/test-creation" },
-        ]
-      },
     ]
   },
   { 
