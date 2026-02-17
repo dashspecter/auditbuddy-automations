@@ -741,13 +741,12 @@ const FinalCTA = () => (
             Book a Demo
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <a href="#ops-loop">
+          <a href="/auth">
             <Button
-              variant="outline"
               size="lg"
-              className="text-base px-8 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+              className="bg-white text-primary hover:bg-white/90 text-base px-8 font-semibold"
             >
-              See How It Works
+              Sign In
             </Button>
           </a>
         </div>
