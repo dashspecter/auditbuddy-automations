@@ -16,7 +16,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug,
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
-  Cog, Trash2, LucideIcon
+  Cog, Trash2, History, LucideIcon
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -369,6 +369,15 @@ export const navigationItems: NavigationItem[] = [
 // ============================================
 
 export const settingsItems: NavigationItem[] = [
+  {
+    id: 'settings-activity-log',
+    titleKey: "nav.activityLog",
+    url: "/activity-log",
+    icon: History,
+    module: null,
+    requiresOwnerOrAdmin: true,
+    isSettings: true
+  },
   {
     id: 'settings-billing',
     titleKey: "nav.billingModules",

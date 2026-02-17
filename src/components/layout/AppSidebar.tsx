@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog, Trash2
+  MessageCircleQuestion, Cog, Trash2, History
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -283,6 +283,12 @@ const navigationItems = [
 ];
 
 const settingsItems = [
+  { 
+    titleKey: "nav.activityLog", 
+    url: "/activity-log", 
+    icon: History,
+    requiresOwnerOrAdmin: true
+  },
   { 
     titleKey: "nav.billingModules", 
     url: "/pricing", 
