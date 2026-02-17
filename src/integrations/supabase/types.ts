@@ -5529,6 +5529,56 @@ export type Database = {
           },
         ]
       }
+      platform_audit_log: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

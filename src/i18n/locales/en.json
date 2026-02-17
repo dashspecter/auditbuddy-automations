@@ -175,6 +175,7 @@
     "maintenanceTasks": "Maintenance Tasks",
     "slaManagement": "SLA Management",
     "billingModules": "Billing & Modules",
+    "activityLog": "Activity Log",
     "platformAdmin": "Platform Admin",
     "systemHealth": "System Health",
     "debugData": "Debug Data",
