@@ -220,11 +220,12 @@ const App = () => (
                   <SidebarProvider>
                     <PWAInstallPrompt />
                     <Routes>
-                      <Route path="/" element={<Index />} />
+                      <Route path="/" element={<LandingNFX />} />
                       <Route path="/full-presentation" element={<FullPresentation />} />
                       <Route path="/full" element={<FullPresentation />} />
                       <Route path="/sales-offer" element={<SalesOffer />} />
                       <Route path="/go" element={<LandingNFX />} />
+                      <Route path="/old-home" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/staff-login" element={<StaffLogin />} />
                       <Route path="/staff" element={<ProtectedRoute><StaffHome /></ProtectedRoute>} />
