@@ -268,6 +268,7 @@ export default function QrFormEntry() {
   }
 
   if (assignmentError || !assignment) {
+    const errMsg = assignmentError instanceof Error ? assignmentError.message : "";
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <Card className="w-full max-w-md">
@@ -275,8 +276,16 @@ export default function QrFormEntry() {
             <AlertTriangle className="h-12 w-12 text-destructive" />
             <h2 className="text-xl font-bold">Form Not Found</h2>
             <p className="text-muted-foreground text-center text-sm">
-              This QR code is invalid or the form has been deactivated.
+              This QR code is invalid or the form has not been assigned to a location yet.
             </p>
+            {errMsg && (
+              <p className="text-xs text-muted-foreground/70 text-center">
+                Details: {errMsg}
+              </p>
+            )}
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
           </CardContent>
         </Card>
       </div>
