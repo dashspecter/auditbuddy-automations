@@ -207,6 +207,41 @@ export const useLockSchedulePeriod = () => {
   });
 };
 
+// Mutation to unlock schedule period (revert locked -> published)
+export const useUnlockSchedulePeriod = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ periodId }: { periodId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('schedule_periods')
+        .update({
+          state: 'published',
+          locked_at: null,
+          locked_by: null
+        })
+        .eq('id', periodId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule-period'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule-periods-week'] });
+      queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      toast.success('Schedule unlocked — direct edits are now allowed');
+    },
+    onError: (error) => {
+      toast.error('Failed to unlock schedule: ' + error.message);
+    },
+  });
+};
+
 // Mutation to publish and lock in one step
 export const usePublishAndLockSchedulePeriod = () => {
   const queryClient = useQueryClient();

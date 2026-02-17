@@ -31,9 +31,11 @@ import {
   SchedulePeriod,
   usePublishSchedulePeriod,
   useLockSchedulePeriod,
+  useUnlockSchedulePeriod,
   usePublishAndLockSchedulePeriod,
   usePendingChangeRequests
 } from "@/hooks/useScheduleGovernance";
+import { useCompany } from "@/hooks/useCompany";
 
 interface SchedulePeriodBannerProps {
   period: SchedulePeriod | null;
@@ -48,14 +50,17 @@ export const SchedulePeriodBanner = ({
   locationName,
   onViewChangeRequests,
 }: SchedulePeriodBannerProps) => {
-  const [confirmDialog, setConfirmDialog] = useState<'publish' | 'lock' | 'publish_and_lock' | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<'publish' | 'lock' | 'publish_and_lock' | 'unlock' | null>(null);
   
+  const { data: company } = useCompany();
   const publishMutation = usePublishSchedulePeriod();
   const lockMutation = useLockSchedulePeriod();
+  const unlockMutation = useUnlockSchedulePeriod();
   const publishAndLockMutation = usePublishAndLockSchedulePeriod();
   const { data: pendingRequests = [] } = usePendingChangeRequests(period?.id);
   
   const pendingCount = pendingRequests.length;
+  const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
 
   if (!period && !isLoading) return null;
 
@@ -74,6 +79,12 @@ export const SchedulePeriodBanner = ({
   const handlePublishAndLock = async () => {
     if (!period) return;
     await publishAndLockMutation.mutateAsync({ periodId: period.id });
+    setConfirmDialog(null);
+  };
+
+  const handleUnlock = async () => {
+    if (!period) return;
+    await unlockMutation.mutateAsync({ periodId: period.id });
     setConfirmDialog(null);
   };
 
@@ -120,7 +131,7 @@ export const SchedulePeriodBanner = ({
 
   const stateInfo = getStateInfo();
   const StateIcon = stateInfo.icon;
-  const isPending = publishMutation.isPending || lockMutation.isPending || publishAndLockMutation.isPending;
+  const isPending = publishMutation.isPending || lockMutation.isPending || publishAndLockMutation.isPending || unlockMutation.isPending;
 
   return (
     <>
@@ -231,11 +242,33 @@ export const SchedulePeriodBanner = ({
               </Button>
             )}
 
-            {period?.state === 'locked' && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Finalized</span>
-              </div>
+            {period?.state === 'locked' && isOwnerOrAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => setConfirmDialog('unlock')}
+                disabled={isPending}
+              >
+                <Unlock className="h-4 w-4" />
+                Unlock Schedule
+              </Button>
+            )}
+
+            {period?.state === 'locked' && !isOwnerOrAdmin && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span>Finalized</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Only company owners or admins can unlock the schedule. Contact them if you need to make changes.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>
@@ -290,6 +323,24 @@ export const SchedulePeriodBanner = ({
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handlePublishAndLock} disabled={isPending}>
               {isPending ? 'Processing...' : 'Publish & Lock'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDialog === 'unlock'} onOpenChange={() => setConfirmDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlock Schedule?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revert the schedule to "Published" status, allowing direct edits again.
+              Any pending change requests will remain but new changes won't require approval until the schedule is locked again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnlock} disabled={isPending}>
+              {isPending ? 'Unlocking...' : 'Unlock Schedule'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
