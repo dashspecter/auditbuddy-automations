@@ -124,6 +124,13 @@ export default function QrFormAssignments() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Delete related form_submissions first to avoid FK constraint violation
+      const { error: subError } = await supabase
+        .from("form_submissions")
+        .delete()
+        .eq("location_form_template_id", id);
+      if (subError) throw subError;
+
       const { error } = await supabase.from("location_form_templates").delete().eq("id", id);
       if (error) throw error;
     },
