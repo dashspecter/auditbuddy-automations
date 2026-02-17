@@ -3,6 +3,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { usePermissions, CompanyPermission } from '@/hooks/useCompanyPermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserTemplatePermissions } from '@/hooks/useUserTemplatePermissions';
 
 export type ActionType = 
   | 'view'
@@ -190,18 +191,30 @@ export function useCan(): UseCanReturn {
   const { data: userRole, isLoading: roleLoading } = useUserRole();
   const { modules, isLoading: companyLoading } = useCompanyContext();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
+  const { data: templatePermissions, isLoading: templateLoading } = useUserTemplatePermissions();
 
   // Derive role flags from userRole data
   const isPlatformAdmin = userRole?.isAdmin ?? false;
   const isCompanyOwner = userRole?.companyRole === 'company_owner';
   const isCompanyAdmin = userRole?.isCompanyAdmin ?? false;
 
-  const isLoading = roleLoading || permissionsLoading || companyLoading;
+  // Template is assigned if data is a non-null array
+  const hasTemplate = templatePermissions !== null && templatePermissions !== undefined;
+
+  const isLoading = roleLoading || permissionsLoading || companyLoading || templateLoading;
 
   const hasModule = (moduleName: string | undefined): boolean => {
     if (!moduleName) return true;
     if (!modules) return false;
     return modules.some((m: any) => m.module_name === moduleName && m.is_active);
+  };
+
+  /**
+   * Check template permissions: does the user's assigned template grant this resource+action?
+   */
+  const hasTemplatePermission = (resource: string, action: string): boolean => {
+    if (!templatePermissions) return false;
+    return templatePermissions.some(p => p.resource === resource && p.action === action && p.granted);
   };
 
   const hasRole = (allowedRoles: string[] | undefined): boolean => {
@@ -267,10 +280,23 @@ export function useCan(): UseCanReturn {
         return { allowed: true };
       }
 
-      // Check module requirement
+      // Check module requirement (always enforced regardless of template)
       if (requirements.module && !hasModule(requirements.module)) {
         return { allowed: false, reason: `Module "${requirements.module}" is not enabled` };
       }
+
+      // ── TEMPLATE-FIRST CHECK ──
+      // If user has a role template assigned, use it as the authority
+      // for role + permission checks (skip legacy checks)
+      if (hasTemplate) {
+        if (hasTemplatePermission(resource, action)) {
+          return { allowed: true };
+        }
+        return { allowed: false, reason: 'Not permitted by assigned role template' };
+      }
+
+      // ── LEGACY FALLBACK ──
+      // No template assigned → use existing role + permission system
 
       // Check role requirement
       if (requirements.roles && !hasRole(requirements.roles)) {
@@ -284,7 +310,7 @@ export function useCan(): UseCanReturn {
 
       return { allowed: true };
     };
-  }, [user, isLoading, isPlatformAdmin, isCompanyOwner, isCompanyAdmin, userRole, modules, hasPermission]);
+  }, [user, isLoading, isPlatformAdmin, isCompanyOwner, isCompanyAdmin, userRole, modules, hasPermission, hasTemplate, templatePermissions]);
 
   return {
     can,
