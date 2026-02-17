@@ -189,7 +189,11 @@
     "wasteReports": "Wastage Reports",
     "wasteProducts": "Products",
     "wasteReasons": "Reasons",
-    "wasteSettings": "Settings"
+    "wasteSettings": "Settings",
+    "qrForms": "QR Forms",
+    "formTemplates": "Templates",
+    "formAssignments": "Assignments",
+    "formRecords": "Records"
   },
   "auth": {
     "signIn": "Sign In",

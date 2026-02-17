@@ -189,7 +189,11 @@
     "wasteReports": "Rapoarte risipă",
     "wasteProducts": "Produse",
     "wasteReasons": "Motive",
-    "wasteSettings": "Setări"
+    "wasteSettings": "Setări",
+    "qrForms": "Formulare QR",
+    "formTemplates": "Șabloane",
+    "formAssignments": "Alocări",
+    "formRecords": "Înregistrări"
   },
   "auth": {
     "signIn": "Autentificare",

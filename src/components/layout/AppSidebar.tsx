@@ -1,6 +1,6 @@
 import { 
   Home, Users, MapPin, ClipboardCheck, ListTodo, 
-  Wrench, Package, FileText, Lightbulb, Plug, 
+  Wrench, Package, FileText, Lightbulb, Plug, QrCode, 
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
@@ -259,6 +259,19 @@ const navigationItems = [
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
+  },
+  { 
+    titleKey: "nav.qrForms", 
+    url: "/admin/qr-forms/templates", 
+    icon: QrCode,
+    module: "qr_forms",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.formTemplates", url: "/admin/qr-forms/templates", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.formAssignments", url: "/admin/qr-forms/assignments", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.formRecords", url: "/admin/qr-forms/records", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+    ]
   },
   { 
     titleKey: "nav.templateMarketplace", 
