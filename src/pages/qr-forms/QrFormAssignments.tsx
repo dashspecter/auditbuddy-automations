@@ -140,26 +140,104 @@ export default function QrFormAssignments() {
     toast.success("QR URL copied to clipboard");
   };
 
-  const downloadQr = (token: string, label: string) => {
+  const downloadQr = (token: string, label: string, templateName: string, locationName: string) => {
     const svg = document.getElementById(`qr-${token}`);
     if (!svg) return;
     const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = 400;
-      canvas.height = 400;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, 400, 400);
-      ctx.drawImage(img, 0, 0, 400, 400);
+    const qrImg = new Image();
+
+    // Also load the logo
+    const logoImg = new Image();
+    let logoLoaded = false;
+    logoImg.onload = () => { logoLoaded = true; };
+    logoImg.onerror = () => { logoLoaded = false; };
+    logoImg.src = '/dashspect-logo-512.png';
+
+    qrImg.onload = () => {
+      const W = 480;
+      const headerH = 72;
+      const qrSize = 320;
+      const qrPad = (W - qrSize) / 2;
+      const footerH = 48;
+      const totalH = headerH + qrSize + 24 + footerH;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = totalH;
+      const ctx = canvas.getContext("2d")!;
+
+      // Background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, W, totalH);
+
+      // Header bar (orange brand)
+      ctx.fillStyle = "#F97316";
+      ctx.fillRect(0, 0, W, headerH);
+      // Darker accent line
+      ctx.fillStyle = "#EA580C";
+      ctx.fillRect(0, headerH - 4, W, 4);
+
+      // Logo circle in header
+      if (logoLoaded) {
+        ctx.save();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.beginPath();
+        ctx.arc(40, headerH / 2, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.clip();
+        ctx.drawImage(logoImg, 18, headerH / 2 - 22, 44, 44);
+        ctx.restore();
+      }
+
+      // Template name
+      const textX = logoLoaded ? 70 : 20;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 16px Helvetica, Arial, sans-serif";
+      ctx.textBaseline = "middle";
+      // Truncate if needed
+      let displayName = templateName;
+      while (ctx.measureText(displayName).width > W - textX - 20 && displayName.length > 3) {
+        displayName = displayName.slice(0, -4) + "...";
+      }
+      ctx.fillText(displayName, textX, headerH / 2 - 10);
+
+      // Location name
+      ctx.font = "13px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillText("📍 " + locationName, textX, headerH / 2 + 12);
+
+      // QR code
+      const qrY = headerH + 12;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(qrPad - 8, qrY - 8, qrSize + 16, qrSize + 16);
+      ctx.drawImage(qrImg, qrPad, qrY, qrSize, qrSize);
+
+      // Footer
+      const footerY = totalH - footerH;
+      ctx.fillStyle = "#F8F9FA";
+      ctx.fillRect(0, footerY, W, footerH);
+      ctx.strokeStyle = "#E5E7EB";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, footerY);
+      ctx.lineTo(W, footerY);
+      ctx.stroke();
+
+      ctx.fillStyle = "#6B7280";
+      ctx.font = "11px Helvetica, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Powered by Dashspect", W / 2, footerY + 20);
+      ctx.font = "9px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "#9CA3AF";
+      ctx.fillText("Scan to access form", W / 2, footerY + 35);
+
       const url = canvas.toDataURL("image/png");
       const a = document.createElement("a");
       a.href = url;
       a.download = `qr-${label.replace(/\s+/g, "-").toLowerCase()}.png`;
       a.click();
     };
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    qrImg.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   return (
@@ -332,7 +410,7 @@ export default function QrFormAssignments() {
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => downloadQr(a.public_token, label)}
+                      onClick={() => downloadQr(a.public_token, label, (a as any).form_templates?.name || "Template", (a as any).locations?.name || "Location")}
                     >
                       <Download className="h-3 w-3 mr-1" /> Download
                     </Button>
