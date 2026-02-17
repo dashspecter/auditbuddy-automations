@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog, Trash2, History
+  MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -287,6 +287,18 @@ const settingsItems = [
     titleKey: "nav.activityLog", 
     url: "/activity-log", 
     icon: History,
+    requiresOwnerOrAdmin: true
+  },
+  { 
+    titleKey: "nav.roleTemplates", 
+    url: "/role-templates", 
+    icon: ShieldCheck,
+    requiresOwnerOrAdmin: true
+  },
+  { 
+    titleKey: "nav.policyRules", 
+    url: "/policy-rules", 
+    icon: ShieldAlert,
     requiresOwnerOrAdmin: true
   },
   { 
