@@ -377,10 +377,11 @@ export default function QrFormEntry() {
                   const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
                   if (day > daysInMonth) return null;
 
+                  const isToday = day === todayDay;
                   return (
-                    <TableRow key={day}>
-                      <TableCell className="font-medium sticky left-0 bg-background z-10">
-                        {day}
+                    <TableRow key={day} className={isToday ? "bg-primary/10 ring-1 ring-primary/30 ring-inset" : ""}>
+                      <TableCell className={`font-medium sticky left-0 z-10 ${isToday ? "bg-primary/10 text-primary font-bold text-base" : "bg-background"}`}>
+                        {day}{isToday ? " ←" : ""}
                       </TableCell>
                       {checkpoints.map((cp: any) =>
                         cellFields.map((f: any) => {
