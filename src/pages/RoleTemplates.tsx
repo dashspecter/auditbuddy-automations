@@ -7,6 +7,7 @@ import {
   useTemplateAssignments,
   RoleTemplate 
 } from "@/hooks/useRoleTemplates";
+import { useCompany } from "@/hooks/useCompany";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -159,12 +160,16 @@ const RoleTemplates = () => {
 const PermissionMatrix = ({ template }: { template: RoleTemplate }) => {
   const { data: permissions = [], isLoading } = useRoleTemplatePermissions(template.id);
   const togglePermission = useToggleTemplatePermission();
+  const { data: company } = useCompany();
+
+  const isOwner = company?.userRole === 'company_owner';
+  const canEdit = !template.is_system || isOwner;
 
   const hasPermission = (resource: string, action: string) =>
     permissions.some(p => p.resource === resource && p.action === action && p.granted);
 
   const handleToggle = (resource: string, action: string, current: boolean) => {
-    if (template.is_system) return; // Can't edit system templates
+    if (!canEdit) return;
     togglePermission.mutate({
       templateId: template.id,
       resource,
@@ -214,7 +219,7 @@ const PermissionMatrix = ({ template }: { template: RoleTemplate }) => {
                             <Switch
                               checked={granted}
                               onCheckedChange={() => handleToggle(resource, action, granted)}
-                              disabled={template.is_system}
+                              disabled={!canEdit}
                               className="scale-75"
                             />
                           </td>
@@ -227,7 +232,7 @@ const PermissionMatrix = ({ template }: { template: RoleTemplate }) => {
             </div>
           </ScrollArea>
         )}
-        {template.is_system && (
+        {template.is_system && !isOwner && (
           <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1">
             <Lock className="h-3 w-3" />
             System templates are read-only. Create a custom template to modify permissions.
