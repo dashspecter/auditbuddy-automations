@@ -158,7 +158,7 @@ export default function QrFormEntry() {
         data: formData,
       };
 
-      if (existingSubmission && existingSubmission.status === "draft") {
+      if (existingSubmission && (existingSubmission.status === "draft" || existingSubmission.status === "submitted")) {
         // Update existing draft
         const { error } = await supabase
           .from("form_submissions")
@@ -309,7 +309,8 @@ export default function QrFormEntry() {
 
   const schema = assignment.form_template_versions?.schema as any;
   const isMonthlyGrid = assignment.form_templates?.type === "monthly_grid";
-  const isLocked = existingSubmission?.status === "submitted" || existingSubmission?.status === "locked";
+  const isLocked = existingSubmission?.status === "locked";
+  const isSubmitted = existingSubmission?.status === "submitted";
   const overrides = assignment.overrides as any || {};
 
   // Merge overrides into schema
@@ -523,26 +524,31 @@ export default function QrFormEntry() {
       {/* Actions */}
       {!isLocked && (
         <div className="flex gap-2 sm:gap-3 sticky bottom-0 bg-background py-3 px-1 border-t z-20">
-          <Button
-            variant="outline"
-            className="flex-1 h-11 text-sm"
-            onClick={() => submitMutation.mutate(false)}
-            disabled={saving}
-          >
-            <Save className="h-4 w-4 mr-1.5" />
-            Save Draft
-          </Button>
+          {!isSubmitted && (
+            <Button
+              variant="outline"
+              className="flex-1 h-11 text-sm"
+              onClick={() => submitMutation.mutate(false)}
+              disabled={saving}
+            >
+              <Save className="h-4 w-4 mr-1.5" />
+              Save Draft
+            </Button>
+          )}
           <Button
             className="flex-1 h-11 text-sm"
             onClick={() => {
-              if (confirm("Submit this form? It cannot be edited after submission.")) {
+              const msg = isSubmitted
+                ? "Update this form with your new entries?"
+                : "Submit this form? It cannot be edited after submission.";
+              if (confirm(msg)) {
                 submitMutation.mutate(true);
               }
             }}
             disabled={saving}
           >
             <Send className="h-4 w-4 mr-1.5" />
-            Submit
+            {isSubmitted ? "Update & Submit" : "Submit"}
           </Button>
         </div>
       )}
@@ -550,7 +556,7 @@ export default function QrFormEntry() {
       {isLocked && (
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
-          This form has been submitted and is locked.
+          This form has been locked and cannot be edited.
         </div>
       )}
     </div>
