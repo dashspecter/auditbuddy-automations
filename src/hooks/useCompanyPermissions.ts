@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import { toast } from '@/hooks/use-toast';
+import { useUserTemplatePermissions, TemplatePermissionEntry } from '@/hooks/useUserTemplatePermissions';
 
 export type CompanyPermission = 
   | 'manage_users'
@@ -41,6 +42,37 @@ export const ALL_PERMISSIONS: CompanyPermission[] = [
   'manage_audits',
   'manage_notifications',
 ];
+
+/**
+ * Maps CompanyPermission to the corresponding Role Template resource.
+ * Used to bridge legacy permission checks with the new template system.
+ */
+const PERMISSION_TO_RESOURCE: Record<CompanyPermission, string> = {
+  manage_users: 'users',
+  manage_settings: 'company_settings',
+  manage_billing: 'billing',
+  manage_modules: 'company_settings',
+  view_reports: 'reports',
+  manage_locations: 'locations',
+  manage_employees: 'employees',
+  manage_shifts: 'shifts',
+  manage_audits: 'audits',
+  manage_notifications: 'notifications',
+};
+
+/**
+ * Check if template permissions grant access for a given CompanyPermission.
+ * Returns true if the template grants ANY action on the mapped resource.
+ */
+const hasTemplatePermissionForLegacy = (
+  templatePermissions: TemplatePermissionEntry[] | null | undefined,
+  permission: CompanyPermission
+): boolean => {
+  if (!templatePermissions) return false;
+  const resource = PERMISSION_TO_RESOURCE[permission];
+  if (!resource) return false;
+  return templatePermissions.some(p => p.resource === resource && p.granted);
+};
 
 interface RolePermission {
   id: string;
@@ -131,15 +163,22 @@ export const useHasPermission = (permission: CompanyPermission): boolean => {
   const { user } = useAuth();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: permissions = [], isLoading: permissionsLoading } = useCompanyPermissions();
+  const { data: templatePermissions, isLoading: templateLoading } = useUserTemplatePermissions();
 
   // While loading, assume access to prevent flicker
-  if (!user || companyLoading || permissionsLoading) return true;
+  if (!user || companyLoading || permissionsLoading || templateLoading) return true;
   if (!company) return false;
   
   // Owners and admins have all permissions
   if (company.userRole === 'company_owner' || company.userRole === 'company_admin') return true;
   
-  // Check if user's role (company_member) has the permission
+  // Template-first: if user has a template assigned, use it
+  const hasTemplate = templatePermissions !== null && templatePermissions !== undefined;
+  if (hasTemplate) {
+    return hasTemplatePermissionForLegacy(templatePermissions, permission);
+  }
+  
+  // Legacy fallback: check company_role_permissions table
   return permissions.some(
     p => p.company_role === company.userRole && p.permission === permission
   );
@@ -150,9 +189,11 @@ export const usePermissions = () => {
   const { user } = useAuth();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { data: permissions = [], isLoading: permissionsLoading } = useCompanyPermissions();
+  const { data: templatePermissions, isLoading: templateLoading } = useUserTemplatePermissions();
 
-  const isLoading = companyLoading || permissionsLoading;
+  const isLoading = companyLoading || permissionsLoading || templateLoading;
   const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  const hasTemplate = templatePermissions !== null && templatePermissions !== undefined;
 
   const hasPermission = (permission: CompanyPermission): boolean => {
     // While loading, assume access to prevent flicker
@@ -162,7 +203,12 @@ export const usePermissions = () => {
     // Owners and admins have all permissions
     if (isOwnerOrAdmin) return true;
     
-    // Check if user's role has the permission
+    // Template-first: if user has a template assigned, check template permissions
+    if (hasTemplate) {
+      return hasTemplatePermissionForLegacy(templatePermissions, permission);
+    }
+    
+    // Legacy fallback: check company_role_permissions table
     return permissions.some(
       p => p.company_role === company.userRole && p.permission === permission
     );
