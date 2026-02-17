@@ -100,7 +100,7 @@ export const useCreateRoleTemplate = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ name, description }: { name: string; description: string }) => {
+    mutationFn: async ({ name, description, baseTemplateId }: { name: string; description: string; baseTemplateId?: string }) => {
       if (!company?.id || !user?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -116,10 +116,31 @@ export const useCreateRoleTemplate = () => {
         .single();
 
       if (error) throw error;
+
+      // Copy permissions from base template if selected
+      if (baseTemplateId) {
+        const { data: basePerms } = await supabase
+          .from('role_template_permissions')
+          .select('resource, action, granted')
+          .eq('template_id', baseTemplateId)
+          .eq('granted', true);
+
+        if (basePerms && basePerms.length > 0) {
+          const newPerms = basePerms.map(p => ({
+            template_id: data.id,
+            resource: p.resource,
+            action: p.action,
+            granted: true,
+          }));
+          await supabase.from('role_template_permissions').insert(newPerms);
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role_templates'] });
+      queryClient.invalidateQueries({ queryKey: ['role_template_permissions'] });
       toast({ title: 'Role template created' });
     },
     onError: (error) => {
