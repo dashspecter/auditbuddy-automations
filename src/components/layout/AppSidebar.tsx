@@ -137,7 +137,7 @@ const navigationItems = [
         ]
       },
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-      { titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      
       { 
         titleKey: "nav.tests",
         url: "/test-management",
