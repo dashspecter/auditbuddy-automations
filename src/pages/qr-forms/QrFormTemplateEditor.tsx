@@ -416,63 +416,84 @@ export default function QrFormTemplateEditor() {
                 </CardContent>
               </Card>
 
-              {/* Recommended Range */}
+              {/* Recommended Range (Optional) */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Recommended Range</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Recommended Range</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground">Enable</Label>
+                      <Switch
+                        checked={!!schema.recommendedRange}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSchema({
+                              ...schema,
+                              recommendedRange: { min: 0, max: 10, unit: "°C" },
+                            });
+                          } else {
+                            const { recommendedRange, ...rest } = schema;
+                            setSchema(rest);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="flex items-center gap-3">
-                  <div>
-                    <Label>Min</Label>
-                    <Input
-                      type="number"
-                      value={schema.recommendedRange?.min ?? ""}
-                      onChange={(e) =>
-                        setSchema({
-                          ...schema,
-                          recommendedRange: {
-                            ...schema.recommendedRange!,
-                            min: Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="w-24"
-                    />
-                  </div>
-                  <div>
-                    <Label>Max</Label>
-                    <Input
-                      type="number"
-                      value={schema.recommendedRange?.max ?? ""}
-                      onChange={(e) =>
-                        setSchema({
-                          ...schema,
-                          recommendedRange: {
-                            ...schema.recommendedRange!,
-                            max: Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="w-24"
-                    />
-                  </div>
-                  <div>
-                    <Label>Unit</Label>
-                    <Input
-                      value={schema.recommendedRange?.unit ?? "°C"}
-                      onChange={(e) =>
-                        setSchema({
-                          ...schema,
-                          recommendedRange: {
-                            ...schema.recommendedRange!,
-                            unit: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-20"
-                    />
-                  </div>
-                </CardContent>
+                {schema.recommendedRange && (
+                  <CardContent className="flex items-center gap-3">
+                    <div>
+                      <Label>Min</Label>
+                      <Input
+                        type="number"
+                        value={schema.recommendedRange.min ?? ""}
+                        onChange={(e) =>
+                          setSchema({
+                            ...schema,
+                            recommendedRange: {
+                              ...schema.recommendedRange!,
+                              min: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-24"
+                      />
+                    </div>
+                    <div>
+                      <Label>Max</Label>
+                      <Input
+                        type="number"
+                        value={schema.recommendedRange.max ?? ""}
+                        onChange={(e) =>
+                          setSchema({
+                            ...schema,
+                            recommendedRange: {
+                              ...schema.recommendedRange!,
+                              max: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-24"
+                      />
+                    </div>
+                    <div>
+                      <Label>Unit</Label>
+                      <Input
+                        value={schema.recommendedRange.unit ?? "°C"}
+                        onChange={(e) =>
+                          setSchema({
+                            ...schema,
+                            recommendedRange: {
+                              ...schema.recommendedRange!,
+                              unit: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-20"
+                      />
+                    </div>
+                  </CardContent>
+                )}
               </Card>
             </>
           ) : (
