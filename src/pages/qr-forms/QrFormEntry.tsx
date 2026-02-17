@@ -46,21 +46,29 @@ export default function QrFormEntry() {
   const { data: assignment, isLoading: assignmentLoading, error: assignmentError } = useQuery({
     queryKey: ["qr-form-resolve", token],
     queryFn: async () => {
-      // We need a public-ish query to resolve the token
-      // Since RLS requires auth, we query after auth check
-      const { data, error } = await supabase
+      // Step 1: Resolve the token to the assignment
+      const { data: lft, error: lftErr } = await supabase
         .from("location_form_templates")
         .select(`
           *,
           form_templates(name, category, type),
-          form_template_versions(id, version, schema),
           locations!location_form_templates_location_id_fkey(name)
         `)
         .eq("public_token", token!)
         .eq("is_active", true)
+        .maybeSingle();
+      if (lftErr) throw lftErr;
+      if (!lft) return null;
+
+      // Step 2: Fetch the specific version separately to avoid join ambiguity
+      const { data: ver, error: verErr } = await supabase
+        .from("form_template_versions")
+        .select("id, version, schema")
+        .eq("id", lft.template_version_id)
         .single();
-      if (error) throw error;
-      return data;
+      if (verErr) throw verErr;
+
+      return { ...lft, form_template_versions: ver };
     },
     enabled: !!token && !!user,
   });
