@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck, Trash2 } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck, Trash2, QrCode } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -26,6 +26,7 @@ import { CheckerAuditsCard } from "@/components/staff/CheckerAuditsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
+import { StaffCheckpointsCard } from "@/components/staff/StaffCheckpointsCard";
 
 const StaffHome = () => {
   const { t } = useTranslation();
@@ -329,6 +330,15 @@ const StaffHome = () => {
         {/* Active Tasks - Prominent display for non-managers */}
         {!isManager && <ActiveTasksCard />}
 
+        {/* Checkpoints Card - show when employee has assigned checkpoints */}
+        {employee && hasModule('qr_forms') && (
+          <StaffCheckpointsCard 
+            employeeId={employee.id}
+            companyId={employee.company_id}
+            locationId={onDutyLocationId || employee.location_id}
+          />
+        )}
+
         {/* Today's Shift Card - Only for non-managers */}
         {!isManager && todayShift ? (
           <Card className="p-4 shadow-lg border-primary/20">
@@ -518,6 +528,16 @@ const StaffHome = () => {
               <ListTodo className={`h-6 w-6 mb-2 ${activeTaskCount > 0 ? "text-primary" : "text-primary"}`} />
               <span className="text-xs">{t('staffHome.myTasks')}</span>
             </Button>
+            {hasModule('qr_forms') && (
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col touch-target border-primary/30 bg-primary/5"
+                onClick={() => navigate("/staff/checkpoints")}
+              >
+                <QrCode className="h-6 w-6 mb-2 text-primary" />
+                <span className="text-xs">Checkpoints</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
