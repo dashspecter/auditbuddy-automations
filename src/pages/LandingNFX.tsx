@@ -63,8 +63,11 @@ const StickyNav = () => {
       )}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <a href="#hero" className="text-xl font-bold text-foreground tracking-tight">
-          Dash<span className="text-primary">Spect</span>
+        <a href="#hero" className="flex items-center gap-2">
+          <img src="/dashspect-logo-512.png" alt="Dashspect" className="h-9 w-9" />
+          <span className="text-xl font-bold text-foreground tracking-tight">
+            Dash<span className="text-primary">Spect</span>
+          </span>
         </a>
 
         {/* Desktop links */}
