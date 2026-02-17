@@ -29,28 +29,30 @@ import { useTranslation } from "react-i18next";
  * NAVIGATION MENU ORDER (do not reorder without updating this comment):
  * 1. Home
  * 2. Workforce
- * 3. Locations (with Auto Clock-Out & Shift Presets sub-items)
- * 4. Audits
- * 5. Tasks
- * 6. Equipment
- * 7. CMMS
- * 8. Notifications
- * 9. Reports
- * 10. Inventory
- * 11. Documents
- * 12. Tests
- * 13. Insights
- * 14. Integrations
- * 15. Template Marketplace
- * 16. Operations
+ * 3. Audits
+ * 4. Tasks
+ * 5. Notifications
+ * 6. Wastage
+ * 7. QR Forms
+ * 8. Inventory
+ * 9. Documents
+ * 10. Locations
+ * 11. Equipment
+ * 12. CMMS
+ * 13. Reports
+ * 14. Operations
+ * 15. Integrations
+ * 16. Template Marketplace
  */
 const navigationItems = [
+  // 1. Home
   { 
     titleKey: "nav.home", 
     url: "/dashboard", 
     icon: Home,
     module: null
   },
+  // 2. Workforce
   { 
     titleKey: "nav.workforce", 
     url: "/workforce", 
@@ -85,18 +87,7 @@ const navigationItems = [
       },
     ]
   },
-  { 
-    titleKey: "nav.locations", 
-    url: "/admin/locations", 
-    icon: MapPin,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_locations' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.locationsGeneral", url: "/admin/locations" },
-      { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
-    ]
-  },
+  // 3. Audits
   { 
     titleKey: "nav.audits", 
     url: "/audits", 
@@ -149,6 +140,7 @@ const navigationItems = [
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
     ]
   },
+  // 4. Tasks
   { 
     titleKey: "nav.tasks", 
     url: "/tasks", 
@@ -159,6 +151,85 @@ const navigationItems = [
       { titleKey: "nav.calendar", url: "/tasks/calendar" },
     ]
   },
+  // 5. Notifications
+  { 
+    titleKey: "nav.notifications", 
+    url: "/notifications", 
+    icon: Bell,
+    module: "notifications",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_notifications' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.sendNotifications", url: "/notifications" },
+      { titleKey: "nav.notificationTemplates", url: "/notification-templates" },
+      { titleKey: "nav.recurringNotifications", url: "/recurring-notifications" },
+      { titleKey: "nav.analytics", url: "/notification-analytics" },
+      { titleKey: "nav.auditLogs", url: "/notification-audit-logs" },
+    ]
+  },
+  // 6. Wastage
+  { 
+    titleKey: "nav.wastage", 
+    url: "/admin/waste/entries", 
+    icon: Trash2,
+    module: "wastage",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.wasteAdd", url: "/admin/waste/add", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.wasteEntries", url: "/admin/waste/entries", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.wasteReports", url: "/reports/waste", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.wasteProducts", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.wasteReasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
+    ]
+  },
+  // 7. QR Forms
+  { 
+    titleKey: "nav.qrForms", 
+    url: "/admin/qr-forms/templates", 
+    icon: QrCode,
+    module: "qr_forms",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.formTemplates", url: "/admin/qr-forms/templates", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.formAssignments", url: "/admin/qr-forms/assignments", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.formRecords", url: "/admin/qr-forms/records", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+    ]
+  },
+  // 8. Inventory
+  { 
+    titleKey: "nav.inventory", 
+    url: "/inventory", 
+    icon: Package,
+    module: "inventory"
+  },
+  // 9. Documents
+  { 
+    titleKey: "nav.documents", 
+    url: "/documents", 
+    icon: FileText,
+    module: "documents",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'view_reports' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.allDocuments", url: "/documents" },
+    ]
+  },
+  // 10. Locations
+  { 
+    titleKey: "nav.locations", 
+    url: "/admin/locations", 
+    icon: MapPin,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_locations' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.locationsGeneral", url: "/admin/locations" },
+      { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
+    ]
+  },
+  // 11. Equipment
   { 
     titleKey: "nav.equipment", 
     url: "/equipment", 
@@ -173,6 +244,7 @@ const navigationItems = [
       { titleKey: "nav.bulkQRCodes", url: "/equipment/bulk-qr" },
     ]
   },
+  // 12. CMMS
   { 
     titleKey: "nav.cmms", 
     url: "/cmms", 
@@ -193,21 +265,7 @@ const navigationItems = [
       { titleKey: "nav.reports", url: "/cmms/reports" },
     ]
   },
-  { 
-    titleKey: "nav.notifications", 
-    url: "/notifications", 
-    icon: Bell,
-    module: "notifications",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_notifications' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.sendNotifications", url: "/notifications" },
-      { titleKey: "nav.notificationTemplates", url: "/notification-templates" },
-      { titleKey: "nav.recurringNotifications", url: "/recurring-notifications" },
-      { titleKey: "nav.analytics", url: "/notification-analytics" },
-      { titleKey: "nav.auditLogs", url: "/notification-audit-logs" },
-    ]
-  },
+  // 13. Reports
   { 
     titleKey: "nav.reports", 
     url: "/reports", 
@@ -224,65 +282,7 @@ const navigationItems = [
       { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
-  { 
-    titleKey: "nav.wastage", 
-    url: "/admin/waste/entries", 
-    icon: Trash2,
-    module: "wastage",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'view_reports' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.wasteAdd", url: "/admin/waste/add", allowedRoles: ['admin', 'manager'] },
-      { titleKey: "nav.wasteEntries", url: "/admin/waste/entries", allowedRoles: ['admin', 'manager'] },
-      { titleKey: "nav.wasteReports", url: "/reports/waste", companyPermission: 'view_reports' as CompanyPermission },
-      { titleKey: "nav.wasteProducts", url: "/admin/waste/products", allowedRoles: ['admin', 'manager'] },
-      { titleKey: "nav.wasteReasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
-    ]
-  },
-  { 
-    titleKey: "nav.inventory", 
-    url: "/inventory", 
-    icon: Package,
-    module: "inventory"
-  },
-  { 
-    titleKey: "nav.documents", 
-    url: "/documents", 
-    icon: FileText,
-    module: "documents",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'view_reports' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.allDocuments", url: "/documents" },
-    ]
-  },
-  {
-    titleKey: "nav.integrations", 
-    url: "/integrations", 
-    icon: Plug,
-    module: "integrations",
-    allowedRoles: ['admin']
-  },
-  { 
-    titleKey: "nav.qrForms", 
-    url: "/admin/qr-forms/templates", 
-    icon: QrCode,
-    module: "qr_forms",
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_audits' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.formTemplates", url: "/admin/qr-forms/templates", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-      { titleKey: "nav.formAssignments", url: "/admin/qr-forms/assignments", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-      { titleKey: "nav.formRecords", url: "/admin/qr-forms/records", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
-    ]
-  },
-  { 
-    titleKey: "nav.templateMarketplace", 
-    url: "/marketplace", 
-    icon: Store,
-    module: null,
-    allowedRoles: ['admin', 'manager', 'hr', 'checker']
-  },
+  // 14. Operations
   { 
     titleKey: "nav.operations", 
     url: "/operations/daily", 
@@ -295,6 +295,22 @@ const navigationItems = [
       { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
       { titleKey: "nav.slaManagement", url: "/operations/slas" },
     ]
+  },
+  // 15. Integrations
+  {
+    titleKey: "nav.integrations", 
+    url: "/integrations", 
+    icon: Plug,
+    module: "integrations",
+    allowedRoles: ['admin']
+  },
+  // 16. Template Marketplace
+  { 
+    titleKey: "nav.templateMarketplace", 
+    url: "/marketplace", 
+    icon: Store,
+    module: null,
+    allowedRoles: ['admin', 'manager', 'hr', 'checker']
   },
 ];
 
