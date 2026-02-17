@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Save, Trash2, GripVertical, Clock, Hash, Type, Calendar, CheckSquare, PenTool } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2, GripVertical, Clock, Hash, Type, Calendar, CheckSquare, PenTool, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 
 const FIELD_TYPES = [
@@ -72,6 +72,7 @@ export default function QrFormTemplateEditor() {
   const [schema, setSchema] = useState<TemplateSchema>({});
   const [versionNotes, setVersionNotes] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
 
   // Fetch template + versions
   const { data: template, isLoading } = useQuery({
@@ -220,7 +221,51 @@ export default function QrFormTemplateEditor() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{name || "Edit Template"}</h1>
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="text-2xl font-bold h-auto py-1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (name.trim()) {
+                      saveMutation.mutate();
+                      setIsEditingName(false);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setName(template?.name || '');
+                    setIsEditingName(false);
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (name.trim()) {
+                    saveMutation.mutate();
+                    setIsEditingName(false);
+                  }
+                }}
+                disabled={!name.trim() || saveMutation.isPending}
+              >
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => { setName(template?.name || ''); setIsEditingName(false); }}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <h1
+              className="text-2xl font-bold cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
+              onClick={() => setIsEditingName(true)}
+              title="Click to edit name"
+            >
+              {name || "Edit Template"}
+              <Edit2 className="h-4 w-4 text-muted-foreground" />
+            </h1>
+          )}
           <p className="text-muted-foreground text-sm">
             {isMonthlyGrid ? "Monthly Grid" : "Event Log"} • v{latestVersion?.version || 1}
           </p>
