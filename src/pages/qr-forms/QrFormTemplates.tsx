@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, QrCode, Grid3X3, List, MoreVertical, Pencil, Trash2, Settings2 } from "lucide-react";
+import { Plus, Search, QrCode, Grid3X3, List, MoreVertical, Pencil, Trash2, Settings2, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -200,6 +200,61 @@ export default function QrFormTemplates() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["form-templates"] });
       toast.success("Template deleted");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user || !company?.id) throw new Error("Not authenticated");
+
+      // Fetch source template
+      const source = templates?.find((t: any) => t.id === templateId);
+      if (!source) throw new Error("Template not found");
+
+      // Fetch latest version schema
+      const { data: latestVer, error: vErr } = await supabase
+        .from("form_template_versions")
+        .select("*")
+        .eq("template_id", templateId)
+        .order("version", { ascending: false })
+        .limit(1)
+        .single();
+      if (vErr) throw vErr;
+
+      // Create duplicated template
+      const { data: newTemplate, error: tErr } = await supabase
+        .from("form_templates")
+        .insert({
+          company_id: company.id,
+          name: `${source.name} (Copy)`,
+          category: source.category,
+          type: source.type,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+      if (tErr) throw tErr;
+
+      // Create version 1 with copied schema
+      const { error: v2Err } = await supabase
+        .from("form_template_versions")
+        .insert({
+          template_id: newTemplate.id,
+          version: 1,
+          schema: latestVer.schema,
+          notes: `Duplicated from "${source.name}"`,
+          created_by: user.id,
+        });
+      if (v2Err) throw v2Err;
+
+      return newTemplate;
+    },
+    onSuccess: (newTemplate) => {
+      queryClient.invalidateQueries({ queryKey: ["form-templates"] });
+      toast.success("Template duplicated successfully");
+      navigate(`/admin/qr-forms/templates/${newTemplate.id}`);
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -487,6 +542,15 @@ export default function QrFormTemplates() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/admin/qr-forms/templates/${template.id}`); }}>
                           <Pencil className="h-4 w-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicateMutation.mutate(template.id);
+                          }}
+                          disabled={duplicateMutation.isPending}
+                        >
+                          <Copy className="h-4 w-4 mr-2" /> Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
