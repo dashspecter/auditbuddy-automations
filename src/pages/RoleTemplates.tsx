@@ -16,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Shield, Plus, Users, Lock, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Shield, Plus, Users, Lock, ChevronRight, Copy } from "lucide-react";
 
 const RESOURCES = [
   'employees', 'shifts', 'attendance', 'audits', 'locations',
@@ -35,15 +36,21 @@ const RoleTemplates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<RoleTemplate | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [baseTemplateId, setBaseTemplateId] = useState<string>("none");
   const [createOpen, setCreateOpen] = useState(false);
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createTemplate.mutate({ name: newName, description: newDesc }, {
+    createTemplate.mutate({ 
+      name: newName, 
+      description: newDesc, 
+      baseTemplateId: baseTemplateId !== "none" ? baseTemplateId : undefined 
+    }, {
       onSuccess: () => {
         setCreateOpen(false);
         setNewName("");
         setNewDesc("");
+        setBaseTemplateId("none");
       }
     });
   };
@@ -82,6 +89,25 @@ const RoleTemplates = () => {
                 value={newDesc} 
                 onChange={(e) => setNewDesc(e.target.value)} 
               />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy permissions from
+                </label>
+                <Select value={baseTemplateId} onValueChange={setBaseTemplateId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Start from scratch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Start from scratch</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {t.is_system ? '(System)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreate} disabled={!newName.trim() || createTemplate.isPending}>
