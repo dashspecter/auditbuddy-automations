@@ -191,6 +191,8 @@ export const navigationItems: NavigationItem[] = [
       { id: 'audits-library', titleKey: "nav.templateLibrary", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: 'audits-mystery', titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
       { id: 'audits-photos', titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
+      { id: 'audits-tests-management', titleKey: "nav.testManagement", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
+      { id: 'audits-tests-create', titleKey: "nav.createTest", url: "/test-creation", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
     ]
   },
   {
@@ -268,6 +270,9 @@ export const navigationItems: NavigationItem[] = [
       { id: 'reports-location', titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' },
       { id: 'reports-employee', titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' },
       { id: 'reports-vouchers', titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' },
+      { id: 'reports-insights-overview', titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' },
+      { id: 'reports-insights-ai', titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' },
+      { id: 'reports-scheduling', titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", companyPermission: 'view_reports' },
     ]
   },
   {
@@ -303,33 +308,6 @@ export const navigationItems: NavigationItem[] = [
     companyPermission: 'view_reports',
     subItems: [
       { id: 'documents-all', titleKey: "nav.allDocuments", url: "/documents" },
-    ]
-  },
-  {
-    id: 'tests',
-    titleKey: "nav.tests",
-    url: "/test-management",
-    icon: GraduationCap,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees',
-    subItems: [
-      { id: 'tests-management', titleKey: "nav.testManagement", url: "/test-management" },
-      { id: 'tests-create', titleKey: "nav.createTest", url: "/test-creation" },
-    ]
-  },
-  {
-    id: 'insights',
-    titleKey: "nav.insights",
-    url: "/insights",
-    icon: Lightbulb,
-    module: "insights",
-    allowedRoles: ['admin', 'manager', 'hr'],
-    companyPermission: 'view_reports',
-    subItems: [
-      { id: 'insights-overview', titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' },
-      { id: 'insights-ai', titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' },
-      { id: 'insights-scheduling', titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' },
     ]
   },
   {
@@ -506,8 +484,7 @@ export const mobileMoreNavItems: Array<{
   { id: 'more-inventory', title: "Inventory", url: "/inventory", icon: Package },
   { id: 'more-documents', title: "Documents", url: "/documents", icon: FileText },
   { id: 'more-training', title: "Training", url: "/workforce/training", icon: GraduationCap },
-  { id: 'more-tests', title: "Tests", url: "/test-management", icon: GraduationCap },
-  { id: 'more-insights', title: "Insights", url: "/insights", icon: Lightbulb },
+  { id: 'more-integrations', title: "Integrations", url: "/integrations", icon: Plug },
   { id: 'more-integrations', title: "Integrations", url: "/integrations", icon: Plug },
   { id: 'more-marketplace', title: "Marketplace", url: "/marketplace", icon: Store },
   { id: 'more-operations', title: "Operations", url: "/operations/daily", icon: Settings2 },

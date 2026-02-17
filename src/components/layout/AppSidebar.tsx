@@ -122,6 +122,8 @@ const navigationItems = [
       { titleKey: "nav.templateLibrary", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.testManagement", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
+      { titleKey: "nav.createTest", url: "/test-creation", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
     ]
   },
   { 
@@ -194,6 +196,9 @@ const navigationItems = [
       { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
     ]
   },
   { 
@@ -228,32 +233,7 @@ const navigationItems = [
       { titleKey: "nav.allDocuments", url: "/documents" },
     ]
   },
-  { 
-    titleKey: "nav.tests", 
-    url: "/test-management", 
-    icon: GraduationCap,
-    module: null,
-    allowedRoles: ['admin', 'manager'],
-    companyPermission: 'manage_employees' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.testManagement", url: "/test-management" },
-      { titleKey: "nav.createTest", url: "/test-creation" },
-    ]
-  },
-  { 
-    titleKey: "nav.insights", 
-    url: "/insights", 
-    icon: Lightbulb,
-    module: "insights",
-    allowedRoles: ['admin', 'manager', 'hr'],
-    companyPermission: 'view_reports' as CompanyPermission,
-    subItems: [
-      { titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
-      { titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
-      { titleKey: "nav.schedulingInsights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
-    ]
-  },
-  { 
+  {
     titleKey: "nav.integrations", 
     url: "/integrations", 
     icon: Plug,
