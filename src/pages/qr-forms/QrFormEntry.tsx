@@ -436,7 +436,7 @@ export default function QrFormEntry() {
                                 className={`h-8 text-center text-xs sm:text-sm w-[60px] sm:w-[80px] ${
                                   outOfRange ? "border-destructive bg-destructive/5" : ""
                                 } ${isDayDisabled && day !== todayDay ? "opacity-40" : ""}`}
-                                placeholder={f.type === "number" ? "0" : "-"}
+                                placeholder="-"
                               />
                             </TableCell>
                           );
