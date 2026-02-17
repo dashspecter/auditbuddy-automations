@@ -176,7 +176,11 @@ import WasteReports from "./pages/reports/WasteReports";
 import ActivityLog from "./pages/ActivityLog";
 import RoleTemplates from "./pages/RoleTemplates";
 import PolicyRules from "./pages/PolicyRules";
-
+import QrFormTemplates from "./pages/qr-forms/QrFormTemplates";
+import QrFormTemplateEditor from "./pages/qr-forms/QrFormTemplateEditor";
+import QrFormAssignments from "./pages/qr-forms/QrFormAssignments";
+import QrFormRecords from "./pages/qr-forms/QrFormRecords";
+import QrFormEntry from "./pages/qr-forms/QrFormEntry";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -199,6 +203,13 @@ const App = () => (
           <Routes>
             {/* Public kiosk route - fully outside Auth/Company contexts for anonymous access */}
             <Route path="/kiosk/:token" element={<AttendanceKiosk />} />
+            
+            {/* QR Forms entry - needs Auth but accessible via QR scan */}
+            <Route path="/qr/forms/:token" element={
+              <AuthProvider>
+                <QrFormEntry />
+              </AuthProvider>
+            } />
             
             {/* All other routes go through Auth/Company contexts */}
             <Route path="/*" element={
@@ -393,6 +404,12 @@ const App = () => (
                       <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
                       
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      
+                      {/* QR Forms Module Routes */}
+                      <Route path="/admin/qr-forms/templates" element={<ManagerRoute requiredPermission="manage_audits"><QrFormTemplates /></ManagerRoute>} />
+                      <Route path="/admin/qr-forms/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><QrFormTemplateEditor /></ManagerRoute>} />
+                      <Route path="/admin/qr-forms/assignments" element={<ManagerRoute requiredPermission="manage_audits"><QrFormAssignments /></ManagerRoute>} />
+                      <Route path="/admin/qr-forms/records" element={<ManagerRoute requiredPermission="manage_audits"><QrFormRecords /></ManagerRoute>} />
                       
                       {/* System Health - Internal Diagnostics */}
                       <Route path="/system-health" element={<ProtectedRoute><SystemHealth /></ProtectedRoute>} />

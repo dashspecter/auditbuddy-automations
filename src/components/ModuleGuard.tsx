@@ -66,6 +66,7 @@ const getModuleName = (module: string): string => {
     'notifications': 'Notifications',
     'reports': 'Reports & Analytics',
     'wastage': 'Wastage',
+    'qr_forms': 'QR Forms (HACCP / Quality Records)',
   };
   return moduleNames[module] || module;
 };
