@@ -51,14 +51,13 @@ export const ManagerRoute = ({ children, requiredPermission }: ManagerRouteProps
   const hasPlatformRole = roleData?.isManager || roleData?.isAdmin;
   
   // Check if user has the required company permission (if specified)
-  // For company members, use permission check; for others, check platform roles
-  const isMember = company?.userRole === 'company_member';
-  const hasRequiredPermission = requiredPermission && isMember ? hasPermission(requiredPermission) : false;
+  // This now checks BOTH legacy company_role_permissions AND role template permissions
+  const hasRequiredPermission = requiredPermission ? hasPermission(requiredPermission) : false;
 
   // Allow access if:
   // 1. User is company owner or admin
   // 2. User has platform manager/admin role
-  // 3. User is a company member with the required permission
+  // 3. User has the required permission (via legacy OR template)
   const hasAccess = isOwnerOrAdmin || hasPlatformRole || hasRequiredPermission;
 
   // Show access denied if no access
