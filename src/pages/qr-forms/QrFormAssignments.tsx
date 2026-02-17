@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink } from "lucide-react";
+import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -20,7 +20,8 @@ export default function QrFormAssignments() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [overrides, setOverrides] = useState("{}");
+  const [checkpointTimes, setCheckpointTimes] = useState<string[]>([]);
+  const [newTime, setNewTime] = useState("");
 
   // Fetch assignments
   const { data: assignments, isLoading } = useQuery({
@@ -87,11 +88,9 @@ export default function QrFormAssignments() {
       const latestVersion = versions.sort((a: any, b: any) => b.version - a.version)[0];
       if (!latestVersion) throw new Error("Template has no versions");
 
-      let parsedOverrides = {};
-      try {
-        parsedOverrides = JSON.parse(overrides);
-      } catch {
-        throw new Error("Invalid overrides JSON");
+      const parsedOverrides: Record<string, any> = {};
+      if (checkpointTimes.length > 0) {
+        parsedOverrides.checkpointTimes = checkpointTimes;
       }
 
       const { error } = await supabase.from("location_form_templates").insert({
@@ -109,7 +108,8 @@ export default function QrFormAssignments() {
       setAssignOpen(false);
       setSelectedTemplate("");
       setSelectedLocation("");
-      setOverrides("{}");
+      setCheckpointTimes([]);
+      setNewTime("");
       toast.success("Template assigned to location");
     },
     onError: (err: any) => toast.error(err.message),
@@ -211,13 +211,51 @@ export default function QrFormAssignments() {
                 </Select>
               </div>
               <div>
-                <Label>Overrides (JSON, optional)</Label>
-                <Textarea
-                  value={overrides}
-                  onChange={(e) => setOverrides(e.target.value)}
-                  placeholder='{"checkpointTimes": ["10:00","15:00","22:50"]}'
-                  className="font-mono text-sm"
-                />
+                <Label className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Checkpoint Times (optional)
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Add specific times when checkpoints should be completed
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    type="time"
+                    value={newTime}
+                    onChange={(e) => setNewTime(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!newTime || checkpointTimes.includes(newTime)}
+                    onClick={() => {
+                      if (newTime && !checkpointTimes.includes(newTime)) {
+                        setCheckpointTimes(prev => [...prev, newTime].sort());
+                        setNewTime("");
+                      }
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                  </Button>
+                </div>
+                {checkpointTimes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {checkpointTimes.map((t) => (
+                      <Badge key={t} variant="secondary" className="gap-1 pr-1">
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() => setCheckpointTimes(prev => prev.filter(x => x !== t))}
+                          className="rounded-full hover:bg-muted p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button
                 className="w-full"
