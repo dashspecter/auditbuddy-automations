@@ -174,6 +174,8 @@ import AdminAddWasteEntry from "./pages/admin/waste/AdminAddWasteEntry";
 import AdminWasteEntries from "./pages/admin/waste/AdminWasteEntries";
 import WasteReports from "./pages/reports/WasteReports";
 import ActivityLog from "./pages/ActivityLog";
+import RoleTemplates from "./pages/RoleTemplates";
+import PolicyRules from "./pages/PolicyRules";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -247,6 +249,8 @@ const App = () => (
                       <Route path="/onboarding/modules" element={<ProtectedRoute><ModuleSelection /></ProtectedRoute>} />
                       <Route path="/settings/company" element={<CompanyAdminRoute><CompanySettings /></CompanyAdminRoute>} />
                       <Route path="/activity-log" element={<CompanyAdminRoute><ActivityLog /></CompanyAdminRoute>} />
+                      <Route path="/role-templates" element={<CompanyAdminRoute><RoleTemplates /></CompanyAdminRoute>} />
+                      <Route path="/policy-rules" element={<CompanyAdminRoute><PolicyRules /></CompanyAdminRoute>} />
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                       <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />

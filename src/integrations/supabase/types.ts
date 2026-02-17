@@ -5579,6 +5579,116 @@ export type Database = {
           },
         ]
       }
+      policy_rule_evaluations: {
+        Row: {
+          action: string
+          company_id: string
+          context_json: Json | null
+          evaluated_at: string
+          id: string
+          resource: string
+          result: string
+          rule_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          company_id: string
+          context_json?: Json | null
+          evaluated_at?: string
+          id?: string
+          resource: string
+          result: string
+          rule_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          context_json?: Json | null
+          evaluated_at?: string
+          id?: string
+          resource?: string
+          result?: string
+          rule_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_rule_evaluations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_rule_evaluations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "policy_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_rules: {
+        Row: {
+          action: string
+          company_id: string
+          condition_config: Json
+          condition_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enforcement: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          resource: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          company_id: string
+          condition_config?: Json
+          condition_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enforcement?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          resource: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          condition_config?: Json
+          condition_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enforcement?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          resource?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -5828,6 +5938,85 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      role_template_permissions: {
+        Row: {
+          action: string
+          created_at: string
+          granted: boolean
+          id: string
+          resource: string
+          template_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          resource: string
+          template_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          resource?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_template_permissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_templates: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schedule_change_requests: {
         Row: {
@@ -8298,6 +8487,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_role_template_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          company_id: string
+          id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          company_id: string
+          id?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          company_id?: string
+          id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_role_template_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_template_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
