@@ -52,6 +52,7 @@ export default function StaffCheckpoints() {
         .select(`
           *,
           form_templates(name, category, type),
+          form_template_versions(schema),
           locations!location_form_templates_location_id_fkey(name)
         `)
         .eq("company_id", employee.company_id)
@@ -151,7 +152,9 @@ export default function StaffCheckpoints() {
   // Build checkpoint status list
   const checkpointList = (assignments || []).map((a: any) => {
     const overrides = (a.overrides as any) || {};
-    const checkpointTimes: string[] = overrides.checkpointTimes || [];
+    const schema = (a as any).form_template_versions?.schema as any;
+    const schemaCheckpoints = schema?.gridConfig?.checkpoints?.map((cp: any) => cp.time) || [];
+    const checkpointTimes: string[] = overrides.checkpointTimes?.length ? overrides.checkpointTimes : schemaCheckpoints;
     const submissions = todaySubmissions?.filter(s => s.location_form_template_id === a.id) || [];
     
     const now = new Date();
