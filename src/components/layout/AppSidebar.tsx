@@ -138,8 +138,16 @@ const navigationItems = [
       },
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { titleKey: "nav.testManagement", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
-      { titleKey: "nav.createTest", url: "/test-creation", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
+      { 
+        titleKey: "nav.tests",
+        url: "/test-management",
+        allowedRoles: ['admin', 'manager'],
+        companyPermission: 'manage_employees' as CompanyPermission,
+        nestedItems: [
+          { titleKey: "nav.testManagement", url: "/test-management" },
+          { titleKey: "nav.createTest", url: "/test-creation" },
+        ]
+      },
     ]
   },
   { 
