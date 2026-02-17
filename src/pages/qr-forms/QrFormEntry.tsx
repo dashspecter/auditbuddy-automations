@@ -39,6 +39,8 @@ export default function QrFormEntry() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setAuthChecked(true);
+    }).catch(() => {
+      setAuthChecked(true);
     });
   }, []);
 
@@ -65,12 +67,14 @@ export default function QrFormEntry() {
         .from("form_template_versions")
         .select("id, version, schema")
         .eq("id", lft.template_version_id)
-        .single();
+        .maybeSingle();
       if (verErr) throw verErr;
+      if (!ver) throw new Error("Template version not found. It may have been removed.");
 
       return { ...lft, form_template_versions: ver };
     },
     enabled: !!token && !!user,
+    retry: false,
   });
 
   // Check for existing submission (monthly grid)
@@ -267,10 +271,11 @@ export default function QrFormEntry() {
     );
   }
 
-  if (assignmentLoading) {
+  if (assignmentLoading && !assignmentError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <p className="text-sm text-muted-foreground">Loading form...</p>
       </div>
     );
   }
