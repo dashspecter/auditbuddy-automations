@@ -126,8 +126,16 @@ const navigationItems = [
           { titleKey: "nav.recurring", url: "/recurring-schedules" },
         ]
       },
-      { titleKey: "nav.templates", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
-      { titleKey: "nav.templateLibrary", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { 
+        titleKey: "nav.auditTemplates",
+        url: "/admin/templates",
+        allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+        companyPermission: 'manage_audits' as CompanyPermission,
+        nestedItems: [
+          { titleKey: "nav.manage", url: "/admin/templates" },
+          { titleKey: "nav.library", url: "/admin/template-library" },
+        ]
+      },
       { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.photoGallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.testManagement", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
