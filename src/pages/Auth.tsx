@@ -104,8 +104,8 @@ const Auth = () => {
         description: t('auth.signedInSuccess'),
       });
 
-      // Let the app decide where to land (staff users go to /staff, others to /dashboard)
-      navigate('/', { replace: true });
+      // Navigate based on role — useEffect will also handle this, but this is immediate
+      // Don't navigate here; let the useEffect handle role-based redirect
     } catch (err) {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
