@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   useRoleTemplates, 
   useRoleTemplatePermissions, 
@@ -187,9 +188,12 @@ const PermissionMatrix = ({ template }: { template: RoleTemplate }) => {
   const { data: permissions = [], isLoading } = useRoleTemplatePermissions(template.id);
   const togglePermission = useToggleTemplatePermission();
   const { data: company } = useCompany();
+  const { data: currentUserRole } = useUserRole();
 
   const isOwner = company?.userRole === 'company_owner';
-  const canEdit = !template.is_system || isOwner;
+  const isPlatformAdmin = currentUserRole?.isAdmin === true;
+  const isCompanyAdmin = company?.userRole === 'company_admin';
+  const canEdit = !template.is_system || isOwner || isPlatformAdmin || isCompanyAdmin;
 
   const hasPermission = (resource: string, action: string) =>
     permissions.some(p => p.resource === resource && p.action === action && p.granted);
@@ -258,7 +262,7 @@ const PermissionMatrix = ({ template }: { template: RoleTemplate }) => {
             </div>
           </ScrollArea>
         )}
-        {template.is_system && !isOwner && (
+        {template.is_system && !canEdit && (
           <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1">
             <Lock className="h-3 w-3" />
             System templates are read-only. Create a custom template to modify permissions.
