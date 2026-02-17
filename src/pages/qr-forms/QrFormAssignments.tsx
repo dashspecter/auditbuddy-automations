@@ -55,7 +55,8 @@ export default function QrFormAssignments() {
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
-      return data;
+      // Only show templates that have at least one published version
+      return (data || []).filter((t: any) => t.form_template_versions && t.form_template_versions.length > 0);
     },
     enabled: !!company?.id,
   });
