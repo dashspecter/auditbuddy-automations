@@ -25,9 +25,11 @@ export default function QrFormEntry() {
   const [user, setUser] = useState<any>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // For monthly grid
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  // For monthly grid - locked to current month
+  const today = new Date();
+  const selectedYear = today.getFullYear();
+  const selectedMonth = today.getMonth() + 1;
+  const todayDay = today.getDate();
 
   // Form data
   const [gridData, setGridData] = useState<Record<string, any>>({});
@@ -319,33 +321,32 @@ export default function QrFormEntry() {
   const maxRows = schema?.maxRows || 12;
   const recommendedRange = overrides.recommendedRange || schema?.recommendedRange;
 
-  return (
-    <div className="container mx-auto py-4 px-3 max-w-4xl space-y-4">
+    return (
+    <div className="container mx-auto py-4 px-2 sm:px-3 max-w-4xl space-y-3">
       {/* Header */}
       <Card>
-        <CardContent className="py-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-lg font-bold">{assignment.form_templates?.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {(assignment as any).locations?.name}
-              </p>
-              {recommendedRange && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recommended: {recommendedRange.min}–{recommendedRange.max}{recommendedRange.unit}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {existingSubmission && (
-                <Badge variant={isLocked ? "secondary" : "outline"}>
-                  {existingSubmission.status}
-                </Badge>
-              )}
-              <Badge variant="outline">
-                v{assignment.form_template_versions?.version}
+        <CardContent className="py-3 px-3">
+          <h1 className="text-base sm:text-lg font-bold leading-tight">{assignment.form_templates?.name}</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {(assignment as any).locations?.name}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 font-medium">
+            {today.toLocaleDateString("default", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          </p>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {recommendedRange && (
+              <Badge variant="outline" className="text-[10px]">
+                Range: {recommendedRange.min}–{recommendedRange.max}{recommendedRange.unit}
               </Badge>
-            </div>
+            )}
+            {existingSubmission && (
+              <Badge variant={isLocked ? "secondary" : "outline"} className="text-[10px]">
+                {existingSubmission.status}
+              </Badge>
+            )}
+            <Badge variant="outline" className="text-[10px]">
+              v{assignment.form_template_versions?.version}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -353,39 +354,6 @@ export default function QrFormEntry() {
       {/* Monthly Grid */}
       {isMonthlyGrid && (
         <>
-          <div className="flex gap-2 items-center">
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(v) => setSelectedYear(Number(v))}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[2024, 2025, 2026, 2027].map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={selectedMonth.toString()}
-              onValueChange={(v) => setSelectedMonth(Number(v))}
-            >
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <SelectItem key={m} value={m.toString()}>
-                    {new Date(2000, m - 1).toLocaleString("default", { month: "long" })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -424,6 +392,8 @@ export default function QrFormEntry() {
                             recommendedRange &&
                             (Number(val) < recommendedRange.min || Number(val) > recommendedRange.max);
 
+                          const isDayDisabled = isLocked || day !== todayDay;
+
                           return (
                             <TableCell key={`${day}-${cp.time}-${f.key}`} className="p-1">
                               <Input
@@ -432,10 +402,10 @@ export default function QrFormEntry() {
                                 onChange={(e) =>
                                   updateGridCell(day, cp.time, f.key, e.target.value)
                                 }
-                                disabled={isLocked}
-                                className={`h-8 text-center text-sm ${
+                                disabled={isDayDisabled}
+                                className={`h-8 text-center text-xs sm:text-sm w-[60px] sm:w-[80px] ${
                                   outOfRange ? "border-destructive bg-destructive/5" : ""
-                                }`}
+                                } ${isDayDisabled && day !== todayDay ? "opacity-40" : ""}`}
                                 placeholder={f.type === "number" ? "0" : "-"}
                               />
                             </TableCell>
@@ -551,18 +521,18 @@ export default function QrFormEntry() {
 
       {/* Actions */}
       {!isLocked && (
-        <div className="flex gap-3 sticky bottom-4">
+        <div className="flex gap-2 sm:gap-3 sticky bottom-0 bg-background py-3 px-1 border-t z-20">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 h-11 text-sm"
             onClick={() => submitMutation.mutate(false)}
             disabled={saving}
           >
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4 mr-1.5" />
             Save Draft
           </Button>
           <Button
-            className="flex-1"
+            className="flex-1 h-11 text-sm"
             onClick={() => {
               if (confirm("Submit this form? It cannot be edited after submission.")) {
                 submitMutation.mutate(true);
@@ -570,7 +540,7 @@ export default function QrFormEntry() {
             }}
             disabled={saving}
           >
-            <Send className="h-4 w-4 mr-2" />
+            <Send className="h-4 w-4 mr-1.5" />
             Submit
           </Button>
         </div>
