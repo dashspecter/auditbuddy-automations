@@ -86,6 +86,9 @@ const StickyNav = () => {
               {l.label}
             </a>
           ))}
+          <a href="/auth" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            Sign In
+          </a>
           <a href="#final-cta">
             <Button variant="orange" size="sm">
               Book a Demo
@@ -116,6 +119,9 @@ const StickyNav = () => {
               {l.label}
             </a>
           ))}
+          <a href="/auth" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-foreground">
+            Sign In
+          </a>
           <a href="#final-cta" onClick={() => setMobileOpen(false)}>
             <Button variant="orange" size="sm" className="w-full mt-2">
               Book a Demo
