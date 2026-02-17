@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Shield, User, UserPlus, Info, Activity, Pencil, Trash2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -43,6 +43,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { UserActivityDialog } from "@/components/UserActivityDialog";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useRoleTemplates, useTemplateAssignments, useAssignTemplate, useUnassignTemplate } from "@/hooks/useRoleTemplates";
 
 interface UserProfile {
   id: string;
@@ -74,6 +75,10 @@ export default function UserManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: currentUserRole } = useUserRole();
+  const { data: templates = [] } = useRoleTemplates();
+  const { data: assignments = [] } = useTemplateAssignments();
+  const assignTemplate = useAssignTemplate();
+  const unassignTemplate = useUnassignTemplate();
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
@@ -431,7 +436,8 @@ export default function UserManagement() {
                     <TableRow>
                       <TableHead className="min-w-[200px]">User</TableHead>
                       <TableHead className="min-w-[200px]">Email</TableHead>
-                      <TableHead className="min-w-[150px]">Role</TableHead>
+                      <TableHead className="min-w-[150px]">Platform Role</TableHead>
+                      <TableHead className="min-w-[180px]">Role Template</TableHead>
                       <TableHead className="min-w-[120px]">Joined</TableHead>
                       <TableHead className="min-w-[150px]">Actions</TableHead>
                     </TableRow>
@@ -500,6 +506,62 @@ export default function UserManagement() {
                             )}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const userAssignment = assignments.find(a => a.user_id === user.id);
+                          const assignedTemplate = userAssignment 
+                            ? templates.find(t => t.id === userAssignment.template_id) 
+                            : null;
+
+                          return (
+                            <Select
+                              value={userAssignment?.template_id || 'none'}
+                              onValueChange={(value) => {
+                                if (value === 'none' && userAssignment) {
+                                  unassignTemplate.mutate(userAssignment.id);
+                                } else if (value !== 'none') {
+                                  // Remove existing assignment first if any
+                                  if (userAssignment) {
+                                    unassignTemplate.mutate(userAssignment.id, {
+                                      onSuccess: () => {
+                                        assignTemplate.mutate({ userId: user.id, templateId: value });
+                                      }
+                                    });
+                                  } else {
+                                    assignTemplate.mutate({ userId: user.id, templateId: value });
+                                  }
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-44 min-h-[44px]">
+                                <SelectValue>
+                                  {assignedTemplate ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                                      <span className="text-sm">{assignedTemplate.name}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">Legacy mode</span>
+                                  )}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent className="z-50 bg-popover">
+                                <SelectItem value="none" className="min-h-[44px] cursor-pointer">
+                                  <span className="text-muted-foreground">No template (legacy)</span>
+                                </SelectItem>
+                                {templates.map(t => (
+                                  <SelectItem key={t.id} value={t.id} className="min-h-[44px] cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                      <span>{t.name}</span>
+                                      {t.is_system && <Badge variant="secondary" className="text-xs scale-90">System</Badge>}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {format(new Date(user.created_at), "MMM d, yyyy")}
