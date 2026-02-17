@@ -136,8 +136,17 @@ export const navigationItems: NavItem[] = [
       },
       { id: "audits-mystery", title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
       { id: "audits-templates", title: "Template Library", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
-      { id: "audits-calendar", title: "Audit Calendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
-      { id: "audits-schedules", title: "Schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' },
+      { 
+        id: "audits-calendar",
+        title: "Calendar",
+        url: "/audits-calendar",
+        allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+        companyPermission: 'manage_audits',
+        nestedItems: [
+          { id: "audits-calendar-scheduled", title: "Scheduled", url: "/audits-calendar" },
+          { id: "audits-calendar-recurring", title: "Recurring", url: "/recurring-schedules" },
+        ]
+      },
       { id: "audits-photos", title: "Photo Gallery", url: "/photos", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: "audits-tests-management", title: "Test Management", url: "/test-management", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
       { id: "audits-tests-create", title: "Create Test", url: "/test-creation", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },

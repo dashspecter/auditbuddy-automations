@@ -158,6 +158,8 @@
     "photoGallery": "Photo Gallery",
     "allTasks": "All Tasks",
     "calendar": "Calendar",
+    "scheduled": "Scheduled",
+    "recurring": "Recurring",
     "allEquipment": "All Equipment",
     "recurringMaintenance": "Recurring Maintenance",
     "bulkQRCodes": "Bulk QR Codes",

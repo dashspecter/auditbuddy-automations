@@ -185,8 +185,17 @@ export const navigationItems: NavigationItem[] = [
           { titleKey: "nav.newPerformanceReview", url: "/staff-audits?review=new" },
         ]
       },
-      { id: 'audits-calendar', titleKey: "nav.auditCalendar", url: "/audits-calendar", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
-      { id: 'audits-schedules', titleKey: "nav.schedules", url: "/recurring-schedules", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_audits' },
+      { 
+        id: 'audits-calendar',
+        titleKey: "nav.calendar",
+        url: "/audits-calendar",
+        allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+        companyPermission: 'manage_audits',
+        nestedItems: [
+          { titleKey: "nav.scheduled", url: "/audits-calendar" },
+          { titleKey: "nav.recurring", url: "/recurring-schedules" },
+        ]
+      },
       { id: 'audits-templates', titleKey: "nav.templates", url: "/audits/templates", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: 'audits-library', titleKey: "nav.templateLibrary", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
       { id: 'audits-mystery', titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
