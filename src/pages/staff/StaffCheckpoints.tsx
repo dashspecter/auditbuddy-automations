@@ -94,13 +94,35 @@ export default function StaffCheckpoints() {
   const startScan = async () => {
     setScanning(true);
     try {
+      // First check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API not available. Please use HTTPS or a supported browser.");
+      }
+      
+      // Request camera permission explicitly first
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        // Stop the test stream immediately
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permErr: any) {
+        if (permErr.name === "NotAllowedError") {
+          throw new Error("Camera permission denied. Please allow camera access in your browser/device settings.");
+        } else if (permErr.name === "NotFoundError") {
+          throw new Error("No camera found on this device.");
+        }
+        throw new Error("Camera error: " + (permErr.message || permErr.name || "Unknown error"));
+      }
+
+      // Wait for DOM element
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const scanner = new Html5Qrcode("qr-reader");
       setScannerRef(scanner);
       await scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          const match = decodedText.match(/\/qr\/forms\/([a-f0-9]+)/);
+          const match = decodedText.match(/\/qr\/forms\/([a-f0-9-]+)/);
           if (match) {
             scanner.stop().then(() => {
               setScanning(false);
@@ -113,7 +135,8 @@ export default function StaffCheckpoints() {
         () => {} // ignore scan errors
       );
     } catch (err: any) {
-      toast.error("Could not access camera: " + err.message);
+      const msg = err?.message || String(err) || "Unknown camera error";
+      toast.error(msg);
       setScanning(false);
     }
   };
