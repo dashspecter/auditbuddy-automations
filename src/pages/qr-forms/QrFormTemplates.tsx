@@ -27,6 +27,7 @@ export default function QrFormTemplates() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -55,6 +56,22 @@ export default function QrFormTemplates() {
     enabled: !!company?.id,
   });
 
+  // Fetch locations
+  const { data: locations = [] } = useQuery({
+    queryKey: ["locations", company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const { data, error } = await supabase
+        .from("locations")
+        .select("id, name")
+        .eq("company_id", company.id)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.id,
+  });
+
   // Set default category when categories load
   const defaultCategory = categories[0]?.slug || "";
 
@@ -67,7 +84,7 @@ export default function QrFormTemplates() {
         .select(`
           *,
           form_template_versions(id, version, is_active, created_at),
-          location_form_templates(id)
+          location_form_templates(id, location_id)
         `)
         .eq("company_id", company.id)
         .order("created_at", { ascending: false });
@@ -262,7 +279,8 @@ export default function QrFormTemplates() {
   const filtered = templates?.filter((t: any) => {
     const matchSearch = !search || t.name.toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "all" || t.category === categoryFilter;
-    return matchSearch && matchCategory;
+    const matchLocation = locationFilter === "all" || t.location_form_templates?.some((lft: any) => lft.location_id === locationFilter);
+    return matchSearch && matchCategory && matchLocation;
   });
 
   const getCategoryLabel = (slug: string) => {
@@ -491,6 +509,19 @@ export default function QrFormTemplates() {
             {categories.map((c: any) => (
               <SelectItem key={c.slug} value={c.slug}>
                 {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={locationFilter} onValueChange={setLocationFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All locations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Locations</SelectItem>
+            {locations.map((loc: any) => (
+              <SelectItem key={loc.id} value={loc.id}>
+                {loc.name}
               </SelectItem>
             ))}
           </SelectContent>
