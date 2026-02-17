@@ -135,7 +135,17 @@ export const navigationItems: NavItem[] = [
         ]
       },
       { id: "audits-mystery", title: "Mystery Shopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
-      { id: "audits-templates", title: "Template Library", url: "/admin/template-library", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' },
+      { 
+        id: "audits-templates",
+        title: "Audit Templates",
+        url: "/admin/templates",
+        allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+        companyPermission: 'manage_audits',
+        nestedItems: [
+          { id: "audits-templates-manage", title: "Manage", url: "/admin/templates" },
+          { id: "audits-templates-library", title: "Library", url: "/admin/template-library" },
+        ]
+      },
       { 
         id: "audits-calendar",
         title: "Calendar",
