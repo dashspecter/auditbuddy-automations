@@ -66,31 +66,12 @@ const Dashboard = () => {
       <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
       
       <PullToRefresh onRefresh={handleRefresh}>
-        <Tabs defaultValue="guides" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="guides">
-              <BookOpen className="h-4 w-4 mr-2" />
-              {t('dashboard.gettingStarted')}
-            </TabsTrigger>
-            <TabsTrigger value="dashboard">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              {t('dashboard.title')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="guides">
-            <ModuleGuides />
-          </TabsContent>
-
-          <TabsContent value="dashboard">
-            <RoleBasedView
+    <RoleBasedView
               admin={<AdminDashboard />}
               manager={<ManagerDashboard />}
               checker={<CheckerDashboard />}
               fallback={<CheckerDashboard />}
             />
-          </TabsContent>
-        </Tabs>
       </PullToRefresh>
       
       <BackToTop />
