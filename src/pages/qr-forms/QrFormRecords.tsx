@@ -14,7 +14,23 @@ import { Search, FileText, Download, Eye, Lock, Unlock, BarChart3 } from "lucide
 import { format } from "date-fns";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { BRAND_COLORS, BRAND_FONT, addBrandedHeader, addBrandedFooter, getBrandedTableStyles, addSectionTitle } from "@/lib/pdfBranding";
 import autoTable from "jspdf-autotable";
+
+const loadLogoAsBase64 = async (): Promise<string | undefined> => {
+  try {
+    const response = await fetch('/dashspect-logo-512.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(undefined);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+};
 
 export default function QrFormRecords() {
   const { data: company } = useCompany();
@@ -94,28 +110,100 @@ export default function QrFormRecords() {
     setDetailOpen(true);
   };
 
-  const exportPdf = (sub: any) => {
-    const doc = new jsPDF();
+  const exportPdf = async (sub: any) => {
     const schema = sub.form_template_versions?.schema as any;
     const data = sub.data as any;
     const templateName = sub.form_templates?.name || "Form";
     const locationName = (sub as any).locations?.name || "Unknown";
     const version = sub.form_template_versions?.version || 1;
+    const brandedStyles = getBrandedTableStyles();
 
-    doc.setFontSize(16);
-    doc.text(templateName, 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Location: ${locationName}`, 14, 28);
-    doc.text(`Version: ${version}`, 14, 34);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const logoBase64 = await loadLogoAsBase64();
 
-    if (sub.period_year && sub.period_month) {
-      doc.text(`Period: ${sub.period_month}/${sub.period_year}`, 14, 40);
+    // ── Branded Header ──
+    doc.setFillColor(...BRAND_COLORS.primary);
+    doc.rect(0, 0, pageWidth, 48, 'F');
+    doc.setFillColor(...BRAND_COLORS.primaryDark);
+    doc.rect(0, 44, pageWidth, 4, 'F');
+
+    if (logoBase64) {
+      doc.setFillColor(...BRAND_COLORS.white);
+      doc.roundedRect(11, 10, 28, 28, 4, 4, 'F');
+      doc.addImage(logoBase64, 'PNG', 13, 12, 24, 24);
+    } else {
+      doc.setFillColor(...BRAND_COLORS.white);
+      doc.circle(25, 24, 12, 'F');
+      doc.setTextColor(...BRAND_COLORS.primary);
+      doc.setFontSize(16);
+      doc.setFont(BRAND_FONT, 'bold');
+      doc.text('D', 21, 29);
     }
 
-    doc.text(`Status: ${sub.status}`, 14, 46);
-    doc.text(`Submitted: ${sub.submitted_at ? format(new Date(sub.submitted_at), "PPpp") : "Draft"}`, 14, 52);
+    doc.setTextColor(...BRAND_COLORS.white);
+    doc.setFontSize(18);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.text(templateName, 44, 22);
 
-    let yPos = 60;
+    doc.setFontSize(10);
+    doc.setFont(BRAND_FONT, 'normal');
+    doc.text('Dashspect', 44, 30);
+
+    doc.setFontSize(10);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.text('QR FORM RECORD', pageWidth - 15, 20, { align: 'right' });
+    doc.setFont(BRAND_FONT, 'normal');
+    doc.setFontSize(8);
+    doc.text(`v${version}`, pageWidth - 15, 27, { align: 'right' });
+
+    doc.setTextColor(...BRAND_COLORS.text);
+
+    // ── Info Section ──
+    let yPos = 58;
+
+    // Info boxes
+    const boxWidth = (pageWidth - 40) / 2;
+
+    doc.setFillColor(...BRAND_COLORS.lightBg);
+    doc.roundedRect(15, yPos, boxWidth, 28, 2, 2, 'F');
+    doc.roundedRect(15 + boxWidth + 10, yPos, boxWidth, 28, 2, 2, 'F');
+
+    // Left box
+    doc.setFontSize(8);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.setTextColor(...BRAND_COLORS.primary);
+    doc.text('LOCATION', 20, yPos + 7);
+    doc.setTextColor(...BRAND_COLORS.text);
+    doc.setFont(BRAND_FONT, 'normal');
+    doc.setFontSize(10);
+    doc.text(locationName, 20, yPos + 14);
+    doc.setFontSize(8);
+    doc.setTextColor(...BRAND_COLORS.textMuted);
+    doc.text(sub.period_year && sub.period_month ? `Period: ${sub.period_month}/${sub.period_year}` : '', 20, yPos + 21);
+
+    // Right box
+    const rightX = 15 + boxWidth + 10;
+    doc.setFontSize(8);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.setTextColor(...BRAND_COLORS.primary);
+    doc.text('STATUS', rightX + 5, yPos + 7);
+    doc.setTextColor(...BRAND_COLORS.text);
+    doc.setFont(BRAND_FONT, 'normal');
+    doc.setFontSize(10);
+    doc.text(sub.status.charAt(0).toUpperCase() + sub.status.slice(1), rightX + 5, yPos + 14);
+    doc.setFontSize(8);
+    doc.setTextColor(...BRAND_COLORS.textMuted);
+    doc.text(
+      sub.submitted_at ? `Submitted: ${format(new Date(sub.submitted_at), "PPpp")}` : "Draft",
+      rightX + 5,
+      yPos + 21
+    );
+
+    yPos += 36;
+
+    // ── Data Table ──
+    yPos = addSectionTitle(doc, 'Record Data', yPos);
 
     if (sub.form_templates?.type === "monthly_grid" && schema?.gridConfig) {
       const checkpoints = schema.gridConfig.checkpoints || [];
@@ -142,8 +230,17 @@ export default function QrFormRecords() {
         head: [headers],
         body: rows,
         theme: "grid",
-        styles: { fontSize: 6, cellPadding: 1 },
-        headStyles: { fillColor: [245, 130, 32] },
+        styles: { fontSize: 6, cellPadding: 1.5, font: BRAND_FONT },
+        headStyles: {
+          fillColor: BRAND_COLORS.primary,
+          textColor: BRAND_COLORS.white,
+          fontStyle: 'bold',
+          font: BRAND_FONT,
+          fontSize: 6,
+        },
+        alternateRowStyles: { fillColor: BRAND_COLORS.lightBg },
+        bodyStyles: { textColor: BRAND_COLORS.text, font: BRAND_FONT },
+        columnStyles: { 0: { fontStyle: 'bold', halign: 'center' } },
       });
     } else if (schema?.columns) {
       const headers = schema.columns.map((c: any) => c.label);
@@ -156,18 +253,41 @@ export default function QrFormRecords() {
         head: [headers],
         body: rows,
         theme: "grid",
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [245, 130, 32] },
+        ...brandedStyles,
       });
     }
 
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(7);
-    doc.text(
-      `Exported: ${format(new Date(), "PPpp")} | Submission ID: ${sub.id} | Template v${version}`,
-      14,
-      pageHeight - 10
-    );
+    // ── Compliance note ──
+    if (schema?.recommendedRange) {
+      const finalY = (doc as any).lastAutoTable?.finalY || yPos + 20;
+      doc.setFontSize(8);
+      doc.setFont(BRAND_FONT, 'italic');
+      doc.setTextColor(...BRAND_COLORS.textMuted);
+      doc.text(
+        `Recommended range: ${schema.recommendedRange.min}–${schema.recommendedRange.max} ${schema.recommendedRange.unit || ''}`,
+        15,
+        finalY + 8
+      );
+    }
+
+    // ── Branded Footer ──
+    addBrandedFooter(doc);
+
+    // Add submission ID to footer area
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(6);
+      doc.setFont(BRAND_FONT, 'normal');
+      doc.setTextColor(...BRAND_COLORS.textMuted);
+      doc.text(
+        `Submission: ${sub.id} | Template v${version} | Exported: ${format(new Date(), "PPpp")}`,
+        pageWidth / 2,
+        pageHeight - 3,
+        { align: 'center' }
+      );
+    }
 
     doc.save(`${templateName.replace(/\s+/g, "-")}-${sub.id.slice(0, 8)}.pdf`);
     toast.success("PDF exported");
