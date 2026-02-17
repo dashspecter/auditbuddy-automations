@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // STABILITY FIX: Track by user.id instead of user object reference.
   // Token refreshes create a new user object with the same id, which was resetting staffCheckComplete
   // to false, causing ProtectedRoute to unmount children (losing form state on tab switch).
-  const userIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | null | undefined>(undefined);
   
   useEffect(() => {
     const currentUserId = user?.id ?? null;
