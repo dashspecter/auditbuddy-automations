@@ -3745,6 +3745,219 @@ export type Database = {
           },
         ]
       }
+      form_submission_audit: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          path: string | null
+          submission_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          path?: string | null
+          submission_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          path?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submission_audit_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "form_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_submissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          data: Json
+          id: string
+          location_form_template_id: string
+          location_id: string
+          period_month: number | null
+          period_year: number | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string
+          template_id: string
+          template_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          location_form_template_id: string
+          location_id: string
+          period_month?: number | null
+          period_year?: number | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by: string
+          template_id: string
+          template_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          location_form_template_id?: string
+          location_id?: string
+          period_month?: number | null
+          period_year?: number | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string
+          template_id?: string
+          template_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_location_form_template_id_fkey"
+            columns: ["location_form_template_id"]
+            isOneToOne: false
+            referencedRelation: "location_form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_template_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          schema: Json
+          template_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          schema?: Json
+          template_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          schema?: Json
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industries: {
         Row: {
           created_at: string
@@ -4414,6 +4627,74 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_form_templates: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          location_id: string
+          overrides: Json | null
+          public_token: string
+          template_id: string
+          template_version_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          overrides?: Json | null
+          public_token?: string
+          template_id: string
+          template_version_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          overrides?: Json | null
+          public_token?: string
+          template_id?: string
+          template_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_form_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_form_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_form_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_form_templates_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_template_versions"
             referencedColumns: ["id"]
           },
         ]

@@ -16,7 +16,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug,
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
-  Cog, Trash2, History, ShieldCheck, ShieldAlert, LucideIcon
+  Cog, Trash2, History, ShieldCheck, ShieldAlert, QrCode, LucideIcon
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -339,6 +339,20 @@ export const navigationItems: NavigationItem[] = [
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
+  },
+  {
+    id: 'qr-forms',
+    titleKey: "nav.qrForms",
+    url: "/admin/qr-forms/templates",
+    icon: QrCode,
+    module: "qr_forms",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits',
+    subItems: [
+      { id: 'qr-forms-templates', titleKey: "nav.formTemplates", url: "/admin/qr-forms/templates", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
+      { id: 'qr-forms-assignments', titleKey: "nav.formAssignments", url: "/admin/qr-forms/assignments", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
+      { id: 'qr-forms-records', titleKey: "nav.formRecords", url: "/admin/qr-forms/records", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' },
+    ]
   },
   {
     id: 'marketplace',
