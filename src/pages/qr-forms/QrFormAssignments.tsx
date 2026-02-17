@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink, Clock, X } from "lucide-react";
+import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink, Clock, X, Search } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -22,6 +22,7 @@ export default function QrFormAssignments() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [checkpointTimes, setCheckpointTimes] = useState<string[]>([]);
   const [newTime, setNewTime] = useState("");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
 
   // Fetch assignments
   const { data: assignments, isLoading } = useQuery({
@@ -252,7 +253,21 @@ export default function QrFormAssignments() {
             Assign form templates to locations and generate QR codes
           </p>
         </div>
-        <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <div className="flex gap-2 items-center">
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations?.map((l: any) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -353,13 +368,18 @@ export default function QrFormAssignments() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
-      {isLoading ? (
+      {(() => {
+        const filtered = assignments?.filter((a: any) =>
+          locationFilter === "all" || a.location_id === locationFilter
+        );
+        return isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
-      ) : !assignments?.length ? (
+      ) : !filtered?.length ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <QrCode className="h-12 w-12 text-muted-foreground mb-4" />
@@ -371,7 +391,7 @@ export default function QrFormAssignments() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {assignments.map((a: any) => {
+          {filtered.map((a: any) => {
             const label = `${(a as any).locations?.name || "Location"} - ${(a as any).form_templates?.name || "Template"}`;
             return (
               <Card key={a.id}>
@@ -452,7 +472,8 @@ export default function QrFormAssignments() {
             );
           })}
         </div>
-      )}
+      );
+      })()}
     </div>
   );
 }
