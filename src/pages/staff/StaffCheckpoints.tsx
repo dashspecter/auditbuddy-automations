@@ -10,13 +10,13 @@ import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { QrCode, Clock, AlertTriangle, CheckCircle2, ArrowLeft, ScanLine } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 
 export default function StaffCheckpoints() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [scanning, setScanning] = useState(false);
-  const [scannerRef, setScannerRef] = useState<Html5QrcodeScanner | null>(null);
+  const [scannerRef, setScannerRef] = useState<Html5Qrcode | null>(null);
 
   // Get employee data
   const { data: employee } = useQuery({
@@ -86,43 +86,41 @@ export default function StaffCheckpoints() {
   useEffect(() => {
     return () => {
       if (scannerRef) {
-        try { scannerRef.clear(); } catch {}
+        try { scannerRef.stop(); } catch {}
       }
     };
   }, [scannerRef]);
 
-  const startScan = () => {
+  const startScan = async () => {
     setScanning(true);
-    setTimeout(() => {
-      const scanner = new Html5QrcodeScanner("qr-reader", {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-      }, false);
-
-      scanner.render(
+    try {
+      const scanner = new Html5Qrcode("qr-reader");
+      setScannerRef(scanner);
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          // Check if it's a valid QR form URL
           const match = decodedText.match(/\/qr\/forms\/([a-f0-9]+)/);
           if (match) {
-            scanner.clear();
-            setScanning(false);
-            navigate(`/qr/forms/${match[1]}`);
+            scanner.stop().then(() => {
+              setScanning(false);
+              navigate(`/qr/forms/${match[1]}`);
+            });
           } else {
             toast.error("Invalid QR code. Please scan a checkpoint QR code.");
           }
         },
-        (errorMessage) => {
-          // Ignore scan errors (no QR detected yet)
-        }
+        () => {} // ignore scan errors
       );
-      setScannerRef(scanner);
-    }, 100);
+    } catch (err: any) {
+      toast.error("Could not access camera: " + err.message);
+      setScanning(false);
+    }
   };
 
   const stopScan = () => {
     if (scannerRef) {
-      try { scannerRef.clear(); } catch {}
+      try { scannerRef.stop(); } catch {}
     }
     setScanning(false);
   };
