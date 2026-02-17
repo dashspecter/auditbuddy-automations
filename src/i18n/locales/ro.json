@@ -176,6 +176,8 @@
     "slaManagement": "Gestionare SLA",
     "billingModules": "Facturare & Module",
     "activityLog": "Jurnal activitate",
+    "roleTemplates": "Șabloane roluri",
+    "policyRules": "Reguli politici",
     "platformAdmin": "Admin platformă",
     "systemHealth": "Stare sistem",
     "debugData": "Date debug",

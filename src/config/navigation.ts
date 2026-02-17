@@ -16,7 +16,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug,
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
-  Cog, Trash2, History, LucideIcon
+  Cog, Trash2, History, ShieldCheck, ShieldAlert, LucideIcon
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -374,6 +374,24 @@ export const settingsItems: NavigationItem[] = [
     titleKey: "nav.activityLog",
     url: "/activity-log",
     icon: History,
+    module: null,
+    requiresOwnerOrAdmin: true,
+    isSettings: true
+  },
+  {
+    id: 'settings-role-templates',
+    titleKey: "nav.roleTemplates",
+    url: "/role-templates",
+    icon: ShieldCheck,
+    module: null,
+    requiresOwnerOrAdmin: true,
+    isSettings: true
+  },
+  {
+    id: 'settings-policy-rules',
+    titleKey: "nav.policyRules",
+    url: "/policy-rules",
+    icon: ShieldAlert,
     module: null,
     requiresOwnerOrAdmin: true,
     isSettings: true

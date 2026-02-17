@@ -176,6 +176,8 @@
     "slaManagement": "SLA Management",
     "billingModules": "Billing & Modules",
     "activityLog": "Activity Log",
+    "roleTemplates": "Role Templates",
+    "policyRules": "Policy Rules",
     "platformAdmin": "Platform Admin",
     "systemHealth": "System Health",
     "debugData": "Debug Data",
