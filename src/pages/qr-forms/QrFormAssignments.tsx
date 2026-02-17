@@ -81,13 +81,18 @@ export default function QrFormAssignments() {
     mutationFn: async () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user || !company?.id) throw new Error("Not authenticated");
+      if (!selectedTemplate) throw new Error("Select a template");
 
-      const tmpl = templates?.find((t: any) => t.id === selectedTemplate);
-      if (!tmpl) throw new Error("Select a template");
-
-      const versions = (tmpl as any).form_template_versions || [];
-      const latestVersion = versions.sort((a: any, b: any) => b.version - a.version)[0];
-      if (!latestVersion) throw new Error("Template has no versions");
+      // Fetch the latest version directly from DB to avoid stale/RLS cache issues
+      const { data: latestVersion, error: vErr } = await supabase
+        .from("form_template_versions")
+        .select("id, version")
+        .eq("template_id", selectedTemplate)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (vErr) throw vErr;
+      if (!latestVersion) throw new Error("Template has no published versions. Please publish a version first.");
 
       const parsedOverrides: Record<string, any> = {};
       if (checkpointTimes.length > 0) {
