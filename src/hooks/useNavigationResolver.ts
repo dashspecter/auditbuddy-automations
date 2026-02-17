@@ -6,6 +6,7 @@
  * - Company roles (owner, admin, member)
  * - Company permissions
  * - Enabled modules
+ * - Role Template permissions (template-first override)
  * - Loading states
  * 
  * CRITICAL: Returns 'loading' status until ALL dependencies are ready.
@@ -17,6 +18,7 @@ import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useCompany } from '@/hooks/useCompany';
 import { usePermissions, CompanyPermission } from '@/hooks/useCompanyPermissions';
+import { useUserTemplatePermissions } from '@/hooks/useUserTemplatePermissions';
 import { logNavResolve, logDebug } from '@/lib/debug/logger';
 import {
   navigationItems,
@@ -43,6 +45,7 @@ export function useNavigationResolver(): UseNavigationResolverResult {
   const { data: roleData, isLoading: rolesLoading } = useUserRole();
   const { data: company, isLoading: companyLoading } = useCompany();
   const { hasPermission, isLoading: permissionsLoading } = usePermissions();
+  const { data: templatePermissions, isLoading: templateLoading } = useUserTemplatePermissions();
 
   // Derive company roles
   const isOwner = company?.userRole === 'company_owner';
@@ -50,8 +53,11 @@ export function useNavigationResolver(): UseNavigationResolverResult {
   const isMember = company?.userRole === 'company_member';
   const hasPlatformAdminRole = roleData?.roles?.includes('admin') === true;
 
+  // Template is assigned if data is a non-null array
+  const hasTemplate = templatePermissions !== null && templatePermissions !== undefined;
+
   // Calculate loading state
-  const isLoading = modulesLoading || rolesLoading || companyLoading || permissionsLoading;
+  const isLoading = modulesLoading || rolesLoading || companyLoading || permissionsLoading || templateLoading;
 
   // Resolution logic
   const resolved = useMemo((): ResolvedNavigation => {
@@ -102,6 +108,32 @@ export function useNavigationResolver(): UseNavigationResolverResult {
     };
 
     /**
+     * Map companyPermission to template resource for template-first nav gating.
+     */
+    const PERMISSION_TO_RESOURCE: Record<string, string> = {
+      manage_users: 'users',
+      manage_settings: 'company_settings',
+      manage_billing: 'billing',
+      manage_modules: 'company_settings',
+      view_reports: 'reports',
+      manage_locations: 'locations',
+      manage_employees: 'employees',
+      manage_shifts: 'shifts',
+      manage_audits: 'audits',
+      manage_notifications: 'notifications',
+    };
+
+    /**
+     * Check if the user's template grants ANY action on the resource mapped from a companyPermission.
+     */
+    const templateGrantsPermission = (companyPermission?: CompanyPermission): boolean => {
+      if (!companyPermission || !templatePermissions) return false;
+      const resource = PERMISSION_TO_RESOURCE[companyPermission];
+      if (!resource) return false;
+      return templatePermissions.some(p => p.resource === resource && p.granted);
+    };
+
+    /**
      * Check if a navigation item should be visible
      */
     const shouldShowItem = (item: NavigationItem): boolean => {
@@ -129,6 +161,21 @@ export function useNavigationResolver(): UseNavigationResolverResult {
       if (isOwner || isCompanyAdmin || hasPlatformAdminRole) {
         return true;
       }
+
+      // ── TEMPLATE-FIRST CHECK ──
+      // If user has a role template assigned, use it as the authority
+      // instead of legacy role + permission checks
+      if (hasTemplate) {
+        // If the item requires a companyPermission, check the template
+        if (item.companyPermission) {
+          return templateGrantsPermission(item.companyPermission);
+        }
+        // Items without companyPermission (e.g. Home, Tasks, Marketplace) are accessible
+        return true;
+      }
+
+      // ── LEGACY FALLBACK ──
+      // No template assigned → use existing role + permission system
 
       // For company members, ONLY check company permissions (not platform roles)
       if (isMember) {
@@ -160,6 +207,15 @@ export function useNavigationResolver(): UseNavigationResolverResult {
         return true;
       }
 
+      // ── TEMPLATE-FIRST CHECK ──
+      if (hasTemplate) {
+        if (subItem.companyPermission) {
+          return templateGrantsPermission(subItem.companyPermission);
+        }
+        return true;
+      }
+
+      // ── LEGACY FALLBACK ──
       // For company members, check permissions
       if (isMember) {
         if (subItem.companyPermission) {
@@ -205,11 +261,14 @@ export function useNavigationResolver(): UseNavigationResolverResult {
     rolesLoading,
     companyLoading,
     permissionsLoading,
+    templateLoading,
     roleData,
     isOwner,
     isCompanyAdmin,
     isMember,
     hasPlatformAdminRole,
+    hasTemplate,
+    templatePermissions,
     canAccessModule,
     hasPermission,
   ]);
