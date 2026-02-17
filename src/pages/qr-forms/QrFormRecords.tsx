@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, FileText, Download, Eye, Filter } from "lucide-react";
+import { Search, FileText, Download, Eye, Lock, Unlock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -17,10 +17,30 @@ import autoTable from "jspdf-autotable";
 
 export default function QrFormRecords() {
   const { data: company } = useCompany();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Lock/Unlock mutation
+  const toggleLockMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: "locked" | "submitted" }) => {
+      const { error } = await supabase
+        .from("form_submissions")
+        .update({ status: newStatus } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { newStatus }) => {
+      queryClient.invalidateQueries({ queryKey: ["form-submissions"] });
+      toast.success(newStatus === "locked" ? "Form locked" : "Form unlocked");
+      if (selectedSubmission) {
+        setSelectedSubmission({ ...selectedSubmission, status: newStatus });
+      }
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const { data: submissions, isLoading } = useQuery({
     queryKey: ["form-submissions", company?.id],
@@ -322,6 +342,26 @@ export default function QrFormRecords() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {sub.status === "submitted" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleLockMutation.mutate({ id: sub.id, newStatus: "locked" })}
+                      disabled={toggleLockMutation.isPending}
+                    >
+                      <Lock className="h-4 w-4 mr-1" /> Lock
+                    </Button>
+                  )}
+                  {sub.status === "locked" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleLockMutation.mutate({ id: sub.id, newStatus: "submitted" })}
+                      disabled={toggleLockMutation.isPending}
+                    >
+                      <Unlock className="h-4 w-4 mr-1" /> Unlock
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => openDetail(sub)}>
                     <Eye className="h-4 w-4 mr-1" /> View
                   </Button>
@@ -389,7 +429,25 @@ export default function QrFormRecords() {
                 </Card>
               )}
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {selectedSubmission.status === "submitted" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => toggleLockMutation.mutate({ id: selectedSubmission.id, newStatus: "locked" })}
+                    disabled={toggleLockMutation.isPending}
+                  >
+                    <Lock className="h-4 w-4 mr-2" /> Lock Form
+                  </Button>
+                )}
+                {selectedSubmission.status === "locked" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => toggleLockMutation.mutate({ id: selectedSubmission.id, newStatus: "submitted" })}
+                    disabled={toggleLockMutation.isPending}
+                  >
+                    <Unlock className="h-4 w-4 mr-2" /> Unlock Form
+                  </Button>
+                )}
                 <Button onClick={() => exportPdf(selectedSubmission)}>
                   <Download className="h-4 w-4 mr-2" /> Export PDF
                 </Button>
