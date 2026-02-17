@@ -118,6 +118,15 @@ export default function QrFormTemplateEditor() {
         .update({ name, category, is_active: isActive })
         .eq("id", id!);
       if (error) throw error;
+
+      // Also persist the current schema to the latest version
+      if (latestVersion?.id) {
+        const { error: vErr } = await supabase
+          .from("form_template_versions")
+          .update({ schema: schema as any })
+          .eq("id", latestVersion.id);
+        if (vErr) throw vErr;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["form-template", id] });
