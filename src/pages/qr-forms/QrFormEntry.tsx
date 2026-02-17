@@ -159,11 +159,39 @@ export default function QrFormEntry() {
       };
 
       if (existingSubmission && (existingSubmission.status === "draft" || existingSubmission.status === "submitted")) {
-        // Update existing draft
+        // Deep-merge grid data: preserve previously saved checkpoint data from other users/sessions
+        let mergedData = formData;
+        if (assignment.form_templates?.type === "monthly_grid") {
+          const existingGrid = (existingSubmission.data as any)?.grid || {};
+          const mergedGrid: Record<string, any> = {};
+          // Merge all days from existing data first
+          const allDays = new Set([
+            ...Object.keys(existingGrid),
+            ...Object.keys(gridData),
+          ]);
+          allDays.forEach((day) => {
+            const existingDay = existingGrid[day] || {};
+            const newDay = gridData[day] || {};
+            const allTimes = new Set([
+              ...Object.keys(existingDay),
+              ...Object.keys(newDay),
+            ]);
+            mergedGrid[day] = {};
+            allTimes.forEach((time) => {
+              mergedGrid[day][time] = {
+                ...(existingDay[time] || {}),
+                ...(newDay[time] || {}),
+              };
+            });
+          });
+          mergedData = { grid: mergedGrid };
+        }
+
+        // Update existing submission with merged data
         const { error } = await supabase
           .from("form_submissions")
           .update({
-            data: formData as any,
+            data: mergedData as any,
             status: finalSubmit ? "submitted" : "draft",
             submitted_at: finalSubmit ? new Date().toISOString() : null,
           })
@@ -174,7 +202,7 @@ export default function QrFormEntry() {
         await supabase.from("form_submission_audit").insert({
           submission_id: existingSubmission.id,
           action: finalSubmit ? "final_submit" : "update_cell",
-          new_value: formData as any,
+          new_value: mergedData as any,
           actor_id: user.id,
         });
       } else {
