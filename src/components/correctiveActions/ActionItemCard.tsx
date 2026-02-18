@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, CheckCircle2, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Camera, CheckCircle2, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,15 @@ import { useCompleteActionItem, useVerifyActionItem, type CorrectiveActionItem }
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+
+const ROLE_LABELS: Record<string, string> = {
+  store_manager: "Store Manager",
+  area_manager: "Area Manager",
+  company_admin: "Company Admin",
+  company_owner: "Company Owner",
+  shift_lead: "Shift Lead",
+  staff: "Staff",
+};
 
 interface ActionItemCardProps {
   item: CorrectiveActionItem;
@@ -71,7 +80,7 @@ export function ActionItemCard({ item, companyId, isManager, currentUserId, onNe
   const statusIcon = {
     open: <Clock className="h-4 w-4 text-muted-foreground" />,
     in_progress: <Clock className="h-4 w-4 text-warning" />,
-    done: <AlertCircle className="h-4 w-4 text-blue-500" />,
+    done: <AlertCircle className="h-4 w-4 text-primary" />,
     verified: <CheckCircle2 className="h-4 w-4 text-success" />,
     rejected: <XCircle className="h-4 w-4 text-destructive" />,
   }[item.status];
@@ -110,15 +119,21 @@ export function ActionItemCard({ item, companyId, isManager, currentUserId, onNe
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-              <span>Due {format(new Date(item.due_at), "MMM dd")}</span>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-xs text-muted-foreground">Due {format(new Date(item.due_at), "MMM dd, HH:mm")}</span>
               {isOverdue && !isDone && (
                 <Badge variant="outline" className="text-xs border-warning/40 text-warning bg-warning/10">
                   Overdue
                 </Badge>
               )}
               {item.assignee_role && (
-                <span>For: {item.assignee_role}</span>
+                <Badge variant="outline" className="text-xs flex items-center gap-1 border-primary/30 text-primary bg-primary/5">
+                  <UserCheck className="h-3 w-3" />
+                  {ROLE_LABELS[item.assignee_role] ?? item.assignee_role}
+                </Badge>
+              )}
+              {!item.assignee_role && (
+                <span className="text-xs text-muted-foreground/60 italic">Unassigned</span>
               )}
             </div>
 

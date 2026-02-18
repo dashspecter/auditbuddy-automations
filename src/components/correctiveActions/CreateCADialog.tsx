@@ -7,11 +7,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { useLocations } from "@/hooks/useLocations";
-import { useCreateCorrectiveAction, type CASourceType, type CASeverity, type CreateCAArgs } from "@/hooks/useCorrectiveActions";
+import { useCreateCorrectiveAction, type CASourceType, type CASeverity } from "@/hooks/useCorrectiveActions";
 import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { toast } from "sonner";
 import { addHours, format } from "date-fns";
+import { PlusCircle, Trash2, UserCheck } from "lucide-react";
+
+interface BundleItem {
+  title: string;
+  due_hours: number;
+  evidence_required: boolean;
+  assigned_role: string;
+}
+
+const ROLE_OPTIONS = [
+  { value: "store_manager", label: "Store Manager" },
+  { value: "area_manager", label: "Area Manager" },
+  { value: "shift_lead", label: "Shift Lead" },
+  { value: "staff", label: "Staff" },
+  { value: "company_admin", label: "Company Admin" },
+];
 
 interface CreateCADialogProps {
   open: boolean;
@@ -30,7 +47,7 @@ const SEVERITY_OPTIONS: { value: CASeverity; label: string; description: string 
   { value: "low", label: "Low", description: "7 days to resolve — minor issue, no immediate risk" },
   { value: "medium", label: "Medium", description: "72 hours to resolve — notable issue needing attention" },
   { value: "high", label: "High", description: "24 hours to resolve — significant risk or compliance breach" },
-  { value: "critical", label: "Critical", description: "4 hours to resolve — auto stop-the-line, immediate action required" },
+  { value: "critical", label: "Critical", description: "4 hours — auto stop-the-line, immediate action required" },
 ];
 
 const SEVERITY_SLA: Record<CASeverity, number> = {
@@ -48,6 +65,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
   const [locationId, setLocationId] = useState(defaultValues?.locationId ?? "");
   const [stopTheLine, setStopTheLine] = useState(false);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -57,9 +75,22 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
     },
   });
 
+  const updateBundleItem = (index: number, patch: Partial<BundleItem>) =>
+    setBundleItems(items => items.map((item, i) => i === index ? { ...item, ...patch } : item));
+
+  const removeBundleItem = (index: number) =>
+    setBundleItems(items => items.filter((_, i) => i !== index));
+
+  const addBundleItem = () =>
+    setBundleItems(items => [...items, { title: "", due_hours: 24, evidence_required: false, assigned_role: "store_manager" }]);
+
   const onSubmit = async (values: { title: string; description: string; dueAt: string }) => {
     if (!locationId) {
       toast.error("Please select a location.");
+      return;
+    }
+    if (bundleItems.some(b => !b.title.trim())) {
+      toast.error("All action items must have a title.");
       return;
     }
 
@@ -75,12 +106,19 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
         stopTheLine: stopTheLine || severity === "critical",
         requiresApproval: requiresApproval || severity === "critical",
         approvalRole: requiresApproval ? "area_manager" : undefined,
+        bundleItems: bundleItems.map(b => ({
+          title: b.title,
+          assigneeRole: b.assigned_role || undefined,
+          dueAt: new Date(Date.now() + b.due_hours * 3600_000).toISOString(),
+          evidenceRequired: b.evidence_required,
+        })),
       });
 
       toast.success("Corrective Action created.");
       onCreated?.(caId);
       onOpenChange(false);
       reset();
+      setBundleItems([]);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create CA.";
       toast.error(message);
@@ -89,7 +127,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Corrective Action</DialogTitle>
           <DialogDescription>
@@ -102,7 +140,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <Label htmlFor="title">Title *</Label>
-              <InfoTooltip content="Describe the corrective action clearly so the assignee knows exactly what needs to be fixed. Be specific — include the issue and the expected outcome." />
+              <InfoTooltip content="Describe the corrective action clearly so the assignee knows exactly what needs to be fixed." />
             </div>
             <Input
               id="title"
@@ -116,7 +154,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <Label htmlFor="description">Description</Label>
-              <InfoTooltip content="Optional additional context — what happened, what evidence was found, and any background the assignee needs to understand the problem." />
+              <InfoTooltip content="Optional additional context — what happened, what evidence was found, and any background the assignee needs." />
             </div>
             <Textarea
               id="description"
@@ -132,7 +170,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <Label>Location *</Label>
-                <InfoTooltip content="The physical location this CA is tied to. This determines who can see and action it, and triggers stop-the-line banners at that location if enabled." />
+                <InfoTooltip content="The physical location this CA is tied to. Role-based assignees will be resolved from staff at this location." />
               </div>
               <Select value={locationId} onValueChange={setLocationId}>
                 <SelectTrigger className="mt-1">
@@ -157,7 +195,6 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
                       {SEVERITY_OPTIONS.map(opt => (
                         <p key={opt.value}><span className="font-medium capitalize">{opt.label}</span> — {opt.description}</p>
                       ))}
-                      <p className="italic text-muted-foreground mt-1">Critical automatically enables Stop-the-Line.</p>
                     </div>
                   }
                 />
@@ -190,7 +227,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <Label htmlFor="dueAt">Due Date *</Label>
-              <InfoTooltip content="The deadline by which this CA must be fully resolved and closed. The SLA progress bar counts down to this date. If missed, it escalates automatically." />
+              <InfoTooltip content="The deadline by which this CA must be fully resolved and closed. If missed, it escalates automatically." />
             </div>
             <Input
               id="dueAt"
@@ -206,15 +243,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium">Requires Approval to Close</p>
-                  <InfoTooltip
-                    content={
-                      <div className="space-y-1">
-                        <p className="font-semibold">Approval Gate</p>
-                        <p>When enabled, a manager must explicitly approve the CA before it's marked as closed — even if all action items are completed.</p>
-                        <p className="italic text-muted-foreground">Use this for compliance-critical issues where a human sign-off is required.</p>
-                      </div>
-                    }
-                  />
+                  <InfoTooltip content="A manager must explicitly approve the CA before it's marked closed — even after all items are done." />
                 </div>
                 <p className="text-xs text-muted-foreground">Manager approval needed before closing</p>
               </div>
@@ -224,17 +253,7 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium text-destructive">Stop-the-Line</p>
-                  <InfoTooltip
-                    content={
-                      <div className="space-y-1.5">
-                        <p className="font-semibold">Stop-the-Line 🚨</p>
-                        <p>Flags the selected location as restricted. A red banner appears across the app for all users at that location.</p>
-                        <p>Operations must halt until a manager manually releases the restriction — with a recorded reason why it's safe to resume.</p>
-                        <p className="italic text-muted-foreground">Example: Pest sighting at Store 3 → stop-the-line activated → all food prep halted until pest control confirms clearance.</p>
-                        <p className="text-muted-foreground">⚠️ Automatically enabled for Critical severity.</p>
-                      </div>
-                    }
-                  />
+                  <InfoTooltip content="Flags the location as restricted — a red banner appears for all users at that location until a manager manually releases it." />
                 </div>
                 <p className="text-xs text-muted-foreground">Restricts location operations until manually released</p>
               </div>
@@ -244,6 +263,97 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
                 disabled={severity === "critical"}
               />
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Bundle items */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm font-medium">Action Items</Label>
+              <InfoTooltip
+                content={
+                  <div className="space-y-1.5">
+                    <p className="font-semibold">Action Items</p>
+                    <p>Optional tasks to bundle with this CA. Each item is assigned to a specific role at the location — the system finds the right person automatically.</p>
+                    <p className="italic text-muted-foreground">Example: "Fix fridge" → assigned to Store Manager; "Confirm repair" → assigned to Area Manager.</p>
+                  </div>
+                }
+              />
+              <span className="text-xs text-muted-foreground ml-1">(optional)</span>
+            </div>
+
+            {bundleItems.map((item, index) => (
+              <div key={index} className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground w-5 shrink-0">#{index + 1}</span>
+                  <Input
+                    value={item.title}
+                    onChange={e => updateBundleItem(index, { title: e.target.value })}
+                    placeholder="e.g. Take temperature reading and log result"
+                    className="flex-1 h-8 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeBundleItem(index)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                {/* Role selector */}
+                <div className="flex items-center gap-2 pl-7">
+                  <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Select
+                    value={item.assigned_role}
+                    onValueChange={v => updateBundleItem(index, { assigned_role: v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs flex-1 max-w-[160px]">
+                      <SelectValue placeholder="Assign to role..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLE_OPTIONS.map(r => (
+                        <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <InfoTooltip
+                    side="right"
+                    content="The system will find who holds this role at the selected location and assign them this task automatically."
+                  />
+                </div>
+
+                {/* Hours + evidence */}
+                <div className="flex items-center gap-4 pl-7">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={item.due_hours}
+                      onChange={e => updateBundleItem(index, { due_hours: Number(e.target.value) })}
+                      className="w-14 h-7 text-xs text-center"
+                    />
+                    <span className="text-xs text-muted-foreground">hours due</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Switch
+                      checked={item.evidence_required}
+                      onCheckedChange={v => updateBundleItem(index, { evidence_required: v })}
+                      className="scale-75"
+                    />
+                    <span className="text-xs text-muted-foreground">Evidence required</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <Button type="button" variant="outline" size="sm" onClick={addBundleItem} className="w-full h-8 text-xs">
+              <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+              Add Action Item
+            </Button>
           </div>
 
           <DialogFooter>
