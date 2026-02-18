@@ -2,8 +2,12 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { 
   Calendar, MapPin, Wrench, User, FileText, Paperclip, 
-  MessageSquare, Clock, Edit2, MoreHorizontal, ChevronDown 
+  MessageSquare, Clock, Edit2, MoreHorizontal, Camera
 } from "lucide-react";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
+import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
+import { useEvidencePackets } from "@/hooks/useEvidencePackets";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -31,6 +35,12 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
   const [newComment, setNewComment] = useState("");
   const [editedTitle, setEditedTitle] = useState(workOrder.title);
   const [editedDescription, setEditedDescription] = useState(workOrder.description || "");
+  const [showEvidenceCapture, setShowEvidenceCapture] = useState(false);
+  const [showEvidenceViewer, setShowEvidenceViewer] = useState(false);
+
+  // Evidence packets for this work order
+  const { data: evidencePackets = [] } = useEvidencePackets("work_order", workOrder.id);
+  const latestPacket = evidencePackets[0] ?? null;
 
   const handleStatusChange = async (status: WorkOrderStatus) => {
     try {
@@ -88,6 +98,7 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
   };
 
   return (
+    <>
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b">
@@ -239,15 +250,36 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
           )}
         </div>
 
-        {/* Attachments */}
+        {/* Proof / Evidence */}
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Paperclip className="h-3.5 w-3.5" />
-            Attachments
+            <Camera className="h-3.5 w-3.5" />
+            Proof of Work
           </Label>
-          <Button variant="outline" size="sm" className="w-full">
-            Add photos / files
-          </Button>
+          <div className="flex items-center gap-2">
+            <EvidenceStatusBadge
+              status={latestPacket ? latestPacket.status : "none"}
+              size="default"
+            />
+            {latestPacket && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEvidenceViewer(true)}
+              >
+                View Proof
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setShowEvidenceCapture(true)}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Add Proof
+            </Button>
+          </div>
         </div>
 
         <Separator />
@@ -289,5 +321,25 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
         </div>
       </div>
     </div>
+
+    {/* Evidence Capture Modal */}
+    <EvidenceCaptureModal
+      open={showEvidenceCapture}
+      subjectType="work_order"
+      subjectId={workOrder.id}
+      policy={null}
+      title={`Add Proof: WO #${workOrder.wo_number}`}
+      onComplete={() => setShowEvidenceCapture(false)}
+      onCancel={() => setShowEvidenceCapture(false)}
+    />
+
+    {/* Evidence Packet Viewer */}
+    <EvidencePacketViewer
+      open={showEvidenceViewer}
+      subjectType="work_order"
+      subjectId={workOrder.id}
+      onClose={() => setShowEvidenceViewer(false)}
+    />
+    </>
   );
 }
