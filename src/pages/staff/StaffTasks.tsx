@@ -19,6 +19,7 @@ import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal
 import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
 import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePackets";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -144,6 +145,11 @@ const StaffTasks = () => {
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
   // Tracks tasks currently waiting for server confirmation: Map<resolvedId, startTimestamp>
   const [pendingCompletionIds, setPendingCompletionIds] = useState<Map<string, number>>(() => new Map());
+
+  // ── Roles ────────────────────────────────────────────────────────────────────
+  const { data: rolesData } = useUserRoles();
+  const canReview = !!(rolesData?.isManager || rolesData?.isAdmin || rolesData?.companyRole === 'company_owner' || rolesData?.companyRole === 'company_admin');
+  const canRedact = !!(rolesData?.isAdmin || rolesData?.companyRole === 'company_owner');
 
   // ── Evidence state ──────────────────────────────────────────────────────────
   // Task pending evidence gate (waiting for proof before completing)
@@ -843,11 +849,25 @@ const StaffTasks = () => {
                                 <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
                               )}
                             </div>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {/* View Proof button — opens evidence viewer for this completed task */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewerTaskId(task.id);
+                                }}
+                                className="p-1 rounded hover:bg-accent transition-colors"
+                                title="View proof"
+                              >
+                                <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
                           </div>
                           {task.completed_at && (
                             <p className="text-xs text-muted-foreground">
@@ -982,6 +1002,8 @@ const StaffTasks = () => {
           onClose={() => setViewerTaskId(null)}
           subjectType="task_occurrence"
           subjectId={viewerTaskId}
+          canReview={canReview}
+          canRedact={canRedact}
         />
       )}
     </div>
