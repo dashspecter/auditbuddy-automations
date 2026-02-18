@@ -298,6 +298,19 @@ const navigationItems = [
       { titleKey: "nav.slaManagement", url: "/operations/slas" },
     ]
   },
+  // 14b. Corrective Actions (CAPA)
+  {
+    titleKey: "nav.correctiveActions",
+    url: "/corrective-actions",
+    icon: ShieldAlert,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits' as CompanyPermission,
+    subItems: [
+      { titleKey: "nav.allCAs", url: "/corrective-actions", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.caRules", url: "/corrective-actions/rules", allowedRoles: ['admin'] },
+    ]
+  },
   // 15. Integrations
   {
     titleKey: "nav.integrations", 
