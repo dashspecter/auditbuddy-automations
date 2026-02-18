@@ -53,6 +53,26 @@ const TaskEdit = () => {
 
   const task = tasks.find(t => t.id === id);
 
+  // Load existing evidence policy for this task
+  useEffect(() => {
+    if (!id || !user?.id) return;
+    const loadPolicy = async () => {
+      const { data } = await supabase
+        .from("evidence_policies")
+        .select("*")
+        .eq("applies_to", "task_template")
+        .eq("applies_id", id)
+        .maybeSingle();
+      if (data) {
+        setEvidencePolicyId(data.id);
+        setEvidenceRequired(data.evidence_required);
+        setReviewRequired(data.review_required);
+        setEvidenceInstructions(data.instructions ?? "");
+      }
+    };
+    loadPolicy();
+  }, [id, user?.id]);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -129,6 +149,30 @@ const TaskEdit = () => {
           ? formData.recurrence_days_of_month
           : null,
       });
+
+      // Save / remove evidence policy
+      if (evidenceRequired && user?.id) {
+        const { data: cu } = await supabase
+          .from("company_users")
+          .select("company_id")
+          .eq("user_id", user.id)
+          .single();
+        if (cu?.company_id) {
+          await supabase.from("evidence_policies").upsert({
+            company_id: cu.company_id,
+            applies_to: "task_template",
+            applies_id: id,
+            evidence_required: true,
+            review_required: reviewRequired,
+            required_media_types: ["photo"],
+            min_media_count: 1,
+            instructions: evidenceInstructions.trim() || null,
+          }, { onConflict: "company_id,applies_to,applies_id" });
+        }
+      } else if (!evidenceRequired && evidencePolicyId) {
+        // Policy turned off — remove it
+        await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
+      }
 
       toast.success("Task updated successfully");
       navigate("/tasks");
@@ -556,6 +600,45 @@ const TaskEdit = () => {
                       }).join(", ")}`}
                 </p>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Evidence Policy Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Evidence / Proof Policy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="font-medium">Require proof photo</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Staff must attach a photo before completing this task</p>
+              </div>
+              <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
+            </div>
+            {evidenceRequired && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Also require review</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Manager must approve the proof before task is fully done</p>
+                  </div>
+                  <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Instructions for staff</Label>
+                  <Textarea
+                    placeholder="e.g. Photo must include the thermometer display and location ID sticker"
+                    rows={2}
+                    value={evidenceInstructions}
+                    onChange={(e) => setEvidenceInstructions(e.target.value)}
+                  />
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
