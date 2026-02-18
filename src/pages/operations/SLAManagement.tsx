@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useSLAConfigs, useCreateSLAConfig, useUpdateSLAConfig, useDeleteSLAConfig, SLARule } from "@/hooks/useOperationsAgent";
 import { useLocations } from "@/hooks/useLocations";
-import { Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 
 const METRIC_OPTIONS = [
   { value: "equipment_uptime", label: "Equipment Uptime %" },
@@ -200,9 +201,22 @@ export default function SLAManagement() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">SLA Management</h1>
-          <p className="text-muted-foreground">Configure Service Level Agreements for locations</p>
+        <div className="flex items-start gap-2">
+          <div>
+            <h1 className="text-3xl font-bold">SLA Management</h1>
+            <p className="text-muted-foreground">Configure Service Level Agreements for locations</p>
+          </div>
+          <InfoTooltip
+            className="mt-2"
+            content={
+              <div className="space-y-2">
+                <p className="font-semibold">What is an SLA?</p>
+                <p>A Service Level Agreement (SLA) defines thresholds your operations must meet. The Operations Agent checks these automatically and takes action when a threshold is breached.</p>
+                <p className="font-semibold mt-2">Example:</p>
+                <p>SLA: "Equipment uptime must stay above 95%." If uptime drops to 93%, the agent creates an alert automatically — no manual checking needed.</p>
+              </div>
+            }
+          />
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
@@ -243,7 +257,15 @@ export default function SLAManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>SLA Name *</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label>SLA Name *</Label>
+                    <InfoTooltip content={
+                      <div className="space-y-1">
+                        <p className="font-semibold">Give it a clear, descriptive name.</p>
+                        <p>Examples: "Kitchen Equipment Uptime", "Store Checklist Compliance", "Zero Overdue Maintenance"</p>
+                      </div>
+                    } />
+                  </div>
                   <Input
                     value={formData.sla_name}
                     onChange={(e) => setFormData({ ...formData, sla_name: e.target.value })}
@@ -251,7 +273,16 @@ export default function SLAManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Location (optional)</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label>Location (optional)</Label>
+                    <InfoTooltip content={
+                      <div className="space-y-1">
+                        <p className="font-semibold">Scope this SLA to one location or all.</p>
+                        <p><span className="font-medium">All Locations</span> — applies company-wide. Every location must meet this threshold.</p>
+                        <p><span className="font-medium">Specific location</span> — only monitored for that site. Useful for high-risk or pilot locations.</p>
+                      </div>
+                    } />
+                  </div>
                   <Select value={formData.location_id || "all"} onValueChange={(v) => setFormData({ ...formData, location_id: v === "all" ? "" : v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="All locations" />
@@ -279,11 +310,46 @@ export default function SLAManagement() {
                   onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
                 />
                 <Label>Active</Label>
+                <InfoTooltip content={
+                  <div className="space-y-1">
+                    <p>When <span className="font-semibold">Active</span>, the Operations Agent checks this SLA on every scheduled run.</p>
+                    <p>Toggle off to pause monitoring without deleting — useful during planned maintenance or off-season.</p>
+                  </div>
+                } />
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Rules</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label>Rules</Label>
+                    <InfoTooltip
+                      side="right"
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-semibold">How rules work</p>
+                          <p>Each rule is a condition: <span className="italic">if [metric] [operator] [threshold] → take [action]</span></p>
+                          <div className="space-y-1 border-t pt-2 mt-1">
+                            <p className="font-medium">📊 Metric — what to measure</p>
+                            <p>• <span className="font-medium">Equipment Uptime %</span> — % of time equipment was operational</p>
+                            <p>• <span className="font-medium">Overdue Maintenance</span> — count of past-due work orders</p>
+                            <p>• <span className="font-medium">Issue Count</span> — total open issues logged</p>
+                            <p>• <span className="font-medium">Checklist Completion %</span> — % of daily checklists completed</p>
+                          </div>
+                          <div className="space-y-1 border-t pt-2">
+                            <p className="font-medium">⚡ Action — what happens when breached</p>
+                            <p>• <span className="font-medium">Create Alert</span> — visible in the Alerts dashboard</p>
+                            <p>• <span className="font-medium">Create Maintenance Task</span> — auto-creates a work order</p>
+                            <p>• <span className="font-medium">Notify Manager</span> — sends an in-app notification</p>
+                          </div>
+                          <div className="border-t pt-2">
+                            <p className="font-medium">Example rule:</p>
+                            <p className="italic">Equipment Uptime % &lt; 95 → Create Alert</p>
+                            <p className="text-xs">Meaning: if uptime drops below 95%, an alert is raised immediately.</p>
+                          </div>
+                        </div>
+                      }
+                    />
+                  </div>
                   <Button type="button" variant="outline" size="sm" onClick={addRule}>
                     <Plus className="h-3 w-3 mr-1" /> Add Rule
                   </Button>
@@ -392,7 +458,7 @@ export default function SLAManagement() {
                     </TableCell>
                     <TableCell>
                       {sla.active ? (
-                        <Badge className="bg-green-500/10 text-green-500">Active</Badge>
+                        <Badge className="bg-primary/10 text-primary">Active</Badge>
                       ) : (
                         <Badge variant="secondary">Inactive</Badge>
                       )}
