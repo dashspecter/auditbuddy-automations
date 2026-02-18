@@ -205,6 +205,14 @@ export function useCorrectiveAction(id: string | undefined) {
 
 // ─── Create CA ────────────────────────────────────────────────────────────────
 
+export interface BundleItemArgs {
+  title: string;
+  instructions?: string;
+  assigneeRole?: string; // e.g. "store_manager", "area_manager", "admin"
+  dueAt: string;
+  evidenceRequired?: boolean;
+}
+
 export interface CreateCAArgs {
   locationId: string;
   sourceType: CASourceType;
@@ -217,14 +225,7 @@ export interface CreateCAArgs {
   requiresApproval?: boolean;
   approvalRole?: string;
   stopTheLine?: boolean;
-  bundleItems?: Array<{
-    title: string;
-    instructions?: string;
-    assigneeUserId?: string;
-    assigneeRole?: string;
-    dueAt: string;
-    evidenceRequired?: boolean;
-  }>;
+  bundleItems?: BundleItemArgs[];
 }
 
 export function useCreateCorrectiveAction() {
@@ -272,17 +273,43 @@ export function useCreateCorrectiveAction() {
         }, { onConflict: "company_id,location_id" });
       }
 
-      // Insert bundle items
+      // Insert bundle items — resolve role to user at the location
       if (args.bundleItems?.length) {
+        // Build a role→user_id map for this location so we can auto-assign
+        const roleUserMap: Record<string, string> = {};
+        const rolesToResolve = [...new Set(args.bundleItems.map(i => i.assigneeRole).filter(Boolean))] as string[];
+        if (rolesToResolve.length > 0) {
+          // company_role values in company_users (admin, manager…)
+          const { data: companyUserRows } = await supabase
+            .from("company_users")
+            .select("user_id, company_role")
+            .eq("company_id", companyId)
+            .in("company_role", rolesToResolve);
+          (companyUserRows ?? []).forEach(r => {
+            if (!roleUserMap[r.company_role]) roleUserMap[r.company_role] = r.user_id;
+          });
+
+          // Also check employees table for location-specific roles
+          const { data: empRows } = await supabase
+            .from("employees")
+            .select("user_id, role")
+            .eq("company_id", companyId)
+            .eq("location_id", args.locationId)
+            .in("role", rolesToResolve);
+          (empRows ?? []).forEach(r => {
+            if (r.role && !roleUserMap[r.role]) roleUserMap[r.role] = r.user_id;
+          });
+        }
+
         const items = args.bundleItems.map(item => ({
           company_id: companyId,
           corrective_action_id: ca.id,
           title: item.title,
           instructions: item.instructions ?? null,
-          assignee_user_id: item.assigneeUserId ?? null,
+          assignee_user_id: (item.assigneeRole ? roleUserMap[item.assigneeRole] ?? null : null),
           assignee_role: item.assigneeRole ?? null,
           due_at: item.dueAt,
-          evidence_required: item.evidenceRequired ?? true,
+          evidence_required: item.evidenceRequired ?? false,
         }));
         const { error: itemErr } = await supabase.from("corrective_action_items").insert(items);
         if (itemErr) throw itemErr;

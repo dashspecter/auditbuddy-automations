@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle } from "lucide-react";
+import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,20 @@ const TRIGGER_LABELS: Record<CorrectiveActionRule["trigger_type"], string> = {
 const SEVERITY_OPTIONS = ["low", "medium", "high", "critical"] as const;
 type Severity = typeof SEVERITY_OPTIONS[number];
 
+const ROLE_OPTIONS = [
+  { value: "store_manager", label: "Store Manager" },
+  { value: "area_manager", label: "Area Manager" },
+  { value: "company_admin", label: "Company Admin" },
+  { value: "company_owner", label: "Company Owner" },
+  { value: "shift_lead", label: "Shift Lead" },
+  { value: "staff", label: "Staff" },
+];
+
 interface BundleItem {
   title: string;
   due_hours: number;
   evidence_required: boolean;
+  assigned_role?: string;
 }
 
 interface AuditFailConfig {
@@ -57,8 +67,8 @@ const DEFAULT_AUDIT_FAIL: AuditFailConfig = {
   due_hours: 24,
   stop_the_line: false,
   bundle: [
-    { title: "Immediate corrective action", due_hours: 4, evidence_required: true },
-    { title: "Root cause investigation", due_hours: 24, evidence_required: false },
+    { title: "Immediate corrective action", due_hours: 4, evidence_required: true, assigned_role: "store_manager" },
+    { title: "Root cause investigation", due_hours: 24, evidence_required: false, assigned_role: "area_manager" },
   ],
 };
 
@@ -69,8 +79,8 @@ const DEFAULT_INCIDENT_REPEAT: IncidentRepeatConfig = {
   requires_approval: true,
   approval_role: "area_manager",
   bundle: [
-    { title: "Supplier batch check", due_hours: 24, evidence_required: true },
-    { title: "Retraining session", due_hours: 72, evidence_required: false },
+    { title: "Supplier batch check", due_hours: 24, evidence_required: true, assigned_role: "store_manager" },
+    { title: "Retraining session", due_hours: 72, evidence_required: false, assigned_role: "shift_lead" },
   ],
 };
 
@@ -80,8 +90,8 @@ const DEFAULT_ASSET_DOWNTIME: AssetDowntimeConfig = {
   severity: "medium",
   due_hours: 72,
   bundle: [
-    { title: "Schedule technician inspection", due_hours: 24, evidence_required: false },
-    { title: "Upload before/after photo", due_hours: 72, evidence_required: true },
+    { title: "Schedule technician inspection", due_hours: 24, evidence_required: false, assigned_role: "store_manager" },
+    { title: "Upload before/after photo", due_hours: 72, evidence_required: true, assigned_role: "store_manager" },
   ],
 };
 
@@ -91,7 +101,7 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
     onChange(items.map((item, i) => i === index ? { ...item, ...patch } : item));
   };
   const remove = (index: number) => onChange(items.filter((_, i) => i !== index));
-  const add = () => onChange([...items, { title: "", due_hours: 24, evidence_required: false }]);
+  const add = () => onChange([...items, { title: "", due_hours: 24, evidence_required: false, assigned_role: "store_manager" }]);
 
   return (
     <div className="space-y-3">
@@ -130,38 +140,62 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="flex items-center gap-4 pl-7">
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="number"
-                min={1}
-                value={item.due_hours}
-                onChange={e => update(index, { due_hours: Number(e.target.value) })}
-                className="w-16 h-7 text-xs text-center"
-              />
-              <span className="text-xs text-muted-foreground">hours due</span>
-              <InfoTooltip
-                side="right"
-                content="How many hours the assignee has to complete this specific task after the CA is created. Set shorter deadlines for urgent actions."
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Switch
-                checked={item.evidence_required}
-                onCheckedChange={v => update(index, { evidence_required: v })}
-                className="scale-75"
-              />
-              <span className="text-xs text-muted-foreground">Evidence required</span>
+          <div className="grid grid-cols-1 gap-2 pl-7">
+            {/* Assigned Role */}
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Select
+                value={item.assigned_role ?? ""}
+                onValueChange={v => update(index, { assigned_role: v || undefined })}
+              >
+                <SelectTrigger className="h-7 text-xs flex-1">
+                  <SelectValue placeholder="Assign to role..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Unassigned</SelectItem>
+                  {ROLE_OPTIONS.map(r => (
+                    <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <InfoTooltip
                 side="right"
                 content={
                   <div className="space-y-1">
-                    <p className="font-semibold">Evidence Required</p>
-                    <p>When enabled, the assignee must upload a photo or document proving the task is done before they can mark it complete.</p>
-                    <p className="italic text-muted-foreground">Example: A "Fridge repaired" item requires a photo of the temperature reading showing it's back in range.</p>
+                    <p className="font-semibold">Assigned Role</p>
+                    <p>When this CA fires, the system looks up who holds this role at the affected location and automatically assigns them this task.</p>
+                    <p className="italic text-muted-foreground">Example: "Store Manager" → the Store Manager at Store 3 gets this task in their queue.</p>
                   </div>
                 }
               />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="number"
+                  min={1}
+                  value={item.due_hours}
+                  onChange={e => update(index, { due_hours: Number(e.target.value) })}
+                  className="w-16 h-7 text-xs text-center"
+                />
+                <span className="text-xs text-muted-foreground">hours due</span>
+                <InfoTooltip
+                  side="right"
+                  content="How many hours the assignee has to complete this specific task after the CA is created."
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Switch
+                  checked={item.evidence_required}
+                  onCheckedChange={v => update(index, { evidence_required: v })}
+                  className="scale-75"
+                />
+                <span className="text-xs text-muted-foreground">Evidence required</span>
+                <InfoTooltip
+                  side="right"
+                  content="The assignee must upload a photo or document proving the task is done before they can mark it complete."
+                />
+              </div>
             </div>
           </div>
         </div>
