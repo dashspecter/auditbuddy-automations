@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { useCorrectiveActionRules, useCreateCARule, useUpdateCARule, useDeleteCARule, type CorrectiveActionRule } from "@/hooks/useCorrectiveActions";
 import { toast } from "sonner";
 
@@ -50,10 +51,6 @@ interface AssetDowntimeConfig {
   due_hours: number;
   bundle: BundleItem[];
 }
-
-const DEFAULT_BUNDLE: BundleItem[] = [
-  { title: "", due_hours: 24, evidence_required: false },
-];
 
 const DEFAULT_AUDIT_FAIL: AuditFailConfig = {
   severity: "high",
@@ -98,7 +95,19 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium">Action Items to Bundle</Label>
+      <div className="flex items-center gap-1.5">
+        <Label className="text-sm font-medium">Action Items to Bundle</Label>
+        <InfoTooltip
+          content={
+            <div className="space-y-1.5">
+              <p className="font-semibold">Bundled Action Items</p>
+              <p>These are the specific tasks that will be automatically created and assigned when this rule fires.</p>
+              <p className="italic text-muted-foreground">Example: "Take fridge temperature reading (due in 4h, evidence required)" + "Submit incident report (due in 24h)"</p>
+              <p>Each person assigned will see these as checklist items to complete before the CA can be closed.</p>
+            </div>
+          }
+        />
+      </div>
       <p className="text-xs text-muted-foreground -mt-1">Tasks automatically assigned when this rule triggers</p>
       {items.map((item, index) => (
         <div key={index} className="rounded-lg border bg-muted/20 p-3 space-y-2">
@@ -107,7 +116,7 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
             <Input
               value={item.title}
               onChange={e => update(index, { title: e.target.value })}
-              placeholder="e.g. Take temperature reading"
+              placeholder="e.g. Take temperature reading and log result"
               className="flex-1 h-8 text-sm"
             />
             <Button
@@ -131,6 +140,10 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
                 className="w-16 h-7 text-xs text-center"
               />
               <span className="text-xs text-muted-foreground">hours due</span>
+              <InfoTooltip
+                side="right"
+                content="How many hours the assignee has to complete this specific task after the CA is created. Set shorter deadlines for urgent actions."
+              />
             </div>
             <div className="flex items-center gap-1.5">
               <Switch
@@ -139,6 +152,16 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
                 className="scale-75"
               />
               <span className="text-xs text-muted-foreground">Evidence required</span>
+              <InfoTooltip
+                side="right"
+                content={
+                  <div className="space-y-1">
+                    <p className="font-semibold">Evidence Required</p>
+                    <p>When enabled, the assignee must upload a photo or document proving the task is done before they can mark it complete.</p>
+                    <p className="italic text-muted-foreground">Example: A "Fridge repaired" item requires a photo of the temperature reading showing it's back in range.</p>
+                  </div>
+                }
+              />
             </div>
           </div>
         </div>
@@ -151,34 +174,65 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
   );
 }
 
-// ---- Per-trigger config forms ----
+// ---- Audit Fail Form ----
 function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange: (c: AuditFailConfig) => void }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs">Severity</Label>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Severity</Label>
+            <InfoTooltip
+              content={
+                <div className="space-y-1.5">
+                  <p className="font-semibold">CA Severity</p>
+                  <p>Sets how urgent the CA is and defines the SLA deadline:</p>
+                  <ul className="space-y-0.5 text-muted-foreground">
+                    <li><span className="font-medium text-foreground">Critical</span> — 4h, auto stop-the-line</li>
+                    <li><span className="font-medium text-foreground">High</span> — 24h</li>
+                    <li><span className="font-medium text-foreground">Medium</span> — 72h</li>
+                    <li><span className="font-medium text-foreground">Low</span> — 7 days</li>
+                  </ul>
+                </div>
+              }
+            />
+          </div>
           <Select value={config.severity} onValueChange={v => onChange({ ...config, severity: v as Severity })}>
-            <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {SEVERITY_OPTIONS.map(s => <SelectItem key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-xs">Due within (hours)</Label>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Due within (hours)</Label>
+            <InfoTooltip content="The CA must be fully resolved and closed within this many hours after being created. If not closed in time, it is marked overdue and escalated." />
+          </div>
           <Input
             type="number" min={1}
             value={config.due_hours}
             onChange={e => onChange({ ...config, due_hours: Number(e.target.value) })}
-            className="mt-1 h-9"
+            className="h-9"
           />
         </div>
       </div>
       <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2.5">
-        <div>
-          <p className="text-sm font-medium text-destructive">Stop-the-Line</p>
-          <p className="text-xs text-muted-foreground">Restrict location operations until resolved</p>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-destructive">Stop-the-Line</p>
+            <InfoTooltip
+              content={
+                <div className="space-y-1.5">
+                  <p className="font-semibold">Stop-the-Line 🚨</p>
+                  <p>When enabled, the location is flagged as restricted and a red banner appears across the entire app for that location.</p>
+                  <p>All operations at that location must halt until a manager or admin manually releases the restriction — with a recorded reason.</p>
+                  <p className="italic text-muted-foreground">Example: A critical hygiene failure at Store 3 stops all operations there until the area manager confirms the issue is resolved.</p>
+                </div>
+              }
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Restrict location operations until manually released by a manager</p>
         </div>
         <Switch checked={config.stop_the_line} onCheckedChange={v => onChange({ ...config, stop_the_line: v })} />
       </div>
@@ -188,22 +242,40 @@ function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange
   );
 }
 
+// ---- Incident Repeat Form ----
 function IncidentRepeatForm({ config, onChange }: { config: IncidentRepeatConfig; onChange: (c: IncidentRepeatConfig) => void }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label className="text-xs">Window (days)</Label>
-          <Input type="number" min={1} value={config.window_days} onChange={e => onChange({ ...config, window_days: Number(e.target.value) })} className="mt-1 h-9" />
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Window (days)</Label>
+            <InfoTooltip
+              content={
+                <div className="space-y-1">
+                  <p className="font-semibold">Detection Window</p>
+                  <p>The system looks back this many days when counting incidents. Only incidents within this period count toward the threshold.</p>
+                  <p className="italic text-muted-foreground">Example: Window = 14 days means if the same incident happens 2+ times in the last 2 weeks, the rule fires.</p>
+                </div>
+              }
+            />
+          </div>
+          <Input type="number" min={1} value={config.window_days} onChange={e => onChange({ ...config, window_days: Number(e.target.value) })} className="h-9" />
         </div>
         <div>
-          <Label className="text-xs">Min. incidents</Label>
-          <Input type="number" min={1} value={config.min_count} onChange={e => onChange({ ...config, min_count: Number(e.target.value) })} className="mt-1 h-9" />
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Min. incidents</Label>
+            <InfoTooltip content="The minimum number of times the same incident must occur within the window before a CA is automatically created. Set to 2 to catch repeats, higher for patterns." />
+          </div>
+          <Input type="number" min={1} value={config.min_count} onChange={e => onChange({ ...config, min_count: Number(e.target.value) })} className="h-9" />
         </div>
         <div>
-          <Label className="text-xs">Severity</Label>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Severity</Label>
+            <InfoTooltip content="The severity level of the CA that gets created. Repeated incidents are usually High severity since they indicate a systemic issue." />
+          </div>
           <Select value={config.severity} onValueChange={v => onChange({ ...config, severity: v as Severity })}>
-            <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {SEVERITY_OPTIONS.map(s => <SelectItem key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
             </SelectContent>
@@ -211,17 +283,31 @@ function IncidentRepeatForm({ config, onChange }: { config: IncidentRepeatConfig
         </div>
       </div>
       <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2.5">
-        <div>
-          <p className="text-sm font-medium">Requires Manager Approval</p>
-          <p className="text-xs text-muted-foreground">A manager must approve before closing</p>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium">Requires Manager Approval</p>
+            <InfoTooltip
+              content={
+                <div className="space-y-1">
+                  <p className="font-semibold">Approval Gate</p>
+                  <p>When enabled, a manager or admin must explicitly approve the CA before it can be marked closed — even after all action items are done.</p>
+                  <p className="italic text-muted-foreground">Example: Retraining was completed but the Area Manager must sign off that the issue is genuinely resolved before the CA closes.</p>
+                </div>
+              }
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">A manager must approve before the CA can be closed</p>
         </div>
         <Switch checked={config.requires_approval} onCheckedChange={v => onChange({ ...config, requires_approval: v })} />
       </div>
       {config.requires_approval && (
         <div>
-          <Label className="text-xs">Approval Role</Label>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Approval Role</Label>
+            <InfoTooltip content="Which role level is allowed to approve and close this CA. Only users with this role or higher can sign it off." />
+          </div>
           <Select value={config.approval_role} onValueChange={v => onChange({ ...config, approval_role: v })}>
-            <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="area_manager">Area Manager</SelectItem>
               <SelectItem value="manager">Manager</SelectItem>
@@ -236,22 +322,40 @@ function IncidentRepeatForm({ config, onChange }: { config: IncidentRepeatConfig
   );
 }
 
+// ---- Asset Downtime Form ----
 function AssetDowntimeForm({ config, onChange }: { config: AssetDowntimeConfig; onChange: (c: AssetDowntimeConfig) => void }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label className="text-xs">Window (days)</Label>
-          <Input type="number" min={1} value={config.window_days} onChange={e => onChange({ ...config, window_days: Number(e.target.value) })} className="mt-1 h-9" />
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Window (days)</Label>
+            <InfoTooltip
+              content={
+                <div className="space-y-1">
+                  <p className="font-semibold">Failure Detection Window</p>
+                  <p>How far back to look when counting failures for a single asset.</p>
+                  <p className="italic text-muted-foreground">Example: Window = 30 days + Min = 3 means "if this machine has failed 3 times in the last month, create a CA."</p>
+                </div>
+              }
+            />
+          </div>
+          <Input type="number" min={1} value={config.window_days} onChange={e => onChange({ ...config, window_days: Number(e.target.value) })} className="h-9" />
         </div>
         <div>
-          <Label className="text-xs">Min. failures</Label>
-          <Input type="number" min={1} value={config.min_count} onChange={e => onChange({ ...config, min_count: Number(e.target.value) })} className="mt-1 h-9" />
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Min. failures</Label>
+            <InfoTooltip content="The minimum number of downtime events for the same asset within the window before a CA is created. 3 is a good starting point for detecting patterns." />
+          </div>
+          <Input type="number" min={1} value={config.min_count} onChange={e => onChange({ ...config, min_count: Number(e.target.value) })} className="h-9" />
         </div>
         <div>
-          <Label className="text-xs">Severity</Label>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Severity</Label>
+            <InfoTooltip content="Severity assigned to the generated CA. Asset patterns are often Medium — serious enough to need tracking, but not an emergency unless the asset is critical." />
+          </div>
           <Select value={config.severity} onValueChange={v => onChange({ ...config, severity: v as Severity })}>
-            <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               {SEVERITY_OPTIONS.map(s => <SelectItem key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
             </SelectContent>
@@ -259,8 +363,11 @@ function AssetDowntimeForm({ config, onChange }: { config: AssetDowntimeConfig; 
         </div>
       </div>
       <div>
-        <Label className="text-xs">Due within (hours)</Label>
-        <Input type="number" min={1} value={config.due_hours} onChange={e => onChange({ ...config, due_hours: Number(e.target.value) })} className="mt-1 h-9" />
+        <div className="flex items-center gap-1.5 mb-1">
+          <Label className="text-xs">Due within (hours)</Label>
+          <InfoTooltip content="How many hours the team has to resolve the CA after it's created. For asset issues, 72h gives time to schedule a technician visit." />
+        </div>
+        <Input type="number" min={1} value={config.due_hours} onChange={e => onChange({ ...config, due_hours: Number(e.target.value) })} className="h-9" />
       </div>
       <Separator />
       <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
@@ -321,7 +428,6 @@ export default function CorrectiveActionRules() {
 
   const handleCreate = async () => {
     const config = getConfig();
-    // Validate bundle items have titles
     const bundle = (config as { bundle: BundleItem[] }).bundle;
     if (bundle.some(b => !b.title.trim())) {
       toast.error("All action items must have a title.");
@@ -365,7 +471,25 @@ export default function CorrectiveActionRules() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">CA Auto-Generation Rules</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">CA Auto-Generation Rules</h1>
+            <InfoTooltip
+              side="right"
+              content={
+                <div className="space-y-2">
+                  <p className="font-semibold">What are CA Rules?</p>
+                  <p>Rules tell the system when to automatically create a Corrective Action — so managers don't miss recurring problems.</p>
+                  <p className="font-medium">3 trigger types:</p>
+                  <ul className="space-y-0.5 text-muted-foreground">
+                    <li><span className="font-medium text-foreground">Audit Failure</span> — fires when an audit is failed</li>
+                    <li><span className="font-medium text-foreground">Incident Repeat</span> — fires when the same incident recurs X times</li>
+                    <li><span className="font-medium text-foreground">Asset Downtime</span> — fires when an asset fails X times in Y days</li>
+                  </ul>
+                  <p className="italic text-muted-foreground">Example: "If any audit fails, create a High severity CA due in 24h, with tasks: fix the issue + root cause report."</p>
+                </div>
+              }
+            />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">Automatically create CAs from audit failures, incidents, and downtime patterns</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
@@ -383,6 +507,9 @@ export default function CorrectiveActionRules() {
           <Settings2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <p className="font-semibold text-foreground">No rules configured</p>
           <p className="text-muted-foreground text-sm mt-1">Create rules to automatically generate corrective actions from failures.</p>
+          <p className="text-muted-foreground text-xs mt-2">
+            💡 Start with an <span className="font-medium">Audit Failure</span> rule — it's the most common trigger.
+          </p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -407,6 +534,13 @@ export default function CorrectiveActionRules() {
                   <RuleConfigSummary rule={rule} />
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <InfoTooltip
+                    side="left"
+                    content={rule.enabled
+                      ? "This rule is active and will automatically create CAs when triggered. Toggle to pause it without deleting."
+                      : "This rule is paused. Toggle to reactivate it."
+                    }
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
@@ -436,19 +570,38 @@ export default function CorrectiveActionRules() {
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Auto-Generation Rule</DialogTitle>
-            <DialogDescription>Define when to automatically create a corrective action and what items to bundle.</DialogDescription>
+            <DialogDescription>
+              Define when to automatically create a corrective action and what tasks to bundle with it.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
             {/* Rule Name */}
             <div>
-              <Label>Rule Name</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Food Safety Critical Fail" className="mt-1" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <Label>Rule Name</Label>
+                <InfoTooltip content="Give the rule a clear name so managers know what it does at a glance. Include the trigger and location context if relevant." />
+              </div>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Food Safety Critical Fail — All Stores" className="mt-1" />
             </div>
 
             {/* Trigger Type */}
             <div>
-              <Label>Trigger Type</Label>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Label>Trigger Type</Label>
+                <InfoTooltip
+                  content={
+                    <div className="space-y-1.5">
+                      <p className="font-semibold">Choose what causes the CA to be created automatically</p>
+                      <ul className="space-y-1 text-muted-foreground">
+                        <li><span className="font-medium text-foreground">Audit Failure</span> — when a checklist/audit is submitted with a fail result</li>
+                        <li><span className="font-medium text-foreground">Incident Repeat</span> — when the same type of incident is logged multiple times</li>
+                        <li><span className="font-medium text-foreground">Asset Downtime</span> — when a piece of equipment breaks down repeatedly</li>
+                      </ul>
+                    </div>
+                  }
+                />
+              </div>
               <Select
                 value={triggerType}
                 onValueChange={(v) => setTriggerType(v as CorrectiveActionRule["trigger_type"])}

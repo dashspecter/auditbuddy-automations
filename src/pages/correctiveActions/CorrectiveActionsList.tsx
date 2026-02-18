@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, AlertOctagon, Clock, CheckCircle2, XCircle, AlertTriangle, Filter } from "lucide-react";
+import { Plus, AlertOctagon, CheckCircle2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { CASeverityBadge } from "@/components/correctiveActions/CASeverityBadge";
 import { CAStatusBadge } from "@/components/correctiveActions/CAStatusBadge";
 import { CreateCADialog } from "@/components/correctiveActions/CreateCADialog";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,6 @@ export default function CorrectiveActionsList() {
   });
   const { data: restrictedLocations = [] } = useAllLocationRiskStates();
 
-  // KPIs
   const open = cas.filter(c => c.status === "open").length;
   const inProgress = cas.filter(c => c.status === "in_progress").length;
   const overdueCount = cas.filter(c => isOverdue(c.due_at) && !["closed", "cancelled"].includes(c.status)).length;
@@ -58,9 +58,22 @@ export default function CorrectiveActionsList() {
       ))}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Corrective Actions</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Corrective Actions</h1>
+            <InfoTooltip
+              side="right"
+              content={
+                <div className="space-y-2">
+                  <p className="font-semibold">What is a Corrective Action (CA)?</p>
+                  <p>A CA is a formal task created to fix a problem — such as a failed audit, a repeated incident, or equipment downtime.</p>
+                  <p className="text-muted-foreground">Lifecycle: <span className="font-medium text-foreground">Open → In Progress → Pending Verification → Closed</span></p>
+                  <p className="italic text-muted-foreground">Example: A food safety audit fails at Store 3 → a CA is created requiring the manager to retrain staff and upload evidence within 24h.</p>
+                </div>
+              }
+            />
+          </div>
           <p className="text-muted-foreground text-sm mt-1">Track and resolve failures with verified closure</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
@@ -72,25 +85,54 @@ export default function CorrectiveActionsList() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Open</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-blue-600">{open}</div></CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+              Open
+              <InfoTooltip content="CAs that have been created but no work has started yet. These need to be picked up and actioned." />
+            </CardTitle>
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold text-primary">{open}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">In Progress</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+              In Progress
+              <InfoTooltip content="CAs where work has started — action items are being completed. The assignee is actively working on resolution." />
+            </CardTitle>
+          </CardHeader>
           <CardContent><div className="text-2xl font-bold text-warning">{inProgress}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Overdue</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+              Overdue
+              <InfoTooltip
+                content={
+                  <div className="space-y-1.5">
+                    <p className="font-semibold">Overdue CAs</p>
+                    <p>These are CAs that have passed their due date and are not yet closed. Immediate action is required.</p>
+                    <p className="italic text-muted-foreground">Example: A Critical CA was due within 4h but is still open after 6h.</p>
+                  </div>
+                }
+              />
+            </CardTitle>
+          </CardHeader>
           <CardContent><div className={cn("text-2xl font-bold", overdueCount > 0 ? "text-destructive" : "text-foreground")}>{overdueCount}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Closed This Month</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1.5">
+              Closed This Month
+              <InfoTooltip content="CAs successfully resolved and closed this calendar month. A higher number indicates good resolution velocity." />
+            </CardTitle>
+          </CardHeader>
           <CardContent><div className="text-2xl font-bold text-success">{closedThisMonth}</div></CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
+        <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={locationFilter} onValueChange={setLocationFilter}>
           <SelectTrigger className="w-44"><SelectValue placeholder="All Locations" /></SelectTrigger>
           <SelectContent>
@@ -119,6 +161,20 @@ export default function CorrectiveActionsList() {
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
+        <InfoTooltip
+          side="right"
+          content={
+            <div className="space-y-1.5">
+              <p className="font-semibold">Severity SLA deadlines</p>
+              <ul className="space-y-0.5 text-muted-foreground">
+                <li><span className="font-medium text-foreground">Critical</span> — must close within 4 hours</li>
+                <li><span className="font-medium text-foreground">High</span> — must close within 24 hours</li>
+                <li><span className="font-medium text-foreground">Medium</span> — must close within 72 hours</li>
+                <li><span className="font-medium text-foreground">Low</span> — must close within 7 days</li>
+              </ul>
+            </div>
+          }
+        />
       </div>
 
       {/* List */}
@@ -172,7 +228,13 @@ export default function CorrectiveActionsList() {
                   <div className="flex items-center gap-3 shrink-0 min-w-[120px]">
                     <div className="flex-1">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>SLA</span>
+                        <span className="flex items-center gap-1">
+                          SLA
+                          <InfoTooltip
+                            side="left"
+                            content="SLA % shows how much of the deadline has elapsed. Green = on track, Amber = at risk (>50%), Red = critical (>90%) or overdue."
+                          />
+                        </span>
                         <span className={cn(sla >= 90 ? "text-destructive" : sla >= 50 ? "text-warning" : "text-success")}>
                           {sla}%
                         </span>
