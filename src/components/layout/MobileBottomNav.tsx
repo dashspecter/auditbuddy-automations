@@ -1,4 +1,4 @@
-import { Home, ClipboardCheck, Users, Wrench, Menu } from "lucide-react";
+import { Home, ClipboardCheck, Users, Wrench, Menu, ShieldCheck } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -23,13 +23,13 @@ const mainNavItems = [
 const moreNavItems = [
   { title: "Locations", url: "/admin/locations", icon: MapPin },
   { title: "Tasks", url: "/tasks", icon: ListTodo },
+  { title: "Evidence", url: "/evidence-review", icon: ShieldCheck, managerOnly: true },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Reports", url: "/reports", icon: BarChart },
   { title: "Wastage", url: "/waste", icon: Trash2, module: "wastage" },
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Training", url: "/training", icon: GraduationCap },
-  { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Operations", url: "/operations/daily", icon: Settings2 },
@@ -46,6 +46,12 @@ export function MobileBottomNav() {
 
   const isOwner = company?.userRole === 'company_owner';
   const isCompanyAdmin = company?.userRole === 'company_admin';
+  const isManagerOrAbove = !!(
+    roleData?.isAdmin ||
+    roleData?.isManager ||
+    isOwner ||
+    isCompanyAdmin
+  );
 
   const isActive = (url: string) => {
     return location.pathname === url || location.pathname.startsWith(url + '/');
@@ -96,7 +102,11 @@ export function MobileBottomNav() {
               </SheetHeader>
               <div className="grid grid-cols-3 gap-4 py-6 overflow-y-auto">
                 {moreNavItems
-                  .filter((item) => !item.module || hasModule(item.module))
+                  .filter((item) => {
+                    if (item.module && !hasModule(item.module)) return false;
+                    if ((item as any).managerOnly && !isManagerOrAbove) return false;
+                    return true;
+                  })
                   .map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.url);
