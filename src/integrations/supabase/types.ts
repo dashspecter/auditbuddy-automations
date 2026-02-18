@@ -2948,6 +2948,260 @@ export type Database = {
           },
         ]
       }
+      corrective_action_events: {
+        Row: {
+          actor_id: string
+          company_id: string
+          corrective_action_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          actor_id: string
+          company_id: string
+          corrective_action_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          actor_id?: string
+          company_id?: string
+          corrective_action_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_action_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_action_events_corrective_action_id_fkey"
+            columns: ["corrective_action_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corrective_action_items: {
+        Row: {
+          assignee_role: string | null
+          assignee_user_id: string | null
+          company_id: string
+          completed_at: string | null
+          completed_by: string | null
+          corrective_action_id: string
+          created_at: string
+          due_at: string
+          evidence_packet_id: string | null
+          evidence_required: boolean
+          id: string
+          instructions: string | null
+          status: string
+          title: string
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          assignee_role?: string | null
+          assignee_user_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          corrective_action_id: string
+          created_at?: string
+          due_at: string
+          evidence_packet_id?: string | null
+          evidence_required?: boolean
+          id?: string
+          instructions?: string | null
+          status?: string
+          title: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          assignee_role?: string | null
+          assignee_user_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          corrective_action_id?: string
+          created_at?: string
+          due_at?: string
+          evidence_packet_id?: string | null
+          evidence_required?: boolean
+          id?: string
+          instructions?: string | null
+          status?: string
+          title?: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_action_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_action_items_corrective_action_id_fkey"
+            columns: ["corrective_action_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corrective_action_rules: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          enabled: boolean
+          id: string
+          name: string
+          trigger_config: Json
+          trigger_type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          trigger_config?: Json
+          trigger_type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          trigger_config?: Json
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_action_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corrective_actions: {
+        Row: {
+          approval_role: string | null
+          approved_at: string | null
+          approved_by: string | null
+          closed_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          due_at: string
+          id: string
+          location_id: string
+          owner_role: string | null
+          owner_user_id: string | null
+          requires_approval: boolean
+          severity: string
+          source_id: string
+          source_type: string
+          status: string
+          stop_release_reason: string | null
+          stop_released_at: string | null
+          stop_released_by: string | null
+          stop_the_line: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approval_role?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          closed_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_at: string
+          id?: string
+          location_id: string
+          owner_role?: string | null
+          owner_user_id?: string | null
+          requires_approval?: boolean
+          severity?: string
+          source_id: string
+          source_type: string
+          status?: string
+          stop_release_reason?: string | null
+          stop_released_at?: string | null
+          stop_released_by?: string | null
+          stop_the_line?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approval_role?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          closed_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_at?: string
+          id?: string
+          location_id?: string
+          owner_role?: string | null
+          owner_user_id?: string | null
+          requires_approval?: boolean
+          severity?: string
+          source_id?: string
+          source_type?: string
+          status?: string
+          stop_release_reason?: string | null
+          stop_released_at?: string | null
+          stop_released_by?: string | null
+          stop_the_line?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           color: string | null
@@ -4982,6 +5236,55 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_risk_state: {
+        Row: {
+          company_id: string
+          is_restricted: boolean
+          location_id: string
+          restricted_ca_id: string | null
+          restricted_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          is_restricted?: boolean
+          location_id: string
+          restricted_ca_id?: string | null
+          restricted_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          is_restricted?: boolean
+          location_id?: string
+          restricted_ca_id?: string | null
+          restricted_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_risk_state_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_risk_state_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_risk_state_restricted_ca_id_fkey"
+            columns: ["restricted_ca_id"]
+            isOneToOne: false
+            referencedRelation: "corrective_actions"
             referencedColumns: ["id"]
           },
         ]
@@ -10286,6 +10589,14 @@ export type Database = {
       update_overdue_interventions: { Args: never; Returns: undefined }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_in_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_manager_in_company: {
+        Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
     }
