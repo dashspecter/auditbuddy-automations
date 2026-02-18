@@ -84,6 +84,40 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
   );
 };
 
+/**
+ * Wrapper that fetches the evidence policy for the gated task before rendering
+ * EvidenceCaptureModal, so the policy instructions are shown to staff.
+ */
+function EvidenceCaptureModalWithPolicy({
+  evidenceGateTask,
+  setEvidenceGateTask,
+  completeTaskRow,
+}: {
+  evidenceGateTask: { task: any; completionId: string };
+  setEvidenceGateTask: (v: null) => void;
+  completeTaskRow: (task: any, completionId: string, skip: boolean) => Promise<void>;
+}) {
+  const { data: policy = null } = useEvidencePolicy("task_template", evidenceGateTask.task.id);
+  return (
+    <EvidenceCaptureModal
+      open
+      subjectType="task_occurrence"
+      subjectId={evidenceGateTask.task.id}
+      policy={policy}
+      title={`Proof required: ${evidenceGateTask.task.title}`}
+      onComplete={async (_packetId) => {
+        const { task, completionId } = evidenceGateTask;
+        setEvidenceGateTask(null);
+        await completeTaskRow(task, completionId, true);
+      }}
+      onCancel={() => {
+        setEvidenceGateTask(null);
+        toast.info("Task not completed — proof is required.");
+      }}
+    />
+  );
+}
+
 const StaffTasks = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -917,22 +951,10 @@ const StaffTasks = () => {
 
       {/* Evidence Capture Modal — gates task completion */}
       {evidenceGateTask && (
-        <EvidenceCaptureModal
-          open={!!evidenceGateTask}
-          subjectType="task_occurrence"
-          subjectId={evidenceGateTask.task.id}
-          policy={null}
-          title={`Proof required: ${evidenceGateTask.task.title}`}
-          onComplete={async (_packetId) => {
-            const { task, completionId } = evidenceGateTask;
-            setEvidenceGateTask(null);
-            // Resume completion with evidence gate bypassed
-            await completeTaskRow(task, completionId, true);
-          }}
-          onCancel={() => {
-            setEvidenceGateTask(null);
-            toast.info("Task not completed — proof is required.");
-          }}
+        <EvidenceCaptureModalWithPolicy
+          evidenceGateTask={evidenceGateTask}
+          setEvidenceGateTask={setEvidenceGateTask}
+          completeTaskRow={completeTaskRow}
         />
       )}
 
