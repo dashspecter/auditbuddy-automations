@@ -10,7 +10,8 @@ export type EvidenceSubjectType =
   | "audit_item"
   | "work_order"
   | "incident"
-  | "training_signoff";
+  | "training_signoff"
+  | "corrective_action_item";
 
 export type EvidenceStatus = "draft" | "submitted" | "approved" | "rejected";
 

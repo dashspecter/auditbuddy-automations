@@ -363,6 +363,19 @@ export const navigationItems: NavigationItem[] = [
       { id: 'ops-sla', titleKey: "nav.slaManagement", url: "/operations/slas" },
     ]
   },
+  {
+    id: 'corrective-actions',
+    titleKey: "nav.correctiveActions",
+    url: "/corrective-actions",
+    icon: ShieldAlert,
+    module: null,
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits',
+    subItems: [
+      { id: 'ca-list', titleKey: "nav.allCAs", url: "/corrective-actions", allowedRoles: ['admin', 'manager'] },
+      { id: 'ca-rules', titleKey: "nav.caRules", url: "/corrective-actions/rules", allowedRoles: ['admin'] },
+    ]
+  },
 ];
 
 // ============================================

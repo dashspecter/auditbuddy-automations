@@ -202,3 +202,5 @@ export function CreateCADialog({ open, onOpenChange, defaultValues, onCreated }:
     </Dialog>
   );
 }
+
+export default CreateCADialog;

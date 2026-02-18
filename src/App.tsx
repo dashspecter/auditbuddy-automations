@@ -184,6 +184,9 @@ import QrFormTemplateEditor from "./pages/qr-forms/QrFormTemplateEditor";
 import QrFormAssignments from "./pages/qr-forms/QrFormAssignments";
 import QrFormRecords from "./pages/qr-forms/QrFormRecords";
 import QrFormEntry from "./pages/qr-forms/QrFormEntry";
+import CorrectiveActionsList from "./pages/correctiveActions/CorrectiveActionsList";
+import CorrectiveActionDetail from "./pages/correctiveActions/CorrectiveActionDetail";
+import CorrectiveActionRules from "./pages/correctiveActions/CorrectiveActionRules";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -431,10 +434,15 @@ const App = () => (
                       <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
                       
                       {/* Operations Agent Routes */}
-                      <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
-                      <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
-                      <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
-                      <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
+                       <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
+                       <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
+                       <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
+                       <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
+                       
+                       {/* Corrective Actions (CAPA-lite) Routes */}
+                       <Route path="/corrective-actions" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionsList /></ManagerRoute>} />
+                       <Route path="/corrective-actions/rules" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionRules /></ManagerRoute>} />
+                       <Route path="/corrective-actions/:id" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionDetail /></ManagerRoute>} />
                       
                       {/* Workforce Agent Routes */}
                       <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
