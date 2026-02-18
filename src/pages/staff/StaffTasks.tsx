@@ -281,9 +281,26 @@ const StaffTasks = () => {
         .maybeSingle();
 
       if (policy) {
-        logTap(`[EVIDENCE GATE] task.id=${task.id} — opening capture modal`);
-        setEvidenceGateTask({ task, completionId });
-        return; // Paused — will resume after evidence submitted
+        // Also check if a valid (non-rejected) packet already exists
+        const { data: existingPackets } = await supabase
+          .from("evidence_packets")
+          .select("id, status")
+          .eq("subject_type", "task_occurrence")
+          .eq("subject_id", task.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const hasValidProof = (existingPackets ?? []).some(
+          (p) => p.status === "submitted" || p.status === "approved"
+        );
+
+        if (!hasValidProof) {
+          logTap(`[EVIDENCE GATE] task.id=${task.id} — opening capture modal (no valid proof)`);
+          setEvidenceGateTask({ task, completionId });
+          return; // Paused — will resume after evidence submitted
+        }
+        // Has valid proof — allow completion to proceed
+        logTap(`[EVIDENCE GATE] task.id=${task.id} — valid proof exists, proceeding`);
       }
     }
     // ─────────────────────────────────────────────────────────────────────────

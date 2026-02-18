@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   X,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -262,6 +263,96 @@ function ReviewPanel({ packet, subjectType, subjectId }: {
   );
 }
 
+// ─── Redaction Panel (admins only) ────────────────────────────────────────────
+
+function RedactionPanel({ packet, onRedacted }: { packet: EvidencePacket; onRedacted: () => void }) {
+  const [reason, setReason] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  if (packet.redacted_at) {
+    return (
+      <div className="p-3 rounded-lg bg-muted/60 border border-muted text-xs text-muted-foreground flex items-start gap-2">
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-medium text-foreground">Redacted</span>
+          {" "}{format(new Date(packet.redacted_at), "MMM d, yyyy")}
+          {packet.redaction_reason && <span className="ml-1 italic">— "{packet.redaction_reason}"</span>}
+        </div>
+      </div>
+    );
+  }
+
+  const handleRedact = async () => {
+    if (!reason.trim()) {
+      toast.error("A reason is required for redaction");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("evidence_packets")
+        .update({ redacted_at: new Date().toISOString(), redaction_reason: reason.trim() })
+        .eq("id", packet.id);
+      if (error) throw error;
+      toast.success("Packet redacted");
+      onRedacted();
+    } catch {
+      toast.error("Redaction failed");
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 pt-3 border-t">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+        <ShieldAlert className="h-3.5 w-3.5" />
+        Admin: Redact Media
+      </p>
+      {!confirming ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full text-muted-foreground gap-1.5 border-dashed"
+          onClick={() => setConfirming(true)}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Redact this packet
+        </Button>
+      ) : (
+        <div className="space-y-2 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+          <p className="text-xs text-destructive font-medium">
+            ⚠ Redaction is permanent. Provide a mandatory reason:
+          </p>
+          <Textarea
+            placeholder="Reason for redaction (e.g. contains PII)"
+            rows={2}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="text-sm"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="flex-1"
+              onClick={handleRedact}
+              disabled={loading || !reason.trim()}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Redact"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Viewer ──────────────────────────────────────────────────────────────
 
 interface EvidencePacketViewerProps {
@@ -271,6 +362,10 @@ interface EvidencePacketViewerProps {
   subjectId: string;
   /** If true, show approve/reject controls (managers only) */
   canReview?: boolean;
+  /** If true, show admin redaction controls */
+  canRedact?: boolean;
+  /** Called after staff wants to resubmit rejected proof */
+  onResubmit?: () => void;
 }
 
 export function EvidencePacketViewer({
@@ -279,11 +374,14 @@ export function EvidencePacketViewer({
   subjectType,
   subjectId,
   canReview = false,
+  canRedact = false,
+  onResubmit,
 }: EvidencePacketViewerProps) {
-  const { data: packets = [], isLoading } = useEvidencePackets(subjectType, subjectId);
+  const { data: packets = [], isLoading, refetch } = useEvidencePackets(subjectType, subjectId);
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const packet = packets[selectedIdx] ?? null;
+  const isRejected = packet?.status === "rejected";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -294,7 +392,7 @@ export function EvidencePacketViewer({
             Evidence
             {packets.length > 1 && (
               <span className="text-sm font-normal text-muted-foreground">
-                ({packets.length} versions)
+                ({packets.length} submissions)
               </span>
             )}
           </DialogTitle>
@@ -326,7 +424,7 @@ export function EvidencePacketViewer({
                         : "bg-muted text-muted-foreground border-border hover:bg-accent"
                     )}
                   >
-                    v{p.version}
+                    #{i + 1} · {p.status}
                   </button>
                 ))}
               </div>
@@ -342,8 +440,18 @@ export function EvidencePacketViewer({
                   </span>
                 </div>
 
-                {/* Media gallery */}
-                <MediaGallery packet={packet} />
+                {/* Redacted overlay */}
+                {packet.redacted_at ? (
+                  <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-lg text-muted-foreground gap-2">
+                    <ShieldAlert className="h-8 w-8 opacity-40" />
+                    <p className="text-sm font-medium">Media has been redacted</p>
+                    {packet.redaction_reason && (
+                      <p className="text-xs italic opacity-70">"{packet.redaction_reason}"</p>
+                    )}
+                  </div>
+                ) : (
+                  <MediaGallery packet={packet} />
+                )}
 
                 {/* Notes */}
                 {packet.notes && (
@@ -353,17 +461,33 @@ export function EvidencePacketViewer({
                   </div>
                 )}
 
-                {/* Rejection reason */}
-                {packet.status === "rejected" && packet.review_reason && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm">
-                    <p className="text-xs font-medium text-destructive mb-1">Rejection reason</p>
+                {/* Rejection reason + resubmit CTA */}
+                {isRejected && packet.review_reason && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm space-y-2">
+                    <p className="text-xs font-medium text-destructive">Rejection reason</p>
                     <p>{packet.review_reason}</p>
+                    {onResubmit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
+                        onClick={() => { onClose(); onResubmit(); }}
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        Resubmit Proof
+                      </Button>
+                    )}
                   </div>
                 )}
 
                 {/* Review buttons (managers) */}
                 {canReview && (
                   <ReviewPanel packet={packet} subjectType={subjectType} subjectId={subjectId} />
+                )}
+
+                {/* Redaction panel (admins) */}
+                {canRedact && (
+                  <RedactionPanel packet={packet} onRedacted={() => refetch()} />
                 )}
 
                 {/* Event timeline */}
