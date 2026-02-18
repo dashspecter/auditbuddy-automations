@@ -31,10 +31,12 @@ const PerformAudit = () => {
   const saveFieldResponse = useSaveFieldResponse();
 
   // Evidence policy for this audit template
-  const { data: evidencePolicy = null } = useEvidencePolicy("audit_template", audit?.template_id);
+  const { data: evidencePolicy, isLoading: policyLoading } = useEvidencePolicy("audit_template", audit?.template_id);
   const { data: evidencePackets = [] } = useEvidencePackets("audit_item", id ?? "");
   const hasExistingEvidence = evidencePackets.length > 0;
+  const policyReady = !policyLoading;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (audit && audit.status === "draft") {
       updateAudit.mutate({
@@ -43,7 +45,7 @@ const PerformAudit = () => {
         started_at: new Date().toISOString(),
       });
     }
-  }, [audit]);
+  }, [audit?.id, audit?.status]);
 
   const totalSections = sections?.length || 0;
   const progress = totalSections > 0 ? ((currentSectionIndex + 1) / totalSections) * 100 : 0;
@@ -75,6 +77,9 @@ const PerformAudit = () => {
 
   const handleComplete = async () => {
     if (!id) return;
+    // Guard: don't allow completion while the policy is still being fetched
+    // This prevents the race condition where users complete before the gate loads
+    if (policyLoading) return;
     // Gate: if evidence required and no proof captured yet, open modal first
     if (evidencePolicy?.evidence_required && !hasExistingEvidence) {
       setShowEvidenceModal(true);
@@ -169,9 +174,11 @@ const PerformAudit = () => {
           </Button>
 
           {currentSectionIndex === totalSections - 1 ? (
-            <Button onClick={handleComplete} className="gap-2">
+            <Button onClick={handleComplete} className="gap-2" disabled={policyLoading}>
               <CheckCircle className="h-4 w-4" />
-              {evidencePolicy?.evidence_required && !hasExistingEvidence
+              {policyLoading
+                ? "Loading..."
+                : evidencePolicy?.evidence_required && !hasExistingEvidence
                 ? "Add Proof & Complete"
                 : "Complete Audit"}
             </Button>
@@ -192,7 +199,7 @@ const PerformAudit = () => {
           subjectId={id}
           policy={evidencePolicy}
           title={`Proof required: ${audit.audit_templates?.name}`}
-          onComplete={async () => {
+          onComplete={async (_packetId: string) => {
             setShowEvidenceModal(false);
             await doComplete();
           }}

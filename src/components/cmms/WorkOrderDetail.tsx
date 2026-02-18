@@ -329,7 +329,7 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
       subjectId={workOrder.id}
       policy={null}
       title={`Add Proof: WO #${workOrder.wo_number}`}
-      onComplete={() => setShowEvidenceCapture(false)}
+      onComplete={(_packetId: string) => setShowEvidenceCapture(false)}
       onCancel={() => setShowEvidenceCapture(false)}
     />
 
