@@ -19,6 +19,7 @@ import { WorkOrderPriorityBadge, WorkOrderPriority } from "./WorkOrderPriorityBa
 import { useUpdateCmmsWorkOrder, useAddCmmsWorkOrderComment, type CmmsWorkOrder } from "@/hooks/useCmmsWorkOrders";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 interface WorkOrderDetailProps {
   workOrder: CmmsWorkOrder;
@@ -41,6 +42,11 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
   // Evidence packets for this work order
   const { data: evidencePackets = [] } = useEvidencePackets("work_order", workOrder.id);
   const latestPacket = evidencePackets[0] ?? null;
+
+  // Role-based evidence controls
+  const { data: rolesData } = useUserRoles();
+  const canReview = !!(rolesData?.isManager || rolesData?.isAdmin || rolesData?.companyRole === 'company_owner' || rolesData?.companyRole === 'company_admin');
+  const canRedact = !!(rolesData?.isAdmin || rolesData?.companyRole === 'company_owner');
 
   const handleStatusChange = async (status: WorkOrderStatus) => {
     try {
@@ -339,6 +345,8 @@ export function WorkOrderDetail({ workOrder, onClose }: WorkOrderDetailProps) {
       subjectType="work_order"
       subjectId={workOrder.id}
       onClose={() => setShowEvidenceViewer(false)}
+      canReview={canReview}
+      canRedact={canRedact}
     />
     </>
   );
