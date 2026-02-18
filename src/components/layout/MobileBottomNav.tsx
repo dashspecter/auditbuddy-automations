@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 import { 
   MapPin, ListTodo, Package, FileText, Lightbulb, 
   Plug, Bell, BarChart, CreditCard, Building2, Store, Settings2, GraduationCap, ClipboardList,
-  Trash2
+  Trash2, ShieldAlert
 } from "lucide-react";
 
 const mainNavItems = [
@@ -33,6 +33,7 @@ const moreNavItems = [
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Operations", url: "/operations/daily", icon: Settings2 },
+  { title: "Corrective Actions", url: "/corrective-actions", icon: ShieldAlert, managerOnly: true },
   { title: "Billing", url: "/pricing", icon: CreditCard },
   { title: "Settings", url: "/settings/company", icon: Building2 },
 ];
