@@ -122,6 +122,7 @@ import Tasks from "./pages/Tasks";
 import TaskNew from "./pages/TaskNew";
 import TaskEdit from "./pages/TaskEdit";
 import TasksCalendar from "./pages/TasksCalendar";
+import ComplianceDossier from "./pages/ComplianceDossier";
 import EvidenceReview from "./pages/EvidenceReview";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
@@ -374,6 +375,7 @@ const App = () => (
                       <Route path="/tasks/:id/edit" element={<ProtectedRoute><TaskEdit /></ProtectedRoute>} />
                       <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
                       <Route path="/evidence-review" element={<ProtectedRoute><EvidenceReview /></ProtectedRoute>} />
+                      <Route path="/compliance-dossier" element={<ProtectedRoute><ComplianceDossier /></ProtectedRoute>} />
                       
                       {/* Insights/AI Routes */}
                       <Route path="/insights" element={<ManagerRoute requiredPermission="view_reports"><Insights /></ManagerRoute>} />
