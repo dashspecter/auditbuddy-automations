@@ -64,6 +64,8 @@ export interface EvidencePacket {
   created_at: string;
   submitted_at: string | null;
   redacted_at: string | null;
+  redacted_by: string | null;
+  redaction_reason: string | null;
   media?: EvidenceMedia[];
   events?: EvidenceEvent[];
 }

@@ -33,7 +33,11 @@ const PerformAudit = () => {
   // Evidence policy for this audit template
   const { data: evidencePolicy, isLoading: policyLoading } = useEvidencePolicy("audit_template", audit?.template_id);
   const { data: evidencePackets = [] } = useEvidencePackets("audit_item", id ?? "");
-  const hasExistingEvidence = evidencePackets.length > 0;
+  // Only count submitted/approved packets as "valid" — rejected packets must be resubmitted
+  const hasExistingEvidence = evidencePackets.some(
+    (p) => p.status === "submitted" || p.status === "approved"
+  );
+  const latestPacket = evidencePackets[0] ?? null;
   const policyReady = !policyLoading;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,12 +158,22 @@ const PerformAudit = () => {
         </Card>
 
         {/* Evidence status indicator */}
-        {(evidencePolicy?.evidence_required || hasExistingEvidence) && (
+        {(evidencePolicy?.evidence_required || latestPacket) && (
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
             <span className="text-sm font-medium">Proof of Work</span>
-            <EvidenceStatusBadge
-              status={hasExistingEvidence ? (evidencePackets[0]?.status ?? "submitted") : "none"}
-            />
+            <div className="flex items-center gap-2">
+              <EvidenceStatusBadge status={latestPacket ? latestPacket.status : "none"} />
+              {/* Resubmit button when proof was rejected */}
+              {latestPacket?.status === "rejected" && (
+                <button
+                  type="button"
+                  onClick={() => setShowEvidenceModal(true)}
+                  className="text-xs text-primary underline underline-offset-2 hover:no-underline"
+                >
+                  Resubmit
+                </button>
+              )}
+            </div>
           </div>
         )}
 

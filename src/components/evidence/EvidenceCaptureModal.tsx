@@ -133,13 +133,13 @@ export function EvidenceCaptureModal({
 
           {/* Media requirement indicator */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              Photos captured
-            </span>
+            <span className="text-muted-foreground">Photos captured</span>
             <span
               className={cn(
-                "font-medium",
-                captured.length >= minCount ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                "font-medium tabular-nums",
+                captured.length >= minCount
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-amber-600 dark:text-amber-400"
               )}
             >
               {captured.length} / {minCount} required
@@ -237,25 +237,33 @@ export function EvidenceCaptureModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+        <DialogFooter className="flex-row gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="flex-1 sm:flex-none"
+          >
             Cancel
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || captured.length < minCount}
-            className="gap-2"
+            className="flex-1 sm:flex-none gap-2"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Submitting...
+                <span className="hidden sm:inline">Submitting...</span>
+                <span className="sm:hidden">Wait...</span>
               </>
             ) : (
               <>
                 <Camera className="h-4 w-4" />
-                Submit Proof
+                <span className="hidden sm:inline">Submit Proof</span>
+                <span className="sm:hidden">Submit</span>
               </>
             )}
           </Button>
