@@ -18,7 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera } from "lucide-react";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -26,14 +27,22 @@ import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { LocationMultiSelector } from "@/components/LocationMultiSelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TaskNew = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const createTask = useCreateTask();
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
   const [isIndividual, setIsIndividual] = useState(false);
+
+  // Evidence policy state
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const [evidenceInstructions, setEvidenceInstructions] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -60,7 +69,7 @@ const TaskNew = () => {
     }
 
     try {
-      await createTask.mutateAsync({
+      const task = await createTask.mutateAsync({
         title: formData.title,
         description: formData.description || undefined,
         priority: formData.priority,
@@ -83,6 +92,27 @@ const TaskNew = () => {
           ? formData.recurrence_days_of_month
           : undefined,
       });
+
+      // Save evidence policy if required
+      if (evidenceRequired && task?.id && user?.id) {
+        const { data: cu } = await supabase
+          .from("company_users")
+          .select("company_id")
+          .eq("user_id", user.id)
+          .single();
+        if (cu?.company_id) {
+          await supabase.from("evidence_policies").upsert({
+            company_id: cu.company_id,
+            applies_to: "task_template",
+            applies_id: task.id,
+            evidence_required: true,
+            review_required: reviewRequired,
+            required_media_types: ["photo"],
+            min_media_count: 1,
+            instructions: evidenceInstructions.trim() || null,
+          }, { onConflict: "company_id,applies_to,applies_id" });
+        }
+      }
 
       toast.success("Task created successfully");
       navigate("/tasks");
@@ -578,6 +608,45 @@ const TaskNew = () => {
           </CardContent>
         </Card>
 
+        {/* Evidence Policy Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              Evidence / Proof Policy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="font-medium">Require proof photo</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Staff must attach a photo before completing this task</p>
+              </div>
+              <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
+            </div>
+            {evidenceRequired && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Also require review</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Manager must approve the proof before task is fully done</p>
+                  </div>
+                  <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Instructions for staff</Label>
+                  <Textarea
+                    placeholder="e.g. Photo must include the thermometer display and location ID sticker"
+                    rows={2}
+                    value={evidenceInstructions}
+                    onChange={(e) => setEvidenceInstructions(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         <StickyActionBar className="justify-between sm:justify-end flex-wrap">
           <Button
             type="button"
@@ -609,3 +678,4 @@ const TaskNew = () => {
 };
 
 export default TaskNew;
+

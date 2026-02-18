@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw, Bug, Lock } from "lucide-react";
+import { ListTodo, Clock, AlertCircle, MapPin, Timer, ChevronDown, ChevronUp, Calendar, Users, RefreshCw, Bug, Lock, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompleteTask, Task } from "@/hooks/useTasks";
 import { useStaffTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
@@ -15,6 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "@/components/staff/MobileTapDebugOverlay";
 import { MobileTaskCard } from "@/components/staff/MobileTaskCard";
 import { toast } from "sonner";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
+import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
+import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePackets";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -106,6 +110,12 @@ const StaffTasks = () => {
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
   // Tracks tasks currently waiting for server confirmation: Map<resolvedId, startTimestamp>
   const [pendingCompletionIds, setPendingCompletionIds] = useState<Map<string, number>>(() => new Map());
+
+  // ── Evidence state ──────────────────────────────────────────────────────────
+  // Task pending evidence gate (waiting for proof before completing)
+  const [evidenceGateTask, setEvidenceGateTask] = useState<{ task: any; completionId: string } | null>(null);
+  // Viewer: show evidence for a completed task
+  const [viewerTaskId, setViewerTaskId] = useState<string | null>(null);
 
   const resolveId = (id: string) => {
     const match = id.match(
@@ -208,7 +218,7 @@ const StaffTasks = () => {
     fetchDebugInfo();
   }, [user?.id, showDebug, debugFromUrl]);
 
-  const completeTaskRow = async (task: any, completionId: string) => {
+  const completeTaskRow = async (task: any, completionId: string, skipEvidenceCheck = false) => {
     // Network check before attempting mutation
     if (!isOnline) {
       logTap(`[offline blocked] task.id=${task.id}`);
@@ -223,6 +233,26 @@ const StaffTasks = () => {
       logTap(`[MUTATE blocked - already pending] resolved=${resolved}`);
       return;
     }
+
+    // ── Evidence Gate ────────────────────────────────────────────────────────
+    // Check if evidence policy requires proof before completion
+    if (!skipEvidenceCheck) {
+      const { data: policy } = await supabase
+        .from("evidence_policies")
+        .select("*")
+        .eq("applies_to", "task_template")
+        .eq("applies_id", task.id)
+        .eq("evidence_required", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (policy) {
+        logTap(`[EVIDENCE GATE] task.id=${task.id} — opening capture modal`);
+        setEvidenceGateTask({ task, completionId });
+        return; // Paused — will resume after evidence submitted
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     logTap(
       `[MUTATE] task.id=${task.id} completionId=${completionId} resolved=${resolved} status=${task.status} completed_at=${(task as any).completed_at ? "1" : "0"}`,
@@ -884,6 +914,37 @@ const StaffTasks = () => {
       </div>
 
       <StaffBottomNav />
+
+      {/* Evidence Capture Modal — gates task completion */}
+      {evidenceGateTask && (
+        <EvidenceCaptureModal
+          open={!!evidenceGateTask}
+          subjectType="task_occurrence"
+          subjectId={evidenceGateTask.task.id}
+          policy={null}
+          title={`Proof required: ${evidenceGateTask.task.title}`}
+          onComplete={async (_packetId) => {
+            const { task, completionId } = evidenceGateTask;
+            setEvidenceGateTask(null);
+            // Resume completion with evidence gate bypassed
+            await completeTaskRow(task, completionId, true);
+          }}
+          onCancel={() => {
+            setEvidenceGateTask(null);
+            toast.info("Task not completed — proof is required.");
+          }}
+        />
+      )}
+
+      {/* Evidence Packet Viewer — view proof on completed tasks */}
+      {viewerTaskId && (
+        <EvidencePacketViewer
+          open={!!viewerTaskId}
+          onClose={() => setViewerTaskId(null)}
+          subjectType="task_occurrence"
+          subjectId={viewerTaskId}
+        />
+      )}
     </div>
   );
 };

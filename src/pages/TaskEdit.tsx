@@ -18,7 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera } from "lucide-react";
 import { useUpdateTask, useTasks } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -27,12 +28,14 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TaskEdit = () => {
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  // Extract real task ID from virtual/occurrence ID
   const id = rawId ? getOriginalTaskId(rawId) : undefined;
   const updateTask = useUpdateTask();
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
@@ -41,6 +44,12 @@ const TaskEdit = () => {
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
   const [isIndividual, setIsIndividual] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Evidence policy state
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const [evidenceInstructions, setEvidenceInstructions] = useState("");
+  const [evidencePolicyId, setEvidencePolicyId] = useState<string | null>(null);
 
   const task = tasks.find(t => t.id === id);
 
