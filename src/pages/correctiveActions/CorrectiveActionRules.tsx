@@ -145,14 +145,14 @@ function BundleEditor({ items, onChange }: { items: BundleItem[]; onChange: (ite
             <div className="flex items-center gap-2">
               <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Select
-                value={item.assigned_role ?? ""}
-                onValueChange={v => update(index, { assigned_role: v || undefined })}
+                value={item.assigned_role ?? "unassigned"}
+                onValueChange={v => update(index, { assigned_role: v === "unassigned" ? undefined : v })}
               >
                 <SelectTrigger className="h-7 text-xs flex-1">
                   <SelectValue placeholder="Assign to role..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {ROLE_OPTIONS.map(r => (
                     <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
                   ))}
