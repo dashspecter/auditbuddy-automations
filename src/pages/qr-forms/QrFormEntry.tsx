@@ -425,19 +425,31 @@ export default function QrFormEntry() {
                           const isDayDisabled = isLocked || day !== todayDay;
 
                           return (
-                            <TableCell key={`${day}-${cp.time}-${f.key}`} className="p-1">
-                              <Input
-                                type={f.type === "number" ? "number" : "text"}
-                                value={val}
-                                onChange={(e) =>
-                                  updateGridCell(day, cp.time, f.key, e.target.value)
-                                }
-                                disabled={isDayDisabled}
-                                className={`h-8 text-center text-xs sm:text-sm w-[60px] sm:w-[80px] ${
-                                  outOfRange ? "border-destructive bg-destructive/5" : ""
-                                } ${isDayDisabled && day !== todayDay ? "opacity-40" : ""}`}
-                                placeholder="-"
-                              />
+                            <TableCell key={`${day}-${cp.time}-${f.key}`} className="p-1 text-center">
+                              {f.type === "checkbox" ? (
+                                <input
+                                  type="checkbox"
+                                  checked={!!val && val !== "" && val !== "false"}
+                                  onChange={(e) =>
+                                    updateGridCell(day, cp.time, f.key, e.target.checked)
+                                  }
+                                  disabled={isDayDisabled}
+                                  className={`h-5 w-5 cursor-pointer accent-primary ${isDayDisabled && day !== todayDay ? "opacity-40" : ""}`}
+                                />
+                              ) : (
+                                <Input
+                                  type={f.type === "number" ? "number" : "text"}
+                                  value={val}
+                                  onChange={(e) =>
+                                    updateGridCell(day, cp.time, f.key, e.target.value)
+                                  }
+                                  disabled={isDayDisabled}
+                                  className={`h-8 text-center text-xs sm:text-sm w-[60px] sm:w-[80px] ${
+                                    outOfRange ? "border-destructive bg-destructive/5" : ""
+                                  } ${isDayDisabled && day !== todayDay ? "opacity-40" : ""}`}
+                                  placeholder="-"
+                                />
+                              )}
                             </TableCell>
                           );
                         })
