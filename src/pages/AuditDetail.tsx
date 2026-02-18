@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight, Edit, History, Camera } from "lucide-react";
+import { CheckCircle2, AlertCircle, ArrowLeft, MapPin, User, Calendar, Download, ChevronLeft, ChevronRight, Edit, History, Camera, ShieldAlert } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { generateAuditPDF } from "@/lib/pdfExport";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ import { PhotoGallery } from "@/components/PhotoGallery";
 import AuditResponsesSummary from "@/components/audit/AuditResponsesSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
+import CreateCADialog from "@/components/correctiveActions/CreateCADialog";
 
 const COMPLIANCE_THRESHOLD = 80;
 
@@ -36,6 +37,7 @@ const AuditDetail = () => {
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [createCAOpen, setCreateCAOpen] = useState(false);
 
   // Load template data for section breakdown
   useEffect(() => {
@@ -549,6 +551,16 @@ const AuditDetail = () => {
               <Edit className="h-4 w-4" />
               Edit Audit
             </Button>
+            {!isCompliant && (
+              <Button
+                className="flex-1 gap-2 min-h-[48px]"
+                variant="destructive"
+                onClick={() => setCreateCAOpen(true)}
+              >
+                <ShieldAlert className="h-4 w-4" />
+                Create Corrective Action
+              </Button>
+            )}
           </div>
           </div>
         </main>
@@ -565,6 +577,22 @@ const AuditDetail = () => {
             }}
           />
         )}
+
+        <CreateCADialog
+          open={createCAOpen}
+          onOpenChange={setCreateCAOpen}
+          defaultValues={{
+            sourceType: "audit_item_result",
+            sourceId: audit?.id,
+            title: `Non-Compliant Audit: ${audit?.audit_templates?.name || 'Location Audit'}`,
+            locationId: audit?.location_id,
+            severity: calculatedScore < 50 ? "high" : "medium",
+          }}
+          onCreated={(caId) => {
+            setCreateCAOpen(false);
+            navigate(`/corrective-actions/${caId}`);
+          }}
+        />
       </div>
   );
 };
