@@ -71,33 +71,45 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
       const from = startOfMonth(new Date(year, m - 1)).toISOString();
       const to = endOfMonth(new Date(year, m - 1)).toISOString();
 
-      // ── 1. Task completions ──────────────────────────────────────────────
-      const { data: completions } = await supabase
-        .from("task_completions")
-        .select(`
-          id, task_id, occurrence_date, completed_at, completion_mode,
-          task:tasks(title, company_id),
-          employee:employees!task_completions_completed_by_employee_id_fkey(full_name)
-        `)
-        .gte("completed_at", from)
-        .lte("completed_at", to)
-        .eq("task:tasks.company_id", companyId!);
+      // ── 1. Task completions (scoped to location via task_locations) ──────
+      // First get task IDs for this location
+      const { data: taskLocRows } = await supabase
+        .from("task_locations")
+        .select("task_id")
+        .eq("location_id", locationId!);
+
+      const locationTaskIds = (taskLocRows ?? []).map((r: any) => r.task_id).filter(Boolean);
+
+      let completions: any[] = [];
+      if (locationTaskIds.length > 0) {
+        const { data: completionsData } = await supabase
+          .from("task_completions")
+          .select(`
+            id, task_id, occurrence_date, completed_at, completion_mode,
+            task:tasks!task_completions_task_id_fkey(title),
+            employee:employees!task_completions_completed_by_employee_id_fkey(full_name)
+          `)
+          .in("task_id", locationTaskIds)
+          .gte("completed_at", from)
+          .lte("completed_at", to);
+        completions = completionsData ?? [];
+      }
 
       // ── 2. Evidence packets for tasks ───────────────────────────────────
-      const taskIds = (completions ?? []).map((c: any) => c.task_id).filter(Boolean);
+      const completedTaskIds = completions.map((c: any) => c.task_id).filter(Boolean);
       let taskEvidenceMap: Record<string, string> = {};
-      if (taskIds.length > 0) {
+      if (completedTaskIds.length > 0) {
         const { data: taskEvidence } = await supabase
           .from("evidence_packets")
           .select("subject_id, status")
           .eq("subject_type", "task_occurrence")
-          .eq("company_id", companyId!)
+          .eq("location_id", locationId!)
           .gte("created_at", from)
           .lte("created_at", to);
         (taskEvidence ?? []).forEach((e: any) => { taskEvidenceMap[e.subject_id] = e.status; });
       }
 
-      const taskItems = (completions ?? []).map((c: any) => ({
+      const taskItems = completions.map((c: any) => ({
         title: c.task?.title ?? "Unknown",
         date: c.occurrence_date ?? c.completed_at?.slice(0, 10) ?? "",
         completedBy: c.employee?.full_name ?? "—",
@@ -108,14 +120,13 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
       const { data: audits } = await supabase
         .from("location_audits")
         .select(`
-          id, status, total_score, audit_date, created_at,
-          template:audit_templates(name),
-          auditor:employees!location_audits_user_id_fkey(full_name)
+          id, status, overall_score, audit_date, created_at,
+          template:audit_templates!location_audits_template_id_fkey(name)
         `)
         .eq("company_id", companyId!)
         .eq("location_id", locationId!)
-        .gte("created_at", from)
-        .lte("created_at", to);
+        .gte("audit_date", from.slice(0, 10))
+        .lte("audit_date", to.slice(0, 10));
 
       const auditIds = (audits ?? []).map((a: any) => a.id);
       let auditEvidenceMap: Record<string, string> = {};
@@ -124,7 +135,7 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
           .from("evidence_packets")
           .select("subject_id, status")
           .eq("subject_type", "audit_item")
-          .eq("company_id", companyId!)
+          .eq("location_id", locationId!)
           .in("subject_id", auditIds);
         (auditEvidence ?? []).forEach((e: any) => { auditEvidenceMap[e.subject_id] = e.status; });
       }
@@ -132,7 +143,7 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
       const auditItems = (audits ?? []).map((a: any) => ({
         name: a.template?.name ?? "Unknown",
         date: a.audit_date ?? a.created_at?.slice(0, 10) ?? "",
-        score: a.total_score,
+        score: a.overall_score,
         status: a.status ?? "—",
         evidenceStatus: auditEvidenceMap[a.id] ?? "none",
       }));
@@ -141,23 +152,34 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
       const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 
       // ── 4. QR form submissions ───────────────────────────────────────────
+      // Use period_year/period_month for accurate month-based filtering (QR forms store the period)
       const { data: submissions } = await supabase
         .from("form_submissions")
         .select(`
-          id, status, created_at, submitted_at,
-          template:form_templates(name),
-          submitter:employees!form_submissions_submitted_by_fkey(full_name)
+          id, status, created_at, submitted_at, submitted_by,
+          template:form_templates!form_submissions_template_id_fkey(name)
         `)
         .eq("company_id", companyId!)
         .eq("location_id", locationId!)
-        .gte("created_at", from)
-        .lte("created_at", to);
+        .eq("period_year", year)
+        .eq("period_month", m);
+
+      // Fetch submitter names via employees (by user_id, since submitted_by points to auth users)
+      const submitterUserIds = [...new Set((submissions ?? []).map((s: any) => s.submitted_by).filter(Boolean))];
+      let submitterMap: Record<string, string> = {};
+      if (submitterUserIds.length > 0) {
+        const { data: submitters } = await supabase
+          .from("employees")
+          .select("user_id, full_name")
+          .in("user_id", submitterUserIds);
+        (submitters ?? []).forEach((e: any) => { if (e.user_id) submitterMap[e.user_id] = e.full_name; });
+      }
 
       const qrItems = (submissions ?? []).map((s: any) => ({
         template: s.template?.name ?? "Unknown",
         date: s.submitted_at?.slice(0, 10) ?? s.created_at?.slice(0, 10) ?? "",
         status: s.status ?? "submitted",
-        submittedBy: s.submitter?.full_name ?? "—",
+        submittedBy: submitterMap[s.submitted_by] ?? "—",
       }));
 
       // ── 5. Training assignments ──────────────────────────────────────────
