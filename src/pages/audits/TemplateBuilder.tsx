@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, GripVertical, Edit2, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, GripVertical, Edit2, Check, X, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { useAuditTemplate, useCreateAuditTemplate, useUpdateAuditTemplate } from "@/hooks/useAuditTemplates";
 import { useAuditSections, useCreateAuditSection, useUpdateAuditSection, useDeleteAuditSection } from "@/hooks/useAuditSections";
 import { useAuditFields, useCreateAuditField, useUpdateAuditField, useDeleteAuditField } from "@/hooks/useAuditFields";
@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Field type options available
 const FIELD_TYPES = [
@@ -69,6 +71,32 @@ const TemplateBuilder = () => {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  // Evidence policy state
+  const { user } = useAuth();
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const [evidenceInstructions, setEvidenceInstructions] = useState("");
+  const [evidencePolicyId, setEvidencePolicyId] = useState<string | null>(null);
+
+  // Load existing evidence policy when editing
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from("evidence_policies")
+      .select("*")
+      .eq("applies_to", "audit_template")
+      .eq("applies_id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setEvidencePolicyId(data.id);
+          setEvidenceRequired(data.evidence_required);
+          setReviewRequired(data.review_required);
+          setEvidenceInstructions(data.instructions ?? "");
+        }
+      });
+  }, [id]);
+
   // Save to sessionStorage when form data changes (only for new templates)
   useEffect(() => {
     if (!isEditMode) {
@@ -104,16 +132,38 @@ const TemplateBuilder = () => {
 
     setIsSaving(true);
     try {
+      let savedId = id;
       if (isEditMode && id) {
         await updateTemplate.mutateAsync({ id, ...templateData });
         toast.success("Template updated");
       } else {
-        const result = await createTemplate.mutateAsync({
-          ...templateData,
-          is_active: true,
-        });
+        const result = await createTemplate.mutateAsync({ ...templateData, is_active: true });
+        savedId = result.id;
         toast.success("Template created! Now add sections and fields.");
         navigate(`/audits/templates/${result.id}`);
+      }
+
+      // Save/delete evidence policy
+      if (savedId && user?.id) {
+        const { data: cu } = await supabase.from("company_users").select("company_id").eq("user_id", user.id).single();
+        if (cu?.company_id) {
+          if (evidenceRequired) {
+            await supabase.from("evidence_policies").upsert({
+              ...(evidencePolicyId ? { id: evidencePolicyId } : {}),
+              company_id: cu.company_id,
+              applies_to: "audit_template",
+              applies_id: savedId,
+              evidence_required: true,
+              review_required: reviewRequired,
+              min_media_count: 1,
+              required_media_types: ["photo"],
+              instructions: evidenceInstructions.trim() || null,
+            }, { onConflict: "company_id,applies_to,applies_id" });
+          } else if (evidencePolicyId) {
+            await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
+            setEvidencePolicyId(null);
+          }
+        }
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to save template");
@@ -232,6 +282,46 @@ const TemplateBuilder = () => {
               </Select>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Evidence / Proof Policy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shield className="h-4 w-4 text-primary" />
+            Evidence / Proof Policy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Require proof photo</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Auditors must attach a photo before completing this audit</p>
+            </div>
+            <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
+          </div>
+          {evidenceRequired && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Also require review</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">A manager must approve the proof before audit is finalised</p>
+                </div>
+                <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Instructions for auditor <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea
+                  placeholder="e.g. Take a photo of the kitchen area showing cleanliness..."
+                  rows={2}
+                  value={evidenceInstructions}
+                  onChange={(e) => setEvidenceInstructions(e.target.value)}
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

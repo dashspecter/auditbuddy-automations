@@ -10,11 +10,15 @@ import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFi
 import FieldResponseInput from "@/components/audit/FieldResponseInput";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
+import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePackets";
 
 const PerformAudit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
 
   const { data: audit } = useAuditNew(id);
   const { data: sections } = useAuditSections(audit?.template_id);
@@ -25,6 +29,11 @@ const PerformAudit = () => {
   const { data: fields } = useAuditFields(currentSection?.id);
   const { data: responses } = useAuditFieldResponses(id);
   const saveFieldResponse = useSaveFieldResponse();
+
+  // Evidence policy for this audit template
+  const { data: evidencePolicy = null } = useEvidencePolicy("audit_template", audit?.template_id);
+  const { data: evidencePackets = [] } = useEvidencePackets("audit_item", id ?? "");
+  const hasExistingEvidence = evidencePackets.length > 0;
 
   useEffect(() => {
     if (audit && audit.status === "draft") {
@@ -51,10 +60,9 @@ const PerformAudit = () => {
     }
   };
 
-  const handleComplete = async () => {
+  const doComplete = async () => {
     if (!id) return;
 
-    // Calculate total score from responses
     const totalScore = responses?.reduce((sum, response) => {
       const value = response.response_value;
       if (typeof value === "number") return sum + value;
@@ -63,6 +71,16 @@ const PerformAudit = () => {
 
     await completeAudit.mutateAsync({ auditId: id, totalScore });
     navigate(`/audits/${id}`);
+  };
+
+  const handleComplete = async () => {
+    if (!id) return;
+    // Gate: if evidence required and no proof captured yet, open modal first
+    if (evidencePolicy?.evidence_required && !hasExistingEvidence) {
+      setShowEvidenceModal(true);
+      return;
+    }
+    await doComplete();
   };
 
   const handleObservationChange = async (fieldId: string, value: string) => {
@@ -84,6 +102,7 @@ const PerformAudit = () => {
   }
 
   return (
+    <>
     <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -129,6 +148,16 @@ const PerformAudit = () => {
           </CardContent>
         </Card>
 
+        {/* Evidence status indicator */}
+        {(evidencePolicy?.evidence_required || hasExistingEvidence) && (
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+            <span className="text-sm font-medium">Proof of Work</span>
+            <EvidenceStatusBadge
+              status={hasExistingEvidence ? (evidencePackets[0]?.status ?? "submitted") : "none"}
+            />
+          </div>
+        )}
+
         <div className="flex justify-between">
           <Button
             variant="outline"
@@ -142,7 +171,9 @@ const PerformAudit = () => {
           {currentSectionIndex === totalSections - 1 ? (
             <Button onClick={handleComplete} className="gap-2">
               <CheckCircle className="h-4 w-4" />
-              Complete Audit
+              {evidencePolicy?.evidence_required && !hasExistingEvidence
+                ? "Add Proof & Complete"
+                : "Complete Audit"}
             </Button>
           ) : (
             <Button onClick={handleNext}>
@@ -152,6 +183,23 @@ const PerformAudit = () => {
           )}
         </div>
       </div>
+
+      {/* Evidence capture modal — gates audit completion */}
+      {showEvidenceModal && id && (
+        <EvidenceCaptureModal
+          open={showEvidenceModal}
+          subjectType="audit_item"
+          subjectId={id}
+          policy={evidencePolicy}
+          title={`Proof required: ${audit.audit_templates?.name}`}
+          onComplete={async () => {
+            setShowEvidenceModal(false);
+            await doComplete();
+          }}
+          onCancel={() => setShowEvidenceModal(false)}
+        />
+      )}
+    </>
   );
 };
 
