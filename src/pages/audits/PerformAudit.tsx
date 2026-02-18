@@ -8,17 +8,25 @@ import { useAuditSections } from "@/hooks/useAuditSections";
 import { useAuditFields } from "@/hooks/useAuditFields";
 import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
 import FieldResponseInput from "@/components/audit/FieldResponseInput";
-import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
 import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePackets";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 const PerformAudit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [showEvidenceViewer, setShowEvidenceViewer] = useState(false);
+
+  // Role-based evidence controls
+  const { data: rolesData } = useUserRoles();
+  const canReview = !!(rolesData?.isManager || rolesData?.isAdmin || rolesData?.companyRole === 'company_owner' || rolesData?.companyRole === 'company_admin');
+  const canRedact = !!(rolesData?.isAdmin || rolesData?.companyRole === 'company_owner');
 
   const { data: audit } = useAuditNew(id);
   const { data: sections } = useAuditSections(audit?.template_id);
@@ -161,8 +169,19 @@ const PerformAudit = () => {
         {(evidencePolicy?.evidence_required || latestPacket) && (
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
             <span className="text-sm font-medium">Proof of Work</span>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
               <EvidenceStatusBadge status={latestPacket ? latestPacket.status : "none"} />
+              {/* View proof button — opens viewer with review/redact controls for managers */}
+              {latestPacket && (
+                <button
+                  type="button"
+                  onClick={() => setShowEvidenceViewer(true)}
+                  className="p-1 rounded hover:bg-accent transition-colors"
+                  title="View proof"
+                >
+                  <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
               {/* Resubmit button when proof was rejected */}
               {latestPacket?.status === "rejected" && (
                 <button
@@ -218,6 +237,22 @@ const PerformAudit = () => {
             await doComplete();
           }}
           onCancel={() => setShowEvidenceModal(false)}
+        />
+      )}
+
+      {/* Evidence packet viewer — managers can review/approve/redact audit proof */}
+      {id && (
+        <EvidencePacketViewer
+          open={showEvidenceViewer}
+          onClose={() => setShowEvidenceViewer(false)}
+          subjectType="audit_item"
+          subjectId={id}
+          canReview={canReview}
+          canRedact={canRedact}
+          onResubmit={() => {
+            setShowEvidenceViewer(false);
+            setShowEvidenceModal(true);
+          }}
         />
       )}
     </>

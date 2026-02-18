@@ -149,6 +149,7 @@ const navigationItems = [
     subItems: [
       { titleKey: "nav.allTasks", url: "/tasks" },
       { titleKey: "nav.calendar", url: "/tasks/calendar" },
+      { titleKey: "nav.evidenceReview", url: "/evidence-review", allowedRoles: ['admin', 'manager'] },
     ]
   },
   // 5. Notifications
