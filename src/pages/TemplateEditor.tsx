@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import {
   ArrowLeft,
   Plus,
   Trash2,
   GripVertical,
   Edit2,
+  Shield,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useTemplate,
   useTemplateSections,
@@ -56,6 +60,71 @@ const TemplateEditor = () => {
     name: '',
     description: '',
   });
+
+  // Evidence policy state
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
+  const [reviewRequired, setReviewRequired] = useState(false);
+  const [evidenceInstructions, setEvidenceInstructions] = useState('');
+  const [evidencePolicyId, setEvidencePolicyId] = useState<string | null>(null);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+
+  // Load existing evidence policy
+  useEffect(() => {
+    if (!id) return;
+    supabase
+      .from('evidence_policies')
+      .select('*')
+      .eq('applies_to', 'audit_template')
+      .eq('applies_id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setEvidencePolicyId(data.id);
+          setEvidenceRequired(data.evidence_required);
+          setReviewRequired(data.review_required);
+          setEvidenceInstructions(data.instructions ?? '');
+        }
+      });
+  }, [id]);
+
+  const handleSaveEvidencePolicy = async () => {
+    if (!id) return;
+    setIsSavingPolicy(true);
+    try {
+      const { data: cu } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .then(async (res) => {
+          const { data: { user } } = await supabase.auth.getUser();
+          return supabase.from('company_users').select('company_id').eq('user_id', user?.id ?? '').single();
+        });
+
+      if (cu?.company_id) {
+        if (evidenceRequired) {
+          await supabase.from('evidence_policies').upsert({
+            ...(evidencePolicyId ? { id: evidencePolicyId } : {}),
+            company_id: cu.company_id,
+            applies_to: 'audit_template',
+            applies_id: id,
+            evidence_required: true,
+            review_required: reviewRequired,
+            min_media_count: 1,
+            required_media_types: ['photo'],
+            instructions: evidenceInstructions.trim() || null,
+          }, { onConflict: 'company_id,applies_to,applies_id' });
+          toast.success('Evidence policy saved');
+        } else if (evidencePolicyId) {
+          await supabase.from('evidence_policies').delete().eq('id', evidencePolicyId);
+          setEvidencePolicyId(null);
+          toast.success('Evidence policy removed');
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save evidence policy');
+    } finally {
+      setIsSavingPolicy(false);
+    }
+  };
 
   const handleCreateSection = async () => {
     if (!id) return;
@@ -259,6 +328,55 @@ const TemplateEditor = () => {
             ))}
           </div>
         )}
+      </Card>
+
+      {/* Evidence / Proof Policy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shield className="h-4 w-4 text-primary" />
+            Evidence / Proof Policy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Require proof photo</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Auditors must attach a photo before completing this audit</p>
+            </div>
+            <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
+          </div>
+          {evidenceRequired && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Manager review required</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">A manager must approve the submitted proof</p>
+                </div>
+                <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />
+              </div>
+              <Separator />
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Instructions for auditor</Label>
+                <Textarea
+                  placeholder="e.g., Please photograph the entire area before and after the audit…"
+                  value={evidenceInstructions}
+                  onChange={(e) => setEvidenceInstructions(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveEvidencePolicy}
+            disabled={isSavingPolicy}
+          >
+            {isSavingPolicy ? 'Saving…' : 'Save Policy'}
+          </Button>
+        </CardContent>
       </Card>
 
       {/* Save to Library Button */}
