@@ -3745,6 +3745,208 @@ export type Database = {
           },
         ]
       }
+      evidence_events: {
+        Row: {
+          actor_id: string
+          company_id: string
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          packet_id: string
+          payload: Json | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id: string
+          company_id: string
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          packet_id: string
+          payload?: Json | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string
+          company_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          packet_id?: string
+          payload?: Json | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_events_packet_id_fkey"
+            columns: ["packet_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_packets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidence_media: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          media_type: string
+          mime_type: string | null
+          packet_id: string
+          sha256: string | null
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          media_type: string
+          mime_type?: string | null
+          packet_id: string
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          media_type?: string
+          mime_type?: string | null
+          packet_id?: string
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_media_packet_id_fkey"
+            columns: ["packet_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_packets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidence_packets: {
+        Row: {
+          client_captured_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          device_info: Json | null
+          id: string
+          location_id: string
+          notes: string | null
+          redacted_at: string | null
+          redacted_by: string | null
+          redaction_reason: string | null
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          subject_id: string
+          subject_item_id: string | null
+          subject_type: string
+          submitted_at: string | null
+          tags: string[] | null
+          version: number
+        }
+        Insert: {
+          client_captured_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          device_info?: Json | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          redacted_at?: string | null
+          redacted_by?: string | null
+          redaction_reason?: string | null
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_id: string
+          subject_item_id?: string | null
+          subject_type: string
+          submitted_at?: string | null
+          tags?: string[] | null
+          version?: number
+        }
+        Update: {
+          client_captured_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          device_info?: Json | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          redacted_at?: string | null
+          redacted_by?: string | null
+          redaction_reason?: string | null
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_id?: string
+          subject_item_id?: string | null
+          subject_type?: string
+          submitted_at?: string | null
+          tags?: string[] | null
+          version?: number
+        }
+        Relationships: []
+      }
+      evidence_policies: {
+        Row: {
+          applies_id: string
+          applies_to: string
+          company_id: string
+          created_at: string
+          evidence_required: boolean
+          id: string
+          instructions: string | null
+          location_id: string | null
+          min_media_count: number
+          required_media_types: string[] | null
+          review_required: boolean
+        }
+        Insert: {
+          applies_id: string
+          applies_to: string
+          company_id: string
+          created_at?: string
+          evidence_required?: boolean
+          id?: string
+          instructions?: string | null
+          location_id?: string | null
+          min_media_count?: number
+          required_media_types?: string[] | null
+          review_required?: boolean
+        }
+        Update: {
+          applies_id?: string
+          applies_to?: string
+          company_id?: string
+          created_at?: string
+          evidence_required?: boolean
+          id?: string
+          instructions?: string | null
+          location_id?: string | null
+          min_media_count?: number
+          required_media_types?: string[] | null
+          review_required?: boolean
+        }
+        Relationships: []
+      }
       form_categories: {
         Row: {
           company_id: string
