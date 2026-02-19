@@ -560,7 +560,8 @@ export default function CorrectiveActionRules() {
   const handleCreate = async () => {
     const config = getConfig();
     const bundle = (config as { bundle: BundleItem[] }).bundle;
-    if (bundle.some(b => !b.title.trim())) {
+    // For test_fail, bundle items are optional (retake task is auto-created by the engine)
+    if (triggerType !== "test_fail" && bundle.some(b => !b.title.trim())) {
       toast.error("All action items must have a title.");
       return;
     }
