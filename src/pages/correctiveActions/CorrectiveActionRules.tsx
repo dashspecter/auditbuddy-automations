@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck, GraduationCap } from "lucide-react";
+import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck, GraduationCap, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -508,7 +508,7 @@ function TestFailForm({ config, onChange }: { config: TestFailConfig; onChange: 
 }
 
 // ---- Rule summary chip display ----
-function RuleConfigSummary({ rule }: { rule: CorrectiveActionRule }) {
+function RuleConfigSummary({ rule, tests }: { rule: CorrectiveActionRule; tests: { id: string; title: string }[] }) {
   const cfg = rule.trigger_config as Record<string, unknown>;
   const chips: string[] = [];
   if (cfg.severity) chips.push(`Severity: ${cfg.severity}`);
@@ -517,8 +517,14 @@ function RuleConfigSummary({ rule }: { rule: CorrectiveActionRule }) {
   if (cfg.min_count) chips.push(`Min: ${cfg.min_count}x`);
   if (cfg.stop_the_line) chips.push("Stop-the-Line");
   if (cfg.requires_approval) chips.push("Needs Approval");
-  if (cfg.test_id && cfg.test_id !== "any") chips.push("Specific test");
-  else if (cfg.test_id === "any") chips.push("Any test");
+  if (rule.trigger_type === "test_fail") {
+    if (cfg.test_id && cfg.test_id !== "any") {
+      const testName = tests.find(t => t.id === cfg.test_id)?.title;
+      chips.push(testName ? `Test: ${testName}` : "Specific test");
+    } else {
+      chips.push("Any test");
+    }
+  }
   const bundle = Array.isArray(cfg.bundle) ? cfg.bundle : [];
   if (bundle.length) chips.push(`${bundle.length} action item${bundle.length > 1 ? "s" : ""}`);
 
@@ -538,20 +544,45 @@ export default function CorrectiveActionRules() {
   const updateRule = useUpdateCARule();
   const deleteRule = useDeleteCARule();
 
+  // Fetch all tests for display names
+  const { data: allTests = [] } = useQuery({
+    queryKey: ["tests_for_rules_summary"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tests").select("id, title").order("title");
+      return data ?? [];
+    },
+  });
+
   const [createOpen, setCreateOpen] = useState(false);
+  const [editRule, setEditRule] = useState<CorrectiveActionRule | null>(null);
+
+  // ---- Create form state ----
   const [name, setName] = useState("");
   const [triggerType, setTriggerType] = useState<CorrectiveActionRule["trigger_type"]>("audit_fail");
-
   const [auditConfig, setAuditConfig] = useState<AuditFailConfig>(DEFAULT_AUDIT_FAIL);
   const [incidentConfig, setIncidentConfig] = useState<IncidentRepeatConfig>(DEFAULT_INCIDENT_REPEAT);
   const [assetConfig, setAssetConfig] = useState<AssetDowntimeConfig>(DEFAULT_ASSET_DOWNTIME);
   const [testFailConfig, setTestFailConfig] = useState<TestFailConfig>(DEFAULT_TEST_FAIL);
+
+  // ---- Edit form state ----
+  const [editName, setEditName] = useState("");
+  const [editAuditConfig, setEditAuditConfig] = useState<AuditFailConfig>(DEFAULT_AUDIT_FAIL);
+  const [editIncidentConfig, setEditIncidentConfig] = useState<IncidentRepeatConfig>(DEFAULT_INCIDENT_REPEAT);
+  const [editAssetConfig, setEditAssetConfig] = useState<AssetDowntimeConfig>(DEFAULT_ASSET_DOWNTIME);
+  const [editTestFailConfig, setEditTestFailConfig] = useState<TestFailConfig>(DEFAULT_TEST_FAIL);
 
   const getConfig = () => {
     if (triggerType === "audit_fail") return auditConfig;
     if (triggerType === "incident_repeat") return incidentConfig;
     if (triggerType === "test_fail") return testFailConfig;
     return assetConfig;
+  };
+
+  const getEditConfig = (rule: CorrectiveActionRule) => {
+    if (rule.trigger_type === "audit_fail") return editAuditConfig;
+    if (rule.trigger_type === "incident_repeat") return editIncidentConfig;
+    if (rule.trigger_type === "test_fail") return editTestFailConfig;
+    return editAssetConfig;
   };
 
   const resetForm = () => {
@@ -561,6 +592,44 @@ export default function CorrectiveActionRules() {
     setIncidentConfig(DEFAULT_INCIDENT_REPEAT);
     setAssetConfig(DEFAULT_ASSET_DOWNTIME);
     setTestFailConfig(DEFAULT_TEST_FAIL);
+  };
+
+  const openEdit = (rule: CorrectiveActionRule) => {
+    setEditRule(rule);
+    setEditName(rule.name);
+    const cfg = rule.trigger_config as Record<string, unknown>;
+    if (rule.trigger_type === "audit_fail") {
+      setEditAuditConfig({
+        severity: (cfg.severity as Severity) ?? "high",
+        due_hours: (cfg.due_hours as number) ?? 24,
+        stop_the_line: (cfg.stop_the_line as boolean) ?? false,
+        bundle: (cfg.bundle as BundleItem[]) ?? [],
+      });
+    } else if (rule.trigger_type === "incident_repeat") {
+      setEditIncidentConfig({
+        window_days: (cfg.window_days as number) ?? 14,
+        min_count: (cfg.min_count as number) ?? 2,
+        severity: (cfg.severity as Severity) ?? "high",
+        requires_approval: (cfg.requires_approval as boolean) ?? true,
+        approval_role: (cfg.approval_role as string) ?? "area_manager",
+        bundle: (cfg.bundle as BundleItem[]) ?? [],
+      });
+    } else if (rule.trigger_type === "asset_downtime_pattern") {
+      setEditAssetConfig({
+        window_days: (cfg.window_days as number) ?? 30,
+        min_count: (cfg.min_count as number) ?? 3,
+        severity: (cfg.severity as Severity) ?? "medium",
+        due_hours: (cfg.due_hours as number) ?? 72,
+        bundle: (cfg.bundle as BundleItem[]) ?? [],
+      });
+    } else if (rule.trigger_type === "test_fail") {
+      setEditTestFailConfig({
+        test_id: (cfg.test_id as string) ?? "any",
+        severity: (cfg.severity as Severity) ?? "low",
+        due_hours: (cfg.due_hours as number) ?? 168,
+        bundle: (cfg.bundle as BundleItem[]) ?? [],
+      });
+    }
   };
 
   const handleCreate = async () => {
@@ -586,11 +655,39 @@ export default function CorrectiveActionRules() {
       setCreateOpen(false);
       resetForm();
     } catch (err: unknown) {
-      // Supabase errors have .message but aren't always instanceof Error
       const message =
         (err as { message?: string })?.message ||
         (err instanceof Error ? err.message : null) ||
         "Failed to create rule.";
+      toast.error(message);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editRule) return;
+    if (!editName.trim()) {
+      toast.error("Please enter a rule name.");
+      return;
+    }
+    const config = getEditConfig(editRule);
+    const bundle = (config as { bundle: BundleItem[] }).bundle;
+    if (editRule.trigger_type !== "test_fail" && bundle.some(b => !b.title.trim())) {
+      toast.error("All action items must have a title.");
+      return;
+    }
+    try {
+      await updateRule.mutateAsync({
+        id: editRule.id,
+        name: editName.trim(),
+        trigger_config: config as unknown as Record<string, unknown>,
+      });
+      toast.success("Rule updated.");
+      setEditRule(null);
+    } catch (err: unknown) {
+      const message =
+        (err as { message?: string })?.message ||
+        (err instanceof Error ? err.message : null) ||
+        "Failed to update rule.";
       toast.error(message);
     }
   };
@@ -678,7 +775,7 @@ export default function CorrectiveActionRules() {
                       {rule.enabled ? "Active" : "Disabled"}
                     </Badge>
                   </div>
-                  <RuleConfigSummary rule={rule} />
+                  <RuleConfigSummary rule={rule} tests={allTests} />
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <InfoTooltip
@@ -688,6 +785,14 @@ export default function CorrectiveActionRules() {
                       : "This rule is paused. Toggle to reactivate it."
                     }
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(rule)}
+                    title="Edit rule"
+                  >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -713,6 +818,7 @@ export default function CorrectiveActionRules() {
         </div>
       )}
 
+      {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -809,6 +915,62 @@ export default function CorrectiveActionRules() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editRule} onOpenChange={(v) => { if (!v) setEditRule(null); }}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Rule</DialogTitle>
+            <DialogDescription>
+              Update the rule configuration. The trigger type cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editRule && (
+            <div className="space-y-5">
+              {/* Rule Name */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Label>Rule Name</Label>
+                </div>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Rule name" className="mt-1" />
+              </div>
+
+              {/* Trigger type (read-only) */}
+              <div>
+                <Label className="text-sm">Trigger Type</Label>
+                <div className="mt-1 h-9 px-3 flex items-center rounded-md border bg-muted/40 text-sm text-muted-foreground">
+                  {TRIGGER_LABELS[editRule.trigger_type]}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Dynamic config form for editing */}
+              {editRule.trigger_type === "audit_fail" && (
+                <AuditFailForm config={editAuditConfig} onChange={setEditAuditConfig} />
+              )}
+              {editRule.trigger_type === "incident_repeat" && (
+                <IncidentRepeatForm config={editIncidentConfig} onChange={setEditIncidentConfig} />
+              )}
+              {editRule.trigger_type === "asset_downtime_pattern" && (
+                <AssetDowntimeForm config={editAssetConfig} onChange={setEditAssetConfig} />
+              )}
+              {editRule.trigger_type === "test_fail" && (
+                <TestFailForm config={editTestFailConfig} onChange={setEditTestFailConfig} />
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setEditRule(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={updateRule.isPending || !editName.trim()}>
+              {updateRule.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
