@@ -38,13 +38,76 @@ Deno.serve(async (req) => {
 
   const body = await req.json();
   const { trigger_type, context } = body;
-  // context shapes:
-  //   audit_fail:   { audit_id, template_id, field_id, field_name, location_id, source_id }
-  //   test_fail:    { test_submission_id, test_id, test_title, employee_id, location_id, score, pass_threshold }
-  //   (incident_repeat, asset_downtime_pattern — future phases)
 
   if (!trigger_type || !context) {
     return new Response(JSON.stringify({ error: "Missing trigger_type or context" }), { status: 400, headers: corsHeaders });
+  }
+
+  // ── Helper: resolve assignee_role → assignee_user_id ──────────────────────
+  // For each bundle item, look up who holds that role at the location.
+  async function resolveRoleToUserId(role: string, locationId: string | null): Promise<string | null> {
+    if (!role || role === "unassigned") return null;
+
+    // 1. Try employees at the specific location with matching role
+    if (locationId) {
+      const { data: locEmp } = await supabase
+        .from("employees")
+        .select("user_id")
+        .eq("company_id", companyId)
+        .eq("location_id", locationId)
+        .ilike("role", role)
+        .not("user_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (locEmp?.user_id) return locEmp.user_id;
+    }
+
+    // 2. Company-wide employee fallback (no specific location)
+    const { data: compEmp } = await supabase
+      .from("employees")
+      .select("user_id")
+      .eq("company_id", companyId)
+      .ilike("role", role)
+      .not("user_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (compEmp?.user_id) return compEmp.user_id;
+
+    // 3. Company users table fallback (admin/owner roles)
+    const { data: compUser } = await supabase
+      .from("company_users")
+      .select("user_id")
+      .eq("company_id", companyId)
+      .ilike("company_role", role)
+      .limit(1)
+      .maybeSingle();
+    if (compUser?.user_id) return compUser.user_id;
+
+    return null;
+  }
+
+  // ── Helper: evaluate whether an audit field response fails its threshold ──
+  function auditFieldFails(
+    fieldType: string,
+    responseValue: unknown,
+    threshold?: number,
+  ): boolean {
+    const ft = (fieldType ?? "").toLowerCase();
+
+    if (ft === "rating" || ft === "number") {
+      const numVal = Number(responseValue);
+      if (isNaN(numVal)) return false;
+      // threshold defaults to 3 for rating if not set
+      const t = threshold ?? 3;
+      return numVal <= t;
+    }
+
+    if (ft === "yes_no" || ft === "yesno" || ft === "checkbox") {
+      const v = String(responseValue ?? "").toLowerCase().trim();
+      return v === "no" || v === "false" || v === "0";
+    }
+
+    return false;
   }
 
   // Fetch enabled rules
@@ -68,13 +131,54 @@ Deno.serve(async (req) => {
     if (trigger_type === "test_fail") {
       const ruleTestId = cfg.test_id ?? "any";
       if (ruleTestId !== "any" && ruleTestId !== context.test_id) {
-        continue; // this rule targets a different test
+        continue;
       }
     }
 
-    // Determine the dedup source_id.
-    // For test_fail: use a composite key per employee+test so repeated failures
-    // reuse one CA instead of spawning duplicates.
+    // ── audit_fail: template + field-level threshold filtering ────────────
+    let bundleToUse: any[] = cfg.bundle ?? [];
+    let fieldRuleMatched = false;
+
+    if (trigger_type === "audit_fail") {
+      // 1. Template filter
+      const ruleTemplateId = cfg.template_id ?? "any";
+      if (ruleTemplateId !== "any" && ruleTemplateId !== context.template_id) {
+        continue; // rule targets a different template
+      }
+
+      // 2. Field-level rules (new mode)
+      const fieldRules: any[] = cfg.field_rules ?? [];
+      if (fieldRules.length > 0) {
+        // Find a matching enabled field rule for this context's field
+        const fieldRule = fieldRules.find(
+          (fr: any) => fr.field_id === context.field_id && fr.enabled === true
+        );
+
+        if (!fieldRule) {
+          continue; // no config for this specific field → skip
+        }
+
+        // Evaluate threshold
+        if (!auditFieldFails(context.field_type, context.response_value, fieldRule.threshold)) {
+          continue; // field passed → no CA needed
+        }
+
+        // Use the field-level bundle (may override severity)
+        bundleToUse = fieldRule.bundle ?? [];
+        fieldRuleMatched = true;
+
+        // If field rule specifies severity, use it; else fall through to cfg.severity
+        if (fieldRule.severity) {
+          cfg._resolved_severity = fieldRule.severity;
+        }
+      } else {
+        // Global bundle mode (legacy / "any audit") — no threshold check needed,
+        // the caller only invokes this for scorable fields with values.
+        // Still proceed with cfg.bundle.
+      }
+    }
+
+    // Determine the dedup source_id
     const sourceId: string =
       trigger_type === "test_fail"
         ? `emp:${context.employee_id ?? "anon"}:test:${context.test_id ?? "unknown"}`
@@ -82,7 +186,7 @@ Deno.serve(async (req) => {
 
     const sourceType = trigger_type === "test_fail" ? "test_submission" : "audit_item_result";
 
-    // Check if the employee already has an open CA for this test
+    // Check for existing open CA for this source
     const { data: existingCA } = await supabase
       .from("corrective_actions")
       .select("id, severity, status")
@@ -95,16 +199,17 @@ Deno.serve(async (req) => {
     if (existingCA) {
       // Escalate severity if re-triggered
       const severityOrder = ["low", "medium", "high", "critical"];
+      const resolvedSeverity = cfg._resolved_severity ?? cfg.severity ?? "medium";
       const currentIdx = severityOrder.indexOf(existingCA.severity);
-      const targetIdx = severityOrder.indexOf(cfg.severity ?? "medium");
+      const targetIdx = severityOrder.indexOf(resolvedSeverity);
       if (targetIdx > currentIdx) {
-        await supabase.from("corrective_actions").update({ severity: cfg.severity }).eq("id", existingCA.id);
+        await supabase.from("corrective_actions").update({ severity: resolvedSeverity }).eq("id", existingCA.id);
         await supabase.from("corrective_action_events").insert({
           company_id: companyId,
           corrective_action_id: existingCA.id,
           actor_id: user.id,
           event_type: "severity_changed",
-          payload: { from: existingCA.severity, to: cfg.severity, reason: "rule_re_trigger" },
+          payload: { from: existingCA.severity, to: resolvedSeverity, reason: "rule_re_trigger" },
         });
       }
       caIds.push(existingCA.id);
@@ -115,18 +220,20 @@ Deno.serve(async (req) => {
     const dueHours = cfg.due_hours ?? 24;
     const dueAt = new Date(Date.now() + dueHours * 3600 * 1000).toISOString();
 
-    const severity = cfg.severity ?? "medium";
+    const severity = cfg._resolved_severity ?? cfg.severity ?? "medium";
     const stopTheLine = cfg.stop_the_line ?? severity === "critical";
 
     // Build title
     let caTitle: string;
     if (trigger_type === "test_fail") {
       caTitle = `[Auto] Failed Test: ${context.test_title ?? "Training Test"} — corrective action required`;
+    } else if (trigger_type === "audit_fail" && context.field_name) {
+      caTitle = `[Auto] ${context.field_name} — corrective action required`;
     } else {
       caTitle = `[Auto] ${context.field_name ?? "Audit failure"} — corrective action required`;
     }
 
-    // Resolve location_id — for test_fail, fall back to employee's location if not passed
+    // Resolve location_id
     let locationId = context.location_id ?? null;
     if (!locationId && trigger_type === "test_fail" && context.employee_id) {
       const { data: empLoc } = await supabase
@@ -169,9 +276,8 @@ Deno.serve(async (req) => {
       employeeUserId = emp?.user_id ?? null;
     }
 
-    // Insert bundle items
-    // For test_fail with empty bundle, auto-create a "Retake the test" action item
-    let bundle = cfg.bundle ?? [];
+    // Build bundle — for test_fail with empty bundle, auto-create a "Retake" item
+    let bundle = bundleToUse;
     if (trigger_type === "test_fail" && bundle.length === 0) {
       bundle = [{
         title: `Retake the test: ${context.test_title ?? "Training Test"}`,
@@ -182,18 +288,36 @@ Deno.serve(async (req) => {
     }
 
     if (bundle.length) {
-      const items = bundle.map((item: any) => ({
-        company_id: companyId,
-        corrective_action_id: ca.id,
-        title: item.title,
-        instructions: item.instructions ?? null,
-        assignee_role: item.assignee_role ?? item.assigned_role ?? null,
-        // For test_fail, auto-assign to the failing employee directly
-        assignee_user_id: trigger_type === "test_fail" ? employeeUserId : null,
-        due_at: new Date(Date.now() + (item.due_hours ?? dueHours) * 3600 * 1000).toISOString(),
-        evidence_required: item.evidence_required ?? false,
-      }));
-      const { error: itemsErr } = await supabase.from("corrective_action_items").insert(items);
+      // Build items with resolved user IDs — resolve roles in parallel
+      const itemsWithResolution = await Promise.all(
+        bundle.map(async (item: any) => {
+          let assigneeUserId: string | null = null;
+
+          if (trigger_type === "test_fail") {
+            // test_fail: always assign directly to the failing employee
+            assigneeUserId = employeeUserId;
+          } else {
+            // audit_fail and others: resolve role → user at the location
+            const role = item.assignee_role ?? item.assigned_role ?? null;
+            if (role && role !== "unassigned") {
+              assigneeUserId = await resolveRoleToUserId(role, locationId);
+            }
+          }
+
+          return {
+            company_id: companyId,
+            corrective_action_id: ca.id,
+            title: item.title,
+            instructions: item.instructions ?? null,
+            assignee_role: item.assignee_role ?? item.assigned_role ?? null,
+            assignee_user_id: assigneeUserId,
+            due_at: new Date(Date.now() + (item.due_hours ?? dueHours) * 3600 * 1000).toISOString(),
+            evidence_required: item.evidence_required ?? false,
+          };
+        })
+      );
+
+      const { error: itemsErr } = await supabase.from("corrective_action_items").insert(itemsWithResolution);
       if (itemsErr) {
         console.error("[process-capa-rules] Failed to insert CA items:", itemsErr?.message);
       }
@@ -215,6 +339,14 @@ Deno.serve(async (req) => {
           test_title: context.test_title,
           employee_id: context.employee_id,
           score: context.score,
+        } : {}),
+        ...(trigger_type === "audit_fail" ? {
+          audit_id: context.audit_id,
+          template_id: context.template_id,
+          field_id: context.field_id,
+          field_name: context.field_name,
+          response_value: context.response_value,
+          field_rule_matched: fieldRuleMatched,
         } : {}),
       },
     });
