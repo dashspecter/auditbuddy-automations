@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,7 @@ const TRIGGER_LABELS: Record<CorrectiveActionRule["trigger_type"], string> = {
   audit_fail: "Audit Failure",
   incident_repeat: "Incident Repeat",
   asset_downtime_pattern: "Asset Downtime Pattern",
+  test_fail: "Test Failure",
 };
 
 const SEVERITY_OPTIONS = ["low", "medium", "high", "critical"] as const;
@@ -62,6 +65,13 @@ interface AssetDowntimeConfig {
   bundle: BundleItem[];
 }
 
+interface TestFailConfig {
+  test_id: string; // "any" or a specific test UUID
+  severity: Severity;
+  due_hours: number;
+  bundle: BundleItem[];
+}
+
 const DEFAULT_AUDIT_FAIL: AuditFailConfig = {
   severity: "high",
   due_hours: 24,
@@ -92,6 +102,15 @@ const DEFAULT_ASSET_DOWNTIME: AssetDowntimeConfig = {
   bundle: [
     { title: "Schedule technician inspection", due_hours: 24, evidence_required: false, assigned_role: "store_manager" },
     { title: "Upload before/after photo", due_hours: 72, evidence_required: true, assigned_role: "store_manager" },
+  ],
+};
+
+const DEFAULT_TEST_FAIL: TestFailConfig = {
+  test_id: "any",
+  severity: "low",
+  due_hours: 168,
+  bundle: [
+    { title: "Retake the failed test", due_hours: 168, evidence_required: true, assigned_role: "staff" },
   ],
 };
 
@@ -409,6 +428,79 @@ function AssetDowntimeForm({ config, onChange }: { config: AssetDowntimeConfig; 
   );
 }
 
+// ---- Test Fail Form ----
+function TestFailForm({ config, onChange }: { config: TestFailConfig; onChange: (c: TestFailConfig) => void }) {
+  const { data: tests = [] } = useQuery({
+    queryKey: ["tests_for_rules"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tests").select("id, title").order("title");
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 flex gap-2.5 items-start">
+        <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground">
+          This rule fires automatically when an employee submits a test with a failing score. A Corrective Action is created and the employee is assigned the retake task.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <Label className="text-xs">Apply to</Label>
+          <InfoTooltip content="Select a specific test to watch, or choose 'Any test' to fire this rule whenever any test is failed." />
+        </div>
+        <Select value={config.test_id} onValueChange={v => onChange({ ...config, test_id: v })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">
+              <div>
+                <p className="font-medium">Any test</p>
+                <p className="text-xs text-muted-foreground">Fires on any failed test submission</p>
+              </div>
+            </SelectItem>
+            {tests.map((t: { id: string; title: string }) => (
+              <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Severity</Label>
+            <InfoTooltip content="Low severity = 7-day SLA, which is appropriate for a test retake window. Increase if the test is safety-critical." />
+          </div>
+          <Select value={config.severity} onValueChange={v => onChange({ ...config, severity: v as Severity })}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {SEVERITY_OPTIONS.map(s => <SelectItem key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Label className="text-xs">Due within (hours)</Label>
+            <InfoTooltip content="How many hours the employee has to complete the retake. 168h = 7 days." />
+          </div>
+          <Input
+            type="number" min={1}
+            value={config.due_hours}
+            onChange={e => onChange({ ...config, due_hours: Number(e.target.value) })}
+            className="h-9"
+          />
+        </div>
+      </div>
+
+      <Separator />
+      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
+    </div>
+  );
+}
+
 // ---- Rule summary chip display ----
 function RuleConfigSummary({ rule }: { rule: CorrectiveActionRule }) {
   const cfg = rule.trigger_config as Record<string, unknown>;
@@ -419,6 +511,8 @@ function RuleConfigSummary({ rule }: { rule: CorrectiveActionRule }) {
   if (cfg.min_count) chips.push(`Min: ${cfg.min_count}x`);
   if (cfg.stop_the_line) chips.push("Stop-the-Line");
   if (cfg.requires_approval) chips.push("Needs Approval");
+  if (cfg.test_id && cfg.test_id !== "any") chips.push("Specific test");
+  else if (cfg.test_id === "any") chips.push("Any test");
   const bundle = Array.isArray(cfg.bundle) ? cfg.bundle : [];
   if (bundle.length) chips.push(`${bundle.length} action item${bundle.length > 1 ? "s" : ""}`);
 
@@ -445,10 +539,12 @@ export default function CorrectiveActionRules() {
   const [auditConfig, setAuditConfig] = useState<AuditFailConfig>(DEFAULT_AUDIT_FAIL);
   const [incidentConfig, setIncidentConfig] = useState<IncidentRepeatConfig>(DEFAULT_INCIDENT_REPEAT);
   const [assetConfig, setAssetConfig] = useState<AssetDowntimeConfig>(DEFAULT_ASSET_DOWNTIME);
+  const [testFailConfig, setTestFailConfig] = useState<TestFailConfig>(DEFAULT_TEST_FAIL);
 
   const getConfig = () => {
     if (triggerType === "audit_fail") return auditConfig;
     if (triggerType === "incident_repeat") return incidentConfig;
+    if (triggerType === "test_fail") return testFailConfig;
     return assetConfig;
   };
 
@@ -458,6 +554,7 @@ export default function CorrectiveActionRules() {
     setAuditConfig(DEFAULT_AUDIT_FAIL);
     setIncidentConfig(DEFAULT_INCIDENT_REPEAT);
     setAssetConfig(DEFAULT_ASSET_DOWNTIME);
+    setTestFailConfig(DEFAULT_TEST_FAIL);
   };
 
   const handleCreate = async () => {
@@ -513,11 +610,12 @@ export default function CorrectiveActionRules() {
                 <div className="space-y-2">
                   <p className="font-semibold">What are CA Rules?</p>
                   <p>Rules tell the system when to automatically create a Corrective Action — so managers don't miss recurring problems.</p>
-                  <p className="font-medium">3 trigger types:</p>
+                  <p className="font-medium">4 trigger types:</p>
                   <ul className="space-y-0.5 text-muted-foreground">
                     <li><span className="font-medium text-foreground">Audit Failure</span> — fires when an audit is failed</li>
                     <li><span className="font-medium text-foreground">Incident Repeat</span> — fires when the same incident recurs X times</li>
                     <li><span className="font-medium text-foreground">Asset Downtime</span> — fires when an asset fails X times in Y days</li>
+                    <li><span className="font-medium text-foreground">Test Failure</span> — fires when an employee fails a test (e.g. schedule a retake in 7 days)</li>
                   </ul>
                   <p className="italic text-muted-foreground">Example: "If any audit fails, create a High severity CA due in 24h, with tasks: fix the issue + root cause report."</p>
                 </div>
@@ -631,6 +729,7 @@ export default function CorrectiveActionRules() {
                         <li><span className="font-medium text-foreground">Audit Failure</span> — when a checklist/audit is submitted with a fail result</li>
                         <li><span className="font-medium text-foreground">Incident Repeat</span> — when the same type of incident is logged multiple times</li>
                         <li><span className="font-medium text-foreground">Asset Downtime</span> — when a piece of equipment breaks down repeatedly</li>
+                        <li><span className="font-medium text-foreground">Test Failure</span> — when an employee fails a training test</li>
                       </ul>
                     </div>
                   }
@@ -660,6 +759,12 @@ export default function CorrectiveActionRules() {
                       <p className="text-xs text-muted-foreground">Triggers when an asset fails repeatedly in a time period</p>
                     </div>
                   </SelectItem>
+                  <SelectItem value="test_fail">
+                    <div>
+                      <p className="font-medium">Test Failure</p>
+                      <p className="text-xs text-muted-foreground">Triggers when an employee fails a training test</p>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -675,6 +780,9 @@ export default function CorrectiveActionRules() {
             )}
             {triggerType === "asset_downtime_pattern" && (
               <AssetDowntimeForm config={assetConfig} onChange={setAssetConfig} />
+            )}
+            {triggerType === "test_fail" && (
+              <TestFailForm config={testFailConfig} onChange={setTestFailConfig} />
             )}
           </div>
 
