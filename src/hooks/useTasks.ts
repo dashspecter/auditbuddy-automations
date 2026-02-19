@@ -39,6 +39,7 @@ export interface Task {
   recurrence_end_date: string | null;
   recurrence_days_of_week: number[] | null;
   recurrence_days_of_month: number[] | null;
+  recurrence_times: string[] | null;
   parent_task_id: string | null;
   is_recurring_instance: boolean | null;
   is_individual: boolean | null;
@@ -536,6 +537,7 @@ interface CreateTaskData {
   recurrence_end_date?: string;
   recurrence_days_of_week?: number[];
   recurrence_days_of_month?: number[];
+  recurrence_times?: string[];
   is_individual?: boolean;
 }
 

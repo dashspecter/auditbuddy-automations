@@ -141,10 +141,12 @@ export const isDateInTomorrow = (date: Date): boolean => {
 // ============================================================
 
 /**
- * Generate a stable virtual task ID
+ * Generate a stable virtual task ID.
+ * For multi-time slots, appends the time: "uuid-virtual-YYYY-MM-DD-HH:MM"
  */
-export const generateVirtualId = (taskId: string, date: Date): string => {
-  return `${taskId}-virtual-${format(date, 'yyyy-MM-dd')}`;
+export const generateVirtualId = (taskId: string, date: Date, timeSlot?: string): string => {
+  const base = `${taskId}-virtual-${format(date, 'yyyy-MM-dd')}`;
+  return timeSlot ? `${base}-${timeSlot.replace(':', '')}` : base;
 };
 
 /**
@@ -400,21 +402,31 @@ export function shouldRecurOnDate(task: Task, targetDate: Date): boolean {
 }
 
 /**
- * Create a virtual task instance for a specific date
- * Preserves the time from the original task
+ * Create a virtual task instance for a specific date.
+ * Preserves the time from the original task (or uses an explicit timeSlot override).
  */
-export function createVirtualInstance(task: Task, targetDate: Date): Task {
+export function createVirtualInstance(task: Task, targetDate: Date, timeSlot?: string): Task {
   const taskDate = getTaskDate(task);
   if (!taskDate) return task;
-  
-  // Preserve time from original
-  const hours = getHours(taskDate);
-  const minutes = getMinutes(taskDate);
+
+  let hours: number;
+  let minutes: number;
+
+  if (timeSlot) {
+    // Parse "HH:MM" string
+    const [h, m] = timeSlot.split(':').map(Number);
+    hours = h;
+    minutes = m;
+  } else {
+    hours = getHours(taskDate);
+    minutes = getMinutes(taskDate);
+  }
+
   const newDate = setMinutes(setHours(startOfDay(targetDate), hours), minutes);
-  
+
   return {
     ...task,
-    id: generateVirtualId(task.id, targetDate),
+    id: generateVirtualId(task.id, targetDate, timeSlot),
     start_at: task.start_at ? newDate.toISOString() : null,
     due_at: task.due_at ? newDate.toISOString() : null,
     status: 'pending',
@@ -422,7 +434,9 @@ export function createVirtualInstance(task: Task, targetDate: Date): Task {
     completed_by: null,
     completed_late: null,
     is_recurring_instance: true,
-  };
+    // Embed the scheduled time slot for completion identity
+    _scheduled_time: timeSlot ?? null,
+  } as Task & { _scheduled_time: string | null };
 }
 
 /**
@@ -467,20 +481,37 @@ export function getOccurrencesForDate(
   const targetEnd = endOfDay(targetDate);
   const result: Task[] = [];
   const seenIds = new Set<string>();
-  
+
   for (const task of tasks) {
     const taskDate = getTaskDate(task);
     const isRecurring = task.recurrence_type && task.recurrence_type !== 'none';
-    
+
+    // Determine time slots: use recurrence_times if present, else single slot
+    const timeSlots: (string | undefined)[] =
+      (task as any).recurrence_times && (task as any).recurrence_times.length > 1
+        ? (task as any).recurrence_times
+        : [undefined];
+
     // Case 1: Original task is scheduled for this day
     if (taskDate && taskDate >= targetStart && taskDate <= targetEnd) {
       if (!includeCompleted && task.status === 'completed') continue;
-      if (seenIds.has(task.id)) continue;
-      seenIds.add(task.id);
-      result.push(task);
+
+      if (timeSlots.length > 1) {
+        // Expand into one occurrence per time slot
+        for (const slot of timeSlots) {
+          const slotId = generateVirtualId(task.id, targetDate, slot);
+          if (seenIds.has(slotId)) continue;
+          seenIds.add(slotId);
+          result.push(createVirtualInstance(task, targetDate, slot));
+        }
+      } else {
+        if (seenIds.has(task.id)) continue;
+        seenIds.add(task.id);
+        result.push(task);
+      }
       continue;
     }
-    
+
     // Case 2: Recurring task completed on this day (show completed instance)
     if (isRecurring && task.status === 'completed' && includeCompleted && task.completed_at) {
       const completedAt = new Date(task.completed_at);
@@ -488,8 +519,7 @@ export function getOccurrencesForDate(
         const completedId = `${task.id}-completed-${format(targetDate, 'yyyy-MM-dd')}`;
         if (seenIds.has(completedId)) continue;
         seenIds.add(completedId);
-        
-        // Create instance with completion info preserved
+
         const virtualCompleted = createVirtualInstance(task, targetDate);
         virtualCompleted.id = completedId;
         virtualCompleted.status = 'completed';
@@ -500,32 +530,36 @@ export function getOccurrencesForDate(
         continue;
       }
     }
-    
+
     // Case 3: Recurring task should have a virtual instance on this day
     if (isRecurring && includeVirtual && shouldRecurOnDate(task, targetDate)) {
-      // If completed, only skip if the completion was for THIS specific date (already handled in Case 2)
       if (task.status === 'completed' && task.completed_at) {
         const completedAt = new Date(task.completed_at);
-        if (isSameDay(completedAt, targetDate)) {
-          // Already added as completed instance in Case 2
-          continue;
-        }
-        // For future dates after completion, still show as virtual pending instance
+        if (isSameDay(completedAt, targetDate)) continue;
       }
-      
-      const virtualId = generateVirtualId(task.id, targetDate);
-      if (seenIds.has(virtualId)) continue;
-      seenIds.add(virtualId);
-      
-      result.push(createVirtualInstance(task, targetDate));
+
+      if (timeSlots.length > 1) {
+        // Multi-time: generate one occurrence per slot
+        for (const slot of timeSlots) {
+          const slotId = generateVirtualId(task.id, targetDate, slot);
+          if (seenIds.has(slotId)) continue;
+          seenIds.add(slotId);
+          result.push(createVirtualInstance(task, targetDate, slot));
+        }
+      } else {
+        const virtualId = generateVirtualId(task.id, targetDate);
+        if (seenIds.has(virtualId)) continue;
+        seenIds.add(virtualId);
+        result.push(createVirtualInstance(task, targetDate));
+      }
     }
   }
-  
+
   // Sort: pending/overdue first, then completed, then by time
   return result.sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
     if (a.status !== 'completed' && b.status === 'completed') return -1;
-    
+
     const dateA = getTaskDate(a);
     const dateB = getTaskDate(b);
     if (!dateA && !dateB) return 0;
@@ -534,6 +568,7 @@ export function getOccurrencesForDate(
     return dateA.getTime() - dateB.getTime();
   });
 }
+
 
 /**
  * Get all occurrences for a date range (for Calendar view)

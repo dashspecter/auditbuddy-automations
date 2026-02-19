@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera, Plus, X as XIcon } from "lucide-react";
 import { useUpdateTask, useTasks } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
@@ -43,6 +43,8 @@ const TaskEdit = () => {
   const { data: roles = [] } = useEmployeeRoles();
   const [assignmentType, setAssignmentType] = useState<'employee' | 'role'>('role');
   const [isIndividual, setIsIndividual] = useState(false);
+  const [recurrenceTimes, setRecurrenceTimes] = useState<string[]>([]);
+  const [newTimeInput, setNewTimeInput] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Evidence policy state
@@ -148,6 +150,7 @@ const TaskEdit = () => {
         recurrence_days_of_month: formData.recurrence_type === "monthly" && formData.recurrence_days_of_month.length > 0
           ? formData.recurrence_days_of_month
           : null,
+        recurrence_times: recurrenceTimes.length >= 2 ? recurrenceTimes.sort() : null,
       });
 
       // Save / remove evidence policy
