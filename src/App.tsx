@@ -320,7 +320,7 @@ const App = () => (
                       <Route path="/test-creation" element={<ManagerRoute requiredPermission="manage_audits"><TestCreation /></ManagerRoute>} />
                       <Route path="/test-management" element={<ManagerRoute requiredPermission="manage_audits"><TestManagement /></ManagerRoute>} />
                       <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_audits"><TestEdit /></ManagerRoute>} />
-                      <Route path="/take-test/:id" element={<ProtectedRoute><TakeTest /></ProtectedRoute>} />
+                      <Route path="/take-test/:id" element={<TakeTest />} />
                       <Route path="/t/:shortCode" element={<TakeTest />} />
                       <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
                       <Route path="/test-result/:id" element={<TestResult />} />
