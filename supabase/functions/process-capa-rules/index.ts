@@ -38,8 +38,9 @@ Deno.serve(async (req) => {
 
   const body = await req.json();
   const { trigger_type, context } = body;
-  // context shape:
-  //   audit_fail: { audit_id, template_id, field_id, field_name, location_id, source_id }
+  // context shapes:
+  //   audit_fail:   { audit_id, template_id, field_id, field_name, location_id, source_id }
+  //   test_fail:    { test_submission_id, test_id, test_title, employee_id, location_id, score, pass_threshold }
   //   (incident_repeat, asset_downtime_pattern — future phases)
 
   if (!trigger_type || !context) {
@@ -63,13 +64,27 @@ Deno.serve(async (req) => {
   for (const rule of rules) {
     const cfg = rule.trigger_config as Record<string, any>;
 
+    // ── test_fail: filter by test_id if rule targets a specific test ──
+    if (trigger_type === "test_fail") {
+      const ruleTestId = cfg.test_id ?? "any";
+      if (ruleTestId !== "any" && ruleTestId !== context.test_id) {
+        continue; // this rule targets a different test
+      }
+    }
+
+    // Determine the dedup source_id
+    const sourceId: string =
+      trigger_type === "test_fail"
+        ? (context.test_submission_id ?? context.test_id ?? "unknown")
+        : (context.source_id ?? context.field_id ?? "unknown");
+
     // Check if source already has an open CA
     const { data: existingCA } = await supabase
       .from("corrective_actions")
       .select("id, severity, status")
       .eq("company_id", companyId)
-      .eq("source_type", "audit_item_result")
-      .eq("source_id", context.source_id ?? context.field_id)
+      .eq("source_type", trigger_type === "test_fail" ? "test_submission" : "audit_item_result")
+      .eq("source_id", sourceId)
       .not("status", "in", '("closed","cancelled")')
       .maybeSingle();
 
@@ -99,13 +114,24 @@ Deno.serve(async (req) => {
     const severity = cfg.severity ?? "medium";
     const stopTheLine = cfg.stop_the_line ?? severity === "critical";
 
+    // Build title
+    let caTitle: string;
+    if (trigger_type === "test_fail") {
+      caTitle = `[Auto] Failed Test: ${context.test_title ?? "Training Test"} — corrective action required`;
+    } else {
+      caTitle = `[Auto] ${context.field_name ?? "Audit failure"} — corrective action required`;
+    }
+
+    // Resolve location_id
+    const locationId = context.location_id ?? null;
+
     // Create CA
     const { data: ca } = await supabase.from("corrective_actions").insert({
       company_id: companyId,
-      location_id: context.location_id,
-      source_type: "audit_item_result",
-      source_id: context.source_id ?? context.field_id,
-      title: `[Auto] ${context.field_name ?? "Audit failure"} — corrective action required`,
+      location_id: locationId,
+      source_type: trigger_type === "test_fail" ? "test_submission" : "audit_item_result",
+      source_id: sourceId,
+      title: caTitle,
       severity,
       status: "open",
       due_at: dueAt,
@@ -117,6 +143,17 @@ Deno.serve(async (req) => {
 
     if (!ca) continue;
 
+    // For test_fail: assign bundle items to the failing employee's user_id if available
+    let employeeUserId: string | null = null;
+    if (trigger_type === "test_fail" && context.employee_id) {
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("user_id")
+        .eq("id", context.employee_id)
+        .maybeSingle();
+      employeeUserId = emp?.user_id ?? null;
+    }
+
     // Insert bundle items
     const bundle = cfg.bundle ?? [];
     if (bundle.length) {
@@ -125,7 +162,9 @@ Deno.serve(async (req) => {
         corrective_action_id: ca.id,
         title: item.title,
         instructions: item.instructions ?? null,
-        assignee_role: item.assignee_role ?? null,
+        assignee_role: item.assignee_role ?? item.assigned_role ?? null,
+        // For test_fail, auto-assign to the failing employee directly
+        assignee_user_id: trigger_type === "test_fail" ? employeeUserId : null,
         due_at: new Date(Date.now() + (item.due_hours ?? dueHours) * 3600 * 1000).toISOString(),
         evidence_required: item.evidence_required ?? true,
       }));
@@ -138,16 +177,27 @@ Deno.serve(async (req) => {
       corrective_action_id: ca.id,
       actor_id: user.id,
       event_type: "created",
-      payload: { source: "rule", rule_id: rule.id, trigger_type, item_count: bundle.length },
+      payload: {
+        source: "rule",
+        rule_id: rule.id,
+        trigger_type,
+        item_count: bundle.length,
+        ...(trigger_type === "test_fail" ? {
+          test_id: context.test_id,
+          test_title: context.test_title,
+          employee_id: context.employee_id,
+          score: context.score,
+        } : {}),
+      },
     });
 
     // Update location risk state if stop-the-line
-    if (stopTheLine) {
+    if (stopTheLine && locationId) {
       await supabase.from("location_risk_state").upsert({
         company_id: companyId,
-        location_id: context.location_id,
+        location_id: locationId,
         is_restricted: true,
-        restricted_reason: `[Auto] ${context.field_name ?? "Audit failure"}`,
+        restricted_reason: caTitle,
         restricted_ca_id: ca.id,
         updated_at: new Date().toISOString(),
       }, { onConflict: "company_id,location_id" });

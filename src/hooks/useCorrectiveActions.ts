@@ -75,7 +75,7 @@ export interface CorrectiveActionRule {
   company_id: string;
   name: string;
   enabled: boolean;
-  trigger_type: "audit_fail" | "incident_repeat" | "asset_downtime_pattern";
+  trigger_type: "audit_fail" | "incident_repeat" | "asset_downtime_pattern" | "test_fail";
   trigger_config: Record<string, unknown>;
   created_at: string;
 }
