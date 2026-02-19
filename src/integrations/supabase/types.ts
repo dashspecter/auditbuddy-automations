@@ -7833,6 +7833,7 @@ export type Database = {
           occurrence_date: string
           overridden_by_user_id: string | null
           overridden_reason: string | null
+          scheduled_time: string | null
           task_id: string
         }
         Insert: {
@@ -7847,6 +7848,7 @@ export type Database = {
           occurrence_date: string
           overridden_by_user_id?: string | null
           overridden_reason?: string | null
+          scheduled_time?: string | null
           task_id: string
         }
         Update: {
@@ -7861,6 +7863,7 @@ export type Database = {
           occurrence_date?: string
           overridden_by_user_id?: string | null
           overridden_reason?: string | null
+          scheduled_time?: string | null
           task_id?: string
         }
         Relationships: [
@@ -8083,6 +8086,7 @@ export type Database = {
           recurrence_days_of_week: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: number | null
+          recurrence_times: string[] | null
           recurrence_type: string | null
           source: string
           source_reference_id: string | null
@@ -8124,6 +8128,7 @@ export type Database = {
           recurrence_days_of_week?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
+          recurrence_times?: string[] | null
           recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null
@@ -8165,6 +8170,7 @@ export type Database = {
           recurrence_days_of_week?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
+          recurrence_times?: string[] | null
           recurrence_type?: string | null
           source?: string
           source_reference_id?: string | null

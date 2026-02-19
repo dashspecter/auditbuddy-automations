@@ -76,19 +76,29 @@ export function getOccurrenceDate(taskId: string, fallbackDayKey: string): strin
  * @param fallbackDayKey The day key to use if no date is found in the ID
  * @returns Object containing baseTaskId, occurrenceDate, and the composite key
  */
+/**
+ * Create a completion key from a task ID, fallback day key, and optional scheduled time.
+ * For multi-time tasks, the key is "baseTaskId:occurrenceDate:HH:MM"
+ * For single-time tasks, the key is "baseTaskId:occurrenceDate"
+ */
 export function makeCompletionKey(
   taskId: string,
-  fallbackDayKey: string
+  fallbackDayKey: string,
+  scheduledTime?: string | null
 ): {
   baseTaskId: string;
   occurrenceDate: string;
+  scheduledTime: string | null;
   key: string;
 } {
   const baseTaskId = getBaseTaskId(taskId);
   const occurrenceDate = getOccurrenceDate(taskId, fallbackDayKey);
-  const key = `${baseTaskId}:${occurrenceDate}`;
-  
-  return { baseTaskId, occurrenceDate, key };
+  const normalizedTime = scheduledTime ?? null;
+  const key = normalizedTime
+    ? `${baseTaskId}:${occurrenceDate}:${normalizedTime}`
+    : `${baseTaskId}:${occurrenceDate}`;
+
+  return { baseTaskId, occurrenceDate, scheduledTime: normalizedTime, key };
 }
 
 /**
@@ -104,18 +114,19 @@ export function isVirtualOrOccurrenceId(taskId: string): boolean {
 
 /**
  * Build a completions lookup map from completion records.
- * 
- * @param completions Array of completion records with task_id and occurrence_date
- * @returns Map with key format "baseTaskId:occurrenceDate"
+ * Supports both single-time (key: "baseTaskId:date") and
+ * multi-time (key: "baseTaskId:date:HH:MM") completions.
  */
-export function buildCompletionsMap<T extends { task_id: string; occurrence_date: string }>(
+export function buildCompletionsMap<T extends { task_id: string; occurrence_date: string; scheduled_time?: string | null }>(
   completions: T[]
 ): Map<string, T> {
   const map = new Map<string, T>();
   for (const c of completions) {
-    // Normalize task_id in case it somehow has a suffix (defensive)
     const baseId = getBaseTaskId(c.task_id);
-    const key = `${baseId}:${c.occurrence_date}`;
+    // Support both legacy and time-slot keyed completions
+    const key = c.scheduled_time
+      ? `${baseId}:${c.occurrence_date}:${c.scheduled_time}`
+      : `${baseId}:${c.occurrence_date}`;
     map.set(key, c);
   }
   return map;
