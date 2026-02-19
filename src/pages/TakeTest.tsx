@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, FileText, Loader2, AlertTriangle } from "lucide-react";
+import { useSubmitTestWithCA } from "@/hooks/useSubmitTestWithCA";
 
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
@@ -41,6 +42,7 @@ const TakeTest = () => {
   const [isAssigned, setIsAssigned] = useState(false);
   const [assignmentRecordId, setAssignmentRecordId] = useState<string | null>(null);
   const [actualTestId, setActualTestId] = useState<string | null>(null);
+  const submitTestWithCA = useSubmitTestWithCA();
 
   useEffect(() => {
     if (shortCode) {
@@ -203,20 +205,21 @@ const TakeTest = () => {
       const percentageScore = Math.round((score / totalPoints) * 100);
       const passed = percentageScore >= test.passing_score;
       const timeTaken = test.time_limit_minutes * 60 - timeLeft;
+      const resolvedTestId = actualTestId || testId || "";
 
-      const { error } = await supabase.from("test_submissions").insert({
-        test_id: actualTestId || testId,
-        staff_name: staffName,
-        staff_location: staffLocation,
-        employee_id: employeeId,
-        answers: answers,
+      // Submit via the hook — saves the submission AND fires CAPA rules on fail
+      await submitTestWithCA.mutateAsync({
+        testId: resolvedTestId,
+        testTitle: test.title,
+        employeeId: employeeId || "",
+        staffName,
+        staffLocation,
         score: percentageScore,
         passed,
-        time_taken_minutes: Math.max(1, Math.round(timeTaken / 60)),
-        completed_at: new Date().toISOString(),
+        timeTakenMinutes: Math.max(1, Math.round(timeTaken / 60)),
+        passThreshold: test.passing_score,
+        answers,
       });
-
-      if (error) throw error;
 
       // Mark assignment as completed if this was an assigned test
       if (assignmentRecordId && isAssigned) {
@@ -226,8 +229,6 @@ const TakeTest = () => {
           .eq("id", assignmentRecordId);
       }
 
-      if (error) throw error;
-
       const message = autoSubmit
         ? "Time's up! Test auto-submitted." 
         : passed 
@@ -235,7 +236,7 @@ const TakeTest = () => {
         : "Test submitted";
       
       toast.success(message);
-      navigate(`/test-result/${actualTestId || testId}/${percentageScore}/${passed}`);
+      navigate(`/test-result/${resolvedTestId}/${percentageScore}/${passed}`);
     } catch (error) {
       console.error("Error submitting test:", error);
       toast.error("Failed to submit test");
