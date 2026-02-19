@@ -98,6 +98,7 @@ export function useSubmitTestWithCA() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["test-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["corrective_actions"] });
+      queryClient.invalidateQueries({ queryKey: ["my_ca_items"] });
     },
   });
 }
