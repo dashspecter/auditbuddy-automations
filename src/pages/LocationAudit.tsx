@@ -885,6 +885,43 @@ const LocationAudit = () => {
         status: status,
       };
 
+      // Helper: fire CAPA rules for each scorable field (fire-and-forget, non-blocking)
+      const fireAuditCAPARules = (auditId: string) => {
+        if (!selectedTemplate) return;
+        const SCORABLE = ["rating", "yes_no", "yesno", "checkbox", "number"];
+        const invocations: Promise<any>[] = [];
+        for (const section of selectedTemplate.sections) {
+          for (const field of section.fields) {
+            if (!SCORABLE.includes(field.field_type)) continue;
+            const value = formData.customData[field.id];
+            if (value === null || value === undefined || value === "") continue;
+            invocations.push(
+              supabase.functions.invoke("process-capa-rules", {
+                body: {
+                  trigger_type: "audit_fail",
+                  context: {
+                    audit_id: auditId,
+                    template_id: selectedTemplateId,
+                    field_id: field.id,
+                    field_name: field.name,
+                    field_type: field.field_type,
+                    response_value: value,
+                    location_id: formData.location_id || null,
+                    source_id: `audit:${auditId}:field:${field.id}`,
+                  },
+                },
+              }).catch(err => console.warn("[audit-capa] field rule error:", field.name, err))
+            );
+          }
+        }
+        if (invocations.length > 0) {
+          Promise.allSettled(invocations).then(results => {
+            const fired = results.filter(r => r.status === "fulfilled").length;
+            console.log(`[audit-capa] Fired ${fired}/${invocations.length} field rule checks for audit ${auditId}`);
+          });
+        }
+      };
+
       if (currentDraftId) {
         // Update existing draft to submitted
         const { error } = await supabase
@@ -907,6 +944,8 @@ const LocationAudit = () => {
         
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${currentDraftId}`);
+        // Fire CAPA rules after navigation (non-blocking)
+        fireAuditCAPARules(currentDraftId);
       } else {
         // Delete all existing drafts for this user before creating the completed audit
         await supabase
@@ -926,6 +965,8 @@ const LocationAudit = () => {
         
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${newAudit.id}`);
+        // Fire CAPA rules after navigation (non-blocking)
+        fireAuditCAPARules(newAudit.id);
       }
     } catch (error: any) {
       console.error('Error submitting audit:', error);
