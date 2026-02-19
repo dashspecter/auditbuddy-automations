@@ -48,9 +48,24 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
 
       const rawItems = data ?? [];
 
-      // Batch-lookup test_id for any test_submission CA items
+      // Resolve test_id for each item:
+      // - New format: source_id = "emp:{eid}:test:{testId}" → extract directly
+      // - Old format: source_id = UUID (test_submission_id) → look up via test_submissions
+      const isCompositeKey = (s: string) => s?.startsWith("emp:");
+      const extractTestIdFromComposite = (s: string): string | null => {
+        const m = s?.match(/^emp:.+:test:(.+)$/);
+        return m ? m[1] : null;
+      };
+
       const submissionIds = rawItems
-        .filter((item: any) => item.corrective_actions?.source_type === "test_submission" && item.corrective_actions?.source_id)
+        .filter((item: any) => {
+          const src = item.corrective_actions?.source_id;
+          return (
+            item.corrective_actions?.source_type === "test_submission" &&
+            src &&
+            !isCompositeKey(src)
+          );
+        })
         .map((item: any) => item.corrective_actions.source_id as string);
 
       let testIdMap: Record<string, string> = {};
@@ -62,13 +77,19 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
         testIdMap = Object.fromEntries((submissions ?? []).map((s: any) => [s.id, s.test_id]));
       }
 
-      return rawItems.map((item: any) => ({
-        ...item,
-        testId:
-          item.corrective_actions?.source_type === "test_submission"
-            ? (testIdMap[item.corrective_actions?.source_id] ?? null)
-            : null,
-      }));
+      return rawItems.map((item: any) => {
+        const ca = item.corrective_actions;
+        const src = ca?.source_id ?? null;
+        let testId: string | null = null;
+        if (ca?.source_type === "test_submission" && src) {
+          if (isCompositeKey(src)) {
+            testId = extractTestIdFromComposite(src);
+          } else {
+            testId = testIdMap[src] ?? null;
+          }
+        }
+        return { ...item, testId };
+      });
     },
     staleTime: 30_000,
   });
