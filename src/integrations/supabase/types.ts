@@ -3202,6 +3202,36 @@ export type Database = {
           },
         ]
       }
+      demo_requests: {
+        Row: {
+          company: string
+          created_at: string
+          email: string
+          id: string
+          locations: string
+          message: string | null
+          name: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          locations: string
+          message?: string | null
+          name: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          locations?: string
+          message?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           color: string | null
