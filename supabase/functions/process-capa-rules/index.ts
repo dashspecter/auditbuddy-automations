@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     const locationId = context.location_id ?? null;
 
     // Create CA
-    const { data: ca } = await supabase.from("corrective_actions").insert({
+    const { data: ca, error: caInsertErr } = await supabase.from("corrective_actions").insert({
       company_id: companyId,
       location_id: locationId,
       source_type: trigger_type === "test_fail" ? "test_submission" : "audit_item_result",
@@ -141,7 +141,10 @@ Deno.serve(async (req) => {
       created_by: user.id,
     }).select("id").single();
 
-    if (!ca) continue;
+    if (caInsertErr || !ca) {
+      console.error("[process-capa-rules] Failed to insert CA:", caInsertErr?.message);
+      continue;
+    }
 
     // For test_fail: assign bundle items to the failing employee's user_id if available
     let employeeUserId: string | null = null;
@@ -155,7 +158,17 @@ Deno.serve(async (req) => {
     }
 
     // Insert bundle items
-    const bundle = cfg.bundle ?? [];
+    // For test_fail with empty bundle, auto-create a "Retake the test" action item
+    let bundle = cfg.bundle ?? [];
+    if (trigger_type === "test_fail" && bundle.length === 0) {
+      bundle = [{
+        title: `Retake the test: ${context.test_title ?? "Training Test"}`,
+        instructions: `Employee scored ${context.score ?? 0}% (pass threshold: ${context.pass_threshold ?? 70}%). Must retake and pass within the deadline.`,
+        evidence_required: false,
+        due_hours: dueHours,
+      }];
+    }
+
     if (bundle.length) {
       const items = bundle.map((item: any) => ({
         company_id: companyId,
@@ -166,9 +179,12 @@ Deno.serve(async (req) => {
         // For test_fail, auto-assign to the failing employee directly
         assignee_user_id: trigger_type === "test_fail" ? employeeUserId : null,
         due_at: new Date(Date.now() + (item.due_hours ?? dueHours) * 3600 * 1000).toISOString(),
-        evidence_required: item.evidence_required ?? true,
+        evidence_required: item.evidence_required ?? false,
       }));
-      await supabase.from("corrective_action_items").insert(items);
+      const { error: itemsErr } = await supabase.from("corrective_action_items").insert(items);
+      if (itemsErr) {
+        console.error("[process-capa-rules] Failed to insert CA items:", itemsErr?.message);
+      }
     }
 
     // Log event

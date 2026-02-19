@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export type CASeverity = "low" | "medium" | "high" | "critical";
 export type CAStatus = "open" | "in_progress" | "pending_verification" | "closed" | "reopened" | "cancelled";
 export type CAItemStatus = "open" | "in_progress" | "done" | "verified" | "rejected";
-export type CASourceType = "audit_item_result" | "incident" | "asset_downtime" | "manual";
+export type CASourceType = "audit_item_result" | "incident" | "asset_downtime" | "manual" | "test_submission";
 
 export interface CorrectiveAction {
   id: string;
