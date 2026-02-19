@@ -30,7 +30,7 @@ type Severity = typeof SEVERITY_OPTIONS[number];
 function useEmployeeRoles() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["employee_roles_distinct"],
+    queryKey: ["employee_roles_distinct_merged"],
     enabled: !!user?.id,
     queryFn: async () => {
       // Get company_id first
@@ -43,14 +43,25 @@ function useEmployeeRoles() {
       const companyId = cu?.company_id;
       if (!companyId) return [];
 
-      const { data } = await supabase
-        .from("employees")
-        .select("role")
-        .eq("company_id", companyId)
-        .not("role", "is", null)
-        .neq("role", "");
+      // Fetch from both sources in parallel
+      const [{ data: empData }, { data: roleData }] = await Promise.all([
+        supabase
+          .from("employees")
+          .select("role")
+          .eq("company_id", companyId)
+          .not("role", "is", null)
+          .neq("role", ""),
+        supabase
+          .from("employee_roles")
+          .select("name")
+          .eq("company_id", companyId)
+          .not("name", "is", null)
+          .neq("name", ""),
+      ]);
 
-      const distinct = [...new Set((data ?? []).map(r => r.role as string))].sort();
+      const fromEmployees = (empData ?? []).map(r => r.role as string);
+      const fromRoleTable = (roleData ?? []).map(r => r.name as string);
+      const distinct = [...new Set([...fromEmployees, ...fromRoleTable])].sort();
       return distinct.map(r => ({ value: r, label: r }));
     },
     staleTime: 60_000,
