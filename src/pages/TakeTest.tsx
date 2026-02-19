@@ -246,14 +246,38 @@ const TakeTest = () => {
       const timeTaken = test.time_limit_minutes * 60 - timeLeft;
       const resolvedTestId = actualTestId || testId || "";
 
+      // Re-resolve employeeId at submit time in case state was set after render
+      let resolvedEmployeeId = employeeId || "";
+      let resolvedLocationId = employeeLocationId ?? undefined;
+      let resolvedStaffName = staffName;
+      let resolvedStaffLocation = staffLocation;
+
+      if (!resolvedEmployeeId) {
+        // Try to fetch the employee record fresh from auth session
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: emp } = await supabase
+            .from("employees")
+            .select("id, full_name, location_id, locations(name)")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (emp) {
+            resolvedEmployeeId = emp.id;
+            resolvedLocationId = emp.location_id ?? undefined;
+            resolvedStaffName = emp.full_name || resolvedStaffName;
+            resolvedStaffLocation = (emp.locations as any)?.name || resolvedStaffLocation;
+          }
+        }
+      }
+
       // Submit via the hook — saves the submission AND fires CAPA rules on fail
       await submitTestWithCA.mutateAsync({
         testId: resolvedTestId,
         testTitle: test.title,
-        employeeId: employeeId || "",
-        staffName,
-        staffLocation,
-        locationId: employeeLocationId ?? undefined,
+        employeeId: resolvedEmployeeId,
+        staffName: resolvedStaffName,
+        staffLocation: resolvedStaffLocation,
+        locationId: resolvedLocationId,
         score: percentageScore,
         passed,
         timeTakenMinutes: Math.max(1, Math.round(timeTaken / 60)),
@@ -277,9 +301,9 @@ const TakeTest = () => {
       
       toast.success(message);
       navigate(`/test-result/${resolvedTestId}/${percentageScore}/${passed}`);
-    } catch (error) {
-      console.error("Error submitting test:", error);
-      toast.error("Failed to submit test");
+    } catch (error: any) {
+      console.error("Error submitting test:", error?.message ?? error);
+      toast.error("Failed to submit test: " + (error?.message ?? "Unknown error"));
       setSubmitting(false);
     }
   };
