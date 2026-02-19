@@ -50,9 +50,45 @@ const TakeTest = () => {
     if (shortCode) {
       checkAssignment();
     } else if (testId) {
-      loadTest();
+      loadTestWithAuthUser();
     }
   }, [testId, shortCode]);
+
+  // When coming from the authenticated staff route, auto-fetch user info and skip the form
+  const loadTestWithAuthUser = async () => {
+    if (!testId) return;
+
+    let autoStart = false;
+
+    // Try to get the logged-in user's employee record
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("id, full_name, location_id, locations(name)")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (emp) {
+          setEmployeeId(emp.id);
+          setStaffName(emp.full_name);
+          setEmployeeLocationId(emp.location_id ?? null);
+          setStaffLocation((emp.locations as any)?.name || "");
+          setIsAssigned(true); // treat as pre-filled so form is skipped
+          autoStart = true;
+        }
+      }
+    } catch {
+      // Not authenticated or no employee record — fall back to manual form
+    }
+
+    await loadTestById(testId);
+
+    if (autoStart) {
+      setStarted(true);
+    }
+  };
 
   const checkAssignment = async () => {
     if (!shortCode) return;
