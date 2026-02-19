@@ -99,7 +99,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Check if this is a staff-only route (not /staff-audits which is admin/manager route)
-  const isStaffRoute = location.pathname === '/staff' || location.pathname.startsWith('/staff/');
+  // Also allow staff to access take-test and test-result routes directly
+  const isStaffRoute = location.pathname === '/staff' || 
+                       location.pathname.startsWith('/staff/') ||
+                       location.pathname.startsWith('/take-test/') ||
+                       location.pathname.startsWith('/test-result/');
 
   // Staff users should stay on staff routes.
   // Company admins/owners and platform admins are not considered staff in AuthContext.
