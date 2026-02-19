@@ -322,7 +322,8 @@ const App = () => (
                       <Route path="/test-edit/:id" element={<ManagerRoute requiredPermission="manage_audits"><TestEdit /></ManagerRoute>} />
                       <Route path="/take-test/:id" element={<ProtectedRoute><TakeTest /></ProtectedRoute>} />
                       <Route path="/t/:shortCode" element={<TakeTest />} />
-                      <Route path="/test-result/:id" element={<ProtectedRoute><TestResult /></ProtectedRoute>} />
+                      <Route path="/test-result/:testId/:score/:passed" element={<TestResult />} />
+                      <Route path="/test-result/:id" element={<TestResult />} />
                       <Route path="/audits-calendar" element={<ProtectedRoute><AuditsCalendar /></ProtectedRoute>} />
                       <Route path="/recurring-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringAuditSchedules /></ManagerRoute>} />
                       <Route path="/recurring-maintenance-schedules" element={<ManagerRoute requiredPermission="manage_audits"><RecurringMaintenanceSchedules /></ManagerRoute>} />
