@@ -27,6 +27,7 @@ import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
 import { StaffCheckpointsCard } from "@/components/staff/StaffCheckpointsCard";
+import { MyCorrectiveActionsCard } from "@/components/staff/MyCorrectiveActionsCard";
 
 const StaffHome = () => {
   const { t } = useTranslation();
@@ -463,6 +464,9 @@ const StaffHome = () => {
         {employee && todayShift && todayShift.approval_status === "approved" && (
           <PendingTestsCard employeeId={employee.id} isOnShift={true} />
         )}
+
+        {/* Corrective Action items assigned to this employee — always visible when open */}
+        {user && <MyCorrectiveActionsCard userId={user.id} />}
 
         {/* Location Leaderboard */}
         {employee && (
