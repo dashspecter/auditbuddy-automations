@@ -177,7 +177,7 @@ export function BookDemoModal({ open, onOpenChange }: BookDemoModalProps) {
                     <FormItem>
                       <FormLabel>Company / brand name *</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Proper Pizza" {...field} />
+                        <Input placeholder="e.g. Super Pizza & Pasta" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -197,6 +197,7 @@ export function BookDemoModal({ open, onOpenChange }: BookDemoModalProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="1">1 location</SelectItem>
                           <SelectItem value="2-5">2–5 locations</SelectItem>
                           <SelectItem value="6-15">6–15 locations</SelectItem>
                           <SelectItem value="16-50">16–50 locations</SelectItem>
