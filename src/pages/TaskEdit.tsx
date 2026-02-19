@@ -113,6 +113,7 @@ const TaskEdit = () => {
       });
       setAssignmentType(task.assigned_to ? 'employee' : 'role');
       setIsIndividual(task.is_individual || false);
+      setRecurrenceTimes((task as any).recurrence_times ?? []);
       setIsInitialized(true);
     }
   }, [task, isInitialized]);
@@ -604,6 +605,54 @@ const TaskEdit = () => {
                 </p>
               </div>
             )}
+
+            {/* Multiple Daily Times */}
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  Additional Daily Times
+                </Label>
+                <span className="text-xs text-muted-foreground">(optional – for tasks that repeat at multiple times per day)</span>
+              </div>
+              <div className="flex flex-wrap gap-2 min-h-[32px]">
+                {recurrenceTimes.map(t => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm font-mono">
+                    {t}
+                    <button type="button" onClick={() => setRecurrenceTimes(prev => prev.filter(x => x !== t))} className="hover:text-destructive">
+                      <XIcon className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2 items-center">
+                <Input
+                  type="time"
+                  value={newTimeInput}
+                  onChange={e => setNewTimeInput(e.target.value)}
+                  className="w-36"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (newTimeInput && !recurrenceTimes.includes(newTimeInput)) {
+                      setRecurrenceTimes(prev => [...prev, newTimeInput].sort());
+                      setNewTimeInput("");
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Time
+                </Button>
+              </div>
+              {recurrenceTimes.length >= 2 && (
+                <p className="text-xs text-primary font-medium">✓ {recurrenceTimes.length} time slots — each will appear as a separate task occurrence per day</p>
+              )}
+              {recurrenceTimes.length === 1 && (
+                <p className="text-xs text-muted-foreground">Add at least one more time to enable multi-slot scheduling</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
