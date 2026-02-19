@@ -122,8 +122,16 @@ Deno.serve(async (req) => {
       caTitle = `[Auto] ${context.field_name ?? "Audit failure"} — corrective action required`;
     }
 
-    // Resolve location_id
-    const locationId = context.location_id ?? null;
+    // Resolve location_id — for test_fail, fall back to employee's location if not passed
+    let locationId = context.location_id ?? null;
+    if (!locationId && trigger_type === "test_fail" && context.employee_id) {
+      const { data: empLoc } = await supabase
+        .from("employees")
+        .select("location_id")
+        .eq("id", context.employee_id)
+        .maybeSingle();
+      locationId = empLoc?.location_id ?? null;
+    }
 
     // Create CA
     const { data: ca, error: caInsertErr } = await supabase.from("corrective_actions").insert({

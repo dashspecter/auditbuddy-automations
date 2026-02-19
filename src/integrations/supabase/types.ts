@@ -3118,7 +3118,7 @@ export type Database = {
           description: string | null
           due_at: string
           id: string
-          location_id: string
+          location_id: string | null
           owner_role: string | null
           owner_user_id: string | null
           requires_approval: boolean
@@ -3144,7 +3144,7 @@ export type Database = {
           description?: string | null
           due_at: string
           id?: string
-          location_id: string
+          location_id?: string | null
           owner_role?: string | null
           owner_user_id?: string | null
           requires_approval?: boolean
@@ -3170,7 +3170,7 @@ export type Database = {
           description?: string | null
           due_at?: string
           id?: string
-          location_id?: string
+          location_id?: string | null
           owner_role?: string | null
           owner_user_id?: string | null
           requires_approval?: boolean
