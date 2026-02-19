@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Clock, ArrowRight } from "lucide-react";
 import { format, isPast } from "date-fns";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface MyCorrectiveActionsCardProps {
   /** The Supabase auth user_id (not employee_id) */
@@ -14,8 +15,11 @@ interface MyCorrectiveActionsCardProps {
 /**
  * Shows open corrective action items assigned to this employee on their mobile home screen.
  * Only renders when there are open items — otherwise returns null (no empty state noise).
+ * For test_fail items, shows a "Retake Test" button that navigates directly to the test.
  */
 export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps) => {
+  const navigate = useNavigate();
+
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["my_ca_items", userId],
     enabled: !!userId,
@@ -32,7 +36,8 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
           corrective_actions (
             title,
             severity,
-            source_type
+            source_type,
+            source_id
           )
         `)
         .eq("assignee_user_id", userId)
@@ -40,7 +45,30 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
         .order("due_at", { ascending: true });
 
       if (error) throw error;
-      return data ?? [];
+
+      const rawItems = data ?? [];
+
+      // Batch-lookup test_id for any test_submission CA items
+      const submissionIds = rawItems
+        .filter((item: any) => item.corrective_actions?.source_type === "test_submission" && item.corrective_actions?.source_id)
+        .map((item: any) => item.corrective_actions.source_id as string);
+
+      let testIdMap: Record<string, string> = {};
+      if (submissionIds.length > 0) {
+        const { data: submissions } = await supabase
+          .from("test_submissions")
+          .select("id, test_id")
+          .in("id", submissionIds);
+        testIdMap = Object.fromEntries((submissions ?? []).map((s: any) => [s.id, s.test_id]));
+      }
+
+      return rawItems.map((item: any) => ({
+        ...item,
+        testId:
+          item.corrective_actions?.source_type === "test_submission"
+            ? (testIdMap[item.corrective_actions?.source_id] ?? null)
+            : null,
+      }));
     },
     staleTime: 30_000,
   });
@@ -68,8 +96,9 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
 
       <div className="space-y-3">
         {items.map((item: any) => {
-          const overdue = isPast(new Date(item.due_at));
+          const overdue = item.due_at ? isPast(new Date(item.due_at)) : false;
           const ca = item.corrective_actions;
+          const isTestRetake = ca?.source_type === "test_submission" && !!item.testId;
 
           return (
             <div
@@ -95,11 +124,25 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
               )}
 
               {/* Due date */}
-              <div className={`flex items-center gap-1 text-xs ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                <Clock className="h-3 w-3" />
-                {overdue ? "Overdue — " : "Due "}
-                {format(new Date(item.due_at), "MMM d, yyyy 'at' HH:mm")}
-              </div>
+              {item.due_at && (
+                <div className={`flex items-center gap-1 text-xs ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  <Clock className="h-3 w-3" />
+                  {overdue ? "Overdue — " : "Due "}
+                  {format(new Date(item.due_at), "MMM d, yyyy 'at' HH:mm")}
+                </div>
+              )}
+
+              {/* Retake test CTA */}
+              {isTestRetake && (
+                <Button
+                  size="sm"
+                  className="mt-1 w-full"
+                  onClick={() => navigate(`/take-test/${item.testId}`)}
+                >
+                  Retake Test
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
             </div>
           );
         })}
