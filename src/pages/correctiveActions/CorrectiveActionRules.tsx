@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Trash2, ToggleLeft, ToggleRight, Settings2, PlusCircle, UserCheck, GraduationCap, Pencil, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,14 +27,35 @@ const TRIGGER_LABELS: Record<CorrectiveActionRule["trigger_type"], string> = {
 const SEVERITY_OPTIONS = ["low", "medium", "high", "critical"] as const;
 type Severity = typeof SEVERITY_OPTIONS[number];
 
-const ROLE_OPTIONS = [
-  { value: "store_manager", label: "Store Manager" },
-  { value: "area_manager", label: "Area Manager" },
-  { value: "company_admin", label: "Company Admin" },
-  { value: "company_owner", label: "Company Owner" },
-  { value: "shift_lead", label: "Shift Lead" },
-  { value: "staff", label: "Staff" },
-];
+function useEmployeeRoles() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["employee_roles_distinct"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      // Get company_id first
+      const { data: cu } = await supabase
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user!.id)
+        .limit(1)
+        .maybeSingle();
+      const companyId = cu?.company_id;
+      if (!companyId) return [];
+
+      const { data } = await supabase
+        .from("employees")
+        .select("role")
+        .eq("company_id", companyId)
+        .not("role", "is", null)
+        .neq("role", "");
+
+      const distinct = [...new Set((data ?? []).map(r => r.role as string))].sort();
+      return distinct.map(r => ({ value: r, label: r }));
+    },
+    staleTime: 60_000,
+  });
+}
 
 interface BundleItem {
   title: string;
@@ -138,7 +160,7 @@ function fieldTypeLabel(ft: string) {
 }
 
 // ---- Bundle Items Editor ----
-function BundleEditor({ items, onChange, compact = false }: { items: BundleItem[]; onChange: (items: BundleItem[]) => void; compact?: boolean }) {
+function BundleEditor({ items, onChange, compact = false, roleOptions = [] }: { items: BundleItem[]; onChange: (items: BundleItem[]) => void; compact?: boolean; roleOptions?: { value: string; label: string }[] }) {
   const update = (index: number, patch: Partial<BundleItem>) => {
     onChange(items.map((item, i) => i === index ? { ...item, ...patch } : item));
   };
@@ -196,7 +218,7 @@ function BundleEditor({ items, onChange, compact = false }: { items: BundleItem[
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {ROLE_OPTIONS.map(r => (
+                  {roleOptions.map(r => (
                     <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -246,9 +268,11 @@ function BundleEditor({ items, onChange, compact = false }: { items: BundleItem[
 function FieldRuleRow({
   fieldRule,
   onChange,
+  roleOptions = [],
 }: {
   fieldRule: FieldRule;
   onChange: (updated: FieldRule) => void;
+  roleOptions?: { value: string; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const isYesNo = fieldRule.field_type === "yes_no" || fieldRule.field_type === "yesno" || fieldRule.field_type === "checkbox";
@@ -336,6 +360,7 @@ function FieldRuleRow({
                 items={fieldRule.bundle}
                 onChange={bundle => onChange({ ...fieldRule, bundle })}
                 compact
+                roleOptions={roleOptions}
               />
             </div>
           </div>
@@ -346,7 +371,7 @@ function FieldRuleRow({
 }
 
 // ---- Audit Fail Form ----
-function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange: (c: AuditFailConfig) => void }) {
+function AuditFailForm({ config, onChange, roleOptions = [] }: { config: AuditFailConfig; onChange: (c: AuditFailConfig) => void; roleOptions?: { value: string; label: string }[] }) {
   // Fetch audit templates for the company
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
     queryKey: ["audit_templates_for_rules"],
@@ -545,6 +570,7 @@ function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange
                   key={fr.field_id}
                   fieldRule={fr}
                   onChange={updated => updateFieldRule(i, updated)}
+                  roleOptions={roleOptions}
                 />
               ))}
             </div>
@@ -560,7 +586,7 @@ function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange
       {!isFieldMode && (
         <>
           <Separator />
-          <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
+          <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} roleOptions={roleOptions} />
         </>
       )}
     </div>
@@ -568,7 +594,7 @@ function AuditFailForm({ config, onChange }: { config: AuditFailConfig; onChange
 }
 
 // ---- Incident Repeat Form ----
-function IncidentRepeatForm({ config, onChange }: { config: IncidentRepeatConfig; onChange: (c: IncidentRepeatConfig) => void }) {
+function IncidentRepeatForm({ config, onChange, roleOptions = [] }: { config: IncidentRepeatConfig; onChange: (c: IncidentRepeatConfig) => void; roleOptions?: { value: string; label: string }[] }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
@@ -641,13 +667,13 @@ function IncidentRepeatForm({ config, onChange }: { config: IncidentRepeatConfig
         </div>
       )}
       <Separator />
-      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
+      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} roleOptions={roleOptions} />
     </div>
   );
 }
 
 // ---- Asset Downtime Form ----
-function AssetDowntimeForm({ config, onChange }: { config: AssetDowntimeConfig; onChange: (c: AssetDowntimeConfig) => void }) {
+function AssetDowntimeForm({ config, onChange, roleOptions = [] }: { config: AssetDowntimeConfig; onChange: (c: AssetDowntimeConfig) => void; roleOptions?: { value: string; label: string }[] }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
@@ -694,7 +720,7 @@ function AssetDowntimeForm({ config, onChange }: { config: AssetDowntimeConfig; 
         <Input type="number" min={1} value={config.due_hours} onChange={e => onChange({ ...config, due_hours: Number(e.target.value) })} className="h-9" />
       </div>
       <Separator />
-      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
+      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} roleOptions={roleOptions} />
     </div>
   );
 }
@@ -832,6 +858,7 @@ export default function CorrectiveActionRules() {
   const createRule = useCreateCARule();
   const updateRule = useUpdateCARule();
   const deleteRule = useDeleteCARule();
+  const { data: roleOptions = [] } = useEmployeeRoles();
 
   const { data: allTests = [] } = useQuery({
     queryKey: ["tests_for_rules_summary"],
@@ -1199,13 +1226,13 @@ export default function CorrectiveActionRules() {
             <Separator />
 
             {triggerType === "audit_fail" && (
-              <AuditFailForm config={auditConfig} onChange={setAuditConfig} />
+              <AuditFailForm config={auditConfig} onChange={setAuditConfig} roleOptions={roleOptions} />
             )}
             {triggerType === "incident_repeat" && (
-              <IncidentRepeatForm config={incidentConfig} onChange={setIncidentConfig} />
+              <IncidentRepeatForm config={incidentConfig} onChange={setIncidentConfig} roleOptions={roleOptions} />
             )}
             {triggerType === "asset_downtime_pattern" && (
-              <AssetDowntimeForm config={assetConfig} onChange={setAssetConfig} />
+              <AssetDowntimeForm config={assetConfig} onChange={setAssetConfig} roleOptions={roleOptions} />
             )}
             {triggerType === "test_fail" && (
               <TestFailForm config={testFailConfig} onChange={setTestFailConfig} />
@@ -1250,13 +1277,13 @@ export default function CorrectiveActionRules() {
               <Separator />
 
               {editRule.trigger_type === "audit_fail" && (
-                <AuditFailForm config={editAuditConfig} onChange={setEditAuditConfig} />
+                <AuditFailForm config={editAuditConfig} onChange={setEditAuditConfig} roleOptions={roleOptions} />
               )}
               {editRule.trigger_type === "incident_repeat" && (
-                <IncidentRepeatForm config={editIncidentConfig} onChange={setEditIncidentConfig} />
+                <IncidentRepeatForm config={editIncidentConfig} onChange={setEditIncidentConfig} roleOptions={roleOptions} />
               )}
               {editRule.trigger_type === "asset_downtime_pattern" && (
-                <AssetDowntimeForm config={editAssetConfig} onChange={setEditAssetConfig} />
+                <AssetDowntimeForm config={editAssetConfig} onChange={setEditAssetConfig} roleOptions={roleOptions} />
               )}
               {editRule.trigger_type === "test_fail" && (
                 <TestFailForm config={editTestFailConfig} onChange={setEditTestFailConfig} />
