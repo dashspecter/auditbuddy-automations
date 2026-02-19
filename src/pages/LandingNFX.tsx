@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { BookDemoModal } from "@/components/landing/BookDemoModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -48,7 +49,7 @@ const navLinks = [
   { label: "FAQ", href: "#faq" },
 ];
 
-const StickyNav = () => {
+const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -89,11 +90,9 @@ const StickyNav = () => {
           <a href="/auth" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Sign In
           </a>
-          <a href="#final-cta">
-            <Button variant="orange" size="sm">
+          <Button variant="orange" size="sm" onClick={onBookDemo}>
               Book a Demo
             </Button>
-          </a>
         </div>
 
         {/* Mobile hamburger */}
@@ -122,11 +121,9 @@ const StickyNav = () => {
           <a href="/auth" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-foreground">
             Sign In
           </a>
-          <a href="#final-cta" onClick={() => setMobileOpen(false)}>
-            <Button variant="orange" size="sm" className="w-full mt-2">
+          <Button variant="orange" size="sm" className="w-full mt-2" onClick={() => { setMobileOpen(false); onBookDemo(); }}>
               Book a Demo
             </Button>
-          </a>
         </div>
       )}
     </nav>
@@ -187,7 +184,7 @@ const SectionTitle = ({
 // 1. HERO
 // ============================================================================
 
-const Hero = () => (
+const Hero = ({ onBookDemo }: { onBookDemo: () => void }) => (
   <section
     id="hero"
     className="relative scroll-mt-20 min-h-[90vh] flex items-center px-4 sm:px-6 pt-24 pb-20 overflow-hidden"
@@ -213,12 +210,10 @@ const Hero = () => (
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4">
-          <a href="#final-cta">
-            <Button variant="orange" size="lg" className="text-base px-8">
+          <Button variant="orange" size="lg" className="text-base px-8" onClick={onBookDemo}>
               Book a Demo
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          </a>
           <a href="#ops-loop">
             <Button variant="outline" size="lg" className="text-base px-8">
               See How It Works
@@ -716,7 +711,7 @@ const faqs = [
   },
 ];
 
-const FinalCTA = () => (
+const FinalCTA = ({ onBookDemo }: { onBookDemo: () => void }) => (
   <>
     {/* CTA */}
     <section
@@ -735,12 +730,13 @@ const FinalCTA = () => (
         </p>
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
           <Button
-            size="lg"
-            className="bg-background text-foreground hover:bg-background/90 text-base px-8 font-semibold"
-          >
-            Book a Demo
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+              size="lg"
+              className="bg-background text-foreground hover:bg-background/90 text-base px-8 font-semibold"
+              onClick={onBookDemo}
+            >
+              Book a Demo
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           <a href="/auth">
             <Button
               size="lg"
@@ -814,18 +810,23 @@ const FinalCTA = () => (
 // PAGE
 // ============================================================================
 
-const LandingNFX = () => (
-  <div className="min-h-screen bg-background antialiased">
-    <StickyNav />
-    <Hero />
-    <ProblemSection />
-    <OpsLoop />
-    <ModulesSection />
-    <HowItWorks />
-    <Differentiation />
-    <MiniCase />
-    <FinalCTA />
-  </div>
-);
+const LandingNFX = () => {
+  const [demoOpen, setDemoOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-background antialiased">
+      <BookDemoModal open={demoOpen} onOpenChange={setDemoOpen} />
+      <StickyNav onBookDemo={() => setDemoOpen(true)} />
+      <Hero onBookDemo={() => setDemoOpen(true)} />
+      <ProblemSection />
+      <OpsLoop />
+      <ModulesSection />
+      <HowItWorks />
+      <Differentiation />
+      <MiniCase />
+      <FinalCTA onBookDemo={() => setDemoOpen(true)} />
+    </div>
+  );
+};
 
 export default LandingNFX;
