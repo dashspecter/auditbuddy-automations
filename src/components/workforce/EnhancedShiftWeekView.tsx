@@ -119,7 +119,13 @@ export const EnhancedShiftWeekView = () => {
     format(weekEnd, 'yyyy-MM-dd'),
     shiftTypeFilter
   );
-  const { data: employees = [] } = useEmployees(selectedLocation === "all" ? undefined : selectedLocation, "active");
+  // In location view mode, load ALL employees (no location filter) so that employees
+  // assigned to shifts at any location are always found by staff_id lookup.
+  // In employee view mode, filter by selectedLocation for performance.
+  const { data: employees = [] } = useEmployees(
+    viewMode === "location" ? undefined : (selectedLocation === "all" ? undefined : selectedLocation),
+    "active"
+  );
   const { data: timeOffRequests = [] } = useTimeOffRequests(
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
