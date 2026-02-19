@@ -564,6 +564,10 @@ export default function CorrectiveActionRules() {
   };
 
   const handleCreate = async () => {
+    if (!name.trim()) {
+      toast.error("Please enter a rule name.");
+      return;
+    }
     const config = getConfig();
     const bundle = (config as { bundle: BundleItem[] }).bundle;
     // For test_fail, bundle items are optional (retake task is auto-created by the engine)
@@ -573,7 +577,7 @@ export default function CorrectiveActionRules() {
     }
     try {
       await createRule.mutateAsync({
-        name,
+        name: name.trim(),
         enabled: true,
         trigger_type: triggerType,
         trigger_config: config as unknown as Record<string, unknown>,
@@ -582,7 +586,11 @@ export default function CorrectiveActionRules() {
       setCreateOpen(false);
       resetForm();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create rule.";
+      // Supabase errors have .message but aren't always instanceof Error
+      const message =
+        (err as { message?: string })?.message ||
+        (err instanceof Error ? err.message : null) ||
+        "Failed to create rule.";
       toast.error(message);
     }
   };
