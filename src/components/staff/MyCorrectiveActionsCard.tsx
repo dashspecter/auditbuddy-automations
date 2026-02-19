@@ -137,7 +137,7 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
                 <Button
                   size="sm"
                   className="mt-1 w-full"
-                  onClick={() => navigate(`/take-test/${item.testId}`)}
+                  onClick={() => navigate(`/staff/tests/${item.testId}`)}
                 >
                   Retake Test
                   <ArrowRight className="h-4 w-4 ml-1" />
