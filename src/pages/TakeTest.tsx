@@ -42,6 +42,7 @@ const TakeTest = () => {
   const [isAssigned, setIsAssigned] = useState(false);
   const [assignmentRecordId, setAssignmentRecordId] = useState<string | null>(null);
   const [actualTestId, setActualTestId] = useState<string | null>(null);
+  const [employeeLocationId, setEmployeeLocationId] = useState<string | null>(null);
   const submitTestWithCA = useSubmitTestWithCA();
 
   useEffect(() => {
@@ -90,6 +91,7 @@ const TakeTest = () => {
         setIsAssigned(true);
         setAssignmentRecordId(assignment.id);
         setEmployeeId(assignment.employees.id);
+        setEmployeeLocationId(assignment.employees.location_id ?? null);
         setStaffName(assignment.employees.full_name);
         setStaffLocation(assignment.employees.locations?.name || "");
         setActualTestId(assignment.test_id);
@@ -214,6 +216,7 @@ const TakeTest = () => {
         employeeId: employeeId || "",
         staffName,
         staffLocation,
+        locationId: employeeLocationId ?? undefined,
         score: percentageScore,
         passed,
         timeTakenMinutes: Math.max(1, Math.round(timeTaken / 60)),
