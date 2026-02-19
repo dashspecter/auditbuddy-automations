@@ -45,10 +45,33 @@ Deno.serve(async (req) => {
 
   // ── Helper: resolve assignee_role → assignee_user_id ──────────────────────
   // For each bundle item, look up who holds that role at the location.
-  async function resolveRoleToUserId(role: string, locationId: string | null): Promise<string | null> {
+  // Resolution order:
+  //   1. Shift assignments on the audit date at the location with matching role (who is actually working)
+  //   2. Employees whose primary location_id matches with the role
+  //   3. Company-wide employee with the role (fallback)
+  //   4. Company users table (admin/owner roles)
+  async function resolveRoleToUserId(role: string, locationId: string | null, auditDate?: string | null): Promise<string | null> {
     if (!role || role === "unassigned") return null;
 
-    // 1. Try employees at the specific location with matching role
+    // 1. Check who is actually scheduled (shift_assignments) at this location on the audit date
+    if (locationId && auditDate) {
+      const shiftDate = auditDate.slice(0, 10); // ensure YYYY-MM-DD
+      const { data: shiftEmp } = await supabase
+        .from("shift_assignments")
+        .select("employees!inner(user_id, role)")
+        .eq("approval_status", "approved")
+        .filter("shifts.location_id", "eq", locationId)
+        .filter("shifts.shift_date", "eq", shiftDate)
+        .filter("employees.role", "ilike", role)
+        .filter("employees.user_id", "not.is", null)
+        .limit(1)
+        .maybeSingle();
+      // @ts-ignore - nested join type
+      const scheduledUserId = shiftEmp?.employees?.user_id;
+      if (scheduledUserId) return scheduledUserId;
+    }
+
+    // 2. Try employees whose primary location matches
     if (locationId) {
       const { data: locEmp } = await supabase
         .from("employees")
@@ -62,7 +85,7 @@ Deno.serve(async (req) => {
       if (locEmp?.user_id) return locEmp.user_id;
     }
 
-    // 2. Company-wide employee fallback (no specific location)
+    // 3. Company-wide employee fallback (no specific location)
     const { data: compEmp } = await supabase
       .from("employees")
       .select("user_id")
@@ -73,7 +96,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (compEmp?.user_id) return compEmp.user_id;
 
-    // 3. Company users table fallback (admin/owner roles)
+    // 4. Company users table fallback (admin/owner roles)
     const { data: compUser } = await supabase
       .from("company_users")
       .select("user_id")
@@ -298,9 +321,10 @@ Deno.serve(async (req) => {
             assigneeUserId = employeeUserId;
           } else {
             // audit_fail and others: resolve role → user at the location
+            // Pass audit_date so we can check who is actually on shift that day
             const role = item.assignee_role ?? item.assigned_role ?? null;
             if (role && role !== "unassigned") {
-              assigneeUserId = await resolveRoleToUserId(role, locationId);
+              assigneeUserId = await resolveRoleToUserId(role, locationId, context.audit_date ?? null);
             }
           }
 
