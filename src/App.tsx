@@ -258,6 +258,7 @@ const App = () => (
                       <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
                       <Route path="/staff/waste" element={<ProtectedRoute><MyWasteEntries /></ProtectedRoute>} />
                       <Route path="/staff/waste/new" element={<ProtectedRoute><AddWasteEntry /></ProtectedRoute>} />
+                      <Route path="/staff/tests/:testId" element={<ProtectedRoute><TakeTest /></ProtectedRoute>} />
                       {/* Legacy waste routes - redirect to new paths */}
                       <Route path="/waste/add" element={<Navigate to="/staff/waste/new" replace />} />
                       <Route path="/waste/entries" element={<Navigate to="/staff/waste" replace />} />
