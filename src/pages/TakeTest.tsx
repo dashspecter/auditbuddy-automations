@@ -25,7 +25,8 @@ import { useSubmitTestWithCA } from "@/hooks/useSubmitTestWithCA";
 const locations = ["LBFC Amzei", "LBFC Mosilor", "LBFC Timpuri Noi", "LBFC Apaca"];
 
 const TakeTest = () => {
-  const { testId, shortCode } = useParams();
+  const { testId: testIdParam, id, shortCode } = useParams();
+  const testId = testIdParam || id; // route is /take-test/:id, not :testId
   const navigate = useNavigate();
   const [test, setTest] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
