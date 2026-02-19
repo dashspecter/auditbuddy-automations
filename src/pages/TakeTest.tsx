@@ -285,6 +285,71 @@ const TakeTest = () => {
         answers,
       });
 
+      // If the employee passed, auto-resolve any open "retake test" CA items for this employee+test
+      if (passed) {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (authUser) {
+            // Fetch all open CA items assigned to this user
+            const { data: openItems } = await supabase
+              .from("corrective_action_items")
+              .select("id, corrective_action_id, corrective_actions(source_type, source_id)")
+              .eq("assignee_user_id", authUser.id)
+              .in("status", ["open", "in_progress"]);
+
+            const testCaItems = (openItems ?? []).filter(
+              (item: any) => item.corrective_actions?.source_type === "test_submission"
+            );
+
+            if (testCaItems.length > 0) {
+              // Match by new composite key OR by old-style submission lookup
+              const compositeKey = `emp:${resolvedEmployeeId}:test:${resolvedTestId}`;
+
+              // Get old-style submission IDs for this employee + test to match legacy CAs
+              const oldStyleSrcIds = testCaItems
+                .map((item: any) => item.corrective_actions?.source_id as string)
+                .filter((s: string) => s && !s.startsWith("emp:"));
+
+              let legacyMatchIds = new Set<string>();
+              if (oldStyleSrcIds.length > 0) {
+                const { data: subs } = await supabase
+                  .from("test_submissions")
+                  .select("id, test_id")
+                  .in("id", oldStyleSrcIds);
+                legacyMatchIds = new Set(
+                  (subs ?? [])
+                    .filter((s: any) => s.test_id === resolvedTestId)
+                    .map((s: any) => s.id)
+                );
+              }
+
+              const itemsToClose = testCaItems.filter((item: any) => {
+                const src = item.corrective_actions?.source_id as string;
+                return src === compositeKey || legacyMatchIds.has(src);
+              });
+
+              if (itemsToClose.length > 0) {
+                const itemIds = itemsToClose.map((i: any) => i.id);
+                const parentCAIds = [...new Set(itemsToClose.map((i: any) => i.corrective_action_id as string))];
+
+                await supabase
+                  .from("corrective_action_items")
+                  .update({ status: "done" })
+                  .in("id", itemIds);
+
+                await supabase
+                  .from("corrective_actions")
+                  .update({ status: "closed" })
+                  .in("id", parentCAIds);
+              }
+            }
+          }
+        } catch (caResolveErr) {
+          // Non-fatal — test result is already saved
+          console.warn("[TakeTest] Failed to auto-resolve CA items:", caResolveErr);
+        }
+      }
+
       // Mark assignment as completed if this was an assigned test
       if (assignmentRecordId && isAssigned) {
         await supabase

@@ -72,18 +72,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Determine the dedup source_id
+    // Determine the dedup source_id.
+    // For test_fail: use a composite key per employee+test so repeated failures
+    // reuse one CA instead of spawning duplicates.
     const sourceId: string =
       trigger_type === "test_fail"
-        ? (context.test_submission_id ?? context.test_id ?? "unknown")
+        ? `emp:${context.employee_id ?? "anon"}:test:${context.test_id ?? "unknown"}`
         : (context.source_id ?? context.field_id ?? "unknown");
 
-    // Check if source already has an open CA
+    const sourceType = trigger_type === "test_fail" ? "test_submission" : "audit_item_result";
+
+    // Check if the employee already has an open CA for this test
     const { data: existingCA } = await supabase
       .from("corrective_actions")
       .select("id, severity, status")
       .eq("company_id", companyId)
-      .eq("source_type", trigger_type === "test_fail" ? "test_submission" : "audit_item_result")
+      .eq("source_type", sourceType)
       .eq("source_id", sourceId)
       .not("status", "in", '("closed","cancelled")')
       .maybeSingle();
@@ -137,7 +141,7 @@ Deno.serve(async (req) => {
     const { data: ca, error: caInsertErr } = await supabase.from("corrective_actions").insert({
       company_id: companyId,
       location_id: locationId,
-      source_type: trigger_type === "test_fail" ? "test_submission" : "audit_item_result",
+      source_type: sourceType,
       source_id: sourceId,
       title: caTitle,
       severity,
