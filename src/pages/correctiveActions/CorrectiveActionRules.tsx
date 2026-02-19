@@ -109,9 +109,7 @@ const DEFAULT_TEST_FAIL: TestFailConfig = {
   test_id: "any",
   severity: "low",
   due_hours: 168,
-  bundle: [
-    { title: "Retake the failed test", due_hours: 168, evidence_required: true, assigned_role: "staff" },
-  ],
+  bundle: [],
 };
 
 // ---- Bundle Items Editor ----
@@ -495,8 +493,16 @@ function TestFailForm({ config, onChange }: { config: TestFailConfig; onChange: 
         </div>
       </div>
 
-      <Separator />
-      <BundleEditor items={config.bundle} onChange={bundle => onChange({ ...config, bundle })} />
+      {/* Auto-created retake task notice — no manual bundle needed */}
+      <div className="rounded-lg border border-muted bg-muted/30 px-3 py-2.5 flex gap-2.5 items-start">
+        <GraduationCap className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="text-xs font-medium text-foreground">Retake task auto-created</p>
+          <p className="text-xs text-muted-foreground">
+            When this rule fires, the system automatically assigns the employee a "Retake the failed test" task due within the hours you set above. No additional action items are required.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
