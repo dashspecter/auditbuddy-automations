@@ -209,6 +209,7 @@ export default function CorrectiveActionDetail() {
                   companyId={ca.company_id}
                   isManager={isManager}
                   currentUserId={user?.id ?? ""}
+                  caStatus={ca.status}
                   onNeedEvidence={handleNeedEvidence}
                 />
               ))

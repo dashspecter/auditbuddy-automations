@@ -24,10 +24,11 @@ interface ActionItemCardProps {
   companyId: string;
   isManager: boolean;
   currentUserId: string;
+  caStatus?: string;
   onNeedEvidence: (item: CorrectiveActionItem, onSuccess: (packetId: string) => void) => void;
 }
 
-export function ActionItemCard({ item, companyId, isManager, currentUserId, onNeedEvidence }: ActionItemCardProps) {
+export function ActionItemCard({ item, companyId, isManager, currentUserId, caStatus, onNeedEvidence }: ActionItemCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyAction, setVerifyAction] = useState<"verified" | "rejected">("verified");
@@ -36,10 +37,11 @@ export function ActionItemCard({ item, companyId, isManager, currentUserId, onNe
   const complete = useCompleteActionItem();
   const verify = useVerifyActionItem();
 
+  const isCAClosed = caStatus === "closed" || caStatus === "cancelled";
   const canComplete =
-    item.status === "open" || item.status === "in_progress";
-  const canVerify = isManager && item.status === "done";
-  const isDone = item.status === "verified";
+    !isCAClosed && (item.status === "open" || item.status === "in_progress");
+  const canVerify = isManager && item.status === "done" && !isCAClosed;
+  const isDone = item.status === "verified" || (isCAClosed && item.status === "done");
   const isRejected = item.status === "rejected";
   const isOverdue = new Date(item.due_at) < new Date() && !isDone;
 
