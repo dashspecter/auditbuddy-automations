@@ -61,11 +61,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Render body
+        // Render body with named variable placeholders (Fix 4)
         let renderedBody = msg.wa_message_templates?.body || "";
         const vars = msg.variables || {};
-        Object.keys(vars).forEach((key, idx) => {
-          renderedBody = renderedBody.replace(`{{${idx + 1}}}`, vars[key]);
+        Object.entries(vars).forEach(([key, value]) => {
+          renderedBody = renderedBody.replaceAll(`{{${key}}}`, String(value));
         });
 
         const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
