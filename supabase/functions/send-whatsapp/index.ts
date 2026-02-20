@@ -66,10 +66,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Employee has not opted in to WhatsApp", code: "NOT_OPTED_IN" }), { status: 400, headers: corsHeaders });
     }
 
-    // Check quiet hours
+    // Check quiet hours (Fix 7: use company timezone instead of UTC)
     if (prefs.quiet_hours_start && prefs.quiet_hours_end) {
-      const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const formatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Bucharest',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      });
+      const currentTime = formatter.format(new Date()); // "HH:MM"
       const start = prefs.quiet_hours_start;
       const end = prefs.quiet_hours_end;
       
@@ -156,11 +159,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Twilio credentials not configured" }), { status: 500, headers: corsHeaders });
     }
 
-    // Render template body with variables
+    // Render template body with named variable placeholders (Fix 4)
     let renderedBody = template.body || "";
     const vars = variables || {};
-    Object.keys(vars).forEach((key, idx) => {
-      renderedBody = renderedBody.replace(`{{${idx + 1}}}`, vars[key]);
+    Object.entries(vars).forEach(([key, value]) => {
+      renderedBody = renderedBody.replaceAll(`{{${key}}}`, String(value));
     });
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;

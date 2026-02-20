@@ -146,8 +146,8 @@ Deno.serve(async (req) => {
             try {
               let renderedBody = template.body || "";
               const vars = msg.variables || {};
-              Object.keys(vars).forEach((key, idx) => {
-                renderedBody = renderedBody.replace(`{{${idx + 1}}}`, vars[key]);
+              Object.entries(vars).forEach(([key, value]) => {
+                renderedBody = renderedBody.replaceAll(`{{${key}}}`, String(value));
               });
 
               const formData = new URLSearchParams();

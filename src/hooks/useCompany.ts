@@ -319,11 +319,11 @@ export const useUpdateCompany = () => {
 };
 
 const DEFAULT_WA_TEMPLATES = [
-  { name: "task_assigned", body: "📋 New task: {{1}}. Please complete it before the deadline.", category: "utility", language: "en" },
-  { name: "shift_assigned", body: "📅 You've been assigned a shift on {{1}} from {{2}} to {{3}}.", category: "utility", language: "en" },
-  { name: "shift_published", body: "📢 Your schedule for {{1}} has been published. Shift: {{2}} - {{3}}.", category: "utility", language: "en" },
-  { name: "ca_assigned", body: "⚠️ Corrective Action: {{1}}. Your task: {{2}} (Severity: {{3}}). Please resolve promptly.", category: "utility", language: "en" },
-  { name: "announcement", body: "📣 {{1}}", category: "marketing", language: "en" },
+  { name: "task_assigned", body: "📋 New task: {{task_name}}. Please complete it before the deadline.", category: "utility", language: "en" },
+  { name: "shift_assigned", body: "📅 You've been assigned a shift on {{date}} from {{start_time}} to {{end_time}}.", category: "utility", language: "en" },
+  { name: "shift_published", body: "📢 Your schedule for {{date}} has been published. Shift: {{start_time}} - {{end_time}}.", category: "utility", language: "en" },
+  { name: "ca_assigned", body: "⚠️ Corrective Action: {{ca_title}}. Your task: {{task_name}} (Severity: {{severity}}). Please resolve promptly.", category: "utility", language: "en" },
+  { name: "announcement", body: "📣 {{message}}", category: "marketing", language: "en" },
 ];
 
 async function seedWhatsAppTemplates(companyId: string) {

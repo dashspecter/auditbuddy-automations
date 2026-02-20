@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, MessageSquare } from 'lucide-react';
 import { useWaTemplates, useCreateWaTemplate, useUpdateWaTemplate, useDeleteWaTemplate } from '@/hooks/useWhatsApp';
@@ -29,6 +30,7 @@ export default function WhatsAppTemplates() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [form, setForm] = useState({
     name: '', language: 'en', category: 'utility', body: '',
     header_type: 'none', header_content: '', footer: '',
@@ -101,7 +103,7 @@ export default function WhatsAppTemplates() {
                     <TableCell>v{t.version}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteTemplate.mutate(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(t)}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -156,8 +158,8 @@ export default function WhatsAppTemplates() {
               </div>
               <div className="space-y-2">
                 <Label>Body</Label>
-                <Textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={4} placeholder="Hello {{1}}, your shift on {{2}} has been updated." />
-                <p className="text-xs text-muted-foreground">Use {"{{1}}"}, {"{{2}}"} etc. for variables</p>
+                <Textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={4} placeholder="Hello {{employee_name}}, your shift on {{date}} has been updated." />
+                <p className="text-xs text-muted-foreground">Use named placeholders like {"{{employee_name}}"}, {"{{date}}"}, {"{{start_time}}"} etc.</p>
               </div>
               <div className="space-y-2">
                 <Label>Footer (optional)</Label>
@@ -185,6 +187,32 @@ export default function WhatsAppTemplates() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Fix 6: Delete confirmation dialog */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Template</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the template <strong>"{deleteTarget?.name}"</strong>? This action cannot be undone and may break notification rules that reference it.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteTarget) {
+                    deleteTemplate.mutate(deleteTarget.id);
+                    setDeleteTarget(null);
+                  }
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ProtectedLayout>
   );

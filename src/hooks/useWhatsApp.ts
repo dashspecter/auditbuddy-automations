@@ -241,23 +241,27 @@ export function useUpsertEmployeeMessagingPrefs() {
   });
 }
 
-// ── Message Stats ──
+// ── Message Stats (server-side counts to avoid 1000-row limit) ──
 export function useMessageStats() {
   const { company } = useCompanyContext();
   return useQuery({
     queryKey: ['message_stats', company?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('outbound_messages')
-        .select('status')
-        .eq('company_id', company!.id);
-      if (error) throw error;
+      const companyId = company!.id;
 
-      const total = data?.length || 0;
-      const sent = data?.filter(m => m.status === 'sent').length || 0;
-      const delivered = data?.filter(m => m.status === 'delivered').length || 0;
-      const read = data?.filter(m => m.status === 'read').length || 0;
-      const failed = data?.filter(m => m.status === 'failed').length || 0;
+      const [totalRes, sentRes, deliveredRes, readRes, failedRes] = await Promise.all([
+        supabase.from('outbound_messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+        supabase.from('outbound_messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'sent'),
+        supabase.from('outbound_messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'delivered'),
+        supabase.from('outbound_messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'read'),
+        supabase.from('outbound_messages').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'failed'),
+      ]);
+
+      const total = totalRes.count ?? 0;
+      const sent = sentRes.count ?? 0;
+      const delivered = deliveredRes.count ?? 0;
+      const read = readRes.count ?? 0;
+      const failed = failedRes.count ?? 0;
 
       return {
         total,
