@@ -1,11 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { RecentAudits } from "./RecentAudits";
-import { CompliancePieChart } from "./CompliancePieChart";
-import { DraftAudits } from "./DraftAudits";
 import { DashboardGreeting } from "./DashboardGreeting";
-import { LocationPerformanceChart } from "./LocationPerformanceChart";
 import { MaintenanceInterventions } from "./MaintenanceInterventions";
 import { AttentionAlertBar } from "./AttentionAlertBar";
 import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
@@ -14,7 +10,7 @@ import { WeakestSectionsCard } from "./WeakestSectionsCard";
 import { OpenCorrectiveActionsWidget } from "./OpenCorrectiveActionsWidget";
 import { TasksWidget } from "./TasksWidget";
 import { WorkforceAnalytics } from "./WorkforceAnalytics";
-import { SectionPerformanceTrends } from "./SectionPerformanceTrends";
+import { DraftAudits } from "./DraftAudits";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -99,21 +95,7 @@ export const AdminDashboard = () => {
         <OpenCorrectiveActionsWidget />
       </div>
 
-      {/* 6. Recent Audits */}
-      <RecentAudits />
-
-      {/* 7. Compliance + Location Performance */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CompliancePieChart dateFrom={dateFrom} dateTo={dateTo} />
-        <LocationPerformanceChart dateFrom={dateFrom} dateTo={dateTo} />
-      </div>
-
-      {/* 8. Section Performance Trends */}
-      <div className="w-full">
-        <SectionPerformanceTrends />
-      </div>
-
-      {/* 9. Maintenance Schedule */}
+      {/* 6. Maintenance Schedule */}
       <MaintenanceInterventions />
     </div>
   );

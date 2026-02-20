@@ -57,7 +57,7 @@ export const DecliningLocationsCard = ({ dateFrom, dateTo }: DecliningLocationsC
               const change = lastScore - firstScore;
               
               return (
-                <div key={loc.locationId} className="flex items-center gap-3 p-2 rounded-md border border-destructive/20 bg-destructive/5">
+                <div key={loc.locationId} className="flex items-center gap-3 p-2 rounded-md border border-destructive/20 bg-destructive/5 cursor-pointer hover:bg-destructive/10 transition-colors" onClick={() => navigate("/audits")}>
                   <MapPin className="h-4 w-4 text-destructive shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{loc.locationName}</p>
