@@ -3454,6 +3454,75 @@ export type Database = {
           },
         ]
       }
+      employee_messaging_preferences: {
+        Row: {
+          channel_priority: string[] | null
+          company_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          language: string
+          max_messages_per_day: number
+          opt_in_at: string | null
+          opt_in_source: string | null
+          opted_out_at: string | null
+          phone_e164: string | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+          whatsapp_opt_in: boolean
+        }
+        Insert: {
+          channel_priority?: string[] | null
+          company_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          language?: string
+          max_messages_per_day?: number
+          opt_in_at?: string | null
+          opt_in_source?: string | null
+          opted_out_at?: string | null
+          phone_e164?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          whatsapp_opt_in?: boolean
+        }
+        Update: {
+          channel_priority?: string[] | null
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          language?: string
+          max_messages_per_day?: number
+          opt_in_at?: string | null
+          opt_in_source?: string | null
+          opted_out_at?: string | null
+          phone_e164?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          whatsapp_opt_in?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_messaging_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_messaging_preferences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_roles: {
         Row: {
           color: string | null
@@ -5770,6 +5839,100 @@ export type Database = {
           },
         ]
       }
+      message_events: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          raw_provider_payload: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          raw_provider_payload?: Json | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          raw_provider_payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "outbound_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_channels: {
+        Row: {
+          channel_type: string
+          company_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          last_health_check: string | null
+          phone_number_e164: string | null
+          provider: string
+          quality_rating: string | null
+          status: string
+          twilio_account_sid: string | null
+          twilio_auth_token_ref: string | null
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          channel_type?: string
+          company_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_health_check?: string | null
+          phone_number_e164?: string | null
+          provider?: string
+          quality_rating?: string | null
+          status?: string
+          twilio_account_sid?: string | null
+          twilio_auth_token_ref?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          channel_type?: string
+          company_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_health_check?: string | null
+          phone_number_e164?: string | null
+          provider?: string
+          quality_rating?: string | null
+          status?: string
+          twilio_account_sid?: string | null
+          twilio_auth_token_ref?: string | null
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_industries: {
         Row: {
           created_at: string
@@ -6115,6 +6278,63 @@ export type Database = {
           },
         ]
       }
+      notification_rules: {
+        Row: {
+          channel: string
+          company_id: string
+          created_at: string
+          escalation_after_minutes: number | null
+          escalation_channel: string | null
+          event_type: string
+          id: string
+          is_active: boolean
+          target_roles: string[] | null
+          template_id: string | null
+          throttle_max_per_day: number | null
+        }
+        Insert: {
+          channel?: string
+          company_id: string
+          created_at?: string
+          escalation_after_minutes?: number | null
+          escalation_channel?: string | null
+          event_type: string
+          id?: string
+          is_active?: boolean
+          target_roles?: string[] | null
+          template_id?: string | null
+          throttle_max_per_day?: number | null
+        }
+        Update: {
+          channel?: string
+          company_id?: string
+          created_at?: string
+          escalation_after_minutes?: number | null
+          escalation_channel?: string | null
+          event_type?: string
+          id?: string
+          is_active?: boolean
+          target_roles?: string[] | null
+          template_id?: string | null
+          throttle_max_per_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "wa_message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_templates: {
         Row: {
           company_id: string | null
@@ -6243,6 +6463,116 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outbound_messages: {
+        Row: {
+          channel: string
+          company_id: string
+          created_at: string
+          delivered_at: string | null
+          employee_id: string | null
+          error_code: string | null
+          error_message: string | null
+          event_ref_id: string | null
+          event_type: string | null
+          failed_at: string | null
+          id: string
+          idempotency_key: string | null
+          max_retries: number
+          next_retry_at: string | null
+          provider_message_sid: string | null
+          read_at: string | null
+          recipient_phone_e164: string
+          retry_count: number
+          rule_id: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          template_id: string | null
+          variables: Json | null
+        }
+        Insert: {
+          channel?: string
+          company_id: string
+          created_at?: string
+          delivered_at?: string | null
+          employee_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event_ref_id?: string | null
+          event_type?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_retries?: number
+          next_retry_at?: string | null
+          provider_message_sid?: string | null
+          read_at?: string | null
+          recipient_phone_e164: string
+          retry_count?: number
+          rule_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          channel?: string
+          company_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          employee_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event_ref_id?: string | null
+          event_type?: string | null
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          max_retries?: number
+          next_retry_at?: string | null
+          provider_message_sid?: string | null
+          read_at?: string | null
+          recipient_phone_e164?: string
+          retry_count?: number
+          rule_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "notification_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "wa_message_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -9492,6 +9822,77 @@ export type Database = {
             columns: ["redeemed_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_message_templates: {
+        Row: {
+          approval_status: string
+          body: string
+          buttons: Json | null
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          footer: string | null
+          header_content: string | null
+          header_type: string | null
+          id: string
+          language: string
+          name: string
+          provider_template_id: string | null
+          rejection_reason: string | null
+          updated_at: string
+          variables_schema: Json | null
+          version: number
+        }
+        Insert: {
+          approval_status?: string
+          body: string
+          buttons?: Json | null
+          category?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header_content?: string | null
+          header_type?: string | null
+          id?: string
+          language?: string
+          name: string
+          provider_template_id?: string | null
+          rejection_reason?: string | null
+          updated_at?: string
+          variables_schema?: Json | null
+          version?: number
+        }
+        Update: {
+          approval_status?: string
+          body?: string
+          buttons?: Json | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header_content?: string | null
+          header_type?: string | null
+          id?: string
+          language?: string
+          name?: string
+          provider_template_id?: string | null
+          rejection_reason?: string | null
+          updated_at?: string
+          variables_schema?: Json | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_message_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
