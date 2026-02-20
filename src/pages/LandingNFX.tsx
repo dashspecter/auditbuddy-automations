@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { BookDemoModal } from "@/components/landing/BookDemoModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -52,6 +55,9 @@ const navLinks = [
 const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, isStaff } = useAuth();
+  const dashboardPath = isStaff ? "/staff" : "/dashboard";
+  const userInitials = user?.email?.substring(0, 2).toUpperCase() || "U";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -87,9 +93,18 @@ const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
               {l.label}
             </a>
           ))}
-          <a href="/auth" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-            Sign In
-          </a>
+          {user ? (
+            <Link to={dashboardPath} className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">{userInitials}</AvatarFallback>
+              </Avatar>
+              Dashboard
+            </Link>
+          ) : (
+            <a href="/auth" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+              Sign In
+            </a>
+          )}
           <Button variant="orange" size="sm" onClick={onBookDemo}>
               Book a Demo
             </Button>
@@ -118,9 +133,18 @@ const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
               {l.label}
             </a>
           ))}
-          <a href="/auth" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-foreground">
-            Sign In
-          </a>
+          {user ? (
+            <Link to={dashboardPath} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 py-2 text-sm font-medium text-foreground">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">{userInitials}</AvatarFallback>
+              </Avatar>
+              Dashboard
+            </Link>
+          ) : (
+            <a href="/auth" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-foreground">
+              Sign In
+            </a>
+          )}
           <Button variant="orange" size="sm" className="w-full mt-2" onClick={() => { setMobileOpen(false); onBookDemo(); }}>
               Book a Demo
             </Button>
@@ -737,14 +761,7 @@ const FinalCTA = ({ onBookDemo }: { onBookDemo: () => void }) => (
               Book a Demo
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          <a href="/auth">
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90 text-base px-8 font-semibold"
-            >
-              Sign In
-            </Button>
-          </a>
+          {/* Sign In / Dashboard handled by navbar; keep CTA focused on demo */}
         </div>
 
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-6 text-sm text-primary-foreground/70">
