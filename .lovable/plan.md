@@ -1,30 +1,15 @@
 
 
-## Freeze SLA % for Closed/Cancelled Corrective Actions
+## Widen the "Create Auto-Generation Rule" Dialog
 
 ### Problem
-The `getSLAPercent` helper always uses the current time (`Date.now()`) to calculate how much of the SLA window has elapsed. This means closed CAs keep showing an increasing SLA %, which is misleading -- the screenshot shows closed items at 12% and 45%, but those numbers will keep climbing over time even though the CA is resolved.
+The rule creation dialog contains a lot of important fields (name, trigger type, severity, SLA hours, stop-the-line toggle, scope selector, and multiple action items). At `max-w-xl` (576px), it feels cramped and users may miss details.
 
 ### Solution
-Update `getSLAPercent` to accept an optional `closedAt` timestamp. When provided, use that timestamp instead of `now` to freeze the SLA at the moment the CA was closed. Then pass `closed_at` from each CA record when calling the helper.
-
-### What Changes
-
-**File: `src/hooks/useCorrectiveActions.ts`**
-- Update `getSLAPercent` signature to accept an optional third parameter: `closedAt?: string | null`
-- When `closedAt` is provided, use `new Date(closedAt).getTime()` instead of `Date.now()`
-
-**File: `src/pages/correctiveActions/CorrectiveActionsList.tsx`**
-- Pass `ca.closed_at` as the third argument to `getSLAPercent(ca.created_at, ca.due_at, ca.closed_at)`
-
-**File: `src/pages/correctiveActions/CorrectiveActionDetail.tsx`**
-- Pass `ca.closed_at` as the third argument to `getSLAPercent(ca.created_at, ca.due_at, ca.closed_at)`
+A single CSS class change: update the dialog's `max-w` from `sm:max-w-xl` to `sm:max-w-2xl` (672px) in `src/pages/correctiveActions/CorrectiveActionRules.tsx` at line 1169. This gives about 100px more breathing room on desktop while remaining fully responsive on mobile.
 
 ### Technical Detail
+- **File:** `src/pages/correctiveActions/CorrectiveActionRules.tsx`, line 1169
+- **Change:** `sm:max-w-xl` to `sm:max-w-2xl`
+- No other files affected
 
-```text
-Before:  getSLAPercent(createdAt, dueAt)         -> always uses Date.now()
-After:   getSLAPercent(createdAt, dueAt, closedAt) -> uses closedAt if provided, else Date.now()
-```
-
-This is a minimal, non-breaking change -- the third parameter is optional so any other callers continue working as before.
