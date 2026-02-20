@@ -1,4 +1,4 @@
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { Fragment } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,7 +21,7 @@ export default function WhatsAppLogs() {
   const { data: stats } = useMessageStats();
 
   return (
-    <ProtectedLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <ScrollText className="h-8 w-8 text-primary" />
@@ -87,6 +87,6 @@ export default function WhatsAppLogs() {
           </CardContent>
         </Card>
       </div>
-    </ProtectedLayout>
+    </>
   );
 }

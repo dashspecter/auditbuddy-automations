@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +62,7 @@ export default function WhatsAppTemplates() {
   };
 
   return (
-    <ProtectedLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -214,6 +213,6 @@ export default function WhatsAppTemplates() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </ProtectedLayout>
+    </>
   );
 }
