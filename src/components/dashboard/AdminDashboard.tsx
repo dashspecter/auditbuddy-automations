@@ -8,6 +8,7 @@ import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
 import { DecliningLocationsCard } from "./DecliningLocationsCard";
 import { WeakestSectionsCard } from "./WeakestSectionsCard";
 import { OpenCorrectiveActionsWidget } from "./OpenCorrectiveActionsWidget";
+import { WhatsAppStatsWidget } from "./WhatsAppStatsWidget";
 import { TasksWidget } from "./TasksWidget";
 import { WorkforceAnalytics } from "./WorkforceAnalytics";
 import { DraftAudits } from "./DraftAudits";
@@ -95,7 +96,10 @@ export const AdminDashboard = () => {
         <OpenCorrectiveActionsWidget />
       </div>
 
-      {/* 6. Maintenance Schedule */}
+      {/* 6. WhatsApp Stats */}
+      <WhatsAppStatsWidget />
+
+      {/* 7. Maintenance Schedule */}
       <MaintenanceInterventions />
     </div>
   );

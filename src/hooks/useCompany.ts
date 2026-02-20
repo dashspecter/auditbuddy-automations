@@ -318,6 +318,36 @@ export const useUpdateCompany = () => {
   });
 };
 
+const DEFAULT_WA_TEMPLATES = [
+  { name: "task_assigned", body: "📋 New task: {{1}}. Please complete it before the deadline.", category: "utility", language: "en" },
+  { name: "shift_assigned", body: "📅 You've been assigned a shift on {{1}} from {{2}} to {{3}}.", category: "utility", language: "en" },
+  { name: "shift_published", body: "📢 Your schedule for {{1}} has been published. Shift: {{2}} - {{3}}.", category: "utility", language: "en" },
+  { name: "ca_assigned", body: "⚠️ Corrective Action: {{1}}. Your task: {{2}} (Severity: {{3}}). Please resolve promptly.", category: "utility", language: "en" },
+  { name: "announcement", body: "📣 {{1}}", category: "marketing", language: "en" },
+];
+
+async function seedWhatsAppTemplates(companyId: string) {
+  // Check if templates already exist for this company
+  const { count } = await supabase
+    .from("wa_message_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId);
+
+  if ((count ?? 0) > 0) return; // Already seeded
+
+  const templates = DEFAULT_WA_TEMPLATES.map((t) => ({
+    company_id: companyId,
+    name: t.name,
+    body: t.body,
+    category: t.category,
+    language: t.language,
+    approval_status: "approved", // Pre-approved defaults
+    version: 1,
+  }));
+
+  await supabase.from("wa_message_templates").insert(templates);
+}
+
 // Toggle module activation
 export const useToggleModule = () => {
   const queryClient = useQueryClient();
@@ -338,12 +368,19 @@ export const useToggleModule = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['company_modules'] });
       toast({
         title: "Success",
         description: "Module updated successfully",
       });
+
+      // Seed default WhatsApp templates when module is activated
+      if (data?.module_name === 'whatsapp_messaging' && data?.is_active) {
+        seedWhatsAppTemplates(data.company_id).catch((err) =>
+          console.warn("[WhatsApp] Template seeding error:", err)
+        );
+      }
     },
     onError: (error) => {
       toast({

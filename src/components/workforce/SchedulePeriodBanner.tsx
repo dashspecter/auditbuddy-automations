@@ -37,6 +37,9 @@ import {
 } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
 import { useWhatsAppNotifier } from "@/hooks/useWhatsAppNotifier";
+import { supabase } from "@/integrations/supabase/client";
+
+type NotifyParams = Parameters<ReturnType<typeof useWhatsAppNotifier>["notify"]>[0];
 
 interface SchedulePeriodBannerProps {
   period: SchedulePeriod | null;
@@ -62,15 +65,49 @@ export const SchedulePeriodBanner = ({
   
   const pendingCount = pendingRequests.length;
   const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
-  const { notifyBatch } = useWhatsAppNotifier();
+  const { notifyBatch, isModuleActive } = useWhatsAppNotifier();
 
   if (!period && !isLoading) return null;
 
   const notifyShiftPublished = async (periodId: string) => {
-    // Non-blocking: WhatsApp broadcast for published schedule can be handled
-    // via the broadcast edge function or notification rules in the future.
-    // For now, this is a placeholder that logs the event.
-    console.log('[WhatsApp] Schedule published, period:', periodId);
+    if (!isModuleActive || !company?.id || !period) return;
+    try {
+      // Get all shifts + assignments for this period's week/location
+      const { data: shifts } = await supabase
+        .from("shifts")
+        .select("id, shift_date, start_time, end_time, shift_assignments(staff_id)")
+        .eq("company_id", company.id)
+        .eq("location_id", period.location_id)
+        .eq("shift_date", period.week_start_date)
+        .not("status", "in", '("cancelled","deleted")');
+
+      if (!shifts?.length) return;
+
+      const notifications: NotifyParams[] = [];
+      for (const shift of shifts) {
+        const assignments = (shift as any).shift_assignments ?? [];
+        for (const sa of assignments) {
+          if (!sa.staff_id) continue;
+          notifications.push({
+            employeeId: sa.staff_id,
+            templateName: "shift_published",
+            variables: {
+              shift_date: shift.shift_date,
+              start_time: shift.start_time,
+              end_time: shift.end_time,
+            },
+            eventType: "shift_published",
+            eventRefId: shift.id,
+          });
+        }
+      }
+
+      if (notifications.length) {
+        notifyBatch(notifications); // fire-and-forget
+      }
+    } catch (err) {
+      console.warn("[WhatsApp] Schedule publish notification error:", err);
+    }
   };
 
   const handlePublish = async () => {
@@ -89,6 +126,7 @@ export const SchedulePeriodBanner = ({
   const handlePublishAndLock = async () => {
     if (!period) return;
     await publishAndLockMutation.mutateAsync({ periodId: period.id });
+    notifyShiftPublished(period.id);
     setConfirmDialog(null);
   };
 
