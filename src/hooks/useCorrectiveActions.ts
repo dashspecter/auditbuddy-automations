@@ -388,7 +388,7 @@ export function useCompleteActionItem() {
   return useMutation({
     mutationFn: async (args: CompleteItemArgs) => {
       if (!user?.id) throw new Error("Not authenticated");
-      if (args.item.evidence_required && !args.evidencePacketId) {
+      if (args.item.evidence_required && !args.evidencePacketId && !args.completionNotes) {
         throw new Error("Evidence packet required before marking done");
       }
 
