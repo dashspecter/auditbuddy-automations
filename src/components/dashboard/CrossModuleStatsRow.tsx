@@ -7,9 +7,17 @@ import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { useTrainingAssignments } from "@/hooks/useTrainingAssignments";
 import { useMvAttendanceStats } from "@/hooks/useMaterializedViews";
 import { format, subMonths } from "date-fns";
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DashboardPreviewDialog } from "./DashboardPreviewDialog";
+import { AuditScorePopup } from "./popups/AuditScorePopup";
+import { TaskCompletionPopup } from "./popups/TaskCompletionPopup";
+import { WorkforceScorePopup } from "./popups/WorkforceScorePopup";
+import { OpenCAsPopup } from "./popups/OpenCAsPopup";
+import { TrainingPopup } from "./popups/TrainingPopup";
+import { AttendancePopup } from "./popups/AttendancePopup";
+
+type PopupType = "audit" | "tasks" | "workforce" | "cas" | "training" | "attendance" | null;
 
 interface CrossModuleStatsRowProps {
   dateFrom?: Date;
@@ -18,7 +26,8 @@ interface CrossModuleStatsRowProps {
 
 export const CrossModuleStatsRow = ({ dateFrom, dateTo }: CrossModuleStatsRowProps) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const [activePopup, setActivePopup] = useState<PopupType>(null);
+
   const dashboardStats = useDashboardStats({ dateFrom, dateTo });
   const { data: taskStats, isLoading: tasksLoading } = useTaskStats();
   const { data: cas, isLoading: casLoading } = useCorrectiveActions();
@@ -62,50 +71,78 @@ export const CrossModuleStatsRow = ({ dateFrom, dateTo }: CrossModuleStatsRowPro
 
   const isLoading = dashboardStats.isLoading || tasksLoading || casLoading || perfLoading || trainingLoading || attendanceLoading;
 
+  const popupConfig: Record<Exclude<PopupType, null>, { title: string; navigateTo: string; navigateLabel: string }> = {
+    audit: { title: t("dashboard.kpi.auditScore", "Audit Score"), navigateTo: "/audits", navigateLabel: t("dashboard.popup.goToAudits", "Go to Audits") },
+    tasks: { title: t("dashboard.kpi.taskCompletion", "Task Completion"), navigateTo: "/tasks", navigateLabel: t("dashboard.popup.goToTasks", "Go to Tasks") },
+    workforce: { title: t("dashboard.kpi.workforceScore", "Workforce Score"), navigateTo: "/workforce", navigateLabel: t("dashboard.popup.goToWorkforce", "Go to Workforce") },
+    cas: { title: t("dashboard.kpi.openCAs", "Open CAs"), navigateTo: "/corrective-actions", navigateLabel: t("dashboard.popup.goToCAs", "Go to Corrective Actions") },
+    training: { title: t("dashboard.kpi.trainingCompliance", "Training"), navigateTo: "/training", navigateLabel: t("dashboard.popup.goToTraining", "Go to Training") },
+    attendance: { title: t("dashboard.kpi.attendance", "Attendance"), navigateTo: "/attendance", navigateLabel: t("dashboard.popup.goToAttendance", "Go to Attendance") },
+  };
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      <StatsCard
-        title={t("dashboard.kpi.auditScore", "Audit Score")}
-        value={isLoading ? "..." : `${dashboardStats.avgScore}%`}
-        icon={TrendingUp}
-        description={t("dashboard.kpi.avgAcrossLocations", "Avg across locations")}
-        onClick={() => navigate("/audits")}
-      />
-      <StatsCard
-        title={t("dashboard.kpi.taskCompletion", "Task Completion")}
-        value={isLoading ? "..." : `${taskCompletionRate}%`}
-        icon={ListTodo}
-        description={`${taskStats?.overdue || 0} ${t("dashboard.kpi.overdue", "overdue")}`}
-        onClick={() => navigate("/tasks")}
-      />
-      <StatsCard
-        title={t("dashboard.kpi.workforceScore", "Workforce Score")}
-        value={isLoading ? "..." : `${workforceScore}%`}
-        icon={Users}
-        description={`${allScores?.length || 0} ${t("dashboard.kpi.employees", "employees")}`}
-        onClick={() => navigate("/workforce")}
-      />
-      <StatsCard
-        title={t("dashboard.kpi.openCAs", "Open CAs")}
-        value={isLoading ? "..." : openCAsCount.toString()}
-        icon={Shield}
-        description={t("dashboard.kpi.needsResolution", "Needs resolution")}
-        onClick={() => navigate("/corrective-actions")}
-      />
-      <StatsCard
-        title={t("dashboard.kpi.trainingCompliance", "Training")}
-        value={isLoading ? "..." : `${trainingCompliance}%`}
-        icon={GraduationCap}
-        description={t("dashboard.kpi.completionRate", "Completion rate")}
-        onClick={() => navigate("/training")}
-      />
-      <StatsCard
-        title={t("dashboard.kpi.attendance", "Attendance")}
-        value={isLoading ? "..." : `${attendanceRate}%`}
-        icon={Clock}
-        description={t("dashboard.kpi.presentRate", "Present rate")}
-        onClick={() => navigate("/attendance")}
-      />
-    </div>
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatsCard
+          title={t("dashboard.kpi.auditScore", "Audit Score")}
+          value={isLoading ? "..." : `${dashboardStats.avgScore}%`}
+          icon={TrendingUp}
+          description={t("dashboard.kpi.avgAcrossLocations", "Avg across locations")}
+          onClick={() => setActivePopup("audit")}
+        />
+        <StatsCard
+          title={t("dashboard.kpi.taskCompletion", "Task Completion")}
+          value={isLoading ? "..." : `${taskCompletionRate}%`}
+          icon={ListTodo}
+          description={`${taskStats?.overdue || 0} ${t("dashboard.kpi.overdue", "overdue")}`}
+          onClick={() => setActivePopup("tasks")}
+        />
+        <StatsCard
+          title={t("dashboard.kpi.workforceScore", "Workforce Score")}
+          value={isLoading ? "..." : `${workforceScore}%`}
+          icon={Users}
+          description={`${allScores?.length || 0} ${t("dashboard.kpi.employees", "employees")}`}
+          onClick={() => setActivePopup("workforce")}
+        />
+        <StatsCard
+          title={t("dashboard.kpi.openCAs", "Open CAs")}
+          value={isLoading ? "..." : openCAsCount.toString()}
+          icon={Shield}
+          description={t("dashboard.kpi.needsResolution", "Needs resolution")}
+          onClick={() => setActivePopup("cas")}
+        />
+        <StatsCard
+          title={t("dashboard.kpi.trainingCompliance", "Training")}
+          value={isLoading ? "..." : `${trainingCompliance}%`}
+          icon={GraduationCap}
+          description={t("dashboard.kpi.completionRate", "Completion rate")}
+          onClick={() => setActivePopup("training")}
+        />
+        <StatsCard
+          title={t("dashboard.kpi.attendance", "Attendance")}
+          value={isLoading ? "..." : `${attendanceRate}%`}
+          icon={Clock}
+          description={t("dashboard.kpi.presentRate", "Present rate")}
+          onClick={() => setActivePopup("attendance")}
+        />
+      </div>
+
+      {activePopup && (
+        <DashboardPreviewDialog
+          open={!!activePopup}
+          onOpenChange={(open) => !open && setActivePopup(null)}
+          title={popupConfig[activePopup].title}
+          navigateTo={popupConfig[activePopup].navigateTo}
+          navigateLabel={popupConfig[activePopup].navigateLabel}
+        >
+          {activePopup === "audit" && <AuditScorePopup dateFrom={dateFrom} dateTo={dateTo} />}
+          {activePopup === "tasks" && <TaskCompletionPopup />}
+          {activePopup === "workforce" && <WorkforceScorePopup dateFrom={dateFrom} dateTo={dateTo} />}
+          {activePopup === "cas" && <OpenCAsPopup />}
+          {activePopup === "training" && <TrainingPopup />}
+          {activePopup === "attendance" && <AttendancePopup dateFrom={dateFrom} dateTo={dateTo} />}
+        </DashboardPreviewDialog>
+      )}
+    </>
   );
 };
