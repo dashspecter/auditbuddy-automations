@@ -51,7 +51,7 @@ export default function CorrectiveActionDetail() {
     );
   }
 
-  const sla = getSLAPercent(ca.created_at, ca.due_at);
+  const sla = getSLAPercent(ca.created_at, ca.due_at, ca.closed_at);
   const overdue = isOverdue(ca.due_at) && !["closed", "cancelled"].includes(ca.status);
   const allItemsVerified = (ca.items ?? []).length > 0 && (ca.items ?? []).every(i => i.status === "verified");
   const canClose = isManager && allItemsVerified && ca.status === "pending_verification";

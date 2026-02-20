@@ -191,7 +191,7 @@ export default function CorrectiveActionsList() {
           </Card>
         ) : (
           cas.map(ca => {
-            const sla = getSLAPercent(ca.created_at, ca.due_at);
+            const sla = getSLAPercent(ca.created_at, ca.due_at, ca.closed_at);
             const overdue = isOverdue(ca.due_at) && !["closed", "cancelled"].includes(ca.status);
             return (
               <div

@@ -128,8 +128,8 @@ async function logEvent(
 
 // ─── SLA helper ───────────────────────────────────────────────────────────────
 
-export function getSLAPercent(createdAt: string, dueAt: string): number {
-  const now = Date.now();
+export function getSLAPercent(createdAt: string, dueAt: string, closedAt?: string | null): number {
+  const now = closedAt ? new Date(closedAt).getTime() : Date.now();
   const start = new Date(createdAt).getTime();
   const end = new Date(dueAt).getTime();
   if (end <= start) return 100;
