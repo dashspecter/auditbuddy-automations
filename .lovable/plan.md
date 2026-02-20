@@ -1,45 +1,69 @@
 
 
-## Make All Dashboard Cards Clickable and Remove Redundant Reports
+## Add Preview Popups to All Dashboard Cards
 
-### Problem
-Several dashboard cards (Declining Locations, Weakest Sections, Workforce Analytics) are not fully clickable, and the bottom half of the dashboard still has "old-style" report widgets (Compliance Pie Chart, Location Performance Line Chart, Section Performance Trends, and Recent Audits single stat card) that duplicate information already surfaced by the new intelligence widgets above them.
+### Concept
+Instead of navigating directly to a full page when clicking a dashboard card, each card will first open a popup (responsive dialog -- drawer on mobile, dialog on desktop) showing a richer summary. From that popup, the user can then click "Go to [module]" to navigate to the full page. This creates a two-step drill-down: card click -> summary popup -> full page.
 
-### What Gets Removed
-These 4 components are removed from the Admin Dashboard layout:
-- **RecentAudits** -- was a single "This Week Audits" stat card; this info is already covered by the Attention Alert Bar and CrossModuleStatsRow
-- **CompliancePieChart** -- compliant vs non-compliant split; the Audit Score KPI card and Weakest Sections already convey this
-- **LocationPerformanceChart** -- location scores over time; Declining Locations card already highlights what matters
-- **SectionPerformanceTrends** -- section-level line charts with filters; Weakest Sections card already shows the bottom performers
+### Cards That Get Popups
 
-These components stay in the codebase (they may be used elsewhere or in reports), they are just removed from the dashboard layout.
+1. **KPI Stats Row (6 cards)** -- Audit Score, Task Completion, Workforce Score, Open CAs, Training, Attendance
+2. **Declining Locations Card** -- click a location row -> popup with that location's trend details
+3. **Weakest Sections Card** -- click a section row -> popup with section breakdown
+4. **Attention Alert Bar badges** -- each badge opens a popup showing the relevant overdue/at-risk items
+5. **Tasks Widget rows** -- already navigates to tasks; will open a task detail popup first
+6. **CA Widget rows** -- already navigates to CA detail; will open a CA summary popup first
 
-### What Gets Made Clickable
-- **DecliningLocationsCard** -- entire card header area gets an onClick navigating to `/audits`
-- **WeakestSectionsCard** -- each section row becomes clickable, navigating to `/audits` (where the user can filter by section); card header links to `/audits`
-- **WorkforceAnalytics** -- already has internal navigation, no change needed
-- **MaintenanceInterventions** -- verify it navigates to `/maintenance` on click
+### What Each Popup Shows
 
-### Changes
+| Card | Popup Content |
+|------|--------------|
+| Audit Score | Average score, best/worst location, recent audit list, trend sparkline |
+| Task Completion | Pending/overdue/completed breakdown, top 5 urgent tasks list |
+| Workforce Score | Top 3 performers, bottom 3 at-risk, average score gauge |
+| Open CAs | By severity breakdown, overdue list, recent CAs |
+| Training | Completion %, overdue assignments, by-department breakdown |
+| Attendance | Present rate, late arrivals, missed shifts summary |
+| Declining Location (row) | Location name, score history, last 3 audit scores, trend direction |
+| Weakest Section (row) | Section name, avg score, locations where it's weakest, recent scores |
+| Alert Badge | List of the specific overdue/at-risk items with quick info |
+| Task row | Task title, assignee, due date, priority, location |
+| CA row | CA title, severity, SLA status, assigned to, location |
 
-**File: `src/components/dashboard/AdminDashboard.tsx`**
-- Remove imports for `RecentAudits`, `CompliancePieChart`, `LocationPerformanceChart`, `SectionPerformanceTrends`
-- Remove sections 6, 7, and 8 from the layout (Recent Audits, Compliance + Location Performance grid, Section Performance Trends)
-- Keep: Attention Alert Bar, Cross-Module Stats, Declining + Weakest grid, Workforce, Tasks + CAs, and Maintenance
+### Technical Approach
 
-**File: `src/components/dashboard/WeakestSectionsCard.tsx`**
-- Add `useNavigate` and make each section row clickable with `cursor-pointer hover:bg-accent/50` and `onClick={() => navigate("/audits")}`
+**New component:** `src/components/dashboard/DashboardPreviewDialog.tsx`
+- A reusable wrapper using the existing `ResponsiveDialog` component
+- Accepts a `type` prop (audit, task, workforce, ca, training, attendance, location, section, alert)
+- Accepts relevant data/filters as props
+- Renders the appropriate summary content based on type
+- Always includes a "Go to [Module]" button at the bottom that navigates to the full page
 
-**File: `src/components/dashboard/DecliningLocationsCard.tsx`**
-- Make each location row clickable to navigate to its specific audit page (already has a "View All" button, but individual items should also be clickable)
+**Individual popup content components** (created inside `src/components/dashboard/popups/`):
+- `AuditScorePopup.tsx` -- uses `useDashboardStats`
+- `TaskCompletionPopup.tsx` -- uses `useTaskStats` + `useTasks`
+- `WorkforceScorePopup.tsx` -- uses `usePerformanceLeaderboard`
+- `OpenCAsPopup.tsx` -- uses `useCorrectiveActions`
+- `TrainingPopup.tsx` -- uses `useTrainingAssignments`
+- `AttendancePopup.tsx` -- uses `useMvAttendanceStats`
+- `LocationDetailPopup.tsx` -- uses `usePerformanceTrends` filtered to one location
+- `SectionDetailPopup.tsx` -- uses `usePerformanceTrends` filtered to one section
 
-### Resulting Dashboard Layout (cleaner, every element actionable)
-1. Header + Date Filter
-2. Greeting + Draft Audits
-3. Attention Alert Bar (all badges clickable)
-4. Cross-Module KPI Row (all 6 cards clickable)
-5. Declining Locations + Weakest Sections (cards and rows clickable)
-6. Workforce Health Summary
-7. Tasks + Corrective Actions (items and "View All" clickable)
-8. Maintenance Schedule
+**Modified components:**
+- `CrossModuleStatsRow.tsx` -- each `StatsCard` onClick opens popup instead of navigating
+- `DecliningLocationsCard.tsx` -- row onClick opens location popup
+- `WeakestSectionsCard.tsx` -- row onClick opens section popup
+- `AttentionAlertBar.tsx` -- badge onClick opens alert popup
+- `TasksWidget.tsx` -- row onClick opens task popup
+- `OpenCorrectiveActionsWidget.tsx` -- row onClick opens CA popup
+- `StatsCard.tsx` -- no changes needed (onClick handler is already a prop)
+
+**State management:** Each parent component manages its own `[popupOpen, setPopupOpen]` state and passes the selected item data to the popup component.
+
+### User Flow
+1. User sees dashboard with all cards and widgets
+2. Clicks any card/row/badge
+3. A popup appears with a summary of that module's data
+4. User reviews the info -- can close the popup or click "View All [Module]" to navigate to the full page
+5. On mobile, the popup renders as a bottom drawer for better UX
 
