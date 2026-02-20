@@ -1,33 +1,30 @@
 
 
-## Show Profile/Dashboard Link Instead of "Sign In" for Authenticated Users
+## Freeze SLA % for Closed/Cancelled Corrective Actions
 
 ### Problem
-The landing page navbar always shows "Sign In" regardless of whether the user is logged in. When authenticated users see the landing page (e.g., navigating directly to `/`), they should see a way to go to their dashboard, not a sign-in button.
+The `getSLAPercent` helper always uses the current time (`Date.now()`) to calculate how much of the SLA window has elapsed. This means closed CAs keep showing an increasing SLA %, which is misleading -- the screenshot shows closed items at 12% and 45%, but those numbers will keep climbing over time even though the CA is resolved.
 
 ### Solution
-Update the LandingNFX navbar to check authentication state and conditionally render:
-- **Not signed in**: Show "Sign In" link (current behavior)
-- **Signed in**: Show user avatar/initials with a "Go to Dashboard" link
+Update `getSLAPercent` to accept an optional `closedAt` timestamp. When provided, use that timestamp instead of `now` to freeze the SLA at the moment the CA was closed. Then pass `closed_at` from each CA record when calling the helper.
 
 ### What Changes
 
-**File: `src/pages/LandingNFX.tsx`**
+**File: `src/hooks/useCorrectiveActions.ts`**
+- Update `getSLAPercent` signature to accept an optional third parameter: `closedAt?: string | null`
+- When `closedAt` is provided, use `new Date(closedAt).getTime()` instead of `Date.now()`
 
-1. Import `useAuth` from `@/contexts/AuthContext` and `Avatar`/`AvatarFallback` from the UI components
-2. In the `Navbar` sub-component, call `useAuth()` to get the `user` object
-3. Replace the static "Sign In" link in **three places** (desktop nav, mobile menu, and the bottom CTA section) with a conditional:
-   - If `user` exists: render an avatar with initials + "Dashboard" link pointing to `/dashboard`
-   - If no user: keep the current "Sign In" link
+**File: `src/pages/correctiveActions/CorrectiveActionsList.tsx`**
+- Pass `ca.closed_at` as the third argument to `getSLAPercent(ca.created_at, ca.due_at, ca.closed_at)`
 
-### Visual Result
+**File: `src/pages/correctiveActions/CorrectiveActionDetail.tsx`**
+- Pass `ca.closed_at` as the third argument to `getSLAPercent(ca.created_at, ca.due_at, ca.closed_at)`
 
-**Before (signed in):** `Problem | How It Works | ... | Sign In | Book a Demo`
+### Technical Detail
 
-**After (signed in):** `Problem | How It Works | ... | [Avatar] Dashboard | Book a Demo`
+```text
+Before:  getSLAPercent(createdAt, dueAt)         -> always uses Date.now()
+After:   getSLAPercent(createdAt, dueAt, closedAt) -> uses closedAt if provided, else Date.now()
+```
 
-### Technical Notes
-- The `useAuth` hook is already available project-wide via `AuthProvider` wrapping the router
-- No new components needed -- reuses existing `Avatar` / `AvatarFallback` from the UI library
-- The `isStaff` flag from `useAuth` can optionally route staff users to `/staff` instead of `/dashboard`
-- No database or backend changes required
+This is a minimal, non-breaking change -- the third parameter is optional so any other callers continue working as before.
