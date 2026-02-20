@@ -326,9 +326,40 @@ export function useCreateCorrectiveAction() {
 
       return ca.id;
     },
-    onSuccess: () => {
+    onSuccess: async (caId, args) => {
       queryClient.invalidateQueries({ queryKey: ["corrective_actions"] });
       queryClient.invalidateQueries({ queryKey: ["location_risk_state"] });
+
+      // Fire-and-forget WhatsApp notifications for CA item assignees
+      if (args.bundleItems?.length && user?.id) {
+        try {
+          const companyId = await getCompanyId(user.id);
+          if (!companyId) return;
+          for (const item of args.bundleItems) {
+            if (!item.assigneeRole) continue;
+            const { data: emp } = await supabase
+              .from("employees")
+              .select("id")
+              .eq("company_id", companyId)
+              .eq("location_id", args.locationId)
+              .eq("role", item.assigneeRole)
+              .limit(1)
+              .maybeSingle();
+            if (emp?.id) {
+              supabase.functions.invoke("send-whatsapp", {
+                body: {
+                  company_id: companyId,
+                  employee_id: emp.id,
+                  template_name: "ca_assigned",
+                  variables: { ca_title: args.title, item_title: item.title, severity: args.severity },
+                  event_type: "ca_created",
+                  event_ref_id: caId,
+                },
+              }).catch(() => {});
+            }
+          }
+        } catch {}
+      }
     },
   });
 }
