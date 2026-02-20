@@ -205,7 +205,12 @@
     "qrForms": "QR Forms",
     "formTemplates": "Templates",
     "formAssignments": "Assignments",
-    "formRecords": "Records"
+    "formRecords": "Records",
+    "whatsapp": "WhatsApp",
+    "whatsappTemplates": "Templates",
+    "whatsappRules": "Rules",
+    "whatsappBroadcast": "Broadcast",
+    "whatsappLogs": "Delivery Log"
   },
   "auth": {
     "signIn": "Sign In",

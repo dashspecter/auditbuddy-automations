@@ -16,7 +16,8 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug,
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
-  Cog, Trash2, History, ShieldCheck, ShieldAlert, QrCode, LucideIcon
+  Cog, Trash2, History, ShieldCheck, ShieldAlert, QrCode, LucideIcon,
+  MessageSquare
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -326,6 +327,20 @@ export const navigationItems: NavigationItem[] = [
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
+  },
+  {
+    id: 'whatsapp',
+    titleKey: "nav.whatsapp",
+    url: "/whatsapp-templates",
+    icon: MessageSquare,
+    module: "whatsapp_messaging",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { id: 'whatsapp-templates', titleKey: "nav.whatsappTemplates", url: "/whatsapp-templates" },
+      { id: 'whatsapp-rules', titleKey: "nav.whatsappRules", url: "/whatsapp-rules" },
+      { id: 'whatsapp-broadcast', titleKey: "nav.whatsappBroadcast", url: "/whatsapp-broadcast" },
+      { id: 'whatsapp-logs', titleKey: "nav.whatsappLogs", url: "/whatsapp-logs" },
+    ],
   },
   {
     id: 'qr-forms',

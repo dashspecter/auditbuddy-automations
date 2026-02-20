@@ -202,7 +202,12 @@
     "qrForms": "Formulare QR",
     "formTemplates": "Șabloane",
     "formAssignments": "Alocări",
-    "formRecords": "Înregistrări"
+    "formRecords": "Înregistrări",
+    "whatsapp": "WhatsApp",
+    "whatsappTemplates": "Șabloane",
+    "whatsappRules": "Reguli",
+    "whatsappBroadcast": "Difuzare",
+    "whatsappLogs": "Jurnal livrare"
   },
   "auth": {
     "signIn": "Autentificare",

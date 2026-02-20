@@ -4,7 +4,8 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert
+  MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert,
+  MessageSquare
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -318,6 +319,20 @@ const navigationItems = [
     icon: Plug,
     module: "integrations",
     allowedRoles: ['admin']
+  },
+  // 15b. WhatsApp Messaging
+  {
+    titleKey: "nav.whatsapp",
+    url: "/whatsapp-templates",
+    icon: MessageSquare,
+    module: "whatsapp_messaging",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { titleKey: "nav.whatsappTemplates", url: "/whatsapp-templates" },
+      { titleKey: "nav.whatsappRules", url: "/whatsapp-rules" },
+      { titleKey: "nav.whatsappBroadcast", url: "/whatsapp-broadcast" },
+      { titleKey: "nav.whatsappLogs", url: "/whatsapp-logs" },
+    ],
   },
   // 16. Template Marketplace
   { 
