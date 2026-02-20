@@ -100,6 +100,9 @@ export function useNavigationResolver(): UseNavigationResolverResult {
       // Company owners and platform admins have access to everything
       if (isOwner || hasPlatformAdminRole) return true;
       
+      // Company admins match 'admin' in allowedRoles
+      if (isCompanyAdmin && allowedRoles.includes('admin')) return true;
+      
       if (roleData.isManager && allowedRoles.includes('manager')) return true;
       if (roleData.isChecker && allowedRoles.includes('checker')) return true;
       if (roleData.isHR && allowedRoles.includes('hr')) return true;
