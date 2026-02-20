@@ -155,6 +155,14 @@ export function ActionItemCard({ item, companyId, isManager, currentUserId, caSt
               </div>
             )}
 
+            {/* Staff resolution notes */}
+            {item.completion_notes && (item.status === "done" || item.status === "verified") && (
+              <div className="mt-2 p-2 bg-primary/5 border border-primary/20 rounded text-xs">
+                <span className="font-medium text-foreground">Staff resolution: </span>
+                <span className="text-muted-foreground">{item.completion_notes}</span>
+              </div>
+            )}
+
             {item.verification_notes && (
               <p className="text-xs text-muted-foreground mt-1 italic">
                 Verifier note: {item.verification_notes}

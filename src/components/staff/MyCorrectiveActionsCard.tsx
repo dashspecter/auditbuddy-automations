@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, ArrowRight } from "lucide-react";
+import { AlertTriangle, Clock, ArrowRight, FileCheck } from "lucide-react";
 import { format, isPast } from "date-fns";
+import { ResolutionReportModal } from "@/components/correctiveActions/ResolutionReportModal";
+import type { CorrectiveActionItem } from "@/hooks/useCorrectiveActions";
 
 interface MyCorrectiveActionsCardProps {
   /** The Supabase auth user_id (not employee_id) */
@@ -19,7 +22,7 @@ interface MyCorrectiveActionsCardProps {
  */
 export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps) => {
   const navigate = useNavigate();
-
+  const [resolveItem, setResolveItem] = useState<{ item: CorrectiveActionItem; companyId: string; caTitle: string } | null>(null);
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["my_ca_items", userId],
     enabled: !!userId,
@@ -32,7 +35,18 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
           instructions,
           due_at,
           status,
+          evidence_required,
+          evidence_packet_id,
+          assignee_user_id,
+          assignee_role,
           corrective_action_id,
+          company_id,
+          completed_by,
+          completed_at,
+          verified_by,
+          verified_at,
+          verification_notes,
+          created_at,
           corrective_actions (
             title,
             severity,
@@ -164,14 +178,43 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               )}
+
+              {/* Resolve CTA for non-test items */}
+              {!isTestRetake && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-1 w-full gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => setResolveItem({
+                    item: item as unknown as CorrectiveActionItem,
+                    companyId: item.company_id,
+                    caTitle: ca?.title ?? "Corrective Action",
+                  })}
+                >
+                  <FileCheck className="h-4 w-4" />
+                  Resolve
+                </Button>
+              )}
             </div>
           );
         })}
       </div>
 
       <p className="text-xs text-muted-foreground mt-3 text-center">
-        Contact your manager once you've completed these actions.
+        Your manager will be notified for verification.
       </p>
+
+      {/* Resolution Report Modal */}
+      {resolveItem && (
+        <ResolutionReportModal
+          open={!!resolveItem}
+          item={resolveItem.item}
+          companyId={resolveItem.companyId}
+          caTitle={resolveItem.caTitle}
+          onClose={() => setResolveItem(null)}
+          onSuccess={() => setResolveItem(null)}
+        />
+      )}
     </Card>
   );
 };

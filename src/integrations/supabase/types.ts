@@ -3000,6 +3000,7 @@ export type Database = {
           company_id: string
           completed_at: string | null
           completed_by: string | null
+          completion_notes: string | null
           corrective_action_id: string
           created_at: string
           due_at: string
@@ -3019,6 +3020,7 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           completed_by?: string | null
+          completion_notes?: string | null
           corrective_action_id: string
           created_at?: string
           due_at: string
@@ -3038,6 +3040,7 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           completed_by?: string | null
+          completion_notes?: string | null
           corrective_action_id?: string
           created_at?: string
           due_at?: string

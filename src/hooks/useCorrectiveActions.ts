@@ -57,6 +57,7 @@ export interface CorrectiveActionItem {
   verified_by: string | null;
   verified_at: string | null;
   verification_notes: string | null;
+  completion_notes: string | null;
   created_at: string;
 }
 
@@ -377,6 +378,7 @@ export interface CompleteItemArgs {
   item: CorrectiveActionItem;
   evidencePacketId?: string;
   companyId: string;
+  completionNotes?: string;
 }
 
 export function useCompleteActionItem() {
@@ -397,6 +399,7 @@ export function useCompleteActionItem() {
           completed_by: user.id,
           completed_at: new Date().toISOString(),
           evidence_packet_id: args.evidencePacketId ?? null,
+          completion_notes: args.completionNotes ?? null,
         })
         .eq("id", args.item.id);
       if (error) throw error;
@@ -405,6 +408,7 @@ export function useCompleteActionItem() {
         item_id: args.item.id,
         item_title: args.item.title,
         has_evidence: !!args.evidencePacketId,
+        completion_notes: args.completionNotes ?? null,
       });
     },
     onSuccess: (_, args) => {
