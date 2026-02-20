@@ -1,0 +1,1 @@
+ALTER TABLE public.corrective_action_items ADD COLUMN completion_notes TEXT;
