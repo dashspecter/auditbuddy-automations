@@ -1166,7 +1166,7 @@ export default function CorrectiveActionRules() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) resetForm(); }}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Auto-Generation Rule</DialogTitle>
             <DialogDescription>
