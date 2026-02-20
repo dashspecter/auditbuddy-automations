@@ -20,6 +20,7 @@ import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useStaffLocations, useAddStaffLocation, useRemoveStaffLocation } from "@/hooks/useStaffLocations";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
 import { Settings, X, Plus, ChevronDown } from "lucide-react";
+import { WhatsAppPreferences } from "@/components/employee/WhatsAppPreferences";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -842,6 +843,14 @@ export const EmployeeDialog = ({
                 </p>
               )}
             </div>
+          )}
+
+          {/* WhatsApp Preferences - only for existing employees */}
+          {employee && (
+            <WhatsAppPreferences
+              employeeId={employee.id}
+              employeePhone={formData.phone}
+            />
           )}
 
           <div className="flex justify-end gap-2">
