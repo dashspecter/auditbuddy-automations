@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useCompanyModules, useToggleModule } from '@/hooks/useCompany';
 import { PRICING_TIERS, getAvailableModulesForTier } from '@/config/pricingTiers';
-import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock, Trash2 } from 'lucide-react';
+import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock, Trash2, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -61,6 +61,14 @@ const MODULE_CONFIG = [
     color: 'hsl(var(--destructive))',
     features: ['Photo capture', 'Weight tracking', 'Cost analytics', 'Daily rollups'],
     category: 'Operations',
+  },
+  {
+    id: 'whatsapp_messaging',
+    name: 'WhatsApp Messaging',
+    description: 'Send WhatsApp notifications via Twilio with templates, broadcasts, and delivery tracking',
+    icon: MessageSquare,
+    color: 'hsl(var(--chart-2))',
+    features: ['WhatsApp notifications', 'Message templates', 'Delivery tracking', 'Broadcast announcements'],
   },
 ];
 

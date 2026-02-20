@@ -67,6 +67,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'inventory',
       'wastage',
       'qr_forms',
+      'whatsapp_messaging',
     ],
     maxUsers: 100,
     maxLocations: 3,
@@ -102,6 +103,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'integrations',
       'wastage',
       'qr_forms',
+      'whatsapp_messaging',
     ],
   },
 };

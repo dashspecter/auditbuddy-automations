@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany, useCompanyUsers, useUpdateCompany, useUpdateCompanyRole, useUpdatePlatformRole } from "@/hooks/useCompany";
-import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock, Shield, Key } from "lucide-react";
+import { Building2, Users, Puzzle, CreditCard, Settings, Pencil, Trash2, Clock, Shield, Key, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import IndustryModuleManagement from "@/components/settings/IndustryModuleManagement";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
@@ -16,6 +16,7 @@ import { StaffVisibilitySettings } from "@/components/settings/StaffVisibilitySe
 import { ClockInRemindersSettings } from "@/components/settings/ClockInRemindersSettings";
 import { ClockInToggleSettings } from "@/components/settings/ClockInToggleSettings";
 import { RolePermissionsManager } from "@/components/settings/RolePermissionsManager";
+import { WhatsAppChannelSettings } from "@/components/settings/WhatsAppChannelSettings";
 import { ScheduleGovernanceSettings } from "@/components/settings/ScheduleGovernanceSettings";
 import {
   Select,
@@ -272,6 +273,10 @@ export default function CompanySettings() {
               <CreditCard className="h-4 w-4" />
               Billing
             </TabsTrigger>
+            <TabsTrigger value="messaging" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Messaging
+            </TabsTrigger>
             {company?.userRole === 'company_owner' && (
               <TabsTrigger value="permissions" className="gap-2">
                 <Shield className="h-4 w-4" />
@@ -514,6 +519,10 @@ export default function CompanySettings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="messaging">
+            <WhatsAppChannelSettings />
           </TabsContent>
 
           {company?.userRole === 'company_owner' && (
