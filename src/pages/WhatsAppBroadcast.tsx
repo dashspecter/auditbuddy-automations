@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -50,7 +49,7 @@ export default function WhatsAppBroadcast() {
   };
 
   return (
-    <ProtectedLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Megaphone className="h-8 w-8 text-primary" />
@@ -101,6 +100,6 @@ export default function WhatsAppBroadcast() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </ProtectedLayout>
+    </>
   );
 }
