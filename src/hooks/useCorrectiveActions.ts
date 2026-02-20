@@ -413,6 +413,7 @@ export function useCompleteActionItem() {
     },
     onSuccess: (_, args) => {
       queryClient.invalidateQueries({ queryKey: ["corrective_action", args.item.corrective_action_id] });
+      queryClient.invalidateQueries({ queryKey: ["my_ca_items"] });
     },
   });
 }
