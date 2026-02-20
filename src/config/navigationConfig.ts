@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
   GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
-  AlertTriangle, Trash2,
+  AlertTriangle, Trash2, MessageSquare,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -293,9 +293,23 @@ export const navigationItems: NavItem[] = [
       { id: "operations-waste", title: "Wastage", url: "/waste/add" },
     ]
   },
+  {
+    id: "whatsapp",
+    title: "WhatsApp",
+    url: "/whatsapp-templates",
+    icon: MessageSquare,
+    module: "whatsapp_messaging",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { id: "whatsapp-templates", title: "Templates", url: "/whatsapp-templates" },
+      { id: "whatsapp-rules", title: "Rules", url: "/whatsapp-rules" },
+      { id: "whatsapp-broadcast", title: "Broadcast", url: "/whatsapp-broadcast" },
+      { id: "whatsapp-logs", title: "Delivery Log", url: "/whatsapp-logs" },
+    ],
+  },
   { 
     id: "wastage",
-    title: "Wastage", 
+    title: "Wastage",
     url: "/waste", 
     icon: Trash2,
     module: "wastage",

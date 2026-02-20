@@ -187,6 +187,10 @@ import QrFormEntry from "./pages/qr-forms/QrFormEntry";
 import CorrectiveActionsList from "./pages/correctiveActions/CorrectiveActionsList";
 import CorrectiveActionDetail from "./pages/correctiveActions/CorrectiveActionDetail";
 import CorrectiveActionRules from "./pages/correctiveActions/CorrectiveActionRules";
+import WhatsAppTemplates from "./pages/WhatsAppTemplates";
+import WhatsAppRules from "./pages/WhatsAppRules";
+import WhatsAppBroadcast from "./pages/WhatsAppBroadcast";
+import WhatsAppLogs from "./pages/WhatsAppLogs";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -444,6 +448,12 @@ const App = () => (
                        {/* Corrective Actions (CAPA-lite) Routes */}
                        <Route path="/corrective-actions" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionsList /></ManagerRoute>} />
                        <Route path="/corrective-actions/rules" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionRules /></ManagerRoute>} />
+                       
+                       {/* WhatsApp Messaging Routes */}
+                       <Route path="/whatsapp-templates" element={<ManagerRoute requiredPermission="manage_notifications"><WhatsAppTemplates /></ManagerRoute>} />
+                       <Route path="/whatsapp-rules" element={<ManagerRoute requiredPermission="manage_notifications"><WhatsAppRules /></ManagerRoute>} />
+                       <Route path="/whatsapp-broadcast" element={<ManagerRoute requiredPermission="manage_notifications"><WhatsAppBroadcast /></ManagerRoute>} />
+                       <Route path="/whatsapp-logs" element={<ManagerRoute requiredPermission="manage_notifications"><WhatsAppLogs /></ManagerRoute>} />
                        <Route path="/corrective-actions/:id" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionDetail /></ManagerRoute>} />
                       
                       {/* Workforce Agent Routes */}
