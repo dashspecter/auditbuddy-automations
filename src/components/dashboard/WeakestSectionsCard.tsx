@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, ArrowRight } from "lucide-react";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { Progress } from "@/components/ui/progress";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface WeakestSectionsCardProps {
   dateFrom?: Date;
@@ -11,6 +13,7 @@ interface WeakestSectionsCardProps {
 
 export const WeakestSectionsCard = ({ dateFrom, dateTo }: WeakestSectionsCardProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { sectionPerformance, isLoading } = usePerformanceTrends(undefined, dateFrom, dateTo);
 
   // Bottom 5 sections
@@ -56,7 +59,11 @@ export const WeakestSectionsCard = ({ dateFrom, dateTo }: WeakestSectionsCardPro
         ) : (
           <div className="space-y-3">
             {weakest.map((section, idx) => (
-              <div key={section.sectionName} className="flex items-center gap-3">
+              <div
+                key={section.sectionName}
+                className="flex items-center gap-3 cursor-pointer rounded-md p-1.5 -mx-1.5 hover:bg-accent/50 transition-colors"
+                onClick={() => navigate("/audits")}
+              >
                 <span className="text-xs text-muted-foreground w-4 shrink-0">{idx + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
@@ -71,6 +78,13 @@ export const WeakestSectionsCard = ({ dateFrom, dateTo }: WeakestSectionsCardPro
             ))}
           </div>
         )}
+        <Button
+          variant="link"
+          className="w-full mt-2 text-xs"
+          onClick={() => navigate("/audits")}
+        >
+          {t("dashboard.weakest.viewAll", "View All Section Performance")} <ArrowRight className="h-3 w-3 ml-1" />
+        </Button>
       </CardContent>
     </Card>
   );
