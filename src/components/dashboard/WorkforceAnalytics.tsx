@@ -9,6 +9,11 @@ import { format, startOfMonth, endOfMonth, subMonths, subWeeks } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useState } from "react";
+import { DashboardPreviewDialog } from "./DashboardPreviewDialog";
+import { WorkforceMetricPopup } from "./popups/WorkforceMetricPopup";
+import { useTranslation } from "react-i18next";
+
+type WorkforceMetric = "activeStaff" | "avgPerformance" | "lateArrivals" | "warnings" | "atRisk" | "attendance" | "punctuality" | "taskCompletion" | "testPerformance" | null;
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -62,6 +67,8 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
   const initialRange = getInitialDateRange();
   const [dateFrom, setDateFrom] = useState<Date | undefined>(initialRange.from);
   const [dateTo, setDateTo] = useState<Date | undefined>(initialRange.to);
+  const [activeMetric, setActiveMetric] = useState<WorkforceMetric>(null);
+  const { t } = useTranslation();
 
   const startDate = dateFrom ? format(dateFrom, "yyyy-MM-dd") : format(subMonths(new Date(), 1), "yyyy-MM-dd");
   const endDate = dateTo ? format(dateTo, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
@@ -144,7 +151,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
       
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("activeStaff")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -161,7 +168,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("avgPerformance")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -176,7 +183,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("lateArrivals")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4" />
@@ -191,7 +198,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card className={totalWarnings > 0 ? "border-orange-200" : ""}>
+        <Card className={`cursor-pointer hover:bg-accent/50 transition-colors ${totalWarnings > 0 ? "border-orange-200" : ""}`} onClick={() => setActiveMetric("warnings")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -206,7 +213,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("atRisk")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-red-500" />
@@ -224,7 +231,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
 
       {/* Score Breakdown */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("attendance")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-500" />
@@ -242,7 +249,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("punctuality")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-orange-500" />
@@ -260,7 +267,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("taskCompletion")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -278,7 +285,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("testPerformance")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <FileText className="h-4 w-4 text-purple-500" />
@@ -422,6 +429,29 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {activeMetric && (
+        <DashboardPreviewDialog
+          open={!!activeMetric}
+          onOpenChange={(open) => !open && setActiveMetric(null)}
+          title={
+            activeMetric === "activeStaff" ? t("dashboard.workforce.activeStaff", "Active Staff") :
+            activeMetric === "avgPerformance" ? t("dashboard.workforce.avgPerformance", "Average Performance") :
+            activeMetric === "lateArrivals" ? t("dashboard.workforce.lateArrivals", "Late Arrivals") :
+            activeMetric === "warnings" ? t("dashboard.workforce.warnings", "Active Warnings") :
+            activeMetric === "atRisk" ? t("dashboard.workforce.atRisk", "At Risk Employees") :
+            activeMetric === "attendance" ? t("dashboard.workforce.attendance", "Attendance") :
+            activeMetric === "punctuality" ? t("dashboard.workforce.punctuality", "Punctuality") :
+            activeMetric === "taskCompletion" ? t("dashboard.workforce.taskCompletion", "Task Completion") :
+            t("dashboard.workforce.testPerformance", "Test Performance")
+          }
+          description={t("dashboard.workforce.breakdown", "Detailed breakdown")}
+          navigateTo="/workforce"
+          navigateLabel={t("dashboard.workforce.goTo", "Go to Workforce")}
+        >
+          <WorkforceMetricPopup metric={activeMetric} allScores={allScores} />
+        </DashboardPreviewDialog>
       )}
     </div>
   );
