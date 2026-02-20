@@ -49,6 +49,8 @@ export function useNavigation(): NavigationState {
   const hasRole = (allowedRoles: string[] | undefined): boolean => {
     if (!allowedRoles || allowedRoles.length === 0) return true;
     if (!userRole) return false;
+    // company_admin should match 'admin' in allowedRoles
+    if (isCompanyAdmin && allowedRoles.includes('admin')) return true;
     return allowedRoles.includes(userRole);
   };
 
