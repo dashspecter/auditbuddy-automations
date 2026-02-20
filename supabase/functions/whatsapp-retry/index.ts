@@ -26,9 +26,9 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const { data: failedMessages, error: queryErr } = await supabase
       .from("outbound_messages")
-      .select("*, wa_message_templates(*), messaging_channels!outbound_messages_company_id_fkey(*)")
+      .select("*, wa_message_templates(*)")
       .eq("status", "failed")
-      .lt("retry_count", 3) // max_retries default
+      .lt("retry_count", 3)
       .lte("next_retry_at", now)
       .limit(50);
 

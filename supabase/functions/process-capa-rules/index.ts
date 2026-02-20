@@ -375,6 +375,45 @@ Deno.serve(async (req) => {
       },
     });
 
+    // Fire-and-forget WhatsApp notifications for CA item assignees
+    try {
+      const { data: caItems } = await supabase
+        .from("corrective_action_items")
+        .select("assignee_user_id, title")
+        .eq("corrective_action_id", ca.id)
+        .not("assignee_user_id", "is", null);
+
+      if (caItems?.length) {
+        // Resolve user_id → employee_id for each assignee
+        const userIds = [...new Set(caItems.map((i: any) => i.assignee_user_id))];
+        const { data: employees } = await supabase
+          .from("employees")
+          .select("id, user_id")
+          .eq("company_id", companyId)
+          .in("user_id", userIds);
+
+        const userToEmployee = new Map((employees ?? []).map((e: any) => [e.user_id, e.id]));
+
+        for (const item of caItems) {
+          const employeeId = userToEmployee.get(item.assignee_user_id);
+          if (!employeeId) continue;
+          // Non-blocking send
+          supabase.functions.invoke("send-whatsapp", {
+            body: {
+              company_id: companyId,
+              employee_id: employeeId,
+              template_name: "ca_assigned",
+              variables: { ca_title: caTitle, item_title: item.title, severity },
+              event_type: "ca_created",
+              event_ref_id: ca.id,
+            },
+          }).catch(() => {});
+        }
+      }
+    } catch (waErr) {
+      console.error("[process-capa-rules] WhatsApp notification error (non-blocking):", waErr);
+    }
+
     // Update location risk state if stop-the-line
     if (stopTheLine && locationId) {
       await supabase.from("location_risk_state").upsert({
