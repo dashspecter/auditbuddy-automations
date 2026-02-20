@@ -292,9 +292,39 @@ export const useCreateShiftAssignment = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
+
+      // Fire-and-forget WhatsApp notification for shift assignment
+      if (data?.staff_id) {
+        // Get shift details for the notification
+        (async () => {
+          try {
+            const { data: shift } = await supabase
+              .from("shifts")
+              .select("shift_date, start_time, end_time, company_id")
+              .eq("id", variables.shift_id)
+              .single();
+            if (shift?.company_id) {
+              await supabase.functions.invoke("send-whatsapp", {
+                body: {
+                  company_id: shift.company_id,
+                  employee_id: data.staff_id,
+                  template_name: "shift_assigned",
+                  variables: {
+                    shift_date: shift.shift_date,
+                    start_time: shift.start_time,
+                    end_time: shift.end_time,
+                  },
+                  event_type: "shift_published",
+                  event_ref_id: variables.shift_id,
+                },
+              });
+            }
+          } catch {}
+        })();
+      }
     },
     onError: (error) => {
       toast.error("Failed to assign employee: " + error.message);

@@ -36,6 +36,7 @@ import {
   usePendingChangeRequests
 } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
+import { useWhatsAppNotifier } from "@/hooks/useWhatsAppNotifier";
 
 interface SchedulePeriodBannerProps {
   period: SchedulePeriod | null;
@@ -61,12 +62,21 @@ export const SchedulePeriodBanner = ({
   
   const pendingCount = pendingRequests.length;
   const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  const { notifyBatch } = useWhatsAppNotifier();
 
   if (!period && !isLoading) return null;
+
+  const notifyShiftPublished = async (periodId: string) => {
+    // Non-blocking: WhatsApp broadcast for published schedule can be handled
+    // via the broadcast edge function or notification rules in the future.
+    // For now, this is a placeholder that logs the event.
+    console.log('[WhatsApp] Schedule published, period:', periodId);
+  };
 
   const handlePublish = async () => {
     if (!period) return;
     await publishMutation.mutateAsync({ periodId: period.id });
+    notifyShiftPublished(period.id);
     setConfirmDialog(null);
   };
 

@@ -602,13 +602,27 @@ export const useCreateTask = () => {
 
       return task;
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ 
         predicate: (query) => {
           const key = query.queryKey;
           return key[0] === "tasks" || key[0] === "task-stats" || key[0] === "my-tasks";
         }
       });
+
+      // Fire-and-forget WhatsApp notification for task assignment
+      if (task?.assigned_to && task?.company_id) {
+        supabase.functions.invoke("send-whatsapp", {
+          body: {
+            company_id: task.company_id,
+            employee_id: task.assigned_to,
+            template_name: "task_assigned",
+            variables: { task_title: task.title || "New Task" },
+            event_type: "task_assigned",
+            event_ref_id: task.id,
+          },
+        }).catch(() => {}); // non-blocking
+      }
     },
   });
 };
