@@ -289,6 +289,7 @@ export const EnhancedShiftWeekView = () => {
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
       !shift.is_open_shift &&
+      !shift.is_published &&
       (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
     );
   };
@@ -1213,9 +1214,22 @@ export const EnhancedShiftWeekView = () => {
                               </div>
                             ) : null;
                           })}
-                          {assignedCount === 0 && (
-                            <div className="text-[10px] text-muted-foreground italic mt-1">Unassigned</div>
-                          )}
+                          {assignedCount === 0 && (() => {
+                            const pendingAssignments = shift.shift_assignments?.filter((sa: any) => sa.approval_status === 'pending') || [];
+                            if (pendingAssignments.length > 0) {
+                              return pendingAssignments.map((sa: any) => {
+                                const emp = employees.find(e => e.id === sa.staff_id);
+                                return (
+                                  <div key={sa.id} className="text-[11px] font-medium mt-1 flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                                    <span className="truncate">{emp?.full_name || t('common.unknown')}</span>
+                                    <span className="text-[9px] opacity-75">– Pending</span>
+                                  </div>
+                                );
+                              });
+                            }
+                            return <div className="text-[10px] text-muted-foreground italic mt-1">Unassigned</div>;
+                          })()}
                         </div>
                       );
                     })}
