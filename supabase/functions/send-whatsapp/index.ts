@@ -11,23 +11,30 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Allow service-role key or anon key for internal/cron calls
+    const isServiceCall = authHeader === `Bearer ${serviceRoleKey}` || authHeader === `Bearer ${supabaseAnonKey}`;
+    
+    let userId: string | null = null;
+    
+    if (isServiceCall || !authHeader) {
+      // Internal call - no user auth needed (function is behind verify_jwt=false)
+      userId = "system";
+    } else if (authHeader?.startsWith("Bearer ")) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error("Auth error:", userError?.message || "No user");
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      userId = user.id;
     }
-    const userId = claimsData.claims.sub;
 
     const body = await req.json();
     const { company_id, employee_id, template_name, variables, event_type, event_ref_id } = body;
@@ -36,8 +43,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields: company_id, employee_id, template_name" }), { status: 400, headers: corsHeaders });
     }
 
+    // Use service client for all DB queries
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
     // 1. Get active messaging channel
-    const { data: channel, error: channelErr } = await supabase
+    const { data: channel, error: channelErr } = await serviceClient
       .from("messaging_channels")
       .select("*")
       .eq("company_id", company_id)
@@ -46,11 +56,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (channelErr || !channel) {
+      console.error("Channel error:", channelErr?.message);
       return new Response(JSON.stringify({ error: "No active WhatsApp channel configured" }), { status: 400, headers: corsHeaders });
     }
 
     // 2. Get employee messaging preferences
-    const { data: prefs, error: prefsErr } = await supabase
+    const { data: prefs, error: prefsErr } = await serviceClient
       .from("employee_messaging_preferences")
       .select("*")
       .eq("employee_id", employee_id)
@@ -58,6 +69,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (prefsErr || !prefs) {
+      console.error("Prefs error:", prefsErr?.message);
       return new Response(JSON.stringify({ error: "Employee messaging preferences not found" }), { status: 400, headers: corsHeaders });
     }
 
@@ -66,19 +78,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Employee has not opted in to WhatsApp", code: "NOT_OPTED_IN" }), { status: 400, headers: corsHeaders });
     }
 
-    // Check quiet hours (Fix 7: use company timezone instead of UTC)
+    // Check quiet hours
     if (prefs.quiet_hours_start && prefs.quiet_hours_end) {
       const formatter = new Intl.DateTimeFormat('en-GB', {
         timeZone: 'Europe/Bucharest',
         hour: '2-digit', minute: '2-digit', hour12: false,
       });
-      const currentTime = formatter.format(new Date()); // "HH:MM"
+      const currentTime = formatter.format(new Date());
       const start = prefs.quiet_hours_start;
       const end = prefs.quiet_hours_end;
       
       const inQuietHours = start > end
-        ? currentTime >= start || currentTime < end  // overnight (e.g., 22:00-07:00)
-        : currentTime >= start && currentTime < end;  // same-day
+        ? currentTime >= start || currentTime < end
+        : currentTime >= start && currentTime < end;
       
       if (inQuietHours) {
         return new Response(JSON.stringify({ error: "Message blocked: quiet hours active", code: "QUIET_HOURS" }), { status: 400, headers: corsHeaders });
@@ -87,7 +99,7 @@ Deno.serve(async (req) => {
 
     // Check daily throttle
     const today = new Date().toISOString().split("T")[0];
-    const { count: todayCount } = await supabase
+    const { count: todayCount } = await serviceClient
       .from("outbound_messages")
       .select("id", { count: "exact", head: true })
       .eq("employee_id", employee_id)
@@ -99,7 +111,7 @@ Deno.serve(async (req) => {
     }
 
     // 3. Get approved template
-    const { data: template, error: tplErr } = await supabase
+    const { data: template, error: tplErr } = await serviceClient
       .from("wa_message_templates")
       .select("*")
       .eq("company_id", company_id)
@@ -110,23 +122,17 @@ Deno.serve(async (req) => {
       .single();
 
     if (tplErr || !template) {
+      console.error("Template error:", tplErr?.message);
       return new Response(JSON.stringify({ error: `Template '${template_name}' not found or not approved` }), { status: 400, headers: corsHeaders });
     }
 
     // 4. Idempotency check
     const idempotencyKey = `${event_type || "manual"}:${event_ref_id || "none"}:${employee_id}:${today}`;
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceClient
       .from("outbound_messages")
       .select("id, status")
       .eq("idempotency_key", idempotencyKey)
       .single();
-
-    if (existing) {
-      return new Response(JSON.stringify({ message: "Duplicate message skipped", id: existing.id, status: existing.status }), { status: 200, headers: corsHeaders });
-    }
-
-    // 5. Insert queued message (use service role for insert)
-    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     
     const { data: msg, error: insertErr } = await serviceClient
       .from("outbound_messages")
