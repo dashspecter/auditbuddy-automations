@@ -8411,6 +8411,7 @@ export type Database = {
           is_recurring_instance: boolean | null
           location_id: string | null
           lock_mode: string
+          notify_whatsapp: boolean
           overridden_by: string | null
           overridden_reason: string | null
           parent_task_id: string | null
@@ -8453,6 +8454,7 @@ export type Database = {
           is_recurring_instance?: boolean | null
           location_id?: string | null
           lock_mode?: string
+          notify_whatsapp?: boolean
           overridden_by?: string | null
           overridden_reason?: string | null
           parent_task_id?: string | null
@@ -8495,6 +8497,7 @@ export type Database = {
           is_recurring_instance?: boolean | null
           location_id?: string | null
           lock_mode?: string
+          notify_whatsapp?: boolean
           overridden_by?: string | null
           overridden_reason?: string | null
           parent_task_id?: string | null
