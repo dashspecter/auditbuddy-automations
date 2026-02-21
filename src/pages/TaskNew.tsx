@@ -29,10 +29,15 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 
 const TaskNew = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { modules } = useCompanyContext();
+  const isWhatsAppActive = modules?.some(
+    (m: any) => m.module_name === "whatsapp_messaging" && m.is_active
+  );
   const createTask = useCreateTask();
   const { data: employees = [] } = useEmployees();
   const { data: roles = [] } = useEmployeeRoles();
@@ -45,6 +50,7 @@ const TaskNew = () => {
   const [evidenceRequired, setEvidenceRequired] = useState(false);
   const [reviewRequired, setReviewRequired] = useState(false);
   const [evidenceInstructions, setEvidenceInstructions] = useState("");
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -82,6 +88,7 @@ const TaskNew = () => {
         location_ids: formData.location_ids.length > 0 ? formData.location_ids : undefined,
         source: "manual",
         is_individual: assignmentType === 'role' ? isIndividual : false,
+        notify_whatsapp: isWhatsAppActive ? notifyWhatsApp : false,
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : undefined,
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : undefined,
         recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
@@ -697,6 +704,28 @@ const TaskNew = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* WhatsApp Notification Toggle - only when module is active */}
+        {isWhatsAppActive && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-md bg-green-500/10 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+                  </div>
+                  <div>
+                    <Label className="font-medium">Notify via WhatsApp</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Send assignment, reminder &amp; overdue alerts to assigned employees
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={notifyWhatsApp} onCheckedChange={setNotifyWhatsApp} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <StickyActionBar className="justify-between sm:justify-end flex-wrap">
           <Button

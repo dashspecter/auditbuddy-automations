@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
       .from("tasks")
       .select("id, title, company_id, assigned_to, assigned_role_id, start_at, is_individual, recurrence_type, location:locations(id, name)")
       .neq("status", "completed")
+      .eq("notify_whatsapp", true)
       .not("start_at", "is", null)
       .gte("start_at", now.toISOString())
       .lte("start_at", in30min);
@@ -73,6 +74,7 @@ Deno.serve(async (req) => {
       .from("tasks")
       .select("id, title, company_id, assigned_to, assigned_role_id, start_at, duration_minutes, due_at, is_individual, recurrence_type, location:locations(id, name)")
       .in("status", ["pending", "in_progress"])
+      .eq("notify_whatsapp", true)
       .or(`due_at.lt.${now.toISOString()},start_at.lt.${now.toISOString()}`);
 
     if (odErr) console.error("Overdue query error:", odErr.message);

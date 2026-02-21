@@ -1,0 +1,1 @@
+ALTER TABLE public.tasks ADD COLUMN notify_whatsapp BOOLEAN NOT NULL DEFAULT false;

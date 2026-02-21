@@ -539,6 +539,7 @@ interface CreateTaskData {
   recurrence_days_of_month?: number[];
   recurrence_times?: string[];
   is_individual?: boolean;
+  notify_whatsapp?: boolean;
 }
 
 export const useCreateTask = () => {
@@ -610,8 +611,8 @@ export const useCreateTask = () => {
         }
       });
 
-      // Fire-and-forget WhatsApp notifications for task assignment
-      if (task?.company_id) {
+      // Fire-and-forget WhatsApp notifications for task assignment (only if toggle is on)
+      if (task?.company_id && task?.notify_whatsapp) {
         const dueInfo = task.due_at
           ? new Date(task.due_at).toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" })
           : task.start_at
