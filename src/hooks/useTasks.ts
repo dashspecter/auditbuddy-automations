@@ -610,18 +610,62 @@ export const useCreateTask = () => {
         }
       });
 
-      // Fire-and-forget WhatsApp notification for task assignment
-      if (task?.assigned_to && task?.company_id) {
-        supabase.functions.invoke("send-whatsapp", {
-          body: {
-            company_id: task.company_id,
-            employee_id: task.assigned_to,
-            template_name: "task_assigned",
-            variables: { task_title: task.title || "New Task" },
-            event_type: "task_assigned",
-            event_ref_id: task.id,
-          },
-        }).catch(() => {}); // non-blocking
+      // Fire-and-forget WhatsApp notifications for task assignment
+      if (task?.company_id) {
+        const dueInfo = task.due_at
+          ? new Date(task.due_at).toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" })
+          : task.start_at
+            ? new Date(task.start_at).toLocaleString("ro-RO", { dateStyle: "short", timeStyle: "short" })
+            : "No deadline";
+
+        const notifyEmployee = (employeeId: string) =>
+          supabase.functions.invoke("send-whatsapp", {
+            body: {
+              company_id: task.company_id,
+              employee_id: employeeId,
+              template_name: "task_assigned",
+              variables: {
+                task_title: task.title || "New Task",
+                due_info: dueInfo,
+                location: "See app for details",
+              },
+              event_type: "task_assigned",
+              event_ref_id: task.id,
+            },
+          }).catch(() => {});
+
+        if (task.assigned_to) {
+          // Direct assignment — notify that one employee
+          notifyEmployee(task.assigned_to);
+        } else if (task.assigned_role_id) {
+          // Role-based assignment — look up employees with that role and notify each
+          (async () => {
+            try {
+              // Get the role name
+              const { data: role } = await supabase
+                .from("employee_roles")
+                .select("name")
+                .eq("id", task.assigned_role_id!)
+                .single();
+
+              if (!role) return;
+
+              // Find employees with matching role in the same company
+              const { data: employees } = await supabase
+                .from("employees")
+                .select("id")
+                .eq("company_id", task.company_id)
+                .ilike("role", role.name);
+
+              if (!employees?.length) return;
+
+              // Notify all matching employees
+              await Promise.allSettled(employees.map((e) => notifyEmployee(e.id)));
+            } catch {
+              // Non-blocking
+            }
+          })();
+        }
       }
     },
   });

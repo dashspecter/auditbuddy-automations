@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.whatsapp-broadcast]
 verify_jwt = false
+
+[functions.check-task-notifications]
+verify_jwt = false
