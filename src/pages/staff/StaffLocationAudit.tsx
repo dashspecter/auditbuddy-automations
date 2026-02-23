@@ -490,6 +490,7 @@ const StaffLocationAudit = () => {
         overall_score: percentScore,
       };
 
+      // Phase 1 — Critical: save the audit (awaited, retryable)
       if (currentDraftId) {
         const { error } = await supabase
           .from("location_audits")
@@ -505,9 +506,10 @@ const StaffLocationAudit = () => {
         if (error) throw error;
       }
 
-      // Clear the local draft after successful submission
-      await clearDraft();
+      // Phase 2 — Non-critical: cleanup (fire-and-forget, never blocks user)
+      try { clearDraft(); } catch (e) { console.warn('[staff-audit-submit] clearDraft failed:', e); }
       
+      // Immediate success feedback
       toast.success("Audit submitted successfully!");
       navigate("/staff");
     };
