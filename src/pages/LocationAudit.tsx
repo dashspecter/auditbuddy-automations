@@ -818,48 +818,85 @@ const LocationAudit = () => {
 
     console.log('Form validation passed, submitting audit...');
 
-    try {
-      // Calculate overall score from rating and yes/no fields
-      let totalRatings = 0;
-      let ratingCount = 0;
+    // Calculate overall score from rating and yes/no fields
+    let totalRatings = 0;
+    let ratingCount = 0;
 
-      if (selectedTemplate) {
-        selectedTemplate.sections.forEach(section => {
-          section.fields.forEach(field => {
-            const value = formData.customData[field.id];
-            
-            // Count rating fields (1-5 scale)
-            if (field.field_type === 'rating') {
-              if (typeof value === 'number') {
-                totalRatings += value;
-                ratingCount++;
-              }
+    if (selectedTemplate) {
+      selectedTemplate.sections.forEach(section => {
+        section.fields.forEach(field => {
+          const value = formData.customData[field.id];
+          
+          if (field.field_type === 'rating') {
+            if (typeof value === 'number') {
+              totalRatings += value;
+              ratingCount++;
             }
-            
-            // Count yes/no and checkbox fields (yes = 5 points, no = 0 points)
-            if (field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') {
-              if (value === 'yes' || value === true || value === 'true') {
-                totalRatings += 5;
-                ratingCount++;
-              } else if (value === 'no' || value === false || value === 'false') {
-                totalRatings += 0;
-                ratingCount++;
-              }
+          }
+          
+          if (field.field_type === 'yesno' || field.field_type === 'yes_no' || field.field_type === 'checkbox') {
+            if (value === 'yes' || value === true || value === 'true') {
+              totalRatings += 5;
+              ratingCount++;
+            } else if (value === 'no' || value === false || value === 'false') {
+              totalRatings += 0;
+              ratingCount++;
             }
-          });
+          }
+        });
+      });
+    }
+
+    const overallScore = ratingCount > 0 
+      ? Math.round((totalRatings / (ratingCount * 5)) * 100) 
+      : 0;
+
+    const COMPLIANCE_THRESHOLD = 80;
+    const status = overallScore >= COMPLIANCE_THRESHOLD ? 'compliant' : 'non-compliant';
+
+    // Helper: fire CAPA rules for each scorable field (fire-and-forget, non-blocking)
+    const fireAuditCAPARules = (auditId: string) => {
+      if (!selectedTemplate) return;
+      const SCORABLE = ["rating", "yes_no", "yesno", "checkbox", "number"];
+      const invocations: Promise<any>[] = [];
+      for (const section of selectedTemplate.sections) {
+        for (const field of section.fields) {
+          if (!SCORABLE.includes(field.field_type)) continue;
+          const value = formData.customData[field.id];
+          if (value === null || value === undefined || value === "") continue;
+          invocations.push(
+            supabase.functions.invoke("process-capa-rules", {
+              body: {
+                trigger_type: "audit_fail",
+                context: {
+                  audit_id: auditId,
+                  template_id: selectedTemplateId,
+                  field_id: field.id,
+                  field_name: field.name,
+                  field_type: field.field_type,
+                  response_value: value,
+                  location_id: formData.location_id || null,
+                  source_id: `audit:${auditId}:field:${field.id}`,
+                },
+              },
+            }).catch(err => console.warn("[audit-capa] field rule error:", field.name, err))
+          );
+        }
+      }
+      if (invocations.length > 0) {
+        Promise.allSettled(invocations).then(results => {
+          const fired = results.filter(r => r.status === "fulfilled").length;
+          console.log(`[audit-capa] Fired ${fired}/${invocations.length} field rule checks for audit ${auditId}`);
         });
       }
+    };
 
-      // Calculate percentage (ratings are 1-5, so max is 5)
-      const overallScore = ratingCount > 0 
-        ? Math.round((totalRatings / (ratingCount * 5)) * 100) 
-        : 0;
+    const isTimeoutError = (err: any) => {
+      const msg = (err?.message || err?.code || '').toLowerCase();
+      return msg.includes('timeout') || msg.includes('statement_timeout') || msg.includes('canceling statement');
+    };
 
-      // Determine status based on score
-      const COMPLIANCE_THRESHOLD = 80;
-      const status = overallScore >= COMPLIANCE_THRESHOLD ? 'compliant' : 'non-compliant';
-
-      // Get location name if location_id is provided
+    const performSubmit = async () => {
       let locationName = '';
       if (formData.location_id) {
         const { data: locationData } = await supabase
@@ -867,7 +904,6 @@ const LocationAudit = () => {
           .select('name')
           .eq('id', formData.location_id)
           .single();
-        
         locationName = locationData?.name || 'Unknown Location';
       }
 
@@ -885,53 +921,13 @@ const LocationAudit = () => {
         status: status,
       };
 
-      // Helper: fire CAPA rules for each scorable field (fire-and-forget, non-blocking)
-      const fireAuditCAPARules = (auditId: string) => {
-        if (!selectedTemplate) return;
-        const SCORABLE = ["rating", "yes_no", "yesno", "checkbox", "number"];
-        const invocations: Promise<any>[] = [];
-        for (const section of selectedTemplate.sections) {
-          for (const field of section.fields) {
-            if (!SCORABLE.includes(field.field_type)) continue;
-            const value = formData.customData[field.id];
-            if (value === null || value === undefined || value === "") continue;
-            invocations.push(
-              supabase.functions.invoke("process-capa-rules", {
-                body: {
-                  trigger_type: "audit_fail",
-                  context: {
-                    audit_id: auditId,
-                    template_id: selectedTemplateId,
-                    field_id: field.id,
-                    field_name: field.name,
-                    field_type: field.field_type,
-                    response_value: value,
-                    location_id: formData.location_id || null,
-                    source_id: `audit:${auditId}:field:${field.id}`,
-                  },
-                },
-              }).catch(err => console.warn("[audit-capa] field rule error:", field.name, err))
-            );
-          }
-        }
-        if (invocations.length > 0) {
-          Promise.allSettled(invocations).then(results => {
-            const fired = results.filter(r => r.status === "fulfilled").length;
-            console.log(`[audit-capa] Fired ${fired}/${invocations.length} field rule checks for audit ${auditId}`);
-          });
-        }
-      };
-
       if (currentDraftId) {
-        // Update existing draft to submitted
         const { error } = await supabase
           .from('location_audits')
           .update(auditData)
           .eq('id', currentDraftId);
-
         if (error) throw error;
         
-        // Delete any other drafts for this user since we're completing an audit
         await supabase
           .from('location_audits')
           .delete()
@@ -939,55 +935,68 @@ const LocationAudit = () => {
           .eq('status', 'draft')
           .neq('id', currentDraftId);
         
-        // Clear the local IndexedDB draft
         await clearDraft();
-        
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${currentDraftId}`);
-        // Fire CAPA rules after navigation (non-blocking)
         fireAuditCAPARules(currentDraftId);
       } else {
-        // Delete all existing drafts for this user before creating the completed audit
         await supabase
           .from('location_audits')
           .delete()
           .eq('user_id', user.id)
           .eq('status', 'draft');
 
-        // Create new audit
         const { data: newAudit, error } = await supabase
           .from('location_audits')
           .insert(auditData)
           .select('id')
           .single();
-
         if (error) throw error;
         
         toast.success("Location audit submitted successfully!");
         navigate(`/audit-summary/${newAudit.id}`);
-        // Fire CAPA rules after navigation (non-blocking)
         fireAuditCAPARules(newAudit.id);
       }
+    };
+
+    try {
+      await performSubmit();
     } catch (error: any) {
-      console.error('Error submitting audit:', error);
-      
-      let errorMessage = 'Failed to submit audit';
-      
-      if (error?.message?.includes('location')) {
-        errorMessage = 'Invalid location selected. Please choose a valid location and try again.';
-      } else if (error?.message?.includes('template')) {
-        errorMessage = 'Invalid template. Please select a valid audit template.';
-      } else if (error?.message?.includes('user_id')) {
-        errorMessage = 'Authentication error. Please log out and log back in.';
-      } else if (error?.code === 'PGRST116') {
-        errorMessage = 'Database error: Unable to submit audit. Please try again.';
-      } else if (error?.code === '23502') {
-        errorMessage = 'Missing required data. Please ensure all required fields are filled.';
-      } else if (error?.message) {
-        errorMessage = `Error: ${error.message}`;
+      if (isTimeoutError(error)) {
+        console.warn('Audit submit timeout, retrying in 1s...', error);
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          await performSubmit();
+        } catch (retryError: any) {
+          console.error('Retry also failed:', retryError);
+          toast.error(
+            isTimeoutError(retryError)
+              ? 'The server took too long to respond. Please try again.'
+              : 'Failed to submit audit. Please try again.',
+            { duration: 5000 }
+          );
+        }
+      } else {
+        console.error('Error submitting audit:', error);
+        
+        let errorMessage = 'Failed to submit audit';
+        
+        if (error?.message?.includes('location')) {
+          errorMessage = 'Invalid location selected. Please choose a valid location and try again.';
+        } else if (error?.message?.includes('template')) {
+          errorMessage = 'Invalid template. Please select a valid audit template.';
+        } else if (error?.message?.includes('user_id')) {
+          errorMessage = 'Authentication error. Please log out and log back in.';
+        } else if (error?.code === 'PGRST116') {
+          errorMessage = 'Database error: Unable to submit audit. Please try again.';
+        } else if (error?.code === '23502') {
+          errorMessage = 'Missing required data. Please ensure all required fields are filled.';
+        } else if (error?.message) {
+          errorMessage = `Error: ${error.message}`;
+        }
+        
+        toast.error(errorMessage, { duration: 5000 });
       }
-      
-      toast.error(errorMessage, { duration: 5000 });
     }
   };
 
