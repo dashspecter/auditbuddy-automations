@@ -1,98 +1,39 @@
 
 
-## Custom Badges and Adjustable Thresholds
+## Fix Employee Roles RLS Policies for Manager Access
 
-### What Changes
+### Problem
+The `employee_roles` table write policies only allow `company_owner` and `company_admin` company roles. Users like Vlad who have the `manager` app_role but `company_member` company_role are blocked from creating, updating, or deleting employee roles.
 
-Currently, all 6 badges and their thresholds are hardcoded in `src/lib/performanceBadges.ts`. This plan moves badge configuration to the database so admins can:
+### Fix
+Replace the three restrictive write policies with ones that use the existing `user_is_manager_in_company()` helper function, which correctly handles all authorized roles.
 
-1. **Adjust thresholds** for built-in badges (e.g., change "Rising Star" from +10 to +5 points)
-2. **Enable/disable** individual badges
-3. **Create custom badges** with a name, description, icon (picked from a list), color, and a rule type with configurable threshold
+### Database Migration
 
----
+```sql
+DROP POLICY "Admins and owners can create roles" ON public.employee_roles;
+DROP POLICY "Admins and owners can update roles" ON public.employee_roles;
+DROP POLICY "Admins and owners can delete roles" ON public.employee_roles;
 
-### Database
+CREATE POLICY "Managers can create roles"
+  ON public.employee_roles FOR INSERT
+  WITH CHECK (user_is_manager_in_company(auth.uid(), company_id));
 
-Create a `badge_configurations` table:
+CREATE POLICY "Managers can update roles"
+  ON public.employee_roles FOR UPDATE
+  USING (user_is_manager_in_company(auth.uid(), company_id));
 
-```text
-badge_configurations
-  - id (uuid, PK)
-  - company_id (uuid, FK to companies)
-  - badge_key (text) -- unique per company, e.g. "perfect_attendance" or "custom_teamwork"
-  - name (text)
-  - description (text)
-  - icon (text) -- icon name from a predefined set (e.g. "CheckCircle2", "Clock", "Star")
-  - color (text) -- tailwind class e.g. "text-green-600 dark:text-green-400"
-  - rule_type (text) -- one of: "attendance_min", "punctuality_min", "task_min", "rank_max", "score_improvement", "streak_min", "effective_score_min", "manual"
-  - threshold (numeric) -- the configurable value (e.g. 100 for perfect attendance, 3 for top-3)
-  - streak_months (int, nullable) -- for streak-type rules
-  - is_active (boolean, default true)
-  - is_system (boolean, default true) -- true for the 6 built-in badges, false for custom
-  - sort_order (int)
-  - created_at (timestamptz)
-
-  UNIQUE(company_id, badge_key)
+CREATE POLICY "Managers can delete roles"
+  ON public.employee_roles FOR DELETE
+  USING (user_is_manager_in_company(auth.uid(), company_id));
 ```
 
-On first use (or via a seed migration), insert the 6 default badges for each company with `is_system = true`. Admins can edit thresholds but cannot delete system badges -- only disable them.
+### Why This Works Long-Term
+- `user_is_manager_in_company()` already handles company_owner, company_admin, company_member + platform admin/manager roles
+- Single function to update if role logic ever changes
+- Consistent with how `badge_configurations` and other tables are already secured
 
-RLS: company members can read; only company owners/admins can insert/update.
-
-### Admin UI: Badge Management Page
-
-Add a new section accessible from the Performance page (or a sub-tab) where admins can:
-
-- **See all badges** in a list -- system badges marked with a lock icon
-- **Toggle active/inactive** for any badge
-- **Edit threshold** for each badge via inline number input
-- **Add custom badge** via a dialog:
-  - Name, description
-  - Pick icon from a grid of ~15-20 curated Lucide icons
-  - Pick color from preset palette
-  - Select rule type from dropdown
-  - Set threshold value
-- **Delete** custom badges (system badges can only be disabled)
-
-### Badge Computation Update
-
-Update `computeEarnedBadges` to accept badge configs from the database instead of using hardcoded `BADGE_DEFINITIONS`. The function will:
-
-1. Accept `BadgeConfig[]` (from database) instead of using the static array
-2. Loop through active configs and evaluate each based on `rule_type` + `threshold`
-3. Map the `icon` string to the actual Lucide component via a lookup table
-4. Return the same `PerformanceBadge[]` output so all existing UI components keep working
-
-The `ScoringExplainerCard` and `BadgesSection` components will dynamically render whatever badges are configured -- no changes needed to those components beyond passing the right data.
-
-### Rule Types Explained
-
-| rule_type | threshold meaning | Example |
-|-----------|------------------|---------|
-| `attendance_min` | Minimum attendance score | 100 = perfect attendance |
-| `punctuality_min` | Minimum punctuality score | 100 = always on time |
-| `task_min` | Minimum task score | 100 = task champion |
-| `rank_max` | Maximum rank at location | 3 = top 3 finish |
-| `score_improvement` | Min point increase vs last month | 10 = rising star |
-| `streak_min` | Min score for consecutive months (uses `streak_months`) | 80 for 3 months |
-| `effective_score_min` | Min effective score this month | 90 = high performer |
-| `manual` | Awarded manually by manager (future Phase 2) | N/A |
-
-### Files to Create
-
-- `src/components/workforce/BadgeManagement.tsx` -- admin badge list + edit UI
-- `src/components/workforce/AddCustomBadgeDialog.tsx` -- dialog for creating custom badges
-- `src/hooks/useBadgeConfigurations.ts` -- hook to fetch/update badge configs from database
-
-### Files to Edit
-
-- `src/lib/performanceBadges.ts` -- refactor `computeEarnedBadges` to accept database configs; add icon lookup map; keep `BADGE_DEFINITIONS` as fallback defaults
-- `src/pages/workforce/EmployeePerformance.tsx` -- add badge management tab/section; pass configs to badge computation
-- `src/pages/staff/StaffScoreBreakdown.tsx` -- fetch company badge configs and pass to `computeEarnedBadges`
-- `src/components/workforce/ScoringExplainerCard.tsx` -- load badge configs from database instead of static `BADGE_DEFINITIONS`
-
-### Seed Logic
-
-When a company first accesses badge settings, if no rows exist for their `company_id`, auto-insert the 6 system defaults. This avoids needing a global migration for every company.
+### Files
+- **New migration SQL file** -- 6 statements (3 drops + 3 creates)
+- No application code changes needed
 
