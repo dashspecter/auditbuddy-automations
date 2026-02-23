@@ -264,7 +264,7 @@ export const AllTasksOpsDashboard = ({
   const [recurringOnly, setRecurringOnly] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<"execution" | "planning">("planning"); // Default to planning to show all tasks
-  const [showNoCoverage, setShowNoCoverage] = useState(true); // Show no-coverage indicator
+  
 
   // Calculate date range
   const { rangeStart, rangeEnd } = useMemo(() => {
@@ -439,7 +439,7 @@ export const AllTasksOpsDashboard = ({
       {/* Controls */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-end">
             {/* Group Mode */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t('common.groupBy')}</label>
@@ -535,8 +535,7 @@ export const AllTasksOpsDashboard = ({
             </div>
 
             {/* Recurring Toggle */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">&nbsp;</label>
+            <div>
               <Button
                 variant={recurringOnly ? "default" : "outline"}
                 size="sm"
@@ -549,16 +548,15 @@ export const AllTasksOpsDashboard = ({
             </div>
 
             {/* View Mode Toggle */}
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">&nbsp;</label>
+            <div>
               <Button
                 variant={viewMode === "planning" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode(viewMode === "planning" ? "execution" : "planning")}
                 className="h-10"
                 title={viewMode === "planning" 
-                  ? t('common.planningMode', 'Planning: All tasks (including no coverage)') 
-                  : t('common.executionMode', 'Execution: Only covered tasks')}
+                  ? t('common.planningMode', 'Planning: Showing all tasks including uncovered ones') 
+                  : t('common.executionMode', 'Execution: Showing only tasks covered by shifts')}
               >
                 {viewMode === "planning" ? (
                   <Eye className="h-3.5 w-3.5 mr-1" />
@@ -566,7 +564,7 @@ export const AllTasksOpsDashboard = ({
                   <EyeOff className="h-3.5 w-3.5 mr-1" />
                 )}
                 {viewMode === "planning" 
-                  ? t('common.showNoCoverage', 'Show All') 
+                  ? t('common.allTasks', 'All Tasks') 
                   : t('common.coveredOnly', 'Covered Only')}
               </Button>
             </div>
