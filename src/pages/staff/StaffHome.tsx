@@ -26,6 +26,7 @@ import { CheckerAuditsCard } from "@/components/staff/CheckerAuditsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { computeEffectiveScore } from "@/lib/effectiveScore";
+import { TierBadge } from "@/components/staff/TierBadge";
 import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
 import { StaffCheckpointsCard } from "@/components/staff/StaffCheckpointsCard";
 import { MyCorrectiveActionsCard } from "@/components/staff/MyCorrectiveActionsCard";
@@ -423,7 +424,8 @@ const StaffHome = () => {
             <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/score")}>
               <Trophy className="h-5 w-5 text-primary mb-2" />
               <div className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</div>
-              <div className="text-xs text-muted-foreground">{t('staffHome.myScore')}</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('staffHome.myScore')}</div>
+              <TierBadge score={myPerformanceScore} size="sm" showLabel={true} />
             </Card>
           </div>
         )}

@@ -12,6 +12,10 @@ import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { computeEffectiveScore } from "@/lib/effectiveScore";
 import { useMyWarningsStats } from "@/hooks/useMyWarnings";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { TierBadge } from "@/components/staff/TierBadge";
+import { useMonthlyScores } from "@/hooks/useMonthlyScores";
+import { computeEarnedBadges, type MonthlyScoreRecord } from "@/lib/performanceBadges";
+import { Award } from "lucide-react";
 
 const StaffProfile = () => {
   const { user } = useAuth();
@@ -33,11 +37,23 @@ const StaffProfile = () => {
 
   // Get performance data
   const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
-  const myPerformanceScore = useMemo(() => {
+  const effectiveScoreData = useMemo(() => {
     if (!employee || !performanceScores) return null;
     const raw = performanceScores.find(s => s.employee_id === employee.id);
-    return raw ? computeEffectiveScore(raw).effective_score : null;
+    return raw ? computeEffectiveScore(raw) : null;
   }, [employee, performanceScores]);
+  const myPerformanceScore = effectiveScoreData?.effective_score ?? null;
+
+  // Monthly history for badge computation
+  const { data: monthlyHistory = [] } = useMonthlyScores(employee?.id || null, 6);
+  const badgeCount = useMemo(() => {
+    const historyRecords: MonthlyScoreRecord[] = monthlyHistory.map(h => ({
+      month: h.month,
+      effective_score: h.effective_score !== null ? Number(h.effective_score) : null,
+      rank_in_location: h.rank_in_location,
+    }));
+    return computeEarnedBadges(effectiveScoreData, historyRecords).length;
+  }, [effectiveScoreData, monthlyHistory]);
 
   // Get warnings stats
   const { stats: warningsStats } = useMyWarningsStats();
@@ -201,8 +217,18 @@ const StaffProfile = () => {
               <Trophy className="h-6 w-6 text-primary" />
               <div>
                 <div className="text-sm text-muted-foreground">My Performance Score</div>
-                <div className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</div>
-                <div className="text-xs text-muted-foreground">View Breakdown</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</span>
+                  <TierBadge score={myPerformanceScore} size="sm" />
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">View Breakdown</span>
+                  {badgeCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+                      <Award className="h-3 w-3" /> {badgeCount} badge{badgeCount > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />

@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.check-task-notifications]
 verify_jwt = false
+
+[functions.snapshot-monthly-scores]
+verify_jwt = false
