@@ -1,106 +1,58 @@
 
+## Add Gamification Visibility to Admin Dashboard
 
-## Gamification and Employee Engagement System
+### Problem
+The tier and badge system was only built for employee mobile views. Admins/owners have zero visibility into how the scoring system categorizes employees or which badges they've earned. This creates a disconnect -- the admin can't understand what their employees are experiencing.
 
-### What's Missing Today
+### Changes
 
-The current scoring system is purely informational -- employees see a number but have no reason to care about it. There's no history, no progression, no reward, and no fun.
+#### 1. Enhance `src/pages/workforce/EmployeePerformance.tsx`
 
-### Proposed Feature Set
+**Add Tier Distribution Summary Card** at the top of the page:
+- Show a row of cards, one per tier (Star Performer, High Achiever, Steady Progress, Developing, Needs Support, Unranked)
+- Each card shows: tier icon, tier name, count of employees in that tier, percentage of total
+- Uses existing `getTier()` from `performanceTiers.ts` applied to the already-loaded `effectiveScores`
 
-This is a phased approach -- Phase 1 is a meaningful, buildable first step. Phases 2-3 are future extensions.
+**Add Tier Badge to each employee row:**
+- Import `TierBadge` component (already exists for staff views)
+- Display it next to the employee name in `renderEmployeeCard`
 
----
+**Add Badges column to expanded employee detail:**
+- Import `computeEarnedBadges` from `performanceBadges.ts`
+- Fetch monthly history using `useMonthlyScores` for the expanded employee
+- Show earned badge icons with names in the collapsible detail section
 
-### Phase 1: Score History, Tiers, and Monthly Badges (Recommended to build now)
+**Add "How Scoring Works" info panel:**
+- A collapsible card at the top with an Info icon
+- Explains: effective score = average of active components only, tier mapping, badge criteria
+- Helps admins understand what employees see
 
-#### 1A. Monthly Score Snapshots (Database)
+#### 2. New Component: `src/components/workforce/TierDistributionCard.tsx`
 
-Create a `performance_monthly_scores` table that stores each employee's effective score at month end. This gives employees a history timeline and enables month-over-month comparison.
+A summary card that takes `EffectiveEmployeeScore[]` and renders:
+- A horizontal bar or row of tier buckets with counts
+- Visual breakdown of team health at a glance
 
-```text
-performance_monthly_scores
-  - id (uuid)
-  - employee_id (uuid, FK)
-  - company_id (uuid, FK)
-  - month (date, first day of month)
-  - effective_score (numeric)
-  - used_components (int)
-  - attendance_score, punctuality_score, task_score, test_score, review_score (nullable)
-  - rank_in_location (int, nullable)
-  - created_at (timestamptz)
-  - UNIQUE(employee_id, month)
-```
+#### 3. New Component: `src/components/workforce/ScoringExplainerCard.tsx`
 
-A backend function (edge function on a cron or triggered at month-end) snapshots current scores into this table.
+A collapsible info card explaining:
+- What "effective score" means (only active components averaged)
+- The five tiers and their score ranges
+- The six badges and how they're earned
+- How warnings affect scores (penalty with 90-day decay)
 
-#### 1B. Performance Tiers
+### Technical Details
 
-Map score ranges to named tiers that employees can identify with:
+- No database changes needed -- all data already exists
+- Tier calculation reuses `getTier()` from `src/lib/performanceTiers.ts`
+- Badge calculation reuses `computeEarnedBadges()` from `src/lib/performanceBadges.ts`
+- Monthly scores fetched via existing `useMonthlyScores` hook
+- `TierBadge` component already exists at `src/components/staff/TierBadge.tsx` -- reused as-is
+- All computations are client-side from already-fetched data
 
-```text
-90-100  -->  Star Performer   (gold)
-80-89   -->  High Achiever    (blue)
-60-79   -->  Steady Progress  (green)
-40-59   -->  Developing       (amber)
-0-39    -->  Needs Support    (red)
-No data -->  New / Unranked   (gray)
-```
+### Files to Create
+- `src/components/workforce/TierDistributionCard.tsx` -- tier summary visualization
+- `src/components/workforce/ScoringExplainerCard.tsx` -- how-it-works info panel
 
-Display the tier badge on:
-- Home page "My Score" card
-- Profile page
-- Score Breakdown page header
-- Leaderboard entries
-
-#### 1C. Monthly Badges (Earned Automatically)
-
-Award badges based on monthly performance data. These are purely frontend-calculated from existing data -- no new tracking needed:
-
-- **Perfect Attendance** -- 100% attendance score
-- **Always On Time** -- 100% punctuality score  
-- **Task Champion** -- 100% task completion score
-- **Top 3 Finish** -- Ranked in top 3 at their location
-- **Rising Star** -- Score improved 10+ points from last month (requires score history)
-- **Consistency Streak** -- Score stayed above 80 for 3+ consecutive months
-
-Show earned badges on the Score Breakdown page in a "My Badges" section, and a badge count on the Profile page.
-
-#### 1D. Score History Chart on Breakdown Page
-
-Add a small line chart (using Recharts, already installed) at the top of the Score Breakdown page showing the last 6 months of scores. This gives employees a visual sense of progress.
-
----
-
-### Phase 2: Social and Recognition (Future)
-
-- **Peer Shoutouts** -- employees can send a quick recognition to a colleague ("Great job closing today!")
-- **Manager Awards** -- managers can grant special one-off badges ("Employee of the Month")
-- **Monthly Recap Notification** -- "You ranked #2 this month! You earned the Perfect Attendance badge"
-
-### Phase 3: Tangible Rewards (Future)
-
-- **Points System** -- tie score to redeemable points (extra break, shift preference, etc.)
-- **Team Challenges** -- location-wide goals ("Everyone above 80 this month = pizza party")
-
----
-
-### What to Build Now (Phase 1 Scope)
-
-1. **Database**: Create `performance_monthly_scores` table with RLS policies
-2. **Edge Function**: Monthly snapshot cron that computes and stores scores
-3. **Tier System**: Pure frontend utility mapping scores to tier names/colors/icons
-4. **Badge System**: Frontend utility that checks score data against badge criteria
-5. **UI Updates**:
-   - Score Breakdown page: Add score history chart + badges section + tier badge
-   - Home page "My Score" card: Show tier name alongside score
-   - Profile page: Show tier + badge count
-   - Leaderboard: Show tier badge next to each employee
-
-### Technical Notes
-
-- Tiers and badges are computed client-side from existing + archived score data -- lightweight, no complex backend logic
-- The monthly snapshot edge function runs once per month and writes one row per employee
-- Recharts is already installed for the history chart
-- No changes to the core scoring algorithm -- this is purely a presentation/engagement layer on top of existing data
-- RLS policies on the scores table: employees can read their own + same-location scores; managers can read all in their company
+### Files to Edit
+- `src/pages/workforce/EmployeePerformance.tsx` -- integrate tier badges, badge display, distribution card, and explainer
