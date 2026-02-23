@@ -71,6 +71,7 @@ const LocationAudit = () => {
   const draftId = searchParams.get('draft');
   const templateIdFromUrl = searchParams.get('template');
   const scheduledAuditId = searchParams.get('scheduled');
+  const recurringScheduleId = searchParams.get('recurring_schedule');
   
   const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -116,7 +117,7 @@ const LocationAudit = () => {
     formData,
     currentSectionIndex,
     onRestore: handleDraftRestore,
-    enabled: !draftId && !scheduledAuditId, // Enable always unless loading from URL params
+    enabled: !draftId && !scheduledAuditId && !recurringScheduleId, // Enable always unless loading from URL params
   });
 
   // Load field responses
@@ -140,7 +141,9 @@ const LocationAudit = () => {
   useEffect(() => {
     const initializeData = async () => {
       await loadTemplates();
-      if (scheduledAuditId) {
+      if (recurringScheduleId) {
+        await loadRecurringSchedule(recurringScheduleId);
+      } else if (scheduledAuditId) {
         await loadScheduledAudit(scheduledAuditId);
       } else if (draftId) {
         await loadDraft(draftId);
@@ -241,6 +244,39 @@ const LocationAudit = () => {
     } catch (error) {
       console.error('Error loading scheduled audit:', error);
       toast.error('Failed to load scheduled audit');
+    }
+  };
+
+  const loadRecurringSchedule = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('recurring_audit_schedules')
+        .select(`
+          *,
+          locations(name)
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setIsScheduledAudit(true);
+        setSelectedTemplateId(data.template_id || '');
+        
+        setFormData(prev => ({
+          ...prev,
+          location_id: data.location_id || '',
+          auditDate: new Date().toISOString().split('T')[0],
+        }));
+        
+        toast.info(`Starting audit for ${data.locations?.name || 'location'} (recurring schedule)`);
+      } else {
+        toast.error('Recurring schedule not found');
+      }
+    } catch (error) {
+      console.error('Error loading recurring schedule:', error);
+      toast.error('Failed to load recurring schedule');
     }
   };
 

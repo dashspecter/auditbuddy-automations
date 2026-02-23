@@ -372,23 +372,59 @@ const AuditsCalendar = () => {
     }
   };
 
+  const [isStartingAudit, setIsStartingAudit] = useState(false);
+
   const handleStartAudit = async () => {
-    if (selectedEvent) {
-      // Handle scheduled audits from scheduled_audits table
-      if (selectedEvent.resource.source === 'scheduled_audits') {
-        const actualId = selectedEvent.id.replace('scheduled-', '');
-        setDetailsDialogOpen(false);
-        navigate(`/location-audit?scheduled=${actualId}`);
-        return;
-      }
-      
+    if (!selectedEvent) return;
+    
+    // Handle scheduled audits from scheduled_audits table
+    if (selectedEvent.resource.source === 'scheduled_audits') {
+      const actualId = selectedEvent.id.replace('scheduled-', '');
+      setDetailsDialogOpen(false);
+      navigate(`/location-audit?scheduled=${actualId}`);
+      return;
+    }
+    
+    // Handle recurring schedule virtual events
+    if (selectedEvent.id.startsWith('recurring-schedule-')) {
+      // Extract schedule UUID: format is "recurring-schedule-{uuid}-{instanceIndex}"
+      const withoutPrefix = selectedEvent.id.replace('recurring-schedule-', '');
+      const scheduleId = withoutPrefix.substring(0, 36);
+      setDetailsDialogOpen(false);
+      navigate(`/location-audit?recurring_schedule=${scheduleId}`);
+      return;
+    }
+    
+    // Real location_audits row - update status with error handling
+    setIsStartingAudit(true);
+    try {
       await updateStatus.mutateAsync({
         auditId: selectedEvent.id,
         status: 'in_progress',
       });
       setDetailsDialogOpen(false);
-      // Go to edit form to fill out the audit
       navigate(`/location-audit?draft=${selectedEvent.id}`);
+    } catch (error: any) {
+      console.error('Error starting audit:', error);
+      // Retry once on timeout
+      if (error?.message?.includes('timeout') || error?.code === '57014') {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await updateStatus.mutateAsync({
+            auditId: selectedEvent.id,
+            status: 'in_progress',
+          });
+          setDetailsDialogOpen(false);
+          navigate(`/location-audit?draft=${selectedEvent.id}`);
+        } catch (retryError) {
+          console.error('Retry failed:', retryError);
+          toast.error('Failed to start audit. Please try again.');
+        }
+      } else {
+        toast.error('Failed to start audit. Please try again.');
+      }
+    } finally {
+      setIsStartingAudit(false);
     }
   };
 
@@ -821,8 +857,8 @@ const AuditsCalendar = () => {
                   {canAccessAudit && (
                     <>
                       {selectedEvent.resource.status === 'scheduled' && (
-                        <Button onClick={handleStartAudit} className="flex-1">
-                          Start Audit
+                        <Button onClick={handleStartAudit} className="flex-1" disabled={isStartingAudit}>
+                          {isStartingAudit ? 'Starting...' : 'Start Audit'}
                         </Button>
                       )}
                       {selectedEvent.resource.status !== 'scheduled' && (
