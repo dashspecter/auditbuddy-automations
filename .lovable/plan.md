@@ -1,50 +1,59 @@
 
 
-## Fix: "Start Audit" Button Does Nothing for Recurring Schedule Events
+## Improve "Upcoming Audits" to Show This Week's Audits
 
-### Problem
+### Current Behavior
 
-Recurring schedule events on the calendar use virtual IDs like `recurring-schedule-{uuid}-{index}` with `source: 'location_audits'`. When clicking "Start Audit", the code falls into the `else` branch (line 385) and tries to update a non-existent `location_audits` row with that fake ID. The update silently fails -- no try/catch exists -- so nothing happens.
+The "Upcoming Audits" section shows the next 3 audits that aren't completed, regardless of date. This means old overdue audits from weeks ago (like the January ones in the screenshot) dominate the list, pushing out actually relevant upcoming work.
 
-### Changes
+### Proposed Changes
 
-#### 1. `src/pages/AuditsCalendar.tsx` -- Fix `handleStartAudit`
+**File: `src/components/staff/CheckerAuditsCard.tsx`**
 
-Add a new condition before the default `updateStatus` call:
-- Detect IDs starting with `recurring-schedule-`
-- Extract the schedule UUID from the ID
-- Navigate to `/location-audit?recurring_schedule={scheduleId}`
-- Wrap the existing `updateStatus` call in try/catch with timeout retry (same pattern used in audit submit fix)
-- Add loading state to the button
+Update the `upcomingAudits` filter logic to:
 
-#### 2. `src/pages/LocationAudit.tsx` -- Handle `?recurring_schedule=` param
+1. **Show only this week's audits** -- filter `scheduled_start` to be within the current week (Monday to Sunday)
+2. **Sort by date ascending** -- nearest audit first, so the most urgent one is at the top
+3. **Show a friendly empty state** when there are no audits this week: "No audits scheduled this week" instead of the generic "No upcoming audits scheduled"
+4. **Drop old overdue audits** from this view -- audits from past weeks (like Jan 14, Jan 19) won't appear here since they fall outside the current week window
 
-Add a `loadRecurringSchedule` function (mirrors existing `loadScheduledAudit` pattern):
-- Read `recurring_schedule` from search params
-- Fetch from `recurring_audit_schedules` table by ID
-- Pre-fill template_id, location_id, and audit date
-- Show info toast with location name
+### What the User Will See
 
-Wire it into the existing `initializeData` useEffect alongside the `scheduledAuditId` and `draftId` checks.
+- If there are audits this week: up to 3 listed, sorted by time
+- If none this week: a clean message saying "No audits this week"
+- "View All" still navigates to the full audit list where they can see everything including overdue
+
+### Technical Detail
+
+Replace the `upcomingAudits` memo (lines 38-47) with:
+
+```typescript
+const upcomingAudits = useMemo(() => {
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });      // Sunday
+
+  return scheduledAudits
+    .filter((audit) => {
+      const status = audit.status?.toLowerCase();
+      if (status === "compliant" || status === "non-compliant" || status === "completed") return false;
+      if (!audit.scheduled_start) return false;
+      const date = parseISO(audit.scheduled_start);
+      return date >= weekStart && date <= weekEnd;
+    })
+    .sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+    .slice(0, 3);
+}, [scheduledAudits]);
+```
+
+Update the empty state text (line 178) to: `"No audits scheduled this week"`
+
+Add `startOfWeek` and `endOfWeek` to the date-fns imports (line 9).
 
 ### What This Does NOT Change
 
 - No database changes
-- No changes to scoring, templates, or audit flow
-- No changes to how real `location_audits` or `scheduled_audits` are handled
-- The recurring schedule row itself is not modified -- a new audit is simply created from its data
-
-### Technical Detail
-
-**AuditsCalendar.tsx `handleStartAudit` updated flow:**
-```
-1. source === 'scheduled_audits'  -> navigate ?scheduled=  (unchanged)
-2. ID starts with 'recurring-schedule-' -> navigate ?recurring_schedule=  (NEW)
-3. else (real location_audits row) -> try/catch updateStatus + navigate ?draft=  (wrapped with error handling)
-```
-
-**LocationAudit.tsx new `loadRecurringSchedule` function:**
-- Fetches from `recurring_audit_schedules` with location join
-- Sets template_id, location_id, audit date
-- Same pattern as `loadScheduledAudit` (lines 212-245)
+- "View All" still shows the complete list including overdue
+- Stats card (Scheduled / Completed / Drafts counts) remain unchanged
+- No changes to other dashboard components
 
