@@ -1,74 +1,36 @@
 
 
-## Add Location Filter to All Task Tabs
+## Fix "Show No Coverage" Button and Align "Recurring Only"
 
-### Problem
+### Issue 1: "Show No Coverage" Button
 
-Currently, **only the Ops Dashboard tab** has a location filter. The Today, Tomorrow, Pending, Overdue, and Completed tabs show tasks from **all locations mixed together**, making it hard to understand what's happening at a specific location. When you manage multiple locations, this is confusing and inefficient.
+The button labeled "Show No Coverage" is actually working correctly -- it toggles between "Planning mode" (shows all tasks including those with no shift coverage) and "Execution mode" (shows only tasks covered by scheduled shifts). The confusion is that its label doesn't clearly convey what it does.
 
-### Solution
+Additionally, there's a dead `showNoCoverage` state variable that was never connected to any UI -- it should be cleaned up.
 
-Add a **persistent location filter bar** that sits between the stat cards and the tab content. It applies to **all tabs** (Today, Tomorrow, Pending, Overdue, Completed, By Employee) so you can instantly scope everything to one location — or see all locations at once.
+**Fix**: Rename the button labels to be clearer:
+- When in Planning mode (showing all): label becomes **"All Tasks"** (active/filled style)
+- When in Execution mode (covered only): label becomes **"Covered Only"** (active/filled style)
+- Add a clearer tooltip explaining the toggle
 
-### Visual Layout
+Also remove the unused `showNoCoverage` state variable (line 267).
 
-```text
-[Stats Cards Row]
+### Issue 2: "Recurring Only" Button Alignment
 
-[Location: All Locations v]     <-- NEW persistent filter
+The "Recurring Only" button is in the same `flex-wrap` row as the dropdowns but uses a `&nbsp;` label spacer to try to align vertically. On wider screens it floats far to the right, disconnected from the filter dropdowns. 
 
-[List | Ops Dashboard | Today 11 | Tomorrow 11 | Pending | Overdue | Completed | By Employee]
+**Fix**: Move both the "Recurring Only" and "Show No Coverage" toggle buttons into the same row but aligned properly using `items-end` on the flex container so buttons without labels align to the bottom of the row naturally, removing the `&nbsp;` label hack.
 
-[Filtered task content...]
-```
+### Technical Changes
 
-### What Changes
+**File**: `src/components/tasks/AllTasksOpsDashboard.tsx`
 
-1. **Location filter dropdown** added above the tabs, using the same `Select` component and location data already used in the Ops Dashboard tab. Defaults to "All Locations".
+1. **Remove dead state** (line 267): Delete `const [showNoCoverage, setShowNoCoverage] = useState(true)`
 
-2. **Filter applied to all relevant tabs**:
-   - **Today / Tomorrow**: Filter the unified pipeline results by `task.location_id`
-   - **Pending / Overdue / Completed**: Filter the base task list by `task.location_id`
-   - **By Employee**: Pass `locationId` to the timeline component
-   - **List tab**: Also filtered (shows task templates for that location)
-   - **Ops Dashboard**: Already has its own filter -- the global one will sync or defer to it
+2. **Fix flex container alignment** (line 442): Change from `flex flex-wrap gap-3` to `flex flex-wrap gap-3 items-end` so buttons without labels align to the bottom
 
-3. **Stat cards update** to reflect the selected location (filtered counts instead of global counts)
+3. **Remove `&nbsp;` label hacks** (lines 539, 553): Remove the empty label spacers from the Recurring Only and View Mode toggle wrappers
 
-4. **Tasks grouped by location** within each tab when "All Locations" is selected -- add a small location header/divider between groups so tasks are visually organized even without filtering
+4. **Improve button labels** (lines 568-570): Make the view mode toggle text clearer -- "All Tasks" vs "Covered Only"
 
-### Technical Details
-
-**File**: `src/pages/Tasks.tsx`
-
-1. Add state: `const [selectedLocationId, setSelectedLocationId] = useState<string>("all")`
-
-2. Fetch locations using the existing `useLocations` hook (already used elsewhere in the app)
-
-3. Add a `Select` dropdown between the stat cards and the `Tabs` component
-
-4. Update `filteredTasks` memo to apply `selectedLocationId` filter:
-   ```
-   if (selectedLocationId !== "all") {
-     result = result.filter(t => t.location_id === selectedLocationId);
-   }
-   ```
-
-5. Update `todayTasks` / `tomorrowTasks` filtering similarly — filter the unified pipeline output
-
-6. When "All Locations" is selected, group tasks within Today/Tomorrow/Pending tabs by location using small section headers (location name as a divider), so even the unfiltered view is organized rather than a flat list
-
-7. Update stat card values to respect the location filter (compute filtered counts)
-
-### Summary
-
-| Change | Detail | Risk |
-|--------|--------|------|
-| Location filter dropdown | New Select component above tabs | None (additive) |
-| Filter logic in filteredTasks | One additional `.filter()` call | None |
-| Filter logic in today/tomorrow | Filter unified pipeline output | None |
-| Location grouping in flat lists | Small section headers by location | None (visual only) |
-| Stat cards filtered | Recompute counts with location filter | None |
-
-One file changed (`Tasks.tsx`), plus importing `useLocations`. No database changes. No backend changes. Fully backwards compatible — defaults to "All Locations" which shows the same data as today.
-
+Small, safe changes. No logic changes to filtering. No database impact.
