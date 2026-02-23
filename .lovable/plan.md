@@ -1,51 +1,58 @@
 
 
-## Improve Shift Count Indicator for Scheduling
+## Improve "My Audits" - Current Week Focus
 
-### Current State
+### Problem
 
-The schedule already shows small badges next to employee names when they have "Expected Shifts/Week" set — an orange `-2` if they're missing shifts, or a green `+1` if they have extras. However, this is easy to miss and doesn't show the full picture (e.g., "how many do they have vs. how many do they need?").
+Right now the completed audits section shows a flat "Recently Completed (10)" list with no week grouping. Users have to scan dates manually to find this week's work, which is inefficient.
 
 ### What Changes
 
-Upgrade the indicator to show a clear **ratio badge** like `3/5` (current/expected) next to the employee name, color-coded:
-
-- **Orange** when below expected (e.g., `3/5`) -- still need more shifts
-- **Green** when at or above expected (e.g., `5/5` or `6/5`)
-- **Hidden** when no expected shifts are configured for the employee
-
-Also add a **tooltip on hover** that says something like: "3 of 5 expected shifts scheduled — 2 more needed"
-
-### Visual Example
+Reorganize the completed audits into week-based sections, with **This Week** prominently displayed first:
 
 ```text
-Employee column (current):
-  [AA] Ala Aldghrati        -2
-       Chef
+OVERDUE (if any)
+TODAY (scheduled)
+TOMORROW (scheduled)
+UPCOMING (scheduled)
 
-Employee column (new):
-  [AA] Ala Aldghrati      [3/5]
-       Chef
+--- THIS WEEK'S COMPLETED (4) ---        <-- new, prominent
+  LBFC Obor · Feb 23 · 100% · Compliant
+  LBFC Obor · Feb 22 · 85%  · Compliant
+  ...
+
+--- LAST WEEK (6) ---                    <-- new, collapsed by default
+  LBFC Mosilor · Feb 17 · 100% · Compliant
+  ...
+
+--- OLDER ---                            <-- new, collapsed by default
+  ...
 ```
 
-The `[3/5]` badge is orange. Hovering shows: "3 of 5 expected shifts scheduled this week. 2 more shifts needed."
+### UX Improvements
 
-When full: `[5/5]` in green. Hovering shows: "All expected shifts scheduled."
+1. **"This Week" section** always visible at top of completed audits, with a subtle highlight/accent border to draw attention
+2. **Week summary badge** next to the heading showing quick stats (e.g., "4 audits, avg 96%")
+3. **Last Week and Older sections** use a `Collapsible` component -- collapsed by default to reduce clutter, expandable on tap
+4. **Empty state for This Week**: If no audits completed yet this week, show an encouraging message like "No audits completed this week yet"
 
 ### Technical Details
 
-**File**: `src/components/workforce/EnhancedShiftWeekView.tsx`
+**File**: `src/pages/staff/StaffLocationAudits.tsx`
 
-1. **Update `getShiftIndicator`** (line 318-331) to return the actual count and expected count, not just the diff:
-   ```
-   return { actual, expected, diff }
-   ```
+1. **Update the `completedAudits` memo** (lines 63-70): Instead of slicing to 10, group all completed audits into three buckets:
+   - `thisWeek`: audits where `audit_date` or `created_at` falls within the current Mon-Sun week
+   - `lastWeek`: audits from the previous Mon-Sun week
+   - `older`: everything else (limit to 10)
 
-2. **Update the rendering** (lines 952-963) to show a ratio badge (`actual/expected`) instead of `+N` / `-N`, wrapped in a `Tooltip` (already imported in the file).
+2. **Add week boundary helpers**: Use `startOfWeek` and `endOfWeek` from `date-fns` (already imported) with `{ weekStartsOn: 1 }` for Monday start.
 
-3. Color logic:
-   - `actual < expected` → orange background
-   - `actual >= expected` → green background
+3. **Replace the single "Recently Completed" section** (lines 280-289) with three sections:
+   - "This Week" -- always rendered, accent-colored heading, shows empty state if zero
+   - "Last Week" -- wrapped in `Collapsible` (from radix, already in deps), collapsed by default
+   - "Older" -- wrapped in `Collapsible`, collapsed by default
 
-One file changed, roughly 20 lines modified. No database or backend changes needed. No risk to existing functionality.
+4. **Add average score** next to each week heading: compute the mean score of audits in that group and display as a small badge.
+
+No database changes. No new dependencies. One file modified (~60 lines changed).
 
