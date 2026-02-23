@@ -957,42 +957,45 @@ const LocationAudit = () => {
         status: status,
       };
 
+      // Phase 1 — Critical: save the audit (awaited, retryable)
+      let auditId: string;
+
       if (currentDraftId) {
         const { error } = await supabase
           .from('location_audits')
           .update(auditData)
           .eq('id', currentDraftId);
         if (error) throw error;
-        
-        await supabase
-          .from('location_audits')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('status', 'draft')
-          .neq('id', currentDraftId);
-        
-        await clearDraft();
-        toast.success("Location audit submitted successfully!");
-        navigate(`/audit-summary/${currentDraftId}`);
-        fireAuditCAPARules(currentDraftId);
+        auditId = currentDraftId;
       } else {
-        await supabase
-          .from('location_audits')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('status', 'draft');
-
         const { data: newAudit, error } = await supabase
           .from('location_audits')
           .insert(auditData)
           .select('id')
           .single();
         if (error) throw error;
-        
-        toast.success("Location audit submitted successfully!");
-        navigate(`/audit-summary/${newAudit.id}`);
-        fireAuditCAPARules(newAudit.id);
+        auditId = newAudit.id;
       }
+
+      // Phase 2 — Non-critical: cleanup drafts (fire-and-forget, never blocks user)
+      // Delete other draft rows silently in background
+      supabase
+        .from('location_audits')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('status', 'draft')
+        .neq('id', auditId)
+        .then(({ error }) => {
+          if (error) console.warn('[audit-submit] Background draft cleanup failed:', error.message);
+        });
+
+      // Clear local draft silently
+      try { clearDraft(); } catch (e) { console.warn('[audit-submit] clearDraft failed:', e); }
+
+      // Immediate success feedback
+      toast.success("Location audit submitted successfully!");
+      navigate(`/audit-summary/${auditId}`);
+      fireAuditCAPARules(auditId);
     };
 
     try {
