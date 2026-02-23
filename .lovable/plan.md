@@ -1,100 +1,80 @@
 
 
-## Unified Score Transparency -- Complete Implementation Plan
+## Fix: Audit Submit Timeout Error
 
-### What We're Building
+### What's Happening
 
-A new **Score Breakdown page** (`/staff/score`) that makes the existing Performance Score (0-100) fully transparent to employees. One score, one truth -- visible across mobile and kiosk. No second scoring system.
+When Vlad taps "Submit Audit" on mobile, the database insert into `location_audits` triggers 3 cascading operations that all run inside the same transaction:
 
-### Current State
+1. `handle_updated_at` -- sets timestamp (fast)
+2. `log_audit_activity` -- inserts into `activity_logs` (moderate)
+3. `fn_platform_audit_trigger` -- looks up user email from auth, serializes the entire row (including all form data) as JSON, inserts into `platform_audit_log` (heaviest)
 
-- Employees see a single number ("78.5") on StaffHome and StaffProfile with zero explanation
-- The full breakdown (Attendance, Punctuality, Tasks, Tests, Reviews, Warnings) only exists for managers
-- No `/staff/score` route or `StaffScoreBreakdown` page exists
-- The `effectiveScore.ts` utility already handles "which components have data" logic
-- The `useEmployeePerformance` hook already fetches everything we need
+The `authenticated` database role has an **8-second statement timeout**. When the database is under any load (cron jobs, other users), this trigger chain occasionally exceeds 8 seconds, producing the "canceling statement due to statement timeout" error.
 
-### Step 1: Create Score Breakdown Page
+### Root Cause
 
-**New file: `src/pages/staff/StaffScoreBreakdown.tsx`**
+The `fn_platform_audit_trigger` stores the **full row data** (including the `custom_data` JSON with all audit responses) in the `platform_audit_log` table. While individual rows are only ~1.5KB, the combined work of serializing + auth lookup + 2 inserts into separate tables pushes close to the 8-second limit under load.
 
-Mobile-first page showing:
-- Overall score with large circular progress indicator and color coding (green >= 80, amber >= 60, red < 60)
-- 5 component cards, each with:
-  - Icon + name (Attendance, Punctuality, Tasks, Tests, Reviews)
-  - Score value (0-100) or "--" when no data exists
-  - Color-coded progress bar
-  - Raw metric summary (e.g., "18/20 shifts", "3 late arrivals", "12/15 tasks on time")
-  - "No data yet" state clearly marked
-- Warning penalty section (if warnings exist): shows penalty amount, warning count, decay info
-- "How to improve" tip for the weakest component (e.g., "Focus on arriving on time to boost Punctuality")
-- Back navigation button
-- Uses existing `useEmployeePerformance` hook + `computeEffectiveScore` from `effectiveScore.ts`
-- Follows existing mobile patterns: `StaffBottomNav`, gradient header, Card components
+### The Fix (3 Parts)
 
-### Step 2: Register Route
+#### Part 1: Add Retry Logic to Audit Submission
 
-**Modified file: `src/App.tsx`**
-- Add `/staff/score` route pointing to `StaffScoreBreakdown` within ProtectedRoute
+Update `src/pages/staff/StaffLocationAudit.tsx` to automatically retry the insert/update once on timeout errors. This handles the intermittent nature of the issue without any database changes.
 
-### Step 3: Make Score Tappable on Staff Profile
+```
+Attempt 1 fails (timeout) -> wait 1 second -> Attempt 2 succeeds
+```
 
-**Modified file: `src/pages/staff/StaffProfile.tsx`**
+The retry only triggers for timeout-related errors, not for validation or permission errors.
 
-The Score Card (lines 183-193) becomes tappable:
-- Wrap in a clickable container that navigates to `/staff/score`
-- Add `ChevronRight` icon on the right side
-- Add subtle "View Breakdown" text under the score
-- Add a mini progress bar showing the score visually
+#### Part 2: Improve Error Messages
 
-### Step 4: Make Score Tappable on Staff Home
+Update the `catch` block in `StaffLocationAudit.tsx` to detect timeout errors and show a helpful message:
+- "The server took too long to respond. Please try again."
+- Instead of the generic "Failed to submit audit"
 
-**Modified file: `src/pages/staff/StaffHome.tsx`**
+Also apply the same fix to `LocationAudit.tsx` (the manager/desktop version) for consistency.
 
-The Trophy stat card (lines 420-424) becomes tappable:
-- Add `onClick={() => navigate("/staff/score")}` (it already has `cursor-pointer`)
-- Add subtle "Tap for details" text below the score number
-- Show weakest component hint when data exists (e.g., "Improve: Punctuality")
+#### Part 3: Optimize the Platform Audit Trigger
 
-### Step 5: Manual Verification Checklist
+Create a database migration to update `fn_platform_audit_trigger` to **exclude large JSONB columns** (`custom_data`, `cached_section_scores`) from the audit log data. This reduces the serialization overhead significantly.
 
-After implementation, verify across all views:
+Instead of storing the full row:
+```sql
+v_new := to_jsonb(NEW);  -- includes all JSONB blobs
+```
 
-| View | Check | Pass Criteria |
-|------|-------|---------------|
-| Staff Home (mobile) | Trophy card tap | Navigates to `/staff/score` |
-| Staff Home (mobile) | Score value | Matches breakdown page total |
-| Staff Profile (mobile) | Score card tap | Navigates to `/staff/score` |
-| Score Breakdown (mobile) | 5 components shown | Each with bar + value or "--" |
-| Score Breakdown (mobile) | Warning section | Shows penalty when warnings exist |
-| Score Breakdown (mobile) | Back navigation | Returns to previous page |
-| Score Breakdown (desktop) | Layout | Responsive, no broken layout |
-| Kiosk leaderboard | No regression | Still shows scores correctly |
-| Manager performance page | No regression | Unchanged |
+Strip heavy columns:
+```sql
+v_new := to_jsonb(NEW) - 'custom_data' - 'cached_section_scores';
+```
+
+This keeps the audit trail useful (who changed what, when) without storing redundant bulk data that's already in the source table.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/pages/staff/StaffLocationAudit.tsx` | Add retry logic + better timeout error message |
+| `src/pages/LocationAudit.tsx` | Add timeout error detection + better message |
+| Database migration | Optimize `fn_platform_audit_trigger` to exclude heavy JSONB columns |
 
 ### What This Does NOT Change
 
-- No database migrations needed
-- No new tables or columns
-- No changes to score calculation logic
-- No changes to manager views
-- No changes to Kiosk Champions or leaderboard
-- Existing `effectiveScore.ts` and `useEmployeePerformance` used as-is
+- No changes to scoring, templates, or audit flow logic
+- No changes to RLS policies
+- The `activity_logs` and `platform_audit_log` tables continue to work -- just with leaner data
+- No changes to mobile UI layout or navigation
 
-### Technical Details
+### Verification After Implementation
 
-**New file:** `src/pages/staff/StaffScoreBreakdown.tsx`
-- Imports: `useEmployeePerformance`, `computeEffectiveScore`, `Card`, `Progress`, `Badge`, `StaffBottomNav`
-- Fetches current month date range (same pattern as StaffHome lines 60-66)
-- Finds current employee's score from the array (same pattern as StaffHome lines 70-72)
-- Renders 5 component rows with `Progress` bars and color-coded scores
-- Warning penalty section with `AlertTriangle` icon
-- Improvement tip derived from lowest-scoring used component
-
-**Modified files:**
-- `src/App.tsx` -- 1 line: add route
-- `src/pages/staff/StaffProfile.tsx` -- Score Card section (lines 183-193): add click handler, chevron, "View Breakdown" text
-- `src/pages/staff/StaffHome.tsx` -- Trophy card (lines 420-424): add navigate handler, hint text
-
-**Risk:** Zero. All data comes from existing hooks. No calculation changes. Pure UI addition.
+| Check | How |
+|-------|-----|
+| Submit audit on mobile | Should succeed without timeout |
+| Submit audit with all fields filled | Verify no data loss |
+| Check `platform_audit_log` | Confirm new entries exist (without `custom_data` blob) |
+| Check `activity_logs` | Confirm audit_created entries still logged |
+| Retry on timeout | Simulate slow connection, verify retry works silently |
+| Error message on persistent failure | Should show "server took too long" not raw DB error |
 
