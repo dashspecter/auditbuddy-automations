@@ -1,68 +1,71 @@
 
 
-## Fix: Eliminate Timeout Error on Audit Submit
+## Fix: Unify Performance Scores Across All Mobile Views
 
-### Root Cause
+### The Problem
 
-The "canceling statement due to statement timeout" error happens because the submit function bundles **everything sequentially** -- including non-critical cleanup work that triggers slow database operations.
+User Iulian sees **three different scores** on three screens:
+- **Home page**: 86.8 (inflated -- counts components with no data as 100%)
+- **Score Breakdown**: 78.0 (correct -- only counts components with actual data)
+- **Profile page**: -- (broken -- the query never runs because no date range is passed)
 
-Here's what happens today:
+### Root Causes
 
-```text
-performSubmit() -- all sequential, all-or-nothing:
-  1. Save/update the audit row          --> triggers fire (log_audit_activity + fn_platform_audit_trigger)
-  2. DELETE other draft rows             --> triggers fire AGAIN for each deleted row
-  3. clearDraft (localStorage)
-  4. toast success
-  5. navigate
-```
-
-When step 2 (draft cleanup) times out, the ENTIRE function throws. The retry then re-runs everything -- including the already-successful save -- producing both an Error toast and a Success toast simultaneously (exactly what the screenshot shows).
+1. **Home page** reads `overall_score` which averages all 5 components equally, defaulting unused ones (like Tasks) to 100. This artificially inflates the score.
+2. **Profile page** calls `useEmployeePerformance()` with no date arguments. The query requires both `startDate` and `endDate` to run, so it returns nothing.
+3. Only the Score Breakdown page uses the correct `computeEffectiveScore()` function.
 
 ### The Fix
 
-**Separate the critical path (save the audit) from non-critical work (cleanup drafts).**
+#### 1. `src/pages/staff/StaffHome.tsx` -- Use effective score
 
-The audit save (step 1) is what matters. Draft cleanup, CAPA rules, and activity logging are housekeeping -- they should never block the user or cause an error.
+- Add the month date range (already exists) and `computeEffectiveScore` import
+- Replace `overall_score` lookup with `computeEffectiveScore()` to get the real effective score
+- The "My Score" card will now show the same number as the Score Breakdown page
 
-### Changes
+#### 2. `src/pages/staff/StaffProfile.tsx` -- Add date range and use effective score
 
-**File: `src/pages/LocationAudit.tsx`**
+- Add `useMemo` for month date range (same pattern as Home and Score Breakdown)
+- Pass `startDate` and `endDate` to `useEmployeePerformance()`
+- Replace `overall_score` with `computeEffectiveScore()` effective score
+- The "--" will be replaced with the correct score
 
-Restructure `performSubmit` into two phases:
+### After the Fix
 
-```text
-Phase 1 -- Critical (awaited, retry on timeout):
-  1. Save/update the audit row
-  2. (for new audits) Get the new audit ID
+All three views will show the same number (78.0 in Iulian's case) because they all use the same `computeEffectiveScore` function with the same month date range.
 
-Phase 2 -- Non-critical (fire-and-forget, errors silently logged):
-  3. Delete other draft rows
-  4. clearDraft (localStorage)
+### On Score Card Position
 
-Then immediately:
-  5. toast success
-  6. navigate
-  7. fireAuditCAPARules (already fire-and-forget)
+The "My Score" card position on the Home page (bottom of the screen, next to "Upcoming Shifts") is fine -- it's visible after a short scroll and sits in a natural stats row. No layout change needed.
+
+### Technical Detail
+
+Both files need the same change pattern:
+
+```typescript
+// Before (wrong):
+const myPerformanceScore = performanceScores?.find(s => s.employee_id === id)?.overall_score;
+
+// After (correct):
+import { computeEffectiveScore } from "@/lib/effectiveScore";
+
+const rawScore = performanceScores?.find(s => s.employee_id === id);
+const myPerformanceScore = rawScore ? computeEffectiveScore(rawScore).effective_score : null;
 ```
 
-This means:
-- If the save succeeds, the user sees success immediately -- no waiting for draft cleanup
-- If draft cleanup times out, it fails silently in the background (drafts get cleaned up next time anyway)
-- The retry logic only covers the critical save, not cleanup
+For Profile specifically, also add the missing date range:
+```typescript
+const dateRange = useMemo(() => ({
+  start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+  end: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+}), []);
 
-**File: `src/pages/staff/StaffLocationAudit.tsx`**
-
-Apply the same pattern -- this file has the identical issue for staff users. The draft cleanup after submit should be non-blocking.
+const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
+```
 
 ### What This Does NOT Change
 
-- No database changes, no trigger modifications
-- Audit data integrity is unchanged -- the save itself is still fully awaited with retry
-- CAPA rules still fire the same way (already fire-and-forget)
-- Draft cleanup still happens, just doesn't block the success flow
-
-### Why Not Fix the Triggers?
-
-The triggers (`fn_platform_audit_trigger`, `log_audit_activity`) serve important compliance/audit-trail purposes. Removing or modifying them could break regulatory requirements. The right fix is to not let non-critical operations block the user experience.
-
+- No database changes
+- Score Breakdown page is already correct -- no changes needed there
+- The scoring algorithm itself stays the same
+- Kiosk and management dashboard scores are unaffected
