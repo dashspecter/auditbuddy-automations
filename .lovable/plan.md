@@ -1,71 +1,106 @@
 
 
-## Fix: Unify Performance Scores Across All Mobile Views
+## Gamification and Employee Engagement System
 
-### The Problem
+### What's Missing Today
 
-User Iulian sees **three different scores** on three screens:
-- **Home page**: 86.8 (inflated -- counts components with no data as 100%)
-- **Score Breakdown**: 78.0 (correct -- only counts components with actual data)
-- **Profile page**: -- (broken -- the query never runs because no date range is passed)
+The current scoring system is purely informational -- employees see a number but have no reason to care about it. There's no history, no progression, no reward, and no fun.
 
-### Root Causes
+### Proposed Feature Set
 
-1. **Home page** reads `overall_score` which averages all 5 components equally, defaulting unused ones (like Tasks) to 100. This artificially inflates the score.
-2. **Profile page** calls `useEmployeePerformance()` with no date arguments. The query requires both `startDate` and `endDate` to run, so it returns nothing.
-3. Only the Score Breakdown page uses the correct `computeEffectiveScore()` function.
+This is a phased approach -- Phase 1 is a meaningful, buildable first step. Phases 2-3 are future extensions.
 
-### The Fix
+---
 
-#### 1. `src/pages/staff/StaffHome.tsx` -- Use effective score
+### Phase 1: Score History, Tiers, and Monthly Badges (Recommended to build now)
 
-- Add the month date range (already exists) and `computeEffectiveScore` import
-- Replace `overall_score` lookup with `computeEffectiveScore()` to get the real effective score
-- The "My Score" card will now show the same number as the Score Breakdown page
+#### 1A. Monthly Score Snapshots (Database)
 
-#### 2. `src/pages/staff/StaffProfile.tsx` -- Add date range and use effective score
+Create a `performance_monthly_scores` table that stores each employee's effective score at month end. This gives employees a history timeline and enables month-over-month comparison.
 
-- Add `useMemo` for month date range (same pattern as Home and Score Breakdown)
-- Pass `startDate` and `endDate` to `useEmployeePerformance()`
-- Replace `overall_score` with `computeEffectiveScore()` effective score
-- The "--" will be replaced with the correct score
-
-### After the Fix
-
-All three views will show the same number (78.0 in Iulian's case) because they all use the same `computeEffectiveScore` function with the same month date range.
-
-### On Score Card Position
-
-The "My Score" card position on the Home page (bottom of the screen, next to "Upcoming Shifts") is fine -- it's visible after a short scroll and sits in a natural stats row. No layout change needed.
-
-### Technical Detail
-
-Both files need the same change pattern:
-
-```typescript
-// Before (wrong):
-const myPerformanceScore = performanceScores?.find(s => s.employee_id === id)?.overall_score;
-
-// After (correct):
-import { computeEffectiveScore } from "@/lib/effectiveScore";
-
-const rawScore = performanceScores?.find(s => s.employee_id === id);
-const myPerformanceScore = rawScore ? computeEffectiveScore(rawScore).effective_score : null;
+```text
+performance_monthly_scores
+  - id (uuid)
+  - employee_id (uuid, FK)
+  - company_id (uuid, FK)
+  - month (date, first day of month)
+  - effective_score (numeric)
+  - used_components (int)
+  - attendance_score, punctuality_score, task_score, test_score, review_score (nullable)
+  - rank_in_location (int, nullable)
+  - created_at (timestamptz)
+  - UNIQUE(employee_id, month)
 ```
 
-For Profile specifically, also add the missing date range:
-```typescript
-const dateRange = useMemo(() => ({
-  start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  end: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-}), []);
+A backend function (edge function on a cron or triggered at month-end) snapshots current scores into this table.
 
-const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
+#### 1B. Performance Tiers
+
+Map score ranges to named tiers that employees can identify with:
+
+```text
+90-100  -->  Star Performer   (gold)
+80-89   -->  High Achiever    (blue)
+60-79   -->  Steady Progress  (green)
+40-59   -->  Developing       (amber)
+0-39    -->  Needs Support    (red)
+No data -->  New / Unranked   (gray)
 ```
 
-### What This Does NOT Change
+Display the tier badge on:
+- Home page "My Score" card
+- Profile page
+- Score Breakdown page header
+- Leaderboard entries
 
-- No database changes
-- Score Breakdown page is already correct -- no changes needed there
-- The scoring algorithm itself stays the same
-- Kiosk and management dashboard scores are unaffected
+#### 1C. Monthly Badges (Earned Automatically)
+
+Award badges based on monthly performance data. These are purely frontend-calculated from existing data -- no new tracking needed:
+
+- **Perfect Attendance** -- 100% attendance score
+- **Always On Time** -- 100% punctuality score  
+- **Task Champion** -- 100% task completion score
+- **Top 3 Finish** -- Ranked in top 3 at their location
+- **Rising Star** -- Score improved 10+ points from last month (requires score history)
+- **Consistency Streak** -- Score stayed above 80 for 3+ consecutive months
+
+Show earned badges on the Score Breakdown page in a "My Badges" section, and a badge count on the Profile page.
+
+#### 1D. Score History Chart on Breakdown Page
+
+Add a small line chart (using Recharts, already installed) at the top of the Score Breakdown page showing the last 6 months of scores. This gives employees a visual sense of progress.
+
+---
+
+### Phase 2: Social and Recognition (Future)
+
+- **Peer Shoutouts** -- employees can send a quick recognition to a colleague ("Great job closing today!")
+- **Manager Awards** -- managers can grant special one-off badges ("Employee of the Month")
+- **Monthly Recap Notification** -- "You ranked #2 this month! You earned the Perfect Attendance badge"
+
+### Phase 3: Tangible Rewards (Future)
+
+- **Points System** -- tie score to redeemable points (extra break, shift preference, etc.)
+- **Team Challenges** -- location-wide goals ("Everyone above 80 this month = pizza party")
+
+---
+
+### What to Build Now (Phase 1 Scope)
+
+1. **Database**: Create `performance_monthly_scores` table with RLS policies
+2. **Edge Function**: Monthly snapshot cron that computes and stores scores
+3. **Tier System**: Pure frontend utility mapping scores to tier names/colors/icons
+4. **Badge System**: Frontend utility that checks score data against badge criteria
+5. **UI Updates**:
+   - Score Breakdown page: Add score history chart + badges section + tier badge
+   - Home page "My Score" card: Show tier name alongside score
+   - Profile page: Show tier + badge count
+   - Leaderboard: Show tier badge next to each employee
+
+### Technical Notes
+
+- Tiers and badges are computed client-side from existing + archived score data -- lightweight, no complex backend logic
+- The monthly snapshot edge function runs once per month and writes one row per employee
+- Recharts is already installed for the history chart
+- No changes to the core scoring algorithm -- this is purely a presentation/engagement layer on top of existing data
+- RLS policies on the scores table: employees can read their own + same-location scores; managers can read all in their company
