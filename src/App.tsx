@@ -118,6 +118,7 @@ import StaffPerformanceReview from "./pages/staff/StaffPerformanceReview";
 import StaffWarnings from "./pages/staff/StaffWarnings";
 import TeamView from "./pages/staff/TeamView";
 import StaffCheckpoints from "./pages/staff/StaffCheckpoints";
+import StaffScoreBreakdown from "./pages/staff/StaffScoreBreakdown";
 import Tasks from "./pages/Tasks";
 import TaskNew from "./pages/TaskNew";
 import TaskEdit from "./pages/TaskEdit";
@@ -259,6 +260,7 @@ const App = () => (
                       <Route path="/staff/staff-audit" element={<ProtectedRoute><StaffStaffAudit /></ProtectedRoute>} />
                       <Route path="/staff/performance-review" element={<ProtectedRoute><StaffPerformanceReview /></ProtectedRoute>} />
                       <Route path="/staff/warnings" element={<ProtectedRoute><StaffWarnings /></ProtectedRoute>} />
+                      <Route path="/staff/score" element={<ProtectedRoute><StaffScoreBreakdown /></ProtectedRoute>} />
                       <Route path="/staff/documents" element={<ProtectedRoute><StaffDocuments /></ProtectedRoute>} />
                       <Route path="/staff/waste" element={<ProtectedRoute><MyWasteEntries /></ProtectedRoute>} />
                       <Route path="/staff/waste/new" element={<ProtectedRoute><AddWasteEntry /></ProtectedRoute>} />

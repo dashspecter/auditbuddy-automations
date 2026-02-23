@@ -180,15 +180,20 @@ const StaffProfile = () => {
 
       <div className="px-4 -mt-4 space-y-4 pb-6">
         {/* Score Card */}
-        <Card className="p-4 shadow-lg">
+        <Card 
+          className="p-4 shadow-lg cursor-pointer hover:bg-accent/5 transition-colors"
+          onClick={() => navigate("/staff/score")}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-primary" />
               <div>
                 <div className="text-sm text-muted-foreground">My Performance Score</div>
                 <div className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</div>
+                <div className="text-xs text-muted-foreground">View Breakdown</div>
               </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </div>
         </Card>
 
