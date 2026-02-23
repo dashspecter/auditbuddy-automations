@@ -417,7 +417,7 @@ const StaffHome = () => {
                 <div className="text-xs text-muted-foreground">{t('staffHome.thisWeek')}</div>
               </Card>
             )}
-            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors">
+            <Card className="p-4 cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => navigate("/staff/score")}>
               <Trophy className="h-5 w-5 text-primary mb-2" />
               <div className="text-2xl font-bold">{myPerformanceScore !== null ? myPerformanceScore.toFixed(1) : '--'}</div>
               <div className="text-xs text-muted-foreground">{t('staffHome.myScore')}</div>
