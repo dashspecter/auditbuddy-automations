@@ -1,58 +1,74 @@
 
 
-## Improve "My Audits" - Current Week Focus
+## Add Location Filter to All Task Tabs
 
 ### Problem
 
-Right now the completed audits section shows a flat "Recently Completed (10)" list with no week grouping. Users have to scan dates manually to find this week's work, which is inefficient.
+Currently, **only the Ops Dashboard tab** has a location filter. The Today, Tomorrow, Pending, Overdue, and Completed tabs show tasks from **all locations mixed together**, making it hard to understand what's happening at a specific location. When you manage multiple locations, this is confusing and inefficient.
+
+### Solution
+
+Add a **persistent location filter bar** that sits between the stat cards and the tab content. It applies to **all tabs** (Today, Tomorrow, Pending, Overdue, Completed, By Employee) so you can instantly scope everything to one location — or see all locations at once.
+
+### Visual Layout
+
+```text
+[Stats Cards Row]
+
+[Location: All Locations v]     <-- NEW persistent filter
+
+[List | Ops Dashboard | Today 11 | Tomorrow 11 | Pending | Overdue | Completed | By Employee]
+
+[Filtered task content...]
+```
 
 ### What Changes
 
-Reorganize the completed audits into week-based sections, with **This Week** prominently displayed first:
+1. **Location filter dropdown** added above the tabs, using the same `Select` component and location data already used in the Ops Dashboard tab. Defaults to "All Locations".
 
-```text
-OVERDUE (if any)
-TODAY (scheduled)
-TOMORROW (scheduled)
-UPCOMING (scheduled)
+2. **Filter applied to all relevant tabs**:
+   - **Today / Tomorrow**: Filter the unified pipeline results by `task.location_id`
+   - **Pending / Overdue / Completed**: Filter the base task list by `task.location_id`
+   - **By Employee**: Pass `locationId` to the timeline component
+   - **List tab**: Also filtered (shows task templates for that location)
+   - **Ops Dashboard**: Already has its own filter -- the global one will sync or defer to it
 
---- THIS WEEK'S COMPLETED (4) ---        <-- new, prominent
-  LBFC Obor · Feb 23 · 100% · Compliant
-  LBFC Obor · Feb 22 · 85%  · Compliant
-  ...
+3. **Stat cards update** to reflect the selected location (filtered counts instead of global counts)
 
---- LAST WEEK (6) ---                    <-- new, collapsed by default
-  LBFC Mosilor · Feb 17 · 100% · Compliant
-  ...
-
---- OLDER ---                            <-- new, collapsed by default
-  ...
-```
-
-### UX Improvements
-
-1. **"This Week" section** always visible at top of completed audits, with a subtle highlight/accent border to draw attention
-2. **Week summary badge** next to the heading showing quick stats (e.g., "4 audits, avg 96%")
-3. **Last Week and Older sections** use a `Collapsible` component -- collapsed by default to reduce clutter, expandable on tap
-4. **Empty state for This Week**: If no audits completed yet this week, show an encouraging message like "No audits completed this week yet"
+4. **Tasks grouped by location** within each tab when "All Locations" is selected -- add a small location header/divider between groups so tasks are visually organized even without filtering
 
 ### Technical Details
 
-**File**: `src/pages/staff/StaffLocationAudits.tsx`
+**File**: `src/pages/Tasks.tsx`
 
-1. **Update the `completedAudits` memo** (lines 63-70): Instead of slicing to 10, group all completed audits into three buckets:
-   - `thisWeek`: audits where `audit_date` or `created_at` falls within the current Mon-Sun week
-   - `lastWeek`: audits from the previous Mon-Sun week
-   - `older`: everything else (limit to 10)
+1. Add state: `const [selectedLocationId, setSelectedLocationId] = useState<string>("all")`
 
-2. **Add week boundary helpers**: Use `startOfWeek` and `endOfWeek` from `date-fns` (already imported) with `{ weekStartsOn: 1 }` for Monday start.
+2. Fetch locations using the existing `useLocations` hook (already used elsewhere in the app)
 
-3. **Replace the single "Recently Completed" section** (lines 280-289) with three sections:
-   - "This Week" -- always rendered, accent-colored heading, shows empty state if zero
-   - "Last Week" -- wrapped in `Collapsible` (from radix, already in deps), collapsed by default
-   - "Older" -- wrapped in `Collapsible`, collapsed by default
+3. Add a `Select` dropdown between the stat cards and the `Tabs` component
 
-4. **Add average score** next to each week heading: compute the mean score of audits in that group and display as a small badge.
+4. Update `filteredTasks` memo to apply `selectedLocationId` filter:
+   ```
+   if (selectedLocationId !== "all") {
+     result = result.filter(t => t.location_id === selectedLocationId);
+   }
+   ```
 
-No database changes. No new dependencies. One file modified (~60 lines changed).
+5. Update `todayTasks` / `tomorrowTasks` filtering similarly — filter the unified pipeline output
+
+6. When "All Locations" is selected, group tasks within Today/Tomorrow/Pending tabs by location using small section headers (location name as a divider), so even the unfiltered view is organized rather than a flat list
+
+7. Update stat card values to respect the location filter (compute filtered counts)
+
+### Summary
+
+| Change | Detail | Risk |
+|--------|--------|------|
+| Location filter dropdown | New Select component above tabs | None (additive) |
+| Filter logic in filteredTasks | One additional `.filter()` call | None |
+| Filter logic in today/tomorrow | Filter unified pipeline output | None |
+| Location grouping in flat lists | Small section headers by location | None (visual only) |
+| Stat cards filtered | Recompute counts with location filter | None |
+
+One file changed (`Tasks.tsx`), plus importing `useLocations`. No database changes. No backend changes. Fully backwards compatible — defaults to "All Locations" which shows the same data as today.
 
