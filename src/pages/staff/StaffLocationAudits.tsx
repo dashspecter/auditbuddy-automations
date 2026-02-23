@@ -1,14 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronRight, Calendar, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronRight, Calendar, Clock, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
 import { useMyScheduledAudits, useMyAudits } from "@/hooks/useMyScheduledAudits";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
-import { format, isToday, isTomorrow, isPast, parseISO, addDays, startOfDay, endOfDay } from "date-fns";
+import { format, isToday, isTomorrow, isPast, parseISO, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { CompletedWeekSection } from "@/components/staff/CompletedWeekSection";
 
 export default function StaffLocationAudits() {
   const { t } = useTranslation();
@@ -60,14 +61,38 @@ export default function StaffLocationAudits() {
   }, [scheduledAudits]);
 
   // Completed audits (from all audits)
-  const completedAudits = useMemo(() => {
-    return allMyAudits
-      .filter((a) => {
-        const status = a.status?.toLowerCase();
-        return status === "compliant" || status === "non-compliant" || status === "completed";
-      })
-      .slice(0, 10); // Show last 10 completed
+  const weekOpts = { weekStartsOn: 1 as const };
+  const completedBuckets = useMemo(() => {
+    const now = new Date();
+    const thisWeekStart = startOfWeek(now, weekOpts);
+    const thisWeekEnd = endOfWeek(now, weekOpts);
+    const lastWeekStart = startOfWeek(addDays(thisWeekStart, -1), weekOpts);
+    const lastWeekEnd = endOfWeek(addDays(thisWeekStart, -1), weekOpts);
+
+    const completed = allMyAudits.filter((a) => {
+      const status = a.status?.toLowerCase();
+      return status === "compliant" || status === "non-compliant" || status === "completed";
+    });
+
+    const thisWeek: typeof completed = [];
+    const lastWeek: typeof completed = [];
+    const older: typeof completed = [];
+
+    completed.forEach((a) => {
+      const d = new Date((a as any).audit_date || a.created_at);
+      if (isWithinInterval(d, { start: thisWeekStart, end: thisWeekEnd })) {
+        thisWeek.push(a);
+      } else if (isWithinInterval(d, { start: lastWeekStart, end: lastWeekEnd })) {
+        lastWeek.push(a);
+      } else {
+        older.push(a);
+      }
+    });
+
+    return { thisWeek, lastWeek, older: older.slice(0, 10) };
   }, [allMyAudits]);
+
+  const allCompleted = [...completedBuckets.thisWeek, ...completedBuckets.lastWeek, ...completedBuckets.older];
 
   const allTemplateIds = useMemo(() => {
     const allAudits = [
@@ -75,10 +100,10 @@ export default function StaffLocationAudits() {
       ...categorizedAudits.today,
       ...categorizedAudits.tomorrow,
       ...categorizedAudits.upcoming,
-      ...completedAudits
+      ...allCompleted
     ];
     return allAudits.map((a) => a.template_id).filter(Boolean) as string[];
-  }, [categorizedAudits, completedAudits]);
+  }, [categorizedAudits, allCompleted]);
 
   const { data: fieldsByTemplateId } = useAuditTemplateFields(allTemplateIds);
 
@@ -243,7 +268,7 @@ export default function StaffLocationAudits() {
           <div className="flex items-center justify-center py-10">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
-        ) : !hasScheduledAudits && completedAudits.length === 0 ? (
+        ) : !hasScheduledAudits && allCompleted.length === 0 ? (
           <Card className="p-6 text-center">
             <p className="text-sm text-muted-foreground">
               {t("staffHome.checker.noAuditsYet", "No audits yet.")}
@@ -267,25 +292,38 @@ export default function StaffLocationAudits() {
               </div>
             )}
 
-            {/* Today */}
             {renderSection(t("common.today", "Today"), categorizedAudits.today)}
-
-            {/* Tomorrow */}
             {renderSection(t("common.tomorrow", "Tomorrow"), categorizedAudits.tomorrow)}
-
-            {/* Upcoming (next 14 days) */}
             {renderSection(t("common.upcoming", "Upcoming"), categorizedAudits.upcoming)}
 
-            {/* Completed */}
-            {completedAudits.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  {t("common.recentlyCompleted", "Recently Completed")} ({completedAudits.length})
-                </h2>
-                <div className="space-y-2">
-                  {completedAudits.map(renderAuditCard)}
-                </div>
-              </div>
+            {/* This Week - always visible */}
+            <CompletedWeekSection
+              title={t("common.thisWeek", "This Week")}
+              audits={completedBuckets.thisWeek}
+              getScore={getScore}
+              renderAuditCard={renderAuditCard}
+              alwaysOpen
+              emptyMessage={t("staffHome.checker.noAuditsThisWeek", "No audits completed this week yet")}
+            />
+
+            {/* Last Week - collapsed */}
+            {completedBuckets.lastWeek.length > 0 && (
+              <CompletedWeekSection
+                title={t("common.lastWeek", "Last Week")}
+                audits={completedBuckets.lastWeek}
+                getScore={getScore}
+                renderAuditCard={renderAuditCard}
+              />
+            )}
+
+            {/* Older - collapsed */}
+            {completedBuckets.older.length > 0 && (
+              <CompletedWeekSection
+                title={t("common.older", "Older")}
+                audits={completedBuckets.older}
+                getScore={getScore}
+                renderAuditCard={renderAuditCard}
+              />
             )}
           </div>
         )}
