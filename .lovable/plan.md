@@ -1,80 +1,50 @@
 
 
-## Fix: Audit Submit Timeout Error
+## Fix: "Start Audit" Button Does Nothing for Recurring Schedule Events
 
-### What's Happening
+### Problem
 
-When Vlad taps "Submit Audit" on mobile, the database insert into `location_audits` triggers 3 cascading operations that all run inside the same transaction:
+Recurring schedule events on the calendar use virtual IDs like `recurring-schedule-{uuid}-{index}` with `source: 'location_audits'`. When clicking "Start Audit", the code falls into the `else` branch (line 385) and tries to update a non-existent `location_audits` row with that fake ID. The update silently fails -- no try/catch exists -- so nothing happens.
 
-1. `handle_updated_at` -- sets timestamp (fast)
-2. `log_audit_activity` -- inserts into `activity_logs` (moderate)
-3. `fn_platform_audit_trigger` -- looks up user email from auth, serializes the entire row (including all form data) as JSON, inserts into `platform_audit_log` (heaviest)
+### Changes
 
-The `authenticated` database role has an **8-second statement timeout**. When the database is under any load (cron jobs, other users), this trigger chain occasionally exceeds 8 seconds, producing the "canceling statement due to statement timeout" error.
+#### 1. `src/pages/AuditsCalendar.tsx` -- Fix `handleStartAudit`
 
-### Root Cause
+Add a new condition before the default `updateStatus` call:
+- Detect IDs starting with `recurring-schedule-`
+- Extract the schedule UUID from the ID
+- Navigate to `/location-audit?recurring_schedule={scheduleId}`
+- Wrap the existing `updateStatus` call in try/catch with timeout retry (same pattern used in audit submit fix)
+- Add loading state to the button
 
-The `fn_platform_audit_trigger` stores the **full row data** (including the `custom_data` JSON with all audit responses) in the `platform_audit_log` table. While individual rows are only ~1.5KB, the combined work of serializing + auth lookup + 2 inserts into separate tables pushes close to the 8-second limit under load.
+#### 2. `src/pages/LocationAudit.tsx` -- Handle `?recurring_schedule=` param
 
-### The Fix (3 Parts)
+Add a `loadRecurringSchedule` function (mirrors existing `loadScheduledAudit` pattern):
+- Read `recurring_schedule` from search params
+- Fetch from `recurring_audit_schedules` table by ID
+- Pre-fill template_id, location_id, and audit date
+- Show info toast with location name
 
-#### Part 1: Add Retry Logic to Audit Submission
-
-Update `src/pages/staff/StaffLocationAudit.tsx` to automatically retry the insert/update once on timeout errors. This handles the intermittent nature of the issue without any database changes.
-
-```
-Attempt 1 fails (timeout) -> wait 1 second -> Attempt 2 succeeds
-```
-
-The retry only triggers for timeout-related errors, not for validation or permission errors.
-
-#### Part 2: Improve Error Messages
-
-Update the `catch` block in `StaffLocationAudit.tsx` to detect timeout errors and show a helpful message:
-- "The server took too long to respond. Please try again."
-- Instead of the generic "Failed to submit audit"
-
-Also apply the same fix to `LocationAudit.tsx` (the manager/desktop version) for consistency.
-
-#### Part 3: Optimize the Platform Audit Trigger
-
-Create a database migration to update `fn_platform_audit_trigger` to **exclude large JSONB columns** (`custom_data`, `cached_section_scores`) from the audit log data. This reduces the serialization overhead significantly.
-
-Instead of storing the full row:
-```sql
-v_new := to_jsonb(NEW);  -- includes all JSONB blobs
-```
-
-Strip heavy columns:
-```sql
-v_new := to_jsonb(NEW) - 'custom_data' - 'cached_section_scores';
-```
-
-This keeps the audit trail useful (who changed what, when) without storing redundant bulk data that's already in the source table.
-
-### Files Changed
-
-| File | Change |
-|------|--------|
-| `src/pages/staff/StaffLocationAudit.tsx` | Add retry logic + better timeout error message |
-| `src/pages/LocationAudit.tsx` | Add timeout error detection + better message |
-| Database migration | Optimize `fn_platform_audit_trigger` to exclude heavy JSONB columns |
+Wire it into the existing `initializeData` useEffect alongside the `scheduledAuditId` and `draftId` checks.
 
 ### What This Does NOT Change
 
-- No changes to scoring, templates, or audit flow logic
-- No changes to RLS policies
-- The `activity_logs` and `platform_audit_log` tables continue to work -- just with leaner data
-- No changes to mobile UI layout or navigation
+- No database changes
+- No changes to scoring, templates, or audit flow
+- No changes to how real `location_audits` or `scheduled_audits` are handled
+- The recurring schedule row itself is not modified -- a new audit is simply created from its data
 
-### Verification After Implementation
+### Technical Detail
 
-| Check | How |
-|-------|-----|
-| Submit audit on mobile | Should succeed without timeout |
-| Submit audit with all fields filled | Verify no data loss |
-| Check `platform_audit_log` | Confirm new entries exist (without `custom_data` blob) |
-| Check `activity_logs` | Confirm audit_created entries still logged |
-| Retry on timeout | Simulate slow connection, verify retry works silently |
-| Error message on persistent failure | Should show "server took too long" not raw DB error |
+**AuditsCalendar.tsx `handleStartAudit` updated flow:**
+```
+1. source === 'scheduled_audits'  -> navigate ?scheduled=  (unchanged)
+2. ID starts with 'recurring-schedule-' -> navigate ?recurring_schedule=  (NEW)
+3. else (real location_audits row) -> try/catch updateStatus + navigate ?draft=  (wrapped with error handling)
+```
+
+**LocationAudit.tsx new `loadRecurringSchedule` function:**
+- Fetches from `recurring_audit_schedules` with location join
+- Sets template_id, location_id, audit date
+- Same pattern as `loadScheduledAudit` (lines 212-245)
 
