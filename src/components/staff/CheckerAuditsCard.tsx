@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useMyScheduledAudits, useMyAudits } from "@/hooks/useMyScheduledAudits";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
-import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
+import { format, isToday, isTomorrow, isPast, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
@@ -37,13 +37,19 @@ export const CheckerAuditsCard = () => {
   // Upcoming audits: scheduled audits that haven't been completed, sorted by scheduled_start
   const upcomingAudits = useMemo(() => {
     const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
     return scheduledAudits
       .filter((audit) => {
-        // Only show scheduled/pending/in_progress, not completed
         const status = audit.status?.toLowerCase();
-        return status !== "compliant" && status !== "non-compliant" && status !== "completed";
+        if (status === "compliant" || status === "non-compliant" || status === "completed") return false;
+        if (!audit.scheduled_start) return false;
+        const date = parseISO(audit.scheduled_start);
+        return date >= weekStart && date <= weekEnd;
       })
-      .slice(0, 3); // Show next 3 upcoming
+      .sort((a, b) => new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime())
+      .slice(0, 3);
   }, [scheduledAudits]);
 
   const templateIds = useMemo(
@@ -175,7 +181,7 @@ export const CheckerAuditsCard = () => {
           </div>
         ) : upcomingAudits.length === 0 ? (
           <div className="text-center py-4 text-sm text-muted-foreground">
-            {t("staffHome.checker.noUpcomingAudits", "No upcoming audits scheduled")}
+            {t("staffHome.checker.noAuditsThisWeek", "No audits scheduled this week")}
           </div>
         ) : (
           <div className="space-y-2">
