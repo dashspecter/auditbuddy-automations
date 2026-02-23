@@ -18,6 +18,7 @@ import { ScoreHistoryChart } from "@/components/staff/ScoreHistoryChart";
 import { useMonthlyScores } from "@/hooks/useMonthlyScores";
 import { computeEarnedBadges, type MonthlyScoreRecord } from "@/lib/performanceBadges";
 import { computeKioskLeaderboardScores } from "@/lib/kioskEffectiveScore";
+import { useBadgeConfigurations } from "@/hooks/useBadgeConfigurations";
 
 const COMPONENTS = [
   { key: "attendance" as const, label: "Attendance", icon: CheckCircle2, scoreField: "attendance_score" as const, usedField: "attendance_used" as const, metricFn: (s: EffectiveEmployeeScore) => `${s.shifts_worked}/${s.shifts_scheduled} shifts worked` },
@@ -87,6 +88,7 @@ const StaffScoreBreakdown = () => {
 
   const { data: performanceScores, isLoading } = useEmployeePerformance(dateRange.start, dateRange.end);
   const { data: monthlyHistory = [] } = useMonthlyScores(employeeId, 6);
+  const { configs: badgeConfigs } = useBadgeConfigurations();
 
   const effectiveScore = useMemo(() => {
     if (!performanceScores || !employeeId) return null;
@@ -113,8 +115,8 @@ const StaffScoreBreakdown = () => {
       effective_score: h.effective_score !== null ? Number(h.effective_score) : null,
       rank_in_location: h.rank_in_location,
     }));
-    return computeEarnedBadges(effectiveScore, historyRecords, locationRank);
-  }, [effectiveScore, monthlyHistory, locationRank]);
+    return computeEarnedBadges(effectiveScore, historyRecords, locationRank, badgeConfigs.length > 0 ? badgeConfigs : undefined);
+  }, [effectiveScore, monthlyHistory, locationRank, badgeConfigs]);
 
   const tip = effectiveScore ? getImprovementTip(effectiveScore) : null;
 
