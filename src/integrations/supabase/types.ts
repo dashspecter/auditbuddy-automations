@@ -1246,6 +1246,65 @@ export type Database = {
           },
         ]
       }
+      badge_configurations: {
+        Row: {
+          badge_key: string
+          color: string
+          company_id: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          rule_type: string
+          sort_order: number
+          streak_months: number | null
+          threshold: number
+        }
+        Insert: {
+          badge_key: string
+          color?: string
+          company_id: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          rule_type?: string
+          sort_order?: number
+          streak_months?: number | null
+          threshold?: number
+        }
+        Update: {
+          badge_key?: string
+          color?: string
+          company_id?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          rule_type?: string
+          sort_order?: number
+          streak_months?: number | null
+          threshold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badge_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           company_id: string

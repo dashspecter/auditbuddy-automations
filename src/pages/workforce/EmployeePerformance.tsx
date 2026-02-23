@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { TierDistributionCard } from "@/components/workforce/TierDistributionCard";
 import { ScoringExplainerCard } from "@/components/workforce/ScoringExplainerCard";
+import { BadgeManagement } from "@/components/workforce/BadgeManagement";
 import { TierBadge } from "@/components/staff/TierBadge";
 import { computeEarnedBadges } from "@/lib/performanceBadges";
 import { useMonthlyScores } from "@/hooks/useMonthlyScores";
+import { useBadgeConfigurations } from "@/hooks/useBadgeConfigurations";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,7 +71,7 @@ const getRankIcon = (rank: number) => {
 };
 
 /** Small sub-component that fetches monthly history + renders earned badges for one employee */
-function EmployeeBadgesRow({ employee }: { employee: EffectiveEmployeeScore }) {
+function EmployeeBadgesRow({ employee, badgeConfigs }: { employee: EffectiveEmployeeScore; badgeConfigs?: import("@/hooks/useBadgeConfigurations").BadgeConfigRow[] }) {
   const { data: monthlyHistory = [] } = useMonthlyScores(employee.employee_id, 6);
 
   const badges = useMemo(() => {
@@ -78,8 +80,8 @@ function EmployeeBadgesRow({ employee }: { employee: EffectiveEmployeeScore }) {
       effective_score: h.effective_score !== null ? Number(h.effective_score) : null,
       rank_in_location: h.rank_in_location,
     }));
-    return computeEarnedBadges(employee, history, null);
-  }, [employee, monthlyHistory]);
+    return computeEarnedBadges(employee, history, null, badgeConfigs);
+  }, [employee, monthlyHistory, badgeConfigs]);
 
   if (badges.length === 0) {
     return (
@@ -114,6 +116,7 @@ const EmployeePerformance = () => {
   const [dateRange, setDateRange] = useState<string>("month");
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const { data: locations = [] } = useLocations();
+  const { configs: badgeConfigs } = useBadgeConfigurations();
 
   // Calculate date range
   const getDateRange = () => {
@@ -434,7 +437,7 @@ const EmployeePerformance = () => {
             )}
 
             {/* Earned Badges */}
-            <EmployeeBadgesRow employee={employee} />
+            <EmployeeBadgesRow employee={employee} badgeConfigs={badgeConfigs.length > 0 ? badgeConfigs : undefined} />
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -481,6 +484,9 @@ const EmployeePerformance = () => {
 
       {/* Scoring Explainer */}
       <ScoringExplainerCard />
+
+      {/* Badge Management for admins */}
+      <BadgeManagement />
 
       {/* Tier Distribution */}
       <TierDistributionCard scores={allScores} />

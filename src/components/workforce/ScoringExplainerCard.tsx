@@ -3,11 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Info, ChevronDown, ChevronRight } from "lucide-react";
 import { TIERS } from "@/lib/performanceTiers";
-import { BADGE_DEFINITIONS } from "@/lib/performanceBadges";
+import { BADGE_DEFINITIONS, configsToBadgeDefinitions } from "@/lib/performanceBadges";
+import { useBadgeConfigurations } from "@/hooks/useBadgeConfigurations";
 import { cn } from "@/lib/utils";
 
 export function ScoringExplainerCard() {
   const [open, setOpen] = useState(false);
+  const { configs } = useBadgeConfigurations();
+
+  // Use DB configs if available, fall back to static
+  const badges = configs.length > 0 ? configsToBadgeDefinitions(configs) : BADGE_DEFINITIONS;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -70,7 +75,7 @@ export function ScoringExplainerCard() {
             <div>
               <h4 className="font-semibold text-sm mb-2">Monthly Badges</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {BADGE_DEFINITIONS.map(badge => {
+                {badges.map(badge => {
                   const Icon = badge.icon;
                   return (
                     <div
