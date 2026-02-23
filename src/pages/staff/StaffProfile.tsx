@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -7,8 +7,9 @@ import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { LogOut, User, Mail, Phone, MapPin, Calendar, ChevronRight, Wallet, TrendingUp, Trophy, AlertTriangle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { computeEffectiveScore } from "@/lib/effectiveScore";
 import { useMyWarningsStats } from "@/hooks/useMyWarnings";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 
@@ -21,11 +22,22 @@ const StaffProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hideEarnings, setHideEarnings] = useState(false);
 
+  // Date range for performance - this month
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    return {
+      start: format(startOfMonth(now), 'yyyy-MM-dd'),
+      end: format(endOfMonth(now), 'yyyy-MM-dd'),
+    };
+  }, []);
+
   // Get performance data
-  const { data: performanceScores } = useEmployeePerformance();
-  const myPerformanceScore = employee && performanceScores 
-    ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
-    : null;
+  const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
+  const myPerformanceScore = useMemo(() => {
+    if (!employee || !performanceScores) return null;
+    const raw = performanceScores.find(s => s.employee_id === employee.id);
+    return raw ? computeEffectiveScore(raw).effective_score : null;
+  }, [employee, performanceScores]);
 
   // Get warnings stats
   const { stats: warningsStats } = useMyWarningsStats();

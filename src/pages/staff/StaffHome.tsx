@@ -25,6 +25,7 @@ import { StaffNotificationsCard } from "@/components/staff/StaffNotificationsCar
 import { CheckerAuditsCard } from "@/components/staff/CheckerAuditsCard";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { computeEffectiveScore } from "@/lib/effectiveScore";
 import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
 import { StaffCheckpointsCard } from "@/components/staff/StaffCheckpointsCard";
 import { MyCorrectiveActionsCard } from "@/components/staff/MyCorrectiveActionsCard";
@@ -67,9 +68,11 @@ const StaffHome = () => {
   
   // Get performance data for this month
   const { data: performanceScores } = useEmployeePerformance(dateRange.start, dateRange.end);
-  const myPerformanceScore = employee && performanceScores 
-    ? performanceScores.find(s => s.employee_id === employee.id)?.overall_score 
-    : null;
+  const myPerformanceScore = useMemo(() => {
+    if (!employee || !performanceScores) return null;
+    const raw = performanceScores.find(s => s.employee_id === employee.id);
+    return raw ? computeEffectiveScore(raw).effective_score : null;
+  }, [employee, performanceScores]);
 
   // Count active (pending + overdue + upcoming) tasks using unified hook
   // This ensures badge matches what's shown on the StaffTasks page
