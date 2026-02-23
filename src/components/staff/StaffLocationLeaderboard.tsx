@@ -7,6 +7,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { UserAvatar } from "@/components/UserAvatar";
 import { computeKioskLeaderboardScores, type KioskEmployeeScore } from "@/lib/kioskEffectiveScore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TierBadge } from "@/components/staff/TierBadge";
 
 interface StaffLocationLeaderboardProps {
   locationId: string;
@@ -145,12 +146,10 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
                           {isCurrentUser && " (You)"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{employee.role}</span>
                         <span className="text-xs text-muted-foreground">•</span>
-                        <span className="text-xs text-muted-foreground">
-                          {employee.used_components_count} of 5 metrics
-                        </span>
+                        <TierBadge score={effectiveScore} size="sm" showLabel={false} />
                       </div>
                     </div>
                     <div className={`font-bold text-lg ${effectiveScore !== null ? getScoreColor(effectiveScore) : "text-muted-foreground"}`}>
@@ -186,9 +185,7 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground">{currentEmployee.role}</span>
                 <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">
-                  {currentEmployee.used_components_count} of 5 metrics
-                </span>
+                <TierBadge score={currentEmployee.kiosk_effective_overall_score} size="sm" showLabel={false} />
               </div>
             </div>
             <div className={`font-bold text-lg ${currentEmployee.kiosk_effective_overall_score !== null ? getScoreColor(currentEmployee.kiosk_effective_overall_score) : "text-muted-foreground"}`}>

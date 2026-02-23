@@ -6719,6 +6719,72 @@ export type Database = {
           },
         ]
       }
+      performance_monthly_scores: {
+        Row: {
+          attendance_score: number | null
+          company_id: string
+          created_at: string
+          effective_score: number | null
+          employee_id: string
+          id: string
+          month: string
+          punctuality_score: number | null
+          rank_in_location: number | null
+          review_score: number | null
+          task_score: number | null
+          test_score: number | null
+          used_components: number
+          warning_penalty: number | null
+        }
+        Insert: {
+          attendance_score?: number | null
+          company_id: string
+          created_at?: string
+          effective_score?: number | null
+          employee_id: string
+          id?: string
+          month: string
+          punctuality_score?: number | null
+          rank_in_location?: number | null
+          review_score?: number | null
+          task_score?: number | null
+          test_score?: number | null
+          used_components?: number
+          warning_penalty?: number | null
+        }
+        Update: {
+          attendance_score?: number | null
+          company_id?: string
+          created_at?: string
+          effective_score?: number | null
+          employee_id?: string
+          id?: string
+          month?: string
+          punctuality_score?: number | null
+          rank_in_location?: number | null
+          review_score?: number | null
+          task_score?: number | null
+          test_score?: number | null
+          used_components?: number
+          warning_penalty?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_monthly_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_monthly_scores_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_audit_log: {
         Row: {
           action: string

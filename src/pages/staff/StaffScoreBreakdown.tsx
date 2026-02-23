@@ -6,12 +6,18 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { ArrowLeft, CheckCircle2, Clock, ListTodo, GraduationCap, Star, AlertTriangle, TrendingUp, Lightbulb } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, ListTodo, GraduationCap, Star, AlertTriangle, Lightbulb } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
 import { computeEffectiveScore, formatEffectiveScore, type EffectiveEmployeeScore } from "@/lib/effectiveScore";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { TierBadge } from "@/components/staff/TierBadge";
+import { BadgesSection } from "@/components/staff/BadgesSection";
+import { ScoreHistoryChart } from "@/components/staff/ScoreHistoryChart";
+import { useMonthlyScores } from "@/hooks/useMonthlyScores";
+import { computeEarnedBadges, type MonthlyScoreRecord } from "@/lib/performanceBadges";
+import { computeKioskLeaderboardScores } from "@/lib/kioskEffectiveScore";
 
 const COMPONENTS = [
   { key: "attendance" as const, label: "Attendance", icon: CheckCircle2, scoreField: "attendance_score" as const, usedField: "attendance_used" as const, metricFn: (s: EffectiveEmployeeScore) => `${s.shifts_worked}/${s.shifts_scheduled} shifts worked` },
@@ -56,15 +62,19 @@ const StaffScoreBreakdown = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("employees")
-      .select("id")
+      .select("id, location_id")
       .eq("user_id", user.id)
       .single()
-      .then(({ data }) => setEmployeeId(data?.id || null));
+      .then(({ data }) => {
+        setEmployeeId(data?.id || null);
+        setLocationId(data?.location_id || null);
+      });
   }, [user]);
 
   const dateRange = useMemo(() => {
@@ -76,6 +86,7 @@ const StaffScoreBreakdown = () => {
   }, []);
 
   const { data: performanceScores, isLoading } = useEmployeePerformance(dateRange.start, dateRange.end);
+  const { data: monthlyHistory = [] } = useMonthlyScores(employeeId, 6);
 
   const effectiveScore = useMemo(() => {
     if (!performanceScores || !employeeId) return null;
@@ -83,6 +94,27 @@ const StaffScoreBreakdown = () => {
     if (!mine) return null;
     return computeEffectiveScore(mine);
   }, [performanceScores, employeeId]);
+
+  // Compute current location rank
+  const locationRank = useMemo(() => {
+    if (!performanceScores || !employeeId || !locationId) return null;
+    const locationEmployees = performanceScores.filter(s => s.location_id === locationId);
+    const ranked = locationEmployees
+      .map(s => ({ id: s.employee_id, score: computeEffectiveScore(s).effective_score ?? -1 }))
+      .sort((a, b) => b.score - a.score);
+    const idx = ranked.findIndex(r => r.id === employeeId);
+    return idx >= 0 ? idx + 1 : null;
+  }, [performanceScores, employeeId, locationId]);
+
+  // Compute badges
+  const earnedBadges = useMemo(() => {
+    const historyRecords: MonthlyScoreRecord[] = monthlyHistory.map(h => ({
+      month: h.month,
+      effective_score: h.effective_score !== null ? Number(h.effective_score) : null,
+      rank_in_location: h.rank_in_location,
+    }));
+    return computeEarnedBadges(effectiveScore, historyRecords, locationRank);
+  }, [effectiveScore, monthlyHistory, locationRank]);
 
   const tip = effectiveScore ? getImprovementTip(effectiveScore) : null;
 
@@ -105,10 +137,15 @@ const StaffScoreBreakdown = () => {
           <Button variant="ghost" size="sm" className="text-primary-foreground mb-3 -ml-2" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          <h1 className="text-2xl font-bold mb-1">My Score Breakdown</h1>
-          <p className="text-sm opacity-90">
-            {format(startOfMonth(new Date()), "MMMM yyyy")} — How your performance score is calculated
-          </p>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-2xl font-bold">My Score Breakdown</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm opacity-90">
+              {format(startOfMonth(new Date()), "MMMM yyyy")}
+            </p>
+            <TierBadge score={effectiveScore?.effective_score ?? null} size="sm" />
+          </div>
         </div>
       </div>
 
@@ -126,9 +163,16 @@ const StaffScoreBreakdown = () => {
           {effectiveScore && (
             <div className="text-xs text-muted-foreground mt-2">
               Based on {effectiveScore.used_components_count} of 5 components with data
+              {locationRank && ` • Rank #${locationRank} at your location`}
             </div>
           )}
         </Card>
+
+        {/* Score History Chart */}
+        <ScoreHistoryChart history={monthlyHistory} currentScore={effectiveScore?.effective_score ?? null} />
+
+        {/* Badges */}
+        <BadgesSection badges={earnedBadges} />
 
         {/* Component Breakdown */}
         <div>
