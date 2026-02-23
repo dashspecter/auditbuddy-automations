@@ -1,51 +1,51 @@
 
 
-## Per-Task WhatsApp Notification Toggle
+## Improve Shift Count Indicator for Scheduling
+
+### Current State
+
+The schedule already shows small badges next to employee names when they have "Expected Shifts/Week" set — an orange `-2` if they're missing shifts, or a green `+1` if they have extras. However, this is easy to miss and doesn't show the full picture (e.g., "how many do they have vs. how many do they need?").
 
 ### What Changes
 
-Add a simple boolean column `notify_whatsapp` to the `tasks` table (default `false`) and a toggle switch in the task creation form. Only tasks with this flag enabled will trigger WhatsApp notifications.
+Upgrade the indicator to show a clear **ratio badge** like `3/5` (current/expected) next to the employee name, color-coded:
 
-### Why It's Safe
+- **Orange** when below expected (e.g., `3/5`) -- still need more shifts
+- **Green** when at or above expected (e.g., `5/5` or `6/5`)
+- **Hidden** when no expected shifts are configured for the employee
 
-- **Additive only**: One new column with a default value -- no existing data or behavior breaks.
-- **Default is OFF**: Existing tasks won't suddenly start sending messages.
-- **No schema conflicts**: The column doesn't affect any existing queries, RLS policies, or triggers.
+Also add a **tooltip on hover** that says something like: "3 of 5 expected shifts scheduled — 2 more needed"
 
-### Steps
+### Visual Example
 
-#### 1. Database Migration
+```text
+Employee column (current):
+  [AA] Ala Aldghrati        -2
+       Chef
 
-Add a single column:
-```sql
-ALTER TABLE public.tasks
-ADD COLUMN notify_whatsapp BOOLEAN NOT NULL DEFAULT false;
+Employee column (new):
+  [AA] Ala Aldghrati      [3/5]
+       Chef
 ```
 
-#### 2. Task Creation Form (`src/pages/TaskNew.tsx`)
+The `[3/5]` badge is orange. Hovering shows: "3 of 5 expected shifts scheduled this week. 2 more shifts needed."
 
-Add a "Notify via WhatsApp" toggle (using the existing `Switch` component) near the assignment section. Only visible when the `whatsapp_messaging` module is active. The toggle sets `notify_whatsapp` in the form data passed to `useCreateTask`.
+When full: `[5/5]` in green. Hovering shows: "All expected shifts scheduled."
 
-#### 3. Guard Notifications in `useCreateTask` (`src/hooks/useTasks.ts`)
+### Technical Details
 
-Wrap the existing WhatsApp notification block with:
-```
-if (task.notify_whatsapp) { ... send notifications ... }
-```
+**File**: `src/components/workforce/EnhancedShiftWeekView.tsx`
 
-One line change -- if the flag is false, no notifications fire.
+1. **Update `getShiftIndicator`** (line 318-331) to return the actual count and expected count, not just the diff:
+   ```
+   return { actual, expected, diff }
+   ```
 
-#### 4. Guard the Cron Function (`supabase/functions/check-task-notifications/index.ts`)
+2. **Update the rendering** (lines 952-963) to show a ratio badge (`actual/expected`) instead of `+N` / `-N`, wrapped in a `Tooltip` (already imported in the file).
 
-Add `.eq("notify_whatsapp", true)` to both the upcoming and overdue task queries. Tasks without the flag are silently skipped.
+3. Color logic:
+   - `actual < expected` → orange background
+   - `actual >= expected` → green background
 
-### Summary
+One file changed, roughly 20 lines modified. No database or backend changes needed. No risk to existing functionality.
 
-| Area | Change | Risk |
-|------|--------|------|
-| Database | 1 new boolean column (default false) | None |
-| Task form | 1 toggle switch | None (additive UI) |
-| useCreateTask hook | 1 if-guard | None (skips silently) |
-| Cron edge function | 2 query filters | None (fewer results) |
-
-No existing functionality is modified -- only new, optional behavior is added.
