@@ -1,5 +1,11 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { TierDistributionCard } from "@/components/workforce/TierDistributionCard";
+import { ScoringExplainerCard } from "@/components/workforce/ScoringExplainerCard";
+import { TierBadge } from "@/components/staff/TierBadge";
+import { computeEarnedBadges } from "@/lib/performanceBadges";
+import { useMonthlyScores } from "@/hooks/useMonthlyScores";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Medal, Award, TrendingUp, Clock, CheckCircle, Calendar, MapPin, ChevronDown, ChevronRight, Users, FileText, Star, AlertTriangle, Info } from "lucide-react";
@@ -61,6 +67,46 @@ const getRankIcon = (rank: number) => {
       return <span className="w-6 h-6 flex items-center justify-center text-muted-foreground font-medium">#{rank}</span>;
   }
 };
+
+/** Small sub-component that fetches monthly history + renders earned badges for one employee */
+function EmployeeBadgesRow({ employee }: { employee: EffectiveEmployeeScore }) {
+  const { data: monthlyHistory = [] } = useMonthlyScores(employee.employee_id, 6);
+
+  const badges = useMemo(() => {
+    const history = monthlyHistory.map(h => ({
+      month: h.month,
+      effective_score: h.effective_score !== null ? Number(h.effective_score) : null,
+      rank_in_location: h.rank_in_location,
+    }));
+    return computeEarnedBadges(employee, history, null);
+  }, [employee, monthlyHistory]);
+
+  if (badges.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground italic">No badges earned this month</div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-muted-foreground mb-1.5">Earned Badges</div>
+      <div className="flex flex-wrap gap-2">
+        {badges.map(badge => {
+          const Icon = badge.icon;
+          return (
+            <div
+              key={badge.key}
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 bg-accent/5"
+            >
+              <Icon className={cn("h-3.5 w-3.5", badge.color)} />
+              <span className="text-xs font-medium">{badge.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const EmployeePerformance = () => {
   const { t } = useTranslation();
@@ -158,8 +204,9 @@ const EmployeePerformance = () => {
             </Avatar>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium truncate">{employee.employee_name}</span>
+                <TierBadge score={employee.effective_score} size="sm" showLabel={false} />
                 <Badge variant="outline" className="text-xs">{employee.role}</Badge>
                 {(employee.warning_count || 0) > 0 && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
@@ -385,6 +432,9 @@ const EmployeePerformance = () => {
                 )}
               </div>
             )}
+
+            {/* Earned Badges */}
+            <EmployeeBadgesRow employee={employee} />
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -428,6 +478,12 @@ const EmployeePerformance = () => {
           </Select>
         </div>
       </div>
+
+      {/* Scoring Explainer */}
+      <ScoringExplainerCard />
+
+      {/* Tier Distribution */}
+      <TierDistributionCard scores={allScores} />
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
