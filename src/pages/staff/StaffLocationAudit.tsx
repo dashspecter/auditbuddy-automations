@@ -449,7 +449,12 @@ const StaffLocationAudit = () => {
 
     setSubmitting(true);
 
-    try {
+    const isTimeoutError = (err: any) => {
+      const msg = (err?.message || err?.code || '').toLowerCase();
+      return msg.includes('timeout') || msg.includes('statement_timeout') || msg.includes('canceling statement');
+    };
+
+    const attemptSubmit = async () => {
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
@@ -505,9 +510,29 @@ const StaffLocationAudit = () => {
       
       toast.success("Audit submitted successfully!");
       navigate("/staff");
-    } catch (error) {
-      console.error("Error submitting audit:", error);
-      toast.error("Failed to submit audit");
+    };
+
+    try {
+      await attemptSubmit();
+    } catch (error: any) {
+      if (isTimeoutError(error)) {
+        console.warn("Audit submit timeout, retrying in 1s...", error);
+        try {
+          await new Promise(r => setTimeout(r, 1000));
+          await attemptSubmit();
+        } catch (retryError: any) {
+          console.error("Retry also failed:", retryError);
+          toast.error(
+            isTimeoutError(retryError)
+              ? "The server took too long to respond. Please try again."
+              : "Failed to submit audit",
+            { duration: 5000 }
+          );
+        }
+      } else {
+        console.error("Error submitting audit:", error);
+        toast.error("Failed to submit audit", { duration: 5000 });
+      }
     } finally {
       setSubmitting(false);
     }
