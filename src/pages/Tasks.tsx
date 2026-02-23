@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useLocations } from "@/hooks/useLocations";
 import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -263,6 +265,9 @@ const Tasks = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("list");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+
+  const { data: locations = [] } = useLocations();
 
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: stats } = useTaskStats();
@@ -318,9 +323,16 @@ const Tasks = () => {
     }
   };
 
-  // Get SHIFT-AWARE tasks from unified pipeline
-  const todayTasks = todayResult.tasks;
-  const tomorrowTasks = tomorrowResult.tasks;
+  // Helper to filter by location
+  const filterByLocation = (taskList: Task[]) => {
+    if (selectedLocationId === "all") return taskList;
+    return taskList.filter(t => t.location_id === selectedLocationId);
+  };
+
+  // Get SHIFT-AWARE tasks from unified pipeline, filtered by location
+  const todayTasks = useMemo(() => filterByLocation(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId]);
+  const tomorrowTasks = useMemo(() => filterByLocation(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId]);
+  const locationFilteredTasks = useMemo(() => filterByLocation(tasks), [tasks, selectedLocationId]);
 
   // Build "Happening Now" using base IDs to handle virtual occurrence IDs properly
   // Step 1: Get base IDs of tasks happening right now
@@ -361,17 +373,28 @@ const Tasks = () => {
   }, [todayTasks, happeningExcludeBaseIds]);
 
   const filteredTasks = useMemo(() => {
-    if (activeTab === "all") return tasks;
+    if (activeTab === "all") return locationFilteredTasks;
     if (activeTab === "today") return todayTasks as Task[];
     if (activeTab === "tomorrow") return tomorrowTasks as Task[];
-    if (activeTab === "pending") return tasks.filter(task => task.status === "pending" || task.status === "in_progress");
-    if (activeTab === "completed") return tasks.filter(task => task.status === "completed");
+    if (activeTab === "pending") return locationFilteredTasks.filter(task => task.status === "pending" || task.status === "in_progress");
+    if (activeTab === "completed") return locationFilteredTasks.filter(task => task.status === "completed");
     // Use canonical overdue check
-    if (activeTab === "overdue") return tasks.filter(task => isTaskOverdue(task));
-    return tasks;
-  }, [activeTab, tasks, todayTasks, tomorrowTasks]);
+    if (activeTab === "overdue") return locationFilteredTasks.filter(task => isTaskOverdue(task));
+    return locationFilteredTasks;
+  }, [activeTab, locationFilteredTasks, todayTasks, tomorrowTasks]);
 
-  const hasTasks = tasks.length > 0;
+  // Compute location-filtered stats
+  const filteredStats = useMemo(() => {
+    if (selectedLocationId === "all") return stats;
+    const total = locationFilteredTasks.length;
+    const pending = locationFilteredTasks.filter(t => t.status === "pending" || t.status === "in_progress").length;
+    const overdue = locationFilteredTasks.filter(t => isTaskOverdue(t)).length;
+    const completed = locationFilteredTasks.filter(t => t.status === "completed").length;
+    const completedLate = locationFilteredTasks.filter(t => t.status === "completed" && t.completed_late).length;
+    return { total, pending, overdue, completed, completedLate };
+  }, [selectedLocationId, locationFilteredTasks, stats]);
+
+  const hasTasks = locationFilteredTasks.length > 0;
 
   const taskSubItems = [
     { title: t('tasks.allTasks'), url: "/tasks", icon: ListTodo, description: t('tasks.allTasks') },
@@ -431,7 +454,7 @@ const Tasks = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.total || 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : filteredStats?.total || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -442,7 +465,7 @@ const Tasks = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.pending || 0}</div>
+            <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : filteredStats?.pending || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -453,7 +476,7 @@ const Tasks = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.overdue || 0}</div>
+            <div className="text-2xl font-bold text-destructive">{isLoading ? <Skeleton className="h-8 w-12" /> : filteredStats?.overdue || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -464,7 +487,7 @@ const Tasks = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.completed || 0}</div>
+            <div className="text-2xl font-bold text-green-600">{isLoading ? <Skeleton className="h-8 w-12" /> : filteredStats?.completed || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -475,9 +498,30 @@ const Tasks = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{isLoading ? <Skeleton className="h-8 w-12" /> : stats?.completedLate || 0}</div>
+            <div className="text-2xl font-bold text-orange-600">{isLoading ? <Skeleton className="h-8 w-12" /> : filteredStats?.completedLate || 0}</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Location Filter */}
+      <div className="flex items-center gap-3">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+          <SelectTrigger className="w-[260px]">
+            <SelectValue placeholder={t('common.allLocations', 'All Locations')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('common.allLocations', 'All Locations')}</SelectItem>
+            {locations.map((loc) => (
+              <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedLocationId !== "all" && (
+          <Button variant="ghost" size="sm" onClick={() => setSelectedLocationId("all")}>
+            {t('common.clearFilter', 'Clear')}
+          </Button>
+        )}
       </div>
 
       {!hasTasks && !isLoading ? (
@@ -524,7 +568,7 @@ const Tasks = () => {
                 <div>
                   <CardTitle>{t('tasks.allTasks')}</CardTitle>
                   <CardDescription>
-                    {tasks.length} {t('tasks.title').toLowerCase()} • {t('tasks.manageTasksHere', 'Manage all your tasks here')}
+                    {locationFilteredTasks.length} {t('tasks.title').toLowerCase()} • {t('tasks.manageTasksHere', 'Manage all your tasks here')}
                   </CardDescription>
                 </div>
                 <Button onClick={() => navigate("/tasks/new")}>
@@ -539,7 +583,7 @@ const Tasks = () => {
                       <Skeleton key={i} className="h-24 w-full" />
                     ))}
                   </div>
-                ) : tasks.length === 0 ? (
+                ) : locationFilteredTasks.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12">
                     <ListTodo className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>{t('tasks.noTasksYet')}</p>
@@ -550,7 +594,7 @@ const Tasks = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {tasks.map((task) => (
+                    {locationFilteredTasks.map((task) => (
                       <TaskListItem
                         key={task.id}
                         task={task}
@@ -567,7 +611,7 @@ const Tasks = () => {
           {/* All Tasks - Ops Dashboard */}
           <TabsContent value="all" className="mt-4">
             <AllTasksOpsDashboard
-              tasks={tasks}
+              tasks={locationFilteredTasks}
               onComplete={handleComplete}
               onEdit={(id) => navigate(`/tasks/${id}/edit`)}
               onDelete={(id) => setDeleteTaskId(id)}
@@ -577,7 +621,7 @@ const Tasks = () => {
           
           <TabsContent value="by-employee" className="mt-4">
             <ByEmployeeTimeline
-              tasks={tasks}
+              tasks={locationFilteredTasks}
               employees={employees}
               onComplete={handleComplete}
               onEdit={(id) => navigate(`/tasks/${id}/edit`)}
