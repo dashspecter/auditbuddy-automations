@@ -315,19 +315,15 @@ export const EnhancedShiftWeekView = () => {
     return count;
   };
 
-  // Get extra/missing shifts indicator for an employee
+  // Get shift count indicator for an employee
   const getShiftIndicator = (employee: any) => {
     if (!employee.expected_shifts_per_week) return null;
     
-    const actualShifts = getEmployeeShiftCountForWeek(employee.id);
-    const diff = actualShifts - employee.expected_shifts_per_week;
+    const actual = getEmployeeShiftCountForWeek(employee.id);
+    const expected = employee.expected_shifts_per_week;
+    const diff = actual - expected;
     
-    if (diff > 0) {
-      return { type: 'extra', count: diff };
-    } else if (diff < 0) {
-      return { type: 'missing', count: Math.abs(diff) };
-    }
-    return null;
+    return { actual, expected, diff };
   };
 
   const getRoleColor = (roleName: string) => {
@@ -949,17 +945,25 @@ export const EnhancedShiftWeekView = () => {
                     <div className="min-w-0 flex-1 overflow-visible">
                       <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
                         <span className="truncate max-w-[120px]" title={employee.full_name}>{employee.full_name}</span>
-                        {shiftIndicator?.type === 'extra' && (
-                          <span className="inline-flex items-center gap-0.5 text-green-600 text-[10px] font-semibold bg-green-100 dark:bg-green-900/30 px-1 rounded shrink-0" title={`+${shiftIndicator.count} extra shifts this week`}>
-                            <TrendingUp className="h-3 w-3" />
-                            +{shiftIndicator.count}
-                          </span>
-                        )}
-                        {shiftIndicator?.type === 'missing' && (
-                          <span className="inline-flex items-center gap-0.5 text-orange-600 text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/30 px-1 rounded shrink-0" title={`-${shiftIndicator.count} shifts below expected this week`}>
-                            <TrendingDown className="h-3 w-3" />
-                            -{shiftIndicator.count}
-                          </span>
+                        {shiftIndicator && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 cursor-default ${
+                                shiftIndicator.diff >= 0
+                                  ? 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400'
+                              }`}>
+                                {shiftIndicator.actual}/{shiftIndicator.expected}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {shiftIndicator.diff >= 0
+                                  ? `All expected shifts scheduled${shiftIndicator.diff > 0 ? ` (+${shiftIndicator.diff} extra)` : ''}.`
+                                  : `${shiftIndicator.actual} of ${shiftIndicator.expected} expected shifts scheduled. ${Math.abs(shiftIndicator.diff)} more needed.`}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">{employee.role}</div>
