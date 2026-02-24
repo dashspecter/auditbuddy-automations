@@ -1,45 +1,34 @@
 
 
-## Fix Time Format Inconsistency on Staff Tasks Page
+## Fix: Additional Daily Times Not Persisting (Single Additional Time)
 
-### What's Happening Now
+### Root Cause
 
-The times displayed on the "My Tasks" upcoming section are actually **calculated correctly**:
+The save logic requires **at least 2** additional time slots before persisting `recurrence_times` to the database. When a user adds only **1** additional time (e.g., 04:00 PM), the array has length 1, which fails the `>= 2` check, so it saves `null` -- effectively discarding the user's input.
 
-- "Starts 6:44 PM" with "Available at 18:14" means unlock = 18:44 - 30 min = 18:14 (correct math)
-- The 30-minute unlock window (configurable per task via `unlock_before_minutes`) is applied correctly
-
-### The Problem
-
-The **time formats are inconsistent**, which makes things look wrong:
-- "Starts" uses **12-hour format**: `6:44 PM`
-- "Available at" uses **24-hour format**: `18:14`
-
-This mixing of formats is confusing and makes users question whether the times are correct.
+The same threshold exists in the occurrence engine, which skips multi-slot expansion unless there are `> 1` entries.
 
 ### The Fix
 
-Standardize both times to the **same format**. Since the app targets a Romanian audience (Europe/Bucharest timezone), 24-hour format is more natural. Both "Starts" and "Available at" should use `HH:mm` (24-hour).
+Change the threshold from 2 to 1 across all relevant files, so that even a single additional daily time is saved and respected:
 
-### Technical Changes
+### Changes
 
-**File: `src/pages/staff/StaffTasks.tsx`** (line ~800)
+**1. `src/pages/TaskNew.tsx`** (task creation)
+- Line 104: Change `recurrenceTimes.length >= 2` to `recurrenceTimes.length >= 1`
+- Line 294: Change the success message condition from `>= 2` to `>= 1`
+- Line 297: Remove or adjust the "Add at least one more" hint (no longer needed with 1 entry)
 
-Change the "Starts" time format from 12-hour to 24-hour:
+**2. `src/pages/TaskEdit.tsx`** (task editing)
+- Line 168: Change `recurrenceTimes.length >= 2` to `recurrenceTimes.length >= 1`
 
-```
-// Before
-format(new Date(task.start_at), "h:mm a")
-
-// After  
-format(new Date(task.start_at), "HH:mm")
-```
-
-This change applies to the upcoming tasks section where both "Starts" and "Available at" are shown together.
-
-Also apply the same fix to the active tasks expanded details section (line ~708) for consistency.
+**3. `src/lib/taskOccurrenceEngine.ts`** (occurrence generation)
+- Line 491: Change `recurrence_times.length > 1` to `recurrence_times.length >= 1` so that even a single additional time triggers multi-slot expansion
 
 ### Result
 
-After the fix, the display will read:
-- "Starts: 18:44 - 120 min to complete" with "Available at 18:14" -- both in 24h format, clearly showing the 30-minute difference.
+After these changes:
+- Adding 1 additional time (e.g., 16:00) to a task with start_at 08:00 will create 2 daily occurrences
+- The data will persist correctly and display when reopening the task for editing
+- Existing tasks with 2+ additional times continue to work identically
+
