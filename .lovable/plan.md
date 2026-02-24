@@ -1,51 +1,54 @@
 
+## Fix: Sync Schedule Publishing Systems
 
-## Tag Shifts as "Extra" / "Exception"
+### The Problem
 
-### What This Solves
+There are two independent "publish" mechanisms that don't communicate:
 
-Currently, "extra shifts" are detected only by comparing an employee's total shifts against their `expected_shifts_per_week` threshold. This breaks for employees with irregular patterns (e.g., 2-on-2-off) where the weekly count varies. By allowing managers to explicitly tag a shift as "extra" when creating or editing it, the system gets a reliable, intentional signal rather than relying on math that doesn't fit every schedule pattern.
+1. **Schedule Period** (governance banner) -- sets `schedule_periods.state = 'published'` for a location/week. This is what shows "Schedule Status: Published" at the top.
+2. **Individual Shifts** -- each shift has its own `is_published` boolean. The green "Publish Week" and per-day "Publish (N)" buttons toggle this flag.
 
-### How It Works
+When you click "Publish" on the governance banner, it only updates the `schedule_periods` table. The individual shifts keep `is_published = false`, so they still show "Draft" badges. The per-day/week publish buttons remain green as if nothing happened. This is confusing and contradictory.
 
-The `shifts` table already has a `shift_type` column with values `'regular'` and `'training'`. We will add `'extra'` as a third option.
+### The Fix
 
-- When creating or editing a shift, managers will see a **"Shift Type"** selector with options: Regular, Extra, Training
-- Shifts tagged as "extra" will display a distinct visual badge in the scheduling grid
-- Payroll will treat `shift_type = 'extra'` shifts as overtime-eligible (using the employee's `overtime_rate`) regardless of the weekly shift count
+When the schedule period is published (via the governance banner), **automatically bulk-publish all shifts** for that location and week. This ensures a single, consistent meaning of "published."
+
+Conversely, when using the per-day/week publish buttons (non-governance flow), the behavior stays the same since those are for companies without governance enabled.
 
 ### Changes
 
-| Area | Change |
-|------|--------|
-| **EnhancedShiftDialog** | Add a "Shift Type" dropdown (Regular / Extra) to the form. Pre-fill `'regular'` by default. Save the value to `shift_type` on the shift record. |
-| **ShiftDialog** (simple version) | Add the same "Shift Type" selector for consistency. |
-| **Scheduling Grid** | Show a small colored badge (e.g., orange "Extra") on shifts where `shift_type = 'extra'`. |
-| **useShifts hook** | Update the TypeScript type to include `'extra'` in the `shift_type` union. |
-| **usePayroll hook** | When `shift_type = 'extra'`, always mark `is_extra_shift = true` and apply overtime rate, bypassing the weekly threshold calculation. |
-| **Payroll UI** | Extra-tagged shifts will appear in the "Extra Shifts" section as they already do, but now driven by the explicit tag rather than only by the count-based logic. |
+| File | What Changes |
+|------|-------------|
+| `src/hooks/useScheduleGovernance.ts` | In `usePublishSchedulePeriod` and `usePublishAndLockSchedulePeriod`, after updating the period state, also bulk-update all shifts for that location + week to `is_published = true`. |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | When governance is enabled and the period is already published/locked, hide the per-day "Publish (N)" buttons and the "Publish Week" button (they are redundant -- the banner already controls this). |
+| `src/components/workforce/SchedulePeriodBanner.tsx` | No structural changes, but the publish action will now also set `is_published` on all shifts as part of the mutation. |
 
 ### Technical Details
 
-**No database migration needed** -- the `shift_type` column is already `text` type, so `'extra'` is a valid value without any schema change.
+**usePublishSchedulePeriod mutation update:**
 
-**EnhancedShiftDialog changes:**
-- Add `shift_type` to formData state (default: `'regular'`)
-- Add a Select dropdown after the existing fields with options: Regular, Extra
-- Include `shift_type` in the submit payload
-- When editing, pre-fill from the existing shift's `shift_type`
+After setting `schedule_periods.state = 'published'`, add a second query:
+```
+await supabase
+  .from('shifts')
+  .update({ is_published: true })
+  .eq('company_id', period.company_id)
+  .eq('location_id', period.location_id)
+  .gte('shift_date', period.week_start_date)
+  .lt('shift_date', endOfWeekDate)
+```
 
-**ShiftDialog changes:**
-- Same pattern: add `shift_type` to form state and UI
+The same logic applies to `usePublishAndLockSchedulePeriod`.
 
-**EnhancedShiftWeekView (scheduling grid):**
-- Check `shift.shift_type === 'extra'` and render a small orange badge alongside the shift chip
+To do this, the mutations need access to the period's `location_id`, `company_id`, and `week_start_date`. These will be passed as additional parameters alongside `periodId`.
 
-**usePayroll.ts changes (around line 274):**
-- Before pushing the entry, check if the shift has `shift_type === 'extra'`
-- If so, set `is_extra_shift: true` directly instead of deferring to the summary-level weekly calculation
-- In the summary aggregation, combine both explicitly-tagged extras and threshold-detected extras
+**EnhancedShiftWeekView conditional hiding:**
 
-**useShifts.ts type update:**
-- Change `shift_type?: 'regular' | 'training' | null` to `shift_type?: 'regular' | 'training' | 'extra' | null`
+When governance is enabled and the current location's period state is `'published'` or `'locked'`, suppress the per-day publish buttons and the "Publish Week" button in the toolbar. The governance banner already serves as the single publish control in that mode.
 
+### Result
+
+- Publishing via the governance banner will mark all shifts as published (no more "Draft" badges after publishing)
+- The UI won't show contradictory states (banner says "Published" while shifts say "Draft")
+- For companies without governance enabled, the existing per-shift publish buttons continue to work as before
