@@ -1,25 +1,60 @@
 
-## Fix: Double Sidebar on Staff Profile Page
 
-### Problem
-When you click "View" on a staff member, you see two sidebars and two top bars stacked. This happens because:
+## Enhance Staff Profile with Real Performance Data and Badges
 
-1. The route wrapper (`ManagerRoute`) already adds the full page layout (sidebar, top bar, breadcrumbs)
-2. The Staff Profile page **also** adds the same layout around its content
+### What's Wrong Now
+The Staff Profile page (seen when a manager clicks "View" on an employee) shows placeholder data:
+- **Base Salary**: Shows raw field, no formatting
+- **This Month Hours**: Hardcoded "0h" -- never computed from actual attendance
+- **Performance Score**: Hardcoded "N/A" -- never fetches real score
+- **Last Shift**: Hardcoded "-" -- never queries actual shifts
+- **No Performance tab** with score breakdown, tier badge, or earned badges
 
-This means the layout gets applied twice, creating the "double menu" you see.
+### What Will Change
 
-### Solution
-Remove the extra layout wrapper from the Staff Profile page (`src/pages/workforce/StaffProfile.tsx`). Instead of wrapping content in `AppLayout`, the page should just return its content directly — since the route wrapper already provides the layout.
+**1. Wire up real performance data in the stat cards**
+- Fetch the employee's effective score using the existing `useEmployeePerformance` hook and `computeEffectiveScore` utility
+- Compute actual hours worked this month from attendance logs
+- Show real last shift date from attendance data
+- Display the actual performance score with color coding and a tier badge next to the employee name
 
-### What Changes
-- **File**: `src/pages/workforce/StaffProfile.tsx`
-  - Remove the `AppLayout` import
-  - Remove the `<AppLayout>` wrapper from both the "not found" state and the main return
-  - Replace with a plain fragment or div
+**2. Add a "Performance" tab**
+- Show the tier badge prominently
+- Display score breakdown (Attendance, Punctuality, Tasks, Tests, Reviews) with progress bars -- reusing the same pattern from the mobile Score Breakdown page
+- Show earned badges using the existing `BadgesSection` component
+- Show warning penalty if applicable
+- Include a mini score history chart using the `ScoreHistoryChart` component
 
-### Technical Detail
-- Line ~27: Change the "not found" return from `<AppLayout><div>...</div></AppLayout>` to just `<div>...</div>`
-- Line ~37: Change the main return from `<AppLayout><div className="space-y-6">...</div></AppLayout>` to just `<div className="space-y-6">...</div>`
+**3. No new database changes needed**
+All the data and hooks already exist. This is purely a front-end wiring task.
 
-This is a small, safe change — it just removes the duplicate wrapper.
+### Technical Details
+
+**File: `src/pages/workforce/StaffProfile.tsx`**
+
+New imports to add:
+- `useEmployeePerformance` hook
+- `computeEffectiveScore`, `formatEffectiveScore` from `effectiveScore`
+- `TierBadge` component
+- `BadgesSection` component
+- `ScoreHistoryChart` component
+- `useMonthlyScores` hook
+- `computeEarnedBadges` from `performanceBadges`
+- `useBadgeConfigurations` hook
+- `startOfMonth`, `endOfMonth` from date-fns
+- `useMemo` from React
+- `Progress` component
+
+Changes:
+1. Add date range computation for current month
+2. Call `useEmployeePerformance(start, end)` and find the employee's record by `id`
+3. Call `useMonthlyScores(id, 6)` for history
+4. Call `useBadgeConfigurations()` for badge configs
+5. Compute `effectiveScore` via `computeEffectiveScore()`
+6. Compute `earnedBadges` via `computeEarnedBadges()`
+7. Compute hours from `memberAttendance` (sum check-in to check-out durations)
+8. Find last shift from attendance logs
+9. Update the 4 stat cards to show real values
+10. Add a `TierBadge` next to the employee name
+11. Add a "Performance" `TabsTrigger` and `TabsContent` with score components, badges section, and score history chart
+
