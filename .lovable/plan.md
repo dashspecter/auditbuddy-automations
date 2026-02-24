@@ -1,38 +1,35 @@
 
-
-## Fix: Add Missing Module Names to Database CHECK Constraint
+## Fix: Allow Company Admins to Access Payroll Routes
 
 ### Problem
-The `company_modules` table has a CHECK constraint (`company_modules_module_name_check`) that restricts which `module_name` values can be inserted. It currently allows only 13 values and is missing 4 of the newly registered modules:
+Doug is a **company_admin** and can see the Payroll menu item in the sidebar (because the nav config allows `['admin', 'hr']`). However, when he navigates to the payroll page, he is denied access because the route in `App.tsx` is wrapped in `<CompanyOwnerRoute>`, which only allows **company owners**.
 
-- `payroll`
-- `cmms`
-- `corrective_actions`
-- `operations`
+This is a route guard mismatch -- the sidebar shows the item, but the page blocks access.
 
-When you try to enable these modules from the settings page, the database rejects the insert with: *"new row for relation company_modules violates check constraint company_modules_module_name_check"*.
+### Root Cause
 
-### Fix
-Run a single database migration to drop the old constraint and recreate it with all 17 allowed values:
+In `src/App.tsx`, lines 353-354:
 
-```sql
-ALTER TABLE public.company_modules
-  DROP CONSTRAINT company_modules_module_name_check;
-
-ALTER TABLE public.company_modules
-  ADD CONSTRAINT company_modules_module_name_check
-  CHECK (module_name = ANY (ARRAY[
-    'location_audits', 'staff_performance', 'equipment_management',
-    'notifications', 'reports', 'workforce', 'documents',
-    'inventory', 'insights', 'integrations', 'wastage',
-    'qr_forms', 'whatsapp_messaging',
-    'payroll', 'cmms', 'corrective_actions', 'operations'
-  ]));
+```text
+<Route path="/workforce/payroll" element={<CompanyOwnerRoute>...} />
+<Route path="/workforce/payroll-batches" element={<CompanyOwnerRoute>...} />
 ```
 
-### Impact
-- No code changes needed
-- No data loss -- existing rows are unaffected
-- The 4 modules that were previously failing to toggle on will now work correctly
-- All other modules remain unchanged
+`CompanyOwnerRoute` restricts to owner only. It should use `ManagerRoute` (like other workforce routes) so that admins and HR can also access payroll.
 
+### Fix
+
+**File: `src/App.tsx`**
+
+Change the two payroll routes from `CompanyOwnerRoute` to `ManagerRoute` with appropriate permission:
+
+- Line 353: `/workforce/payroll` -- change from `<CompanyOwnerRoute>` to `<ManagerRoute requiredPermission="manage_employees">`
+- Line 354: `/workforce/payroll-batches` -- change from `<CompanyOwnerRoute>` to `<ManagerRoute requiredPermission="manage_employees">`
+
+This aligns with the sidebar navigation config which already allows `['admin', 'hr']` roles, and matches how other workforce sub-pages (attendance, time-off, warnings) are guarded.
+
+### Impact
+- Company admins (like Doug) and HR users will now be able to access Payroll pages
+- Company owners retain full access (ManagerRoute allows owners through)
+- No database changes needed
+- No changes to other routes or components
