@@ -1,36 +1,40 @@
 
 
-## Fix Audit Trigger -- Safety-Verified
+## Add Tooltip to WhatsApp Toggle on Task Creation
 
-### The Problem
-The `fn_platform_audit_trigger` crashes on `attendance_logs` because it references `NEW.company_id` directly, but `attendance_logs` doesn't have that column. This is the **only** table (out of 20 attached) missing the column.
+### What
+Add an informational tooltip next to the "Notify via WhatsApp" label on the task creation page. The tooltip will advise managers to use WhatsApp notifications selectively -- ideally for critical tasks like start-of-shift, mid-shift check-ins, and end-of-shift tasks -- rather than enabling it for every task.
 
-### The Fix
-Replace direct column access (`NEW.company_id`) with safe jsonb extraction (`v_new->>'company_id'`). This produces the exact same value for all 19 tables that have the column, and gracefully returns NULL for `attendance_logs`.
+### Why
+- Prevents notification fatigue for employees
+- Reduces WhatsApp messaging costs (paid module)
+- Respects daily message limits and quiet hours
+- Encourages thoughtful use of the channel
 
-### Safety Verification
+### Changes
 
-| What | Before Fix | After Fix | Change? |
-|------|-----------|-----------|---------|
-| 19 tables with company_id | Audit logged correctly | Audit logged identically | No |
-| attendance_logs (no company_id) | CRASHES -- blocks check-in | Skips audit log (no company_id to log) | Bug fix only |
-| Data written to tables | Unchanged (RETURN NEW/OLD) | Unchanged | No |
-| custom_data/cached_section_scores stripping | Already stripped | Still stripped | No |
-| Auth/user lookup | Same logic | Same logic | No |
+**File: `src/pages/TaskNew.tsx`** (single file change)
 
-### Migration
+Add the existing `InfoTooltip` component (already used in corrective actions) next to the "Notify via WhatsApp" label:
 
-```sql
-CREATE OR REPLACE FUNCTION public.fn_platform_audit_trigger()
--- Only change: use v_new->>'company_id' and v_old->>'company_id'
--- instead of NEW.company_id and OLD.company_id
+```tsx
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
+
+// Around line 718, change:
+<Label className="font-medium">Notify via WhatsApp</Label>
+
+// To:
+<Label className="font-medium flex items-center gap-1.5">
+  Notify via WhatsApp
+  <InfoTooltip
+    content="Use WhatsApp notifications selectively for critical tasks — such as start-of-shift prep, mid-shift check-ins, or end-of-shift wrap-ups. Enabling it for every task can cause notification fatigue and may hit daily message limits."
+  />
+</Label>
 ```
 
-### Risk: None
-- No schema changes
-- No new tables or columns
-- No RLS policy changes
-- No application code changes
-- Identical output for all existing tables
-- Only unblocks the one table that was crashing
+### Technical Details
+- Reuses the existing `InfoTooltip` component from `src/components/correctiveActions/InfoTooltip.tsx`
+- No new dependencies or components needed
+- No database or backend changes
+- Tooltip appears on hover/tap with a small info icon next to the label
 
