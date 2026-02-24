@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
+
 import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera, Plus, X as XIcon } from "lucide-react";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { useCreateTask } from "@/hooks/useTasks";
@@ -716,14 +716,12 @@ const TaskNew = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
                   </div>
                   <div>
-                    <Label className="font-medium flex items-center gap-1.5">
-                      Notify via WhatsApp
-                      <InfoTooltip
-                        content="Use WhatsApp notifications selectively for critical tasks — such as start-of-shift prep, mid-shift check-ins, or end-of-shift wrap-ups. Enabling it for every task can cause notification fatigue and may hit daily message limits."
-                      />
-                    </Label>
+                    <Label className="font-medium">Notify via WhatsApp</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Send assignment, reminder &amp; overdue alerts to assigned employees
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Tip: Use selectively for critical tasks (start/mid/end of shift) to avoid notification fatigue and daily message limits.
                     </p>
                   </div>
                 </div>
