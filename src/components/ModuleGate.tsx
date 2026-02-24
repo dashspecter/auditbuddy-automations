@@ -11,8 +11,16 @@ interface ModuleGateProps {
 }
 
 export const ModuleGate = ({ module, children, fallback }: ModuleGateProps) => {
-  const { hasModule, canAccessModule } = useCompanyContext();
+  const { hasModule, canAccessModule, isLoading } = useCompanyContext();
   const navigate = useNavigate();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   // Check if module is enabled
   const isEnabled = hasModule(module);
