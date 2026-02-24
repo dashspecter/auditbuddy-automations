@@ -68,7 +68,7 @@ export const EnhancedShiftWeekView = () => {
   const [hasAutoSelectedLocation, setHasAutoSelectedLocation] = useState(false);
   const [selectedShift, setSelectedShift] = useState<any>(null);
   const [view, setView] = useState<"day" | "week">("week");
-  const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
+  const [viewMode, setViewMode] = useState<"employee" | "location">("location");
   const [timeOffToDelete, setTimeOffToDelete] = useState<{ id: string; employeeName: string } | null>(null);
   const [shiftTypeFilter, setShiftTypeFilter] = useState<"all" | "regular" | "training">("all");
   const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
@@ -149,18 +149,21 @@ export const EnhancedShiftWeekView = () => {
 
   // Auto-select the first location that has scheduled shifts on initial load
   useEffect(() => {
-    if (hasAutoSelectedLocation || isLoading || shifts.length === 0 || locations.length === 0) return;
+    if (hasAutoSelectedLocation || locations.length === 0) return;
     
-    // Find unique location IDs from existing shifts
-    const locationIdsWithShifts = [...new Set(shifts.map((s: any) => s.location_id))];
-    
-    // Find the first valid location that has shifts
-    const firstLocationWithShifts = locations.find(l => locationIdsWithShifts.includes(l.id));
-    
-    if (firstLocationWithShifts) {
-      setSelectedLocation(firstLocationWithShifts.id);
+    // Wait for shifts to finish loading before deciding
+    if (!isLoading) {
+      const locationIdsWithShifts = [...new Set(shifts.map((s: any) => s.location_id))];
+      const locationWithShifts = locations.find(l => locationIdsWithShifts.includes(l.id));
+      
+      if (locationWithShifts) {
+        setSelectedLocation(locationWithShifts.id);
+      } else {
+        // No shifts anywhere — just pick the first location
+        setSelectedLocation(locations[0].id);
+      }
+      setHasAutoSelectedLocation(true);
     }
-    setHasAutoSelectedLocation(true);
   }, [hasAutoSelectedLocation, isLoading, shifts, locations]);
 
   // Schedule governance - get period for selected location (or all periods for aggregate view)
