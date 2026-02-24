@@ -159,6 +159,22 @@ export const usePublishSchedulePeriod = () => {
         .single();
       
       if (error) throw error;
+
+      // Bulk-publish all shifts for this location + week
+      const period = data as SchedulePeriod;
+      const weekEnd = new Date(period.week_start_date);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+      await supabase
+        .from('shifts')
+        .update({ is_published: true })
+        .eq('company_id', period.company_id)
+        .eq('location_id', period.location_id)
+        .gte('shift_date', period.week_start_date)
+        .lt('shift_date', weekEndStr)
+        .not('status', 'in', '("cancelled","deleted")');
+
       return data;
     },
     onSuccess: () => {
@@ -266,6 +282,22 @@ export const usePublishAndLockSchedulePeriod = () => {
         .single();
       
       if (error) throw error;
+
+      // Bulk-publish all shifts for this location + week
+      const period = data as SchedulePeriod;
+      const weekEnd = new Date(period.week_start_date);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+      await supabase
+        .from('shifts')
+        .update({ is_published: true })
+        .eq('company_id', period.company_id)
+        .eq('location_id', period.location_id)
+        .gte('shift_date', period.week_start_date)
+        .lt('shift_date', weekEndStr)
+        .not('status', 'in', '("cancelled","deleted")');
+
       return data;
     },
     onSuccess: () => {
