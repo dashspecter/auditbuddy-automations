@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMysteryShopperTemplateByToken, useMysteryShopperQuestions, MysteryShopperQuestion } from "@/hooks/useMysteryShopperTemplates";
 import { useCreateMysteryShopperSubmission } from "@/hooks/useMysteryShopperSubmissions";
@@ -180,6 +181,8 @@ export default function MysteryShopperForm() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleAnswerChange = (questionId: string, value: any) => {
@@ -232,6 +235,13 @@ export default function MysteryShopperForm() {
         newErrors[q.id] = "This question is required";
       }
     });
+
+    if (!gdprConsent) {
+      newErrors.gdprConsent = "You must agree to the data processing policy";
+    }
+    if (!marketingConsent) {
+      newErrors.marketingConsent = "You must agree to receive marketing communications";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -252,7 +262,7 @@ export default function MysteryShopperForm() {
         customer_name: customerName.trim(),
         customer_email: customerEmail || null,
         customer_phone: customerPhone || null,
-        raw_answers: answers,
+        raw_answers: { ...answers, gdpr_consent: true, marketing_consent: true },
         overall_score: overallScore,
       });
       
@@ -411,6 +421,53 @@ export default function MysteryShopperForm() {
                     )}
                   </div>
                 ))}
+              </div>
+
+              {/* Consent Checkboxes */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="gdprConsent"
+                    checked={gdprConsent}
+                    onCheckedChange={(checked) => {
+                      setGdprConsent(checked === true);
+                      if (errors.gdprConsent) {
+                        setErrors(prev => { const n = { ...prev }; delete n.gdprConsent; return n; });
+                      }
+                    }}
+                    className={errors.gdprConsent ? "border-destructive" : ""}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="gdprConsent" className="font-normal cursor-pointer leading-snug">
+                      I agree that my personal data will be processed in accordance with the Privacy Policy. <span className="text-destructive">*</span>
+                    </Label>
+                    {errors.gdprConsent && (
+                      <p className="text-sm text-destructive">{errors.gdprConsent}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="marketingConsent"
+                    checked={marketingConsent}
+                    onCheckedChange={(checked) => {
+                      setMarketingConsent(checked === true);
+                      if (errors.marketingConsent) {
+                        setErrors(prev => { const n = { ...prev }; delete n.marketingConsent; return n; });
+                      }
+                    }}
+                    className={errors.marketingConsent ? "border-destructive" : ""}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="marketingConsent" className="font-normal cursor-pointer leading-snug">
+                      I agree to receive marketing communications (promotions, offers, news) via email or SMS. <span className="text-destructive">*</span>
+                    </Label>
+                    {errors.marketingConsent && (
+                      <p className="text-sm text-destructive">{errors.marketingConsent}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <Button 
