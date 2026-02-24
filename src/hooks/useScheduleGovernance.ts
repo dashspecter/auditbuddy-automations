@@ -166,14 +166,19 @@ export const usePublishSchedulePeriod = () => {
       weekEnd.setDate(weekEnd.getDate() + 7);
       const weekEndStr = weekEnd.toISOString().split('T')[0];
 
-      await supabase
+      const { error: shiftsError } = await supabase
         .from('shifts')
-        .update({ is_published: true })
+        .update({ is_published: true, status: 'published' })
         .eq('company_id', period.company_id)
         .eq('location_id', period.location_id)
         .gte('shift_date', period.week_start_date)
         .lt('shift_date', weekEndStr)
         .not('status', 'in', '("cancelled","deleted")');
+
+      if (shiftsError) {
+        console.error('Failed to bulk-publish shifts:', shiftsError);
+        throw new Error('Schedule period updated but failed to publish individual shifts');
+      }
 
       return data;
     },
@@ -289,14 +294,19 @@ export const usePublishAndLockSchedulePeriod = () => {
       weekEnd.setDate(weekEnd.getDate() + 7);
       const weekEndStr = weekEnd.toISOString().split('T')[0];
 
-      await supabase
+      const { error: shiftsError } = await supabase
         .from('shifts')
-        .update({ is_published: true })
+        .update({ is_published: true, status: 'published' })
         .eq('company_id', period.company_id)
         .eq('location_id', period.location_id)
         .gte('shift_date', period.week_start_date)
         .lt('shift_date', weekEndStr)
         .not('status', 'in', '("cancelled","deleted")');
+
+      if (shiftsError) {
+        console.error('Failed to bulk-publish shifts:', shiftsError);
+        throw new Error('Schedule period updated but failed to publish individual shifts');
+      }
 
       return data;
     },
