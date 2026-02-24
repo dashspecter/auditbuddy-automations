@@ -1,93 +1,97 @@
 
 
-## Fix: Coverage Engine Should Require Published Shifts Only
+## Sync `status` and `is_published` Fields on Shifts
 
 ### Problem
-The user `test@lbfc.ro` sees tasks despite not appearing on any schedule because they have a shift with **`status: 'draft'`** but **`is_published: true`**. The coverage engine at line 158 of `taskCoverageEngine.ts` only checks `is_published !== false`, so these inconsistent draft shifts are treated as valid coverage.
+The `shifts` table has two fields that should stay in sync:
+- `is_published` (boolean) -- used by the coverage engine, UI indicators
+- `status` (text, e.g. `'draft'`, `'published'`, `'active'`) -- used by governance logic
 
-Database shows **275 shifts** in this broken state (`status: 'draft'`, `is_published: true`), meaning this affects many users -- not just this test account.
+Multiple code paths update one without the other:
+- `useBulkPublishShifts` sets only `is_published`, leaving `status` as `'draft'`
+- `EnhancedShiftDialog` checkbox toggles `is_published` without touching `status`
+- `useCopySchedule` copies `is_published` from source shift but ignores `status`
 
-### Root Cause
+This caused 275 shifts with `status='draft'` + `is_published=true`, making them appear on task coverage despite being drafts.
 
-```text
-// Current filter (line 158 of taskCoverageEngine.ts)
-const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false);
-```
+### Solution: Database Trigger
 
-This only excludes shifts where `is_published` is explicitly `false`. A shift with `status: 'draft'` and `is_published: true` (a data inconsistency) passes right through.
-
-### Fix
-
-**File: `src/lib/taskCoverageEngine.ts`** (line 158)
-
-Update the shift filter to also exclude `status: 'draft'` shifts:
-
-```typescript
-const dateShifts = shifts.filter(
-  s => s.shift_date === taskDateStr 
-    && s.is_published !== false 
-    && s.status !== 'draft'
-);
-```
-
-**File: `src/hooks/useShiftCoverage.ts`**
-
-Update the shifts query to include the `status` field so the engine can filter on it:
+Rather than patching every code path (fragile), create a PostgreSQL trigger that automatically keeps the two fields in sync on every INSERT or UPDATE:
 
 ```text
-// Add 'status' to the select clause (around line 68)
-.select(`
-  id,
-  location_id,
-  shift_date,
-  start_time,
-  end_time,
-  role,
-  status,
-  is_published,
-  shift_assignments!left(id, staff_id, approval_status)
-`)
+Trigger logic (on shifts BEFORE INSERT OR UPDATE):
+  - If is_published changed to TRUE  --> set status = 'published'
+  - If is_published changed to FALSE --> set status = 'draft'
+  - If status changed to 'draft'     --> set is_published = false
+  - If status changed to 'published' --> set is_published = true
 ```
 
-And include `status` in the mapped result object.
+This guarantees consistency regardless of which field any code path updates.
 
-**File: `src/lib/taskCoverageEngine.ts`** (Shift interface, around line 25)
+### Changes
 
-Add `status` to the `Shift` interface:
+| Change | Detail |
+|--------|--------|
+| **Database migration** | Create trigger function `sync_shift_publish_status()` and attach it to `shifts` table as a `BEFORE INSERT OR UPDATE` trigger |
 
-```typescript
-export interface Shift {
-  id: string;
-  location_id: string;
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-  role: string;
-  status?: string;       // <-- add this
-  is_published?: boolean;
-  shift_assignments?: Array<{...}>;
-}
-```
+### Technical Details
 
-### Data Cleanup (Optional)
-
-There are 275 shifts with `status: 'draft'` but `is_published: true`. Optionally, a migration can fix this inconsistency:
+**Migration SQL:**
 
 ```sql
-UPDATE shifts SET is_published = false WHERE status = 'draft' AND is_published = true;
+CREATE OR REPLACE FUNCTION public.sync_shift_publish_status()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- On INSERT: sync based on whichever field is set
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.is_published = true AND (NEW.status IS NULL OR NEW.status = 'draft') THEN
+      NEW.status := 'published';
+    ELSIF NEW.status = 'published' AND (NEW.is_published IS NULL OR NEW.is_published = false) THEN
+      NEW.is_published := true;
+    ELSIF (NEW.is_published IS NULL OR NEW.is_published = false) AND (NEW.status IS NULL OR NEW.status = 'draft') THEN
+      NEW.status := 'draft';
+      NEW.is_published := false;
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  -- On UPDATE: detect which field changed and sync the other
+  -- Skip sync for cancelled/deleted statuses (those have their own lifecycle)
+  IF NEW.status IN ('cancelled', 'deleted') THEN
+    RETURN NEW;
+  END IF;
+
+  IF OLD.is_published IS DISTINCT FROM NEW.is_published THEN
+    IF NEW.is_published = true THEN
+      NEW.status := 'published';
+    ELSE
+      NEW.status := 'draft';
+    END IF;
+  ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
+    IF NEW.status = 'published' THEN
+      NEW.is_published := true;
+    ELSIF NEW.status = 'draft' THEN
+      NEW.is_published := false;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_sync_shift_publish_status
+  BEFORE INSERT OR UPDATE ON public.shifts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_shift_publish_status();
 ```
 
-This is recommended but not strictly required since the code fix above handles it.
+### No Application Code Changes Required
 
-### Changes Summary
-
-| File | Change |
-|------|--------|
-| `src/lib/taskCoverageEngine.ts` | Add `status` to Shift interface; update filter to exclude `status: 'draft'` |
-| `src/hooks/useShiftCoverage.ts` | Add `status` to the select query and mapped result |
+The trigger operates at the database level, so all existing code paths (`useBulkPublishShifts`, `EnhancedShiftDialog`, `useCopySchedule`, `useTrainingAssignments`, `apply_schedule_change_request`, etc.) will automatically benefit from the sync without any modifications.
 
 ### Impact
-- Draft shifts will no longer grant task visibility to employees
-- Only properly published shifts will count as coverage
-- No effect on tasks with `execution_mode: 'always_on'` (those bypass coverage entirely)
-- Fixes the issue for the test account and all other users affected by the data inconsistency
+- All future publish/unpublish operations will keep both fields consistent
+- The previous data cleanup migration already fixed the 275 existing inconsistent rows
+- `cancelled` and `deleted` statuses are excluded from sync to preserve their lifecycle
