@@ -1,51 +1,39 @@
 
 
-## Add Role and Employee Filters to the Task List View
+## Enable Multi-Role Selection in Task Edit (Match Task Creation)
 
 ### What
-Add two additional filter dropdowns next to the existing Location filter on the Tasks page: **Role** and **Employee**. These filters will apply globally across all tabs (List, Today, Tomorrow, Pending, Overdue, Completed) -- matching the existing location filter behavior.
-
-### Why
-With 64+ tasks, finding specific ones is difficult. Filtering by role (e.g., "Cook") or by assigned employee lets managers quickly scope the view to what matters, especially in multi-location operations.
-
-### UI Layout
-The filter bar (currently just Location) will expand to include three dropdowns in a row:
-
-```text
-[Location: All Locations v] [Role: All Roles v] [Employee: All Employees v] [Clear]
-```
-
-- Each dropdown shows "All ..." by default
-- The Clear button appears when any filter is active (not just location)
-- Filters stack vertically on mobile for responsiveness
+Update the Task Edit page to support selecting multiple roles -- exactly matching the Task Creation page's multi-role chip UI. Currently, editing a task only allows picking a single role via a dropdown, while creation allows multiple roles via a chip-based selector.
 
 ### Changes
 
-**File: `src/pages/Tasks.tsx`** (single file)
+**File: `src/pages/TaskEdit.tsx`**
 
-1. **Add imports**: `useEmployeeRoles` hook (already used elsewhere in the codebase)
+1. **Change state from single to multi-role**:
+   - Replace `assigned_role_id: ""` (string) with `assigned_role_ids: []` (string array) in `formData`
+   - When loading existing task data, fetch the task's roles from the `task_roles` junction table and populate the array (falling back to the legacy `assigned_role_id` field if no junction rows exist)
 
-2. **Add state variables**:
-   - `selectedRoleId` (default: `"all"`)
-   - `selectedEmployeeId` (default: `"all"`)
+2. **Replace the single-select dropdown with the multi-role chip UI**:
+   - Show selected roles as removable chips (same as TaskNew)
+   - Show available (unselected) roles as clickable buttons below (same as TaskNew)
+   - Remove the old `<Select>` component for role
 
-3. **Fetch data**: Call `useEmployeeRoles()` to get the roles list. Employees are already fetched via `useEmployees()`.
+3. **Update the Completion Type toggle visibility**:
+   - Show "Shared vs Individual" toggle when `assigned_role_ids.length > 0` instead of checking a single `assigned_role_id`
 
-4. **Extend `filterByLocation` to a unified filter function** that checks:
-   - Location match (`task.location_id`)
-   - Role match (`task.assigned_role_id`)
-   - Employee match (`task.assigned_to`)
+4. **Update the save/submit handler**:
+   - Set `assigned_role_id` to the first selected role (for backward compatibility with the tasks table column)
+   - After updating the task row, sync the `task_roles` junction table: delete existing rows for this task, then insert new rows for all selected role IDs
 
-5. **Add two new Select dropdowns** in the filter bar next to the location filter
+**File: `src/hooks/useTasks.ts`**
 
-6. **Update Clear button** to reset all three filters when clicked, and show when any filter is active
+5. **Enhance `useUpdateTask`** to accept an optional `assigned_role_ids` array:
+   - Strip `assigned_role_ids` from the direct table update (it's not a column on `tasks`)
+   - After updating the task, delete old `task_roles` rows and insert new ones if `assigned_role_ids` is provided
 
 ### Technical Details
-
-- Reuses existing `useEmployeeRoles` hook (same as TaskNew, TaskEdit, AllTasksOpsDashboard)
-- Reuses existing `useEmployees` hook (already imported in Tasks.tsx)
-- Client-side filtering only -- no new queries needed since all task data already includes role and employee info
-- Stats cards will also reflect the combined filters (same pattern as current location filtering)
-- The role filter shows `employee_roles` (operational roles like Cook, Barista) which map to `task.assigned_role_id`
-- The employee filter shows employees from `useEmployees()` which map to `task.assigned_to`
+- The `task_roles` junction table (columns: `id`, `task_id`, `role_id`, `created_at`) is already used by the create flow
+- The `tasks.assigned_role_id` column will continue to hold the first/primary role for backward compatibility
+- No database migrations needed -- the junction table already exists
+- The UI will be an exact copy of the multi-role selector in TaskNew.tsx
 
