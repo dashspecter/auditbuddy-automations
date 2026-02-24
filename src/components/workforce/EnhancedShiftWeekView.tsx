@@ -1209,6 +1209,11 @@ export const EnhancedShiftWeekView = () => {
                                   Draft
                                 </Badge>
                               )}
+                              {shift.shift_type === 'extra' && (
+                                <Badge className="text-[10px] px-1 py-0 bg-orange-500 text-white border-transparent hover:bg-orange-600">
+                                  Extra
+                                </Badge>
+                              )}
                               <Badge variant="secondary" className="text-[10px] px-1 py-0">
                                 {assignedCount}/{shift.staff_needed || 1}
                               </Badge>
