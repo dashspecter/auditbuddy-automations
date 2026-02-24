@@ -92,6 +92,7 @@ import Attendance from "./pages/workforce/Attendance";
 import TimeOffApprovals from "./pages/workforce/TimeOffApprovals";
 import Payroll from "./pages/workforce/Payroll";
 import EmployeePerformance from "./pages/workforce/EmployeePerformance";
+import BadgeSettings from "./pages/workforce/BadgeSettings";
 import SalesManagement from "./pages/workforce/SalesManagement";
 import Training from "./pages/workforce/Training";
 import TrainingModuleDetail from "./pages/workforce/TrainingModuleDetail";
@@ -351,6 +352,7 @@ const App = () => (
                       <Route path="/workforce/time-off" element={<ManagerRoute requiredPermission="manage_employees"><TimeOffApprovals /></ManagerRoute>} />
                       <Route path="/workforce/payroll" element={<CompanyOwnerRoute><Payroll /></CompanyOwnerRoute>} />
                       <Route path="/workforce/payroll-batches" element={<CompanyOwnerRoute><PayrollBatches /></CompanyOwnerRoute>} />
+                      <Route path="/workforce/badge-settings" element={<ManagerRoute requiredPermission="manage_employees"><BadgeSettings /></ManagerRoute>} />
                       <Route path="/workforce/performance/:employeeId" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
                       <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />

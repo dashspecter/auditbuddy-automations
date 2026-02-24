@@ -86,6 +86,7 @@ const navigationItems = [
           { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches" },
         ]
       },
+      { titleKey: "nav.badgeSettings", url: "/workforce/badge-settings", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' as CompanyPermission },
     ]
   },
   // 3. Audits

@@ -96,6 +96,7 @@ export const navigationItems: NavItem[] = [
       { id: "workforce-payroll-batches", title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
       { id: "workforce-alerts", title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: "workforce-insights", title: "Scheduling Insights", url: "/workforce/scheduling-insights", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' },
+      { id: "workforce-badge-settings", title: "Badge Settings", url: "/workforce/badge-settings", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
     ]
   },
   { 
