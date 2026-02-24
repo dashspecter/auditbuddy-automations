@@ -165,7 +165,7 @@ const TaskEdit = () => {
         recurrence_days_of_month: formData.recurrence_type === "monthly" && formData.recurrence_days_of_month.length > 0
           ? formData.recurrence_days_of_month
           : null,
-        recurrence_times: recurrenceTimes.length >= 2 ? recurrenceTimes.sort() : null,
+        recurrence_times: recurrenceTimes.length >= 1 ? recurrenceTimes.sort() : null,
       });
 
       // Save / remove evidence policy
