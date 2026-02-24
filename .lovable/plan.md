@@ -1,43 +1,53 @@
 
-## Default to Location View with Auto-Selected Location
+
+## Replace Manager Dashboard with Admin Dashboard View
 
 ### Problem
-The schedule grid defaults to "Employees" view mode and "All Locations", requiring the manager to manually switch to "Locations" view and pick a location every time they open the page.
+The Manager Dashboard currently shows a legacy view with old-style components (CompliancePieChart, LocationTrendAnalysis, SectionPerformanceTrends, individual StatsCards). The Admin Dashboard has the newer "Actionable Intelligence Hub" with cross-module KPIs, attention alerts, declining locations, weakest sections, workforce analytics, tasks, corrective actions, and WhatsApp stats -- which is far more useful for managers too.
 
 ### Fix
 
-**File: `src/components/workforce/EnhancedShiftWeekView.tsx`**
+**File: `src/components/dashboard/ManagerDashboard.tsx`**
 
-1. **Change default `viewMode`** from `"employee"` to `"location"` (line 71)
-   ```
-   // Before
-   const [viewMode, setViewMode] = useState<"employee" | "location">("employee");
-   // After
-   const [viewMode, setViewMode] = useState<"employee" | "location">("location");
-   ```
+Replace the entire component body to simply render the `AdminDashboard` component but with a "Manager" badge instead of "Administrator". Since both roles need the same system-wide overview, the Manager Dashboard will reuse the Admin Dashboard directly.
 
-2. **Improve auto-select location logic** (lines 150-164) to pick the first location that has a schedule (shifts or a `schedule_periods` entry), falling back to the first location if none have shifts yet. This ensures a location is always pre-selected instead of showing "All Locations":
+The simplest approach: change `ManagerDashboard` to render `AdminDashboard` internally, just overriding the header title/badge to say "Manager Dashboard" instead of "Admin Dashboard."
 
-   ```
-   useEffect(() => {
-     if (hasAutoSelectedLocation || locations.length === 0) return;
-     
-     // If shifts loaded, prefer a location with shifts
-     if (!isLoading) {
-       const locationIdsWithShifts = [...new Set(shifts.map(s => s.location_id))];
-       const locationWithShifts = locations.find(l => locationIdsWithShifts.includes(l.id));
-       
-       if (locationWithShifts) {
-         setSelectedLocation(locationWithShifts.id);
-       } else {
-         // No shifts anywhere — just pick the first location
-         setSelectedLocation(locations[0].id);
-       }
-       setHasAutoSelectedLocation(true);
-     }
-   }, [hasAutoSelectedLocation, isLoading, shifts, locations]);
-   ```
+However, since the AdminDashboard component has its own hardcoded header with "Admin Dashboard" title and "Administrator" badge, the cleanest approach is:
+
+1. **Update `ManagerDashboard.tsx`** -- strip out all the legacy components and instead render the same widget set as AdminDashboard: `AttentionAlertBar`, `CrossModuleStatsRow`, `DecliningLocationsCard`, `WeakestSectionsCard`, `WorkforceAnalytics`, `TasksWidget`, `OpenCorrectiveActionsWidget`, `WhatsAppStatsWidget`, `MaintenanceInterventions`, `DraftAudits`, and `DashboardGreeting` -- but keep the "Manager Dashboard" header and "Manager" badge.
+
+### What Changes
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/ManagerDashboard.tsx` | Replace legacy widgets (CompliancePieChart, LocationTrendAnalysis, SectionPerformanceTrends, individual StatsCards) with the same widget set used by AdminDashboard (AttentionAlertBar, CrossModuleStatsRow, DecliningLocationsCard, WeakestSectionsCard, WorkforceAnalytics, TasksWidget, OpenCorrectiveActionsWidget, WhatsAppStatsWidget, MaintenanceInterventions) |
+
+### Technical Details
+
+The new ManagerDashboard will have:
+- Same header but with "Manager Dashboard" title and "Manager" badge
+- DateRangeFilter (already present)
+- DashboardGreeting (already present)
+- DraftAudits (already present)
+- AttentionAlertBar (new -- replaces pending audits card)
+- CrossModuleStatsRow (new -- replaces individual StatsCards)
+- DecliningLocationsCard + WeakestSectionsCard side-by-side (new -- replaces CompliancePieChart + LocationPerformanceChart)
+- WorkforceAnalytics (new -- replaces nothing, additive)
+- TasksWidget + OpenCorrectiveActionsWidget side-by-side (replaces old TasksWidget + MaintenanceInterventions layout)
+- WhatsAppStatsWidget (new)
+- MaintenanceInterventions (kept, moved to bottom)
+
+Components removed:
+- CompliancePieChart
+- LocationPerformanceChart
+- LocationTrendAnalysis
+- SectionPerformanceTrends
+- StatsCard grid
+- StatsDetailDialog
+- RecentAudits
+- Pending audits warning card
+- Collapsible mobile stats section
 
 ### Result
-- Opening the Shifts page will immediately show the **Location view** with a **specific location selected** (the first one that has shifts, or simply the first location)
-- Managers no longer need to click "Locations" and pick a location each time
+Managers see the exact same actionable intelligence hub as admins, with the same cross-module KPIs, alerts, and drill-down widgets -- just labeled "Manager Dashboard" instead of "Admin Dashboard."
