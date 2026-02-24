@@ -73,6 +73,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
           start_time,
           end_time,
           role,
+          status,
           is_published,
           shift_assignments!left(id, staff_id, approval_status)
         `)
@@ -96,6 +97,7 @@ export const useShiftCoverage = (options: UseShiftCoverageOptions = {}) => {
         start_time: shift.start_time,
         end_time: shift.end_time,
         role: shift.role,
+        status: shift.status,
         is_published: shift.is_published,
         shift_assignments: shift.shift_assignments || [],
       })) as Shift[];
