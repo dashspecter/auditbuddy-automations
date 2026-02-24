@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,7 @@ const StaffProfile = () => {
 
   if (!member) {
     return (
-      <AppLayout>
         <div className="text-center py-12">Staff member not found.</div>
-      </AppLayout>
     );
   }
 
@@ -35,7 +33,6 @@ const StaffProfile = () => {
     .slice(0, 2);
 
   return (
-    <AppLayout>
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -271,7 +268,6 @@ const StaffProfile = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
   );
 };
 
