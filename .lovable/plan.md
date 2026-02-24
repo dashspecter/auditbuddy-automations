@@ -1,40 +1,28 @@
 
 
-## Add Tooltip to WhatsApp Toggle on Task Creation
+## Move WhatsApp Tooltip to Visible Helper Text
 
 ### What
-Add an informational tooltip next to the "Notify via WhatsApp" label on the task creation page. The tooltip will advise managers to use WhatsApp notifications selectively -- ideally for critical tasks like start-of-shift, mid-shift check-ins, and end-of-shift tasks -- rather than enabling it for every task.
+Replace the hover-only `InfoTooltip` icon with a static helper text line below the existing "Send assignment, reminder & overdue alerts" description, making the guidance always visible.
 
-### Why
-- Prevents notification fatigue for employees
-- Reduces WhatsApp messaging costs (paid module)
-- Respects daily message limits and quiet hours
-- Encourages thoughtful use of the channel
-
-### Changes
+### Change
 
 **File: `src/pages/TaskNew.tsx`** (single file change)
 
-Add the existing `InfoTooltip` component (already used in corrective actions) next to the "Notify via WhatsApp" label:
+Remove the `InfoTooltip` component from the label and add a new paragraph below the existing description:
 
 ```tsx
-import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
-
-// Around line 718, change:
+// Revert label back to simple:
 <Label className="font-medium">Notify via WhatsApp</Label>
-
-// To:
-<Label className="font-medium flex items-center gap-1.5">
-  Notify via WhatsApp
-  <InfoTooltip
-    content="Use WhatsApp notifications selectively for critical tasks — such as start-of-shift prep, mid-shift check-ins, or end-of-shift wrap-ups. Enabling it for every task can cause notification fatigue and may hit daily message limits."
-  />
-</Label>
+<p className="text-xs text-muted-foreground mt-0.5">
+  Send assignment, reminder &amp; overdue alerts to assigned employees
+</p>
+<p className="text-xs text-amber-600 mt-1">
+  Tip: Use selectively for critical tasks (start/mid/end of shift) to avoid notification fatigue and daily message limits.
+</p>
 ```
 
-### Technical Details
-- Reuses the existing `InfoTooltip` component from `src/components/correctiveActions/InfoTooltip.tsx`
-- No new dependencies or components needed
-- No database or backend changes
-- Tooltip appears on hover/tap with a small info icon next to the label
+- Remove the `InfoTooltip` import since it will no longer be used
+- The tip text appears in amber/warning color to stand out without being alarming
+- Always visible -- no hover or tap needed
 
