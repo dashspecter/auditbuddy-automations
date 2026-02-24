@@ -136,6 +136,15 @@ export const WorkforceExceptionsPanel = ({ locationId, showAll }: WorkforceExcep
                         <span>{exception.locations.name}</span>
                       </div>
                     )}
+                    {/* Show clock-in time for unscheduled shift exceptions */}
+                    {exception.exception_type === 'unscheduled_shift' && (exception.metadata as Record<string, any>)?.clock_in_time && (
+                      <div>
+                        <span className="text-muted-foreground">Clock-in: </span>
+                        <span className="font-medium">
+                          {format(new Date((exception.metadata as Record<string, any>).clock_in_time), 'h:mm a')}
+                        </span>
+                      </div>
+                    )}
                     {exception.reason_code && (
                       <div>
                         <span className="text-muted-foreground">Reason: </span>

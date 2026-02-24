@@ -500,7 +500,92 @@ export const useResolveWorkforceException = () => {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // If approving an unscheduled_shift, auto-create shift + assignment + link attendance
+      if (status === 'approved') {
+        // Fetch exception details
+        const { data: exception, error: exErr } = await supabase
+          .from('workforce_exceptions')
+          .select('*, employees(full_name, role)')
+          .eq('id', exceptionId)
+          .single();
+        if (exErr) throw exErr;
+
+        if (exception.exception_type === 'unscheduled_shift') {
+          const metadata = (exception.metadata || {}) as Record<string, any>;
+          const clockInTime = metadata.clock_in_time;
+
+          if (!clockInTime) throw new Error('Missing clock-in time in exception metadata');
+
+          // Parse clock-in to extract local time parts
+          const clockInDate = new Date(clockInTime);
+          const startTime = `${String(clockInDate.getHours()).padStart(2, '0')}:${String(clockInDate.getMinutes()).padStart(2, '0')}:00`;
+
+          // Determine end time: use actual check-out if available, otherwise +8h
+          let endTime: string;
+          if (exception.attendance_id) {
+            const { data: attendance } = await supabase
+              .from('attendance_logs')
+              .select('check_out_at')
+              .eq('id', exception.attendance_id)
+              .single();
+
+            if (attendance?.check_out_at) {
+              const checkOutDate = new Date(attendance.check_out_at);
+              endTime = `${String(checkOutDate.getHours()).padStart(2, '0')}:${String(checkOutDate.getMinutes()).padStart(2, '0')}:00`;
+            } else {
+              const endDate = new Date(clockInDate.getTime() + 8 * 60 * 60 * 1000);
+              endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}:00`;
+            }
+          } else {
+            const endDate = new Date(clockInDate.getTime() + 8 * 60 * 60 * 1000);
+            endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}:00`;
+          }
+
+          const employeeRole = exception.employees?.role || 'Staff';
+
+          // 1. Create shift
+          const { data: newShift, error: shiftErr } = await supabase
+            .from('shifts')
+            .insert({
+              company_id: exception.company_id,
+              location_id: exception.location_id,
+              shift_date: exception.shift_date,
+              start_time: startTime,
+              end_time: endTime,
+              role: employeeRole,
+              is_published: true,
+              status: 'published',
+              created_by: user.id,
+            })
+            .select()
+            .single();
+          if (shiftErr) throw shiftErr;
+
+          // 2. Create shift assignment
+          const { error: assignErr } = await supabase
+            .from('shift_assignments')
+            .insert({
+              shift_id: newShift.id,
+              staff_id: exception.employee_id,
+              assigned_by: user.id,
+              approval_status: 'approved',
+              approved_at: new Date().toISOString(),
+            });
+          if (assignErr) throw assignErr;
+
+          // 3. Link attendance record to new shift
+          if (exception.attendance_id) {
+            const { error: attErr } = await supabase
+              .from('attendance_logs')
+              .update({ shift_id: newShift.id })
+              .eq('id', exception.attendance_id);
+            if (attErr) throw attErr;
+          }
+        }
+      }
       
+      // Update exception status
       const { error } = await supabase
         .from('workforce_exceptions')
         .update({
@@ -516,6 +601,9 @@ export const useResolveWorkforceException = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workforce-exceptions'] });
+      queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      queryClient.invalidateQueries({ queryKey: ['shift-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
       toast.success('Exception resolved');
     },
     onError: (error) => {
