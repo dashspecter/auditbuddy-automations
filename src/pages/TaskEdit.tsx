@@ -82,7 +82,7 @@ const TaskEdit = () => {
     start_at: "",
     duration_minutes: 30,
     assigned_to: "",
-    assigned_role_id: "",
+    assigned_role_ids: [] as string[],
     location_ids: [] as string[],
     recurrence_type: "none",
     recurrence_interval: 1,
@@ -94,27 +94,40 @@ const TaskEdit = () => {
   // Initialize form with task data
   useEffect(() => {
     if (task && !isInitialized) {
-      setFormData({
-        title: task.title || "",
-        description: task.description || "",
-        priority: task.priority || "medium",
-        start_at: task.start_at ? format(new Date(task.start_at), "yyyy-MM-dd'T'HH:mm") : "",
-        duration_minutes: task.duration_minutes || 30,
-        assigned_to: task.assigned_to || "",
-        assigned_role_id: task.assigned_role_id || "",
-        location_ids: task.location_id ? [task.location_id] : [],
-        recurrence_type: task.recurrence_type || "none",
-        recurrence_interval: task.recurrence_interval || 1,
-        recurrence_end_date: task.recurrence_end_date 
-          ? format(new Date(task.recurrence_end_date), "yyyy-MM-dd") 
-          : "",
-        recurrence_days_of_week: task.recurrence_days_of_week || [],
-        recurrence_days_of_month: task.recurrence_days_of_month || [],
-      });
-      setAssignmentType(task.assigned_to ? 'employee' : 'role');
-      setIsIndividual(task.is_individual || false);
-      setRecurrenceTimes((task as any).recurrence_times ?? []);
-      setIsInitialized(true);
+      // Fetch task_roles from junction table
+      const loadRoles = async () => {
+        const { data: taskRoles } = await supabase
+          .from("task_roles")
+          .select("role_id")
+          .eq("task_id", task.id);
+
+        const roleIds = taskRoles && taskRoles.length > 0
+          ? taskRoles.map(tr => tr.role_id)
+          : task.assigned_role_id ? [task.assigned_role_id] : [];
+
+        setFormData({
+          title: task.title || "",
+          description: task.description || "",
+          priority: task.priority || "medium",
+          start_at: task.start_at ? format(new Date(task.start_at), "yyyy-MM-dd'T'HH:mm") : "",
+          duration_minutes: task.duration_minutes || 30,
+          assigned_to: task.assigned_to || "",
+          assigned_role_ids: roleIds,
+          location_ids: task.location_id ? [task.location_id] : [],
+          recurrence_type: task.recurrence_type || "none",
+          recurrence_interval: task.recurrence_interval || 1,
+          recurrence_end_date: task.recurrence_end_date 
+            ? format(new Date(task.recurrence_end_date), "yyyy-MM-dd") 
+            : "",
+          recurrence_days_of_week: task.recurrence_days_of_week || [],
+          recurrence_days_of_month: task.recurrence_days_of_month || [],
+        });
+        setAssignmentType(task.assigned_to ? 'employee' : 'role');
+        setIsIndividual(task.is_individual || false);
+        setRecurrenceTimes((task as any).recurrence_times ?? []);
+        setIsInitialized(true);
+      };
+      loadRoles();
     }
   }, [task, isInitialized]);
 
@@ -137,7 +150,8 @@ const TaskEdit = () => {
         start_at: formData.start_at ? new Date(formData.start_at).toISOString() : null,
         duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : null,
-        assigned_role_id: assignmentType === 'role' && formData.assigned_role_id ? formData.assigned_role_id : null,
+        assigned_role_id: assignmentType === 'role' && formData.assigned_role_ids.length > 0 ? formData.assigned_role_ids[0] : null,
+        assigned_role_ids: assignmentType === 'role' ? formData.assigned_role_ids : [],
         is_individual: assignmentType === 'role' ? isIndividual : false,
         location_id: formData.location_ids[0] || null,
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : null,
@@ -392,24 +406,56 @@ const TaskEdit = () => {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <Select
-                      value={formData.assigned_role_id}
-                      onValueChange={(value) => setFormData({ ...formData, assigned_role_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.id} value={role.id}>
+                    <div className="flex flex-wrap gap-2 min-h-[38px] p-2 border rounded-md bg-background">
+                      {formData.assigned_role_ids.length === 0 ? (
+                        <span className="text-muted-foreground text-sm">Select roles...</span>
+                      ) : (
+                        formData.assigned_role_ids.map(roleId => {
+                          const role = roles.find(r => r.id === roleId);
+                          return role ? (
+                            <span
+                              key={roleId}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                            >
+                              {role.name}
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  assigned_role_ids: prev.assigned_role_ids.filter(id => id !== roleId)
+                                }))}
+                                className="hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ) : null;
+                        })
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
+                      {roles
+                        .filter(role => !formData.assigned_role_ids.includes(role.id))
+                        .map(role => (
+                          <Button
+                            key={role.id}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="justify-start text-xs h-8"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              assigned_role_ids: [...prev.assigned_role_ids, role.id]
+                            }))}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
                             {role.name}
-                          </SelectItem>
+                          </Button>
                         ))}
-                      </SelectContent>
-                    </Select>
+                    </div>
 
                     {/* Shared vs Individual toggle */}
-                    {formData.assigned_role_id && (
+                    {formData.assigned_role_ids.length > 0 && (
                       <div className="pt-3 border-t border-border mt-3">
                         <Label className="text-sm font-medium mb-2 block">Completion Type</Label>
                         <div className="flex gap-2">
