@@ -705,7 +705,7 @@ const StaffTasks = () => {
                                   <Calendar className="h-3 w-3" />
                                   {t('tasks.staff.startTime')}
                                 </p>
-                                <p>{format(new Date(task.start_at), "MMM d, h:mm a")}</p>
+                                <p>{format(new Date(task.start_at), "MMM d, HH:mm")}</p>
                               </div>
                             )}
                             
@@ -797,7 +797,7 @@ const StaffTasks = () => {
                         </div>
                         {task.start_at && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            {t('tasks.staff.starts')}: {format(new Date(task.start_at), "h:mm a")}
+                            {t('tasks.staff.starts')}: {format(new Date(task.start_at), "HH:mm")}
                             {task.duration_minutes && ` • ${task.duration_minutes} ${t('tasks.staff.minToComplete')}`}
                           </p>
                         )}
