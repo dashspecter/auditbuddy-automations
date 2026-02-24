@@ -578,7 +578,7 @@ export const EnhancedShiftWeekView = () => {
             </Button>
           )}
 
-          {unpublishedWeekShiftIds.length > 0 && (
+          {unpublishedWeekShiftIds.length > 0 && !(isGovernanceEnabled && schedulePeriod && (schedulePeriod.state === 'published' || schedulePeriod.state === 'locked')) && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -780,7 +780,7 @@ export const EnhancedShiftWeekView = () => {
                 )}
                 <div className="text-xs text-muted-foreground mt-1">{getOperatingHoursForDay(day)}</div>
                 {/* Publish day button */}
-                {getUnpublishedShiftsForDay(day).length > 0 && (
+                {getUnpublishedShiftsForDay(day).length > 0 && !(isGovernanceEnabled && schedulePeriod && (schedulePeriod.state === 'published' || schedulePeriod.state === 'locked')) && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
