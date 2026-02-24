@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startOfDay, format } from "date-fns";
 import { useEffect } from "react";
 import { calculateWarningPenalty, WarningMetadata, Warning, WarningContribution } from "./useWarningPenalty";
+import { normalizeRoleName } from "@/lib/companyDayUtils";
 
 export interface EmployeePerformanceScore {
   employee_id: string;
@@ -223,6 +224,105 @@ export const useEmployeePerformance = (
 
       if (auditsError) throw auditsError;
 
+      // --- Fair Shared Task Scoring: Fetch shared tasks + roles + locations ---
+      // Shared tasks: assigned_to IS NULL, is_individual = false
+      const { data: allSharedTasks, error: sharedError } = await supabase
+        .from("tasks")
+        .select("id, location_id, assigned_role_id, recurrence_type, created_at")
+        .is("assigned_to", null)
+        .eq("is_individual", false);
+
+      if (sharedError) throw sharedError;
+
+      const sharedTaskIds = (allSharedTasks || []).map(t => t.id);
+
+      // Fetch task_roles for multi-role matching (batched)
+      let taskRolesData: { task_id: string; role_id: string }[] = [];
+      if (sharedTaskIds.length > 0) {
+        for (let i = 0; i < sharedTaskIds.length; i += 100) {
+          const batch = sharedTaskIds.slice(i, i + 100);
+          const { data } = await supabase
+            .from("task_roles")
+            .select("task_id, role_id")
+            .in("task_id", batch);
+          if (data) taskRolesData = [...taskRolesData, ...data];
+        }
+      }
+
+      // Fetch employee_roles for role name mapping
+      const { data: employeeRolesData } = await supabase
+        .from("employee_roles")
+        .select("id, name");
+
+      // Fetch task_locations for junction-based location matching (batched)
+      let taskLocationsData: { task_id: string; location_id: string }[] = [];
+      if (sharedTaskIds.length > 0) {
+        for (let i = 0; i < sharedTaskIds.length; i += 100) {
+          const batch = sharedTaskIds.slice(i, i + 100);
+          const { data } = await supabase
+            .from("task_locations")
+            .select("task_id, location_id")
+            .in("task_id", batch);
+          if (data) taskLocationsData = [...taskLocationsData, ...data];
+        }
+      }
+
+      // Build role ID -> normalized name map
+      const roleIdToName = new Map<string, string>();
+      for (const r of employeeRolesData || []) {
+        roleIdToName.set(r.id, normalizeRoleName(r.name) || "");
+      }
+
+      // Build task -> eligible normalized role names
+      const taskEligibleRoles = new Map<string, Set<string>>();
+      for (const task of allSharedTasks || []) {
+        const roles = new Set<string>();
+        if (task.assigned_role_id) {
+          const name = roleIdToName.get(task.assigned_role_id);
+          if (name) roles.add(name);
+        }
+        for (const tr of taskRolesData) {
+          if (tr.task_id === task.id) {
+            const name = roleIdToName.get(tr.role_id);
+            if (name) roles.add(name);
+          }
+        }
+        taskEligibleRoles.set(task.id, roles);
+      }
+
+      // Build task -> eligible location IDs
+      const taskEligibleLocations = new Map<string, Set<string>>();
+      for (const task of allSharedTasks || []) {
+        const locs = new Set<string>();
+        if (task.location_id) locs.add(task.location_id);
+        for (const tl of taskLocationsData) {
+          if (tl.task_id === task.id) locs.add(tl.location_id);
+        }
+        taskEligibleLocations.set(task.id, locs);
+      }
+
+      // Build shared task occurrence map: task_id -> Set<occurrence_date>
+      const sharedTaskOccurrences = new Map<string, Set<string>>();
+      for (const task of allSharedTasks || []) {
+        if (task.recurrence_type) {
+          // Recurring: get unique occurrence dates from task_completions in the period
+          const dates = new Set<string>();
+          for (const c of taskCompletions || []) {
+            if (c.task_id === task.id && c.occurrence_date >= startDate && c.occurrence_date <= endDate) {
+              dates.add(c.occurrence_date);
+            }
+          }
+          if (dates.size > 0) {
+            sharedTaskOccurrences.set(task.id, dates);
+          }
+        } else {
+          // Non-recurring: 1 occurrence if created in the period
+          if (task.created_at >= `${startDate}T00:00:00` && task.created_at <= `${endDate}T23:59:59`) {
+            sharedTaskOccurrences.set(task.id, new Set([startDate]));
+          }
+        }
+      }
+
       // Get warnings for all employees (last 90 days for penalty calculation)
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -341,9 +441,30 @@ export const useEmployeePerformance = (
           return new Date(c.completed_at) <= deadline;
         }).length;
         
-        // Merged totals
-        const tasksAssigned = directAssigned + completionCount;
-        const tasksCompleted = directCompleted + completionCount; // all completions count as completed
+        // Calculate shared task assignments for this employee
+        let sharedTasksAssigned = 0;
+        const employeeNormalizedRole = normalizeRoleName(employee.role) || "";
+
+        for (const [taskId, occurrenceDates] of sharedTaskOccurrences) {
+          const eligibleLocations = taskEligibleLocations.get(taskId);
+          // Skip tasks with no location (can't fairly assign company-wide)
+          if (!eligibleLocations || eligibleLocations.size === 0) continue;
+          // Employee must be at one of the task's locations
+          if (!eligibleLocations.has(employee.location_id)) continue;
+
+          const eligibleRoles = taskEligibleRoles.get(taskId);
+          if (eligibleRoles && eligibleRoles.size > 0) {
+            // Task has specific roles - employee must match one
+            if (!eligibleRoles.has(employeeNormalizedRole)) continue;
+          }
+          // If no roles specified, all employees at the location are eligible
+
+          sharedTasksAssigned += occurrenceDates.size;
+        }
+
+        // Merged totals (shared tasks now counted as assigned to all eligible employees)
+        const tasksAssigned = directAssigned + sharedTasksAssigned;
+        const tasksCompleted = directCompleted + completionCount; // only actual completions count
         const tasksCompletedOnTime = directCompletedOnTime + completionOnTimeCount;
         const tasksOverdue = directTasks.filter(
           (t) => t.status !== "completed" && t.due_at && new Date(t.due_at) < new Date()
