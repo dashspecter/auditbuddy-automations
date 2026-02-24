@@ -1,97 +1,51 @@
 
 
-## Sync `status` and `is_published` Fields on Shifts
+## Tag Shifts as "Extra" / "Exception"
 
-### Problem
-The `shifts` table has two fields that should stay in sync:
-- `is_published` (boolean) -- used by the coverage engine, UI indicators
-- `status` (text, e.g. `'draft'`, `'published'`, `'active'`) -- used by governance logic
+### What This Solves
 
-Multiple code paths update one without the other:
-- `useBulkPublishShifts` sets only `is_published`, leaving `status` as `'draft'`
-- `EnhancedShiftDialog` checkbox toggles `is_published` without touching `status`
-- `useCopySchedule` copies `is_published` from source shift but ignores `status`
+Currently, "extra shifts" are detected only by comparing an employee's total shifts against their `expected_shifts_per_week` threshold. This breaks for employees with irregular patterns (e.g., 2-on-2-off) where the weekly count varies. By allowing managers to explicitly tag a shift as "extra" when creating or editing it, the system gets a reliable, intentional signal rather than relying on math that doesn't fit every schedule pattern.
 
-This caused 275 shifts with `status='draft'` + `is_published=true`, making them appear on task coverage despite being drafts.
+### How It Works
 
-### Solution: Database Trigger
+The `shifts` table already has a `shift_type` column with values `'regular'` and `'training'`. We will add `'extra'` as a third option.
 
-Rather than patching every code path (fragile), create a PostgreSQL trigger that automatically keeps the two fields in sync on every INSERT or UPDATE:
-
-```text
-Trigger logic (on shifts BEFORE INSERT OR UPDATE):
-  - If is_published changed to TRUE  --> set status = 'published'
-  - If is_published changed to FALSE --> set status = 'draft'
-  - If status changed to 'draft'     --> set is_published = false
-  - If status changed to 'published' --> set is_published = true
-```
-
-This guarantees consistency regardless of which field any code path updates.
+- When creating or editing a shift, managers will see a **"Shift Type"** selector with options: Regular, Extra, Training
+- Shifts tagged as "extra" will display a distinct visual badge in the scheduling grid
+- Payroll will treat `shift_type = 'extra'` shifts as overtime-eligible (using the employee's `overtime_rate`) regardless of the weekly shift count
 
 ### Changes
 
-| Change | Detail |
-|--------|--------|
-| **Database migration** | Create trigger function `sync_shift_publish_status()` and attach it to `shifts` table as a `BEFORE INSERT OR UPDATE` trigger |
+| Area | Change |
+|------|--------|
+| **EnhancedShiftDialog** | Add a "Shift Type" dropdown (Regular / Extra) to the form. Pre-fill `'regular'` by default. Save the value to `shift_type` on the shift record. |
+| **ShiftDialog** (simple version) | Add the same "Shift Type" selector for consistency. |
+| **Scheduling Grid** | Show a small colored badge (e.g., orange "Extra") on shifts where `shift_type = 'extra'`. |
+| **useShifts hook** | Update the TypeScript type to include `'extra'` in the `shift_type` union. |
+| **usePayroll hook** | When `shift_type = 'extra'`, always mark `is_extra_shift = true` and apply overtime rate, bypassing the weekly threshold calculation. |
+| **Payroll UI** | Extra-tagged shifts will appear in the "Extra Shifts" section as they already do, but now driven by the explicit tag rather than only by the count-based logic. |
 
 ### Technical Details
 
-**Migration SQL:**
+**No database migration needed** -- the `shift_type` column is already `text` type, so `'extra'` is a valid value without any schema change.
 
-```sql
-CREATE OR REPLACE FUNCTION public.sync_shift_publish_status()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  -- On INSERT: sync based on whichever field is set
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.is_published = true AND (NEW.status IS NULL OR NEW.status = 'draft') THEN
-      NEW.status := 'published';
-    ELSIF NEW.status = 'published' AND (NEW.is_published IS NULL OR NEW.is_published = false) THEN
-      NEW.is_published := true;
-    ELSIF (NEW.is_published IS NULL OR NEW.is_published = false) AND (NEW.status IS NULL OR NEW.status = 'draft') THEN
-      NEW.status := 'draft';
-      NEW.is_published := false;
-    END IF;
-    RETURN NEW;
-  END IF;
+**EnhancedShiftDialog changes:**
+- Add `shift_type` to formData state (default: `'regular'`)
+- Add a Select dropdown after the existing fields with options: Regular, Extra
+- Include `shift_type` in the submit payload
+- When editing, pre-fill from the existing shift's `shift_type`
 
-  -- On UPDATE: detect which field changed and sync the other
-  -- Skip sync for cancelled/deleted statuses (those have their own lifecycle)
-  IF NEW.status IN ('cancelled', 'deleted') THEN
-    RETURN NEW;
-  END IF;
+**ShiftDialog changes:**
+- Same pattern: add `shift_type` to form state and UI
 
-  IF OLD.is_published IS DISTINCT FROM NEW.is_published THEN
-    IF NEW.is_published = true THEN
-      NEW.status := 'published';
-    ELSE
-      NEW.status := 'draft';
-    END IF;
-  ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
-    IF NEW.status = 'published' THEN
-      NEW.is_published := true;
-    ELSIF NEW.status = 'draft' THEN
-      NEW.is_published := false;
-    END IF;
-  END IF;
+**EnhancedShiftWeekView (scheduling grid):**
+- Check `shift.shift_type === 'extra'` and render a small orange badge alongside the shift chip
 
-  RETURN NEW;
-END;
-$$;
+**usePayroll.ts changes (around line 274):**
+- Before pushing the entry, check if the shift has `shift_type === 'extra'`
+- If so, set `is_extra_shift: true` directly instead of deferring to the summary-level weekly calculation
+- In the summary aggregation, combine both explicitly-tagged extras and threshold-detected extras
 
-CREATE TRIGGER trg_sync_shift_publish_status
-  BEFORE INSERT OR UPDATE ON public.shifts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.sync_shift_publish_status();
-```
+**useShifts.ts type update:**
+- Change `shift_type?: 'regular' | 'training' | null` to `shift_type?: 'regular' | 'training' | 'extra' | null`
 
-### No Application Code Changes Required
-
-The trigger operates at the database level, so all existing code paths (`useBulkPublishShifts`, `EnhancedShiftDialog`, `useCopySchedule`, `useTrainingAssignments`, `apply_schedule_change_request`, etc.) will automatically benefit from the sync without any modifications.
-
-### Impact
-- All future publish/unpublish operations will keep both fields consistent
-- The previous data cleanup migration already fixed the 275 existing inconsistent rows
-- `cancelled` and `deleted` statuses are excluded from sync to preserve their lifecycle
