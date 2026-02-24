@@ -1081,6 +1081,11 @@ export const EnhancedShiftWeekView = () => {
                                       Draft
                                     </Badge>
                                   )}
+                                  {shift.shift_type === 'extra' && (
+                                    <Badge className="text-[10px] px-1 py-0 bg-orange-500 text-white border-transparent hover:bg-orange-600">
+                                      Extra
+                                    </Badge>
+                                  )}
                                   {isPending && (
                                     <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
                                       Pending

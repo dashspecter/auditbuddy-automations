@@ -21,7 +21,7 @@ export interface Shift {
   close_duty?: boolean;
   break_duration_minutes?: number;
   breaks?: Array<{ start: string; end: string }>;
-  shift_type?: 'regular' | 'training' | null;
+  shift_type?: 'regular' | 'training' | 'extra' | null;
   training_session_id?: string | null;
   training_module_id?: string | null;
   trainer_employee_id?: string | null;

@@ -271,7 +271,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             requires_checkin: requiresCheckin,
             is_missed: isMissed,
             is_future: isFutureShift,
-            is_extra_shift: false, // Will be calculated in summary
+            is_extra_shift: (shift as any).shift_type === 'extra', // Explicitly tagged extras
             expected_shifts_per_week: expectedShiftsPerWeek,
           });
         }
@@ -363,36 +363,67 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
       item.undertime_hours = Math.abs(diff);
     }
     
+    // Collect explicitly tagged extra shift dates first
+    const explicitExtraDates = entries
+      .filter(e => e.employee_id === item.employee_id && e.is_extra_shift)
+      .map(e => e.date);
+    
     // Calculate extra/missing shifts based on expected shifts per week
     if (item.expected_shifts_per_week) {
       const expectedShiftsForPeriod = item.expected_shifts_per_week * weeksInPeriod;
-      const shiftDiff = item.days_worked - expectedShiftsForPeriod;
+      // Non-extra worked days count toward the threshold
+      const nonExtraWorkedDays = item.days_worked - explicitExtraDates.length;
+      const shiftDiff = nonExtraWorkedDays - expectedShiftsForPeriod;
+      
+      // Threshold-detected extras (days over expected, excluding already-tagged ones)
+      let thresholdExtraDates: string[] = [];
       if (shiftDiff > 0) {
-        item.extra_shifts = shiftDiff;
-        
-        // Mark the last N worked dates as extra shifts (most recent are considered "extra")
-        const sortedWorkedDates = [...item.worked_dates].sort();
-        item.extra_shift_dates = sortedWorkedDates.slice(-shiftDiff);
-        
-        // Calculate overtime pay for extra shifts if overtime_rate is set
-        if (item.overtime_rate && item.overtime_rate > item.hourly_rate) {
-          // Get entries for this employee's extra shift dates
-          const extraShiftEntries = entries.filter(
-            e => e.employee_id === item.employee_id && item.extra_shift_dates.includes(e.date)
-          );
-          
-          // Calculate the difference between overtime rate and regular rate for extra shifts
-          const rateDiff = item.overtime_rate - item.hourly_rate;
-          extraShiftEntries.forEach(entry => {
-            const hoursWorked = entry.actual_hours > 0 ? entry.actual_hours : entry.scheduled_hours;
-            item.overtime_pay += hoursWorked * rateDiff;
-          });
-          
-          // Add overtime pay to total amount
-          item.total_amount += item.overtime_pay;
-        }
-      } else if (shiftDiff < 0) {
+        const sortedNonExtraDates = [...item.worked_dates]
+          .filter(d => !explicitExtraDates.includes(d))
+          .sort();
+        thresholdExtraDates = sortedNonExtraDates.slice(-shiftDiff);
+      }
+      
+      // Combine both sources
+      const allExtraDates = [...new Set([...explicitExtraDates, ...thresholdExtraDates])];
+      item.extra_shifts = allExtraDates.length;
+      item.extra_shift_dates = allExtraDates.sort();
+      
+      if (shiftDiff < 0) {
         item.missing_shifts = Math.abs(shiftDiff);
+      }
+      
+      // Calculate overtime pay for all extra shifts if overtime_rate is set
+      if (item.overtime_rate && item.overtime_rate > item.hourly_rate && allExtraDates.length > 0) {
+        const extraShiftEntries = entries.filter(
+          e => e.employee_id === item.employee_id && allExtraDates.includes(e.date)
+        );
+        
+        const rateDiff = item.overtime_rate - item.hourly_rate;
+        extraShiftEntries.forEach(entry => {
+          const hoursWorked = entry.actual_hours > 0 ? entry.actual_hours : entry.scheduled_hours;
+          item.overtime_pay += hoursWorked * rateDiff;
+        });
+        
+        item.total_amount += item.overtime_pay;
+      }
+    } else if (explicitExtraDates.length > 0) {
+      // No expected_shifts_per_week set, but there are explicitly tagged extras
+      item.extra_shifts = explicitExtraDates.length;
+      item.extra_shift_dates = explicitExtraDates.sort();
+      
+      if (item.overtime_rate && item.overtime_rate > item.hourly_rate) {
+        const extraShiftEntries = entries.filter(
+          e => e.employee_id === item.employee_id && explicitExtraDates.includes(e.date)
+        );
+        
+        const rateDiff = item.overtime_rate - item.hourly_rate;
+        extraShiftEntries.forEach(entry => {
+          const hoursWorked = entry.actual_hours > 0 ? entry.actual_hours : entry.scheduled_hours;
+          item.overtime_pay += hoursWorked * rateDiff;
+        });
+        
+        item.total_amount += item.overtime_pay;
       }
     }
     
