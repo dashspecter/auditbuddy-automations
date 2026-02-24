@@ -488,7 +488,7 @@ export function getOccurrencesForDate(
 
     // Determine time slots: use recurrence_times if present, else single slot
     const timeSlots: (string | undefined)[] =
-      (task as any).recurrence_times && (task as any).recurrence_times.length > 1
+      (task as any).recurrence_times && (task as any).recurrence_times.length >= 1
         ? (task as any).recurrence_times
         : [undefined];
 

@@ -101,7 +101,7 @@ const TaskNew = () => {
         recurrence_days_of_month: formData.recurrence_type === "monthly" && formData.recurrence_days_of_month.length > 0
           ? formData.recurrence_days_of_month
           : undefined,
-        recurrence_times: recurrenceTimes.length >= 2 ? recurrenceTimes.sort() : undefined,
+        recurrence_times: recurrenceTimes.length >= 1 ? recurrenceTimes.sort() : undefined,
       });
 
       // Save evidence policy if required
@@ -291,11 +291,8 @@ const TaskNew = () => {
                   <Plus className="h-4 w-4 mr-1" /> Add Time
                 </Button>
               </div>
-              {recurrenceTimes.length >= 2 && (
-                <p className="text-xs text-primary font-medium">✓ {recurrenceTimes.length} time slots — each will appear as a separate task occurrence per day</p>
-              )}
-              {recurrenceTimes.length === 1 && (
-                <p className="text-xs text-muted-foreground">Add at least one more time to enable multi-slot scheduling</p>
+              {recurrenceTimes.length >= 1 && (
+                <p className="text-xs text-primary font-medium">✓ {recurrenceTimes.length} additional time slot{recurrenceTimes.length > 1 ? 's' : ''} — each will appear as a separate task occurrence per day</p>
               )}
             </div>
           </CardContent>
