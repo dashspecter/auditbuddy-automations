@@ -1,24 +1,75 @@
 
 
-## Hide Labor Cost Section When Payroll Module Is Off
+## Add Missing Modules to Database and Ensure Proper Gating
 
 ### Problem
-The Labor Cost row at the bottom of the shift scheduling grid (showing cost in Lei, percentage, and hours) is visible even when the Payroll module is not activated. This exposes money-related information that isn't relevant when payroll features are disabled.
+The `modules` database table is missing several modules that are actively used in the platform. This means the Module Management settings page doesn't show all available modules, and companies can't toggle them on/off properly.
 
-### Solution
-Wrap the Labor Cost Summary section with a module check. If the `payroll` module (or whichever module name controls payroll features) is not active, the entire labor cost row will be hidden.
+### Missing Modules (to insert into `modules` table)
 
-### Changes
+| Code | Name | Description | Icon |
+|------|------|-------------|------|
+| `wastage` | Wastage Tracking | Track food/material waste with photo capture and cost analytics | Trash2 |
+| `qr_forms` | QR Forms (HACCP / Quality) | Create and manage QR-based forms for quality records and HACCP compliance | QrCode |
+| `whatsapp_messaging` | WhatsApp Messaging | Send WhatsApp messages, broadcasts, and automated alerts | MessageSquare |
+| `payroll` | Payroll & Labor Costs | Track labor costs, payroll calculations, and wage analytics | DollarSign |
+| `cmms` | CMMS (Maintenance) | Computerized maintenance management with work orders and PM schedules | Cog |
+| `corrective_actions` | Corrective Actions | Track and manage corrective actions from audits and inspections | ShieldAlert |
+| `operations` | Operations | Daily operations management, maintenance tasks, and SLA tracking | Settings2 |
 
-**File: `src/components/workforce/EnhancedShiftWeekView.tsx`**
+All set to `industry_scope = 'GLOBAL'` and `is_active = true`.
 
-1. Import `useCompanyContext` from `@/contexts/CompanyContext`
-2. Call `const { hasModule } = useCompanyContext()` inside the component
-3. Wrap the "Labor Cost Summary" section (lines 1302-1342) with a conditional: only render when the payroll module is active
+### Navigation Gating Fix
 
-The labor cost data fetching (`useLaborCosts`) and calculation function will remain in place (they're lightweight and won't cause errors), but the UI section simply won't render.
+Currently, `cmms`, `operations`, and `corrective_actions` have `module: null` in the navigation config, meaning they show for everyone regardless of module status. These need to be updated to reference their module codes so they hide when disabled:
 
-### What Changes for Users
-- **Payroll module ON**: Labor cost row appears as it does today (no change)
-- **Payroll module OFF**: Labor cost row is completely hidden -- clean schedule view with no money-related info
-- No impact on any other part of the scheduling view
+**File: `src/config/navigation.ts`**
+- `cmms` nav item: change `module: null` to `module: "cmms"`
+- `operations` nav item: change `module: null` to `module: "operations"`
+- `corrective-actions` nav item: change `module: null` to `module: "corrective_actions"`
+
+### Module Management UI Update
+
+**File: `src/components/settings/IndustryModuleManagement.tsx`**
+
+Add the missing entries to the `MODULE_NAMES` map so the settings page displays proper names for all modules:
+
+```text
+'wastage': 'Wastage Tracking'
+'qr_forms': 'QR Forms'
+'whatsapp_messaging': 'WhatsApp Messaging'
+'payroll': 'Payroll & Labor Costs'
+'cmms': 'CMMS (Maintenance)'
+'corrective_actions': 'Corrective Actions'
+'operations': 'Operations'
+```
+
+### Pricing Tiers Update
+
+**File: `src/config/pricingTiers.ts`**
+
+Add the new module codes to the appropriate tier `allowedModules` arrays so tier-based access works:
+- **Starter**: add `corrective_actions`, `operations`
+- **Professional**: add `payroll`, `cmms`, `corrective_actions`, `operations`
+- **Enterprise**: add `payroll`, `cmms`, `corrective_actions`, `operations`
+
+### ModuleGuard Fallback Names
+
+**File: `src/components/ModuleGuard.tsx`**
+
+Add missing entries to the `getModuleName` map so locked-out pages show proper names:
+- `cmms`: 'CMMS (Maintenance)'
+- `corrective_actions`: 'Corrective Actions'
+- `operations`: 'Operations'
+- `payroll`: 'Payroll & Labor Costs'
+- `whatsapp_messaging`: 'WhatsApp Messaging'
+
+### Summary of Changes
+
+1. **Database**: Insert 7 missing module rows (data insert, no schema change)
+2. **`src/config/navigation.ts`**: Set module keys for cmms, operations, corrective_actions (3 lines)
+3. **`src/components/settings/IndustryModuleManagement.tsx`**: Add 7 entries to MODULE_NAMES map
+4. **`src/config/pricingTiers.ts`**: Add new modules to tier allowedModules arrays
+5. **`src/components/ModuleGuard.tsx`**: Add 5 entries to getModuleName map
+
+No existing behavior changes. Modules already enabled for companies continue to work. Modules not enabled will now properly hide their navigation items and show the lock screen.
