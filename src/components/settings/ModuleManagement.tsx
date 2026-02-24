@@ -127,11 +127,11 @@ export default function ModuleManagement() {
         const { supabase } = await import('@/integrations/supabase/client');
         const { data: newModule, error: createError } = await supabase
           .from('company_modules')
-          .insert({
+          .upsert({
             company_id: company.id,
             module_name: dialogState.moduleId,
             is_active: true,
-          })
+          }, { onConflict: 'company_id,module_name' })
           .select()
           .single();
 
