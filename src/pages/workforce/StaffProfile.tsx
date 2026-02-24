@@ -257,8 +257,8 @@ const StaffProfile = () => {
               {effectiveData && (
                 <CardContent className="space-y-4">
                   <ScoreRow label="Attendance" score={effectiveData.attendance_score} used={effectiveData.attendance_used} detail={`${effectiveData.shifts_worked}/${effectiveData.shifts_scheduled} shifts`} />
-                  <ScoreRow label="Punctuality" score={effectiveData.punctuality_score} used={effectiveData.punctuality_used} detail={`${effectiveData.late_count} late`} />
-                  <ScoreRow label="Tasks" score={effectiveData.task_score} used={effectiveData.task_used} detail={`${effectiveData.tasks_completed}/${effectiveData.tasks_assigned} done`} />
+                  <ScoreRow label="Punctuality" score={effectiveData.punctuality_score} used={effectiveData.punctuality_used} detail={effectiveData.late_count > 0 ? `${effectiveData.late_count} late (${effectiveData.total_late_minutes} min)` : "No late arrivals"} />
+                  <ScoreRow label="Tasks" score={effectiveData.task_score} used={effectiveData.task_used} detail={`${effectiveData.tasks_completed_on_time}/${effectiveData.tasks_assigned} on time`} />
                   <ScoreRow label="Tests" score={effectiveData.test_score} used={effectiveData.test_used} detail={`${effectiveData.tests_taken} taken`} />
                   <ScoreRow label="Reviews" score={effectiveData.performance_review_score} used={effectiveData.review_used} detail={`${effectiveData.reviews_count} reviews`} />
 

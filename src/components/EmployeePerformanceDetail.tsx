@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { computeEffectiveScore } from "@/lib/effectiveScore";
 import { Card } from "@/components/ui/card";
 
 interface EmployeePerformanceDetailProps {
@@ -76,38 +77,13 @@ export const EmployeePerformanceDetail = ({
     ? testSubmissions.filter(t => t.score !== null).reduce((sum, t) => sum + (t.score || 0), 0) / testSubmissions.filter(t => t.score !== null).length
     : 0;
 
-  // Calculate effective score (only average categories with data)
-  const getEffectiveScore = () => {
-    if (!employeePerformance) {
-      // Fallback to old logic if no performance data
-      return allScores.length > 0
-        ? allScores.reduce((sum, s) => sum + s.score, 0) / allScores.length
-        : null;
-    }
-
-    const usedScores: number[] = [];
-    
-    if (employeePerformance.shifts_scheduled > 0) {
-      usedScores.push(employeePerformance.attendance_score);
-      usedScores.push(employeePerformance.punctuality_score);
-    }
-    if (employeePerformance.tasks_assigned > 0) {
-      usedScores.push(employeePerformance.task_score);
-    }
-    if (employeePerformance.tests_taken > 0) {
-      usedScores.push(employeePerformance.test_score);
-    }
-    if (employeePerformance.reviews_count > 0) {
-      usedScores.push(employeePerformance.performance_review_score);
-    }
-
-    if (usedScores.length === 0) return null;
-
-    const baseAvg = usedScores.reduce((a, b) => a + b, 0) / usedScores.length;
-    return Math.max(0, baseAvg - (employeePerformance.warning_penalty || 0));
-  };
-
-  const effectiveScore = getEffectiveScore();
+  // Calculate effective score using shared utility for consistency
+  const effectiveData = employeePerformance ? computeEffectiveScore(employeePerformance) : null;
+  const effectiveScore = effectiveData?.effective_score ?? (
+    allScores.length > 0
+      ? allScores.reduce((sum, s) => sum + s.score, 0) / allScores.length
+      : null
+  );
 
   const getTrend = () => {
     if (allScores.length < 2) return "neutral";
@@ -202,7 +178,9 @@ export const EmployeePerformanceDetail = ({
               </p>
               <p className="text-[10px] text-muted-foreground">
                 {hasData(employeePerformance?.shifts_scheduled)
-                  ? `${employeePerformance?.late_count || 0} late arrivals`
+                  ? (employeePerformance?.late_count || 0) > 0
+                    ? `${employeePerformance?.late_count} late (${employeePerformance?.total_late_minutes} min)`
+                    : "No late arrivals"
                   : "No shift data"}
               </p>
             </Card>

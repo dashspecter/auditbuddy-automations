@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Medal, Users, Clock, CheckCircle, TrendingUp, TrendingDown, AlertTriangle, MapPin, Calendar, FileText } from "lucide-react";
 import { usePerformanceLeaderboard, EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
+import { computeEffectiveScores } from "@/lib/effectiveScore";
 import { usePayrollSummary } from "@/hooks/usePayroll";
 import { format, startOfMonth, endOfMonth, subMonths, subWeeks } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -86,9 +87,12 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
     locationId
   );
 
-  // Calculate aggregate stats
-  const avgPerformanceScore = allScores.length > 0
-    ? Math.round(allScores.reduce((sum, s) => sum + s.overall_score, 0) / allScores.length)
+  // Compute effective scores for consistent data across the platform
+  const effectiveScores = computeEffectiveScores(allScores);
+
+  // Calculate aggregate stats using effective scores
+  const avgPerformanceScore = effectiveScores.length > 0
+    ? Math.round(effectiveScores.filter(s => s.effective_score !== null).reduce((sum, s) => sum + (s.effective_score || 0), 0) / (effectiveScores.filter(s => s.effective_score !== null).length || 1))
     : 0;
 
   const avgAttendanceScore = allScores.length > 0
@@ -114,8 +118,8 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
   const totalMissedShifts = allScores.reduce((sum, s) => sum + s.shifts_missed, 0);
   const totalTasksOverdue = allScores.reduce((sum, s) => sum + s.tasks_overdue, 0);
 
-  const topPerformers = allScores.filter(s => s.overall_score >= 90).length;
-  const atRiskEmployees = allScores.filter(s => s.overall_score < 50).length;
+  const topPerformers = effectiveScores.filter(s => (s.effective_score ?? 0) >= 90).length;
+  const atRiskEmployees = effectiveScores.filter(s => s.effective_score !== null && s.effective_score < 50).length;
 
   // Warning stats
   const totalWarnings = allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0);
@@ -363,9 +367,9 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
                         </span>
                       )}
                     </div>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
-                      <span className={`font-bold ${getScoreColor(employee.overall_score)}`}>
-                        {employee.overall_score}
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(effectiveScores.find(e => e.employee_id === employee.employee_id)?.effective_score ?? employee.overall_score)}`}>
+                      <span className={`font-bold ${getScoreColor(effectiveScores.find(e => e.employee_id === employee.employee_id)?.effective_score ?? employee.overall_score)}`}>
+                        {Math.round(effectiveScores.find(e => e.employee_id === employee.employee_id)?.effective_score ?? employee.overall_score)}
                       </span>
                     </div>
                   </div>
@@ -390,9 +394,9 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {allScores
-                .filter(s => s.overall_score < 50)
-                .sort((a, b) => a.overall_score - b.overall_score)
+              {effectiveScores
+                .filter(s => s.effective_score !== null && s.effective_score < 50)
+                .sort((a, b) => (a.effective_score ?? 0) - (b.effective_score ?? 0))
                 .slice(0, 5)
                 .map((employee) => (
                   <div key={employee.employee_id} className="flex items-center gap-3 p-3 rounded-lg bg-orange-50">
@@ -419,9 +423,9 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
                         )}
                       </div>
                     </div>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(employee.overall_score)}`}>
-                      <span className={`font-bold ${getScoreColor(employee.overall_score)}`}>
-                        {employee.overall_score}
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getScoreBgColor(employee.effective_score ?? employee.overall_score)}`}>
+                      <span className={`font-bold ${getScoreColor(employee.effective_score ?? employee.overall_score)}`}>
+                        {Math.round(employee.effective_score ?? employee.overall_score)}
                       </span>
                     </div>
                   </div>
