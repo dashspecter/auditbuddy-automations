@@ -1,53 +1,31 @@
 
 
-## Replace Manager Dashboard with Admin Dashboard View
+## Fix: "Extra" Shift Type Rejected by Database
 
 ### Problem
-The Manager Dashboard currently shows a legacy view with old-style components (CompliancePieChart, LocationTrendAnalysis, SectionPerformanceTrends, individual StatsCards). The Admin Dashboard has the newer "Actionable Intelligence Hub" with cross-module KPIs, attention alerts, declining locations, weakest sections, workforce analytics, tasks, corrective actions, and WhatsApp stats -- which is far more useful for managers too.
+When creating a shift with **Shift Type = "Extra"**, the database rejects it with:
+> `new row for relation "shifts" violates check constraint "shifts_shift_type_check"`
+
+The database constraint only allows `'regular'` and `'training'`, but the UI offers `'extra'` as a third option.
+
+### Root Cause
+The `shifts` table has a CHECK constraint:
+```
+CHECK (shift_type = ANY (ARRAY['regular', 'training']))
+```
+The UI added `'extra'` as a valid shift type but the database constraint was never updated to include it.
 
 ### Fix
 
-**File: `src/components/dashboard/ManagerDashboard.tsx`**
+1. **Database migration** -- alter the CHECK constraint to allow `'extra'`:
 
-Replace the entire component body to simply render the `AdminDashboard` component but with a "Manager" badge instead of "Administrator". Since both roles need the same system-wide overview, the Manager Dashboard will reuse the Admin Dashboard directly.
+```sql
+ALTER TABLE shifts DROP CONSTRAINT shifts_shift_type_check;
+ALTER TABLE shifts ADD CONSTRAINT shifts_shift_type_check 
+  CHECK (shift_type = ANY (ARRAY['regular', 'training', 'extra']));
+```
 
-The simplest approach: change `ManagerDashboard` to render `AdminDashboard` internally, just overriding the header title/badge to say "Manager Dashboard" instead of "Admin Dashboard."
-
-However, since the AdminDashboard component has its own hardcoded header with "Admin Dashboard" title and "Administrator" badge, the cleanest approach is:
-
-1. **Update `ManagerDashboard.tsx`** -- strip out all the legacy components and instead render the same widget set as AdminDashboard: `AttentionAlertBar`, `CrossModuleStatsRow`, `DecliningLocationsCard`, `WeakestSectionsCard`, `WorkforceAnalytics`, `TasksWidget`, `OpenCorrectiveActionsWidget`, `WhatsAppStatsWidget`, `MaintenanceInterventions`, `DraftAudits`, and `DashboardGreeting` -- but keep the "Manager Dashboard" header and "Manager" badge.
-
-### What Changes
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/ManagerDashboard.tsx` | Replace legacy widgets (CompliancePieChart, LocationTrendAnalysis, SectionPerformanceTrends, individual StatsCards) with the same widget set used by AdminDashboard (AttentionAlertBar, CrossModuleStatsRow, DecliningLocationsCard, WeakestSectionsCard, WorkforceAnalytics, TasksWidget, OpenCorrectiveActionsWidget, WhatsAppStatsWidget, MaintenanceInterventions) |
-
-### Technical Details
-
-The new ManagerDashboard will have:
-- Same header but with "Manager Dashboard" title and "Manager" badge
-- DateRangeFilter (already present)
-- DashboardGreeting (already present)
-- DraftAudits (already present)
-- AttentionAlertBar (new -- replaces pending audits card)
-- CrossModuleStatsRow (new -- replaces individual StatsCards)
-- DecliningLocationsCard + WeakestSectionsCard side-by-side (new -- replaces CompliancePieChart + LocationPerformanceChart)
-- WorkforceAnalytics (new -- replaces nothing, additive)
-- TasksWidget + OpenCorrectiveActionsWidget side-by-side (replaces old TasksWidget + MaintenanceInterventions layout)
-- WhatsAppStatsWidget (new)
-- MaintenanceInterventions (kept, moved to bottom)
-
-Components removed:
-- CompliancePieChart
-- LocationPerformanceChart
-- LocationTrendAnalysis
-- SectionPerformanceTrends
-- StatsCard grid
-- StatsDetailDialog
-- RecentAudits
-- Pending audits warning card
-- Collapsible mobile stats section
+No code changes needed -- the UI and hooks already handle `'extra'` correctly; only the DB constraint is blocking it.
 
 ### Result
-Managers see the exact same actionable intelligence hub as admins, with the same cross-module KPIs, alerts, and drill-down widgets -- just labeled "Manager Dashboard" instead of "Admin Dashboard."
+Users can create shifts with Shift Type = "Extra" without errors.
