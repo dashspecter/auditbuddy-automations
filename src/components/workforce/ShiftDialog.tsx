@@ -46,6 +46,7 @@ export const ShiftDialog = ({
     role: "",
     required_count: "1",
     notes: "",
+    shift_type: "regular" as 'regular' | 'training' | 'extra',
   });
 
   const createShift = useCreateShift();
@@ -136,6 +137,7 @@ export const ShiftDialog = ({
         role: shift.role,
         required_count: shift.required_count.toString(),
         notes: shift.notes || "",
+        shift_type: shift.shift_type || "regular",
       });
     } else {
       const dateStr = defaultDate ? defaultDate.toISOString().split('T')[0] : "";
@@ -147,6 +149,7 @@ export const ShiftDialog = ({
         role: "",
         required_count: "1",
         notes: "",
+        shift_type: "regular",
       });
     }
   }, [shift, defaultDate, open]);
@@ -158,6 +161,7 @@ export const ShiftDialog = ({
       ...formData,
       required_count: parseInt(formData.required_count),
       notes: formData.notes || null,
+      shift_type: formData.shift_type,
     };
 
     if (shift) {
@@ -276,6 +280,25 @@ export const ShiftDialog = ({
                   }
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('workforce.components.shiftDialog.shiftType', 'Shift Type')}</Label>
+                <Select
+                  value={formData.shift_type}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, shift_type: value as 'regular' | 'training' | 'extra' })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">{t('workforce.components.shiftDialog.regular', 'Regular')}</SelectItem>
+                    <SelectItem value="extra">{t('workforce.components.shiftDialog.extra', 'Extra')}</SelectItem>
+                    <SelectItem value="training">{t('workforce.components.shiftDialog.training', 'Training')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

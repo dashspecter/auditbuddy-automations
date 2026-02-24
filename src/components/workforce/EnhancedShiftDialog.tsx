@@ -81,6 +81,7 @@ export const EnhancedShiftDialog = ({
     is_published: false,
     close_duty: false,
     break_duration_minutes: "0",
+    shift_type: "regular" as 'regular' | 'training' | 'extra',
   });
   const [breaks, setBreaks] = useState<Array<{ start: string; end: string }>>([]);
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
@@ -268,6 +269,7 @@ export const EnhancedShiftDialog = ({
         is_published: shift.is_published || false,
         close_duty: shift.close_duty || false,
         break_duration_minutes: (shift.break_duration_minutes || 0).toString(),
+        shift_type: shift.shift_type || "regular",
       });
       setBreaks(shift.breaks || []);
       setSelectedEmployees(shift.shift_assignments?.map((sa: any) => sa.staff_id) || []);
@@ -285,6 +287,7 @@ export const EnhancedShiftDialog = ({
         is_published: false,
         close_duty: false,
         break_duration_minutes: "0",
+        shift_type: "regular",
       });
       setBreaks([]);
       setApplyToDays([]);
@@ -411,7 +414,7 @@ export const EnhancedShiftDialog = ({
       is_open_shift: formData.is_open_shift,
       close_duty: formData.close_duty,
       break_duration_minutes: parseInt(formData.break_duration_minutes),
-      shift_type: 'regular',
+      shift_type: formData.shift_type,
     });
     
     const buildPayloadBefore = (existingShift: any) => ({
@@ -789,6 +792,26 @@ export const EnhancedShiftDialog = ({
                 </Button>
               </div>
             ))}
+          </div>
+
+          {/* Shift Type */}
+          <div className="space-y-2">
+            <Label>{t('workforce.components.shiftDialog.shiftType', 'Shift Type')}</Label>
+            <Select
+              value={formData.shift_type}
+              onValueChange={(value) =>
+                setFormData({ ...formData, shift_type: value as 'regular' | 'training' | 'extra' })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="regular">{t('workforce.components.shiftDialog.regular', 'Regular')}</SelectItem>
+                <SelectItem value="extra">{t('workforce.components.shiftDialog.extra', 'Extra')}</SelectItem>
+                <SelectItem value="training">{t('workforce.components.shiftDialog.training', 'Training')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Operating Hours Info */}
