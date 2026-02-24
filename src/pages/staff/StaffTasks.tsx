@@ -12,6 +12,7 @@ import { useStaffTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffToday
 import { format, differenceInSeconds } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
+import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
 import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "@/components/staff/MobileTapDebugOverlay";
 import { MobileTaskCard } from "@/components/staff/MobileTaskCard";
 import { toast } from "sonner";
@@ -98,7 +99,8 @@ function EvidenceCaptureModalWithPolicy({
   setEvidenceGateTask: (v: null) => void;
   completeTaskRow: (task: any, completionId: string, skip: boolean) => Promise<void>;
 }) {
-  const { data: policy = null } = useEvidencePolicy("task_template", evidenceGateTask.task.id);
+  const baseTaskId = getOriginalTaskId(evidenceGateTask.task.id);
+  const { data: policy = null } = useEvidencePolicy("task_template", baseTaskId);
   return (
     <EvidenceCaptureModal
       open
@@ -276,12 +278,15 @@ const StaffTasks = () => {
 
     // ── Evidence Gate ────────────────────────────────────────────────────────
     // Check if evidence policy requires proof before completion
+    // CRITICAL: Use getOriginalTaskId to resolve virtual/occurrence IDs to base UUID
+    // so recurring task templates correctly match their evidence policy
     if (!skipEvidenceCheck) {
+      const baseTaskId = getOriginalTaskId(task.id);
       const { data: policy } = await supabase
         .from("evidence_policies")
         .select("*")
         .eq("applies_to", "task_template")
-        .eq("applies_id", task.id)
+        .eq("applies_id", baseTaskId)
         .eq("evidence_required", true)
         .limit(1)
         .maybeSingle();
