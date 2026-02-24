@@ -1,35 +1,45 @@
 
 
-## Add Badge Settings to Workforce Navigation
+## Fix Time Format Inconsistency on Staff Tasks Page
 
-### Problem
-The Badge Settings panel (where you can adjust thresholds, toggle badges, and create custom ones) is currently only accessible inside individual employee performance pages (`/workforce/performance/:employeeId`). There is no direct link in the sidebar to manage badge configurations.
+### What's Happening Now
 
-### Solution
-Add a dedicated "Badge Settings" page accessible from the Workforce sidebar, so admins can manage badge thresholds and configurations without navigating to a specific employee first.
+The times displayed on the "My Tasks" upcoming section are actually **calculated correctly**:
 
-### Changes
+- "Starts 6:44 PM" with "Available at 18:14" means unlock = 18:44 - 30 min = 18:14 (correct math)
+- The 30-minute unlock window (configurable per task via `unlock_before_minutes`) is applied correctly
 
-**1. Create a new page: `src/pages/workforce/BadgeSettings.tsx`**
-- A simple wrapper page that renders the existing `BadgeManagement` component
-- Includes a page header with title and description
-- Protected behind admin/manager role access
+### The Problem
 
-**2. Update navigation config: `src/config/navigation.ts`**
-- Add a new sub-item under the Workforce section:
-  - ID: `workforce-badge-settings`
-  - Title: "Badge Settings"
-  - URL: `/workforce/badge-settings`
-  - Restricted to `admin` and `manager` roles
+The **time formats are inconsistent**, which makes things look wrong:
+- "Starts" uses **12-hour format**: `6:44 PM`
+- "Available at" uses **24-hour format**: `18:14`
 
-**3. Update router: `src/App.tsx`**
-- Add a new route `/workforce/badge-settings` pointing to the new `BadgeSettings` page
-- Wrapped in `ManagerRoute` with `manage_employees` permission
+This mixing of formats is confusing and makes users question whether the times are correct.
 
-**4. Update navigation config: `src/config/navigationConfig.ts`**
-- Mirror the same sub-item addition if this file is also used for navigation rendering
+### The Fix
 
-### Technical Details
-- No new components needed -- the existing `BadgeManagement` component already handles all badge CRUD operations
-- The per-employee performance page will continue to work as-is
-- Badge Settings will appear between "Payroll" and any other items at the bottom of the Workforce sub-menu
+Standardize both times to the **same format**. Since the app targets a Romanian audience (Europe/Bucharest timezone), 24-hour format is more natural. Both "Starts" and "Available at" should use `HH:mm` (24-hour).
+
+### Technical Changes
+
+**File: `src/pages/staff/StaffTasks.tsx`** (line ~800)
+
+Change the "Starts" time format from 12-hour to 24-hour:
+
+```
+// Before
+format(new Date(task.start_at), "h:mm a")
+
+// After  
+format(new Date(task.start_at), "HH:mm")
+```
+
+This change applies to the upcoming tasks section where both "Starts" and "Available at" are shown together.
+
+Also apply the same fix to the active tasks expanded details section (line ~708) for consistency.
+
+### Result
+
+After the fix, the display will read:
+- "Starts: 18:44 - 120 min to complete" with "Available at 18:14" -- both in 24h format, clearly showing the 30-minute difference.
