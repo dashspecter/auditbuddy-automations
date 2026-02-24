@@ -1,34 +1,93 @@
 
-The "Photo Confirmation" requirement is correctly implemented as an opt-in feature per task template. However, my investigation revealed that the "evidence gate" (the logic that checks for a photo before allowing completion) is only present in one specific view (`StaffTasks.tsx`) and is currently missing from others. Furthermore, the existing implementation in `StaffTasks.tsx` has a bug where it fails to identify policies for recurring tasks because it uses the occurrence ID instead of the original task template ID.
 
-I will implement a consistent enforcement of the photo confirmation feature across all task completion interfaces.
+## Fix: Coverage Engine Should Require Published Shifts Only
 
-### Proposed Changes
+### Problem
+The user `test@lbfc.ro` sees tasks despite not appearing on any schedule because they have a shift with **`status: 'draft'`** but **`is_published: true`**. The coverage engine at line 158 of `taskCoverageEngine.ts` only checks `is_published !== false`, so these inconsistent draft shifts are treated as valid coverage.
 
-#### 1. Fix Evidence Gate for Recurring Tasks in `StaffTasks.tsx`
-- Update the evidence policy query to use a resolved ID (the base task UUID). This ensures that recurring tasks correctly trigger the photo requirement if it's enabled on the template.
-- Import `getOriginalTaskId` from the task engine to handle ID resolution consistently.
+Database shows **275 shifts** in this broken state (`status: 'draft'`, `is_published: true`), meaning this affects many users -- not just this test account.
 
-#### 2. Enforce Evidence Gate in `ActiveTasksCard.tsx` (Dashboard Widget)
-- Integrate the evidence gate check before the completion mutation.
-- Add state management to track when a task is "locked" behind an evidence requirement.
-- Render the `EvidenceCaptureModal` when a photo is required but missing.
-- Ensure that once the photo is captured, the task automatically completes as expected.
+### Root Cause
 
-#### 3. Enforce Evidence Gate in `Tasks.tsx` (Manager Task List)
-- Add the same check-and-capture logic to the manager-side completion handler.
-- Even if a manager is completing the task, they will be prompted for proof if the policy requires it, maintaining compliance across all user roles.
+```text
+// Current filter (line 158 of taskCoverageEngine.ts)
+const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false);
+```
 
-### Technical Details
+This only excludes shifts where `is_published` is explicitly `false`. A shift with `status: 'draft'` and `is_published: true` (a data inconsistency) passes right through.
 
-- **ID Resolution**: I will use `getOriginalTaskId()` to strip prefixes like `-virtual-` or `-completed-` from task IDs when querying the `evidence_policies` table.
-- **Evidence Logic**:
-  1. Before completion: Query `evidence_policies` where `applies_to='task_template'` and `applies_id=originalTaskId` and `evidence_required=true`.
-  2. If a policy exists, check if a valid (submitted or approved) packet already exists in `evidence_packets` for this occurrence.
-  3. If no valid packet exists, open the `EvidenceCaptureModal` and pause the completion.
-  4. After successful capture, resume the completion with a "skip" flag to avoid an infinite loop.
+### Fix
 
-### User Experience
-- This change will **only** affect tasks where "Photo Confirmation" (or other evidence) has been explicitly enabled in the task template settings.
-- Standard tasks without this requirement will continue to complete with a single tap as they do now.
+**File: `src/lib/taskCoverageEngine.ts`** (line 158)
 
+Update the shift filter to also exclude `status: 'draft'` shifts:
+
+```typescript
+const dateShifts = shifts.filter(
+  s => s.shift_date === taskDateStr 
+    && s.is_published !== false 
+    && s.status !== 'draft'
+);
+```
+
+**File: `src/hooks/useShiftCoverage.ts`**
+
+Update the shifts query to include the `status` field so the engine can filter on it:
+
+```text
+// Add 'status' to the select clause (around line 68)
+.select(`
+  id,
+  location_id,
+  shift_date,
+  start_time,
+  end_time,
+  role,
+  status,
+  is_published,
+  shift_assignments!left(id, staff_id, approval_status)
+`)
+```
+
+And include `status` in the mapped result object.
+
+**File: `src/lib/taskCoverageEngine.ts`** (Shift interface, around line 25)
+
+Add `status` to the `Shift` interface:
+
+```typescript
+export interface Shift {
+  id: string;
+  location_id: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  role: string;
+  status?: string;       // <-- add this
+  is_published?: boolean;
+  shift_assignments?: Array<{...}>;
+}
+```
+
+### Data Cleanup (Optional)
+
+There are 275 shifts with `status: 'draft'` but `is_published: true`. Optionally, a migration can fix this inconsistency:
+
+```sql
+UPDATE shifts SET is_published = false WHERE status = 'draft' AND is_published = true;
+```
+
+This is recommended but not strictly required since the code fix above handles it.
+
+### Changes Summary
+
+| File | Change |
+|------|--------|
+| `src/lib/taskCoverageEngine.ts` | Add `status` to Shift interface; update filter to exclude `status: 'draft'` |
+| `src/hooks/useShiftCoverage.ts` | Add `status` to the select query and mapped result |
+
+### Impact
+- Draft shifts will no longer grant task visibility to employees
+- Only properly published shifts will count as coverage
+- No effect on tasks with `execution_mode: 'always_on'` (those bypass coverage entirely)
+- Fixes the issue for the test account and all other users affected by the data inconsistency
