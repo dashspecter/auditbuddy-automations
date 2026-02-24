@@ -28,6 +28,7 @@ import { useSchedulePresence } from "@/hooks/useSchedulePresence";
 import { useRealtimeShifts } from "@/hooks/useRealtimeShifts";
 import { useScheduleGovernanceEnabled, useSchedulePeriod, useSchedulePeriodsForWeek, usePendingChangeRequests, useWorkforceExceptions } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import {
   Select,
   SelectContent,
@@ -85,6 +86,7 @@ export const EnhancedShiftWeekView = () => {
   
   // Schedule governance hooks
   const { data: company } = useCompany();
+  const { hasModule } = useCompanyContext();
   const isGovernanceEnabled = useScheduleGovernanceEnabled();
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
@@ -1299,7 +1301,8 @@ export const EnhancedShiftWeekView = () => {
         ))}
       </div>
 
-      {/* Labor Cost Summary */}
+      {/* Labor Cost Summary - only shown when payroll module is active */}
+      {hasModule('payroll') && (
       <div className="grid grid-cols-8 gap-2">
         <div className="col-span-1" />
         {weekDays.map((day) => {
@@ -1340,6 +1343,7 @@ export const EnhancedShiftWeekView = () => {
           );
         })}
       </div>
+      )}
 
       <EnhancedShiftDialog 
         open={shiftDialogOpen} 
