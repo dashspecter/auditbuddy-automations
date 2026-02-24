@@ -305,6 +305,22 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
+  // Get all time-off entries for employees belonging to a specific location on a given day
+  const getTimeOffForLocationAndDay = (locationId: string, date: Date) => {
+    const locationEmployeeIds = employees
+      .filter(emp => emp.location_id === locationId)
+      .map(emp => emp.id);
+    
+    return timeOffRequests.filter(req =>
+      locationEmployeeIds.includes(req.employee_id) &&
+      isWithinInterval(date, {
+        start: parseISO(req.start_date),
+        end: parseISO(req.end_date)
+      }) &&
+      req.status === "approved"
+    );
+  };
+
   // Calculate shift count for an employee for the current week
   const getEmployeeShiftCountForWeek = (employeeId: string) => {
     let count = 0;
@@ -1244,6 +1260,41 @@ export const EnhancedShiftWeekView = () => {
                 );
               })}
             </div>
+
+            {/* Time Off row for this location */}
+            {weekDays.some(day => getTimeOffForLocationAndDay(location.id, day).length > 0) && (
+              <div className="grid grid-cols-8 border-b bg-red-50/50 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                <div className="p-3 border-r text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Palmtree className="h-3.5 w-3.5 text-red-500" />
+                  <span className="text-red-600 dark:text-red-400 font-medium">Time Off</span>
+                </div>
+                {weekDays.map((day) => {
+                  const dayTimeOff = getTimeOffForLocationAndDay(location.id, day);
+                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                  
+                  return (
+                    <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
+                      {dayTimeOff.map((req) => {
+                        const emp = employees.find(e => e.id === req.employee_id);
+                        if (!emp) return null;
+                        return (
+                          <div
+                            key={req.id}
+                            className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-1.5 rounded text-center cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors group relative mb-1"
+                            onClick={() => setTimeOffToDelete({ id: req.id, employeeName: emp.full_name })}
+                            title="Click to remove time off"
+                          >
+                            <div className="font-medium truncate">{emp.full_name}</div>
+                            <div className="capitalize text-[10px]">{req.request_type || 'Time Off'}</div>
+                            <Trash2 className="h-3 w-3 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
       </div>
