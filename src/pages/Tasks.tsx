@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useLocations } from "@/hooks/useLocations";
 import { format, addDays, startOfDay, endOfDay } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -266,8 +267,11 @@ const Tasks = () => {
   const [activeTab, setActiveTab] = useState("list");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
 
   const { data: locations = [] } = useLocations();
+  const { data: roles = [] } = useEmployeeRoles();
 
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: stats } = useTaskStats();
@@ -323,16 +327,20 @@ const Tasks = () => {
     }
   };
 
-  // Helper to filter by location
-  const filterByLocation = (taskList: Task[]) => {
-    if (selectedLocationId === "all") return taskList;
-    return taskList.filter(t => t.location_id === selectedLocationId);
+  // Helper to filter by location, role, and employee
+  const filterTasks = (taskList: Task[]) => {
+    return taskList.filter(t => {
+      if (selectedLocationId !== "all" && t.location_id !== selectedLocationId) return false;
+      if (selectedRoleId !== "all" && t.assigned_role_id !== selectedRoleId) return false;
+      if (selectedEmployeeId !== "all" && t.assigned_to !== selectedEmployeeId) return false;
+      return true;
+    });
   };
 
-  // Get SHIFT-AWARE tasks from unified pipeline, filtered by location
-  const todayTasks = useMemo(() => filterByLocation(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId]);
-  const tomorrowTasks = useMemo(() => filterByLocation(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId]);
-  const locationFilteredTasks = useMemo(() => filterByLocation(tasks), [tasks, selectedLocationId]);
+  // Get SHIFT-AWARE tasks from unified pipeline, filtered by location/role/employee
+  const todayTasks = useMemo(() => filterTasks(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
+  const tomorrowTasks = useMemo(() => filterTasks(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
+  const locationFilteredTasks = useMemo(() => filterTasks(tasks), [tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
 
   // Build "Happening Now" using base IDs to handle virtual occurrence IDs properly
   // Step 1: Get base IDs of tasks happening right now
@@ -383,16 +391,16 @@ const Tasks = () => {
     return locationFilteredTasks;
   }, [activeTab, locationFilteredTasks, todayTasks, tomorrowTasks]);
 
-  // Compute location-filtered stats
+  const hasActiveFilter = selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all";
   const filteredStats = useMemo(() => {
-    if (selectedLocationId === "all") return stats;
+    if (!hasActiveFilter) return stats;
     const total = locationFilteredTasks.length;
     const pending = locationFilteredTasks.filter(t => t.status === "pending" || t.status === "in_progress").length;
     const overdue = locationFilteredTasks.filter(t => isTaskOverdue(t)).length;
     const completed = locationFilteredTasks.filter(t => t.status === "completed").length;
     const completedLate = locationFilteredTasks.filter(t => t.status === "completed" && t.completed_late).length;
     return { total, pending, overdue, completed, completedLate };
-  }, [selectedLocationId, locationFilteredTasks, stats]);
+  }, [hasActiveFilter, locationFilteredTasks, stats]);
 
   const hasTasks = locationFilteredTasks.length > 0;
 
@@ -503,22 +511,56 @@ const Tasks = () => {
         </Card>
       </div>
 
-      {/* Location Filter */}
-      <div className="flex items-center gap-3">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder={t('common.allLocations', 'All Locations')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('common.allLocations', 'All Locations')}</SelectItem>
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedLocationId !== "all" && (
-          <Button variant="ghost" size="sm" onClick={() => setSelectedLocationId("all")}>
+      {/* Filters: Location, Role, Employee */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={t('common.allLocations', 'All Locations')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.allLocations', 'All Locations')}</SelectItem>
+              {locations.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={t('tasks.allRoles', 'All Roles')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('tasks.allRoles', 'All Roles')}</SelectItem>
+              {roles.map((role) => (
+                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder={t('tasks.allEmployees', 'All Employees')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('tasks.allEmployees', 'All Employees')}</SelectItem>
+              {employees.map((emp) => (
+                <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => {
+            setSelectedLocationId("all");
+            setSelectedRoleId("all");
+            setSelectedEmployeeId("all");
+          }}>
             {t('common.clearFilter', 'Clear')}
           </Button>
         )}
