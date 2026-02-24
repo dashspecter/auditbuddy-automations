@@ -10,6 +10,10 @@ import { MobileTapDebugOverlay, useTapDebug, useNetworkStatus } from "./MobileTa
 import { MobileTaskCard } from "./MobileTaskCard";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
+import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { useEvidencePolicy } from "@/hooks/useEvidencePackets";
 
 // Countdown timer component
 const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; durationMinutes: number }) => {
@@ -75,6 +79,41 @@ const CountdownTimer = ({ startAt, durationMinutes }: { startAt: string; duratio
   );
 };
 
+/**
+ * Wrapper that fetches the evidence policy for the gated task before rendering
+ * EvidenceCaptureModal, so the policy instructions are shown to staff.
+ */
+function EvidenceCaptureModalWithPolicy({
+  evidenceGateTask,
+  setEvidenceGateTask,
+  onProofSubmitted,
+}: {
+  evidenceGateTask: { task: any; completionId: string };
+  setEvidenceGateTask: (v: null) => void;
+  onProofSubmitted: (task: any, completionId: string) => Promise<void>;
+}) {
+  const baseTaskId = getOriginalTaskId(evidenceGateTask.task.id);
+  const { data: policy = null } = useEvidencePolicy("task_template", baseTaskId);
+  return (
+    <EvidenceCaptureModal
+      open
+      subjectType="task_occurrence"
+      subjectId={evidenceGateTask.task.id}
+      policy={policy}
+      title={`Proof required: ${evidenceGateTask.task.title}`}
+      onComplete={async (_packetId) => {
+        const { task, completionId } = evidenceGateTask;
+        setEvidenceGateTask(null);
+        await onProofSubmitted(task, completionId);
+      }}
+      onCancel={() => {
+        setEvidenceGateTask(null);
+        toast.info("Task not completed — proof is required.");
+      }}
+    />
+  );
+}
+
 export const ActiveTasksCard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -94,6 +133,9 @@ export const ActiveTasksCard = () => {
   const [optimisticCompletedIds, setOptimisticCompletedIds] = useState<Set<string>>(() => new Set());
   // Tracks tasks currently waiting for server confirmation: Map<resolvedId, startTimestamp>
   const [pendingCompletionIds, setPendingCompletionIds] = useState<Map<string, number>>(() => new Map());
+
+  // ── Evidence gate state ──
+  const [evidenceGateTask, setEvidenceGateTask] = useState<{ task: any; completionId: string } | null>(null);
 
   const resolveId = useMemo(() => {
     return (id: string) => {
@@ -117,7 +159,7 @@ export const ActiveTasksCard = () => {
     return task.status === "completed" || !!task.completed_at || task.is_completed === true;
   };
 
-  const handleComplete = async (task: any) => {
+  const handleComplete = async (task: any, skipEvidenceCheck = false) => {
     // Network check before attempting mutation
     if (!isOnline) {
       logTap(`[offline blocked] task.id=${task.id}`);
@@ -133,6 +175,41 @@ export const ActiveTasksCard = () => {
       logTap(`[MUTATE blocked - already pending] resolved=${resolved}`);
       return;
     }
+
+    // ── Evidence Gate ────────────────────────────────────────────────────────
+    if (!skipEvidenceCheck) {
+      const baseTaskId = getOriginalTaskId(task.id);
+      const { data: policy } = await supabase
+        .from("evidence_policies")
+        .select("*")
+        .eq("applies_to", "task_template")
+        .eq("applies_id", baseTaskId)
+        .eq("evidence_required", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (policy) {
+        const { data: existingPackets } = await supabase
+          .from("evidence_packets")
+          .select("id, status")
+          .eq("subject_type", "task_occurrence")
+          .eq("subject_id", task.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const hasValidProof = (existingPackets ?? []).some(
+          (p) => p.status === "submitted" || p.status === "approved"
+        );
+
+        if (!hasValidProof) {
+          logTap(`[EVIDENCE GATE] task.id=${task.id} — opening capture modal`);
+          setEvidenceGateTask({ task, completionId: String(completionId) });
+          return;
+        }
+        logTap(`[EVIDENCE GATE] task.id=${task.id} — valid proof exists, proceeding`);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     logTap(
       `[MUTATE] task.id=${task.id} completionId=${String(completionId)} resolved=${resolved} status=${task.status} completed_at=${task.completed_at ? "1" : "0"}`,
@@ -282,7 +359,6 @@ export const ActiveTasksCard = () => {
           const completionId = (task as any).task_occurrence_id ?? (task as any).occurrence_id ?? (task as any).task_id ?? task.id;
           const resolved = resolveId(String(completionId));
           const serverChecked = isServerChecked(task);
-          // Locked check: pending confirmation prevents UI flapping
           const isLocked = pendingCompletionIds.has(resolved);
           const checked = optimisticCompletedIds.has(resolved) || serverChecked;
 
@@ -338,6 +414,18 @@ export const ActiveTasksCard = () => {
           );
         })}
       </div>
+
+      {/* Evidence capture modal — shown when task requires photo proof */}
+      {evidenceGateTask && (
+        <EvidenceCaptureModalWithPolicy
+          evidenceGateTask={evidenceGateTask}
+          setEvidenceGateTask={setEvidenceGateTask}
+          onProofSubmitted={async (task, completionId) => {
+            // Resume completion with evidence check skipped
+            await handleComplete(task, true);
+          }}
+        />
+      )}
     </div>
   );
 };

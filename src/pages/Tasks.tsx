@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
+import { useEvidencePolicy } from "@/hooks/useEvidencePackets";
 import { Button } from "@/components/ui/button";
 import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -270,6 +273,11 @@ const Tasks = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
 
+  // ── Evidence gate state ──
+  const [evidenceGateTaskId, setEvidenceGateTaskId] = useState<string | null>(null);
+  const evidenceBaseId = evidenceGateTaskId ? getOriginalTaskId(evidenceGateTaskId) : undefined;
+  const { data: evidenceGatePolicy = null } = useEvidencePolicy("task_template", evidenceBaseId);
+
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
 
@@ -307,7 +315,39 @@ const Tasks = () => {
 
   const isLoading = isLoadingTasks || isLoadingUnified;
 
-  const handleComplete = async (taskId: string) => {
+  const handleComplete = async (taskId: string, skipEvidenceCheck = false) => {
+    // ── Evidence Gate ──
+    if (!skipEvidenceCheck) {
+      const baseTaskId = getOriginalTaskId(taskId);
+      const { data: policy } = await supabase
+        .from("evidence_policies")
+        .select("*")
+        .eq("applies_to", "task_template")
+        .eq("applies_id", baseTaskId)
+        .eq("evidence_required", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (policy) {
+        const { data: existingPackets } = await supabase
+          .from("evidence_packets")
+          .select("id, status")
+          .eq("subject_type", "task_occurrence")
+          .eq("subject_id", taskId)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const hasValidProof = (existingPackets ?? []).some(
+          (p) => p.status === "submitted" || p.status === "approved"
+        );
+
+        if (!hasValidProof) {
+          setEvidenceGateTaskId(taskId);
+          return;
+        }
+      }
+    }
+
     try {
       await completeTask.mutateAsync(taskId);
       toast.success(t('tasks.taskCompleted'));
@@ -865,6 +905,25 @@ const Tasks = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Evidence capture modal — shown when task requires photo proof */}
+      {evidenceGateTaskId && (
+        <EvidenceCaptureModal
+          open
+          subjectType="task_occurrence"
+          subjectId={evidenceGateTaskId}
+          policy={evidenceGatePolicy}
+          title="Proof required"
+          onComplete={async (_packetId) => {
+            const taskId = evidenceGateTaskId;
+            setEvidenceGateTaskId(null);
+            await handleComplete(taskId, true);
+          }}
+          onCancel={() => {
+            setEvidenceGateTaskId(null);
+            toast.info("Task not completed — proof is required.");
+          }}
+        />
+      )}
     </div>
   );
 };
