@@ -124,7 +124,7 @@ const TaskEdit = () => {
         });
         setAssignmentType(task.assigned_to ? 'employee' : 'role');
         setIsIndividual(task.is_individual || false);
-        setRecurrenceTimes((task as any).recurrence_times ?? []);
+        setRecurrenceTimes(task.recurrence_times ?? []);
         setIsInitialized(true);
       };
       loadRoles();
@@ -168,31 +168,36 @@ const TaskEdit = () => {
         recurrence_times: recurrenceTimes.length >= 1 ? recurrenceTimes.sort() : null,
       });
 
-      // Save / remove evidence policy
-      if (evidenceRequired && user?.id) {
-        const { data: cu } = await supabase
-          .from("company_users")
-          .select("company_id")
-          .eq("user_id", user.id)
-          .single();
-        if (cu?.company_id) {
-          await supabase.from("evidence_policies").upsert({
-            company_id: cu.company_id,
-            applies_to: "task_template",
-            applies_id: id,
-            evidence_required: true,
-            review_required: reviewRequired,
-            required_media_types: ["photo"],
-            min_media_count: 1,
-            instructions: evidenceInstructions.trim() || null,
-          }, { onConflict: "company_id,applies_to,applies_id" });
+      toast.success("Task updated successfully");
+
+      // Save / remove evidence policy (isolated error handling)
+      try {
+        if (evidenceRequired && user?.id) {
+          const { data: cu } = await supabase
+            .from("company_users")
+            .select("company_id")
+            .eq("user_id", user.id)
+            .single();
+          if (cu?.company_id) {
+            await supabase.from("evidence_policies").upsert({
+              company_id: cu.company_id,
+              applies_to: "task_template",
+              applies_id: id,
+              evidence_required: true,
+              review_required: reviewRequired,
+              required_media_types: ["photo"],
+              min_media_count: 1,
+              instructions: evidenceInstructions.trim() || null,
+            }, { onConflict: "company_id,applies_to,applies_id" });
+          }
+        } else if (!evidenceRequired && evidencePolicyId) {
+          await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
         }
-      } else if (!evidenceRequired && evidencePolicyId) {
-        // Policy turned off — remove it
-        await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
+      } catch (epError) {
+        console.error("Evidence policy save failed:", epError);
+        toast.warning("Task saved, but evidence policy could not be updated");
       }
 
-      toast.success("Task updated successfully");
       navigate("/tasks");
     } catch (error) {
       console.error("Error updating task:", error);
