@@ -1,5 +1,29 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+/**
+ * Convert a local date+time string in a given IANA timezone to a UTC Date.
+ * e.g. localToUtc('2026-02-24', '18:00:00', 'Europe/Bucharest')
+ */
+function localToUtc(dateStr: string, timeStr: string, tz: string): Date {
+  // Build a date in UTC, then figure out the offset for that timezone
+  const naiveUtc = new Date(`${dateStr}T${timeStr}Z`)
+  // Get what that UTC instant looks like in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
+  const parts = Object.fromEntries(
+    formatter.formatToParts(naiveUtc).map(p => [p.type, p.value])
+  )
+  const localAtUtc = new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`)
+  // The offset is the difference between what UTC shows and what local shows
+  const offsetMs = localAtUtc.getTime() - naiveUtc.getTime()
+  // Subtract offset to get the true UTC time
+  return new Date(naiveUtc.getTime() - offsetMs)
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -81,9 +105,9 @@ Deno.serve(async (req) => {
         const shift = (log as any).shifts
         if (!shift) continue
 
-        // Calculate when shift ended
-        const shiftEndDateTime = new Date(`${shift.shift_date}T${shift.end_time}`)
-        const autoClockoutTime = new Date(shiftEndDateTime.getTime() + delayMinutes * 60 * 1000)
+        // Convert shift end time from Europe/Bucharest local to UTC
+        const shiftEndUtc = localToUtc(shift.shift_date, shift.end_time, 'Europe/Bucharest')
+        const autoClockoutTime = new Date(shiftEndUtc.getTime() + delayMinutes * 60 * 1000)
         const now = new Date()
 
         if (now > autoClockoutTime) {
