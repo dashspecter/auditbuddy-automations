@@ -1,31 +1,23 @@
 
 
-## Fix: "Extra" Shift Type Rejected by Database
+## Add "Extra" Badge to Location View Shift Cards
 
 ### Problem
-When creating a shift with **Shift Type = "Extra"**, the database rejects it with:
-> `new row for relation "shifts" violates check constraint "shifts_shift_type_check"`
-
-The database constraint only allows `'regular'` and `'training'`, but the UI offers `'extra'` as a third option.
-
-### Root Cause
-The `shifts` table has a CHECK constraint:
-```
-CHECK (shift_type = ANY (ARRAY['regular', 'training']))
-```
-The UI added `'extra'` as a valid shift type but the database constraint was never updated to include it.
+The "Extra" badge (orange label) only appears on shift cards in the **Employee view**. The **Location view** has a separate rendering block that's missing this badge, so when you switch to Locations (the new default), Bibek's extra shifts on March 4 and 5 don't show the indicator -- even though the data is correct in the database.
 
 ### Fix
 
-1. **Database migration** -- alter the CHECK constraint to allow `'extra'`:
+**File: `src/components/workforce/EnhancedShiftWeekView.tsx`**
 
-```sql
-ALTER TABLE shifts DROP CONSTRAINT shifts_shift_type_check;
-ALTER TABLE shifts ADD CONSTRAINT shifts_shift_type_check 
-  CHECK (shift_type = ANY (ARRAY['regular', 'training', 'extra']));
+Add the "Extra" badge to the location view shift card, right after the existing "Draft" badge (around line 1211). This is the same orange badge already used in the employee view:
+
+```tsx
+{shift.shift_type === 'extra' && (
+  <Badge className="text-[10px] px-1 py-0 bg-orange-500 text-white border-transparent hover:bg-orange-600">
+    Extra
+  </Badge>
+)}
 ```
 
-No code changes needed -- the UI and hooks already handle `'extra'` correctly; only the DB constraint is blocking it.
-
 ### Result
-Users can create shifts with Shift Type = "Extra" without errors.
+Shift cards in both Employee and Location views will display the orange "Extra" badge when the shift is tagged as extra.
