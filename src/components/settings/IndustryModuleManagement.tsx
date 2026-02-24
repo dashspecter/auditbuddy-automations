@@ -59,7 +59,14 @@ const MODULE_NAMES: Record<string, string> = {
   'documents': 'Documents',
   'inventory': 'Inventory',
   'insights': 'Insights',
-  'integrations': 'Integrations'
+  'integrations': 'Integrations',
+  'wastage': 'Wastage Tracking',
+  'qr_forms': 'QR Forms',
+  'whatsapp_messaging': 'WhatsApp Messaging',
+  'payroll': 'Payroll & Labor Costs',
+  'cmms': 'CMMS (Maintenance)',
+  'corrective_actions': 'Corrective Actions',
+  'operations': 'Operations'
 };
 
 export default function IndustryModuleManagement() {

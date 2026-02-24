@@ -67,6 +67,11 @@ const getModuleName = (module: string): string => {
     'reports': 'Reports & Analytics',
     'wastage': 'Wastage',
     'qr_forms': 'QR Forms (HACCP / Quality Records)',
+    'cmms': 'CMMS (Maintenance)',
+    'corrective_actions': 'Corrective Actions',
+    'operations': 'Operations',
+    'payroll': 'Payroll & Labor Costs',
+    'whatsapp_messaging': 'WhatsApp Messaging',
   };
   return moduleNames[module] || module;
 };

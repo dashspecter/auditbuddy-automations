@@ -236,7 +236,7 @@ export const navigationItems: NavigationItem[] = [
     titleKey: "nav.cmms",
     url: "/cmms",
     icon: Cog,
-    module: null,
+    module: "cmms",
     allowedRoles: ['admin', 'manager'],
     subItems: [
       { id: 'cmms-overview', titleKey: "nav.overview", url: "/cmms/overview" },
@@ -369,7 +369,7 @@ export const navigationItems: NavigationItem[] = [
     titleKey: "nav.operations",
     url: "/operations/daily",
     icon: Settings2,
-    module: null,
+    module: "operations",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits',
     subItems: [
@@ -383,7 +383,7 @@ export const navigationItems: NavigationItem[] = [
     titleKey: "nav.correctiveActions",
     url: "/corrective-actions",
     icon: ShieldAlert,
-    module: null,
+    module: "corrective_actions",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits',
     subItems: [
