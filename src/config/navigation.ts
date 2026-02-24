@@ -149,7 +149,7 @@ export const navigationItems: NavigationItem[] = [
           { titleKey: "nav.payrollBatches", url: "/workforce/payroll-batches" },
         ]
       },
-      
+      { id: 'workforce-badge-settings', titleKey: "nav.badgeSettings", url: "/workforce/badge-settings", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_employees' },
     ]
   },
   {
