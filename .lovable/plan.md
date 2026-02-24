@@ -1,62 +1,97 @@
 
 
-## Fix: Midnight Wrap Bug in Shift Matching
+## Auto-Create Shift on Unscheduled Clock-In Approval
 
-### Root Cause
+### Current Problem
 
-The `find_scheduled_shift_for_clockin` database function has a time arithmetic bug. When `end_time + grace_minutes` crosses midnight (e.g., 23:50 + 60 = 00:50 next day), the condition:
+When a manager approves an "Unscheduled Clock-In" exception, only the exception status changes to "approved." No shift or assignment is created. The attendance record stays with `shift_id = null`, meaning:
+- The employee doesn't appear on the schedule for that day
+- Payroll has no shift to reference for hours worked
+- There's no audit trail of what shift was retroactively approved
 
-```sql
-v_check_time <= (s.end_time + grace_interval)
-```
-
-...fails because PostgreSQL `time` comparisons are literal: `12:13 <= 00:50` evaluates to `FALSE`. This caused Iulian's 12:13 clock-in to be flagged as "unscheduled" even though his 10:00-23:50 shift was already assigned and approved 7 minutes earlier.
-
-### Timeline of Events (Feb 24)
+### Proposed Flow
 
 ```text
-10:06 UTC  - Iulian assigned to shift (10:00-23:50), auto-approved
-10:13 UTC  - Iulian clocks in
-             -> RPC: find_scheduled_shift_for_clockin called
-             -> Local time: 12:13 (Europe/Bucharest, UTC+2)
-             -> Shift window: 09:00 to 00:50 (end + 60min wraps past midnight)
-             -> Check: 12:13 <= 00:50 -> FALSE (BUG!)
-             -> Result: no shift found -> "unscheduled_shift" exception created
+Employee clocks in (no shift)
+  -> Attendance log created (shift_id = null)
+  -> Exception created (type: unscheduled_shift, status: pending)
+
+Manager clicks "Approve" on the exception
+  -> Create a new shift for that location + date (start = clock-in time, end = TBD or shift template)
+  -> Create a shift_assignment (employee -> shift, approval_status = 'approved')
+  -> Link the attendance record to the new shift (update shift_id)
+  -> Mark exception as 'approved'
 ```
 
-### The Fix
+### What the Manager Sees
 
-Update both overloads of `find_scheduled_shift_for_clockin` to handle the midnight wrap case. When `end_time + grace` wraps past midnight, the check should become: "check_time >= window_start OR check_time <= wrapped_window_end" instead of requiring both conditions simultaneously.
+When approving an unscheduled clock-in exception, the system will:
+1. Auto-create a shift starting at the employee's clock-in time, with the employee's role
+2. Set a default end time (e.g., clock-in + 8 hours, or based on the location's typical shift length)
+3. Create an approved assignment linking the employee to this shift
+4. Update the attendance record to reference the new shift
 
-**Updated SQL condition:**
-
-```sql
--- Old (broken for midnight wrap):
-AND v_check_time >= (s.start_time - grace_interval)
-AND v_check_time <= (s.end_time + grace_interval)
-
--- New (handles midnight wrap):
-AND v_check_time >= (s.start_time - grace_interval)
-AND (
-  CASE 
-    WHEN (s.end_time + grace_interval) < s.end_time  -- midnight wrap detected
-    THEN true  -- if end wraps past midnight, any time after start is valid
-    ELSE v_check_time <= (s.end_time + grace_interval)
-  END
-)
-```
-
-When `end_time + grace` is less than `end_time` itself, we know it wrapped past midnight. In that case, any time that's already past the start window is valid (the shift hasn't ended yet).
+The manager can later edit the shift times on the schedule grid if needed (e.g., adjust the end time once the employee checks out).
 
 ### Changes
 
-| Area | What Changes |
+| File | What Changes |
 |------|-------------|
-| **Database migration** | Update both overloads of `find_scheduled_shift_for_clockin` to handle midnight time wrap in the end-time grace window |
+| `src/hooks/useScheduleGovernance.ts` | Enhance `useResolveWorkforceException` -- when approving an `unscheduled_shift` exception, also create a shift, assignment, and link the attendance record |
+| `src/components/workforce/WorkforceExceptionsPanel.tsx` | Show the clock-in time in the exception card so managers know when the employee arrived |
 
-### After the Fix
+### Technical Details
 
-- The function will correctly match Iulian's 12:13 clock-in to his 10:00-23:50 shift
-- Late-night shifts (e.g., ending at 23:00, 23:30, 23:50) will no longer produce false "unscheduled" exceptions when the grace window crosses midnight
-- No frontend code changes needed -- the bug is entirely in the database function
+**useResolveWorkforceException mutation update:**
 
+When `status === 'approved'` and the exception is `unscheduled_shift`:
+
+1. Fetch the exception details (including `attendance_id`, `employee_id`, `location_id`, `shift_date`, `metadata.clock_in_time`)
+2. Fetch the employee's role from the `employees` table
+3. Create a shift:
+   ```
+   insert into shifts {
+     company_id, location_id, shift_date,
+     start_time: extracted from clock_in_time (local),
+     end_time: start_time + 8 hours (default, editable later),
+     role: employee's role,
+     is_published: true,
+     status: 'published',
+     created_by: manager's user_id
+   }
+   ```
+4. Create a shift assignment:
+   ```
+   insert into shift_assignments {
+     shift_id: new shift,
+     staff_id: employee_id,
+     assigned_by: manager's user_id,
+     approval_status: 'approved',
+     approved_at: now
+   }
+   ```
+5. Update the attendance log:
+   ```
+   update attendance_logs set shift_id = new_shift_id
+   where id = exception.attendance_id
+   ```
+
+**WorkforceExceptionsPanel enhancement:**
+
+Display the clock-in time from the exception metadata so the manager can see exactly when the employee arrived before approving:
+```
+Clock-in: 12:13 PM
+```
+
+### Edge Cases
+
+- If the employee has already checked out by the time the manager approves, use the actual check-out time as the shift end time instead of the default +8 hours
+- The created shift uses the employee's current role -- the manager can change it later on the schedule grid
+- The shift is created as "published" since it's a retroactive approval of work already done
+
+### Result
+
+- Approving an unscheduled clock-in will add the employee to the schedule automatically
+- The attendance record gets linked to a proper shift for payroll
+- The manager retains full control -- they can edit shift times or role afterward
+- No tasks are assigned (as requested -- the manager handles task allocation separately)
