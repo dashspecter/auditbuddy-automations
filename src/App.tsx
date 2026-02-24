@@ -350,8 +350,8 @@ const App = () => (
                       <Route path="/workforce/shifts" element={<ManagerRoute requiredPermission="manage_shifts"><Shifts /></ManagerRoute>} />
                       <Route path="/workforce/attendance" element={<ManagerRoute requiredPermission="manage_employees"><Attendance /></ManagerRoute>} />
                       <Route path="/workforce/time-off" element={<ManagerRoute requiredPermission="manage_employees"><TimeOffApprovals /></ManagerRoute>} />
-                      <Route path="/workforce/payroll" element={<CompanyOwnerRoute><Payroll /></CompanyOwnerRoute>} />
-                      <Route path="/workforce/payroll-batches" element={<CompanyOwnerRoute><PayrollBatches /></CompanyOwnerRoute>} />
+                      <Route path="/workforce/payroll" element={<ManagerRoute requiredPermission="manage_employees"><Payroll /></ManagerRoute>} />
+                      <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
                       <Route path="/workforce/badge-settings" element={<ManagerRoute requiredPermission="manage_employees"><BadgeSettings /></ManagerRoute>} />
                       <Route path="/workforce/performance/:employeeId" element={<ManagerRoute requiredPermission="manage_employees"><EmployeePerformance /></ManagerRoute>} />
                       <Route path="/workforce/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
