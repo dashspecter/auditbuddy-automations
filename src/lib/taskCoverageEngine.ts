@@ -25,6 +25,7 @@ export interface Shift {
   end_time: string;
   /** Role name (string) from shifts table - this is the ONLY role field available */
   role: string;
+  status?: string;
   is_published?: boolean;
   shift_assignments?: Array<{
     id: string;
@@ -155,7 +156,7 @@ export function checkTaskCoverage(
   const assignedTo = task.assigned_to;
   
   // Find matching shifts for this date using canonical day key
-  const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false);
+  const dateShifts = shifts.filter(s => s.shift_date === taskDateStr && s.is_published !== false && s.status !== 'draft');
   
   // Debug tracking
   let roleChecks = 0;
