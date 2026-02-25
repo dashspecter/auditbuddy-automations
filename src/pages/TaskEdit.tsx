@@ -179,7 +179,7 @@ const TaskEdit = () => {
             .eq("user_id", user.id)
             .single();
           if (cu?.company_id) {
-            await supabase.from("evidence_policies").upsert({
+            const { error: upsertErr } = await supabase.from("evidence_policies").upsert({
               company_id: cu.company_id,
               applies_to: "task_template",
               applies_id: id,
@@ -189,9 +189,11 @@ const TaskEdit = () => {
               min_media_count: 1,
               instructions: evidenceInstructions.trim() || null,
             }, { onConflict: "company_id,applies_to,applies_id" });
+            if (upsertErr) throw upsertErr;
           }
         } else if (!evidenceRequired && evidencePolicyId) {
-          await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
+          const { error: delErr } = await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
+          if (delErr) throw delErr;
         }
       } catch (epError) {
         console.error("Evidence policy save failed:", epError);
