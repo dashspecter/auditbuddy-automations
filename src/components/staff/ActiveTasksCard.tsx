@@ -98,7 +98,7 @@ function EvidenceCaptureModalWithPolicy({
     <EvidenceCaptureModal
       open
       subjectType="task_occurrence"
-      subjectId={evidenceGateTask.task.id}
+      subjectId={baseTaskId}
       policy={policy}
       title={`Proof required: ${evidenceGateTask.task.title}`}
       onComplete={async (_packetId) => {
