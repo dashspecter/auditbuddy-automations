@@ -412,6 +412,7 @@ export const EnhancedShiftDialog = ({
     const deriveStatusFlags = (status: 'draft' | 'open' | 'published') => ({
       is_open_shift: status === 'open',
       is_published: status === 'open' || status === 'published',
+      status: status,
     });
     
     const statusFlags = deriveStatusFlags(formData.shift_status);
