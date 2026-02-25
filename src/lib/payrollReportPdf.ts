@@ -8,6 +8,7 @@ import {
   addSectionTitle,
   BRAND_COLORS,
   BRAND_FONT,
+  loadLogoForPDF,
 } from './pdfBranding';
 import type { PayrollEmployeeDetail } from '@/hooks/usePayrollBatchDetails';
 
@@ -27,12 +28,16 @@ function formatMissingCol(count: number, dates: string[]): string {
   return `${count} (${formatDateList(dates)})`;
 }
 
-export function generatePayrollReportPDF({ employees, periodStart, periodEnd }: PayrollReportOptions) {
+export async function generatePayrollReportPDF({ employees, periodStart, periodEnd }: PayrollReportOptions) {
   const doc = new jsPDF({ orientation: 'landscape' });
   const periodLabel = `${format(parseISO(periodStart), 'MMM d')} – ${format(parseISO(periodEnd), 'MMM d, yyyy')}`;
 
+  // Pre-load logo
+  let logoDataUrl: string | undefined;
+  try { logoDataUrl = await loadLogoForPDF(); } catch { /* fallback */ }
+
   // Header
-  addBrandedHeader(doc, 'Payroll Summary Report', periodLabel);
+  addBrandedHeader(doc, 'Payroll Summary Report', periodLabel, logoDataUrl);
 
   // ── Company-Wide Summary ──
   let y = 55;
@@ -91,7 +96,7 @@ export function generatePayrollReportPDF({ employees, periodStart, periodEnd }: 
     const locEmployees = byLocation[locName];
 
     doc.addPage('landscape');
-    addBrandedHeader(doc, locName, periodLabel);
+    addBrandedHeader(doc, locName, periodLabel, logoDataUrl);
 
     let locY = 55;
     locY = addSectionTitle(doc, `${locName} — ${locEmployees.length} employee${locEmployees.length !== 1 ? 's' : ''}`, locY);
@@ -172,7 +177,7 @@ export function generatePayrollReportPDF({ employees, periodStart, periodEnd }: 
   const crossLocData = employees.filter(e => e.extra_location_days > 0);
   if (crossLocData.length > 0) {
     doc.addPage('landscape');
-    addBrandedHeader(doc, 'Cross-Location Work', periodLabel);
+    addBrandedHeader(doc, 'Cross-Location Work', periodLabel, logoDataUrl);
     let clY = 55;
     clY = addSectionTitle(doc, 'Employees Who Worked at Other Locations', clY);
 
@@ -201,7 +206,7 @@ export function generatePayrollReportPDF({ employees, periodStart, periodEnd }: 
   const anomalyData = employees.filter(e => e.anomalies.length > 0);
   if (anomalyData.length > 0) {
     doc.addPage('landscape');
-    addBrandedHeader(doc, 'Anomalies', periodLabel);
+    addBrandedHeader(doc, 'Anomalies', periodLabel, logoDataUrl);
     let anY = 55;
     anY = addSectionTitle(doc, 'Late Arrivals, Auto Clock-Outs & Other Issues', anY);
 
