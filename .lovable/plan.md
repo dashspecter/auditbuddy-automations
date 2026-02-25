@@ -1,68 +1,49 @@
 
 
-## Bug: Evidence Policy "Require proof photo" Not Persisting on Edit
+## Analysis: Current Grid Row Structure & Redundancy
 
-### Root Cause Analysis
+Looking at the screenshot and the code, there are currently **three** special rows above the per-employee rows:
 
-Two issues found in `src/pages/TaskEdit.tsx`:
+1. **"Open Shifts" row** (line 826) — shows ALL open shifts for the day (`is_open_shift === true`), regardless of assignment status
+2. **"Draft / Open" row** (line 884) — shows unassigned Draft shifts AND unassigned Open shifts together
+3. **"All shifts" row** (line 1218, per-location) — shows all non-open shifts for a location (`!shift.is_open_shift`), including Draft ones with their assignment counts
 
-**Issue 1 — Upsert errors are silently swallowed (PRIMARY CAUSE)**
+### The Redundancy Problem
 
-The upsert call at line 182 does NOT check the returned `{ error }` object:
-```typescript
-await supabase.from("evidence_policies").upsert({ ... });
-// No { error } destructuring — RLS failures are invisible
-```
-The Supabase JS client returns `{ data, error }` without throwing exceptions. The surrounding `try-catch` block (line 174-199) only catches thrown JavaScript errors, not Supabase-returned error objects. If the INSERT or UPDATE is rejected by RLS, the code proceeds silently as if it succeeded.
+The user is correct — there is clear duplication:
 
-**Issue 2 — No DELETE RLS policy exists**
+- **Open shifts appear in BOTH** the "Open Shifts" row AND the "Draft / Open" row (the latter via `getOpenShiftsForDayUnassigned`)
+- **Draft shifts appear in BOTH** the "Draft / Open" row AND the "All shifts" per-location row (the latter shows them with dashed borders and "Draft" badge)
+- The "Open Shifts" row shows open shifts even when they have approved assignments — but then the same shift also appears in "Draft / Open" if it has no approved assignments
 
-The `evidence_policies` table has SELECT, INSERT, and UPDATE RLS policies but NO DELETE policy. When a user unchecks the toggle and saves (line 193-194), the delete call will always fail silently due to RLS.
+### Proposed Simplification: Two Rows Instead of Three
 
-### Fix Plan
+Replace the three overlapping rows with a cleaner two-row model:
 
-**Step 1: Add proper error handling to the upsert and delete calls in `TaskEdit.tsx`**
+| Row | What it shows | Purpose |
+|-----|---------------|---------|
+| **Draft** (orange, `EyeOff` icon) | Shifts with `status = 'draft'` — not visible to employees | Manager workspace for shifts being prepared before publishing |
+| **Open Shifts** (amber, `Calendar` icon) | Shifts with `is_open_shift = true` — visible and claimable by employees | Shows shifts awaiting employee claims, with pending claim indicators |
 
-Destructure `{ error }` from both the upsert and delete calls. If an error is returned, log it and show the warning toast. This is the same pattern needed in `TaskNew.tsx`.
+The **"All shifts"** per-location row would then show only `published` shifts (assigned, visible to employees) — no more drafts duplicated there.
 
-File: `src/pages/TaskEdit.tsx` (lines 182-194)
+### Code Changes
 
-```typescript
-const { error: upsertErr } = await supabase.from("evidence_policies").upsert({ ... });
-if (upsertErr) throw upsertErr;
-```
+**File: `src/components/workforce/EnhancedShiftWeekView.tsx`**
 
-And for delete:
-```typescript
-const { error: delErr } = await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
-if (delErr) throw delErr;
-```
+1. **Remove the current "Open Shifts" row** (lines 826-882) — its content moves into the updated dedicated row below
 
-**Step 2: Add DELETE RLS policy for `evidence_policies`**
+2. **Rename "Draft / Open" row to just "Draft"** — remove Open shifts from this row. Only show `!is_published && !is_open_shift` shifts here (true drafts). Keep the orange dashed styling and "No staff assigned" indicators.
 
-Database migration to add:
-```sql
-CREATE POLICY "evidence_policies_delete_managers"
-  ON public.evidence_policies FOR DELETE
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT cu.company_id FROM public.company_users cu
-      WHERE cu.user_id = auth.uid()
-        AND cu.company_role IN ('company_owner', 'company_admin', 'company_manager')
-    )
-  );
-```
+3. **Keep/repurpose the "Open Shifts" row** — show only `is_open_shift === true` shifts (both assigned and unassigned), with the "+ Add" button, pending claim indicators, and "Claimable by role" labels.
 
-**Step 3: Apply the same error handling fix in `TaskNew.tsx`**
+4. **Filter drafts OUT of "All shifts" per-location row** — update `getShiftsForLocationAndDay` (line 460-464) to also exclude drafts: `shift.is_published && !shift.is_open_shift` (i.e., only truly published/assigned shifts).
 
-The same silent-failure pattern exists in the task creation flow. Destructure and check `{ error }` there too.
+### Result
 
-### Summary
+- **Draft row**: Internal workspace. Shows shifts the manager is preparing. Not visible to employees.
+- **Open Shifts row**: Published claimable shifts. Visible to employees in Shift Pool.
+- **All shifts (per location)**: Only published, assigned shifts. No duplication.
 
-| Change | File |
-|--------|------|
-| Check `{ error }` from upsert/delete calls | `src/pages/TaskEdit.tsx` |
-| Check `{ error }` from upsert call | `src/pages/TaskNew.tsx` |
-| Add DELETE RLS policy | Database migration |
+Each shift appears in exactly ONE row. No redundancy.
 
