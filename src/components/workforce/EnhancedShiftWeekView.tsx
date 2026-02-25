@@ -190,11 +190,14 @@ export const EnhancedShiftWeekView = () => {
     locationId: selectedLocation !== "all" ? selectedLocation : undefined
   });
   
-  // Combined approvals count: always include shift assignment pending count
-  // Governance items (change requests + exceptions) only when governance enabled
-  const governanceApprovalsCount = (isGovernanceEnabled 
+  // Combined approvals count: always include pending shift assignments
+  // Plus governance items (change requests + exceptions) when governance enabled
+  const governanceItemsCount = isGovernanceEnabled 
     ? pendingChangeRequests.length + pendingExceptions.length 
-    : 0);
+    : 0;
+  const pendingShiftAssignmentCount = shifts.reduce((count, shift) => 
+    count + (shift.shift_assignments?.filter((sa: any) => sa.approval_status === 'pending').length || 0), 0);
+  const governanceApprovalsCount = governanceItemsCount + pendingShiftAssignmentCount;
   
   // Check if the current period is locked (for mutation gating)
   const isPeriodLocked = schedulePeriod?.state === 'locked';
