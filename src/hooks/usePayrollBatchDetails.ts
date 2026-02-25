@@ -24,6 +24,9 @@ export interface PayrollEmployeeDetail {
   // Cross-location
   extra_location_days: number;
   extra_location_details: Array<{ date: string; location_name: string }>;
+  // Early departures
+  early_departure_days: number;
+  early_departure_details: Array<{ date: string; reason: string }>;
   // Anomalies count (for existing badge)
   anomalies: string[];
 }
@@ -68,7 +71,7 @@ export function usePayrollBatchDetails(
       // 3. Get attendance logs for the period
       const { data: attendanceLogs, error: attError } = await supabase
         .from("attendance_logs")
-        .select("id, staff_id, shift_id, check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, approved_by")
+        .select("id, staff_id, shift_id, check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, approved_by, early_departure_reason")
         .gte("check_in_at", `${periodStart}T00:00:00`)
         .lte("check_in_at", `${periodEnd}T23:59:59`);
       if (attError) throw attError;
@@ -158,6 +161,7 @@ export function usePayrollBatchDetails(
         const anomalies: string[] = [];
         const missingDates: string[] = [];
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
+        const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
 
         const workedDatesSet = new Set<string>();
 
@@ -205,6 +209,14 @@ export function usePayrollBatchDetails(
               extraLocationDetails.push({
                 date: shift.date,
                 location_name: shift.location_name,
+              });
+            }
+
+            // Track early departures
+            if (attLog && (attLog as any).early_departure_reason) {
+              earlyDepartureDetails.push({
+                date: shift.date,
+                reason: (attLog as any).early_departure_reason,
               });
             }
 
@@ -281,6 +293,8 @@ export function usePayrollBatchDetails(
           missing_no_reason_dates: missingDates.sort(),
           extra_location_days: extraLocationDetails.length,
           extra_location_details: extraLocationDetails.sort((a, b) => a.date.localeCompare(b.date)),
+          early_departure_days: earlyDepartureDetails.length,
+          early_departure_details: earlyDepartureDetails.sort((a, b) => a.date.localeCompare(b.date)),
           anomalies,
         });
       }
