@@ -22,6 +22,7 @@ export interface Timesheet {
 export interface PayrollBatch {
   id: string;
   company_id: string;
+  location_id: string | null;
   period_start: string;
   period_end: string;
   status: "draft" | "pending_approval" | "approved" | "processed" | "paid";

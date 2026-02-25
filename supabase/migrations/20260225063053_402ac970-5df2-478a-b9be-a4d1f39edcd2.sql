@@ -1,0 +1,1 @@
+ALTER TABLE payroll_batches ADD COLUMN location_id uuid REFERENCES locations(id);
