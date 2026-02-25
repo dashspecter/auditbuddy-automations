@@ -284,10 +284,13 @@ export const EnhancedShiftWeekView = () => {
   // Get open shifts for a day (is_open_shift = true, claimable by employees)
   const getOpenShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return shifts.filter(shift => 
-      shift.shift_date === dateStr &&
-      shift.is_open_shift
-    );
+    return shifts.filter(shift => {
+      if (shift.shift_date !== dateStr || !shift.is_open_shift) return false;
+      const approvedCount = shift.shift_assignments?.filter(
+        (sa: any) => sa.approval_status === 'approved'
+      ).length || 0;
+      return approvedCount < (shift.required_count || 1);
+    });
   };
 
   // Get draft shifts for a day (not published, not open — internal manager workspace)
@@ -447,9 +450,15 @@ export const EnhancedShiftWeekView = () => {
 
   const getShiftsForLocationAndDay = (locationId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return (shiftsByLocation[locationId] || []).filter(
-      shift => shift.shift_date === dateStr && shift.is_published && !shift.is_open_shift
-    );
+    return (shiftsByLocation[locationId] || []).filter(shift => {
+      if (shift.shift_date !== dateStr || !shift.is_published) return false;
+      if (!shift.is_open_shift) return true;
+      // Open shift: only show here if fully staffed
+      const approvedCount = shift.shift_assignments?.filter(
+        (sa: any) => sa.approval_status === 'approved'
+      ).length || 0;
+      return approvedCount >= (shift.required_count || 1);
+    });
   };
 
   const getWeatherForDay = (date: Date) => {
