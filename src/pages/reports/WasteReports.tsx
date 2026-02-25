@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { format, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -51,13 +51,21 @@ export default function WasteReports() {
   const [selectedEntry, setSelectedEntry] = useState<WasteEntry | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  
+  // Cache of thumbnail signed URLs keyed by photo_path
+  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
 
   // Load photo when entry selected
   useEffect(() => {
     const loadPhoto = async () => {
       if (selectedEntry?.photo_path) {
-        const url = await getWastePhotoUrl(selectedEntry.photo_path);
-        setPhotoUrl(url);
+        // Use cached URL if available
+        if (thumbnailUrls[selectedEntry.photo_path]) {
+          setPhotoUrl(thumbnailUrls[selectedEntry.photo_path]);
+        } else {
+          const url = await getWastePhotoUrl(selectedEntry.photo_path);
+          setPhotoUrl(url);
+        }
       } else {
         setPhotoUrl(null);
       }
@@ -89,6 +97,33 @@ export default function WasteReports() {
 
   const { data: report, isLoading: reportLoading } = useWasteReport(filters);
   const { data: entries, isLoading: entriesLoading } = useWasteEntries(filters);
+
+  // Bulk-load signed thumbnail URLs for entries with photos
+  useEffect(() => {
+    if (!entries || entries.length === 0) return;
+    const photoPaths = entries
+      .filter(e => e.photo_path && !thumbnailUrls[e.photo_path])
+      .map(e => e.photo_path as string);
+    
+    if (photoPaths.length === 0) return;
+    
+    const unique = [...new Set(photoPaths)];
+    
+    Promise.all(
+      unique.map(async (path) => {
+        const url = await getWastePhotoUrl(path);
+        return { path, url };
+      })
+    ).then((results) => {
+      setThumbnailUrls(prev => {
+        const next = { ...prev };
+        results.forEach(({ path, url }) => {
+          if (url) next[path] = url;
+        });
+        return next;
+      });
+    });
+  }, [entries]);
 
   const handleExportCSV = () => {
     if (!entries || entries.length === 0) {
@@ -553,9 +588,17 @@ export default function WasteReports() {
                               {entry.photo_path ? (
                                 <button
                                   onClick={() => handleViewPhoto(entry)}
-                                  className="w-10 h-10 rounded bg-muted flex items-center justify-center hover:bg-accent transition-colors"
+                                  className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center hover:ring-2 hover:ring-primary/50 transition-all"
                                 >
-                                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                  {thumbnailUrls[entry.photo_path] ? (
+                                    <img
+                                      src={thumbnailUrls[entry.photo_path]}
+                                      alt="Waste photo"
+                                      className="w-10 h-10 object-cover"
+                                    />
+                                  ) : (
+                                    <ImageIcon className="h-4 w-4 text-muted-foreground animate-pulse" />
+                                  )}
                                 </button>
                               ) : (
                                 <div className="w-10 h-10 rounded bg-muted/50 flex items-center justify-center">

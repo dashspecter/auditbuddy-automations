@@ -65,10 +65,10 @@ export default function AdminAddWasteEntry() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id) {
       toast({
         title: "Missing required fields",
-        description: "Please select a location, product, and enter the weight",
+        description: "Please select a location, product, reason, and enter the weight",
         variant: "destructive",
       });
       return;
@@ -214,13 +214,13 @@ export default function AdminAddWasteEntry() {
 
               {/* Reason */}
               <div className="space-y-2">
-                <Label>Reason</Label>
+                <Label>Reason *</Label>
                 <Select
                   value={formData.waste_reason_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, waste_reason_id: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select reason (optional)" />
+                    <SelectValue placeholder="Select reason" />
                   </SelectTrigger>
                   <SelectContent>
                     {reasons?.map((reason) => (
@@ -311,7 +311,7 @@ export default function AdminAddWasteEntry() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg}
+                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id}
               >
                 {isSubmitting ? (
                   <>
