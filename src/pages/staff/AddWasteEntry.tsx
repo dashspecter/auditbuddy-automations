@@ -77,23 +77,13 @@ export default function AddWasteEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id || !photoFile) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields (product, reason, and weight)",
+        description: "Please fill in all required fields (product, reason, weight, and photo)",
         variant: "destructive",
       });
       return;
-    }
-
-    // Photo is optional — Android may kill the page when camera opens,
-    // losing the captured file from memory after reload.
-
-    if (!photoFile) {
-      toast({
-        title: "No photo attached",
-        description: "Entry will be saved without a photo. You can add one later from My Entries.",
-      });
     }
 
     setIsSubmitting(true);
@@ -220,8 +210,8 @@ export default function AddWasteEntry() {
                   className="w-full h-48 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors"
                 >
                   <Camera className="h-10 w-10 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Take photo of waste item
+                   <span className="text-sm text-muted-foreground">
+                    Take photo of waste item *
                   </span>
                   <span className="text-xs text-muted-foreground">
                     Include scale readout if available
@@ -359,7 +349,7 @@ export default function AddWasteEntry() {
           <Button
             className="w-full h-12 text-base"
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id}
+            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id || !photoFile}
           >
             {isSubmitting ? (
               <>
