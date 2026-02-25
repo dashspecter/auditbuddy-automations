@@ -28,13 +28,16 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
+import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
+import { supabase } from "@/integrations/supabase/client";
 
 const TaskEdit = () => {
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { company } = useCompanyContext();
   
   const id = rawId ? getOriginalTaskId(rawId) : undefined;
   const updateTask = useUpdateTask();
@@ -70,6 +73,12 @@ const TaskEdit = () => {
         setEvidenceRequired(data.evidence_required);
         setReviewRequired(data.review_required);
         setEvidenceInstructions(data.instructions ?? "");
+      } else {
+        // Explicitly reset if no policy found
+        setEvidencePolicyId(null);
+        setEvidenceRequired(false);
+        setReviewRequired(false);
+        setEvidenceInstructions("");
       }
     };
     loadPolicy();
@@ -171,33 +180,25 @@ const TaskEdit = () => {
       toast.success("Task updated successfully");
 
       // Save / remove evidence policy (isolated error handling)
-      try {
-        if (evidenceRequired && user?.id) {
-          const { data: cu } = await supabase
-            .from("company_users")
-            .select("company_id")
-            .eq("user_id", user.id)
-            .single();
-          if (cu?.company_id) {
-            const { error: upsertErr } = await supabase.from("evidence_policies").upsert({
-              company_id: cu.company_id,
-              applies_to: "task_template",
-              applies_id: id,
-              evidence_required: true,
-              review_required: reviewRequired,
-              required_media_types: ["photo"],
-              min_media_count: 1,
-              instructions: evidenceInstructions.trim() || null,
-            }, { onConflict: "company_id,applies_to,applies_id" });
-            if (upsertErr) throw upsertErr;
+      if (company?.id) {
+        try {
+          const { policyId, error: epError } = await saveTaskEvidencePolicy({
+            companyId: company.id,
+            taskId: id,
+            evidenceRequired,
+            reviewRequired,
+            instructions: evidenceInstructions,
+            existingPolicyId: evidencePolicyId,
+          });
+          if (epError) {
+            toast.warning("Task saved, but evidence policy could not be updated");
+          } else {
+            setEvidencePolicyId(policyId);
           }
-        } else if (!evidenceRequired && evidencePolicyId) {
-          const { error: delErr } = await supabase.from("evidence_policies").delete().eq("id", evidencePolicyId);
-          if (delErr) throw delErr;
+        } catch (epError) {
+          console.error("Evidence policy save failed:", epError);
+          toast.warning("Task saved, but evidence policy could not be updated");
         }
-      } catch (epError) {
-        console.error("Evidence policy save failed:", epError);
-        toast.warning("Task saved, but evidence policy could not be updated");
       }
 
       navigate("/tasks");
