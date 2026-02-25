@@ -33,23 +33,18 @@ interface EvidenceRow {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-function useAllEvidencePackets(companyId: string | undefined, statusFilter: string) {
+function useAllEvidencePackets(companyId: string | undefined) {
   return useQuery({
-    queryKey: ["evidence_packets_all", companyId, statusFilter],
+    queryKey: ["evidence_packets_all", companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      let q = supabase
+      const { data, error } = await supabase
         .from("evidence_packets")
         .select("id, subject_type, subject_id, status, created_at, notes, redacted_at")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .limit(200);
 
-      if (statusFilter && statusFilter !== "all") {
-        q = q.eq("status", statusFilter);
-      }
-
-      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as EvidenceRow[];
     },
@@ -76,9 +71,10 @@ export default function EvidenceReview() {
   const [search, setSearch] = useState("");
   const [viewerPacket, setViewerPacket] = useState<EvidenceRow | null>(null);
 
-  const { data: packets = [], isLoading } = useAllEvidencePackets(company?.id, statusFilter);
+  const { data: packets = [], isLoading } = useAllEvidencePackets(company?.id);
 
   const filtered = packets.filter((p) => {
+    if (statusFilter !== "all" && p.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
