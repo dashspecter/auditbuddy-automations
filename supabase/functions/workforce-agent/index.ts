@@ -47,7 +47,8 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
   const supabase = getSupabase();
   const summaries: TimesheetSummary[] = [];
 
-  console.log(`[WorkforceAgent] Preparing payroll for ${periodStart} to ${periodEnd}${locationId ? ` (location: ${locationId})` : ''}`);
+  console.log(`[WorkforceAgent] preparePayroll called with locationId=${locationId || 'NONE'} (type: ${typeof locationId})`);
+  console.log(`[WorkforceAgent] Preparing payroll for ${periodStart} to ${periodEnd}${locationId ? ` (location: ${locationId})` : ' (ALL LOCATIONS)'}`);
 
   // Check company settings for clock-in mode
   const { data: companyData } = await supabase
@@ -71,6 +72,8 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
   }
   
   const { data: employees } = await empQuery;
+
+  console.log(`[WorkforceAgent] Found ${employees?.length || 0} active employees${locationId ? ` for location ${locationId}` : ' across all locations'}`);
 
   if (!employees || employees.length === 0) {
     return { batch: null, message: "No active employees found" };
@@ -583,6 +586,7 @@ Deno.serve(async (req) => {
 
     if (req.method === "POST" && path === "/prepare-payroll") {
       const { company_id, period_start, period_end, location_id } = body;
+      console.log(`[WorkforceAgent] prepare-payroll received: company=${company_id}, start=${period_start}, end=${period_end}, location_id=${location_id || 'NOT_SET'}, raw body keys=${Object.keys(body).join(',')}`);
       
       if (!company_id || !period_start || !period_end) {
         return new Response(
