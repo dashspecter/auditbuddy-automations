@@ -1,60 +1,78 @@
 
 
-## Problem
+## Problem Analysis
 
-In the Draft shift card rendering (lines 859-883 of `EnhancedShiftWeekView.tsx`), the code only looks for `pendingAssignments`. Approved assignments are completely ignored:
+Two issues identified:
 
+### Issue 1: Evidence Review page always shows "0" for all status badges
+The status summary badges (submitted: 0, approved: 0, rejected: 0) are computed from `packets` — which is the **already-filtered** result. When the filter is set to "submitted" (default), only submitted packets are fetched from the database. The count logic then loops over those filtered results, so approved/rejected counts are always 0.
+
+**Root cause** in `EvidenceReview.tsx` (line 82-85):
 ```typescript
-const pendingAssignments = (shift.shift_assignments || []).filter((a: any) => a.approval_status === 'pending');
-if (pendingAssignments.length > 0) {
-  // render pending names
+const statusCounts = packets.reduce(...)  // ← "packets" is already filtered by statusFilter
+```
+
+And the query itself applies the filter at the database level (line 49):
+```typescript
+if (statusFilter && statusFilter !== "all") {
+  q = q.eq("status", statusFilter);
 }
-return (
-  // "No staff assigned" — always shows if no pending assignments, even if approved ones exist
-);
 ```
 
-When a manager assigns an employee directly, the assignment is auto-approved (`approval_status: 'approved'`). Since the code never checks for approved assignments, it always shows "No staff assigned".
+### Issue 2: No visibility of approved evidence outside Evidence Review
+After a manager approves evidence, the "approved" status is only visible:
+- On the Evidence Review page (if you filter to "approved")
+- Inline on the specific task/audit/work order detail page via the `EvidenceStatusBadge`
 
-## Fix
+There is no notification, dashboard summary, or completion indicator that calls attention to approved evidence.
 
-**File: `src/components/workforce/EnhancedShiftWeekView.tsx`** (lines 859-883)
+---
 
-Update the draft shift card IIFE to also render approved assignments:
+## Fix Plan
 
-1. Extract both `approvedAssignments` and `pendingAssignments` from `shift.shift_assignments`
-2. Render approved assignments first (with a green/neutral style showing the employee name)
-3. Render pending assignments below (existing amber style)
-4. Only show "No staff assigned" if both arrays are empty
+### Fix 1: Separate the summary counts from the filtered list
 
-```typescript
-{(() => {
-  const assignments = shift.shift_assignments || [];
-  const approvedAssignments = assignments.filter((a: any) => a.approval_status === 'approved');
-  const pendingAssignments = assignments.filter((a: any) => a.approval_status === 'pending');
-  
-  if (approvedAssignments.length === 0 && pendingAssignments.length === 0) {
-    return (
-      <div className="text-[10px] text-orange-600 ...">
-        <UserCheck /> No staff assigned
-      </div>
-    );
-  }
-  
-  return (
-    <div className="mt-1 space-y-0.5">
-      {approvedAssignments.map((a) => {
-        const emp = employees.find(e => e.id === a.staff_id);
-        return <div>✓ {emp?.full_name}</div>;
-      })}
-      {pendingAssignments.map((a) => {
-        const emp = employees.find(e => e.id === a.staff_id);
-        return <div>⏳ {emp?.full_name} – Pending</div>;
-      })}
-    </div>
-  );
-})()}
-```
+**File: `src/pages/EvidenceReview.tsx`**
 
-This is a display-only fix — no backend or data changes needed. The assignment data is already present in `shift.shift_assignments`; it's just not being rendered.
+Add a second query that always fetches **all** packets (no status filter) just for computing badge counts. The existing filtered query continues to drive the table display.
+
+1. Create `useEvidencePacketCounts(companyId)` — a lightweight query that fetches `status` column only with no status filter, grouped or reduced client-side for counts
+2. Use those counts for the badge chips at the top
+3. Keep the existing `useAllEvidencePackets` query with `statusFilter` for the table rows
+
+Alternatively (simpler): change the existing hook to always fetch **all** packets, then filter client-side for the table. Since it's capped at 200 rows, this is fine:
+- Remove the database-level status filter from the query
+- Apply status filtering client-side alongside the text search
+- Compute `statusCounts` from the unfiltered `packets` array
+
+This is the simpler approach — one query, no status filter at DB level, client-side filtering for both status and search.
+
+### Fix 2 (optional, not in this scope): Surface approved evidence better
+This is a UX enhancement for later — e.g., showing a green checkmark on completed tasks in manager dashboards, or sending a notification when evidence is approved. Not blocking.
+
+---
+
+## Technical Details
+
+**File: `src/pages/EvidenceReview.tsx`**
+
+1. **Remove DB-level status filter** from `useAllEvidencePackets` — always fetch all packets (up to 200):
+   - Remove the `statusFilter` parameter from the hook
+   - Remove the `if (statusFilter !== "all") q = q.eq("status", statusFilter)` line
+
+2. **Compute `statusCounts` from all packets** (before any filtering):
+   ```typescript
+   const statusCounts = packets.reduce(...)  // from full unfiltered array
+   ```
+
+3. **Apply status + text filtering client-side** for the table:
+   ```typescript
+   const filtered = packets.filter((p) => {
+     if (statusFilter !== "all" && p.status !== statusFilter) return false;
+     if (!search.trim()) return true;
+     // ...existing text search logic
+   });
+   ```
+
+This ensures badges always show accurate totals and the table respects the selected filter.
 
