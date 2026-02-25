@@ -857,27 +857,40 @@ export const EnhancedShiftWeekView = () => {
                         </div>
                       )}
                       {(() => {
-                        const pendingAssignments = (shift.shift_assignments || []).filter((a: any) => a.approval_status === 'pending');
-                        if (pendingAssignments.length > 0) {
+                        const assignments = shift.shift_assignments || [];
+                        const approvedAssignments = assignments.filter((a: any) => a.approval_status === 'approved');
+                        const pendingAssignments = assignments.filter((a: any) => a.approval_status === 'pending');
+                        
+                        if (approvedAssignments.length === 0 && pendingAssignments.length === 0) {
                           return (
-                            <div className="mt-1 space-y-0.5">
-                              {pendingAssignments.map((a: any) => {
-                                const emp = employees.find(e => e.id === a.staff_id);
-                                return (
-                                  <div key={a.id} className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                                    <span className="truncate">{emp?.full_name || t('common.unknown')}</span>
-                                    <span className="text-[9px] opacity-75">– Pending</span>
-                                  </div>
-                                );
-                              })}
+                            <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
+                              <UserCheck className="h-3 w-3" />
+                              No staff assigned
                             </div>
                           );
                         }
+                        
                         return (
-                          <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
-                            <UserCheck className="h-3 w-3" />
-                            No staff assigned
+                          <div className="mt-1 space-y-0.5">
+                            {approvedAssignments.map((a: any) => {
+                              const emp = employees.find(e => e.id === a.staff_id);
+                              return (
+                                <div key={a.id} className="text-[10px] text-green-700 dark:text-green-400 flex items-center gap-1">
+                                  <UserCheck className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{emp?.full_name || t('common.unknown')}</span>
+                                </div>
+                              );
+                            })}
+                            {pendingAssignments.map((a: any) => {
+                              const emp = employees.find(e => e.id === a.staff_id);
+                              return (
+                                <div key={a.id} className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{emp?.full_name || t('common.unknown')}</span>
+                                  <span className="text-[9px] opacity-75">– Pending</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })()}
