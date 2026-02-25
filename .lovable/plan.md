@@ -1,99 +1,36 @@
 
 
-## Early Departure with Reason — Full Plan
+## Fix: Payroll Batch Not Filtering by Location
 
-### Overview
-Two connected features: (1) capture early departure reasons during staff checkout, and (2) surface them in the payroll data + PDF report.
+### Root Cause
+The edge function `workforce-agent` appears to not be using the latest deployed code. Despite the source code having the `location_id` filter at line 69-70 and saving it at line 207, the edge function logs show no location being passed. This is likely a deployment sync issue — the edge function needs to be redeployed.
 
----
+Additionally, I'll add more explicit logging to help debug in the future, and ensure the `location_id` is being properly received and passed through.
 
-### Part 1: Database — Add `early_departure_reason` column
+### Plan
 
-**Migration SQL:**
-```sql
-ALTER TABLE attendance_logs ADD COLUMN early_departure_reason text;
+#### 1. Force Edge Function Redeploy with Better Logging
+**File: `supabase/functions/workforce-agent/index.ts`**
+
+Add explicit logging of the received `location_id` at the route handler level (line 585) to verify it's being parsed:
+```typescript
+console.log(`[WorkforceAgent] prepare-payroll params: company=${company_id}, start=${period_start}, end=${period_end}, location=${location_id || 'ALL'}`);
 ```
 
-Single nullable text column on `attendance_logs`. No RLS changes needed — existing policies already cover this table.
+This will force a redeploy and provide visibility into whether `location_id` is reaching the handler.
 
----
+#### 2. Defensive Check in `preparePayroll` Function
+Ensure the `location_id` parameter isn't silently dropped. Add a guard log at the top of `preparePayroll()`.
 
-### Part 2: Staff Checkout — Early Departure Prompt
+#### 3. Verify the Fix
+After redeployment, create a new payroll batch for "Bab's Obor" and confirm:
+- Edge function logs show the location_id
+- The batch record has `location_id` set
+- Employee count matches the 3 active employees at Bab's Obor (not 58)
 
-**File: `src/pages/staff/StaffScanAttendance.tsx`**
-
-After the checkout update succeeds (around line 396), add logic to detect early departure and prompt the employee:
-
-1. **Add state variables** for the early departure dialog:
-   - `showEarlyDepartureDialog: boolean`
-   - `earlyDepartureLogId: string | null`
-   - `earlyDepartureReason: string`
-
-2. **After successful checkout** (line ~396-420): Query the attendance log's linked shift to get `end_time`. Compare checkout time vs shift end time. If checkout is **≥30 minutes early**, set `showEarlyDepartureDialog = true` and store the `openLog.id`.
-
-3. **Early Departure Dialog** — a new `Dialog` component rendered in the JSX:
-   - Title: "Leaving early?"
-   - Subtitle: "Let your manager know why (optional)"
-   - Preset reason buttons: "Feeling sick", "Family emergency", "Manager sent home", "Personal reason"
-   - Free-text textarea for custom reason
-   - "Skip" and "Submit" buttons
-   - On submit: `UPDATE attendance_logs SET early_departure_reason = ? WHERE id = ?`
-   - On skip: close dialog, no update
-
-4. The checkout is **already recorded** before the dialog appears — this is purely supplemental context.
-
----
-
-### Part 3: Update `useAttendanceLogs` Hook
-
-**File: `src/hooks/useAttendanceLogs.ts`**
-
-- Add `early_departure_reason?: string` to the `AttendanceLog` interface (line ~30)
-
----
-
-### Part 4: Payroll Batch Details — Track Early Departures
-
-**File: `src/hooks/usePayrollBatchDetails.ts`**
-
-1. **Add to `PayrollEmployeeDetail` interface** (after line 28):
-   ```typescript
-   early_departure_days: number;
-   early_departure_details: Array<{ date: string; reason: string }>;
-   ```
-
-2. **Fetch `early_departure_reason`** in the attendance logs query (line 71) — add it to the select string.
-
-3. **Compute early departure metrics** in the per-shift loop (around line 194-196): when an attendance log has `early_departure_reason` set, add it to `early_departure_details` array and increment counter.
-
-4. **Include in the output** (line 267-285).
-
----
-
-### Part 5: PDF Report — Add Early Departures Column
-
-**File: `src/lib/payrollReportPdf.ts`**
-
-1. **Company-Wide Summary** (line ~50-65): Add `Early Departures` row to summary table with total count.
-
-2. **Per-Location Tables** (line ~104-117): Insert a new column between "Medical Days" and "Missing (no reason)":
-   - Header: `Early\nDep.`
-   - Cell value: `1 (Jan 8: sick)` — count with dates and reasons inline
-   - Update subtotals row accordingly
-
-3. **Column widths**: Adjust existing column widths slightly to accommodate the new column (11 columns total in landscape should fit with smaller font).
-
-4. **Summary totals** reducer (line ~120-131): Add `earlyDep` accumulator.
-
----
-
-### Files Changed Summary
+### Files Changed
 
 | File | Change |
 |------|--------|
-| **Database migration** | `ALTER TABLE attendance_logs ADD COLUMN early_departure_reason text` |
-| `src/pages/staff/StaffScanAttendance.tsx` | Add early departure detection + dialog after checkout |
-| `src/hooks/useAttendanceLogs.ts` | Add `early_departure_reason` to interface |
-| `src/hooks/usePayrollBatchDetails.ts` | Fetch + compute early departure metrics |
-| `src/lib/payrollReportPdf.ts` | Add Early Dep. column to tables + summary |
+| `supabase/functions/workforce-agent/index.ts` | Add explicit location_id logging at route handler + in preparePayroll function to force redeploy and improve observability |
 
