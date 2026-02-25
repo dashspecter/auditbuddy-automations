@@ -12,7 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
-import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2 } from "lucide-react";
+import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download } from "lucide-react";
+import { generatePayrollReportPDF } from "@/lib/payrollReportPdf";
 import { LocationSelector } from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -265,10 +266,32 @@ export default function PayrollBatches() {
       <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
         <DialogContent className="max-w-5xl max-h-[85vh]">
           <DialogHeader>
-            <DialogTitle>{t('workforce.payrollBatches.batchDetails')}</DialogTitle>
-            <DialogDescription>
-              {selectedBatch && `${format(new Date(selectedBatch.period_start), "MMM d")} - ${format(new Date(selectedBatch.period_end), "MMM d, yyyy")}`}
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>{t('workforce.payrollBatches.batchDetails')}</DialogTitle>
+                <DialogDescription>
+                  {selectedBatch && `${format(new Date(selectedBatch.period_start), "MMM d")} - ${format(new Date(selectedBatch.period_end), "MMM d, yyyy")}`}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={detailsLoading || enhancedDetails.length === 0}
+                onClick={() => {
+                  if (selectedBatch) {
+                    generatePayrollReportPDF({
+                      employees: enhancedDetails,
+                      periodStart: selectedBatch.period_start,
+                      periodEnd: selectedBatch.period_end,
+                    });
+                    toast.success("Payroll report downloaded");
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Report
+              </Button>
+            </div>
           </DialogHeader>
           {selectedBatch && (
             <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(85vh-120px)]">
