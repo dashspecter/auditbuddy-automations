@@ -28,14 +28,14 @@ import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { LocationMultiSelector } from "@/components/LocationMultiSelector";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
 
 const TaskNew = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { modules } = useCompanyContext();
+  const { modules, company } = useCompanyContext();
   const isWhatsAppActive = modules?.some(
     (m: any) => m.module_name === "whatsapp_messaging" && m.is_active
   );
@@ -105,27 +105,17 @@ const TaskNew = () => {
       });
 
       // Save evidence policy if required
-      if (evidenceRequired && task?.id && user?.id) {
-        const { data: cu } = await supabase
-          .from("company_users")
-          .select("company_id")
-          .eq("user_id", user.id)
-          .single();
-        if (cu?.company_id) {
-          const { error: upsertErr } = await supabase.from("evidence_policies").upsert({
-            company_id: cu.company_id,
-            applies_to: "task_template",
-            applies_id: task.id,
-            evidence_required: true,
-            review_required: reviewRequired,
-            required_media_types: ["photo"],
-            min_media_count: 1,
-            instructions: evidenceInstructions.trim() || null,
-          }, { onConflict: "company_id,applies_to,applies_id" });
-          if (upsertErr) {
-            console.error("Evidence policy save failed:", upsertErr);
-            toast.warning("Task created, but evidence policy could not be saved");
-          }
+      if (task?.id && company?.id) {
+        const { error: epError } = await saveTaskEvidencePolicy({
+          companyId: company.id,
+          taskId: task.id,
+          evidenceRequired,
+          reviewRequired,
+          instructions: evidenceInstructions,
+          existingPolicyId: null,
+        });
+        if (epError) {
+          toast.warning("Task created, but evidence policy could not be saved");
         }
       }
 
