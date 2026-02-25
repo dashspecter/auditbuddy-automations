@@ -324,6 +324,9 @@ export default function AddWasteEntry() {
                 }}
                 className="pl-10"
               />
+              <p className="text-xs text-muted-foreground">
+                💡 100 grams = 0,1 kg · 500 grams = 0,5 kg · 1000 grams = 1 kg
+              </p>
             </div>
             {selectedProduct && formData.weight_kg && (
               <p className="text-sm text-muted-foreground">

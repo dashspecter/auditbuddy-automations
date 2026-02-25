@@ -246,6 +246,9 @@ export default function AdminAddWasteEntry() {
                   }}
                   placeholder="e.g. 1,50"
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 100 grams = 0,1 kg · 500 grams = 0,5 kg · 1000 grams = 1 kg
+                </p>
                 {estimatedCost && (
                   <p className="text-sm text-muted-foreground">
                     Estimated cost: <span className="font-medium">{estimatedCost} RON</span>
