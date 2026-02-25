@@ -283,6 +283,7 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
+  // Get open shifts for a day (is_open_shift = true, claimable by employees)
   const getOpenShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
@@ -291,24 +292,13 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
-  // Get unassigned draft shifts - shifts that are in draft status (not published, not open)
-  // Also include open shifts distinctly
-  const getUnassignedDraftShiftsForDay = (date: Date) => {
+  // Get draft shifts for a day (not published, not open — internal manager workspace)
+  const getDraftShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
       !shift.is_published &&
-      !shift.is_open_shift &&
-      (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
-    );
-  };
-
-  const getOpenShiftsForDayUnassigned = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return shifts.filter(shift => 
-      shift.shift_date === dateStr &&
-      shift.is_open_shift &&
-      (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
+      !shift.is_open_shift
     );
   };
 
@@ -460,7 +450,7 @@ export const EnhancedShiftWeekView = () => {
   const getShiftsForLocationAndDay = (locationId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return (shiftsByLocation[locationId] || []).filter(
-      shift => shift.shift_date === dateStr && !shift.is_open_shift
+      shift => shift.shift_date === dateStr && shift.is_published && !shift.is_open_shift
     );
   };
 
@@ -823,74 +813,15 @@ export const EnhancedShiftWeekView = () => {
           })}
         </div>
 
-        {/* Open Shifts Row */}
-        <div className="grid grid-cols-8 border-b bg-muted/60">
-          <div className="p-3 border-r font-medium flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            Open Shifts
-          </div>
-          {weekDays.map((day) => {
-            const openShifts = getOpenShiftsForDay(day);
-            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-            return (
-              <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-auto text-xs justify-start text-primary"
-                  onClick={() => handleAddShift(day)}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add
-                </Button>
-                {openShifts.map((shift) => {
-                  const isUnpublished = !shift.is_published;
-                  return (
-                    <div
-                      key={shift.id}
-                      onClick={() => handleEditShift(shift)}
-                      style={{
-                        backgroundColor: isUnpublished ? `${getRoleColor(shift.role)}10` : `${getRoleColor(shift.role)}20`,
-                        borderColor: isUnpublished ? `${getRoleColor(shift.role)}60` : getRoleColor(shift.role)
-                      }}
-                      className={`text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1 ${
-                        isUnpublished ? 'opacity-50 border-dashed' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium">{shift.role}</div>
-                        {isUnpublished && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-muted-foreground/50 text-muted-foreground">
-                            Draft
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
-                      </div>
-                      {selectedLocation === "all" && shift.locations?.name && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                          📍 {shift.locations.name}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Unassigned Draft Shifts Row */}
-        {weekDays.some(day => getUnassignedDraftShiftsForDay(day).length > 0 || getOpenShiftsForDayUnassigned(day).length > 0) && (
+        {/* Draft Shifts Row — internal workspace, not visible to employees */}
+        {weekDays.some(day => getDraftShiftsForDay(day).length > 0) && (
           <div className="grid grid-cols-8 border-b bg-orange-50/50 dark:bg-orange-950/20">
             <div className="p-3 border-r font-medium flex items-center gap-2 text-orange-600 dark:text-orange-400">
               <EyeOff className="h-4 w-4" />
-              <span className="text-sm">Draft / Open</span>
+              <span className="text-sm">Draft</span>
             </div>
             {weekDays.map((day) => {
-              const draftShifts = getUnassignedDraftShiftsForDay(day);
-              const openShifts = getOpenShiftsForDayUnassigned(day);
+              const draftShifts = getDraftShiftsForDay(day);
               const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
               return (
                 <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
@@ -945,16 +876,48 @@ export const EnhancedShiftWeekView = () => {
                       })()}
                     </div>
                   ))}
-                  {/* Open shifts */}
-                  {openShifts.map((shift) => (
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Open Shifts Row — published claimable shifts visible to employees */}
+        <div className="grid grid-cols-8 border-b bg-muted/60">
+          <div className="p-3 border-r font-medium flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            Open Shifts
+          </div>
+          {weekDays.map((day) => {
+            const openShifts = getOpenShiftsForDay(day);
+            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+            return (
+              <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full h-auto text-xs justify-start text-primary"
+                  onClick={() => handleAddShift(day)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </Button>
+                {openShifts.map((shift) => {
+                  const approvedAssignments = shift.shift_assignments?.filter(
+                    (sa: any) => sa.approval_status === 'approved'
+                  ) || [];
+                  const pendingAssignments = shift.shift_assignments?.filter(
+                    (sa: any) => sa.approval_status === 'pending'
+                  ) || [];
+                  return (
                     <div
                       key={shift.id}
                       onClick={() => handleEditShift(shift)}
                       style={{
-                        backgroundColor: `${getRoleColor(shift.role)}10`,
-                        borderColor: `${getRoleColor(shift.role)}60`
+                        backgroundColor: `${getRoleColor(shift.role)}20`,
+                        borderColor: getRoleColor(shift.role)
                       }}
-                      className="text-xs p-1.5 rounded border border-solid cursor-pointer hover:shadow-md transition-shadow mb-1"
+                      className="text-xs p-1.5 rounded border cursor-pointer hover:shadow-md transition-shadow mb-1"
                     >
                       <div className="flex items-center justify-between">
                         <div className="font-medium">{shift.role}</div>
@@ -970,17 +933,41 @@ export const EnhancedShiftWeekView = () => {
                           📍 {shift.locations.name}
                         </div>
                       )}
-                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        Claimable by role
-                      </div>
+                      {approvedAssignments.length > 0 && approvedAssignments.map((sa: any) => {
+                        const emp = employees.find(e => e.id === sa.staff_id);
+                        return emp ? (
+                          <div key={sa.id} className="text-[11px] font-medium mt-1">
+                            {emp.full_name}
+                          </div>
+                        ) : null;
+                      })}
+                      {pendingAssignments.length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {pendingAssignments.map((a: any) => {
+                            const emp = employees.find(e => e.id === a.staff_id);
+                            return (
+                              <div key={a.id} className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{emp?.full_name || t('common.unknown')}</span>
+                                <span className="text-[9px] opacity-75">– Pending</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {approvedAssignments.length === 0 && pendingAssignments.length === 0 && (
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          Claimable by role
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
 
         {/* Employee Rows - Grouped by Department */}
         {viewMode === "employee" && departments.map((department) => (
