@@ -202,27 +202,68 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     });
   }
 
-  // ── Anomalies Appendix ──
+  // ── Anomalies Appendix (summarised) ──
   const anomalyData = employees.filter(e => e.anomalies.length > 0);
   if (anomalyData.length > 0) {
     doc.addPage('landscape');
-    addBrandedHeader(doc, 'Anomalies', periodLabel, logoDataUrl);
+    addBrandedHeader(doc, 'Anomalies Summary', periodLabel, logoDataUrl);
     let anY = 55;
     anY = addSectionTitle(doc, 'Late Arrivals, Auto Clock-Outs & Other Issues', anY);
 
+    // Parse anomaly strings into categories per employee
     const anRows: string[][] = [];
     for (const emp of anomalyData) {
-      for (const anomaly of emp.anomalies) {
-        anRows.push([emp.employee_name, emp.location_name, anomaly]);
+      const autoClockDates: string[] = [];
+      const lateDates: string[] = [];
+      const otherItems: string[] = [];
+
+      for (const a of emp.anomalies) {
+        const lower = a.toLowerCase();
+        // Try to extract a date from the string (e.g. "… on 2026-01-26" or "… 2026-01-26 …")
+        const dateMatch = a.match(/(\d{4}-\d{2}-\d{2})/);
+        const dateStr = dateMatch ? dateMatch[1] : null;
+
+        if (lower.includes('auto') && lower.includes('clock')) {
+          if (dateStr) autoClockDates.push(dateStr);
+          else autoClockDates.push('');
+        } else if (lower.includes('late')) {
+          if (dateStr) lateDates.push(dateStr);
+          else lateDates.push('');
+        } else {
+          otherItems.push(a);
+        }
       }
+
+      const fmtGroup = (dates: string[]): string => {
+        const validDates = dates.filter(Boolean);
+        if (validDates.length === 0 && dates.length > 0) return `${dates.length}`;
+        if (validDates.length === 0) return '0';
+        return formatMissingCol(validDates.length, validDates);
+      };
+
+      anRows.push([
+        emp.employee_name,
+        emp.location_name,
+        fmtGroup(autoClockDates),
+        fmtGroup(lateDates),
+        otherItems.length > 0 ? otherItems.join('; ') : '–',
+      ]);
     }
 
     autoTable(doc, {
       startY: anY,
-      head: [['Employee', 'Location', 'Issue']],
+      head: [['Employee', 'Location', 'Auto\nClock-Outs', 'Late\nArrivals', 'Other']],
       body: anRows,
       theme: 'grid',
       ...tableStyles,
+      styles: { ...tableStyles.styles, fontSize: 8, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 75 },
+      },
     });
   }
 
