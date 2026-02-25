@@ -211,6 +211,8 @@ const StaffHome = () => {
           end_time,
           role,
           location_id,
+          is_published,
+          status,
           locations:location_id (
             name
           )
@@ -224,9 +226,9 @@ const StaffHome = () => {
       return;
     }
 
-    // Filter client-side for today and upcoming shifts
+    // Filter out draft shifts - employees should not see unpublished shifts
     const validAssignments = (assignmentsData || []).filter(
-      (a: any) => a.shifts && a.shifts.shift_date >= today
+      (a: any) => a.shifts && a.shifts.shift_date >= today && a.shifts.is_published === true
     );
     
     // Sort by shift date
