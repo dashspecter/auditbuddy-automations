@@ -112,7 +112,7 @@ const TaskNew = () => {
           .eq("user_id", user.id)
           .single();
         if (cu?.company_id) {
-          await supabase.from("evidence_policies").upsert({
+          const { error: upsertErr } = await supabase.from("evidence_policies").upsert({
             company_id: cu.company_id,
             applies_to: "task_template",
             applies_id: task.id,
@@ -122,6 +122,10 @@ const TaskNew = () => {
             min_media_count: 1,
             instructions: evidenceInstructions.trim() || null,
           }, { onConflict: "company_id,applies_to,applies_id" });
+          if (upsertErr) {
+            console.error("Evidence policy save failed:", upsertErr);
+            toast.warning("Task created, but evidence policy could not be saved");
+          }
         }
       }
 
