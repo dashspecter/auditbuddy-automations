@@ -87,6 +87,8 @@ const StaffShiftPool = () => {
     let query = supabase
       .from("shifts")
       .select(`*, locations(name), shift_assignments(id)`)
+      .eq("is_open_shift", true)
+      .eq("is_published", true)
       .gte("shift_date", today)
       .order("shift_date", { ascending: true })
       .limit(20);
@@ -109,6 +111,24 @@ const StaffShiftPool = () => {
       available = available.filter((shift: any) => shift.role === emp.role);
     } else if (selectedRole !== "all") {
       available = available.filter((shift: any) => shift.role === selectedRole);
+    }
+
+    // Filter out shifts on dates where the employee already has an approved/pending assignment
+    if (available.length > 0) {
+      const shiftDates = [...new Set(available.map((s: any) => s.shift_date))];
+      const { data: existingAssignments } = await supabase
+        .from("shift_assignments")
+        .select("shifts!inner(shift_date)")
+        .eq("staff_id", emp.id)
+        .in("approval_status", ["pending", "approved"])
+        .in("shifts.shift_date", shiftDates);
+
+      if (existingAssignments && existingAssignments.length > 0) {
+        const busyDates = new Set(
+          existingAssignments.map((a: any) => a.shifts.shift_date)
+        );
+        available = available.filter((s: any) => !busyDates.has(s.shift_date));
+      }
     }
     
     setOpenShifts(available);
@@ -168,7 +188,8 @@ const StaffShiftPool = () => {
         .insert([{
           shift_id: shiftId,
           staff_id: employee.id,
-          assigned_by: employee.id
+          assigned_by: employee.id,
+          approval_status: "pending"
         }]);
 
       if (error) throw error;
