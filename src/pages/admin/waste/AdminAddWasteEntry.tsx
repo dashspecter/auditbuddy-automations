@@ -65,10 +65,10 @@ export default function AdminAddWasteEntry() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id || !photoFile) {
       toast({
         title: "Missing required fields",
-        description: "Please select a location, product, reason, and enter the weight",
+        description: "Please select a location, product, reason, enter the weight, and attach a photo",
         variant: "destructive",
       });
       return;
@@ -257,7 +257,7 @@ export default function AdminAddWasteEntry() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Camera className="h-4 w-4" />
-                  Photo
+                  Photo *
                 </Label>
                 <input
                   ref={fileInputRef}
@@ -311,7 +311,7 @@ export default function AdminAddWasteEntry() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id}
+                disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id || !photoFile}
               >
                 {isSubmitting ? (
                   <>
