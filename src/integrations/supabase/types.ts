@@ -6645,6 +6645,7 @@ export type Database = {
           created_at: string
           created_by_agent: boolean
           id: string
+          location_id: string | null
           period_end: string
           period_start: string
           status: string
@@ -6656,6 +6657,7 @@ export type Database = {
           created_at?: string
           created_by_agent?: boolean
           id?: string
+          location_id?: string | null
           period_end: string
           period_start: string
           status?: string
@@ -6667,6 +6669,7 @@ export type Database = {
           created_at?: string
           created_by_agent?: boolean
           id?: string
+          location_id?: string | null
           period_end?: string
           period_start?: string
           status?: string
@@ -6679,6 +6682,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_batches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]

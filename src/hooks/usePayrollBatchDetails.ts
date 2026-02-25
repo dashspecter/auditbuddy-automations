@@ -39,20 +39,27 @@ export interface PayrollEmployeeDetail {
 export function usePayrollBatchDetails(
   periodStart?: string,
   periodEnd?: string,
-  companyId?: string
+  companyId?: string,
+  locationId?: string | null
 ) {
   return useQuery({
-    queryKey: ["payroll-batch-details", periodStart, periodEnd, companyId],
+    queryKey: ["payroll-batch-details", periodStart, periodEnd, companyId, locationId],
     queryFn: async () => {
       if (!periodStart || !periodEnd || !companyId) return [];
 
       const today = startOfDay(new Date());
 
-      // 1. Get all active employees for this company
-      const { data: employees, error: empError } = await supabase
+      // 1. Get active employees for this company (filtered by location if specified)
+      let empQuery = supabase
         .from("employees")
         .select("id, full_name, role, location_id, locations(name)")
         .eq("status", "active");
+      
+      if (locationId) {
+        empQuery = empQuery.eq("location_id", locationId);
+      }
+      
+      const { data: employees, error: empError } = await empQuery;
       if (empError) throw empError;
 
       // 2. Get shifts with assignments for the period

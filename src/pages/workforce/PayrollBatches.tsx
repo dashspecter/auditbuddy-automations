@@ -44,7 +44,8 @@ export default function PayrollBatches() {
   const { data: enhancedDetails = [], isLoading: detailsLoading } = usePayrollBatchDetails(
     selectedBatch?.period_start,
     selectedBatch?.period_end,
-    company?.id
+    company?.id,
+    selectedBatch?.location_id
   );
 
   const handlePreparePayroll = async () => {

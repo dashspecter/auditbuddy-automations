@@ -43,11 +43,11 @@ interface AttendanceRisk {
 }
 
 // Prepare payroll batch
-async function preparePayroll(companyId: string, periodStart: string, periodEnd: string) {
+async function preparePayroll(companyId: string, periodStart: string, periodEnd: string, locationId?: string) {
   const supabase = getSupabase();
   const summaries: TimesheetSummary[] = [];
 
-  console.log(`[WorkforceAgent] Preparing payroll for ${periodStart} to ${periodEnd}`);
+  console.log(`[WorkforceAgent] Preparing payroll for ${periodStart} to ${periodEnd}${locationId ? ` (location: ${locationId})` : ''}`);
 
   // Check company settings for clock-in mode
   const { data: companyData } = await supabase
@@ -59,12 +59,18 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
   const clockInEnabled = companyData?.clock_in_enabled !== false;
   console.log(`[WorkforceAgent] Clock-in enabled: ${clockInEnabled}`);
 
-  // Get all employees
-  const { data: employees } = await supabase
+  // Get employees (filtered by location if specified)
+  let empQuery = supabase
     .from("employees")
     .select("id, full_name, hourly_rate, overtime_rate, base_salary")
     .eq("company_id", companyId)
     .eq("status", "active");
+  
+  if (locationId) {
+    empQuery = empQuery.eq("location_id", locationId);
+  }
+  
+  const { data: employees } = await empQuery;
 
   if (!employees || employees.length === 0) {
     return { batch: null, message: "No active employees found" };
@@ -198,6 +204,7 @@ async function preparePayroll(companyId: string, periodStart: string, periodEnd:
       period_start: periodStart,
       period_end: periodEnd,
       status: "draft",
+      ...(locationId ? { location_id: locationId } : {}),
       summary_json: {
         employee_count: employees.length,
         total_regular_hours: Math.round(totalRegularHours * 100) / 100,
@@ -575,7 +582,7 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST" && path === "/prepare-payroll") {
-      const { company_id, period_start, period_end } = body;
+      const { company_id, period_start, period_end, location_id } = body;
       
       if (!company_id || !period_start || !period_end) {
         return new Response(
@@ -584,7 +591,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const result = await preparePayroll(company_id, period_start, period_end);
+      const result = await preparePayroll(company_id, period_start, period_end, location_id || undefined);
       return new Response(
         JSON.stringify({ success: true, data: result }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
