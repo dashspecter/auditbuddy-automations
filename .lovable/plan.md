@@ -1,55 +1,48 @@
 
 
-## Remaining Work: Shift Scheduling — A to Z
+## Verification Report: All Shift Scheduling Fixes — Complete
 
-Everything implemented so far has been verified. Here is what remains.
-
----
-
-### 1. Fix: StaffShiftPool does not filter for Open shifts
-
-**Current bug:** `StaffShiftPool.tsx` (line 84-105) loads ALL shifts from the database and only checks if `shift_assignments.length < required_staff`. It does NOT filter by `is_open_shift = true` or `status = 'open'`. This means employees can see and claim **Draft** and **Published** (assigned) shifts — not just Open ones.
-
-**Fix:** Add `.eq("is_open_shift", true)` to the query at line 87-92 and also add `.eq("is_published", true)` to ensure draft shifts are excluded. This is a 2-line addition.
-
-**File:** `src/pages/staff/StaffShiftPool.tsx`
+I've reviewed every file and the database trigger. Here is the full status:
 
 ---
 
-### 2. Fix: Claim creates assignment without `approval_status`
+### 1. StaffShiftPool query filters — CORRECT
+Lines 90-91 correctly filter with `.eq("is_open_shift", true)` and `.eq("is_published", true)`. Only truly Open shifts appear in the employee pool.
 
-**Current bug:** The `claimShift` function (line 166-172) inserts into `shift_assignments` without setting `approval_status`. If the column defaults to `NULL` or `'approved'` instead of `'pending'`, claimed shifts could bypass manager approval.
+### 2. Claim sets `approval_status: "pending"` — CORRECT
+Line 192 explicitly sets `approval_status: "pending"` in the insert payload. Claims will always enter the manager approval workflow.
 
-**Fix:** Explicitly set `approval_status: 'pending'` in the insert payload.
+### 3. Duplicate-day filter — CORRECT
+Lines 116-132 fetch the employee's existing assignments for the relevant dates and filter out shifts on days where they already have a pending or approved assignment.
 
-**File:** `src/pages/staff/StaffShiftPool.tsx`
+### 4. `deriveStatusFlags` includes `status` field — CORRECT
+Lines 412-416 return `{ is_open_shift, is_published, status }`. The explicit `status` field prevents the database trigger from misclassifying Open shifts as Published on insert.
+
+### 5. Database trigger (`sync_shift_publish_status`) — CORRECT
+The trigger (visible in the Supabase configuration) handles all three statuses on both INSERT and UPDATE paths:
+- `'open'` → `is_published=true, is_open_shift=true`
+- `'published'` → `is_published=true, is_open_shift=false`
+- `'draft'` → `is_published=false, is_open_shift=false`
+
+### 6. Approvals badge — CORRECT
+Lines 198-200 compute `pendingShiftAssignmentCount` from loaded shift data and add it to `governanceItemsCount` for the total badge count.
+
+### 7. Claim overlap check — CORRECT
+Lines 157-183 check for time overlaps before allowing a claim, with proper `approval_status` filtering.
 
 ---
 
-### 3. Fix: StaffShiftPool duplicate-day filter
+### Summary
 
-**Current behavior:** The claim function (line 138-163) correctly checks for time overlaps before allowing a claim. However, the **listing** does not exclude shifts on days where the employee already has a shift. Per the original plan spec: "Open shifts appear only to employees who don't already have a shift on that day/date."
+| Item | Status |
+|------|--------|
+| Query filters `is_open_shift` + `is_published` | Done |
+| `approval_status: "pending"` on claim | Done |
+| Duplicate-day exclusion in listing | Done |
+| Explicit `status` in create/update payload | Done |
+| Database trigger handles `'open'` | Done |
+| Approvals badge includes shift claims | Done |
+| Overlap check on claim | Done |
 
-**Fix:** After fetching open shifts, also fetch the employee's existing assignments for those dates and filter out shifts on dates where the employee already has an approved/pending assignment. This is a client-side post-filter.
-
-**File:** `src/pages/staff/StaffShiftPool.tsx`
-
----
-
-### 4. Update memory: shift-status-governance
-
-The stored memory about the `sync_shift_publish_status` trigger is outdated — it doesn't mention the `'open'` status. This should be updated to reflect the new Draft / Open / Published model.
-
----
-
-### Implementation Order
-
-| Step | Description | File |
-|------|-------------|------|
-| 1 | Add `is_open_shift=true` and `is_published=true` filters to StaffShiftPool query | `src/pages/staff/StaffShiftPool.tsx` |
-| 2 | Set `approval_status: 'pending'` explicitly in claim insert | `src/pages/staff/StaffShiftPool.tsx` |
-| 3 | Filter out shifts on dates where employee already has a shift | `src/pages/staff/StaffShiftPool.tsx` |
-| 4 | Update shift-status-governance memory | Memory update |
-
-All changes are in a single file (`StaffShiftPool.tsx`) plus a memory update. No database migrations needed.
+**All planned fixes are correctly implemented. No remaining issues found.** The shift scheduling system is complete from Draft creation through Open claiming to Published assignment, across both manager and employee interfaces.
 
