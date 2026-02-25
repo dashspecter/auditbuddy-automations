@@ -77,10 +77,10 @@ export default function AddWasteEntry() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg) {
+    if (!formData.location_id || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields (product, reason, and weight)",
         variant: "destructive",
       });
       return;
@@ -302,7 +302,7 @@ export default function AddWasteEntry() {
 
           {/* Reason Selector */}
           <div className="space-y-2">
-            <Label>Reason (optional)</Label>
+            <Label>Reason *</Label>
             <Select
               value={formData.waste_reason_id}
               onValueChange={(v) => setFormData({ ...formData, waste_reason_id: v })}
@@ -359,7 +359,7 @@ export default function AddWasteEntry() {
           <Button
             className="w-full h-12 text-base"
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg}
+            disabled={isSubmitting || !formData.waste_product_id || !formData.weight_kg || !formData.waste_reason_id}
           >
             {isSubmitting ? (
               <>
