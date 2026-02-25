@@ -34,6 +34,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 // Safe time formatter that won't crash
 const safeFormatTime = (dateString: string | null): string => {
@@ -57,6 +65,10 @@ const StaffScanAttendance = () => {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const [blockedLocationId, setBlockedLocationId] = useState<string | null>(null);
+  const [showEarlyDepartureDialog, setShowEarlyDepartureDialog] = useState(false);
+  const [earlyDepartureLogId, setEarlyDepartureLogId] = useState<string | null>(null);
+  const [earlyDepartureReason, setEarlyDepartureReason] = useState("");
+  const [submittingReason, setSubmittingReason] = useState(false);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
     time: Date;
@@ -418,6 +430,32 @@ const StaffScanAttendance = () => {
         }
         
         toast.success("Checked out successfully!");
+
+        // Check if early departure: fetch the linked shift's end_time
+        try {
+          const { data: logWithShift } = await supabase
+            .from("attendance_logs")
+            .select("shift_id, shifts(end_time, shift_date)")
+            .eq("id", openLog.id)
+            .maybeSingle();
+          
+          if (logWithShift?.shift_id && logWithShift.shifts) {
+            const shiftData = logWithShift.shifts as any;
+            const shiftEndStr = `${shiftData.shift_date}T${shiftData.end_time}`;
+            const shiftEnd = new Date(shiftEndStr);
+            const now = new Date();
+            const minutesEarly = (shiftEnd.getTime() - now.getTime()) / 60000;
+            
+            if (minutesEarly >= 30) {
+              console.log(`Early departure detected: ${Math.round(minutesEarly)} minutes early`);
+              setEarlyDepartureLogId(openLog.id);
+              setEarlyDepartureReason("");
+              setShowEarlyDepartureDialog(true);
+            }
+          }
+        } catch (shiftCheckError) {
+          console.error("Error checking early departure:", shiftCheckError);
+        }
         console.log("=== processQRCode CHECKOUT COMPLETE ===");
       } else {
         // Check in - create new log
@@ -655,6 +693,82 @@ const StaffScanAttendance = () => {
         reminders={reminders.map(r => r.message)}
       />
       
+      {/* Early Departure Reason Dialog */}
+      <Dialog open={showEarlyDepartureDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowEarlyDepartureDialog(false);
+          setEarlyDepartureLogId(null);
+          setEarlyDepartureReason("");
+        }
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Leaving early?</DialogTitle>
+            <DialogDescription>
+              Let your manager know why (optional)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {["Feeling sick", "Family emergency", "Manager sent home", "Personal reason"].map((reason) => (
+                <Button
+                  key={reason}
+                  variant={earlyDepartureReason === reason ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-9"
+                  onClick={() => setEarlyDepartureReason(earlyDepartureReason === reason ? "" : reason)}
+                >
+                  {reason}
+                </Button>
+              ))}
+            </div>
+            <Textarea
+              placeholder="Or type a custom reason..."
+              value={["Feeling sick", "Family emergency", "Manager sent home", "Personal reason"].includes(earlyDepartureReason) ? "" : earlyDepartureReason}
+              onChange={(e) => setEarlyDepartureReason(e.target.value)}
+              className="min-h-[60px]"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => {
+                  setShowEarlyDepartureDialog(false);
+                  setEarlyDepartureLogId(null);
+                  setEarlyDepartureReason("");
+                }}
+              >
+                Skip
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!earlyDepartureReason.trim() || submittingReason}
+                onClick={async () => {
+                  if (!earlyDepartureLogId || !earlyDepartureReason.trim()) return;
+                  setSubmittingReason(true);
+                  try {
+                    await supabase
+                      .from("attendance_logs")
+                      .update({ early_departure_reason: earlyDepartureReason.trim() } as any)
+                      .eq("id", earlyDepartureLogId);
+                    toast.success("Reason submitted");
+                  } catch (err) {
+                    console.error("Error saving reason:", err);
+                  } finally {
+                    setSubmittingReason(false);
+                    setShowEarlyDepartureDialog(false);
+                    setEarlyDepartureLogId(null);
+                    setEarlyDepartureReason("");
+                  }
+                }}
+              >
+                {submittingReason ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Blocked Clock-in Dialog - shown when policy=block and no scheduled shift */}
       <AlertDialog open={showBlockedDialog} onOpenChange={setShowBlockedDialog}>
         <AlertDialogContent>

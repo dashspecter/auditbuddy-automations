@@ -28,6 +28,12 @@ function formatMissingCol(count: number, dates: string[]): string {
   return `${count} (${formatDateList(dates)})`;
 }
 
+function formatEarlyDepCol(details: Array<{ date: string; reason: string }>): string {
+  if (details.length === 0) return '0';
+  const items = details.map(d => `${format(parseISO(d.date), 'MMM d')}: ${d.reason}`);
+  return `${details.length} (${items.join('; ')})`;
+}
+
 export async function generatePayrollReportPDF({ employees, periodStart, periodEnd }: PayrollReportOptions) {
   const doc = new jsPDF({ orientation: 'landscape' });
   const periodLabel = `${format(parseISO(periodStart), 'MMM d')} – ${format(parseISO(periodEnd), 'MMM d, yyyy')}`;
@@ -49,11 +55,12 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       overtimeHours: acc.overtimeHours + e.overtime_hours,
       vacation: acc.vacation + e.vacation_days,
       medical: acc.medical + e.medical_days,
+      earlyDep: acc.earlyDep + e.early_departure_days,
       missing: acc.missing + e.missing_no_reason,
       extraSchedule: acc.extraSchedule + e.extra_schedule_days,
       crossLocation: acc.crossLocation + e.extra_location_days,
     }),
-    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, missing: 0, extraSchedule: 0, crossLocation: 0 }
+    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, extraSchedule: 0, crossLocation: 0 }
   );
 
   const summaryData = [
@@ -63,6 +70,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     ['Extra Schedule Days', `${totals.extraSchedule}`],
     ['Vacation Days', `${totals.vacation}`],
     ['Medical Days', `${totals.medical}`],
+    ['Early Departures', `${totals.earlyDep}`],
     ['Missing (No Reason)', `${totals.missing}`],
     ['Cross-Location Shifts', `${totals.crossLocation}`],
   ];
@@ -111,6 +119,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
         : '0',
       emp.vacation_days,
       emp.medical_days,
+      formatEarlyDepCol(emp.early_departure_details),
       formatMissingCol(emp.missing_no_reason, emp.missing_no_reason_dates),
       `${emp.regular_hours}`,
       `${emp.overtime_hours}`,
@@ -124,11 +133,12 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
         extra: a.extra + e.extra_schedule_days,
         vacation: a.vacation + e.vacation_days,
         medical: a.medical + e.medical_days,
+        earlyDep: a.earlyDep + e.early_departure_days,
         missing: a.missing + e.missing_no_reason,
         reg: a.reg + e.regular_hours,
         ot: a.ot + e.overtime_hours,
       }),
-      { worked: 0, confirmed: 0, extra: 0, vacation: 0, medical: 0, missing: 0, reg: 0, ot: 0 }
+      { worked: 0, confirmed: 0, extra: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, reg: 0, ot: 0 }
     );
 
     rows.push([
@@ -139,6 +149,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       `${sub.extra}`,
       sub.vacation,
       sub.medical,
+      `${sub.earlyDep}`,
       `${sub.missing}`,
       `${sub.reg.toFixed(1)}`,
       `${sub.ot.toFixed(1)}`,
@@ -146,22 +157,23 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
 
     autoTable(doc, {
       startY: locY,
-      head: [['Employee', 'Role', 'Days\nWorked', 'Conf.\nDays', 'Extra\nSchedule', 'Vacation\nDays', 'Medical\nDays', 'Missing\n(no reason)', 'Reg.\nHrs', 'OT\nHrs']],
+      head: [['Employee', 'Role', 'Days\nWorked', 'Conf.\nDays', 'Extra\nSchedule', 'Vacation\nDays', 'Medical\nDays', 'Early\nDep.', 'Missing\n(no reason)', 'Reg.\nHrs', 'OT\nHrs']],
       body: rows,
       theme: 'grid',
       ...tableStyles,
-      styles: { ...tableStyles.styles, fontSize: 8, cellPadding: 3 },
+      styles: { ...tableStyles.styles, fontSize: 7, cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 40 },
-        1: { cellWidth: 28 },
-        2: { halign: 'center', cellWidth: 18 },
-        3: { halign: 'center', cellWidth: 18 },
-        4: { cellWidth: 38 },
-        5: { halign: 'center', cellWidth: 22 },
-        6: { halign: 'center', cellWidth: 22 },
-        7: { cellWidth: 42 },
-        8: { halign: 'center', cellWidth: 20 },
-        9: { halign: 'center', cellWidth: 20 },
+        0: { cellWidth: 35 },
+        1: { cellWidth: 24 },
+        2: { halign: 'center', cellWidth: 16 },
+        3: { halign: 'center', cellWidth: 16 },
+        4: { cellWidth: 32 },
+        5: { halign: 'center', cellWidth: 18 },
+        6: { halign: 'center', cellWidth: 18 },
+        7: { cellWidth: 36 },
+        8: { cellWidth: 36 },
+        9: { halign: 'center', cellWidth: 18 },
+        10: { halign: 'center', cellWidth: 18 },
       },
       didParseCell: (data) => {
         // Bold the totals row

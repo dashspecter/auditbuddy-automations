@@ -643,6 +643,7 @@ export type Database = {
           check_out_at: string | null
           created_at: string
           device_info: Json | null
+          early_departure_reason: string | null
           expected_clock_in: string | null
           id: string
           is_late: boolean | null
@@ -661,6 +662,7 @@ export type Database = {
           check_out_at?: string | null
           created_at?: string
           device_info?: Json | null
+          early_departure_reason?: string | null
           expected_clock_in?: string | null
           id?: string
           is_late?: boolean | null
@@ -679,6 +681,7 @@ export type Database = {
           check_out_at?: string | null
           created_at?: string
           device_info?: Json | null
+          early_departure_reason?: string | null
           expected_clock_in?: string | null
           id?: string
           is_late?: boolean | null

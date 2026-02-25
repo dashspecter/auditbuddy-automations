@@ -21,6 +21,7 @@ export interface AttendanceLog {
   late_minutes?: number;
   expected_clock_in?: string;
   auto_clocked_out?: boolean;
+  early_departure_reason?: string;
   employees?: {
     full_name: string;
     role: string;

@@ -1,0 +1,1 @@
+ALTER TABLE attendance_logs ADD COLUMN early_departure_reason text;
