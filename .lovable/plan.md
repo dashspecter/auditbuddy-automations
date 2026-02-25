@@ -2,50 +2,59 @@
 
 ## Problem
 
-`getOpenShiftsForDay` (line 285-291) filters only on `shift.is_open_shift === true` with no regard for whether the shift is fully staffed. So a shift tagged as "open" remains in the Open Shifts row forever, even after an employee is assigned and approved.
+In the Draft shift card rendering (lines 859-883 of `EnhancedShiftWeekView.tsx`), the code only looks for `pendingAssignments`. Approved assignments are completely ignored:
 
-The correct behavior: once an open shift has all its slots filled (approved assignments >= required_staff), it should move to the per-location "All Shifts" row — just like a published assigned shift.
+```typescript
+const pendingAssignments = (shift.shift_assignments || []).filter((a: any) => a.approval_status === 'pending');
+if (pendingAssignments.length > 0) {
+  // render pending names
+}
+return (
+  // "No staff assigned" — always shows if no pending assignments, even if approved ones exist
+);
+```
+
+When a manager assigns an employee directly, the assignment is auto-approved (`approval_status: 'approved'`). Since the code never checks for approved assignments, it always shows "No staff assigned".
 
 ## Fix
 
-**File: `src/components/workforce/EnhancedShiftWeekView.tsx`**
+**File: `src/components/workforce/EnhancedShiftWeekView.tsx`** (lines 859-883)
 
-### 1. Update `getOpenShiftsForDay` (lines 285-291)
-Add a check: only include the shift if it still has unfilled slots (approved assignment count < required_staff, defaulting to 1).
+Update the draft shift card IIFE to also render approved assignments:
 
-```typescript
-const getOpenShiftsForDay = (date: Date) => {
-  const dateStr = format(date, 'yyyy-MM-dd');
-  return shifts.filter(shift => {
-    if (shift.shift_date !== dateStr || !shift.is_open_shift) return false;
-    const approvedCount = shift.shift_assignments?.filter(
-      (sa: any) => sa.approval_status === 'approved'
-    ).length || 0;
-    return approvedCount < (shift.required_staff || 1);
-  });
-};
-```
-
-### 2. Update `getShiftsForLocationAndDay` (around line 460)
-Currently excludes all `is_open_shift` shifts. Update to include fully-staffed open shifts (so they appear in "All Shifts" once filled):
+1. Extract both `approvedAssignments` and `pendingAssignments` from `shift.shift_assignments`
+2. Render approved assignments first (with a green/neutral style showing the employee name)
+3. Render pending assignments below (existing amber style)
+4. Only show "No staff assigned" if both arrays are empty
 
 ```typescript
-const getShiftsForLocationAndDay = (locationId: string, date: Date) => {
-  const dateStr = format(date, 'yyyy-MM-dd');
-  return (shiftsByLocation[locationId] || []).filter(shift => {
-    if (shift.shift_date !== dateStr || !shift.is_published) return false;
-    if (!shift.is_open_shift) return true; // normal published shift
-    // Open shift: only show here if fully staffed
-    const approvedCount = shift.shift_assignments?.filter(
-      (sa: any) => sa.approval_status === 'approved'
-    ).length || 0;
-    return approvedCount >= (shift.required_staff || 1);
-  });
-};
+{(() => {
+  const assignments = shift.shift_assignments || [];
+  const approvedAssignments = assignments.filter((a: any) => a.approval_status === 'approved');
+  const pendingAssignments = assignments.filter((a: any) => a.approval_status === 'pending');
+  
+  if (approvedAssignments.length === 0 && pendingAssignments.length === 0) {
+    return (
+      <div className="text-[10px] text-orange-600 ...">
+        <UserCheck /> No staff assigned
+      </div>
+    );
+  }
+  
+  return (
+    <div className="mt-1 space-y-0.5">
+      {approvedAssignments.map((a) => {
+        const emp = employees.find(e => e.id === a.staff_id);
+        return <div>✓ {emp?.full_name}</div>;
+      })}
+      {pendingAssignments.map((a) => {
+        const emp = employees.find(e => e.id === a.staff_id);
+        return <div>⏳ {emp?.full_name} – Pending</div>;
+      })}
+    </div>
+  );
+})()}
 ```
 
-### Result
-- **Open Shifts row**: Only shows open shifts that still need claims (unfilled slots)
-- **All Shifts row**: Shows published assigned shifts + fully-staffed open shifts
-- A shift naturally "graduates" from Open → All Shifts when its last slot is approved
+This is a display-only fix — no backend or data changes needed. The assignment data is already present in `shift.shift_assignments`; it's just not being rendered.
 
