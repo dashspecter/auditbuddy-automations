@@ -21,10 +21,40 @@ export const BRAND_FONT = 'helvetica';
 /**
  * Adds the Dashspect branded header to a PDF document
  */
+/**
+ * Loads the Dashspect logo as a data URL for embedding in PDFs.
+ * Caches the result so the image is only fetched once.
+ */
+let cachedLogoDataUrl: string | null = null;
+
+export const loadLogoForPDF = (): Promise<string> => {
+  if (cachedLogoDataUrl) return Promise.resolve(cachedLogoDataUrl);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No canvas context')); return; }
+      ctx.drawImage(img, 0, 0);
+      cachedLogoDataUrl = canvas.toDataURL('image/png');
+      resolve(cachedLogoDataUrl);
+    };
+    img.onerror = () => reject(new Error('Failed to load logo'));
+    img.src = '/dashspect-logo-512.png';
+  });
+};
+
+/**
+ * Adds the Dashspect branded header to a PDF document
+ */
 export const addBrandedHeader = (
   doc: jsPDF, 
   title: string, 
-  subtitle?: string
+  subtitle?: string,
+  logoDataUrl?: string
 ) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
@@ -36,24 +66,29 @@ export const addBrandedHeader = (
   doc.setFillColor(...BRAND_COLORS.primaryLight);
   doc.rect(0, 40, pageWidth, 5, 'F');
   
-  // Logo placeholder - circle with "D"
-  doc.setFillColor(...BRAND_COLORS.white);
-  doc.circle(20, 22, 10, 'F');
-  doc.setTextColor(...BRAND_COLORS.primary);
-  doc.setFontSize(14);
-  doc.setFont(BRAND_FONT, 'bold');
-  doc.text('D', 16.5, 26);
+  // Logo
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, 'PNG', 10, 7, 30, 30);
+  } else {
+    // Fallback circle with "D"
+    doc.setFillColor(...BRAND_COLORS.white);
+    doc.circle(20, 22, 10, 'F');
+    doc.setTextColor(...BRAND_COLORS.primary);
+    doc.setFontSize(14);
+    doc.setFont(BRAND_FONT, 'bold');
+    doc.text('D', 16.5, 26);
+  }
   
   // Title
   doc.setTextColor(...BRAND_COLORS.white);
   doc.setFontSize(20);
   doc.setFont(BRAND_FONT, 'bold');
-  doc.text(title, 35, 20);
+  doc.text(title, 45, 20);
   
   // Company name
   doc.setFontSize(10);
   doc.setFont(BRAND_FONT, 'normal');
-  doc.text('Dashspect', 35, 28);
+  doc.text('Dashspect', 45, 28);
   
   // Subtitle/date on the right
   if (subtitle) {
@@ -146,9 +181,9 @@ export const getScoreColor = (score: number): [number, number, number] => {
 /**
  * Creates a new branded PDF document
  */
-export const createBrandedPDF = (title: string, subtitle?: string): jsPDF => {
+export const createBrandedPDF = (title: string, subtitle?: string, logoDataUrl?: string): jsPDF => {
   const doc = new jsPDF();
-  addBrandedHeader(doc, title, subtitle);
+  addBrandedHeader(doc, title, subtitle, logoDataUrl);
   return doc;
 };
 
