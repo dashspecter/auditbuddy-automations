@@ -190,10 +190,11 @@ export const EnhancedShiftWeekView = () => {
     locationId: selectedLocation !== "all" ? selectedLocation : undefined
   });
   
-  // Combined governance approvals count
-  const governanceApprovalsCount = isGovernanceEnabled 
+  // Combined approvals count: always include shift assignment pending count
+  // Governance items (change requests + exceptions) only when governance enabled
+  const governanceApprovalsCount = (isGovernanceEnabled 
     ? pendingChangeRequests.length + pendingExceptions.length 
-    : 0;
+    : 0);
   
   // Check if the current period is locked (for mutation gating)
   const isPeriodLocked = schedulePeriod?.state === 'locked';
@@ -287,14 +288,23 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
-  // Get unassigned draft shifts - shifts that exist but have no approved assignments
-  // Also include published shifts that have pending assignments (not yet showing under any employee)
+  // Get unassigned draft shifts - shifts that are in draft status (not published, not open)
+  // Also include open shifts distinctly
   const getUnassignedDraftShiftsForDay = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return shifts.filter(shift => 
       shift.shift_date === dateStr &&
-      !shift.is_open_shift &&
       !shift.is_published &&
+      !shift.is_open_shift &&
+      (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
+    );
+  };
+
+  const getOpenShiftsForDayUnassigned = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return shifts.filter(shift => 
+      shift.shift_date === dateStr &&
+      shift.is_open_shift &&
       (!shift.shift_assignments || shift.shift_assignments.filter((sa: any) => sa.approval_status === 'approved').length === 0)
     );
   };
@@ -605,37 +615,35 @@ export const EnhancedShiftWeekView = () => {
             </TooltipProvider>
           )}
 
-          {/* Pending Approvals button - visible when governance enabled */}
-          {isGovernanceEnabled && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      setPendingApprovalsFilter({ 
-                        periodId: schedulePeriod?.id, 
-                        locationId: selectedLocation !== "all" ? selectedLocation : undefined 
-                      });
-                      setPendingApprovalsOpen(true);
-                    }}
-                  >
-                    <ClipboardCheck className="h-4 w-4" />
-                    <span className="hidden sm:inline">Approvals</span>
-                    {governanceApprovalsCount > 0 && (
-                      <Badge variant="destructive" className="h-5 px-1.5">
-                        {governanceApprovalsCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>View pending schedule changes and exceptions</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          {/* Pending Approvals button - always visible */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    setPendingApprovalsFilter({ 
+                      periodId: schedulePeriod?.id, 
+                      locationId: selectedLocation !== "all" ? selectedLocation : undefined 
+                    });
+                    setPendingApprovalsOpen(true);
+                  }}
+                >
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Approvals</span>
+                  {governanceApprovalsCount > 0 && (
+                    <Badge variant="destructive" className="h-5 px-1.5">
+                      {governanceApprovalsCount}
+                    </Badge>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View pending shift approvals, schedule changes and exceptions</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <Button 
             variant="outline" 
@@ -871,14 +879,15 @@ export const EnhancedShiftWeekView = () => {
         </div>
 
         {/* Unassigned Draft Shifts Row */}
-        {weekDays.some(day => getUnassignedDraftShiftsForDay(day).length > 0) && (
+        {weekDays.some(day => getUnassignedDraftShiftsForDay(day).length > 0 || getOpenShiftsForDayUnassigned(day).length > 0) && (
           <div className="grid grid-cols-8 border-b bg-orange-50/50 dark:bg-orange-950/20">
             <div className="p-3 border-r font-medium flex items-center gap-2 text-orange-600 dark:text-orange-400">
               <EyeOff className="h-4 w-4" />
-              <span className="text-sm">Draft (Unassigned)</span>
+              <span className="text-sm">Draft / Open</span>
             </div>
             {weekDays.map((day) => {
               const draftShifts = getUnassignedDraftShiftsForDay(day);
+              const openShifts = getOpenShiftsForDayUnassigned(day);
               const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
               return (
                 <div key={day.toISOString()} className={`p-2 border-r last:border-r-0 ${isToday ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : ''}`}>
@@ -931,6 +940,37 @@ export const EnhancedShiftWeekView = () => {
                           </div>
                         );
                       })()}
+                    </div>
+                  ))}
+                  {/* Open shifts */}
+                  {openShifts.map((shift) => (
+                    <div
+                      key={shift.id}
+                      onClick={() => handleEditShift(shift)}
+                      style={{
+                        backgroundColor: `${getRoleColor(shift.role)}10`,
+                        borderColor: `${getRoleColor(shift.role)}60`
+                      }}
+                      className="text-xs p-1.5 rounded border border-solid cursor-pointer hover:shadow-md transition-shadow mb-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{shift.role}</div>
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-500 text-amber-500">
+                          Open
+                        </Badge>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                      </div>
+                      {selectedLocation === "all" && shift.locations?.name && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          📍 {shift.locations.name}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        Claimable by role
+                      </div>
                     </div>
                   ))}
                 </div>

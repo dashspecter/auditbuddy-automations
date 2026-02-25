@@ -82,6 +82,7 @@ export const EnhancedShiftDialog = ({
     close_duty: false,
     break_duration_minutes: "0",
     shift_type: "regular" as 'regular' | 'training' | 'extra',
+    shift_status: "draft" as 'draft' | 'open' | 'published',
   });
   const [breaks, setBreaks] = useState<Array<{ start: string; end: string }>>([]);
   const [applyToDays, setApplyToDays] = useState<number[]>([]);
@@ -257,6 +258,9 @@ export const EnhancedShiftDialog = ({
 
   useEffect(() => {
     if (shift) {
+      const derivedStatus: 'draft' | 'open' | 'published' = 
+        shift.status === 'open' ? 'open' : 
+        (shift.is_published ? 'published' : 'draft');
       setFormData({
         location_id: shift.location_id,
         shift_date: shift.shift_date,
@@ -270,6 +274,7 @@ export const EnhancedShiftDialog = ({
         close_duty: shift.close_duty || false,
         break_duration_minutes: (shift.break_duration_minutes || 0).toString(),
         shift_type: shift.shift_type || "regular",
+        shift_status: derivedStatus,
       });
       setBreaks(shift.breaks || []);
       setSelectedEmployees(shift.shift_assignments?.map((sa: any) => sa.staff_id) || []);
@@ -288,6 +293,7 @@ export const EnhancedShiftDialog = ({
         close_duty: false,
         break_duration_minutes: "0",
         shift_type: "regular",
+        shift_status: "draft",
       });
       setBreaks([]);
       setApplyToDays([]);
@@ -402,6 +408,14 @@ export const EnhancedShiftDialog = ({
       return;
     }
     
+    // Derive is_open_shift / is_published from shift_status dropdown
+    const deriveStatusFlags = (status: 'draft' | 'open' | 'published') => ({
+      is_open_shift: status === 'open',
+      is_published: status === 'open' || status === 'published',
+    });
+    
+    const statusFlags = deriveStatusFlags(formData.shift_status);
+
     // Build the payload for governance - must include location_id for apply_schedule_change_request
     const buildPayloadAfter = () => ({
       location_id: formData.location_id,
@@ -411,7 +425,7 @@ export const EnhancedShiftDialog = ({
       role: formData.role,
       required_count: parseInt(formData.required_count),
       notes: formData.notes || null,
-      is_open_shift: formData.is_open_shift,
+      is_open_shift: statusFlags.is_open_shift,
       close_duty: formData.close_duty,
       break_duration_minutes: parseInt(formData.break_duration_minutes),
       shift_type: formData.shift_type,
@@ -452,8 +466,10 @@ export const EnhancedShiftDialog = ({
       }
       
       // Normal update flow
+      const { shift_status, ...rest } = formData;
       const submitData = {
-        ...formData,
+        ...rest,
+        ...statusFlags,
         required_count: parseInt(formData.required_count),
         break_duration_minutes: parseInt(formData.break_duration_minutes),
         notes: formData.notes || null,
@@ -491,8 +507,10 @@ export const EnhancedShiftDialog = ({
           end_time: formData.end_time,
         };
         
+        const { shift_status: _ss, ...restForm } = formData;
         const shiftData = {
-          ...formData,
+          ...restForm,
+          ...statusFlags,
           start_time: employeeTimes.start_time,
           end_time: employeeTimes.end_time,
           required_count: 1, // Each shift is for one employee
@@ -561,8 +579,10 @@ export const EnhancedShiftDialog = ({
       }
       
       // Only proceed with direct mutation if not locked
+      const { shift_status: _ss2, ...restForm2 } = formData;
       const submitData = {
-        ...formData,
+        ...restForm2,
+        ...statusFlags,
         required_count: parseInt(formData.required_count),
         break_duration_minutes: parseInt(formData.break_duration_minutes),
         notes: formData.notes || null,
@@ -1182,48 +1202,40 @@ export const EnhancedShiftDialog = ({
             )}
           </div>
 
-          {/* Checkboxes */}
-          <TooltipProvider>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_open_shift"
-                  checked={formData.is_open_shift}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, is_open_shift: checked as boolean })
-                  }
-                />
-                <Label htmlFor="is_open_shift" className="cursor-pointer">{t('workforce.components.enhancedShiftDialog.openShift')}</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p>{t('workforce.components.enhancedShiftDialog.openShiftTooltip')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_published"
-                  checked={formData.is_published}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, is_published: checked as boolean })
-                  }
-                />
-                <Label htmlFor="is_published" className="cursor-pointer">{t('workforce.components.enhancedShiftDialog.published')}</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p>{t('workforce.components.enhancedShiftDialog.publishedTooltip')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </TooltipProvider>
+          {/* Shift Status */}
+          <div className="space-y-2">
+            <Label>Shift Status</Label>
+            <Select
+              value={formData.shift_status}
+              onValueChange={(value) =>
+                setFormData({ ...formData, shift_status: value as 'draft' | 'open' | 'published' })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                    Draft — internal only, not visible to employees
+                  </div>
+                </SelectItem>
+                <SelectItem value="open">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-amber-500" />
+                    Open — visible to matching-role employees to claim
+                  </div>
+                </SelectItem>
+                <SelectItem value="published">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    Published — in schedule, visible to assigned employees
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Shift Notes */}
           <div className="space-y-2">

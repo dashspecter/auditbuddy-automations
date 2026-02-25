@@ -305,7 +305,8 @@ export const useCreateShift = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Shift created successfully");
     },
     onError: (error) => {
@@ -331,7 +332,8 @@ export const useUpdateShift = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Shift updated successfully");
     },
     onError: (error) => {
@@ -354,7 +356,8 @@ export const useDeleteShift = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Shift deleted successfully");
     },
     onError: (error) => {
@@ -379,7 +382,8 @@ export const useBulkPublishShifts = () => {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       const action = variables.publish ? "published" : "unpublished";
       toast.success(`${variables.shiftIds.length} shift(s) ${action} successfully`);
     },
