@@ -30,7 +30,7 @@ export const ScoutOperationsTab = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('scout_disputes')
-        .select('id, reason, status, created_at, scout_id, job_id')
+        .select('id, message, status, created_at, scout_id, job_id')
         .in('status', ['open', 'under_review'])
         .order('created_at', { ascending: false })
         .limit(20);
@@ -103,7 +103,7 @@ export const ScoutOperationsTab = () => {
               {disputes?.map((d: any) => (
                 <div key={d.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <p className="font-medium text-sm">{d.reason || 'No reason provided'}</p>
+                    <p className="font-medium text-sm">{d.message || 'No reason provided'}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(d.created_at), 'MMM d, yyyy')}
                     </p>

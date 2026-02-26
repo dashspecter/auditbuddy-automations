@@ -101,13 +101,18 @@ export function useScoutAnalyticsKPIs() {
           : 0;
       }
 
-      // Dispute rate (cast to avoid TS2589 deep instantiation)
-      const { count: disputeCount } = await (supabase as any)
-        .from("scout_disputes")
-        .select("id", { count: "exact", head: true })
-        .eq("company_id", companyId!);
+      // Dispute rate — scope via job IDs (scout_disputes has no company_id)
+      const jobIds = allJobs.map(j => j.id);
+      let disputeCount = 0;
+      if (jobIds.length > 0) {
+        const { count } = await (supabase as any)
+          .from("scout_disputes")
+          .select("id", { count: "exact", head: true })
+          .in("job_id", jobIds);
+        disputeCount = count ?? 0;
+      }
 
-      const disputeRate = totalJobs > 0 ? Math.round(((disputeCount ?? 0) / totalJobs) * 100) : 0;
+      const disputeRate = totalJobs > 0 ? Math.round((disputeCount / totalJobs) * 100) : 0;
 
       return { totalJobs, acceptanceRate, avgCompletionDays, avgScoutRating, disputeRate };
     },
@@ -260,11 +265,19 @@ export function useScoutPayoutSummary() {
   return useQuery({
     queryKey: ["scout-analytics-payouts", companyId],
     queryFn: async (): Promise<PayoutSummary> => {
-      // Cast to avoid TS2589 deep instantiation on scout_payouts
+      // Step 1: Get job IDs for this company (scout_payouts has no company_id)
+      const { data: companyJobs } = await supabase
+        .from("scout_jobs")
+        .select("id")
+        .eq("company_id", companyId!);
+      const jobIds = (companyJobs ?? []).map(j => j.id);
+      if (jobIds.length === 0) return { totalPaid: 0, totalPending: 0, currency: "RON" };
+
+      // Step 2: Get payouts for those jobs
       const { data: payouts } = await (supabase as any)
         .from("scout_payouts")
         .select("amount, status, currency")
-        .eq("company_id", companyId!);
+        .in("job_id", jobIds);
 
       const all = payouts ?? [];
       const totalPaid = all.filter(p => p.status === "paid").reduce((s, p) => s + (p.amount ?? 0), 0);
