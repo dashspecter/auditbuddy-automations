@@ -383,10 +383,10 @@ const App = () => (
                       <Route path="/inventory" element={<ManagerRoute requiredPermission="manage_audits"><Inventory /></ManagerRoute>} />
                       
                       {/* Tasks Routes */}
-                      <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-                      <Route path="/tasks/new" element={<ProtectedRoute><TaskNew /></ProtectedRoute>} />
-                      <Route path="/tasks/:id/edit" element={<ProtectedRoute><TaskEdit /></ProtectedRoute>} />
-                      <Route path="/tasks/calendar" element={<ProtectedRoute><TasksCalendar /></ProtectedRoute>} />
+                      <Route path="/tasks" element={<ManagerRoute requiredPermission="manage_audits"><Tasks /></ManagerRoute>} />
+                      <Route path="/tasks/new" element={<ManagerRoute requiredPermission="manage_audits"><TaskNew /></ManagerRoute>} />
+                      <Route path="/tasks/:id/edit" element={<ManagerRoute requiredPermission="manage_audits"><TaskEdit /></ManagerRoute>} />
+                      <Route path="/tasks/calendar" element={<ManagerRoute requiredPermission="manage_audits"><TasksCalendar /></ManagerRoute>} />
                       <Route path="/evidence-review" element={<ProtectedRoute><EvidenceReview /></ProtectedRoute>} />
                       <Route path="/compliance-dossier" element={<ProtectedRoute><ComplianceDossier /></ProtectedRoute>} />
                       

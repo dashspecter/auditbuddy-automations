@@ -25,6 +25,8 @@ export const useUserRole = () => {
           .from('company_users')
           .select('company_role')
           .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
       ]);
 

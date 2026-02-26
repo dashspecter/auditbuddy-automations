@@ -125,18 +125,7 @@ const Auth = () => {
     try {
       const validated = signUpSchema.parse(signUpData);
       
-      // Check if company slug is already taken
-      const { data: existingCompany } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('slug', validated.companySlug)
-        .single();
-
-      if (existingCompany) {
-        setError(t('auth.slugTaken'));
-        setLoading(false);
-        return;
-      }
+      // Slug uniqueness is checked by the RPC, no need to pre-check
       
       const redirectUrl = `${window.location.origin}/dashboard`;
       
@@ -165,49 +154,24 @@ const Auth = () => {
         return;
       }
 
-      // Create company
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name: validated.companyName,
-          slug: validated.companySlug,
-          status: 'active',
-          subscription_tier: 'free',
-        })
-        .select()
-        .single();
-
-      if (companyError) {
-        console.error('Company creation error:', companyError);
-        setError(t('auth.failedCreateCompany'));
-        return;
-      }
-
-      // Link user to company as owner
-      const { error: companyUserError } = await supabase
-        .from('company_users')
-        .insert({
-          user_id: authData.user.id,
-          company_id: company.id,
-          company_role: 'company_owner',
+      // Use the SECURITY DEFINER RPC to atomically create company, link user, and set modules
+      const { data: companyId, error: onboardingError } = await supabase
+        .rpc('create_company_onboarding', {
+          p_name: validated.companyName,
+          p_slug: validated.companySlug,
+          p_subscription_tier: 'free',
+          p_industry_id: null,
+          p_modules: ['location_audits'],
         });
 
-      if (companyUserError) {
-        console.error('Company user linking error:', companyUserError);
-        setError(t('auth.failedLinkAccount'));
+      if (onboardingError) {
+        console.error('Onboarding RPC error:', onboardingError);
+        if (onboardingError.message.includes('slug already taken')) {
+          setError(t('auth.slugTaken'));
+        } else {
+          setError(t('auth.failedCreateCompany'));
+        }
         return;
-      }
-
-      // Assign admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'admin',
-        });
-
-      if (roleError) {
-        console.error('Role assignment error:', roleError);
       }
 
       toast({
