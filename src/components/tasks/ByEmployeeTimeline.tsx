@@ -119,15 +119,13 @@ const HourTaskRow = ({
       {/* Checkbox */}
       <Checkbox
         checked={isCompleted}
-        onCheckedChange={() => !isCompleted && !isVirtual && onComplete()}
-        disabled={isCompleted || isVirtual}
+        disabled
         className="shrink-0"
       />
 
       {/* Title */}
       <div
-        className="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
-        onClick={onEdit}
+        className="flex-1 min-w-0 flex items-center gap-2"
       >
         <span
           className={`truncate font-medium ${
