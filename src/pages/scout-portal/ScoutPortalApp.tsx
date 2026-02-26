@@ -5,6 +5,10 @@ import ScoutLogin from './ScoutLogin';
 import ScoutRegister from './ScoutRegister';
 import ScoutPortalLayout from './ScoutPortalLayout';
 import ScoutHome from './ScoutHome';
+import ScoutJobDetail from './ScoutJobDetail';
+import ScoutActiveJob from './ScoutActiveJob';
+import ScoutSubmitReview from './ScoutSubmitReview';
+import ScoutJobResult from './ScoutJobResult';
 import ScoutEarnings from './ScoutEarnings';
 import ScoutProfile from './ScoutProfile';
 import { ScoutProtectedRoute } from './ScoutProtectedRoute';
@@ -24,6 +28,10 @@ function ScoutRoutes() {
         </ScoutProtectedRoute>
       }>
         <Route path="/" element={<ScoutHome />} />
+        <Route path="/jobs/:id" element={<ScoutJobDetail />} />
+        <Route path="/jobs/:id/execute" element={<ScoutActiveJob />} />
+        <Route path="/jobs/:id/submit" element={<ScoutSubmitReview />} />
+        <Route path="/jobs/:id/result" element={<ScoutJobResult />} />
         <Route path="/earnings" element={<ScoutEarnings />} />
         <Route path="/profile" element={<ScoutProfile />} />
       </Route>
