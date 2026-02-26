@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8 MB
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/kiosk/, /^\/mystery-shopper/],
         runtimeCaching: [

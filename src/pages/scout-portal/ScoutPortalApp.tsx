@@ -11,6 +11,7 @@ import ScoutSubmitReview from './ScoutSubmitReview';
 import ScoutJobResult from './ScoutJobResult';
 import ScoutEarnings from './ScoutEarnings';
 import ScoutProfile from './ScoutProfile';
+import ScoutPerformance from './ScoutPerformance';
 import { ScoutProtectedRoute } from './ScoutProtectedRoute';
 
 function ScoutRoutes() {
@@ -33,6 +34,7 @@ function ScoutRoutes() {
         <Route path="/jobs/:id/submit" element={<ScoutSubmitReview />} />
         <Route path="/jobs/:id/result" element={<ScoutJobResult />} />
         <Route path="/earnings" element={<ScoutEarnings />} />
+        <Route path="/performance" element={<ScoutPerformance />} />
         <Route path="/profile" element={<ScoutProfile />} />
       </Route>
       <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />

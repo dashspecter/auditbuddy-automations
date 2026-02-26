@@ -8,6 +8,7 @@ import { useScoutAuth } from '@/hooks/useScoutAuth';
 const navItems = [
   { label: 'Jobs', icon: Briefcase, path: '/' },
   { label: 'Earnings', icon: Wallet, path: '/earnings' },
+  { label: 'Stats', icon: Home, path: '/performance' },
   { label: 'Profile', icon: User, path: '/profile' },
 ];
 
