@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import { registerServiceWorker } from "./lib/pwa";
 import "./index.css";
 import "./i18n"; // Initialize i18n
 
@@ -247,6 +248,9 @@ const restoreDeepLinkIfNeeded = () => {
   document.getElementById("boot-fallback")?.remove();
 
   createRoot(document.getElementById("root")!).render(<App />);
+
+  // Register PWA service worker after app mount
+  registerServiceWorker();
 })();
 
 

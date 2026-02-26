@@ -203,6 +203,7 @@ import ScoutsTemplates from "./pages/scouts/ScoutsTemplates";
 import ScoutsJobDetail from "./pages/scouts/ScoutsJobDetail";
 import ScoutsPayouts from "./pages/scouts/ScoutsPayouts";
 import ScoutsRoster from "./pages/scouts/ScoutsRoster";
+import InstallApp from "./pages/InstallApp";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -504,6 +505,9 @@ const App = () => {
                        <Route path="/scouts/jobs/:id" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobDetail /></ManagerRoute>} />
                        <Route path="/scouts/payouts" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsPayouts /></ManagerRoute>} />
                        <Route path="/scouts/roster" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsRoster /></ManagerRoute>} />
+                       
+                       {/* Install App */}
+                       <Route path="/install" element={<ProtectedRoute><InstallApp /></ProtectedRoute>} />
                        
                        <Route path="*" element={<NotFound />} />
                     </Routes>

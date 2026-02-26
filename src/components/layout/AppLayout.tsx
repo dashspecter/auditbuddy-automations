@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopBar } from "@/components/layout/AppTopBar";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppLayoutProps {
@@ -18,6 +19,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       {!isMobile && <AppSidebar />}
       
       <div className="flex flex-1 flex-col min-w-0">
+        <OfflineIndicator />
         <AppTopBar />
         
         <main className="flex-1 overflow-auto p-3 md:p-4">
