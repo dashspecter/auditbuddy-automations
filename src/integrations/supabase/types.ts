@@ -10097,7 +10097,7 @@ export type Database = {
           voided_at: string | null
           voided_by: string | null
           waste_product_id: string
-          waste_reason_id: string | null
+          waste_reason_id: string
           weight_kg: number
         }
         Insert: {
@@ -10116,7 +10116,7 @@ export type Database = {
           voided_at?: string | null
           voided_by?: string | null
           waste_product_id: string
-          waste_reason_id?: string | null
+          waste_reason_id: string
           weight_kg: number
         }
         Update: {
@@ -10135,7 +10135,7 @@ export type Database = {
           voided_at?: string | null
           voided_by?: string | null
           waste_product_id?: string
-          waste_reason_id?: string | null
+          waste_reason_id?: string
           weight_kg?: number
         }
         Relationships: [

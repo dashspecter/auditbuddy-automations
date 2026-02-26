@@ -81,7 +81,7 @@ export default function AdminAddWasteEntry() {
       const entry = await createEntry.mutateAsync({
         location_id: formData.location_id,
         waste_product_id: formData.waste_product_id,
-        waste_reason_id: formData.waste_reason_id || null,
+        waste_reason_id: formData.waste_reason_id,
         weight_kg: parseFloat(formData.weight_kg.replace(',', '.')),
         notes: formData.notes || null,
       });
