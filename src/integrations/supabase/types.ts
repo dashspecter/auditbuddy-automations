@@ -7562,6 +7562,90 @@ export type Database = {
           },
         ]
       }
+      scout_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      scout_disputes: {
+        Row: {
+          attachments: Json | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          job_id: string
+          message: string
+          resolution_notes: string | null
+          resolved_by: string | null
+          scout_id: string
+          status: string
+        }
+        Insert: {
+          attachments?: Json | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          message: string
+          resolution_notes?: string | null
+          resolved_by?: string | null
+          scout_id: string
+          status?: string
+        }
+        Update: {
+          attachments?: Json | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          message?: string
+          resolution_notes?: string | null
+          resolved_by?: string | null
+          scout_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_disputes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scout_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_disputes_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scout_invites: {
         Row: {
           company_id: string | null
@@ -7940,6 +8024,7 @@ export type Database = {
           id: string
           job_id: string
           overall_notes: string | null
+          packet_storage_path: string | null
           reviewed_at: string | null
           reviewer_notes: string | null
           reviewer_user_id: string | null
@@ -7952,6 +8037,7 @@ export type Database = {
           id?: string
           job_id: string
           overall_notes?: string | null
+          packet_storage_path?: string | null
           reviewed_at?: string | null
           reviewer_notes?: string | null
           reviewer_user_id?: string | null
@@ -7964,6 +8050,7 @@ export type Database = {
           id?: string
           job_id?: string
           overall_notes?: string | null
+          packet_storage_path?: string | null
           reviewed_at?: string | null
           reviewer_notes?: string | null
           reviewer_user_id?: string | null
@@ -11730,6 +11817,15 @@ export type Database = {
         Returns: undefined
       }
       refresh_dashboard_materialized_views: { Args: never; Returns: undefined }
+      register_scout: {
+        Args: {
+          p_city?: string
+          p_full_name: string
+          p_invite_token: string
+          p_phone?: string
+        }
+        Returns: string
+      }
       reject_shift_assignment: {
         Args: { assignment_id: string }
         Returns: Json
@@ -11760,7 +11856,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "checker" | "manager" | "hr"
+      app_role: "admin" | "checker" | "manager" | "hr" | "scout"
       billing_status: "active" | "past_due" | "paused"
       company_permission:
         | "manage_users"
@@ -11902,7 +11998,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "checker", "manager", "hr"],
+      app_role: ["admin", "checker", "manager", "hr", "scout"],
       billing_status: ["active", "past_due", "paused"],
       company_permission: [
         "manage_users",
