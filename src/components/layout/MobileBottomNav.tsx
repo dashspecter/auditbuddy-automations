@@ -33,6 +33,7 @@ const moreNavItems = [
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Operations", url: "/operations/daily", icon: Settings2 },
+  { title: "Scouts", url: "/scouts", icon: ClipboardList, module: "scouts", managerOnly: true },
   { title: "Corrective Actions", url: "/corrective-actions", icon: ShieldAlert, managerOnly: true },
   { title: "Billing", url: "/pricing", icon: CreditCard },
   { title: "Settings", url: "/settings/company", icon: Building2 },

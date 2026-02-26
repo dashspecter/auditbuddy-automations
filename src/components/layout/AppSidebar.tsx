@@ -298,6 +298,7 @@ const navigationItems = [
       { titleKey: "nav.dailyOps", url: "/operations/daily" },
       { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
       { titleKey: "nav.slaManagement", url: "/operations/slas" },
+      { titleKey: "nav.scouts", url: "/scouts", module: "scouts" },
     ]
   },
   // 14b. Corrective Actions (CAPA)
