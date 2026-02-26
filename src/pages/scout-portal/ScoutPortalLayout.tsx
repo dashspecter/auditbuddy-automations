@@ -2,6 +2,8 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, Wallet, User, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { ScoutNotificationBell } from '@/components/scout-portal/ScoutNotificationBell';
+import { useScoutAuth } from '@/hooks/useScoutAuth';
 
 const navItems = [
   { label: 'Jobs', icon: Briefcase, path: '/' },
@@ -11,6 +13,7 @@ const navItems = [
 
 export default function ScoutPortalLayout() {
   const location = useLocation();
+  const { scoutId } = useScoutAuth();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/' || location.pathname.startsWith('/jobs');
@@ -26,6 +29,7 @@ export default function ScoutPortalLayout() {
           <Link to="/" className="text-xl font-bold text-primary">
             Scouts
           </Link>
+          <ScoutNotificationBell scoutId={scoutId} />
         </div>
       </header>
 
