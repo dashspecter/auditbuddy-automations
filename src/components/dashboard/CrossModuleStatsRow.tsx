@@ -56,16 +56,16 @@ export const CrossModuleStatsRow = ({ dateFrom, dateTo }: CrossModuleStatsRowPro
   }, [cas]);
 
   const trainingCompliance = useMemo(() => {
-    if (!assignments || assignments.length === 0) return 0;
+    if (!assignments || assignments.length === 0) return null;
     const completed = assignments.filter((a: any) => a.status === "completed").length;
     return Math.round((completed / assignments.length) * 100);
   }, [assignments]);
 
   const attendanceRate = useMemo(() => {
-    if (!attendanceStats || attendanceStats.length === 0) return 0;
-    const totalPresent = attendanceStats.reduce((s: number, d: any) => s + (d.present_count || 0), 0);
-    const totalExpected = attendanceStats.reduce((s: number, d: any) => s + (d.expected_count || d.present_count || 0), 0);
-    if (totalExpected === 0) return 0;
+    if (!attendanceStats || attendanceStats.length === 0) return null;
+    const totalPresent = attendanceStats.reduce((s: number, d: any) => s + (d.staff_checked_in || 0), 0);
+    const totalExpected = attendanceStats.reduce((s: number, d: any) => s + (d.staff_scheduled || 0), 0);
+    if (totalExpected === 0) return null;
     return Math.round((totalPresent / totalExpected) * 100);
   }, [attendanceStats]);
 
@@ -113,16 +113,16 @@ export const CrossModuleStatsRow = ({ dateFrom, dateTo }: CrossModuleStatsRowPro
         />
         <StatsCard
           title={t("dashboard.kpi.trainingCompliance", "Training")}
-          value={isLoading ? "..." : `${trainingCompliance}%`}
+          value={isLoading ? "..." : trainingCompliance !== null ? `${trainingCompliance}%` : "N/A"}
           icon={GraduationCap}
-          description={t("dashboard.kpi.completionRate", "Completion rate")}
+          description={trainingCompliance !== null ? t("dashboard.kpi.completionRate", "Completion rate") : t("dashboard.kpi.noAssignments", "No assignments")}
           onClick={() => setActivePopup("training")}
         />
         <StatsCard
           title={t("dashboard.kpi.attendance", "Attendance")}
-          value={isLoading ? "..." : `${attendanceRate}%`}
+          value={isLoading ? "..." : attendanceRate !== null ? `${attendanceRate}%` : "N/A"}
           icon={Clock}
-          description={t("dashboard.kpi.presentRate", "Present rate")}
+          description={attendanceRate !== null ? t("dashboard.kpi.presentRate", "Present rate") : t("dashboard.kpi.noData", "No data")}
           onClick={() => setActivePopup("attendance")}
         />
       </div>
