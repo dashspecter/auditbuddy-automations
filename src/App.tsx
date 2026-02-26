@@ -200,6 +200,9 @@ import ScoutsJobs from "./pages/scouts/ScoutsJobs";
 import ScoutsJobNew from "./pages/scouts/ScoutsJobNew";
 import ScoutsReview from "./pages/scouts/ScoutsReview";
 import ScoutsTemplates from "./pages/scouts/ScoutsTemplates";
+import ScoutsJobDetail from "./pages/scouts/ScoutsJobDetail";
+import ScoutsPayouts from "./pages/scouts/ScoutsPayouts";
+import ScoutsRoster from "./pages/scouts/ScoutsRoster";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -498,6 +501,9 @@ const App = () => {
                        <Route path="/scouts/jobs/new" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobNew /></ManagerRoute>} />
                        <Route path="/scouts/review" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsReview /></ManagerRoute>} />
                        <Route path="/scouts/templates" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsTemplates /></ManagerRoute>} />
+                       <Route path="/scouts/jobs/:id" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobDetail /></ManagerRoute>} />
+                       <Route path="/scouts/payouts" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsPayouts /></ManagerRoute>} />
+                       <Route path="/scouts/roster" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsRoster /></ManagerRoute>} />
                        
                        <Route path="*" element={<NotFound />} />
                     </Routes>
