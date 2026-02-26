@@ -8,11 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2, Bot } from "lucide-react";
+import { Calendar, Clock, Building2, Users, Shield, UserPlus, Trash2, Bot, Eye, BarChart3, Binoculars } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AITestAgentContent } from "@/components/AITestAgent";
 import { RLSIntegrationTestContent } from "@/components/RLSIntegrationTest";
+import { ScoutOperationsTab } from "@/components/admin/ScoutOperationsTab";
+import { PlatformAnalyticsTab } from "@/components/admin/PlatformAnalyticsTab";
+import { useNavigate } from "react-router-dom";
 
 interface Company {
   id: string;
@@ -44,6 +47,7 @@ export default function PlatformAdmin() {
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch all companies
   const { data: companies, isLoading } = useQuery({
@@ -345,6 +349,14 @@ export default function PlatformAdmin() {
               <Bot className="h-4 w-4" />
               AI Testing
             </TabsTrigger>
+            <TabsTrigger value="scout-ops" className="gap-2">
+              <Binoculars className="h-4 w-4" />
+              Scout Operations
+            </TabsTrigger>
+            <TabsTrigger value="platform-analytics" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Platform Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending">
@@ -470,13 +482,23 @@ export default function PlatformAdmin() {
                             </div>
                           </div>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedCompany(company)}
-                          >
-                            Extend Trial
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/admin/companies/${company.id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedCompany(company)}
+                            >
+                              Extend Trial
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -566,6 +588,14 @@ export default function PlatformAdmin() {
               <RLSIntegrationTestContent />
               <AITestAgentContent />
             </div>
+          </TabsContent>
+
+          <TabsContent value="scout-ops">
+            <ScoutOperationsTab />
+          </TabsContent>
+
+          <TabsContent value="platform-analytics">
+            <PlatformAnalyticsTab />
           </TabsContent>
         </Tabs>
 
