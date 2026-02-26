@@ -17,7 +17,7 @@ import {
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
   Cog, Trash2, History, ShieldCheck, ShieldAlert, QrCode, LucideIcon,
-  MessageSquare, UserSearch
+  MessageSquare, UserSearch, Download
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -503,6 +503,14 @@ export const settingsItems: NavigationItem[] = [
     icon: Bot,
     module: null,
     requiresPlatformAdmin: true,
+    isSettings: true
+  },
+  {
+    id: 'settings-install-app',
+    titleKey: "nav.installApp",
+    url: "/install",
+    icon: Download,
+    module: null,
     isSettings: true
   },
 ];

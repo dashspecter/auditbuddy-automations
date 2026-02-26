@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, Wallet, User, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 const navItems = [
   { label: 'Jobs', icon: Briefcase, path: '/' },
@@ -18,6 +19,7 @@ export default function ScoutPortalLayout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <OfflineIndicator />
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
