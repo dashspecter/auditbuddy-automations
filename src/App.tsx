@@ -12,6 +12,7 @@ import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { PWAUpdateReadyToast } from "@/components/PWAUpdateReadyToast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ModuleGate } from "@/components/ModuleGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppVisibilityManager } from "@/components/AppVisibilityManager";
 import { useIsScoutsDomain } from "@/hooks/useIsScoutsDomain";
@@ -500,15 +501,15 @@ const App = () => {
                        <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
                        
                        {/* Scouts Module Routes */}
-                       <Route path="/scouts" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsOverview /></ManagerRoute>} />
-                       <Route path="/scouts/jobs" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobs /></ManagerRoute>} />
-                       <Route path="/scouts/jobs/new" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobNew /></ManagerRoute>} />
-                       <Route path="/scouts/review" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsReview /></ManagerRoute>} />
-                       <Route path="/scouts/templates" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsTemplates /></ManagerRoute>} />
-                       <Route path="/scouts/jobs/:id" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobDetail /></ManagerRoute>} />
-                       <Route path="/scouts/payouts" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsPayouts /></ManagerRoute>} />
-                       <Route path="/scouts/roster" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsRoster /></ManagerRoute>} />
-                       <Route path="/scouts/analytics" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsAnalytics /></ManagerRoute>} />
+                       <Route path="/scouts" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsOverview /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/jobs" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsJobs /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/jobs/new" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsJobNew /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/review" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsReview /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/templates" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsTemplates /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/jobs/:id" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsJobDetail /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/payouts" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsPayouts /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/roster" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsRoster /></ModuleGate></ManagerRoute>} />
+                       <Route path="/scouts/analytics" element={<ManagerRoute requiredPermission="manage_audits"><ModuleGate module="scouts"><ScoutsAnalytics /></ModuleGate></ManagerRoute>} />
                        
                        {/* Install App */}
                        <Route path="/install" element={<ProtectedRoute><InstallApp /></ProtectedRoute>} />

@@ -72,6 +72,7 @@ const getModuleName = (module: string): string => {
     'operations': 'Operations',
     'payroll': 'Payroll & Labor Costs',
     'whatsapp_messaging': 'WhatsApp Messaging',
+    'scouts': 'Dashspect Scouts',
   };
   return moduleNames[module] || module;
 };

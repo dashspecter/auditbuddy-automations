@@ -47,6 +47,10 @@ const MODULE_DEPENDENCIES: Record<string, { enhances?: string[]; worksWellWith?:
   'insights': {
     worksWellWith: ['location_audits', 'workforce', 'reports'],
     description: 'AI-powered insights from Audits, Workforce, and Reports data'
+  },
+  'scouts': {
+    worksWellWith: ['location_audits', 'reports'],
+    description: 'Enhanced by Location Audits for audit templates and Reports for analytics'
   }
 };
 
@@ -66,7 +70,8 @@ const MODULE_NAMES: Record<string, string> = {
   'payroll': 'Payroll & Labor Costs',
   'cmms': 'CMMS (Maintenance)',
   'corrective_actions': 'Corrective Actions',
-  'operations': 'Operations'
+  'operations': 'Operations',
+  'scouts': 'Dashspect Scouts'
 };
 
 export default function IndustryModuleManagement() {
