@@ -160,7 +160,7 @@ supabase/functions/generate-evidence-packet/index.ts
 
 **Batch 2 ✅ DONE:** Scout portal pages (job feed, job detail, active job stepper, submit, result)
 
-**Batch 3:** Edge functions (signed upload/view, job accept, evidence packet) + media integration in both portals
+**Batch 3 ✅ DONE:** Edge functions (signed upload/view, job accept, evidence packet) + media integration in both portals
 
 **Batch 4:** Core enhancements (job detail, payouts, roster) + scout earnings + profile
 

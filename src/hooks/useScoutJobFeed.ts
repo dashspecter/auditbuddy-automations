@@ -118,29 +118,18 @@ export function useScoutJobSteps(jobId: string | undefined) {
   });
 }
 
-/** Accept a job (optimistic, will be replaced by edge function in Batch 3) */
+/** Accept a job via race-safe edge function */
 export function useAcceptJob() {
   const queryClient = useQueryClient();
-  const { scoutId } = useScoutAuth();
 
   return useMutation({
     mutationFn: async (jobId: string) => {
-      if (!scoutId) throw new Error("No scout profile");
-      const { data, error } = await supabase
-        .from("scout_jobs")
-        .update({
-          assigned_scout_id: scoutId,
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-        })
-        .eq("id", jobId)
-        .eq("status", "posted")
-        .is("assigned_scout_id", null)
-        .select()
-        .single();
-      if (error) throw error;
-      if (!data) throw new Error("Job already taken");
-      return data;
+      const { data, error } = await supabase.functions.invoke("scout-job-accept", {
+        body: { jobId },
+      });
+      if (error) throw new Error(error.message || "Accept failed");
+      if (data?.error) throw new Error(data.error);
+      return data.job;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scout-feed"] });

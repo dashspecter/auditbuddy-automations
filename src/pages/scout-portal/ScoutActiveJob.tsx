@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,6 +7,9 @@ import {
   CheckCircle2,
   Loader2,
   Info,
+  Upload,
+  Image as ImageIcon,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,17 +27,22 @@ import {
   useScoutStepAnswers,
   useSaveStepAnswer,
 } from "@/hooks/useScoutJobFeed";
+import { useUploadScoutEvidence } from "@/hooks/useScoutEvidence";
+import { useScoutMedia } from "@/hooks/useScoutSubmissions";
 
 export default function ScoutActiveJob() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: job, isLoading: jobLoading } = useScoutJobDetail(id);
   const { data: steps, isLoading: stepsLoading } = useScoutJobSteps(id);
   const { data: submission } = useScoutSubmissionForJob(id);
   const { data: answers } = useScoutStepAnswers(submission?.id);
+  const { data: allMedia } = useScoutMedia(submission?.id);
   const saveAnswer = useSaveStepAnswer();
+  const uploadEvidence = useUploadScoutEvidence();
 
   const isLoading = jobLoading || stepsLoading;
   const totalSteps = steps?.length ?? 0;
@@ -46,7 +54,17 @@ export default function ScoutActiveJob() {
     return map;
   }, [answers]);
 
+  const mediaByStep = useMemo(() => {
+    const map = new Map<string, any[]>();
+    allMedia?.forEach((m) => {
+      if (!map.has(m.step_id)) map.set(m.step_id, []);
+      map.get(m.step_id)!.push(m);
+    });
+    return map;
+  }, [allMedia]);
+
   const currentAnswer = step ? answerMap.get(step.id) : null;
+  const currentMedia = step ? mediaByStep.get(step.id) ?? [] : [];
   const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
 
   const answeredCount = useMemo(() => {
@@ -88,16 +106,27 @@ export default function ScoutActiveJob() {
     });
   };
 
-  const goNext = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep((s) => s + 1);
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length || !step) return;
+
+    for (const file of Array.from(files)) {
+      await uploadEvidence.mutateAsync({
+        jobId: id!,
+        stepId: step.id,
+        submissionId: submission.id,
+        file,
+      });
     }
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const goNext = () => {
+    if (currentStep < totalSteps - 1) setCurrentStep((s) => s + 1);
+  };
   const goPrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep((s) => s - 1);
-    }
+    if (currentStep > 0) setCurrentStep((s) => s - 1);
   };
 
   const canSubmit = answeredCount >= steps.filter((s) => s.is_required).length;
@@ -118,7 +147,6 @@ export default function ScoutActiveJob() {
       </div>
 
       <Progress value={progress} className="h-1.5" />
-
       <h2 className="text-lg font-semibold text-foreground">{job.title}</h2>
 
       {/* Step Card */}
@@ -128,7 +156,7 @@ export default function ScoutActiveJob() {
             <div className="flex items-start justify-between">
               <CardTitle className="text-base">{step.prompt}</CardTitle>
               {step.is_required && (
-                <Badge variant="outline" className="text-[10px] border-red-200 text-red-500 flex-shrink-0">
+                <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive flex-shrink-0">
                   Required
                 </Badge>
               )}
@@ -141,7 +169,7 @@ export default function ScoutActiveJob() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Render by step_type */}
+            {/* yes_no */}
             {step.step_type === "yes_no" && (
               <div className="flex items-center gap-3">
                 <Switch
@@ -154,6 +182,7 @@ export default function ScoutActiveJob() {
               </div>
             )}
 
+            {/* text */}
             {step.step_type === "text" && (
               <Textarea
                 placeholder="Enter your answer..."
@@ -163,6 +192,7 @@ export default function ScoutActiveJob() {
               />
             )}
 
+            {/* number */}
             {step.step_type === "number" && (
               <Input
                 type="number"
@@ -174,28 +204,62 @@ export default function ScoutActiveJob() {
               />
             )}
 
+            {/* photo — now with real upload */}
             {step.step_type === "photo" && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Textarea
                   placeholder="Optional notes for this step..."
                   defaultValue={currentAnswer?.answer_text ?? ""}
                   onBlur={(e) => handleSave({ answerText: e.target.value })}
                   rows={2}
                 />
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Photo upload will be available with signed URLs (Batch 3)
-                  </p>
-                  {(step.min_photos ?? 0) > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Minimum {step.min_photos} photo(s) required
-                    </p>
+
+                {/* Existing media thumbnails */}
+                {currentMedia.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {currentMedia.map((m: any) => (
+                      <div
+                        key={m.id}
+                        className="w-16 h-16 rounded-md bg-muted flex items-center justify-center overflow-hidden border border-border"
+                      >
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadEvidence.isPending}
+                >
+                  {uploadEvidence.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
                   )}
-                </div>
+                  {uploadEvidence.isPending ? "Uploading..." : "Upload Photo / Video"}
+                </Button>
+
+                {(step.min_photos ?? 0) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {currentMedia.length} / {step.min_photos} required photo(s)
+                  </p>
+                )}
               </div>
             )}
 
+            {/* checklist */}
             {step.step_type === "checklist" && (
               <div className="flex items-center gap-3">
                 <Switch
@@ -208,7 +272,7 @@ export default function ScoutActiveJob() {
               </div>
             )}
 
-            {/* Fallback for unknown types */}
+            {/* Fallback */}
             {!["yes_no", "text", "number", "photo", "checklist"].includes(step.step_type) && (
               <Textarea
                 placeholder="Enter your response..."
@@ -235,15 +299,9 @@ export default function ScoutActiveJob() {
 
       {/* Navigation */}
       <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={goPrev}
-          disabled={currentStep === 0}
-        >
+        <Button variant="outline" className="flex-1" onClick={goPrev} disabled={currentStep === 0}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Previous
         </Button>
-
         {currentStep < totalSteps - 1 ? (
           <Button className="flex-1" onClick={goNext}>
             Next <ArrowRight className="h-4 w-4 ml-1" />
