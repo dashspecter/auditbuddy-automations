@@ -442,8 +442,10 @@ export const useEmployeePerformance = (
         }).length;
         
         // Calculate shared task assignments for this employee
+        // ONLY count occurrences on days the employee had an approved shift
         let sharedTasksAssigned = 0;
         const employeeNormalizedRole = normalizeRoleName(employee.role) || "";
+        const employeeShiftDates = new Set(employeeShifts.map(s => s.shift_date));
 
         for (const [taskId, occurrenceDates] of sharedTaskOccurrences) {
           const eligibleLocations = taskEligibleLocations.get(taskId);
@@ -459,7 +461,12 @@ export const useEmployeePerformance = (
           }
           // If no roles specified, all employees at the location are eligible
 
-          sharedTasksAssigned += occurrenceDates.size;
+          // Only count occurrences on days employee was scheduled to work
+          for (const dateStr of occurrenceDates) {
+            if (employeeShiftDates.has(dateStr)) {
+              sharedTasksAssigned++;
+            }
+          }
         }
 
         // Merged totals (shared tasks now counted as assigned to all eligible employees)
