@@ -1,172 +1,221 @@
 
 
-# Phase 2: Scout Portal + Subdomain + Edge Functions
+# Phase 3: Analytics Dashboards, Scout Notifications, PWA, and Admin Panel Enhancements
 
 ## Summary
 
-Phase 2 builds on the Phase 1 foundation (10 scout tables, RLS, storage bucket, Core module pages) to deliver: the scout-facing portal at `scouts.dashspect.com`, invite-only scout registration, 4 edge functions, 2 new DB tables, and Core module enhancements. Mystery Shopper is not touched.
+This phase addresses four areas: (1) Scout-specific analytics dashboards for both Core and Scout Portal, (2) notification/alert integrations for scout job lifecycle events, (3) PWA setup using `vite-plugin-pwa` (already installed but not configured), and (4) expanding the Platform Admin panel with cross-company scout oversight. All changes are additive safe layers -- no existing pages are modified beyond appending routes/nav items.
 
 ---
 
-## What Gets Built
+## A. Scout Analytics Dashboards
 
-### A. Database Migration
+### A1. Core Module: Scouts Analytics Page
 
-1. **Add `'scout'` to `app_role` enum**
-   - `ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'scout'`
+**New page:** `src/pages/scouts/ScoutsAnalytics.tsx` at `/scouts/analytics`
 
-2. **`scout_disputes` table** — dispute per job
-   - Fields: id, job_id, scout_id, status (open/under_review/closed), message, attachments (JSONB), resolution_notes, resolved_by, created_at, closed_at
-   - RLS: scouts INSERT/SELECT own; org managers SELECT for company jobs; platform admin ALL
+Widgets:
+- **KPI Cards:** Total Jobs Posted, Acceptance Rate, Avg Completion Time, Avg Scout Rating, Dispute Rate
+- **Jobs Funnel Chart:** Posted -> Accepted -> Submitted -> Approved/Rejected (bar chart)
+- **Completion Trend:** Line chart of jobs completed per week over last 12 weeks
+- **Location Heatmap Table:** Jobs per location with pass/fail rates
+- **Scout Leaderboard:** Top 10 scouts by reliability score (company-scoped -- only scouts who worked on this company's jobs)
+- **Payout Summary:** Total paid vs pending, monthly trend
 
-3. **`scout_audit_log` table** — action trail
-   - Fields: id, actor_user_id, action, entity_type, entity_id, metadata (JSONB), created_at
-   - RLS: platform admin ALL; org managers SELECT for own company entities; scouts SELECT own actions
+**Data source:** Direct queries on `scout_jobs`, `scout_submissions`, `scout_payouts`, `scouts` tables scoped to company. No materialized views needed initially -- volume is low compared to audits.
 
-4. **Add `packet_storage_path` column** to `scout_submissions`
+**New hook:** `src/hooks/useScoutAnalytics.ts` -- 3-4 React Query hooks aggregating scout data with date range filtering.
 
-5. **`register_scout` RPC** (SECURITY DEFINER) — called after signup with invite token:
-   - Validates token (not expired, not used)
-   - Marks invite as used
-   - Creates `scouts` record (status='pending')
-   - Creates `user_roles` record with role='scout'
-   - Returns scout ID
+### A2. Scout Portal: Scout Performance Page
 
-### B. Subdomain Routing
+**New page:** `src/pages/scout-portal/ScoutPerformance.tsx` at `/performance`
 
-- New hook: `src/hooks/useIsScoutsDomain.ts` — checks `window.location.hostname`
-- `App.tsx` top-level branch: if scouts domain, render `ScoutPortalApp` with its own minimal router (no sidebar, no CompanyProvider)
-- Scout portal has its own `AuthProvider` but skips `SidebarProvider` and `CompanyProvider`
+Widgets:
+- **My Stats Cards:** Jobs Completed, On-Time Rate, Approval Rate, Total Earned
+- **Monthly Earnings Chart:** Bar chart of last 6 months
+- **Job History Timeline:** Recent 20 jobs with status badges
 
-### C. Scout Auth (invite-only)
+**New hook:** `src/hooks/useScoutPerformance.ts` -- queries scoped to current scout's user_id.
 
-- `ScoutLogin.tsx` — email/password login at `scouts.dashspect.com/login`
-- `ScoutRegister.tsx` — invite-based registration at `scouts.dashspect.com/invite/:token`
-  - Validates token client-side first, then calls `register_scout` RPC after Supabase auth signup
-- `ScoutProtectedRoute.tsx` — checks user has `scout` role + scout status is `active`; shows "Pending Approval" if status='pending'
+### A3. Navigation Updates
 
-### D. Scout Portal Pages (10 pages)
+- Add `scouts-analytics` sub-item to scouts nav in `navigation.ts`
+- Add `/performance` route to Scout Portal router
 
-All under `src/pages/scout-portal/`:
+---
 
-| Page | Route | Purpose |
-|------|-------|---------|
-| `ScoutPortalLayout.tsx` | wrapper | Minimal header + bottom nav, no sidebar |
-| `ScoutLogin.tsx` | `/login` | Login |
-| `ScoutRegister.tsx` | `/invite/:token` | Invite registration |
-| `ScoutOnboarding.tsx` | `/onboarding` | Profile setup: city, zones, transport, terms |
-| `ScoutHome.tsx` | `/` | Job feed: Available / My Jobs / History tabs |
-| `ScoutJobDetail.tsx` | `/jobs/:id` | Pre-accept job view |
-| `ScoutActiveJob.tsx` | `/jobs/:id/execute` | Guided checklist stepper + evidence capture |
-| `ScoutSubmitReview.tsx` | `/jobs/:id/submit` | Completeness check + final review before submit |
-| `ScoutJobResult.tsx` | `/jobs/:id/result` | Approval/rejection with per-step reasons |
-| `ScoutEarnings.tsx` | `/earnings` | Payout ledger |
-| `ScoutProfile.tsx` | `/profile` | Settings + availability |
+## B. Scout Notifications & Alerts
 
-### E. Edge Functions (4 new)
+### B1. Database: `scout_notifications` Table
 
-1. **`scout-signed-upload`** — issues signed upload URL for `scout-evidence` bucket
-   - Validates: caller is assigned scout, job is accepted/in_progress
-   - Returns signed URL + storage path
-   - Logs in `scout_audit_log`
+New table for scout-specific notifications (separate from the company `notifications` table):
 
-2. **`scout-signed-view`** — issues signed view URL (10-min expiry)
-   - Validates: caller is assigned scout OR org manager for company
-   - Logs view action
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| scout_id | uuid FK scouts | |
+| job_id | uuid FK scout_jobs (nullable) | |
+| type | text | `job_available`, `job_approved`, `job_rejected`, `payout_sent`, `dispute_update` |
+| title | text | |
+| message | text | |
+| is_read | boolean default false | |
+| created_at | timestamptz | |
 
-3. **`scout-job-accept`** — race-safe job acceptance
-   - Uses `UPDATE ... WHERE status='posted' AND assigned_scout_id IS NULL` with returning
-   - Sets assigned_scout_id, status='accepted', accepted_at
+RLS: scouts SELECT/UPDATE own notifications only.
 
-4. **`generate-evidence-packet`** — PDF generation
-   - Cover page: org, location, job title, timestamps, scout anonymized ID
-   - Steps + answers + media thumbnails
-   - Stores PDF in `scout-evidence` bucket
-   - Updates `scout_submissions.packet_storage_path`
+### B2. Edge Function: `scout-notify`
 
-### F. Scout Portal Hooks (6 new)
+Centralised notification dispatcher called from other edge functions or triggered by DB triggers:
+- Inserts into `scout_notifications`
+- (Future-ready: can add WhatsApp/email dispatch here)
 
-| Hook | Purpose |
-|------|---------|
-| `useIsScoutsDomain.ts` | Hostname detection |
-| `useScoutAuth.ts` | Scout auth state + role check |
-| `useScoutProfile.ts` | Scout profile CRUD |
-| `useScoutJobFeed.ts` | Available/assigned/history jobs queries |
-| `useScoutEvidence.ts` | Signed URL helpers (upload + view) |
-| `useScoutDisputes.ts` | Dispute CRUD |
+### B3. DB Triggers for Auto-Notifications
 
-### G. Dashspect Core Enhancements (3 new pages + nav updates)
+Trigger functions that fire `scout-notify` on:
+- `scout_jobs` status change to `posted` (notify eligible scouts in matching zones)
+- `scout_submissions` status change to `approved`/`rejected` (notify assigned scout)
+- `scout_payouts` status change to `paid` (notify scout)
+- `scout_disputes` status change (notify scout)
 
-| Page | Route | Purpose |
-|------|-------|---------|
-| `ScoutsJobDetail.tsx` | `/scouts/jobs/:id` | Full job detail with timeline, media viewer via signed URLs |
-| `ScoutsPayouts.tsx` | `/scouts/payouts` | Payout management (mark paid) |
-| `ScoutsRoster.tsx` | `/scouts/roster` | View scouts who worked on org's jobs (scoped) |
+### B4. Scout Portal: Notification Bell
 
-Navigation update: add Payouts and Roster sub-items to scouts nav in `src/config/navigation.ts`.
+- **New component:** `src/components/scout-portal/ScoutNotificationBell.tsx`
+- Integrated into `ScoutPortalLayout.tsx` header
+- **New hook:** `src/hooks/useScoutNotifications.ts` -- fetches unread count + list, mark-as-read mutation
+- Realtime subscription on `scout_notifications` table for live badge updates
+
+---
+
+## C. PWA Setup
+
+The project already has `vite-plugin-pwa` and `workbox-window` installed, `manifest.json` in `/public`, and PWA meta tags in `index.html`. What is missing: the VitePWA plugin is NOT configured in `vite.config.ts`.
+
+### C1. Configure VitePWA in `vite.config.ts`
+
+```typescript
+import { VitePWA } from 'vite-plugin-pwa';
+
+// Add to plugins array:
+VitePWA({
+  registerType: 'autoUpdate',
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+    navigateFallback: '/index.html',
+    navigateFallbackDenylist: [/^\/~oauth/],
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+        handler: 'NetworkFirst',
+        options: { cacheName: 'supabase-api', expiration: { maxEntries: 50, maxAgeSeconds: 300 } }
+      }
+    ]
+  },
+  manifest: false, // use existing /public/manifest.json
+  devOptions: { enabled: false }
+})
+```
+
+### C2. Service Worker Registration
+
+- **New file:** `src/lib/pwa.ts` -- registers service worker, listens for updates, shows toast on new version
+- Call from `main.tsx` after app mount
+
+### C3. Install Prompt Page
+
+- **New page:** `src/pages/InstallApp.tsx` at `/install`
+- Detects platform (iOS/Android/Desktop) and shows platform-specific install instructions
+- Captures `beforeinstallprompt` event for Chrome/Android native install button
+- Add to navigation as a settings item
+
+### C4. Offline Indicator
+
+- **New component:** `src/components/OfflineIndicator.tsx`
+- Shows a subtle banner when `navigator.onLine` is false
+- Add to `AppLayout.tsx` and `ScoutPortalLayout.tsx`
+
+---
+
+## D. Platform Admin Panel Enhancements
+
+The existing `PlatformAdmin.tsx` has tabs for Pending Approvals, Companies, Platform Admins, and AI Testing. This phase adds scout oversight capabilities.
+
+### D1. New Tab: Scout Operations
+
+Add to `PlatformAdmin.tsx` Tabs:
+- **Scout Operations tab** with:
+  - Total scouts across all companies (count query)
+  - Active jobs across all companies
+  - Dispute queue (all open disputes, filterable by company)
+  - Scout approval queue (scouts with status='pending')
+
+### D2. New Tab: Platform Analytics
+
+Add to `PlatformAdmin.tsx` Tabs:
+- **Platform Analytics tab** with:
+  - Total companies, users, audits across platform
+  - Scout module adoption (companies with scouts module active)
+  - Monthly growth trend (new companies per month)
+  - Module usage breakdown (most/least activated modules)
+
+### D3. Company Detail Drill-Down
+
+- **New page:** `src/pages/admin/CompanyDetail.tsx` at `/admin/companies/:id`
+- Shows: company info, active modules, user count, audit count, scout jobs, recent activity
+- Linked from the Companies tab via a "View" button
 
 ---
 
 ## Technical Details
 
-### Files to Create (~25 new files)
+### Files to Create (~15 new files)
 
 ```text
-src/hooks/useIsScoutsDomain.ts
-src/hooks/useScoutAuth.ts
-src/hooks/useScoutProfile.ts
-src/hooks/useScoutJobFeed.ts
-src/hooks/useScoutEvidence.ts
-src/hooks/useScoutDisputes.ts
-src/pages/scout-portal/ScoutPortalLayout.tsx
-src/pages/scout-portal/ScoutLogin.tsx
-src/pages/scout-portal/ScoutRegister.tsx
-src/pages/scout-portal/ScoutOnboarding.tsx
-src/pages/scout-portal/ScoutHome.tsx
-src/pages/scout-portal/ScoutJobDetail.tsx
-src/pages/scout-portal/ScoutActiveJob.tsx
-src/pages/scout-portal/ScoutSubmitReview.tsx
-src/pages/scout-portal/ScoutJobResult.tsx
-src/pages/scout-portal/ScoutEarnings.tsx
-src/pages/scout-portal/ScoutProfile.tsx
-src/pages/scout-portal/ScoutProtectedRoute.tsx
-src/pages/scouts/ScoutsJobDetail.tsx
-src/pages/scouts/ScoutsPayouts.tsx
-src/pages/scouts/ScoutsRoster.tsx
-supabase/functions/scout-signed-upload/index.ts
-supabase/functions/scout-signed-view/index.ts
-supabase/functions/scout-job-accept/index.ts
-supabase/functions/generate-evidence-packet/index.ts
+src/pages/scouts/ScoutsAnalytics.tsx
+src/hooks/useScoutAnalytics.ts
+src/pages/scout-portal/ScoutPerformance.tsx
+src/hooks/useScoutPerformance.ts
+src/hooks/useScoutNotifications.ts
+src/components/scout-portal/ScoutNotificationBell.tsx
+src/lib/pwa.ts
+src/pages/InstallApp.tsx
+src/components/OfflineIndicator.tsx
+src/pages/admin/CompanyDetail.tsx
+supabase/functions/scout-notify/index.ts
 ```
 
-### Files to Modify (additive only)
+### Files to Modify (~6 files, additive only)
 
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add scouts domain branch at top level + 3 new Core routes |
-| `src/config/navigation.ts` | Add Payouts + Roster sub-items |
-| `supabase/config.toml` | Add 4 edge function configs (verify_jwt = false) |
+| `vite.config.ts` | Add VitePWA plugin |
+| `src/main.tsx` | Import and call PWA registration |
+| `src/App.tsx` | Add routes: `/scouts/analytics`, `/install`, `/admin/companies/:id`, scout portal `/performance` |
+| `src/config/navigation.ts` | Add `scouts-analytics` sub-item, `install-app` settings item |
+| `src/pages/scout-portal/ScoutPortalLayout.tsx` | Add ScoutNotificationBell + OfflineIndicator |
+| `src/components/layout/AppLayout.tsx` | Add OfflineIndicator |
+| `src/pages/PlatformAdmin.tsx` | Add Scout Operations + Platform Analytics tabs |
+| `supabase/config.toml` | Add scout-notify function config |
+
+### Database Migration
+
+1. Create `scout_notifications` table with RLS
+2. Create trigger functions for auto-notifications on scout_jobs/submissions/payouts/disputes status changes
+3. Enable realtime on `scout_notifications`
 
 ### What is NOT Changed
 
-- Mystery Shopper (all `mystery_shopper_*` tables, routes, pages) — untouched
-- Existing auth flows — untouched
-- Phase 1 scout tables / RLS — untouched (only new tables + columns added)
-- Existing navigation order — only sub-items appended
+- Existing notification system (company `notifications` table) -- untouched
+- Mystery Shopper -- untouched
+- Existing dashboard widgets -- untouched
+- Existing analytics pages (Insights, NotificationAnalytics) -- untouched
 
 ### Implementation Batches
 
-**Batch 1 ✅ DONE:** Migration (app_role, disputes, audit_log, register_scout RPC) + subdomain routing + scout auth pages
+**Batch 1:** PWA setup (VitePWA config, service worker registration, install page, offline indicator)
 
-**Batch 2 ✅ DONE:** Scout portal pages (job feed, job detail, active job stepper, submit, result)
+**Batch 2:** Scout notifications (table + RLS, triggers, scout-notify edge function, notification bell component + hook)
 
-**Batch 3 ✅ DONE:** Edge functions (signed upload/view, job accept, evidence packet) + media integration in both portals
+**Batch 3:** Scout analytics (Core analytics page + hook, Scout Portal performance page + hook, nav updates)
 
-**Batch 4 ✅ DONE:** Core enhancements (job detail, payouts, roster) + scout earnings + profile
-
-### DNS Setup (manual step)
-
-1. Add A record: `scouts.dashspect.com` → `185.158.133.1` at your domain registrar
-2. Add `scouts.dashspect.com` in Lovable project settings → Domains
-3. Wait for SSL provisioning
+**Batch 4:** Platform Admin enhancements (Scout Operations tab, Platform Analytics tab, Company Detail page)
 
