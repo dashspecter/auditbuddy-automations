@@ -7916,6 +7916,54 @@ export type Database = {
           },
         ]
       }
+      scout_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          job_id: string | null
+          message: string
+          scout_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          job_id?: string | null
+          message: string
+          scout_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          job_id?: string | null
+          message?: string
+          scout_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scout_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_notifications_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scout_payouts: {
         Row: {
           amount: number
