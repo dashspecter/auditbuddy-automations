@@ -343,7 +343,7 @@ export const useWasteEntries = (filters: WasteEntryFilters = {}) => {
         query = query.eq('status', filters.status);
       }
 
-      const { data, error } = await query.limit(500);
+      const { data, error } = await query.limit(2000);
       if (error) throw error;
       // Cast to unknown first to handle partial nested types
       return (data as unknown) as WasteEntry[];
@@ -391,7 +391,7 @@ export const useCreateWasteEntry = () => {
     mutationFn: async (entry: {
       location_id: string;
       waste_product_id: string;
-      waste_reason_id?: string;
+      waste_reason_id: string;
       weight_kg: number;
       notes?: string;
       photo_path?: string;
