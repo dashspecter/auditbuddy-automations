@@ -162,7 +162,7 @@ supabase/functions/generate-evidence-packet/index.ts
 
 **Batch 3 ✅ DONE:** Edge functions (signed upload/view, job accept, evidence packet) + media integration in both portals
 
-**Batch 4:** Core enhancements (job detail, payouts, roster) + scout earnings + profile
+**Batch 4 ✅ DONE:** Core enhancements (job detail, payouts, roster) + scout earnings + profile
 
 ### DNS Setup (manual step)
 
