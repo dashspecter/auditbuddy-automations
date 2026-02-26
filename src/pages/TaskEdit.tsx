@@ -103,16 +103,20 @@ const TaskEdit = () => {
   // Initialize form with task data
   useEffect(() => {
     if (task && !isInitialized) {
-      // Fetch task_roles from junction table
-      const loadRoles = async () => {
-        const { data: taskRoles } = await supabase
-          .from("task_roles")
-          .select("role_id")
-          .eq("task_id", task.id);
+      // Fetch task_roles and task_locations from junction tables
+      const loadRelations = async () => {
+        const [{ data: taskRoles }, { data: taskLocations }] = await Promise.all([
+          supabase.from("task_roles").select("role_id").eq("task_id", task.id),
+          supabase.from("task_locations").select("location_id").eq("task_id", task.id),
+        ]);
 
         const roleIds = taskRoles && taskRoles.length > 0
           ? taskRoles.map(tr => tr.role_id)
           : task.assigned_role_id ? [task.assigned_role_id] : [];
+
+        const locationIds = taskLocations && taskLocations.length > 0
+          ? taskLocations.map(tl => tl.location_id)
+          : task.location_id ? [task.location_id] : [];
 
         setFormData({
           title: task.title || "",
@@ -122,7 +126,7 @@ const TaskEdit = () => {
           duration_minutes: task.duration_minutes || 30,
           assigned_to: task.assigned_to || "",
           assigned_role_ids: roleIds,
-          location_ids: task.location_id ? [task.location_id] : [],
+          location_ids: locationIds,
           recurrence_type: task.recurrence_type || "none",
           recurrence_interval: task.recurrence_interval || 1,
           recurrence_end_date: task.recurrence_end_date 
@@ -136,7 +140,7 @@ const TaskEdit = () => {
         setRecurrenceTimes(task.recurrence_times ?? []);
         setIsInitialized(true);
       };
-      loadRoles();
+      loadRelations();
     }
   }, [task, isInitialized]);
 
@@ -163,6 +167,7 @@ const TaskEdit = () => {
         assigned_role_ids: assignmentType === 'role' ? formData.assigned_role_ids : [],
         is_individual: assignmentType === 'role' ? isIndividual : false,
         location_id: formData.location_ids[0] || null,
+        location_ids: formData.location_ids,
         recurrence_type: formData.recurrence_type !== "none" ? formData.recurrence_type : null,
         recurrence_interval: formData.recurrence_type !== "none" ? formData.recurrence_interval : null,
         recurrence_end_date: formData.recurrence_type !== "none" && formData.recurrence_end_date
