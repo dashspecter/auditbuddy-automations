@@ -676,7 +676,7 @@ export const useUpdateTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, assigned_role_ids, ...data }: Partial<Task> & { id: string; assigned_role_ids?: string[] }) => {
+    mutationFn: async ({ id, assigned_role_ids, location_ids, ...data }: Partial<Task> & { id: string; assigned_role_ids?: string[]; location_ids?: string[] }) => {
       // Strip non-column fields before updating
       const { data: task, error } = await supabase
         .from("tasks")
@@ -709,6 +709,29 @@ export const useUpdateTask = () => {
             .insert(taskRoles);
 
           if (insError) console.error("Error inserting task_roles:", insError);
+        }
+      }
+
+      // Sync task_locations junction table if location IDs provided
+      if (location_ids !== undefined) {
+        const { error: delLocError } = await supabase
+          .from("task_locations")
+          .delete()
+          .eq("task_id", id);
+
+        if (delLocError) console.error("Error deleting task_locations:", delLocError);
+
+        if (location_ids.length > 0) {
+          const taskLocations = location_ids.map(locationId => ({
+            task_id: id,
+            location_id: locationId,
+          }));
+
+          const { error: insLocError } = await supabase
+            .from("task_locations")
+            .insert(taskLocations);
+
+          if (insLocError) console.error("Error inserting task_locations:", insLocError);
         }
       }
 
