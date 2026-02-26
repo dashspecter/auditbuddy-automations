@@ -1,16 +1,19 @@
 
 
-# Fill "Declining Locations" card when no declining trends
+# Fix Attendance Rate showing 0% on KPI card
 
-When there are no declining locations, replace the empty "✅ No locations..." message with a quick summary of all locations sorted by score (lowest first), showing their current avg score and trend (stable/improving). This fills the card with useful context instead of wasted space.
+## Root Cause
+The attendance rate calculation in `CrossModuleStatsRow.tsx` (line 66-67) references **wrong field names**: `present_count` and `expected_count`. The materialized view actually returns `staff_checked_in` and `staff_scheduled`. Since the wrong fields are always undefined, it falls back to 0.
+
+The popup (`AttendancePopup.tsx`) uses the correct field names, which is why it shows 69%.
 
 ## Changes
 
-**`src/components/dashboard/DecliningLocationsCard.tsx`**
+**`src/components/dashboard/CrossModuleStatsRow.tsx`** (lines 64-70)
+- Change `d.present_count` → `d.staff_checked_in`
+- Change `d.expected_count` → `d.staff_scheduled`
 
-Replace the empty-state block (lines 53-56) with:
-- "All Stable" header with green checkmark
-- Show top 3 lowest-scoring locations from `locationPerformance` with their avg score, progress bar, and trend icon (TrendingUp for improving, Minus for stable)
-- Each row is clickable (same popup behavior as declining rows)
-- Muted/neutral styling instead of red destructive styling
+Also for both Training and Attendance: show "N/A" instead of "0%" when no data exists:
+- `trainingCompliance`: return `null` when `assignments.length === 0`, display "N/A" with description "No assignments"
+- `attendanceRate`: return `null` when stats are empty, display "N/A" with description "No data"
 
