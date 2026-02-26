@@ -72,6 +72,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'cmms',
       'corrective_actions',
       'operations',
+      'scouts',
     ],
     maxUsers: 100,
     maxLocations: 3,
@@ -112,6 +113,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'cmms',
       'corrective_actions',
       'operations',
+      'scouts',
     ],
   },
 };

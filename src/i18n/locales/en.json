@@ -211,7 +211,13 @@
     "whatsappTemplates": "Templates",
     "whatsappRules": "Rules",
     "whatsappBroadcast": "Broadcast",
-    "whatsappLogs": "Delivery Log"
+    "whatsappLogs": "Delivery Log",
+    "scouts": "Scouts",
+    "scoutsOverview": "Overview",
+    "scoutsJobs": "Jobs",
+    "scoutsReview": "Review Queue",
+    "scoutsTemplates": "Templates",
+    "scoutsCreateJob": "Create Job"
   },
   "auth": {
     "signIn": "Sign In",

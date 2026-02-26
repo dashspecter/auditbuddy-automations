@@ -17,7 +17,7 @@ import {
   CreditCard, Building2, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield, Store, Bot, Settings2,
   Cog, Trash2, History, ShieldCheck, ShieldAlert, QrCode, LucideIcon,
-  MessageSquare
+  MessageSquare, UserSearch
 } from "lucide-react";
 
 import type { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -389,6 +389,21 @@ export const navigationItems: NavigationItem[] = [
     subItems: [
       { id: 'ca-list', titleKey: "nav.allCAs", url: "/corrective-actions", allowedRoles: ['admin', 'manager'] },
       { id: 'ca-rules', titleKey: "nav.caRules", url: "/corrective-actions/rules", allowedRoles: ['admin'] },
+    ]
+  },
+  {
+    id: 'scouts',
+    titleKey: "nav.scouts",
+    url: "/scouts",
+    icon: UserSearch,
+    module: "scouts",
+    allowedRoles: ['admin', 'manager'],
+    companyPermission: 'manage_audits',
+    subItems: [
+      { id: 'scouts-overview', titleKey: "nav.scoutsOverview", url: "/scouts" },
+      { id: 'scouts-jobs', titleKey: "nav.scoutsJobs", url: "/scouts/jobs" },
+      { id: 'scouts-review', titleKey: "nav.scoutsReview", url: "/scouts/review" },
+      { id: 'scouts-templates', titleKey: "nav.scoutsTemplates", url: "/scouts/templates" },
     ]
   },
 ];
