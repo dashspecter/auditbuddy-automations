@@ -131,6 +131,9 @@ Deno.serve(async (req) => {
         const attendanceScore = scheduled > 0 ? (worked / scheduled) * 100 : null;
         const attendanceUsed = scheduled > 0;
 
+        // Build set of dates employee had approved shifts (for shared task filtering)
+        const empShiftDates = new Set(empShifts.map((s: any) => s.shift_date));
+
         // Punctuality
         const empAttendance = (attendance || []).filter((a: any) => a.staff_id === emp.id);
         const lateCount = empAttendance.filter((a: any) => a.is_late).length;
@@ -144,9 +147,13 @@ Deno.serve(async (req) => {
         const empCompletions = (completions || []).filter(
           (c: any) => c.completed_by_employee_id === emp.id && !directIds.has(c.task_id)
         );
-        const assigned = directTasks.length + empCompletions.length;
+        // For shared task assigned count: only count completions on days employee was scheduled
+        const empCompletionsOnShiftDays = empCompletions.filter(
+          (c: any) => empShiftDates.has(c.occurrence_date)
+        );
+        const assigned = directTasks.length + empCompletionsOnShiftDays.length;
         const onTime = directTasks.filter((t: any) => t.status === "completed" && !t.completed_late).length +
-          empCompletions.filter((c: any) => c.completed_late !== true).length;
+          empCompletionsOnShiftDays.filter((c: any) => c.completed_late !== true).length;
         const taskScore = assigned > 0 ? (onTime / assigned) * 100 : null;
         const taskUsed = assigned > 0;
 
