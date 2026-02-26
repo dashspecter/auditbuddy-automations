@@ -291,6 +291,7 @@ export const navigationItems: NavItem[] = [
       { id: "operations-daily", title: "Daily Ops", url: "/operations/daily" },
       { id: "operations-maintenance", title: "Maintenance Tasks", url: "/operations/maintenance" },
       { id: "operations-sla", title: "SLA Management", url: "/operations/slas" },
+      { id: "operations-scouts", title: "Scouts", url: "/scouts" },
       { id: "operations-waste", title: "Wastage", url: "/waste/add" },
     ]
   },
