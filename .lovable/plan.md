@@ -1,47 +1,31 @@
 
 
-# Fix Plan: Scouts Missing from Navigation & Module Management
+# Fix: Scouts Module Toggle — Duplicate Key Error
 
-## Root Cause Analysis
+## Root Cause
 
-Three things were never wired up when the Scouts module was built:
+The `useToggleCompanyModule` hook uses `.upsert()` without specifying `onConflict: 'company_id,module_name'`. When a row already exists (even if `is_active = false`), the upsert tries to insert a new row instead of updating the existing one, hitting the unique constraint `company_modules_company_id_module_name_key`.
 
-| # | Issue | Why it matters |
-|---|-------|---------------|
-| 1 | **No row in `modules` table** for code `'scouts'` | The Module Management UI (`IndustryModuleManagement.tsx`) reads from the `modules` table. No row = not visible on settings page. |
-| 2 | **`MODULE_NAMES` and `MODULE_DEPENDENCIES` maps** in `IndustryModuleManagement.tsx` don't include `'scouts'` | Even after inserting the DB row, the UI won't show the friendly name or dependency info. |
-| 3 | **Scouts routes in `App.tsx` have no `ModuleGate`** | Routes use `ManagerRoute` for role-check but never wrap with `<ModuleGate module="scouts">`, so the feature can't be toggled on/off. The nav sub-item also has no `companyPermission` gating. |
+This affects ALL modules when toggling off then back on, not just Scouts — Scouts just happens to be the first one triggering it because it was freshly inserted.
 
-## Fix Plan (Single Phase)
+## Fix
 
-### 1. Database: Insert Scouts into `modules` table
+**File: `src/hooks/useModules.ts`** (single change)
 
-SQL migration to insert a row:
-```sql
-INSERT INTO public.modules (name, code, description, base_price, industry_scope, icon_name, is_active)
-VALUES ('Dashspect Scouts', 'scouts', 'Dispatch vetted field workers (Scouts) to perform location audits, stock checks, and mystery shopping with photo/video evidence', NULL, 'GLOBAL', 'Users', true);
+Add `onConflict: 'company_id,module_name'` to the upsert call so it correctly updates existing rows instead of trying to insert duplicates:
+
+```typescript
+const { error } = await supabase
+  .from("company_modules")
+  .upsert(
+    {
+      company_id: companyId,
+      module_name: moduleCode,
+      is_active: true,
+    },
+    { onConflict: 'company_id,module_name' }
+  );
 ```
 
-### 2. Frontend: Add Scouts to Module Management UI
-
-In `src/components/settings/IndustryModuleManagement.tsx`:
-- Add `'scouts'` entry to `MODULE_DEPENDENCIES` (works with: `location_audits`, `reports`)
-- Add `'scouts': 'Dashspect Scouts'` to `MODULE_NAMES`
-
-### 3. Frontend: Add ModuleGate to Scouts routes
-
-In `src/App.tsx`, wrap all `/scouts/*` routes with `<ModuleGate module="scouts">` so they respect the module toggle.
-
-### 4. Frontend: Gate nav sub-item by module
-
-In `src/config/navigationConfig.ts`, add `companyPermission` to the scouts sub-item under Operations so it only shows when the module is active. Alternatively, since `SubNavItem` doesn't support a `module` field, we can keep it under Operations and rely on the `ModuleGate` at the route level to block access.
-
-### Files Changed
-
-| File | Change |
-|------|--------|
-| New SQL migration | Insert `scouts` row into `modules` table |
-| `src/components/settings/IndustryModuleManagement.tsx` | Add to `MODULE_DEPENDENCIES` and `MODULE_NAMES` |
-| `src/App.tsx` | Wrap scouts routes with `<ModuleGate module="scouts">` |
-| `src/components/ModuleGuard.tsx` | Add `'scouts': 'Dashspect Scouts'` to `getModuleName` |
+This is a one-line fix in a single file.
 
