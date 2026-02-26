@@ -205,6 +205,7 @@ import ScoutsPayouts from "./pages/scouts/ScoutsPayouts";
 import ScoutsRoster from "./pages/scouts/ScoutsRoster";
 import InstallApp from "./pages/InstallApp";
 import ScoutsAnalytics from "./pages/scouts/ScoutsAnalytics";
+import CompanyDetail from "./pages/admin/CompanyDetail";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -336,6 +337,7 @@ const App = () => {
                       <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/admin/employees" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
                       <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
+                      <Route path="/admin/companies/:id" element={<AdminRoute><CompanyDetail /></AdminRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                       <Route path="/notifications" element={<ManagerRoute requiredPermission="view_reports"><Notifications /></ManagerRoute>} />
                       <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationTemplates /></ManagerRoute>} />
