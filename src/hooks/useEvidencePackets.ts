@@ -298,10 +298,10 @@ export function useReviewEvidencePacket() {
 
       const now = new Date().toISOString();
 
-      // Get current packet status for event log
+      // Get current packet details for event log + rejection handling
       const { data: current } = await supabase
         .from("evidence_packets")
-        .select("status, company_id")
+        .select("status, company_id, subject_type, subject_id, created_by, client_captured_at, created_at")
         .eq("id", args.packetId)
         .single();
 
@@ -327,9 +327,70 @@ export function useReviewEvidencePacket() {
         to_status: args.action,
         payload: args.reason ? { reason: args.reason } : null,
       });
+
+      // ── On rejection: delete task completion + notify employee ──
+      if (args.action === "rejected" && current?.subject_type === "task_occurrence" && current?.subject_id) {
+        const taskId = current.subject_id;
+
+        // Find the employee who submitted the evidence
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("id")
+          .eq("user_id", current.created_by)
+          .maybeSingle();
+
+        // Determine occurrence_date from the packet's capture time
+        const capturedAt = current.client_captured_at ?? current.created_at;
+        // Convert to Europe/Bucharest date (company timezone)
+        const capturedDate = new Date(capturedAt);
+        const occurrenceDate = capturedDate.toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" }); // YYYY-MM-DD
+
+        // Delete the task_completions row for this task + occurrence_date
+        await supabase
+          .from("task_completions")
+          .delete()
+          .eq("task_id", taskId)
+          .eq("occurrence_date", occurrenceDate);
+
+        // Reset the parent task row to pending
+        await supabase
+          .from("tasks")
+          .update({
+            status: "pending",
+            completed_at: null,
+            completed_by: null,
+            completed_late: null,
+          })
+          .eq("id", taskId);
+
+        // Send in-app notification to the employee
+        if (emp?.id) {
+          // Get task name for the notification message
+          const { data: task } = await supabase
+            .from("tasks")
+            .select("title")
+            .eq("id", taskId)
+            .single();
+
+          const taskName = task?.title ?? "a task";
+          const reasonText = args.reason ? `\nReason: ${args.reason}` : "";
+
+          await supabase.from("notifications").insert({
+            title: "Evidence Rejected",
+            message: `Your proof for "${taskName}" was rejected by a manager.${reasonText}`,
+            type: "warning",
+            target_roles: [],
+            target_employee_ids: [emp.id],
+            created_by: user.id,
+            company_id: current.company_id ?? ctx.companyId,
+          });
+        }
+      }
     },
     onSuccess: (_, args) => {
       queryClient.invalidateQueries({ queryKey: ["evidence_packets", args.subjectType, args.subjectId] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["task_completions"] });
     },
   });
 }
