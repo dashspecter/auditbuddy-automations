@@ -1,19 +1,20 @@
 
 
-# Fix Attendance Rate showing 0% on KPI card
+# Make "By Employee" task rows read-only
 
-## Root Cause
-The attendance rate calculation in `CrossModuleStatsRow.tsx` (line 66-67) references **wrong field names**: `present_count` and `expected_count`. The materialized view actually returns `staff_checked_in` and `staff_scheduled`. Since the wrong fields are always undefined, it falls back to 0.
+The `HourTaskRow` component currently has:
+1. A **checkbox** that triggers `onComplete()` — allows completing tasks
+2. A **clickable title** (`onClick={onEdit}`) — navigates to task edit
 
-The popup (`AttendancePopup.tsx`) uses the correct field names, which is why it shows 69%.
+This view is for managers to monitor status at a glance. It should be read-only.
 
 ## Changes
 
-**`src/components/dashboard/CrossModuleStatsRow.tsx`** (lines 64-70)
-- Change `d.present_count` → `d.staff_checked_in`
-- Change `d.expected_count` → `d.staff_scheduled`
+**`src/components/tasks/ByEmployeeTimeline.tsx`**
 
-Also for both Training and Attendance: show "N/A" instead of "0%" when no data exists:
-- `trainingCompliance`: return `null` when `assignments.length === 0`, display "N/A" with description "No assignments"
-- `attendanceRate`: return `null` when stats are empty, display "N/A" with description "No data"
+1. **Remove checkbox interactivity** (line 120-125): Keep the checkbox visual as a status indicator but make it fully disabled (remove `onCheckedChange` handler)
+
+2. **Remove title click handler** (lines 128-131): Remove `cursor-pointer` class and `onClick={onEdit}` from the title wrapper — title stays as plain text
+
+3. Optionally remove `onComplete` and `onEdit` props from `HourTaskRow` since they're no longer used there (clean up)
 
