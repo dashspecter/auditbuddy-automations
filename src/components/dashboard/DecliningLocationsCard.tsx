@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingDown, ArrowRight, MapPin } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePerformanceTrends } from "@/hooks/usePerformanceTrends";
 import { useNavigate } from "react-router-dom";
@@ -51,8 +51,40 @@ export const DecliningLocationsCard = ({ dateFrom, dateTo }: DecliningLocationsC
         </CardHeader>
         <CardContent>
           {declining.length === 0 ? (
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              ✅ {t("dashboard.declining.noDecline", "No locations with declining trends")}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                ✅ {t("dashboard.declining.allStable", "All Stable — Lowest Scores")}
+              </p>
+              {locationPerformance
+                .slice()
+                .sort((a, b) => a.avgScore - b.avgScore)
+                .slice(0, 3)
+                .map((loc) => {
+                  const TrendIcon = loc.overallTrend === "improving" ? TrendingUp : Minus;
+                  const trendColor = loc.overallTrend === "improving" ? "text-green-600" : "text-muted-foreground";
+                  return (
+                    <div
+                      key={loc.locationId}
+                      className="flex items-center gap-3 p-2 rounded-md border bg-muted/30 cursor-pointer hover:bg-muted/60 transition-colors"
+                      onClick={() => setSelectedLocation(loc)}
+                    >
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{loc.locationName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Progress value={loc.avgScore} className="flex-1 h-1.5" />
+                          <span className="text-xs font-bold">{loc.avgScore}%</span>
+                        </div>
+                      </div>
+                      <TrendIcon className={`h-4 w-4 shrink-0 ${trendColor}`} />
+                    </div>
+                  );
+                })}
+              {locationPerformance.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-2">
+                  {t("dashboard.declining.noData", "No location data available")}
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
