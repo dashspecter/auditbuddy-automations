@@ -96,11 +96,14 @@ export const useToggleCompanyModule = () => {
         // Enable module
         const { error } = await supabase
           .from("company_modules")
-          .upsert({
-            company_id: companyId,
-            module_name: moduleCode,
-            is_active: true,
-          });
+          .upsert(
+            {
+              company_id: companyId,
+              module_name: moduleCode,
+              is_active: true,
+            },
+            { onConflict: 'company_id,module_name' }
+          );
 
         if (error) throw error;
       } else {
