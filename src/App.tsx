@@ -14,6 +14,8 @@ import { PWAUpdateReadyToast } from "@/components/PWAUpdateReadyToast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppVisibilityManager } from "@/components/AppVisibilityManager";
+import { useIsScoutsDomain } from "@/hooks/useIsScoutsDomain";
+import ScoutPortalApp from "./pages/scout-portal/ScoutPortalApp";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import FullPresentation from "./pages/FullPresentation";
@@ -209,7 +211,27 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+const App = () => {
+  const isScoutsDomain = useIsScoutsDomain();
+
+  // Scout portal: completely separate app shell
+  if (isScoutsDomain) {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScoutPortalApp />
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -488,6 +510,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

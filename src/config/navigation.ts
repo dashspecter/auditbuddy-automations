@@ -404,6 +404,8 @@ export const navigationItems: NavigationItem[] = [
       { id: 'scouts-jobs', titleKey: "nav.scoutsJobs", url: "/scouts/jobs" },
       { id: 'scouts-review', titleKey: "nav.scoutsReview", url: "/scouts/review" },
       { id: 'scouts-templates', titleKey: "nav.scoutsTemplates", url: "/scouts/templates" },
+      { id: 'scouts-payouts', titleKey: "nav.scoutsPayouts", url: "/scouts/payouts", allowedRoles: ['admin', 'manager'] },
+      { id: 'scouts-roster', titleKey: "nav.scoutsRoster", url: "/scouts/roster", allowedRoles: ['admin', 'manager'] },
     ]
   },
 ];

@@ -156,7 +156,7 @@ supabase/functions/generate-evidence-packet/index.ts
 
 ### Implementation Batches
 
-**Batch 1:** Migration (app_role, disputes, audit_log, register_scout RPC) + subdomain routing + scout auth pages
+**Batch 1 ✅ DONE:** Migration (app_role, disputes, audit_log, register_scout RPC) + subdomain routing + scout auth pages
 
 **Batch 2:** Scout portal pages (job feed, job detail, active job stepper, submit, result)
 
