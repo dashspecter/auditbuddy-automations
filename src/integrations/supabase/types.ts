@@ -7562,6 +7562,583 @@ export type Database = {
           },
         ]
       }
+      scout_invites: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          expires_at: string
+          id: string
+          phone: string | null
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          phone?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          phone?: string | null
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_invites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_job_steps: {
+        Row: {
+          created_at: string | null
+          guidance_text: string | null
+          id: string
+          is_required: boolean | null
+          job_id: string
+          min_photos: number | null
+          min_videos: number | null
+          prompt: string
+          step_order: number
+          step_type: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          guidance_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          job_id: string
+          min_photos?: number | null
+          min_videos?: number | null
+          prompt: string
+          step_order: number
+          step_type?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          guidance_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          job_id?: string
+          min_photos?: number | null
+          min_videos?: number | null
+          prompt?: string
+          step_order?: number
+          step_type?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_job_steps_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scout_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_jobs: {
+        Row: {
+          accepted_at: string | null
+          approved_at: string | null
+          assigned_scout_id: string | null
+          company_id: string
+          created_at: string | null
+          created_by: string
+          currency: string
+          id: string
+          location_id: string
+          notes_internal: string | null
+          notes_public: string | null
+          paid_at: string | null
+          payout_amount: number
+          posted_at: string | null
+          rejected_at: string | null
+          rejection_reasons: Json | null
+          reviewed_at: string | null
+          reviewer_user_id: string | null
+          started_at: string | null
+          status: string
+          submitted_at: string | null
+          template_id: string
+          template_version: number
+          time_window_end: string | null
+          time_window_start: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          approved_at?: string | null
+          assigned_scout_id?: string | null
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          currency?: string
+          id?: string
+          location_id: string
+          notes_internal?: string | null
+          notes_public?: string | null
+          paid_at?: string | null
+          payout_amount?: number
+          posted_at?: string | null
+          rejected_at?: string | null
+          rejection_reasons?: Json | null
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          template_id: string
+          template_version?: number
+          time_window_end?: string | null
+          time_window_start?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          approved_at?: string | null
+          assigned_scout_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          currency?: string
+          id?: string
+          location_id?: string
+          notes_internal?: string | null
+          notes_public?: string | null
+          paid_at?: string | null
+          payout_amount?: number
+          posted_at?: string | null
+          rejected_at?: string | null
+          rejection_reasons?: Json | null
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          template_id?: string
+          template_version?: number
+          time_window_end?: string | null
+          time_window_start?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_jobs_assigned_scout_id_fkey"
+            columns: ["assigned_scout_id"]
+            isOneToOne: false
+            referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_jobs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_jobs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "scout_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_media: {
+        Row: {
+          captured_at: string | null
+          created_at: string | null
+          exif_json: Json | null
+          geo_hash: string | null
+          id: string
+          media_type: string
+          mime_type: string | null
+          size_bytes: number | null
+          step_id: string
+          storage_path: string
+          submission_id: string
+        }
+        Insert: {
+          captured_at?: string | null
+          created_at?: string | null
+          exif_json?: Json | null
+          geo_hash?: string | null
+          id?: string
+          media_type?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          step_id: string
+          storage_path: string
+          submission_id: string
+        }
+        Update: {
+          captured_at?: string | null
+          created_at?: string | null
+          exif_json?: Json | null
+          geo_hash?: string | null
+          id?: string
+          media_type?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          step_id?: string
+          storage_path?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_media_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "scout_job_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_media_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "scout_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_payouts: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          id: string
+          job_id: string
+          method: string | null
+          paid_at: string | null
+          scout_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          job_id: string
+          method?: string | null
+          paid_at?: string | null
+          scout_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          job_id?: string
+          method?: string | null
+          paid_at?: string | null
+          scout_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_payouts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "scout_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_payouts_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_step_answers: {
+        Row: {
+          answer_bool: boolean | null
+          answer_number: number | null
+          answer_text: string | null
+          created_at: string | null
+          id: string
+          reviewer_comment: string | null
+          step_id: string
+          step_status: string | null
+          submission_id: string
+        }
+        Insert: {
+          answer_bool?: boolean | null
+          answer_number?: number | null
+          answer_text?: string | null
+          created_at?: string | null
+          id?: string
+          reviewer_comment?: string | null
+          step_id: string
+          step_status?: string | null
+          submission_id: string
+        }
+        Update: {
+          answer_bool?: boolean | null
+          answer_number?: number | null
+          answer_text?: string | null
+          created_at?: string | null
+          id?: string
+          reviewer_comment?: string | null
+          step_id?: string
+          step_status?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_step_answers_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "scout_job_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_step_answers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "scout_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_submissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_id: string
+          overall_notes: string | null
+          reviewed_at: string | null
+          reviewer_notes: string | null
+          reviewer_user_id: string | null
+          scout_id: string
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_id: string
+          overall_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          scout_id: string
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          overall_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_notes?: string | null
+          reviewer_user_id?: string | null
+          scout_id?: string
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_submissions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scout_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_submissions_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_template_steps: {
+        Row: {
+          created_at: string | null
+          guidance_text: string | null
+          id: string
+          is_required: boolean | null
+          min_photos: number | null
+          min_videos: number | null
+          prompt: string
+          step_order: number
+          step_type: string
+          template_id: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          guidance_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          min_photos?: number | null
+          min_videos?: number | null
+          prompt: string
+          step_order: number
+          step_type?: string
+          template_id: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          guidance_text?: string | null
+          id?: string
+          is_required?: boolean | null
+          min_photos?: number | null
+          min_videos?: number | null
+          prompt?: string
+          step_order?: number
+          step_type?: string
+          template_id?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_template_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "scout_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_templates: {
+        Row: {
+          category: string
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          estimated_duration_minutes: number
+          guidance_text: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+          updated_at: string | null
+          version: number
+        }
+        Insert: {
+          category?: string
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimated_duration_minutes?: number
+          guidance_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+          updated_at?: string | null
+          version?: number
+        }
+        Update: {
+          category?: string
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          estimated_duration_minutes?: number
+          guidance_text?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          updated_at?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scouts: {
+        Row: {
+          city: string | null
+          completed_jobs_count: number | null
+          created_at: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          rating: number | null
+          reliability_score: number | null
+          status: string
+          terms_accepted_at: string | null
+          transport: string | null
+          updated_at: string | null
+          user_id: string
+          zones: string[] | null
+        }
+        Insert: {
+          city?: string | null
+          completed_jobs_count?: number | null
+          created_at?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          rating?: number | null
+          reliability_score?: number | null
+          status?: string
+          terms_accepted_at?: string | null
+          transport?: string | null
+          updated_at?: string | null
+          user_id: string
+          zones?: string[] | null
+        }
+        Update: {
+          city?: string | null
+          completed_jobs_count?: number | null
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          rating?: number | null
+          reliability_score?: number | null
+          status?: string
+          terms_accepted_at?: string | null
+          transport?: string | null
+          updated_at?: string | null
+          user_id?: string
+          zones?: string[] | null
+        }
+        Relationships: []
+      }
       shift_assignments: {
         Row: {
           approval_status: string | null
@@ -11065,6 +11642,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_scout_id: { Args: { _user_id: string }; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_waste_report: {
         Args: {

@@ -208,7 +208,13 @@
     "whatsappTemplates": "Șabloane",
     "whatsappRules": "Reguli",
     "whatsappBroadcast": "Difuzare",
-    "whatsappLogs": "Jurnal livrare"
+    "whatsappLogs": "Jurnal livrare",
+    "scouts": "Scouts",
+    "scoutsOverview": "Prezentare generală",
+    "scoutsJobs": "Misiuni",
+    "scoutsReview": "Revizuire",
+    "scoutsTemplates": "Șabloane",
+    "scoutsCreateJob": "Misiune nouă"
   },
   "auth": {
     "signIn": "Autentificare",

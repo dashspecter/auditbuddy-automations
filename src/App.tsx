@@ -193,6 +193,11 @@ import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import WhatsAppRules from "./pages/WhatsAppRules";
 import WhatsAppBroadcast from "./pages/WhatsAppBroadcast";
 import WhatsAppLogs from "./pages/WhatsAppLogs";
+import ScoutsOverview from "./pages/scouts/ScoutsOverview";
+import ScoutsJobs from "./pages/scouts/ScoutsJobs";
+import ScoutsJobNew from "./pages/scouts/ScoutsJobNew";
+import ScoutsReview from "./pages/scouts/ScoutsReview";
+import ScoutsTemplates from "./pages/scouts/ScoutsTemplates";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -463,9 +468,16 @@ const App = () => (
                       {/* Workforce Agent Routes */}
                       <Route path="/workforce/payroll-batches" element={<ManagerRoute requiredPermission="manage_employees"><PayrollBatches /></ManagerRoute>} />
                       <Route path="/workforce/attendance-alerts" element={<ManagerRoute requiredPermission="manage_employees"><AttendanceAlerts /></ManagerRoute>} />
-                      <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
-                      
-                      <Route path="*" element={<NotFound />} />
+                       <Route path="/workforce/scheduling-insights" element={<ManagerRoute requiredPermission="manage_shifts"><SchedulingInsights /></ManagerRoute>} />
+                       
+                       {/* Scouts Module Routes */}
+                       <Route path="/scouts" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsOverview /></ManagerRoute>} />
+                       <Route path="/scouts/jobs" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobs /></ManagerRoute>} />
+                       <Route path="/scouts/jobs/new" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsJobNew /></ManagerRoute>} />
+                       <Route path="/scouts/review" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsReview /></ManagerRoute>} />
+                       <Route path="/scouts/templates" element={<ManagerRoute requiredPermission="manage_audits"><ScoutsTemplates /></ManagerRoute>} />
+                       
+                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </SidebarProvider>
                 </CompanyProvider>
