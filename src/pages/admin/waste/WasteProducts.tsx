@@ -14,6 +14,8 @@ import { useWasteProducts, useCreateWasteProduct, useUpdateWasteProduct, WastePr
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
 import { useSmartBack } from "@/hooks/useSmartBack";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UOM_OPTIONS, COST_MODEL_OPTIONS, isCountBased, getUomSuffix, getCostLabel } from "@/utils/wasteUom";
 
 export default function WasteProducts() {
   const { t } = useTranslation();
@@ -34,6 +36,8 @@ export default function WasteProducts() {
     name: "",
     category: "",
     unit_cost: 0,
+    uom: "kg" as string,
+    cost_model: "per_kg" as string,
     active: true,
   });
 
@@ -49,6 +53,8 @@ export default function WasteProducts() {
         name: product.name,
         category: product.category || "",
         unit_cost: product.unit_cost,
+        uom: product.uom || "kg",
+        cost_model: product.cost_model || "per_kg",
         active: product.active,
       });
     } else {
@@ -57,6 +63,8 @@ export default function WasteProducts() {
         name: "",
         category: "",
         unit_cost: 0,
+        uom: "kg",
+        cost_model: "per_kg",
         active: true,
       });
     }
@@ -69,14 +77,15 @@ export default function WasteProducts() {
         id: editingProduct.id,
         ...formData,
         category: formData.category || null,
+        cost_model: formData.cost_model as 'per_kg' | 'per_unit',
       });
     } else {
       await createProduct.mutateAsync({
         name: formData.name,
         category: formData.category || null,
         unit_cost: formData.unit_cost,
-        uom: 'g',
-        cost_model: 'per_kg',
+        uom: formData.uom,
+        cost_model: formData.cost_model as 'per_kg' | 'per_unit',
         active: formData.active,
         photo_hint_url: null,
       });
@@ -147,9 +156,10 @@ export default function WasteProducts() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
+                     <TableHead>Name</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Cost/kg (RON)</TableHead>
+                      <TableHead>UOM</TableHead>
+                      <TableHead className="text-right">Unit Cost (RON)</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
@@ -159,6 +169,9 @@ export default function WasteProducts() {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{product.category || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{getUomSuffix(product.uom)}</Badge>
+                        </TableCell>
                         <TableCell className="text-right">{product.unit_cost.toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge variant={product.active ? "default" : "secondary"}>
@@ -214,7 +227,42 @@ export default function WasteProducts() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit_cost">Cost per kg (RON) *</Label>
+                <Label>Unit of Measure *</Label>
+                <Select
+                  value={formData.uom}
+                  onValueChange={(value) => {
+                    const newCostModel = isCountBased(value) ? 'per_unit' : 'per_kg';
+                    setFormData({ ...formData, uom: value, cost_model: newCostModel });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UOM_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cost Model *</Label>
+                <Select
+                  value={formData.cost_model}
+                  onValueChange={(value) => setFormData({ ...formData, cost_model: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COST_MODEL_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit_cost">{getCostLabel(formData.uom, formData.cost_model).replace(' (RON)', '')} (RON) *</Label>
                 <Input
                   id="unit_cost"
                   type="number"
