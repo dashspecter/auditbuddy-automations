@@ -16,6 +16,7 @@ export interface AttendanceKiosk {
   created_at: string;
   updated_at: string;
   locations?: { name: string };
+  departments?: { name: string } | null;
 }
 
 export const useAttendanceKiosks = () => {
@@ -24,7 +25,7 @@ export const useAttendanceKiosks = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_kiosks")
-        .select(`*, locations:location_id(name)`)
+        .select(`*, locations:location_id(name), departments:department_id(name)`)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
