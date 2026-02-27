@@ -311,6 +311,7 @@ const Tasks = () => {
   const {
     todayTasks: todayResult,
     tomorrowTasks: tomorrowResult,
+    grouped: unifiedGrouped,
     isLoading: isLoadingUnified,
     isLoadingShifts,
     rawTasks,
@@ -722,6 +723,7 @@ const Tasks = () => {
           <TabsContent value="all" className="mt-4">
             <AllTasksOpsDashboard
               tasks={locationFilteredTasks}
+              noCoverageTasks={unifiedGrouped.noCoverage}
               onComplete={handleComplete}
               onEdit={(id) => navigate(`/tasks/${id}/edit`)}
               onDelete={(id) => setDeleteTaskId(id)}
