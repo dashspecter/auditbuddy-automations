@@ -6,6 +6,7 @@ export interface AttendanceKiosk {
   id: string;
   location_id: string;
   company_id: string;
+  department_id: string | null;
   device_token: string;
   device_name: string;
   is_active: boolean;
@@ -38,10 +39,12 @@ export const useCreateKiosk = () => {
   return useMutation({
     mutationFn: async ({ 
       locationId, 
-      deviceName 
+      deviceName,
+      departmentId 
     }: { 
       locationId: string; 
       deviceName: string;
+      departmentId?: string;
     }) => {
       // Get company ID
       const { data: { user } } = await supabase.auth.getUser();
@@ -66,6 +69,7 @@ export const useCreateKiosk = () => {
           device_token: deviceToken,
           device_name: deviceName,
           registered_by: user.id,
+          ...(departmentId ? { department_id: departmentId } : {}),
         })
         .select()
         .single();
@@ -135,7 +139,7 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
       for (const candidate of slugCandidates) {
         const result = await supabase
           .from("attendance_kiosks")
-          .select(`*, locations:location_id(name, address), custom_slug`)
+          .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
           .eq("custom_slug", candidate)
           .eq("is_active", true)
           .maybeSingle();
@@ -155,7 +159,7 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
         for (const candidate of slugCandidates) {
           const result = await supabase
             .from("attendance_kiosks")
-            .select(`*, locations:location_id(name, address), custom_slug`)
+            .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
             .ilike("custom_slug", candidate)
             .eq("is_active", true)
             .maybeSingle();
@@ -175,7 +179,7 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
       if (!data && !error) {
         const result = await supabase
           .from("attendance_kiosks")
-          .select(`*, locations:location_id(name, address), custom_slug`)
+          .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
           .eq("device_token", normalizedToken)
           .eq("is_active", true)
           .maybeSingle();
@@ -189,6 +193,7 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
         | (AttendanceKiosk & {
             locations: { name: string; address: string | null };
             custom_slug: string | null;
+            departments: { id: string; name: string } | null;
           })
         | null
       );

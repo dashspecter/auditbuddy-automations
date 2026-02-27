@@ -579,6 +579,7 @@ export type Database = {
           company_id: string
           created_at: string
           custom_slug: string | null
+          department_id: string | null
           device_name: string
           device_token: string
           id: string
@@ -593,6 +594,7 @@ export type Database = {
           company_id: string
           created_at?: string
           custom_slug?: string | null
+          department_id?: string | null
           device_name?: string
           device_token: string
           id?: string
@@ -607,6 +609,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           custom_slug?: string | null
+          department_id?: string | null
           device_name?: string
           device_token?: string
           id?: string
@@ -623,6 +626,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_kiosks_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {

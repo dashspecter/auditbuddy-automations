@@ -37,6 +37,8 @@ interface KioskDashboardProps {
   companyId: string;
   /** The kiosk token/slug from the public kiosk URL (used for scoped anonymous reads). */
   kioskToken: string;
+  /** Optional department filter — when set, only employees whose role belongs to this department are shown. */
+  departmentId?: string | null;
 }
 
 interface Employee {
@@ -73,7 +75,7 @@ interface Task {
   role_names?: string[];
 }
 
-export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashboardProps) => {
+export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId }: KioskDashboardProps) => {
   const today = new Date();
   // Use proper ISO timestamps for database queries (timestamptz columns)
   const todayStart = startOfDay(today).toISOString();
@@ -81,8 +83,23 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 }).toISOString();
 
+  // Fetch department role names when departmentId is set
+  const { data: departmentRoleNames } = useQuery({
+    queryKey: ["kiosk-department-roles", departmentId],
+    queryFn: async () => {
+      if (!departmentId) return null;
+      const { data, error } = await supabase
+        .from("employee_roles")
+        .select("name")
+        .eq("department_id", departmentId);
+      if (error) throw error;
+      return data.map(r => r.name);
+    },
+    enabled: !!departmentId,
+  });
+
   // Fetch employees at this location
-  const { data: employees = [] } = useQuery({
+  const { data: allEmployees = [] } = useQuery({
     queryKey: ["kiosk-employees", locationId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -94,8 +111,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
       if (error) throw error;
       return data as Employee[];
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
+
+  // Filter employees by department roles if departmentId is set
+  const employees = useMemo(() => {
+    if (!departmentId || !departmentRoleNames) return allEmployees;
+    return allEmployees.filter(e => departmentRoleNames.includes(e.role));
+  }, [allEmployees, departmentId, departmentRoleNames]);
 
   // Fetch today's attendance
   const { data: attendance = [] } = useQuery({
