@@ -81,6 +81,7 @@ export const EmployeeDialog = ({
     aviz_data_eliberare: "",
     aviz_institutie: "",
     spor_weekend: "",
+    annual_vacation_days: "21",
     // Login account password
     newUserPassword: "",
   });
@@ -142,6 +143,7 @@ export const EmployeeDialog = ({
         aviz_data_eliberare: employee.aviz_data_eliberare || "",
         aviz_institutie: employee.aviz_institutie || "",
         spor_weekend: employee.spor_weekend?.toString() || "",
+        annual_vacation_days: employee.annual_vacation_days?.toString() || "21",
         newUserPassword: "",
       });
     } else {
@@ -186,6 +188,7 @@ export const EmployeeDialog = ({
         aviz_data_eliberare: "",
         aviz_institutie: "",
         spor_weekend: "",
+        annual_vacation_days: "21",
         newUserPassword: "",
       });
       setAdditionalLocations([]);
@@ -269,6 +272,7 @@ export const EmployeeDialog = ({
       aviz_data_eliberare: formData.aviz_data_eliberare || null,
       aviz_institutie: formData.aviz_institutie || null,
       spor_weekend: formData.spor_weekend ? parseFloat(formData.spor_weekend) : null,
+      annual_vacation_days: formData.annual_vacation_days ? parseInt(formData.annual_vacation_days) : null,
     };
     
     let employeeId: string;
@@ -583,7 +587,7 @@ export const EmployeeDialog = ({
                     <Input id="overtime_rate" type="number" step="0.01" value={formData.overtime_rate} onChange={(e) => setFormData({ ...formData, overtime_rate: e.target.value })} placeholder="Per hour for extra shifts" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="expected_weekly_hours">Expected Weekly Hours</Label>
                     <Input id="expected_weekly_hours" type="number" step="0.5" value={formData.expected_weekly_hours} onChange={(e) => setFormData({ ...formData, expected_weekly_hours: e.target.value })} placeholder="e.g. 40" />
@@ -591,6 +595,10 @@ export const EmployeeDialog = ({
                   <div>
                     <Label htmlFor="expected_shifts_per_week">Expected Shifts/Week</Label>
                     <Input id="expected_shifts_per_week" type="number" step="1" value={formData.expected_shifts_per_week} onChange={(e) => setFormData({ ...formData, expected_shifts_per_week: e.target.value })} placeholder="e.g. 5" />
+                  </div>
+                  <div>
+                    <Label htmlFor="annual_vacation_days">Annual Vacation Days</Label>
+                    <Input id="annual_vacation_days" type="number" step="1" min="0" value={formData.annual_vacation_days} onChange={(e) => setFormData({ ...formData, annual_vacation_days: e.target.value })} placeholder="e.g. 21" />
                   </div>
                 </div>
               </CollapsibleContent>

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { Calendar, Plus, Umbrella } from "lucide-react";
+import { Calendar, Plus, Umbrella, Info } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -216,6 +216,13 @@ const StaffTimeOff = () => {
             </div>
           </div>
         </Card>
+
+        <div className="flex items-start gap-2 mt-3 px-1">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            {t('staffTimeOff.verifyWithHR', 'Always verify with HR — updates can take up to 10 days.')}
+          </p>
+        </div>
       </div>
 
       {/* Requests List */}

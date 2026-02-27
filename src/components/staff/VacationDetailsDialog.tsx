@@ -18,7 +18,7 @@ export const VacationDetailsDialog = ({ open, onOpenChange }: VacationDetailsDia
     queryFn: async () => {
       const { data: employee } = await supabase
         .from("employees")
-        .select("id")
+        .select("id, annual_vacation_days")
         .eq("user_id", user?.id)
         .single();
 
@@ -47,8 +47,7 @@ export const VacationDetailsDialog = ({ open, onOpenChange }: VacationDetailsDia
         return total + days;
       }, 0) || 0;
 
-      // Typical annual allowance (this should come from employee record)
-      const totalDays = 25;
+      const totalDays = employee.annual_vacation_days || 21;
       const remaining = totalDays - usedDays;
 
       return {
