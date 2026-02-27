@@ -91,7 +91,17 @@ const TaskListItem = ({ task, onEdit, onDelete }: TaskListItemProps) => {
               {task.assigned_role.name}
             </span>
           )}
-          {task.location && (
+          {(task.task_location_names && task.task_location_names.length > 0) ? (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {task.task_location_names[0]}
+              {task.task_location_names.length > 1 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  +{task.task_location_names.length - 1}
+                </Badge>
+              )}
+            </span>
+          ) : task.location && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {task.location.name}
@@ -215,7 +225,17 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
               {task.assigned_role.name} {!task.is_individual && `(${t('tasks.shared')})`}
             </span>
           )}
-          {task.location && (
+          {(task.task_location_names && task.task_location_names.length > 0) ? (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {task.task_location_names[0]}
+              {task.task_location_names.length > 1 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  +{task.task_location_names.length - 1}
+                </Badge>
+              )}
+            </span>
+          ) : task.location && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {task.location.name}
@@ -370,7 +390,15 @@ const Tasks = () => {
   // Helper to filter by location, role, and employee
   const filterTasks = (taskList: Task[]) => {
     return taskList.filter(t => {
-      if (selectedLocationId !== "all" && t.location_id !== selectedLocationId) return false;
+      if (selectedLocationId !== "all") {
+        // Use junction-table location IDs if available, fallback to location_id
+        const taskLocIds = t.task_location_ids;
+        if (taskLocIds && taskLocIds.length > 0) {
+          if (!taskLocIds.includes(selectedLocationId)) return false;
+        } else if (t.location_id !== selectedLocationId) {
+          return false;
+        }
+      }
       if (selectedRoleId !== "all" && t.assigned_role_id !== selectedRoleId) return false;
       if (selectedEmployeeId !== "all" && t.assigned_to !== selectedEmployeeId) return false;
       return true;
