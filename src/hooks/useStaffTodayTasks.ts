@@ -323,16 +323,39 @@ export function useStaffTodayTasks(
         (task, index, self) => index === self.findIndex((t) => t.id === task.id)
       );
       
+      // Enrich tasks with task_location_ids from junction table
+      const taskIds = uniqueTasks.map(t => t.id);
+      let taskLocationMap: Record<string, string[]> = {};
+      if (taskIds.length > 0) {
+        const { data: taskLocations } = await supabase
+          .from("task_locations")
+          .select("task_id, location_id")
+          .in("task_id", taskIds);
+        
+        if (taskLocations) {
+          for (const tl of taskLocations) {
+            if (!taskLocationMap[tl.task_id]) taskLocationMap[tl.task_id] = [];
+            taskLocationMap[tl.task_id].push(tl.location_id);
+          }
+        }
+      }
+      
+      const enrichedTasks = uniqueTasks.map(t => ({
+        ...t,
+        task_location_ids: taskLocationMap[t.id] || (t.location_id ? [t.location_id] : []),
+      }));
+
       if (import.meta.env.DEV) {
         console.log("[useStaffTodayTasks] Fetched tasks:", {
           direct: directTasks?.length || 0,
           role: roleTasks.length,
           locationOnly: locationOnlyTasks.length,
           unique: uniqueTasks.length,
+          enrichedWithLocations: Object.keys(taskLocationMap).length,
         });
       }
       
-      return uniqueTasks as Task[];
+      return enrichedTasks as Task[];
     },
     enabled: enabled && !!staffContext?.companyId,
   });

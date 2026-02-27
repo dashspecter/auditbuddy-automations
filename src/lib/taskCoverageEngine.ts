@@ -151,6 +151,11 @@ export function checkTaskCoverage(
   const taskDateStr = dayWindow.dayKey;
   const taskTime = task.start_at ? getTimeFromDate(task.start_at) : null;
   const locationId = task.location_id;
+  // Use task_location_ids from junction table if available (multi-location support)
+  const taskLocationIds: string[] = (task as any).task_location_ids;
+  const allLocationIds = taskLocationIds?.length > 0
+    ? taskLocationIds
+    : (locationId ? [locationId] : []);
   const roleId = task.assigned_role_id;
   const roleName = task.assigned_role?.name;
   const assignedTo = task.assigned_to;
@@ -182,7 +187,7 @@ export function checkTaskCoverage(
   
   // Determine if this is a LOCATION-ONLY task (no specific role or employee assignment)
   // These tasks should be visible to ALL employees at the location
-  const isLocationOnlyTask = !roleId && !roleName && !assignedTo && !!locationId;
+  const isLocationOnlyTask = !roleId && !roleName && !assignedTo && allLocationIds.length > 0;
   
   // Find shifts that match location, role (and optionally time)
   const matchingShifts: Shift[] = [];
@@ -190,9 +195,9 @@ export function checkTaskCoverage(
   let lastMismatchReason: CoverageResult["noCoverageReason"] = undefined;
   
   for (const shift of dateShifts) {
-    // Location check (global tasks with NULL location match any location)
+    // Location check - use all assigned locations (multi-location support)
     locationChecks++;
-    if (locationId && shift.location_id !== locationId) {
+    if (allLocationIds.length > 0 && !allLocationIds.includes(shift.location_id)) {
       lastMismatchReason = "location_mismatch";
       continue;
     }
