@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Trash2, Clock, Upload, Camera, ImageOff } from "lucide-react";
+import { getUomSuffix } from "@/utils/wasteUom";
 import { format } from "date-fns";
 import { useMyWasteEntries, getWastePhotoUrl, uploadWastePhoto, useUpdateWasteEntry } from "@/hooks/useWaste";
 import { useCompany } from "@/hooks/useCompany";
@@ -135,7 +136,7 @@ export default function AdminWasteEntries() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">{entry.weight_kg?.toFixed(2)} kg</p>
+                    <p className="font-semibold">{entry.weight_kg?.toFixed(2)} {getUomSuffix(entry.waste_products?.uom || 'kg')}</p>
                     <p className="text-sm text-muted-foreground">
                       {entry.cost_total?.toFixed(2) || "0.00"} RON
                     </p>
@@ -175,7 +176,7 @@ export default function AdminWasteEntries() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Weight</p>
-                    <p className="font-medium">{selectedEntry.weight_kg?.toFixed(2)} kg</p>
+                    <p className="font-medium">{selectedEntry.weight_kg?.toFixed(2)} {getUomSuffix(selectedEntry.waste_products?.uom || 'kg')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Cost</p>

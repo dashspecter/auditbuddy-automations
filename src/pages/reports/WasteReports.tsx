@@ -26,6 +26,7 @@ import {
   Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, ComposedChart
 } from "recharts";
 import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, useUpdateWasteEntry, useVoidWasteEntry, WasteEntryFilters, getWastePhotoUrl, WasteEntry } from "@/hooks/useWaste";
+import { getUomSuffix } from "@/utils/wasteUom";
 import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
@@ -751,7 +752,7 @@ export default function WasteReports() {
                           <TableHead>Location</TableHead>
                           <TableHead>Product</TableHead>
                           <TableHead>Reason</TableHead>
-                          <TableHead className="text-right">Weight (kg)</TableHead>
+                          <TableHead className="text-right">Quantity</TableHead>
                           <TableHead className="text-right">Cost (RON)</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="w-12">Actions</TableHead>
@@ -786,7 +787,7 @@ export default function WasteReports() {
                             <TableCell>{entry.locations?.name}</TableCell>
                             <TableCell>{entry.waste_products?.name}</TableCell>
                             <TableCell>{entry.waste_reasons?.name || '-'}</TableCell>
-                            <TableCell className="text-right">{entry.weight_kg.toFixed(3)}</TableCell>
+                            <TableCell className="text-right">{entry.weight_kg.toFixed(3)} {getUomSuffix(entry.waste_products?.uom || 'kg')}</TableCell>
                             <TableCell className="text-right">{entry.cost_total.toFixed(2)}</TableCell>
                             <TableCell>
                               <Badge variant={entry.status === 'recorded' ? 'default' : 'destructive'}>
@@ -839,7 +840,9 @@ export default function WasteReports() {
                   <p className="text-sm text-muted-foreground">{editingEntry.waste_products?.name}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editWeight">Weight (kg)</Label>
+                  <Label htmlFor="editWeight">
+                    {editingEntry?.waste_products?.uom ? getUomSuffix(editingEntry.waste_products.uom) : 'kg'}
+                  </Label>
                   <Input id="editWeight" type="text" inputMode="decimal" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
                 </div>
                 <div className="space-y-2">
@@ -919,8 +922,8 @@ export default function WasteReports() {
                     <p className="font-medium">{selectedEntry.locations?.name}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Weight</p>
-                    <p className="font-medium">{selectedEntry.weight_kg.toFixed(2)} kg</p>
+                    <p className="text-muted-foreground">Quantity</p>
+                    <p className="font-medium">{selectedEntry.weight_kg.toFixed(2)} {getUomSuffix(selectedEntry.waste_products?.uom || 'kg')}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Cost</p>

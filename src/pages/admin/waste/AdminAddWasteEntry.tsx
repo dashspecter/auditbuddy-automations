@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, Scale, Package, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { getQuantityLabel, getQuantityPlaceholder, showGramTooltip, getUomSuffix } from "@/utils/wasteUom";
 import { useWasteProducts, useWasteReasons, useCreateWasteEntry, useUpdateWasteEntry, uploadWastePhoto } from "@/hooks/useWaste";
 import { useLocations } from "@/hooks/useLocations";
 import { useCompany } from "@/hooks/useCompany";
@@ -230,11 +231,11 @@ export default function AdminAddWasteEntry() {
                 </Select>
               </div>
 
-              {/* Weight */}
+              {/* Quantity */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Scale className="h-4 w-4" />
-                  Weight (kg) *
+                  {selectedProduct ? getQuantityLabel(selectedProduct.uom) : 'Weight (kg)'} *
                 </Label>
                 <Input
                   type="text"
@@ -244,11 +245,13 @@ export default function AdminAddWasteEntry() {
                     const val = e.target.value.replace(/[^0-9.,]/g, '');
                     setFormData(prev => ({ ...prev, weight_kg: val }));
                   }}
-                  placeholder="e.g. 1,50"
+                  placeholder={selectedProduct ? getQuantityPlaceholder(selectedProduct.uom) : 'e.g. 1,50'}
                 />
-                <p className="text-xs text-muted-foreground">
-                  💡 100 grams = 0,1 kg · 500 grams = 0,5 kg · 1000 grams = 1 kg
-                </p>
+                {(!selectedProduct || showGramTooltip(selectedProduct.uom)) && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 100 grams = 0,1 kg · 500 grams = 0,5 kg · 1000 grams = 1 kg
+                  </p>
+                )}
                 {estimatedCost && (
                   <p className="text-sm text-muted-foreground">
                     Estimated cost: <span className="font-medium">{estimatedCost} RON</span>
