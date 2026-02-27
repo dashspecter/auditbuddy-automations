@@ -233,7 +233,14 @@ const AttendanceKiosk = () => {
       <div className="p-4 text-center border-b bg-card flex items-center justify-between">
         <div className="flex items-center gap-2 text-primary">
           <MapPin className="h-5 w-5" />
-          <span className="font-semibold text-lg">{kiosk.locations?.name}</span>
+          <span className="font-semibold text-lg">
+            {kiosk.locations?.name}
+            {(kiosk as any).departments?.name && (
+              <span className="text-muted-foreground font-normal text-sm ml-2">
+                — {(kiosk as any).departments.name}
+              </span>
+            )}
+          </span>
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold tracking-tight">
@@ -297,6 +304,7 @@ const AttendanceKiosk = () => {
             locationId={kiosk.location_id} 
             companyId={kiosk.company_id} 
             kioskToken={kioskToken}
+            departmentId={kiosk.department_id}
           />
         </div>
       </div>

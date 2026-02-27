@@ -19,6 +19,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLocations } from "@/hooks/useLocations";
+import { useDepartments } from "@/hooks/useDepartments";
 import { 
   useAttendanceKiosks, 
   useCreateKiosk, 
@@ -46,10 +47,12 @@ export const KioskManagementDialog = ({
   onOpenChange,
 }: KioskManagementDialogProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [deviceName, setDeviceName] = useState("Attendance Kiosk");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   const { data: locations = [] } = useLocations();
+  const { data: departments = [] } = useDepartments();
   const { data: kiosks = [], isLoading } = useAttendanceKiosks();
   const createKiosk = useCreateKiosk();
   const deleteKiosk = useDeleteKiosk();
@@ -63,9 +66,11 @@ export const KioskManagementDialog = ({
     await createKiosk.mutateAsync({
       locationId: selectedLocation,
       deviceName,
+      departmentId: selectedDepartment || undefined,
     });
     
     setSelectedLocation("");
+    setSelectedDepartment("");
     setDeviceName("Attendance Kiosk");
   };
 
@@ -104,7 +109,7 @@ export const KioskManagementDialog = ({
               <Plus className="h-4 w-4" />
               Register New Kiosk
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Location</Label>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -115,6 +120,21 @@ export const KioskManagementDialog = ({
                     {locations.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Department (optional)</Label>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
