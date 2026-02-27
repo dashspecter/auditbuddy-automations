@@ -1,25 +1,26 @@
 
 
-# Add Filters to Waste Entries Tab
+# Editable Vacation Days + Mobile Tooltip
 
-## Changes (single file: `src/pages/reports/WasteReports.tsx`)
+## What changes
 
-### 1. Add entry-specific filter state
-- `entryProductFilter` (select from products list)
-- `entryReasonFilter` (select from reasons list)  
-- `entryDateFilter` (date input for specific day)
-- `entryWeightMin` / `entryWeightMax` (number inputs)
-- `entryCostMin` / `entryCostMax` (number inputs)
+### 1. Add `annual_vacation_days` field to EmployeeDialog (`src/components/EmployeeDialog.tsx`)
+- Add `annual_vacation_days` to formData state (default `"21"`)
+- Initialize from `employee.annual_vacation_days` when editing
+- Add a number input field in the employment/contract section labeled "Annual Vacation Days"
+- Include it in `submitData` as `parseInt` or `null`
+- This field already exists on the `employees` table — no migration needed
 
-### 2. Add filter bar above the entries table
-- Row of compact filter controls inside the Entries `TabsContent`, between the `CardHeader` and the table
-- Product select, Reason select, Weight min/max inputs, Cost min/max inputs
-- "Clear filters" button to reset all
+### 2. Fix VacationDetailsDialog to use actual employee data (`src/components/staff/VacationDetailsDialog.tsx`)
+- Query `annual_vacation_days` from the employee record instead of hardcoding `25`
+- Use `employee.annual_vacation_days || 21` as the total
 
-### 3. Client-side filtering of entries
-- Apply filters to `entries` array using `useMemo` before rendering the table
-- Filter by product name match, reason match, weight range, cost range, and date
-- This avoids extra server queries since entries are already loaded (max 2000)
+### 3. Fix StaffTimeOff mobile view (`src/pages/staff/StaffTimeOff.tsx`)
+- Already reads `annual_vacation_days` from DB — this part is correct
+- Add a tooltip/info banner below the vacation balance card with the text: "Always verify with HR — updates can take up to 10 days"
+- Use `Info` icon + muted styling for the disclaimer
 
-### No database changes needed
+### 4. No database changes needed
+- `annual_vacation_days` column already exists on `employees` table
+- RLS policies already allow admin/owner/manager updates via `useUpdateEmployee`
 
