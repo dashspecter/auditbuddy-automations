@@ -1,27 +1,30 @@
 
 
-# Bug: Kiosk Shows Fewer Tasks Than Expected for Shift Manager
+# Bug: Staff Sees Tasks From All Locations Instead of Only Their Shift Location
 
 ## Root Cause
 
-The kiosk task pipeline (`useKioskTodayTasks`) never enriches tasks with `task_location_ids` from the junction table. When the coverage engine runs, it falls back to `task.location_id` (the single primary column). For multi-location tasks, this primary `location_id` may point to a different location (e.g., "LBFC Apaca") than the kiosk's location ("LBFC Amzei"). The coverage check then fails with `location_mismatch`, hiding the task.
+In `src/lib/unifiedTaskPipeline.ts` (lines 142-164), the **execution mode** has an "accountability" feature: overdue tasks are re-added to the visible list **regardless of coverage**. The logic at line 147-149 grabs ALL overdue tasks across all locations — not just those at the employee's shift location.
 
-The staff mobile path was just fixed with `task_location_ids` enrichment, but the kiosk path was missed.
+Since `useStaffTodayTasks` fetches role tasks without location filtering (relying on coverage to scope them), tasks from LBFC Obor and LBFC Timpuri Noi correctly get `hasCoverage: false` (no shift exists there). But because they're overdue ("Time expired!"), they bypass the coverage filter via `overdueRegardlessOfCoverage` and appear in the list.
+
+The intent of this feature was: "if a task WAS covered during your shift but you didn't complete it, it should stay visible after your shift ends for accountability." The bug is it includes tasks that were **never** at the employee's location.
 
 ## Fix
 
-### A. Enrich kiosk tasks with `task_location_ids` in `useStaffTodayTasks.ts`
+**File: `src/lib/unifiedTaskPipeline.ts` (lines 147-149)**
 
-In the `useKioskTodayTasks` hook, after fetching `rawTasks` (around line 766), add a batch query to `task_locations` to attach `task_location_ids: string[]` to each task — same pattern used in the staff path (lines 326-346).
+Change the `overdueRegardlessOfCoverage` filter to only include overdue tasks whose `noCoverageReason` is NOT `location_mismatch`. Tasks that failed coverage due to location mismatch were never relevant to this employee. Tasks that failed due to `no_shift` (shift ended), `no_approved_assignments`, or time-based reasons WERE at the right location and should remain visible for accountability.
 
-For the RPC path (anonymous kiosk with `kioskToken`): after mapping RPC results at line 638, batch-query `task_locations` for all returned task IDs and attach `task_location_ids`.
-
-For the non-RPC path: same enrichment after line 764.
-
-### B. No changes needed to the coverage engine
-
-The coverage engine already reads `task_location_ids` (fixed in the previous change). It just needs the data to be present on the task objects, which this fix provides.
+```typescript
+const overdueRegardlessOfCoverage = tasksWithCoverage.filter(
+  (t) => t.status !== "completed" && baseIsTaskOverdue(t) &&
+    // Only re-add overdue tasks that were at the right location but lost coverage
+    // for time/assignment reasons — NOT tasks from different locations entirely
+    t.coverage?.noCoverageReason !== "location_mismatch"
+);
+```
 
 ### Files Changed
-- `src/hooks/useStaffTodayTasks.ts` — Add `task_location_ids` enrichment to kiosk raw task query (~15 lines added)
+- `src/lib/unifiedTaskPipeline.ts` — Scope overdue accountability to same-location tasks only
 
