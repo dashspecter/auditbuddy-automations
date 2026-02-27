@@ -33,8 +33,6 @@ import { Task } from "@/hooks/useTasks";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useEmployees } from "@/hooks/useEmployees";
-import { useShiftCoverage } from "@/hooks/useShiftCoverage";
-import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, startOfWeek, endOfWeek, addWeeks, getDay, startOfDay, endOfDay, addDays } from "date-fns";
 import { 
@@ -43,7 +41,6 @@ import {
   isVirtualId,
 } from "@/lib/taskOccurrenceEngine";
 import { 
-  runPipelineForDateRange,
   isTaskOverdueShiftAware,
   TaskWithCoverage,
 } from "@/lib/unifiedTaskPipeline";
@@ -54,7 +51,8 @@ type DateRange = "this-week" | "next-week" | "this-month" | "custom";
 type StatusFilter = "all" | "pending" | "overdue" | "completed";
 
 interface AllTasksOpsDashboardProps {
-  tasks: Task[];
+  tasks: TaskWithCoverage[];
+  noCoverageTasks?: TaskWithCoverage[];
   onComplete: (taskId: string) => void;
   onEdit: (taskId: string) => void;
   onDelete: (taskId: string) => void;
@@ -244,13 +242,14 @@ const DayGroup = ({
 
 export const AllTasksOpsDashboard = ({
   tasks,
+  noCoverageTasks: externalNoCoverage,
   onComplete,
   onEdit,
   onDelete,
   isLoading
 }: AllTasksOpsDashboardProps) => {
   const { t } = useTranslation();
-  const { company } = useCompanyContext();
+  
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
   const { data: employees = [] } = useEmployees();
@@ -291,25 +290,10 @@ export const AllTasksOpsDashboard = ({
     }
   }, [dateRange]);
 
-  // Fetch shifts for coverage check (pass companyId explicitly)
-  const { data: shifts = [] } = useShiftCoverage({
-    startDate: rangeStart,
-    endDate: rangeEnd,
-    companyId: company?.id,
-  });
-
-  // Get all occurrences in range using unified pipeline
-  const pipelineResult = useMemo(() => {
-    return runPipelineForDateRange(tasks, rangeStart, rangeEnd, {
-      viewMode, // Use selected view mode
-      includeCompleted: true,
-      includeVirtual: true,
-      shifts,
-    });
-  }, [tasks, rangeStart, rangeEnd, shifts, viewMode]);
-
-  const occurrencesInRange = pipelineResult.tasks;
-  const noCoverageTasks = pipelineResult.noCoverage;
+  // Use tasks directly from parent (already processed through unified pipeline)
+  // No need to run pipeline again — parent provides pre-computed coverage data
+  const occurrencesInRange = tasks;
+  const noCoverageTasks = externalNoCoverage || [];
 
   // Apply filters
   const filteredTasks = useMemo(() => {
@@ -324,9 +308,13 @@ export const AllTasksOpsDashboard = ({
       result = result.filter(t => t.status === "completed");
     }
     
-    // Location filter
+    // Location filter - use task_location_ids for multi-location support
     if (locationFilter !== "all") {
-      result = result.filter(t => t.location_id === locationFilter);
+      result = result.filter(t => {
+        const taskLocIds = (t as any).task_location_ids;
+        if (taskLocIds?.length > 0) return taskLocIds.includes(locationFilter);
+        return t.location_id === locationFilter;
+      });
     }
     
     // Role filter
