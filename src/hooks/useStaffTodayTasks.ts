@@ -407,6 +407,39 @@ export function useStaffTodayTasks(
     companyId: staffContext?.companyId,
   });
 
+  // 4b. Fetch location names for employee's shift locations (for display_location_name)
+  const myShiftLocationIdsForQuery = useMemo(() => {
+    if (!staffContext?.employeeId) return [];
+    const locIds: string[] = [];
+    for (const shift of shifts) {
+      const hasMyAssignment = (shift.shift_assignments || []).some(
+        (a) => a.staff_id === staffContext.employeeId &&
+          (a.approval_status === "approved" || a.approval_status === "confirmed")
+      );
+      if (hasMyAssignment && !locIds.includes(shift.location_id)) {
+        locIds.push(shift.location_id);
+      }
+    }
+    return locIds;
+  }, [shifts, staffContext?.employeeId]);
+
+  const { data: shiftLocationNames = {} } = useQuery({
+    queryKey: ["shift-location-names", myShiftLocationIdsForQuery],
+    queryFn: async () => {
+      if (myShiftLocationIdsForQuery.length === 0) return {};
+      const { data } = await supabase
+        .from("locations")
+        .select("id, name")
+        .in("id", myShiftLocationIdsForQuery);
+      const map: Record<string, string> = {};
+      for (const loc of data || []) {
+        map[loc.id] = loc.name;
+      }
+      return map;
+    },
+    enabled: myShiftLocationIdsForQuery.length > 0,
+  });
+
   // 5. Run unified pipeline + apply time-lock + apply completions
   const result = useMemo(() => {
     const now = new Date();
@@ -423,8 +456,36 @@ export function useStaffTodayTasks(
       employeeId: staffContext?.employeeId,
     });
 
+    // Filter pipeline tasks to only those at the employee's shift location(s)
+    // Uses myShiftLocationIdsForQuery computed above (from employee's approved shift assignments)
+    // If no shift assignments found, fall back to showing all (safety net)
+    let locationFilteredTasks = pipelineResult.tasks;
+    if (myShiftLocationIdsForQuery.length > 0) {
+      locationFilteredTasks = pipelineResult.tasks.filter((t) => {
+        const taskLocIds = (t as any).task_location_ids as string[] | undefined;
+        if (!taskLocIds || taskLocIds.length === 0) return true; // no location info → show
+        return taskLocIds.some((locId) => myShiftLocationIdsForQuery.includes(locId));
+      });
+    }
+
+    // Resolve display_location_name: find the employee's shift location that overlaps with the task
+    const resolveDisplayLocationName = (task: any): string | undefined => {
+      if (myShiftLocationIdsForQuery.length === 0) return undefined;
+      const taskLocIds = (task.task_location_ids as string[] | undefined) || [];
+      // Find the first task location that matches one of the employee's shift locations
+      const matchingLocId = taskLocIds.find((locId: string) => myShiftLocationIdsForQuery.includes(locId));
+      if (matchingLocId && shiftLocationNames[matchingLocId]) {
+        return shiftLocationNames[matchingLocId];
+      }
+      // If only one shift location, use that
+      if (myShiftLocationIdsForQuery.length === 1 && shiftLocationNames[myShiftLocationIdsForQuery[0]]) {
+        return shiftLocationNames[myShiftLocationIdsForQuery[0]];
+      }
+      return undefined;
+    };
+
     // Apply time-lock and completion status to each task
-    const tasksWithTimeLock: StaffTaskWithTimeLock[] = pipelineResult.tasks.map((task) => {
+    const tasksWithTimeLock: StaffTaskWithTimeLock[] = locationFilteredTasks.map((task) => {
       const timeLock = getTimeLockStatus(task, now);
       
       // Use shared helper for consistent ID resolution across all surfaces
@@ -438,16 +499,15 @@ export function useStaffTodayTasks(
           ...task, 
           timeLock, 
           isOccurrenceCompleted,
-          // Override status to completed for display
           status: "completed" as any,
           completed_at: completion!.completed_at,
-          // Attach completer for attribution
           completed_by_employee_id: completion!.completed_by_employee_id,
           completion_mode: completion!.completion_mode,
+          display_location_name: resolveDisplayLocationName(task),
         };
       }
       
-      return { ...task, timeLock, isOccurrenceCompleted };
+      return { ...task, timeLock, isOccurrenceCompleted, display_location_name: resolveDisplayLocationName(task) };
     });
 
     // Group tasks - but now use occurrence completion status
@@ -564,7 +624,7 @@ export function useStaffTodayTasks(
       upcomingTasks,
       debug,
     };
-  }, [rawTasks, shifts, targetDate, staffContext, completions, targetDayKey]);
+  }, [rawTasks, shifts, targetDate, staffContext, completions, targetDayKey, myShiftLocationIdsForQuery, shiftLocationNames]);
 
   return {
     ...result,

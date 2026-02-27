@@ -402,10 +402,10 @@ export const ActiveTasksCard = () => {
                     <span className="text-sm text-muted-foreground">No deadline</span>
                   )}
                   
-                  {task.location?.name && (
+                  {((task as any).display_location_name || task.location?.name) && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3" />
-                      <span className="truncate max-w-20">{task.location.name}</span>
+                      <span className="truncate max-w-20">{(task as any).display_location_name || task.location?.name}</span>
                     </div>
                   )}
                 </div>

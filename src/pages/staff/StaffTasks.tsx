@@ -685,10 +685,10 @@ const StaffTasks = () => {
                             durationMinutes={task.duration_minutes} 
                           />
                         )}
-                        {task.location?.name && (
+                        {((task as any).display_location_name || task.location?.name) && (
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
-                            <span>{task.location.name}</span>
+                            <span>{(task as any).display_location_name || task.location?.name}</span>
                           </div>
                         )}
                       </div>
