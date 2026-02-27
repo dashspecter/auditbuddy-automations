@@ -6,12 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useScoutTemplates } from "@/hooks/useScoutTemplates";
 import { useCreateScoutJob } from "@/hooks/useScoutJobs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+const PAYOUT_OPTIONS = [
+  { value: "cash", label: "Cash" },
+  { value: "discount", label: "Discount on Products" },
+  { value: "free_product", label: "Free Product(s)" },
+  { value: "mixed", label: "Mixed (Cash + Reward)" },
+] as const;
 
 const ScoutsJobNew = () => {
   const navigate = useNavigate();
@@ -19,7 +31,7 @@ const ScoutsJobNew = () => {
   const companyId = company?.id;
   const { data: templates = [] } = useScoutTemplates();
   const createJob = useCreateScoutJob();
-  
+
   const { data: locations = [] } = useQuery({
     queryKey: ['locations', companyId],
     queryFn: async () => {
@@ -36,17 +48,24 @@ const ScoutsJobNew = () => {
     title: '',
     payout_amount: 50,
     currency: 'RON',
+    payout_type: 'cash',
+    reward_description: '',
+    voucher_expires_at: undefined as Date | undefined,
     time_window_start: '',
     time_window_end: '',
     notes_public: '',
     notes_internal: '',
   });
 
+  const showCashFields = form.payout_type === 'cash' || form.payout_type === 'mixed';
+  const showRewardFields = form.payout_type === 'discount' || form.payout_type === 'free_product' || form.payout_type === 'mixed';
+
   const handleSubmit = (publish: boolean) => {
     if (!form.template_id || !form.location_id || !form.title) return;
     createJob.mutate({
       ...form,
-      payout_amount: Number(form.payout_amount),
+      payout_amount: showCashFields ? Number(form.payout_amount) : 0,
+      voucher_expires_at: form.voucher_expires_at ? form.voucher_expires_at.toISOString() : undefined,
       publish,
     }, {
       onSuccess: () => navigate('/scouts/jobs'),
@@ -98,23 +117,85 @@ const ScoutsJobNew = () => {
             <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Cleanliness Check - Store Alpha" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Payout Amount</Label>
-              <Input type="number" value={form.payout_amount} onChange={e => setForm(f => ({ ...f, payout_amount: Number(e.target.value) }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="RON">RON</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Payout Type */}
+          <div className="space-y-2">
+            <Label>Payout Type</Label>
+            <Select value={form.payout_type} onValueChange={v => setForm(f => ({ ...f, payout_type: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAYOUT_OPTIONS.map(o => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Cash fields */}
+          {showCashFields && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Payout Amount</Label>
+                <Input type="number" value={form.payout_amount} onChange={e => setForm(f => ({ ...f, payout_amount: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="RON">RON</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Reward fields */}
+          {showRewardFields && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>
+                  {form.payout_type === 'discount' ? 'Discount Details' : form.payout_type === 'free_product' ? 'Free Product(s) Details' : 'Reward Details'}
+                </Label>
+                <Textarea
+                  value={form.reward_description}
+                  onChange={e => setForm(f => ({ ...f, reward_description: e.target.value }))}
+                  placeholder={
+                    form.payout_type === 'discount'
+                      ? 'e.g. 20% off all brand products'
+                      : form.payout_type === 'free_product'
+                      ? 'e.g. 1x Coffee + 1x Croissant'
+                      : 'Describe the reward...'
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Voucher Expiry Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-full justify-start text-left font-normal", !form.voucher_expires_at && "text-muted-foreground")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.voucher_expires_at ? format(form.voucher_expires_at, "PPP") : "Pick expiry date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={form.voucher_expires_at}
+                      onSelect={d => setForm(f => ({ ...f, voucher_expires_at: d }))}
+                      disabled={date => date < new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
