@@ -466,7 +466,11 @@ export function useStaffTodayTasks(
         if (!taskLocIds || taskLocIds.length === 0) return true; // no location info → show
         return taskLocIds.some((locId) => myShiftLocationIdsForQuery.includes(locId));
       });
+    } else if (shifts.length > 0) {
+      // Shifts exist but employee has no approved assignment → off duty, no tasks
+      locationFilteredTasks = [];
     }
+    // If shifts.length === 0 → company doesn't use scheduling, show all (backward compat)
 
     // Resolve display_location_name: find the employee's shift location that overlaps with the task
     const resolveDisplayLocationName = (task: any): string | undefined => {
