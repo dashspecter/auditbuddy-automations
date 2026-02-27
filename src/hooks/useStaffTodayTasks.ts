@@ -635,10 +635,31 @@ export function useKioskTodayTasks(options: {
           return [];
         }
 
-        return (data || []).map((t: any) => ({
+        const rpcTasks = (data || []).map((t: any) => ({
           ...t,
           role_ids: t.role_ids || [],
           role_names: t.role_names || [],
+        }));
+
+        // Enrich with task_location_ids from junction table (same pattern as staff path)
+        const rpcTaskIds = rpcTasks.map((t: any) => t.id);
+        let rpcLocMap: Record<string, string[]> = {};
+        if (rpcTaskIds.length > 0) {
+          const { data: tlData } = await supabase
+            .from("task_locations")
+            .select("task_id, location_id")
+            .in("task_id", rpcTaskIds);
+          if (tlData) {
+            for (const tl of tlData) {
+              if (!rpcLocMap[tl.task_id]) rpcLocMap[tl.task_id] = [];
+              rpcLocMap[tl.task_id].push(tl.location_id);
+            }
+          }
+        }
+
+        return rpcTasks.map((t: any) => ({
+          ...t,
+          task_location_ids: rpcLocMap[t.id] || (t.location_id ? [t.location_id] : []),
         })) as Task[];
       }
 
@@ -762,7 +783,28 @@ export function useKioskTodayTasks(options: {
           role_ids: roleIds,
           role_names: roleNames,
         };
-      }) as Task[];
+      });
+
+      // Enrich with task_location_ids from junction table (same pattern as staff path)
+      const enrichTaskIds = data.map((t: any) => t.id);
+      let kioskLocMap: Record<string, string[]> = {};
+      if (enrichTaskIds.length > 0) {
+        const { data: tlData } = await supabase
+          .from("task_locations")
+          .select("task_id, location_id")
+          .in("task_id", allTaskIds);
+        if (tlData) {
+          for (const tl of tlData) {
+            if (!kioskLocMap[tl.task_id]) kioskLocMap[tl.task_id] = [];
+            kioskLocMap[tl.task_id].push(tl.location_id);
+          }
+        }
+      }
+
+      return data.map((task: any) => ({
+        ...task,
+        task_location_ids: kioskLocMap[task.id] || (task.location_id ? [task.location_id] : []),
+      })) as Task[];
     },
     enabled,
   });
