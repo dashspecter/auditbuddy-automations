@@ -1,41 +1,31 @@
 
 
-# Bug: Staff Mobile View Shows Only 3 Tasks Instead of All
+# Bug: Shift Manager Tasks Show "No Coverage" Despite Shift Existing
 
 ## Root Cause
 
-Same multi-location bug, different surface. Two places are broken:
+The `AllTasksOpsDashboard` runs tasks through `runPipelineForDateRange` a **second time** with its own shifts. The tasks it receives from `useUnifiedTasks` are already virtual instances (with dates set to specific days). The pipeline iterates day-by-day across the week range (Mon-Sun), and for each day calls `checkTaskCoverage(occ, shifts, currentDate)`.
 
-### 1. Coverage Engine (`src/lib/taskCoverageEngine.ts`, line 153/195)
-The coverage check uses `task.location_id` (single column) to match against `shift.location_id`. A task assigned to 5 locations via `task_locations` has `location_id` set to only the first one alphabetically (e.g., "LBFC Apaca"). When the employee's shift is at "LBFC Amzei", the check fails → `location_mismatch` → task hidden.
+The critical issue: there is only **1 Shift Manager shift today (Feb 27) at LBFC Amzei**. No Shift Manager shifts exist at LBFC Obor or any other location. The coverage engine correctly finds that the Amzei shift matches (since `task_location_ids` includes Amzei). **However**, the `AllTasksOpsDashboard` also generates occurrences for other days in the week (Feb 28, Mar 1, etc.) via recurring task expansion — and those days have **no shifts at all**, producing "No Coverage" entries.
 
-### 2. Staff Task Fetching (`src/hooks/useStaffTodayTasks.ts`, lines 287-298)
-The role-based task query fetches tasks by `assigned_role_id` without filtering by location — so it correctly fetches all role tasks. BUT the coverage engine then filters them out because `task.location_id` doesn't match the shift location.
+Additionally, the **real smoking gun** is that the `AllTasksOpsDashboard` location filter (line 329) still uses `t.location_id` instead of `task_location_ids`:
+```typescript
+if (locationFilter !== "all") {
+  result = result.filter(t => t.location_id === locationFilter);
+}
+```
 
-The fix needs to happen in the coverage engine — it must check if the shift's location is in the task's `task_location_ids` array (from the junction table), not just the single `location_id` column.
+But more importantly, the "No Coverage" section likely contains **duplicate occurrences from the double-pipeline** — tasks processed twice through coverage checking with potentially different shift sets.
 
 ## Fix Plan
 
-### A. Enrich tasks with `task_location_ids` in `useStaffTodayTasks.ts`
-After fetching tasks, batch-query `task_locations` to attach `task_location_ids: string[]` to each task (same pattern already applied to `useTasks.ts`).
+### A. Remove double-pipeline in `AllTasksOpsDashboard`
+Instead of running `runPipelineForDateRange` again on already-processed tasks, use the coverage data that `useUnifiedTasks` already computed. The `AllTasksOpsDashboard` should receive pre-computed `noCoverage` tasks from the parent rather than recomputing coverage independently.
 
-### B. Update coverage engine in `taskCoverageEngine.ts`
-At line 153, read `task.task_location_ids` array. At line 195, change the location check from:
-```typescript
-if (locationId && shift.location_id !== locationId) {
-```
-to:
-```typescript
-const taskLocationIds = (task as any).task_location_ids;
-const allLocationIds = taskLocationIds?.length > 0 
-  ? taskLocationIds 
-  : (locationId ? [locationId] : []);
-if (allLocationIds.length > 0 && !allLocationIds.includes(shift.location_id)) {
-```
-
-This way, a task assigned to 5 locations matches shifts at any of those 5 locations.
+### B. Fix location filter in `AllTasksOpsDashboard` (line 329)
+Change `t.location_id === locationFilter` to check `t.task_location_ids` array, matching the pattern already used in `Tasks.tsx filterTasks`.
 
 ### Files Changed
-- `src/hooks/useStaffTodayTasks.ts` — Add `task_location_ids` enrichment after fetching tasks
-- `src/lib/taskCoverageEngine.ts` — Use `task_location_ids` array for location matching in coverage check
+- `src/pages/Tasks.tsx` — Pass `noCoverage` tasks from unified pipeline to `AllTasksOpsDashboard`
+- `src/components/tasks/AllTasksOpsDashboard.tsx` — Remove redundant `runPipelineForDateRange` call; use pre-computed coverage; fix location filter to use `task_location_ids`
 
