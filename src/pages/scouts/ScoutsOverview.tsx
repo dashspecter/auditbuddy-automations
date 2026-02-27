@@ -212,7 +212,7 @@ const ScoutsOverview = () => {
             {steps.map((step) => (
               <Card
                 key={step.num}
-                className={`relative transition-all ${
+                className={`relative transition-all flex flex-col ${
                   step.isDone
                     ? 'border-emerald-500/50 bg-emerald-500/5'
                     : 'hover:border-primary/30'
@@ -239,12 +239,12 @@ const ScoutsOverview = () => {
                   </div>
                   <CardTitle className="text-sm">{step.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
+                <CardContent className="pt-0 flex-1 flex flex-col">
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">{step.description}</p>
                   <Button
                     variant={step.isDone ? "outline" : "default"}
                     size="sm"
-                    className="w-full text-xs"
+                    className="w-full text-xs mt-auto"
                     onClick={() => navigate(step.route)}
                   >
                     {step.cta}
