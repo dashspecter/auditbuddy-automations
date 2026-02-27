@@ -1,31 +1,27 @@
 
 
-# Bug: Shift Manager Tasks Show "No Coverage" Despite Shift Existing
+# Bug: Kiosk Shows Fewer Tasks Than Expected for Shift Manager
 
 ## Root Cause
 
-The `AllTasksOpsDashboard` runs tasks through `runPipelineForDateRange` a **second time** with its own shifts. The tasks it receives from `useUnifiedTasks` are already virtual instances (with dates set to specific days). The pipeline iterates day-by-day across the week range (Mon-Sun), and for each day calls `checkTaskCoverage(occ, shifts, currentDate)`.
+The kiosk task pipeline (`useKioskTodayTasks`) never enriches tasks with `task_location_ids` from the junction table. When the coverage engine runs, it falls back to `task.location_id` (the single primary column). For multi-location tasks, this primary `location_id` may point to a different location (e.g., "LBFC Apaca") than the kiosk's location ("LBFC Amzei"). The coverage check then fails with `location_mismatch`, hiding the task.
 
-The critical issue: there is only **1 Shift Manager shift today (Feb 27) at LBFC Amzei**. No Shift Manager shifts exist at LBFC Obor or any other location. The coverage engine correctly finds that the Amzei shift matches (since `task_location_ids` includes Amzei). **However**, the `AllTasksOpsDashboard` also generates occurrences for other days in the week (Feb 28, Mar 1, etc.) via recurring task expansion — and those days have **no shifts at all**, producing "No Coverage" entries.
+The staff mobile path was just fixed with `task_location_ids` enrichment, but the kiosk path was missed.
 
-Additionally, the **real smoking gun** is that the `AllTasksOpsDashboard` location filter (line 329) still uses `t.location_id` instead of `task_location_ids`:
-```typescript
-if (locationFilter !== "all") {
-  result = result.filter(t => t.location_id === locationFilter);
-}
-```
+## Fix
 
-But more importantly, the "No Coverage" section likely contains **duplicate occurrences from the double-pipeline** — tasks processed twice through coverage checking with potentially different shift sets.
+### A. Enrich kiosk tasks with `task_location_ids` in `useStaffTodayTasks.ts`
 
-## Fix Plan
+In the `useKioskTodayTasks` hook, after fetching `rawTasks` (around line 766), add a batch query to `task_locations` to attach `task_location_ids: string[]` to each task — same pattern used in the staff path (lines 326-346).
 
-### A. Remove double-pipeline in `AllTasksOpsDashboard`
-Instead of running `runPipelineForDateRange` again on already-processed tasks, use the coverage data that `useUnifiedTasks` already computed. The `AllTasksOpsDashboard` should receive pre-computed `noCoverage` tasks from the parent rather than recomputing coverage independently.
+For the RPC path (anonymous kiosk with `kioskToken`): after mapping RPC results at line 638, batch-query `task_locations` for all returned task IDs and attach `task_location_ids`.
 
-### B. Fix location filter in `AllTasksOpsDashboard` (line 329)
-Change `t.location_id === locationFilter` to check `t.task_location_ids` array, matching the pattern already used in `Tasks.tsx filterTasks`.
+For the non-RPC path: same enrichment after line 764.
+
+### B. No changes needed to the coverage engine
+
+The coverage engine already reads `task_location_ids` (fixed in the previous change). It just needs the data to be present on the task objects, which this fix provides.
 
 ### Files Changed
-- `src/pages/Tasks.tsx` — Pass `noCoverage` tasks from unified pipeline to `AllTasksOpsDashboard`
-- `src/components/tasks/AllTasksOpsDashboard.tsx` — Remove redundant `runPipelineForDateRange` call; use pre-computed coverage; fix location filter to use `task_location_ids`
+- `src/hooks/useStaffTodayTasks.ts` — Add `task_location_ids` enrichment to kiosk raw task query (~15 lines added)
 
