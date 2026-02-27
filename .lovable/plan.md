@@ -1,72 +1,27 @@
 
 
-# Fix Kiosk Department Filtering — Multiple Bugs
+# Kiosk Department Filtering — Investigation Results
 
-## Problems Found
+## Finding: Filtering is Working Correctly
 
-The department filter only works on the **employee list**. Three other data sources on the kiosk dashboard ignore it entirely:
+The department filter is functioning as designed. The Front of House kiosk correctly filters to FOH roles (Bartender, Dishwasher, Host, Shift Manager). At LBFC Amzei there are 6 active Shift Managers in FOH.
 
-1. **MTD Score leaderboard** — `useLocationPerformanceScores` fetches ALL employees at the location via the `calculate_location_performance_scores` DB function. Employees from other departments appear in the leaderboard (visible in your screenshot: Cook, Chef, Kitchen Manager all show on the Front of House kiosk).
+**Why only 2 appear in MTD Score:** The leaderboard hides employees with zero activity. Only Serdar Nasurla (4 shifts this month) and Iulian Constantin (1 shift) have any scheduled shifts in February. The other 4 FOH employees have zero shifts, zero tasks, zero tests — so they're excluded by the "filter inactive" logic.
 
-2. **Tasks / KPIs (Done Today, Pending, Overdue)** — `useKioskTodayTasks` fetches ALL tasks for the location regardless of department. Tasks assigned to kitchen roles still appear on the FOH kiosk.
+**Why Today's Team shows 0:** No FOH employee has a shift scheduled for today (Feb 27).
 
-3. **Today's Champions** — Derived from the unfiltered completed tasks, so champions from other departments can appear.
+## This is a Data Problem, Not a Code Bug
 
-The **Today's Team** and **Clocked In** count ARE correctly filtered because they derive from the already-filtered `employees` list.
+The scheduling data is sparse — most FOH staff have no shifts. The kiosk is correctly reflecting reality.
 
-## Fix Approach
+## Optional UX Improvement
 
-All fixes are **client-side filtering** in `KioskDashboard.tsx` — no database changes needed. The data is already fetched; we just need to filter it down using the department role names list that's already being queried.
+To avoid confusion, we could show ALL department employees in the MTD Score section (including those with no activity, ranked at the bottom with a "No activity" label) instead of hiding them. This way managers can see the full roster and realize scheduling gaps.
 
-### 1. `src/components/kiosk/KioskDashboard.tsx` — Filter MTD Scores
+### Change: `KioskDashboard.tsx` — MTD Score section
+- Change `computeEffectiveScores(weeklyAllScores, true)` to `computeEffectiveScores(weeklyAllScores, false)` (don't filter inactive)
+- Still apply department role filter
+- Employees with no activity show score as "—" and appear at the bottom
 
-The `weeklyScoreLeaderboard` (line ~429) currently shows all employees. Add a filter step that keeps only employees whose `role` matches the department's role names:
-
-```typescript
-const weeklyScoreLeaderboard = useMemo(() => {
-  let scores = computeEffectiveScores(weeklyAllScores, true);
-  // Filter by department roles if set
-  if (departmentId && departmentRoleNames) {
-    scores = scores.filter(s => departmentRoleNames.includes(s.role));
-  }
-  return sortByEffectiveScore(scores).slice(0, 10);
-}, [weeklyAllScores, departmentId, departmentRoleNames]);
-```
-
-### 2. `src/components/kiosk/KioskDashboard.tsx` — Filter tasks by department
-
-After the unified tasks are mapped (line ~252), add a filter that keeps only tasks whose `role_names` overlap with the department's roles (or tasks assigned to a department employee). Location-only (General) tasks should still show since they apply to everyone.
-
-```typescript
-const tasks = useMemo(() => {
-  if (todaysTeam.length === 0) return [];
-  
-  let mapped = unifiedTasks.map(task => { /* existing mapping */ });
-  
-  // Filter tasks by department roles
-  if (departmentId && departmentRoleNames) {
-    const deptEmployeeIds = new Set(employees.map(e => e.id));
-    mapped = mapped.filter(task => {
-      // Keep tasks assigned directly to a department employee
-      if (task.assigned_to && deptEmployeeIds.has(task.assigned_to)) return true;
-      // Keep tasks with matching role names
-      if (task.role_names?.some(r => departmentRoleNames.includes(r))) return true;
-      // Keep General/unassigned tasks (no role, no assignee) — shared across all
-      if (!task.assigned_to && (!task.role_names || task.role_names.length === 0)) return true;
-      return false;
-    });
-  }
-  
-  return mapped;
-}, [unifiedTasks, todaysTeam, rawTasks, departmentId, departmentRoleNames, employees]);
-```
-
-### 3. KPIs and Champions cascade automatically
-
-The KPI counts (`unifiedCompletedCount`, `unifiedPendingCount`, `unifiedOverdueCount`) and Champions are derived from the unified task groupings which come from `useKioskTodayTasks` — these are NOT filtered. We need to recompute grouped counts from the filtered `tasks` array instead of using `unifiedGrouped` directly. This means:
-
-- Recompute `completedCount`, `pendingCount`, `overdueCount` from the filtered `tasks` list
-- Recompute champions from filtered completed tasks only
-
-This ensures every section on the kiosk — Team, Tasks, KPIs, Champions, MTD Scores — respects the department filter.
+This is a small change (1 line + minor display tweak) that makes the kiosk more transparent about team composition.
 
