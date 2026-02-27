@@ -255,10 +255,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       return [];
     }
 
-    // IMPORTANT: Do not apply additional kiosk-only filtering here.
-    // The unified pipeline (useKioskTodayTasks) is the single source of truth
-    // for which tasks are visible today. Extra filters here can cause kiosk ↔ mobile drift.
-    return unifiedTasks.map(task => {
+    let mapped = unifiedTasks.map(task => {
       // Re-attach role info from rawTasks for display
       const originalId = getOriginalTaskId(task.id);
       const originalTask = (rawTasks as any[]).find(t => t.id === originalId);
@@ -277,7 +274,23 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         timeLock: task.timeLock,
       } as Task & { timeLock?: StaffTaskWithTimeLock['timeLock']; isLocationOnly?: boolean };
     });
-  }, [unifiedTasks, todaysTeam, rawTasks]);
+
+    // Filter tasks by department roles when department filter is active
+    if (departmentId && departmentRoleNames) {
+      const deptEmployeeIds = new Set(employees.map(e => e.id));
+      mapped = mapped.filter(task => {
+        // Keep tasks assigned directly to a department employee
+        if (task.assigned_to && deptEmployeeIds.has(task.assigned_to)) return true;
+        // Keep tasks with matching role names
+        if (task.role_names?.some(r => departmentRoleNames.includes(r))) return true;
+        // Keep General/unassigned tasks (no role, no assignee) — shared across all
+        if (!task.assigned_to && (!task.role_names || task.role_names.length === 0)) return true;
+        return false;
+      });
+    }
+
+    return mapped;
+  }, [unifiedTasks, todaysTeam, rawTasks, departmentId, departmentRoleNames, employees]);
 
   // =====================================================
   // KIOSK TASK-BASED LEADERBOARDS (computed from UNIFIED data)
@@ -295,12 +308,12 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   }, [todaysTeam]);
 
   // =====================================================
-  // UNIFIED KPI COUNTS (from useKioskTodayTasks)
-  // These MUST match what Web/Mobile show
+  // UNIFIED KPI COUNTS — recomputed from filtered tasks list
+  // so they respect the department filter
   // =====================================================
-  const unifiedCompletedCount = unifiedGrouped.completed.length;
-  const unifiedOverdueCount = unifiedGrouped.overdue.length;
-  const unifiedPendingCount = unifiedGrouped.pending.length + unifiedGrouped.noCoverage.length;
+  const unifiedCompletedCount = tasks.filter(t => t.status === "completed").length;
+  const unifiedOverdueCount = tasks.filter(t => t.status !== "completed" && t.due_at && isPast(new Date(t.due_at))).length;
+  const unifiedPendingCount = tasks.filter(t => t.status !== "completed" && !(t.due_at && isPast(new Date(t.due_at)))).length;
 
   // DEV: Log unified KPI debug info
   if (import.meta.env.DEV) {
@@ -327,13 +340,23 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     completed_today: number;
   }
   
+  // Filtered completed tasks for champions (respects department filter)
+  const filteredCompletedTasks = useMemo(() => {
+    return tasks.filter(t => t.status === "completed");
+  }, [tasks]);
+
   const todaysChampions = useMemo((): ChampionData[] => {
-    // Build completion counts by employee from unified completed tasks
+    // Build completion counts by employee from filtered completed tasks
     const countsByEmployee = new Map<string, number>();
     
-    for (const task of unifiedGrouped.completed) {
+    // We need to find the unified task objects for attribution resolution
+    for (const task of filteredCompletedTasks) {
+      // Find matching unified task for completer info
+      const unifiedTask = unifiedTasks.find(ut => ut.id === task.id);
+      if (!unifiedTask) continue;
+      
       // Use centralized resolver for resilient attribution
-      const empId = resolveCompleterEmployeeId(task as any, scheduledEmployeeIds, userToEmployeeIdMap);
+      const empId = resolveCompleterEmployeeId(unifiedTask as any, scheduledEmployeeIds, userToEmployeeIdMap);
       if (!empId) continue;
       countsByEmployee.set(empId, (countsByEmployee.get(empId) || 0) + 1);
     }
@@ -358,7 +381,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       .filter(c => c.completed_today > 0)
       .sort((a, b) => b.completed_today - a.completed_today)
       .slice(0, 3);
-  }, [unifiedGrouped.completed, employeeMap, scheduledEmployeeIds, userToEmployeeIdMap]);
+  }, [filteredCompletedTasks, unifiedTasks, employeeMap, scheduledEmployeeIds, userToEmployeeIdMap]);
 
   // DEV-only sanity check: if Done Today > 0 but Champions is empty, attribution is missing.
   useEffect(() => {
@@ -427,9 +450,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     mtdEndFormatted
   );
   const weeklyScoreLeaderboard = useMemo(() => {
-    const effective = computeEffectiveScores(weeklyAllScores, true);
-    return sortByEffectiveScore(effective).slice(0, 10);
-  }, [weeklyAllScores]);
+    let scores = computeEffectiveScores(weeklyAllScores, true);
+    // Filter by department roles if set
+    if (departmentId && departmentRoleNames) {
+      scores = scores.filter(s => departmentRoleNames.includes(s.role));
+    }
+    return sortByEffectiveScore(scores).slice(0, 10);
+  }, [weeklyAllScores, departmentId, departmentRoleNames]);
 
   const getEmployeeName = (id: string) => employeeMap.get(id)?.full_name || "Unknown";
 
