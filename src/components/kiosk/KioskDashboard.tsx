@@ -498,8 +498,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         }
         roleGroups["General"].tasks.push(task);
       } else {
-        // Add task ONLY to its first/primary assigned role (not all roles)
-        const primaryRole = roleNames[0];
+        // Add task to its primary role — filtered to department roles when in department kiosk
+        const filteredRoleNames = (departmentId && departmentRoleNames)
+          ? roleNames.filter(r => departmentRoleNames.includes(r))
+          : roleNames;
+        const primaryRole = filteredRoleNames.length > 0 ? filteredRoleNames[0] : roleNames[0];
         if (!roleGroups[primaryRole]) {
           roleGroups[primaryRole] = { tasks: [], employees: [] };
         }
