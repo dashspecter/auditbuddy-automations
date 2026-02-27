@@ -49,6 +49,7 @@ const TaskEdit = () => {
   const [recurrenceTimes, setRecurrenceTimes] = useState<string[]>([]);
   const [newTimeInput, setNewTimeInput] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initialStartAt, setInitialStartAt] = useState<string | null>(null);
 
   // Evidence policy state
   const [evidenceRequired, setEvidenceRequired] = useState(false);
@@ -138,6 +139,7 @@ const TaskEdit = () => {
         setAssignmentType(task.assigned_to ? 'employee' : 'role');
         setIsIndividual(task.is_individual || false);
         setRecurrenceTimes(task.recurrence_times ?? []);
+        setInitialStartAt(task.start_at ? format(new Date(task.start_at), "yyyy-MM-dd'T'HH:mm") : "");
         setIsInitialized(true);
       };
       loadRelations();
@@ -160,7 +162,7 @@ const TaskEdit = () => {
         title: formData.title,
         description: formData.description || null,
         priority: formData.priority,
-        start_at: formData.start_at ? new Date(formData.start_at).toISOString() : null,
+        ...(formData.start_at !== initialStartAt ? { start_at: formData.start_at ? new Date(formData.start_at).toISOString() : null } : {}),
         duration_minutes: formData.duration_minutes,
         assigned_to: assignmentType === 'employee' && formData.assigned_to ? formData.assigned_to : null,
         assigned_role_id: assignmentType === 'role' && formData.assigned_role_ids.length > 0 ? formData.assigned_role_ids[0] : null,
