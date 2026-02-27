@@ -1,27 +1,44 @@
 
 
-# Kiosk Department Filtering — Investigation Results
+# Add UOM (Unit of Measure) Selection to Waste Products
 
-## Finding: Filtering is Working Correctly
+## Current State
+- The `waste_products` table already has `uom` and `cost_model` columns
+- The DB trigger `compute_waste_entry_cost` already handles `per_kg` (multiply weight × cost) vs `per_unit` (fixed cost per piece)
+- But the WasteProducts admin form **hardcodes** `uom: 'g'` and `cost_model: 'per_kg'` — no way to change it
+- Entry forms always show "Weight (kg)" regardless of product UOM
 
-The department filter is functioning as designed. The Front of House kiosk correctly filters to FOH roles (Bartender, Dishwasher, Host, Shift Manager). At LBFC Amzei there are 6 active Shift Managers in FOH.
+## Changes
 
-**Why only 2 appear in MTD Score:** The leaderboard hides employees with zero activity. Only Serdar Nasurla (4 shifts this month) and Iulian Constantin (1 shift) have any scheduled shifts in February. The other 4 FOH employees have zero shifts, zero tasks, zero tests — so they're excluded by the "filter inactive" logic.
+### 1. `src/pages/admin/waste/WasteProducts.tsx` — Add UOM + cost model to product form
+- Add `uom` field to form state with options: `kg`, `g`, `pcs` (pieces), `l` (liters), `portions`
+- Add `cost_model` field: `per_kg` (cost × quantity) or `per_unit` (fixed cost per piece)
+- When UOM is `pcs` or `portions`, auto-set `cost_model` to `per_unit`; when `kg`/`g`/`l`, default to `per_kg`
+- Update the table to show UOM column instead of hardcoded "Cost/kg" — show "Cost/kg", "Cost/unit", "Cost/L" dynamically
+- Pass `uom` and `cost_model` through to create/update mutations
 
-**Why Today's Team shows 0:** No FOH employee has a shift scheduled for today (Feb 27).
+### 2. `src/pages/admin/waste/AdminAddWasteEntry.tsx` — Dynamic quantity label
+- When a product is selected, read its `uom` to show the correct label:
+  - `kg` → "Weight (kg)" with gram conversion tooltip
+  - `g` → "Weight (g)"
+  - `pcs` → "Quantity (pieces)"
+  - `l` → "Volume (liters)"
+  - `portions` → "Quantity (portions)"
+- The field name stays `weight_kg` in the DB (it's the quantity field regardless of unit)
+- Estimated cost formula adapts: `per_kg` → quantity × unit_cost, `per_unit` → count × unit_cost
 
-## This is a Data Problem, Not a Code Bug
+### 3. `src/pages/staff/AddWasteEntry.tsx` — Same dynamic label for staff form
+- Mirror the same UOM-aware label and placeholder changes as the admin form
+- Products query already fetches `uom`, just needs to be used in the UI
 
-The scheduling data is sparse — most FOH staff have no shifts. The kiosk is correctly reflecting reality.
+### 4. `src/hooks/useWaste.ts` — Include `uom` and `cost_model` in product fetches
+- Already fetching these fields — no changes needed to the hook
+- The `useWasteProducts` query already returns full product rows including `uom` and `cost_model`
 
-## Optional UX Improvement
+### 5. Display in reports — `src/pages/reports/WasteReports.tsx` and `src/pages/admin/waste/AdminWasteEntries.tsx`
+- Show the product's UOM next to the quantity value instead of hardcoded "kg"
+- Requires joining `waste_products.uom` which is already included in the entry query's select
 
-To avoid confusion, we could show ALL department employees in the MTD Score section (including those with no activity, ranked at the bottom with a "No activity" label) instead of hiding them. This way managers can see the full roster and realize scheduling gaps.
-
-### Change: `KioskDashboard.tsx` — MTD Score section
-- Change `computeEffectiveScores(weeklyAllScores, true)` to `computeEffectiveScores(weeklyAllScores, false)` (don't filter inactive)
-- Still apply department role filter
-- Employees with no activity show score as "—" and appear at the bottom
-
-This is a small change (1 line + minor display tweak) that makes the kiosk more transparent about team composition.
+### No database changes needed
+The `uom` and `cost_model` columns already exist. The DB trigger already handles both cost models. This is purely a UI update to expose the existing functionality.
 
