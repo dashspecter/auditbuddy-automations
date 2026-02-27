@@ -1,30 +1,32 @@
 
 
-# Bug: Staff Sees Tasks From All Locations Instead of Only Their Shift Location
+# Fix: Show Employee's Location (Not Task's Primary Location) in Staff Task UI
 
 ## Root Cause
 
-In `src/lib/unifiedTaskPipeline.ts` (lines 142-164), the **execution mode** has an "accountability" feature: overdue tasks are re-added to the visible list **regardless of coverage**. The logic at line 147-149 grabs ALL overdue tasks across all locations — not just those at the employee's shift location.
+The staff task views (`StaffTasks.tsx` line 688, `ActiveTasksCard.tsx` line 405) display `task.location?.name`, which is a join on the task's **primary** `location_id` column. For a multi-location task whose primary location is "LBFC Apaca", it shows "LBFC Apaca" even when the staff member is at "LBFC Amzei".
 
-Since `useStaffTodayTasks` fetches role tasks without location filtering (relying on coverage to scope them), tasks from LBFC Obor and LBFC Timpuri Noi correctly get `hasCoverage: false` (no shift exists there). But because they're overdue ("Time expired!"), they bypass the coverage filter via `overdueRegardlessOfCoverage` and appear in the list.
-
-The intent of this feature was: "if a task WAS covered during your shift but you didn't complete it, it should stay visible after your shift ends for accountability." The bug is it includes tasks that were **never** at the employee's location.
+The correct behavior: when a staff member at Location X views a task, the displayed location should be Location X (their shift location), not the task's arbitrary primary location.
 
 ## Fix
 
-**File: `src/lib/unifiedTaskPipeline.ts` (lines 147-149)**
+### A. Resolve employee's shift location and attach to tasks (`src/hooks/useStaffTodayTasks.ts`)
 
-Change the `overdueRegardlessOfCoverage` filter to only include overdue tasks whose `noCoverageReason` is NOT `location_mismatch`. Tasks that failed coverage due to location mismatch were never relevant to this employee. Tasks that failed due to `no_shift` (shift ended), `no_approved_assignments`, or time-based reasons WERE at the right location and should remain visible for accountability.
+After the pipeline runs (around the `useMemo` block), determine the employee's actual shift location(s) for today by filtering the fetched shifts for assignments matching `staffContext.employeeId`. Then:
 
-```typescript
-const overdueRegardlessOfCoverage = tasksWithCoverage.filter(
-  (t) => t.status !== "completed" && baseIsTaskOverdue(t) &&
-    // Only re-add overdue tasks that were at the right location but lost coverage
-    // for time/assignment reasons — NOT tasks from different locations entirely
-    t.coverage?.noCoverageReason !== "location_mismatch"
-);
-```
+1. Extract `myShiftLocationIds` from those shifts
+2. Filter pipeline output to only tasks whose `task_location_ids` intersects with `myShiftLocationIds` (fixing the "sees all locations" bug from the approved plan)
+3. Attach a `display_location_name` field to each task, set to the employee's shift location name (queried from the shifts or locations table)
+
+### B. Update staff UI components to use `display_location_name`
+
+- **`src/pages/staff/StaffTasks.tsx` (line 688-692)**: Change `task.location?.name` to `(task as any).display_location_name || task.location?.name`
+- **`src/components/staff/ActiveTasksCard.tsx` (line 405-408)**: Same change
+
+This ensures multi-location tasks display the employee's working location, while single-location tasks and fallback cases still work correctly.
 
 ### Files Changed
-- `src/lib/unifiedTaskPipeline.ts` — Scope overdue accountability to same-location tasks only
+- `src/hooks/useStaffTodayTasks.ts` — Add shift-location scoping + `display_location_name` enrichment
+- `src/pages/staff/StaffTasks.tsx` — Use `display_location_name` for location display
+- `src/components/staff/ActiveTasksCard.tsx` — Use `display_location_name` for location display
 
