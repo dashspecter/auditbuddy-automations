@@ -145,7 +145,10 @@ export function runPipelineForDate(
     // - ALSO show overdue tasks for the day even if they're no longer covered
     //   (accountability visibility: tasks must not disappear after shift)
     const overdueRegardlessOfCoverage = tasksWithCoverage.filter(
-      (t) => t.status !== "completed" && baseIsTaskOverdue(t)
+      (t) => t.status !== "completed" && baseIsTaskOverdue(t) &&
+        // Only re-add overdue tasks that were at the right location but lost coverage
+        // for time/assignment reasons — NOT tasks from different locations entirely
+        t.coverage?.noCoverageReason !== "location_mismatch"
     );
 
     const combined = [...covered];
