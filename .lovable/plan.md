@@ -1,39 +1,40 @@
 
 
-# Inspector Read-Only QR Form View
+# Scouts Overview: Step-by-Step Setup Guide UX
 
-## Problem
-Currently, scanning a QR code requires authentication. External inspectors (not company members) cannot access form data.
+Great idea. Right now the Scouts overview shows KPI cards and a generic "Quick Actions" card, which doesn't guide new users through what to do. Replacing the bottom section with a **numbered step-by-step setup flow** will make the onboarding intuitive.
 
-## Approach
-Create a **new public route** (`/qr/inspect/:token`) and a **backend function** that serves read-only form data using the public token — no login required. The existing authenticated route (`/qr/forms/:token`) remains untouched.
+## Design
+
+Replace the "Quick Actions" and "Completion Rate" cards with a **"Getting Started" section** that shows numbered step cards in a horizontal row. Each card includes:
+- Step number badge (1, 2, 3, 4, 5)
+- Icon, title, short description
+- Action button
+- Completion indicator (checkmark + green border when done)
+
+The steps will be:
+
+| Step | Title | Description | Route | Done when |
+|------|-------|-------------|-------|-----------|
+| 1 | Create a Template | Define the checklist scouts will follow | `/scouts/templates` | Templates exist (count > 0) |
+| 2 | Add Scouts | Invite field workers to your roster | `/scouts/roster` | Roster has entries |
+| 3 | Post a Job | Assign a template to a location | `/scouts/jobs/new` | Jobs exist (count > 0) |
+| 4 | Review Submissions | Approve or reject completed work | `/scouts/review` | Has reviewed at least one |
+| 5 | Track Payouts | Manage payments for approved jobs | `/scouts/payouts` | Always available |
+
+## Behavior
+- Query template count, roster count, and job count to determine completion state
+- Once **all steps are completed**, auto-collapse the setup guide into a dismissible banner ("Setup complete!") and show the KPI dashboard + completion rate as the primary view
+- Keep KPI cards always visible at the top regardless of setup state
 
 ## Changes
 
-### 1. New backend function: `qr-form-public-view`
-- Accepts `{ token: string }` — no auth required
-- Uses service role to query `location_form_templates` by `public_token` where `is_active = true`
-- Fetches the template version schema and the latest `form_submissions` for current month
-- Returns: template name, location name, schema, submission data, status — all read-only
-- No write access, no mutation endpoints
-
-### 2. New page: `src/pages/qr-forms/QrFormInspectorView.tsx`
-- Calls the edge function with the token from URL params
-- Renders the form data in a **read-only layout** (grid or log table, matching the existing form display)
-- Shows a banner: "Inspector View — Read Only"
-- No save/submit buttons, no editable inputs
-- All grid cells and log rows displayed as plain text values
-
-### 3. Route registration in `App.tsx`
-- Add `/qr/inspect/:token` as a fully public route (no `AuthProvider` wrapper), similar to the kiosk route
-- Existing `/qr/forms/:token` route unchanged
-
-### 4. Add "Inspector Link" button to QrFormAssignments cards
-- Add a small "Inspector" button/link next to "Open" that copies or opens the `/qr/inspect/:token` URL
-- This gives admins easy access to share the read-only link with inspectors
-
-## What stays the same
-- All existing RLS policies untouched
-- The authenticated `/qr/forms/:token` entry route unchanged
-- No database migrations needed
+### Single file: `src/pages/scouts/ScoutsOverview.tsx`
+- Import `useScoutTemplates` to check template count
+- Add a simple roster count query (scout roster for company)
+- Build a `steps` array with `isDone` computed from data
+- Render step cards in a responsive grid (1 col mobile, 3 col md, 5 col lg)
+- Each card: numbered badge, icon, title, description, CTA button, green check overlay when done
+- Keep existing KPI row at top unchanged
+- Replace bottom grid (Completion Rate + Quick Actions) with the step cards when not all steps are done; show the original layout when all are done
 
