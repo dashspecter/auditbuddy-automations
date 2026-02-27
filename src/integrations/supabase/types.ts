@@ -7755,11 +7755,13 @@ export type Database = {
           notes_public: string | null
           paid_at: string | null
           payout_amount: number
+          payout_type: string
           posted_at: string | null
           rejected_at: string | null
           rejection_reasons: Json | null
           reviewed_at: string | null
           reviewer_user_id: string | null
+          reward_description: string | null
           started_at: string | null
           status: string
           submitted_at: string | null
@@ -7769,6 +7771,7 @@ export type Database = {
           time_window_start: string | null
           title: string
           updated_at: string | null
+          voucher_expires_at: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -7784,11 +7787,13 @@ export type Database = {
           notes_public?: string | null
           paid_at?: string | null
           payout_amount?: number
+          payout_type?: string
           posted_at?: string | null
           rejected_at?: string | null
           rejection_reasons?: Json | null
           reviewed_at?: string | null
           reviewer_user_id?: string | null
+          reward_description?: string | null
           started_at?: string | null
           status?: string
           submitted_at?: string | null
@@ -7798,6 +7803,7 @@ export type Database = {
           time_window_start?: string | null
           title: string
           updated_at?: string | null
+          voucher_expires_at?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -7813,11 +7819,13 @@ export type Database = {
           notes_public?: string | null
           paid_at?: string | null
           payout_amount?: number
+          payout_type?: string
           posted_at?: string | null
           rejected_at?: string | null
           rejection_reasons?: Json | null
           reviewed_at?: string | null
           reviewer_user_id?: string | null
+          reward_description?: string | null
           started_at?: string | null
           status?: string
           submitted_at?: string | null
@@ -7827,6 +7835,7 @@ export type Database = {
           time_window_start?: string | null
           title?: string
           updated_at?: string | null
+          voucher_expires_at?: string | null
         }
         Relationships: [
           {
@@ -7975,6 +7984,7 @@ export type Database = {
           paid_at: string | null
           scout_id: string
           status: string
+          voucher_id: string | null
         }
         Insert: {
           amount: number
@@ -7986,6 +7996,7 @@ export type Database = {
           paid_at?: string | null
           scout_id: string
           status?: string
+          voucher_id?: string | null
         }
         Update: {
           amount?: number
@@ -7997,6 +8008,7 @@ export type Database = {
           paid_at?: string | null
           scout_id?: string
           status?: string
+          voucher_id?: string | null
         }
         Relationships: [
           {
@@ -8011,6 +8023,13 @@ export type Database = {
             columns: ["scout_id"]
             isOneToOne: false
             referencedRelation: "scouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_payouts_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]

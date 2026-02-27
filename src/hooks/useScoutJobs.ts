@@ -13,6 +13,9 @@ export interface ScoutJob {
   status: string;
   payout_amount: number;
   currency: string;
+  payout_type: string;
+  reward_description: string | null;
+  voucher_expires_at: string | null;
   time_window_start: string | null;
   time_window_end: string | null;
   posted_at: string | null;
@@ -67,6 +70,9 @@ export function useCreateScoutJob() {
       title: string;
       payout_amount: number;
       currency?: string;
+      payout_type?: string;
+      reward_description?: string;
+      voucher_expires_at?: string;
       time_window_start?: string;
       time_window_end?: string;
       notes_public?: string;
@@ -96,6 +102,9 @@ export function useCreateScoutJob() {
           status,
           payout_amount: data.payout_amount,
           currency: data.currency || 'RON',
+          payout_type: data.payout_type || 'cash',
+          reward_description: data.reward_description || null,
+          voucher_expires_at: data.voucher_expires_at || null,
           time_window_start: data.time_window_start || null,
           time_window_end: data.time_window_end || null,
           posted_at: data.publish ? new Date().toISOString() : null,

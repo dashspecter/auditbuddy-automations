@@ -78,6 +78,15 @@ export function useScoutMedia(submissionId: string | undefined) {
   });
 }
 
+function generateVoucherCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'SCOUT-';
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 export function useReviewSubmission() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -129,19 +138,58 @@ export function useReviewSubmission() {
       const { error: jErr } = await supabase.from('scout_jobs').update(jobUpdates).eq('id', params.jobId);
       if (jErr) throw jErr;
       
-      // Create payout if approved
+      // Create payout + voucher if approved
       if (params.status === 'approved') {
         const { data: job } = await supabase
           .from('scout_jobs')
-          .select('assigned_scout_id, payout_amount, currency')
+          .select('assigned_scout_id, payout_amount, currency, payout_type, reward_description, voucher_expires_at, location_id, company_id')
           .eq('id', params.jobId)
           .single();
+        
         if (job?.assigned_scout_id) {
+          let voucherId: string | null = null;
+          const hasReward = job.payout_type === 'discount' || job.payout_type === 'free_product' || job.payout_type === 'mixed';
+
+          // Generate voucher for reward-based payouts
+          if (hasReward) {
+            // Get scout name for voucher
+            const { data: scout } = await supabase
+              .from('scouts')
+              .select('full_name')
+              .eq('id', job.assigned_scout_id)
+              .single();
+
+            const voucherCode = generateVoucherCode();
+            const defaultExpiry = new Date();
+            defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+
+            const { data: voucher, error: vErr } = await supabase
+              .from('vouchers')
+              .insert({
+                company_id: job.company_id,
+                code: voucherCode,
+                customer_name: scout?.full_name || 'Scout',
+                value: job.payout_type === 'free_product' ? 0 : job.payout_amount,
+                currency: job.currency,
+                terms_text: job.reward_description || (job.payout_type === 'discount' ? 'Discount reward' : 'Free product reward'),
+                expires_at: job.voucher_expires_at || defaultExpiry.toISOString(),
+                location_ids: [job.location_id],
+                status: 'active',
+              })
+              .select('id')
+              .single();
+            if (vErr) throw vErr;
+            voucherId = voucher?.id || null;
+          }
+
+          // Create payout record
+          const payoutAmount = (job.payout_type === 'cash' || job.payout_type === 'mixed') ? job.payout_amount : 0;
           await supabase.from('scout_payouts').insert({
             scout_id: job.assigned_scout_id,
             job_id: params.jobId,
-            amount: job.payout_amount,
+            amount: payoutAmount,
             currency: job.currency,
+            voucher_id: voucherId,
           });
         }
       }
