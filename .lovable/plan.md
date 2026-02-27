@@ -1,26 +1,39 @@
 
 
-# Editable Vacation Days + Mobile Tooltip
+# Inspector Read-Only QR Form View
 
-## What changes
+## Problem
+Currently, scanning a QR code requires authentication. External inspectors (not company members) cannot access form data.
 
-### 1. Add `annual_vacation_days` field to EmployeeDialog (`src/components/EmployeeDialog.tsx`)
-- Add `annual_vacation_days` to formData state (default `"21"`)
-- Initialize from `employee.annual_vacation_days` when editing
-- Add a number input field in the employment/contract section labeled "Annual Vacation Days"
-- Include it in `submitData` as `parseInt` or `null`
-- This field already exists on the `employees` table — no migration needed
+## Approach
+Create a **new public route** (`/qr/inspect/:token`) and a **backend function** that serves read-only form data using the public token — no login required. The existing authenticated route (`/qr/forms/:token`) remains untouched.
 
-### 2. Fix VacationDetailsDialog to use actual employee data (`src/components/staff/VacationDetailsDialog.tsx`)
-- Query `annual_vacation_days` from the employee record instead of hardcoding `25`
-- Use `employee.annual_vacation_days || 21` as the total
+## Changes
 
-### 3. Fix StaffTimeOff mobile view (`src/pages/staff/StaffTimeOff.tsx`)
-- Already reads `annual_vacation_days` from DB — this part is correct
-- Add a tooltip/info banner below the vacation balance card with the text: "Always verify with HR — updates can take up to 10 days"
-- Use `Info` icon + muted styling for the disclaimer
+### 1. New backend function: `qr-form-public-view`
+- Accepts `{ token: string }` — no auth required
+- Uses service role to query `location_form_templates` by `public_token` where `is_active = true`
+- Fetches the template version schema and the latest `form_submissions` for current month
+- Returns: template name, location name, schema, submission data, status — all read-only
+- No write access, no mutation endpoints
 
-### 4. No database changes needed
-- `annual_vacation_days` column already exists on `employees` table
-- RLS policies already allow admin/owner/manager updates via `useUpdateEmployee`
+### 2. New page: `src/pages/qr-forms/QrFormInspectorView.tsx`
+- Calls the edge function with the token from URL params
+- Renders the form data in a **read-only layout** (grid or log table, matching the existing form display)
+- Shows a banner: "Inspector View — Read Only"
+- No save/submit buttons, no editable inputs
+- All grid cells and log rows displayed as plain text values
+
+### 3. Route registration in `App.tsx`
+- Add `/qr/inspect/:token` as a fully public route (no `AuthProvider` wrapper), similar to the kiosk route
+- Existing `/qr/forms/:token` route unchanged
+
+### 4. Add "Inspector Link" button to QrFormAssignments cards
+- Add a small "Inspector" button/link next to "Open" that copies or opens the `/qr/inspect/:token` URL
+- This gives admins easy access to share the read-only link with inspectors
+
+## What stays the same
+- All existing RLS policies untouched
+- The authenticated `/qr/forms/:token` entry route unchanged
+- No database migrations needed
 
