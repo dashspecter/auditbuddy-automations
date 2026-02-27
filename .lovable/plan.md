@@ -1,47 +1,32 @@
 
 
-# Bug: Multi-Location Tasks Only Appear Under One Location
+# Bug: Kiosk Shows Tasks Under Wrong Department Role Groups
 
 ## Root Cause
 
-The system has **two layers of location data** for tasks:
-1. **`tasks.location_id`** — stores only the **first** location from the array (`formData.location_ids[0]`)
-2. **`task_locations`** junction table — stores **all** assigned locations correctly
+Multi-role tasks (e.g., "Completare termograme" assigned to both **Shift Manager** + **Kitchen Manager**) correctly pass the department filter (line 285 — at least one role matches FOH). However, the **grouping logic** (line 502) always uses `roleNames[0]` — the first role alphabetically. Since "Kitchen Manager" < "Shift Manager" alphabetically, these tasks get grouped under "KITCHEN MANAGER" in the Front of House kiosk, which is confusing.
 
-The bug exists in **three places**:
+The department filter keeps the task (correct), but displays it under a role header that doesn't belong to the department (wrong).
 
-### 1. Task list filtering (Tasks.tsx, line 373)
+## Fix
+
+### `src/components/kiosk/KioskDashboard.tsx` — Filter role_names before grouping
+
+In the `tasksByRole` useMemo (around line 473), when `departmentId` and `departmentRoleNames` are active, filter each task's `role_names` to only include roles that belong to the current department **before** selecting the primary role for grouping.
+
 ```typescript
-if (selectedLocationId !== "all" && t.location_id !== selectedLocationId) return false;
+// Line ~500-506: Change primary role selection
+const filteredRoleNames = (departmentId && departmentRoleNames)
+  ? roleNames.filter(r => departmentRoleNames.includes(r))
+  : roleNames;
+
+const primaryRole = filteredRoleNames.length > 0 ? filteredRoleNames[0] : roleNames[0];
 ```
-This checks `t.location_id` (single column), so if a task is assigned to 5 locations but `location_id` stores only "LBFC Apaca" (the first alphabetically), filtering by "LBFC Amzei" hides it.
 
-### 2. Task list display (Tasks.tsx, line 94-98)
-```typescript
-{task.location && <span>{task.location.name}</span>}
-```
-Only shows one location name from the joined `location_id` FK. A task assigned to 5 locations shows "LBFC Apaca" only.
+This ensures "Completare termograme" gets grouped under "SHIFT MANAGER" (a FOH role) in the Front of House kiosk, and under "KITCHEN MANAGER" in the Kitchen kiosk.
 
-### 3. useTasks hook query (useTasks.ts, line 99-100)
-```typescript
-if (filters?.locationId) {
-  query = query.eq("location_id", filters.locationId);
-}
-```
-Server-side filter also uses the single column.
-
-## Fix Plan
-
-### A. `src/hooks/useTasks.ts` — Enrich tasks with all locations from junction table
-After fetching tasks, batch-query `task_locations` + `locations` to attach a `task_location_ids: string[]` array to each task. When `locationId` filter is active, filter using the junction table instead of the `location_id` column.
-
-### B. `src/pages/Tasks.tsx` — Fix `filterTasks` to use junction data
-Change line 373 from checking `t.location_id` to checking if `selectedLocationId` exists in the task's `task_location_ids` array.
-
-### C. `src/pages/Tasks.tsx` — Display all assigned locations
-Update TaskListItem (line 94-98) to show all location names (e.g., "LBFC Amzei +4") or show badges for each location, instead of just the single `location.name`.
+No other files need changes. The filtering logic is correct — only the grouping display needs this department-aware adjustment.
 
 ### Files Changed
-- `src/hooks/useTasks.ts` — Add junction-table location enrichment to `useTasks` query
-- `src/pages/Tasks.tsx` — Fix `filterTasks` and `TaskListItem` display
+- `src/components/kiosk/KioskDashboard.tsx` — Department-aware role grouping (~3 lines changed)
 
