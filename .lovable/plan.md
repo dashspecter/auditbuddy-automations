@@ -1,34 +1,29 @@
 
 
-# Add Edit & Delete Actions to Waste Report Entries Table
+# Fix: Waste Entry Edit Not Persisting
 
-## Current State
-- The Entries tab in `WasteReports.tsx` (lines 563-632) shows a read-only table
-- `useUpdateWasteEntry` and `useVoidWasteEntry` hooks already exist in `useWaste.ts`
-- No delete mutation exists — we'll use void (soft-delete) since the `voided` status pattern is already established
+## Investigation Summary
+
+The edit form and mutation code look structurally correct. The most likely cause is that the Supabase `.update()` is being **blocked by RLS** and the resulting error toast is either not visible enough or being swallowed. Here's why:
+
+- The UPDATE RLS policy on `waste_entries` requires the user to be an admin, manager, company_owner, company_admin, OR the entry creator (with `status = 'recorded'`).
+- If the `.update()` matches 0 rows (RLS blocks), `.select().single()` throws a PGRST116 error ("no rows"), which fires the `onError` toast — but the generic error message may not be clear.
+- Additionally, the `onSuccess` callback in `handleSaveEdit` only closes the dialog — the "Success" toast from the hook fires, but if the mutation actually failed, the error toast may flash briefly.
 
 ## Changes
 
-### 1. Add Actions column to Entries table (`src/pages/reports/WasteReports.tsx`)
-- Add an "Actions" `TableHead` column after "Status"
-- Add a dropdown menu (DropdownMenu) per row with "Edit" and "Delete" options
-- Import `DropdownMenu`, `MoreHorizontal`, `Pencil`, `Trash2` icons
+### 1. Add explicit error handling in `handleSaveEdit` (`WasteReports.tsx`)
+- Add `onError` callback alongside `onSuccess` in `handleSaveEdit` to show a prominent error toast
+- Keep the dialog open on error so the user knows it failed
 
-### 2. Add Edit dialog (`src/pages/reports/WasteReports.tsx`)
-- New state: `editDialogOpen`, `editingEntry`, form fields (`editWeight`, `editReason`, `editNotes`)
-- Dialog with form fields: weight (number input), reason (select from `reasons`), notes (textarea)
-- On save: call `useUpdateWasteEntry` with updated fields, recalculate `cost_total` = weight × product cost_per_kg
+### 2. Add `onSettled` refetch in `useUpdateWasteEntry` (`useWaste.ts`)
+- After the mutation settles (success or error), force refetch `waste_entries` and `waste_report` queries to ensure the UI always shows the latest data
+- This addresses potential stale-cache edge cases
 
-### 3. Add Delete confirmation (`src/pages/reports/WasteReports.tsx`)
-- Use `AlertDialog` for confirmation with optional void reason input
-- On confirm: call `useVoidWasteEntry` which sets `status = 'voided'`
-- Entry will disappear from the filtered view since `filters.status = 'recorded'`
+### 3. Verify RLS policy allows edit for the current user role
+- Add a `WITH CHECK` clause to the UPDATE policy that mirrors `USING` — currently relying on implicit behavior
+- Ensure the policy correctly allows field-level updates (weight, reason, notes) without requiring admin for all cases
 
-### 4. Wire up hooks
-- Import `useUpdateWasteEntry`, `useVoidWasteEntry` from `useWaste`
-- Both already invalidate the relevant query caches
-
-### No database changes needed
-- Update and void mutations already exist
-- RLS policies already allow admin/manager updates
+### 4. Add console logging to mutation for debugging
+- Log the update payload and response in `useUpdateWasteEntry` to help diagnose future issues
 
