@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, TrendingUp, Info } from "lucide-react";
-import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
+import { useLocationPerformanceScores } from "@/hooks/useLocationPerformanceScores";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { UserAvatar } from "@/components/UserAvatar";
 import { computeKioskLeaderboardScores, type KioskEmployeeScore } from "@/lib/kioskEffectiveScore";
@@ -39,21 +39,19 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
   const startDate = format(startOfMonth(now), "yyyy-MM-dd");
   const endDate = format(endOfMonth(now), "yyyy-MM-dd");
 
-  const { byLocation, allScores, isLoading } = usePerformanceLeaderboard(startDate, endDate, locationId, 10);
+  const { data: allScores = [], isLoading } = useLocationPerformanceScores(locationId, startDate, endDate);
 
   // Compute kiosk effective scores - only average components with real data
   const kioskScores = useMemo(() => {
-    const locationData = byLocation.find((l) => l.location_id === locationId);
-    if (!locationData) return [];
+    if (!allScores.length) return [];
     
-    return computeKioskLeaderboardScores(locationData.employees)
+    return computeKioskLeaderboardScores(allScores)
       .sort((a, b) => {
-        // Sort by effective score (null scores go to bottom)
         const scoreA = a.kiosk_effective_overall_score ?? -1;
         const scoreB = b.kiosk_effective_overall_score ?? -1;
         return scoreB - scoreA;
       });
-  }, [byLocation, locationId]);
+  }, [allScores]);
 
   if (isLoading) {
     return (

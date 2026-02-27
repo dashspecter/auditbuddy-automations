@@ -11444,6 +11444,44 @@ export type Database = {
         Args: { audit_id: string }
         Returns: number
       }
+      calculate_location_performance_scores: {
+        Args: {
+          p_end_date: string
+          p_location_id: string
+          p_start_date: string
+        }
+        Returns: {
+          attendance_score: number
+          avatar_url: string
+          average_review_score: number
+          average_test_score: number
+          base_score: number
+          employee_id: string
+          employee_name: string
+          late_count: number
+          location_id: string
+          location_name: string
+          overall_score: number
+          performance_review_score: number
+          punctuality_score: number
+          reviews_count: number
+          role: string
+          shifts_missed: number
+          shifts_scheduled: number
+          shifts_worked: number
+          task_score: number
+          tasks_assigned: number
+          tasks_completed: number
+          tasks_completed_on_time: number
+          tasks_overdue: number
+          test_score: number
+          tests_passed: number
+          tests_taken: number
+          total_late_minutes: number
+          warning_count: number
+          warning_penalty: number
+        }[]
+      }
       company_has_module: {
         Args: { _company_id: string; _module: string }
         Returns: boolean
