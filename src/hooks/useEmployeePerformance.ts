@@ -405,9 +405,13 @@ export const useEmployeePerformance = (
         );
         const directTaskIds = new Set(directTasks.map(t => t.id));
         
-        // Get completions from task_completions for this employee (excluding already-counted direct tasks)
+        // Get completions from task_completions for this employee
+        // Bug fix: exclude direct tasks AND individual tasks not in shared task set
+        const sharedTaskIdSet = new Set(sharedTaskIds);
         const employeeCompletions = (taskCompletions || []).filter(
-          (c) => c.completed_by_employee_id === employeeId && !directTaskIds.has(c.task_id)
+          (c) => c.completed_by_employee_id === employeeId 
+            && !directTaskIds.has(c.task_id)
+            && sharedTaskIdSet.has(c.task_id) // Only count completions for actual shared tasks
         );
         
         // Direct task metrics

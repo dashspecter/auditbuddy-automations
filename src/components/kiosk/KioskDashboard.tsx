@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
+import { useLocationPerformanceScores } from "@/hooks/useLocationPerformanceScores";
 import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveScore";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -395,14 +395,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken }: KioskDashb
     });
   }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
 
-  // MTD Score - use general performance score (same as Performance Rankings)
+  // MTD Score - use server-side scoring function (bypasses RLS for accurate scores)
   const mtdStartFormatted = format(startOfMonth(today), 'yyyy-MM-dd');
   const mtdEndFormatted = format(today, 'yyyy-MM-dd');
-  const { allScores: weeklyAllScores } = usePerformanceLeaderboard(
-    mtdStartFormatted,
-    mtdEndFormatted,
+  const { data: weeklyAllScores = [] } = useLocationPerformanceScores(
     locationId,
-    999
+    mtdStartFormatted,
+    mtdEndFormatted
   );
   const weeklyScoreLeaderboard = useMemo(() => {
     const effective = computeEffectiveScores(weeklyAllScores, true);
