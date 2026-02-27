@@ -450,7 +450,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     mtdEndFormatted
   );
   const weeklyScoreLeaderboard = useMemo(() => {
-    let scores = computeEffectiveScores(weeklyAllScores, true);
+    let scores = computeEffectiveScores(weeklyAllScores, false);
     // Filter by department roles if set
     if (departmentId && departmentRoleNames) {
       scores = scores.filter(s => departmentRoleNames.includes(s.role));
