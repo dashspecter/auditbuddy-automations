@@ -45,6 +45,9 @@ export interface Task {
   is_individual: boolean | null;
   // Execution mode for shift-aware tasks
   execution_mode?: 'shift_based' | 'always_on';
+  // Multi-location data from task_locations junction table
+  task_location_ids?: string[];
+  task_location_names?: string[];
   // Joined data
   assigned_employee?: {
     id: string;
@@ -96,17 +99,49 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
         query = query.eq("assigned_role_id", filters.assignedRoleId);
       }
 
-      if (filters?.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // NOTE: Do NOT filter by location_id column server-side — we use junction table below
+      // If locationId filter is active, we'll filter client-side after enrichment
 
       const { data: tasks, error } = await query;
 
       if (error) throw error;
 
+      const taskIds = (tasks || []).map((t: any) => t.id);
+
+      // Batch-fetch all task_locations for these tasks
+      let taskLocationsMap: Record<string, string[]> = {};
+      let locationNamesMap: Record<string, string> = {};
+      if (taskIds.length > 0) {
+        const { data: taskLocRows } = await supabase
+          .from("task_locations")
+          .select("task_id, location_id")
+          .in("task_id", taskIds);
+
+        if (taskLocRows && taskLocRows.length > 0) {
+          // Build task -> location_ids map
+          for (const row of taskLocRows) {
+            if (!taskLocationsMap[row.task_id]) taskLocationsMap[row.task_id] = [];
+            taskLocationsMap[row.task_id].push(row.location_id);
+          }
+
+          // Get all unique location IDs and fetch names
+          const allLocIds = Array.from(new Set(taskLocRows.map(r => r.location_id)));
+          const { data: locData } = await supabase
+            .from("locations")
+            .select("id, name")
+            .in("id", allLocIds);
+
+          if (locData) {
+            for (const loc of locData) {
+              locationNamesMap[loc.id] = loc.name;
+            }
+          }
+        }
+      }
+
       // Fetch assigned and completed employees separately
       const tasksWithAssignees = await Promise.all(
-        (tasks || []).map(async (task) => {
+        (tasks || []).map(async (task: any) => {
           let assigned_employee = null;
           let completed_employee = null;
           
@@ -127,12 +162,28 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
               .single();
             completed_employee = emp;
           }
+
+          // Enrich with junction-table location data
+          const locIds = taskLocationsMap[task.id] || (task.location_id ? [task.location_id] : []);
+          const locNames = locIds.map((id: string) => locationNamesMap[id]).filter(Boolean);
           
-          return { ...task, assigned_employee, completed_employee } as Task;
+          return { 
+            ...task, 
+            assigned_employee, 
+            completed_employee,
+            task_location_ids: locIds,
+            task_location_names: locNames,
+          } as Task;
         })
       );
 
-      return tasksWithAssignees;
+      // Client-side location filter using junction data
+      let result = tasksWithAssignees;
+      if (filters?.locationId) {
+        result = result.filter(t => t.task_location_ids?.includes(filters.locationId!) ?? false);
+      }
+
+      return result;
     },
     enabled: !!company?.id,
   });
