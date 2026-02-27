@@ -1,0 +1,1 @@
+ALTER TABLE public.scout_template_steps ADD COLUMN weight integer NOT NULL DEFAULT 1;
