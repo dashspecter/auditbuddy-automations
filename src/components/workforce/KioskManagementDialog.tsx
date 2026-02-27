@@ -32,7 +32,8 @@ import {
   Tablet, 
   MapPin,
   Copy,
-  Check
+  Check,
+  Building2
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -188,6 +189,12 @@ export const KioskManagementDialog = ({
                           <MapPin className="h-3 w-3" />
                           {kiosk.locations?.name}
                         </div>
+                        {(kiosk as any).departments?.name && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                            <Building2 className="h-3 w-3" />
+                            {(kiosk as any).departments.name}
+                          </div>
+                        )}
                         {(kiosk as any).custom_slug && (
                           <div className="text-xs font-mono text-primary/70 mb-2">
                             /kiosk/{(kiosk as any).custom_slug}
