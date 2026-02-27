@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,8 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useScoutTemplates, useScoutTemplateSteps, useCreateScoutTemplate, useDeleteScoutTemplate, ScoutTemplateStep } from "@/hooks/useScoutTemplates";
-import { Plus, Trash2, Eye, GripVertical } from "lucide-react";
+import {
+  useScoutTemplates,
+  useScoutTemplateSteps,
+  useCreateScoutTemplate,
+  useUpdateScoutTemplate,
+  useDeleteScoutTemplate,
+  ScoutTemplateStep,
+  ScoutTemplate,
+} from "@/hooks/useScoutTemplates";
+import { Plus, Trash2, Eye, Pencil, GripVertical } from "lucide-react";
 import { format } from "date-fns";
 
 const STEP_TYPES = [
@@ -21,23 +29,70 @@ const STEP_TYPES = [
   { value: 'checklist', label: 'Checklist' },
 ];
 
+const emptyForm = { title: '', category: 'general', estimated_duration_minutes: 15, guidance_text: '' };
+
 const ScoutsTemplates = () => {
   const { data: templates = [], isLoading } = useScoutTemplates();
   const createTemplate = useCreateScoutTemplate();
+  const updateTemplate = useUpdateScoutTemplate();
   const deleteTemplate = useDeleteScoutTemplate();
-  
-  const [showCreate, setShowCreate] = useState(false);
+
+  const [dialogMode, setDialogMode] = useState<'closed' | 'create' | 'edit' | 'view'>('closed');
+  const [editingId, setEditingId] = useState<string | undefined>();
   const [viewId, setViewId] = useState<string | undefined>();
-  const { data: viewSteps = [] } = useScoutTemplateSteps(viewId);
-  
-  const [form, setForm] = useState({
-    title: '',
-    category: 'general',
-    estimated_duration_minutes: 15,
-    guidance_text: '',
-  });
-  
+
+  const activeTemplateId = dialogMode === 'view' ? viewId : dialogMode === 'edit' ? editingId : undefined;
+  const { data: loadedSteps = [] } = useScoutTemplateSteps(activeTemplateId);
+
+  const [form, setForm] = useState(emptyForm);
   const [steps, setSteps] = useState<Omit<ScoutTemplateStep, 'id' | 'template_id'>[]>([]);
+
+  // When opening edit mode, populate form + steps from loaded data
+  useEffect(() => {
+    if (dialogMode === 'edit' && editingId && loadedSteps.length >= 0) {
+      const tmpl = templates.find(t => t.id === editingId);
+      if (tmpl) {
+        setForm({
+          title: tmpl.title,
+          category: tmpl.category,
+          estimated_duration_minutes: tmpl.estimated_duration_minutes,
+          guidance_text: tmpl.guidance_text ?? '',
+        });
+      }
+      setSteps(loadedSteps.map(s => ({
+        step_order: s.step_order,
+        prompt: s.prompt,
+        step_type: s.step_type,
+        is_required: s.is_required,
+        min_photos: s.min_photos,
+        min_videos: s.min_videos,
+        guidance_text: s.guidance_text,
+        validation_rules: s.validation_rules ?? {},
+      })));
+    }
+  }, [dialogMode, editingId, loadedSteps, templates]);
+
+  const openCreate = () => {
+    setForm(emptyForm);
+    setSteps([]);
+    setDialogMode('create');
+  };
+
+  const openEdit = (tmpl: ScoutTemplate) => {
+    setEditingId(tmpl.id);
+    setDialogMode('edit');
+  };
+
+  const openView = (id: string) => {
+    setViewId(id);
+    setDialogMode('view');
+  };
+
+  const closeDialog = () => {
+    setDialogMode('closed');
+    setEditingId(undefined);
+    setViewId(undefined);
+  };
 
   const addStep = () => {
     setSteps(prev => [...prev, {
@@ -60,16 +115,18 @@ const ScoutsTemplates = () => {
     setSteps(prev => prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, step_order: i + 1 })));
   };
 
-  const handleCreate = () => {
+  const handleSave = () => {
     if (!form.title || steps.length === 0) return;
-    createTemplate.mutate({ ...form, steps }, {
-      onSuccess: () => {
-        setShowCreate(false);
-        setForm({ title: '', category: 'general', estimated_duration_minutes: 15, guidance_text: '' });
-        setSteps([]);
-      },
-    });
+
+    if (dialogMode === 'edit' && editingId) {
+      updateTemplate.mutate({ id: editingId, ...form, steps }, { onSuccess: closeDialog });
+    } else {
+      createTemplate.mutate({ ...form, steps }, { onSuccess: closeDialog });
+    }
   };
+
+  const isSaving = createTemplate.isPending || updateTemplate.isPending;
+  const isEditing = dialogMode === 'edit';
 
   return (
     <div className="space-y-6">
@@ -78,7 +135,7 @@ const ScoutsTemplates = () => {
           <h1 className="text-2xl font-bold tracking-tight">Scout Templates</h1>
           <p className="text-muted-foreground">Define job checklist templates with required evidence steps.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
+        <Button onClick={openCreate}>
           <Plus className="h-4 w-4 mr-2" /> New Template
         </Button>
       </div>
@@ -94,7 +151,7 @@ const ScoutsTemplates = () => {
                 <TableHead>Version</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[120px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,8 +173,11 @@ const ScoutsTemplates = () => {
                   <TableCell className="text-muted-foreground">{format(new Date(tmpl.created_at), 'dd MMM yyyy')}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setViewId(tmpl.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => openView(tmpl.id)}>
                         <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(tmpl)}>
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => deleteTemplate.mutate(tmpl.id)} className="text-destructive">
                         <Trash2 className="h-4 w-4" />
@@ -132,13 +192,13 @@ const ScoutsTemplates = () => {
       </Card>
 
       {/* View Steps Dialog */}
-      <Dialog open={!!viewId} onOpenChange={() => setViewId(undefined)}>
+      <Dialog open={dialogMode === 'view'} onOpenChange={() => closeDialog()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Template Steps</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            {viewSteps.map((s: any, i: number) => (
+            {loadedSteps.map((s: any, i: number) => (
               <div key={s.id} className="flex items-center gap-3 p-2 border rounded-md">
                 <span className="text-sm font-medium text-muted-foreground w-6">{i + 1}.</span>
                 <div className="flex-1">
@@ -147,16 +207,16 @@ const ScoutsTemplates = () => {
                 </div>
               </div>
             ))}
-            {viewSteps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No steps defined.</p>}
+            {loadedSteps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No steps defined.</p>}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Create Template Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      {/* Create / Edit Template Dialog */}
+      <Dialog open={dialogMode === 'create' || dialogMode === 'edit'} onOpenChange={() => closeDialog()}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Scout Template</DialogTitle>
+            <DialogTitle>{isEditing ? 'Edit Scout Template' : 'Create Scout Template'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -219,13 +279,13 @@ const ScoutsTemplates = () => {
                   </div>
                 </Card>
               ))}
-              {steps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Add at least one step to create a template.</p>}
+              {steps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Add at least one step.</p>}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={createTemplate.isPending || !form.title || steps.length === 0}>
-              Create Template
+            <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving || !form.title || steps.length === 0}>
+              {isEditing ? 'Save Changes' : 'Create Template'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -118,6 +118,62 @@ export function useCreateScoutTemplate() {
   });
 }
 
+export function useUpdateScoutTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      title: string;
+      category: string;
+      estimated_duration_minutes: number;
+      guidance_text?: string;
+      steps: Omit<ScoutTemplateStep, 'id' | 'template_id'>[];
+    }) => {
+      const { error: tErr } = await supabase
+        .from('scout_templates')
+        .update({
+          title: data.title,
+          category: data.category,
+          estimated_duration_minutes: data.estimated_duration_minutes,
+          guidance_text: data.guidance_text || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+      if (tErr) throw tErr;
+
+      // Replace steps: delete existing, insert new
+      const { error: delErr } = await supabase
+        .from('scout_template_steps')
+        .delete()
+        .eq('template_id', data.id);
+      if (delErr) throw delErr;
+
+      if (data.steps.length > 0) {
+        const stepsToInsert = data.steps.map(s => ({
+          template_id: data.id,
+          step_order: s.step_order,
+          prompt: s.prompt,
+          step_type: s.step_type,
+          is_required: s.is_required,
+          min_photos: s.min_photos,
+          min_videos: s.min_videos,
+          guidance_text: s.guidance_text,
+          validation_rules: s.validation_rules as Json,
+        }));
+        const { error: sErr } = await supabase.from('scout_template_steps').insert(stepsToInsert);
+        if (sErr) throw sErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scout-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['scout-template-steps'] });
+      toast.success('Template updated');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function useDeleteScoutTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
