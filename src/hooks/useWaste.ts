@@ -432,14 +432,23 @@ export const useUpdateWasteEntry = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WasteEntry> & { id: string }) => {
+      console.log('[useUpdateWasteEntry] Updating entry:', id, 'with:', updates);
       const { data, error } = await supabase
         .from('waste_entries')
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useUpdateWasteEntry] Error:', error);
+        throw error;
+      }
+      if (!data) {
+        console.error('[useUpdateWasteEntry] No rows returned — likely blocked by RLS');
+        throw new Error('Update failed — you may not have permission to edit this entry');
+      }
+      console.log('[useUpdateWasteEntry] Success:', data);
       return data as WasteEntry;
     },
     onSuccess: () => {
@@ -449,7 +458,12 @@ export const useUpdateWasteEntry = () => {
       toast({ title: 'Success', description: 'Waste entry updated' });
     },
     onError: (error: Error) => {
+      console.error('[useUpdateWasteEntry] Mutation error:', error.message);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+    onSettled: () => {
+      queryClient.refetchQueries({ queryKey: ['waste_entries'] });
+      queryClient.refetchQueries({ queryKey: ['waste_report'] });
     },
   });
 };

@@ -126,7 +126,14 @@ export default function WasteReports() {
       notes: editNotes || null,
       cost_total: costTotal,
     }, {
-      onSuccess: () => setEditDialogOpen(false),
+      onSuccess: () => {
+        setEditDialogOpen(false);
+        setEditingEntry(null);
+      },
+      onError: (error: Error) => {
+        toast({ title: "Edit failed", description: error.message, variant: "destructive" });
+        // Keep dialog open so user sees the failure
+      },
     });
   };
 
