@@ -15,6 +15,7 @@ export interface ScoutTemplateStep {
   min_videos: number;
   guidance_text: string | null;
   validation_rules: Record<string, unknown>;
+  weight: number;
 }
 
 export interface ScoutTemplate {
@@ -103,6 +104,7 @@ export function useCreateScoutTemplate() {
           min_videos: s.min_videos,
           guidance_text: s.guidance_text,
           validation_rules: s.validation_rules as Json,
+          weight: s.weight,
         }));
         const { error: sErr } = await supabase.from('scout_template_steps').insert(stepsToInsert);
         if (sErr) throw sErr;
@@ -160,6 +162,7 @@ export function useUpdateScoutTemplate() {
           min_videos: s.min_videos,
           guidance_text: s.guidance_text,
           validation_rules: s.validation_rules as Json,
+          weight: s.weight,
         }));
         const { error: sErr } = await supabase.from('scout_template_steps').insert(stepsToInsert);
         if (sErr) throw sErr;

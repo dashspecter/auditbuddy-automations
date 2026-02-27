@@ -8136,6 +8136,7 @@ export type Database = {
           step_type: string
           template_id: string
           validation_rules: Json | null
+          weight: number
         }
         Insert: {
           created_at?: string | null
@@ -8149,6 +8150,7 @@ export type Database = {
           step_type?: string
           template_id: string
           validation_rules?: Json | null
+          weight?: number
         }
         Update: {
           created_at?: string | null
@@ -8162,6 +8164,7 @@ export type Database = {
           step_type?: string
           template_id?: string
           validation_rules?: Json | null
+          weight?: number
         }
         Relationships: [
           {

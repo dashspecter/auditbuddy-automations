@@ -68,6 +68,7 @@ const ScoutsTemplates = () => {
         min_videos: s.min_videos,
         guidance_text: s.guidance_text,
         validation_rules: s.validation_rules ?? {},
+        weight: s.weight ?? 1,
       })));
     }
   }, [dialogMode, editingId, loadedSteps, templates]);
@@ -104,6 +105,7 @@ const ScoutsTemplates = () => {
       min_videos: 0,
       guidance_text: null,
       validation_rules: {},
+      weight: 1,
     }]);
   };
 
@@ -203,7 +205,7 @@ const ScoutsTemplates = () => {
                 <span className="text-sm font-medium text-muted-foreground w-6">{i + 1}.</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{s.prompt}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{s.step_type}{s.is_required ? ' • Required' : ''}{s.min_photos > 0 ? ` • ${s.min_photos} photo(s)` : ''}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{s.step_type}{s.is_required ? ' • Required' : ''}{s.min_photos > 0 ? ` • ${s.min_photos} photo(s)` : ''} • Weight {s.weight ?? 1}/5</p>
                 </div>
               </div>
             ))}
@@ -265,7 +267,7 @@ const ScoutsTemplates = () => {
                       </Button>
                     </div>
                     <Input value={step.prompt} onChange={e => updateStep(idx, 'prompt', e.target.value)} placeholder="Step prompt/instruction..." />
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       <Select value={step.step_type} onValueChange={v => updateStep(idx, 'step_type', v)}>
                         <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -275,6 +277,12 @@ const ScoutsTemplates = () => {
                       {(step.step_type === 'photo' || step.step_type === 'video') && (
                         <Input type="number" className="h-8" value={step.step_type === 'photo' ? step.min_photos : step.min_videos} onChange={e => updateStep(idx, step.step_type === 'photo' ? 'min_photos' : 'min_videos', Number(e.target.value))} placeholder="Min count" />
                       )}
+                      <Select value={String(step.weight)} onValueChange={v => updateStep(idx, 'weight', Number(v))}>
+                        <SelectTrigger className="h-8"><SelectValue placeholder="Weight" /></SelectTrigger>
+                        <SelectContent>
+                          {[1,2,3,4,5].map(w => <SelectItem key={w} value={String(w)}>Weight {w}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </Card>
