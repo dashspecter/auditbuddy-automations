@@ -58,12 +58,12 @@ Deno.serve(async (req) => {
       const shiftDate = auditDate.slice(0, 10); // ensure YYYY-MM-DD
       const { data: shiftEmp } = await supabase
         .from("shift_assignments")
-        .select("employees!inner(user_id, role)")
+        .select("staff_id, shifts!inner(location_id, shift_date), employees!inner(user_id, role)")
         .eq("approval_status", "approved")
-        .filter("shifts.location_id", "eq", locationId)
-        .filter("shifts.shift_date", "eq", shiftDate)
-        .filter("employees.role", "ilike", role)
-        .filter("employees.user_id", "not.is", null)
+        .eq("shifts.location_id", locationId)
+        .eq("shifts.shift_date", shiftDate)
+        .ilike("employees.role", role)
+        .not("employees.user_id", "is", null)
         .limit(1)
         .maybeSingle();
       // @ts-ignore - nested join type
