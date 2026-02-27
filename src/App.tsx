@@ -189,6 +189,7 @@ import QrFormTemplateEditor from "./pages/qr-forms/QrFormTemplateEditor";
 import QrFormAssignments from "./pages/qr-forms/QrFormAssignments";
 import QrFormRecords from "./pages/qr-forms/QrFormRecords";
 import QrFormEntry from "./pages/qr-forms/QrFormEntry";
+import QrFormInspectorView from "./pages/qr-forms/QrFormInspectorView";
 import CorrectiveActionsList from "./pages/correctiveActions/CorrectiveActionsList";
 import CorrectiveActionDetail from "./pages/correctiveActions/CorrectiveActionDetail";
 import CorrectiveActionRules from "./pages/correctiveActions/CorrectiveActionRules";
@@ -249,6 +250,9 @@ const App = () => {
           <Routes>
             {/* Public kiosk route - fully outside Auth/Company contexts for anonymous access */}
             <Route path="/kiosk/:token" element={<AttendanceKiosk />} />
+            
+            {/* Public inspector view - no auth required, read-only */}
+            <Route path="/qr/inspect/:token" element={<QrFormInspectorView />} />
             
             {/* QR Forms entry - needs Auth but accessible via QR scan */}
             <Route path="/qr/forms/:token" element={

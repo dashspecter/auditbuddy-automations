@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink, Clock, X, Search } from "lucide-react";
+import { Plus, QrCode, MapPin, Download, Copy, Trash2, ExternalLink, Clock, X, Search, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -464,6 +464,17 @@ export default function QrFormAssignments() {
                       }
                     >
                       <ExternalLink className="h-3 w-3 mr-1" /> Open
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${baseUrl}/qr/inspect/${a.public_token}`);
+                        toast.success("Inspector URL copied to clipboard");
+                      }}
+                    >
+                      <Shield className="h-3 w-3 mr-1" /> Inspector
                     </Button>
                     <Button
                       variant="ghost"
