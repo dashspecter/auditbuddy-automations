@@ -68,6 +68,15 @@ export default function WasteReports() {
   const [editReason, setEditReason] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
+  // Entry-level filters
+  const [entryProductFilter, setEntryProductFilter] = useState<string>("all");
+  const [entryReasonFilter, setEntryReasonFilter] = useState<string>("all");
+  const [entryDateFilter, setEntryDateFilter] = useState<Date | undefined>(undefined);
+  const [entryWeightMin, setEntryWeightMin] = useState("");
+  const [entryWeightMax, setEntryWeightMax] = useState("");
+  const [entryCostMin, setEntryCostMin] = useState("");
+  const [entryCostMax, setEntryCostMax] = useState("");
+
   // Delete/void state
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
   const [voidingEntry, setVoidingEntry] = useState<WasteEntry | null>(null);
@@ -264,6 +273,37 @@ export default function WasteReports() {
     doc.save(`waste-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast({ title: "Success", description: "PDF exported" });
   };
+
+  // Client-side filtering for entries tab
+  const filteredEntries = useMemo(() => {
+    if (!entries) return [];
+    return entries.filter(entry => {
+      if (entryProductFilter !== "all" && entry.waste_product_id !== entryProductFilter) return false;
+      if (entryReasonFilter !== "all" && entry.waste_reason_id !== entryReasonFilter) return false;
+      if (entryDateFilter) {
+        const entryDate = format(new Date(entry.occurred_at), 'yyyy-MM-dd');
+        const filterDate = format(entryDateFilter, 'yyyy-MM-dd');
+        if (entryDate !== filterDate) return false;
+      }
+      if (entryWeightMin && entry.weight_kg < parseFloat(entryWeightMin)) return false;
+      if (entryWeightMax && entry.weight_kg > parseFloat(entryWeightMax)) return false;
+      if (entryCostMin && entry.cost_total < parseFloat(entryCostMin)) return false;
+      if (entryCostMax && entry.cost_total > parseFloat(entryCostMax)) return false;
+      return true;
+    });
+  }, [entries, entryProductFilter, entryReasonFilter, entryDateFilter, entryWeightMin, entryWeightMax, entryCostMin, entryCostMax]);
+
+  const hasEntryFilters = entryProductFilter !== "all" || entryReasonFilter !== "all" || entryDateFilter || entryWeightMin || entryWeightMax || entryCostMin || entryCostMax;
+
+  const clearEntryFilters = useCallback(() => {
+    setEntryProductFilter("all");
+    setEntryReasonFilter("all");
+    setEntryDateFilter(undefined);
+    setEntryWeightMin("");
+    setEntryWeightMax("");
+    setEntryCostMin("");
+    setEntryCostMax("");
+  }, []);
 
   const isLoading = reportLoading || entriesLoading;
 
@@ -634,7 +674,74 @@ export default function WasteReports() {
                   <CardTitle>Waste Entries</CardTitle>
                   <CardDescription>Detailed list of all waste entries</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {/* Entry Filters */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Product</label>
+                      <Select value={entryProductFilter} onValueChange={setEntryProductFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Products</SelectItem>
+                          {products?.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Reason</label>
+                      <Select value={entryReasonFilter} onValueChange={setEntryReasonFilter}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Reasons</SelectItem>
+                          {reasons?.map(r => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("h-9 w-full justify-start text-left text-xs font-normal", !entryDateFilter && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {entryDateFilter ? format(entryDateFilter, "MMM d") : "Any"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={entryDateFilter} onSelect={setEntryDateFilter} initialFocus className={cn("p-3 pointer-events-auto")} />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Weight min</label>
+                      <Input className="h-9 text-xs" type="number" step="0.01" placeholder="0" value={entryWeightMin} onChange={e => setEntryWeightMin(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Weight max</label>
+                      <Input className="h-9 text-xs" type="number" step="0.01" placeholder="∞" value={entryWeightMax} onChange={e => setEntryWeightMax(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Cost min</label>
+                      <Input className="h-9 text-xs" type="number" step="0.01" placeholder="0" value={entryCostMin} onChange={e => setEntryCostMin(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Cost max</label>
+                      <Input className="h-9 text-xs" type="number" step="0.01" placeholder="∞" value={entryCostMax} onChange={e => setEntryCostMax(e.target.value)} />
+                    </div>
+                  </div>
+                  {hasEntryFilters && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">{filteredEntries.length} of {entries?.length || 0} entries</p>
+                      <Button variant="ghost" size="sm" onClick={clearEntryFilters}>Clear filters</Button>
+                    </div>
+                  )}
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -651,7 +758,7 @@ export default function WasteReports() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {entries?.slice(0, 100).map((entry) => (
+                        {filteredEntries.slice(0, 100).map((entry) => (
                           <TableRow key={entry.id}>
                             <TableCell>
                               {entry.photo_path ? (
@@ -708,9 +815,9 @@ export default function WasteReports() {
                       </TableBody>
                     </Table>
                   </div>
-                  {entries && entries.length > 100 && (
+                  {filteredEntries.length > 100 && (
                     <p className="text-sm text-muted-foreground text-center mt-4">
-                      Showing first 100 entries. Export to CSV for full data.
+                      Showing first 100 of {filteredEntries.length} entries. Export to CSV for full data.
                     </p>
                   )}
                 </CardContent>
