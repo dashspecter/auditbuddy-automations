@@ -12,14 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Download, Calendar as CalendarIcon, Trash2, TrendingUp, TrendingDown,
-  Scale, DollarSign, AlertTriangle, Package, BarChart3, ArrowLeft, ImageIcon
+  Scale, DollarSign, AlertTriangle, Package, BarChart3, ArrowLeft, ImageIcon,
+  MoreHorizontal, Pencil
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, ComposedChart
 } from "recharts";
-import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, WasteEntryFilters, getWastePhotoUrl, WasteEntry } from "@/hooks/useWaste";
+import { useWasteReport, useWasteEntries, useWasteProducts, useWasteReasons, useUpdateWasteEntry, useVoidWasteEntry, WasteEntryFilters, getWastePhotoUrl, WasteEntry } from "@/hooks/useWaste";
 import { useLocations } from "@/hooks/useLocations";
 import { ModuleGate } from "@/components/ModuleGate";
 import { EmptyState } from "@/components/EmptyState";
@@ -55,6 +61,21 @@ export default function WasteReports() {
   // Cache of thumbnail signed URLs keyed by photo_path
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
 
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<WasteEntry | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  // Delete/void state
+  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
+  const [voidingEntry, setVoidingEntry] = useState<WasteEntry | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+
+  const updateEntry = useUpdateWasteEntry();
+  const voidEntry = useVoidWasteEntry();
+
   // Load photo when entry selected
   useEffect(() => {
     const loadPhoto = async () => {
@@ -81,6 +102,46 @@ export default function WasteReports() {
   const { data: locations } = useLocations();
   const { data: products } = useWasteProducts(false);
   const { data: reasons } = useWasteReasons(false);
+
+  const handleEditEntry = (entry: WasteEntry) => {
+    setEditingEntry(entry);
+    setEditWeight(String(entry.weight_kg));
+    setEditReason(entry.waste_reason_id || "");
+    setEditNotes(entry.notes || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingEntry) return;
+    const weight = parseFloat(editWeight.replace(",", "."));
+    if (isNaN(weight) || weight <= 0) {
+      toast({ title: "Error", description: "Invalid weight", variant: "destructive" });
+      return;
+    }
+    const costTotal = weight * editingEntry.unit_cost_used;
+    updateEntry.mutate({
+      id: editingEntry.id,
+      weight_kg: weight,
+      waste_reason_id: editReason || null,
+      notes: editNotes || null,
+      cost_total: costTotal,
+    }, {
+      onSuccess: () => setEditDialogOpen(false),
+    });
+  };
+
+  const handleVoidEntry = (entry: WasteEntry) => {
+    setVoidingEntry(entry);
+    setVoidReason("");
+    setVoidDialogOpen(true);
+  };
+
+  const handleConfirmVoid = () => {
+    if (!voidingEntry) return;
+    voidEntry.mutate({ id: voidingEntry.id, void_reason: voidReason || "Deleted from report" }, {
+      onSuccess: () => setVoidDialogOpen(false),
+    });
+  };
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -579,6 +640,7 @@ export default function WasteReports() {
                           <TableHead className="text-right">Weight (kg)</TableHead>
                           <TableHead className="text-right">Cost (RON)</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-12">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -617,6 +679,23 @@ export default function WasteReports() {
                                 {entry.status}
                               </Badge>
                             </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditEntry(entry)}>
+                                    <Pencil className="h-4 w-4 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleVoidEntry(entry)} className="text-destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -632,6 +711,70 @@ export default function WasteReports() {
             </TabsContent>
           </Tabs>
         )}
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Waste Entry</DialogTitle>
+            </DialogHeader>
+            {editingEntry && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Product</Label>
+                  <p className="text-sm text-muted-foreground">{editingEntry.waste_products?.name}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editWeight">Weight (kg)</Label>
+                  <Input id="editWeight" type="text" inputMode="decimal" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason</Label>
+                  <Select value={editReason} onValueChange={setEditReason}>
+                    <SelectTrigger><SelectValue placeholder="Select reason" /></SelectTrigger>
+                    <SelectContent>
+                      {reasons?.map(r => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editNotes">Notes</Label>
+                  <Textarea id="editNotes" value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={3} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSaveEdit} disabled={updateEntry.isPending}>
+                    {updateEntry.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Void Confirmation */}
+        <AlertDialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Waste Entry?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will void the entry for {voidingEntry?.waste_products?.name} ({voidingEntry?.weight_kg.toFixed(3)} kg). This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="voidReason">Reason (optional)</Label>
+              <Input id="voidReason" value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Why is this entry being deleted?" />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmVoid} disabled={voidEntry.isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {voidEntry.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Photo Dialog */}
         <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
