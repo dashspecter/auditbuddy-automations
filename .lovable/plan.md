@@ -1,29 +1,26 @@
 
 
-# Fix: Shift-Based Role Resolution in CAPA Rules Engine
+# Fix: Off-Duty Staff Should See No Tasks
 
-## Problem
-In `supabase/functions/process-capa-rules/index.ts` (lines 59-68), the shift lookup query doesn't include `shifts` in the `.select()` clause, so PostgREST silently ignores the `.filter("shifts.*")` conditions. Step 1 always fails, falling through to step 2 which picks the first alphabetical employee match (Gabriela Mitan) instead of the employee actually on shift (Test).
+## Change
+**File: `src/hooks/useStaffTodayTasks.ts`** — Lines 462-469 only.
 
-## Fix
-**File: `supabase/functions/process-capa-rules/index.ts`** — Lines 59-70 only.
-
-Replace the broken query with one that includes `shifts!inner(...)` in the select so PostgREST can filter on shift columns:
+Add an `else if` branch after the existing location filter:
 
 ```typescript
-const { data: shiftEmp } = await supabase
-  .from("shift_assignments")
-  .select("staff_id, shifts!inner(location_id, shift_date), employees!inner(user_id, role)")
-  .eq("approval_status", "approved")
-  .eq("shifts.location_id", locationId)
-  .eq("shifts.shift_date", shiftDate)
-  .ilike("employees.role", role)
-  .not("employees.user_id", "is", null)
-  .limit(1)
-  .maybeSingle();
-// @ts-ignore - nested join type
-const scheduledUserId = shiftEmp?.employees?.user_id;
+let locationFilteredTasks = pipelineResult.tasks;
+if (myShiftLocationIdsForQuery.length > 0) {
+  locationFilteredTasks = pipelineResult.tasks.filter((t) => {
+    const taskLocIds = (t as any).task_location_ids as string[] | undefined;
+    if (!taskLocIds || taskLocIds.length === 0) return true;
+    return taskLocIds.some((locId) => myShiftLocationIdsForQuery.includes(locId));
+  });
+} else if (shifts.length > 0) {
+  // Shifts exist but employee has no approved assignment → off duty, no tasks
+  locationFilteredTasks = [];
+}
+// If shifts.length === 0 → company doesn't use scheduling, show all (backward compat)
 ```
 
-No other lines or files change. Steps 2-4 (fallback resolution) remain untouched.
+No other files or lines change.
 
