@@ -1,41 +1,47 @@
 
 
-# Bug: Task Edit Form Wipes `start_at` on Save
+# Bug: Multi-Location Tasks Only Appear Under One Location
 
 ## Root Cause
-In `TaskEdit.tsx`, the `handleSubmit` function (line 163) always sends `start_at` in the update payload:
+
+The system has **two layers of location data** for tasks:
+1. **`tasks.location_id`** — stores only the **first** location from the array (`formData.location_ids[0]`)
+2. **`task_locations`** junction table — stores **all** assigned locations correctly
+
+The bug exists in **three places**:
+
+### 1. Task list filtering (Tasks.tsx, line 373)
 ```typescript
-start_at: formData.start_at ? new Date(formData.start_at).toISOString() : null
+if (selectedLocationId !== "all" && t.location_id !== selectedLocationId) return false;
 ```
+This checks `t.location_id` (single column), so if a task is assigned to 5 locations but `location_id` stores only "LBFC Apaca" (the first alphabetically), filtering by "LBFC Amzei" hides it.
 
-When a user opens any task for editing — even just to change roles or locations — and hits Save, if the `start_at` field is empty in the form (or wasn't touched), it sends `null` to the database, **overwriting** the existing value.
-
-The DB confirms this: ~10 LBFC Amzei tasks were updated on Feb 26 between 11:16-13:30, all now have `start_at: NULL`.
-
-## Fix
-
-### 1. `TaskEdit.tsx` — Only send `start_at` if the user explicitly changed it
-Track whether `start_at` was modified by the user. If untouched, omit it from the update payload entirely so the existing DB value is preserved.
-
-**Approach**: Add a `dirtyFields` tracker or compare the submitted value against the initial value. If `start_at` hasn't changed from its initial load value, don't include it in the mutation payload.
-
-Concretely:
-- Store the initial `start_at` value when the form loads (line 125)
-- In `handleSubmit`, only include `start_at` in the update if the value differs from the initial
-- This prevents accidental nullification when users edit unrelated fields
-
-### 2. Restore the lost data
-Run a query to identify tasks that lost their `start_at` on Feb 26. Unfortunately, unless there's an audit log or backup, the original values are gone. The user will need to re-enter the start times for the affected tasks.
-
-**However**, we can at least flag which tasks lost data:
-```sql
-SELECT id, title, updated_at FROM tasks t
-JOIN task_locations tl ON tl.task_id = t.id
-JOIN locations l ON l.id = tl.location_id
-WHERE l.name ILIKE '%Amzei%' AND t.start_at IS NULL
-ORDER BY t.updated_at DESC
+### 2. Task list display (Tasks.tsx, line 94-98)
+```typescript
+{task.location && <span>{task.location.name}</span>}
 ```
+Only shows one location name from the joined `location_id` FK. A task assigned to 5 locations shows "LBFC Apaca" only.
 
-## Files Changed
-- `src/pages/TaskEdit.tsx` — Track initial `start_at`, conditionally include in update payload
+### 3. useTasks hook query (useTasks.ts, line 99-100)
+```typescript
+if (filters?.locationId) {
+  query = query.eq("location_id", filters.locationId);
+}
+```
+Server-side filter also uses the single column.
+
+## Fix Plan
+
+### A. `src/hooks/useTasks.ts` — Enrich tasks with all locations from junction table
+After fetching tasks, batch-query `task_locations` + `locations` to attach a `task_location_ids: string[]` array to each task. When `locationId` filter is active, filter using the junction table instead of the `location_id` column.
+
+### B. `src/pages/Tasks.tsx` — Fix `filterTasks` to use junction data
+Change line 373 from checking `t.location_id` to checking if `selectedLocationId` exists in the task's `task_location_ids` array.
+
+### C. `src/pages/Tasks.tsx` — Display all assigned locations
+Update TaskListItem (line 94-98) to show all location names (e.g., "LBFC Amzei +4") or show badges for each location, instead of just the single `location.name`.
+
+### Files Changed
+- `src/hooks/useTasks.ts` — Add junction-table location enrichment to `useTasks` query
+- `src/pages/Tasks.tsx` — Fix `filterTasks` and `TaskListItem` display
 
