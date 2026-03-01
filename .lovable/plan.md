@@ -1,27 +1,58 @@
 
 
-# Diagnosis: QR Scanner Black Screen on Android
+# Kiosk Layout Redesign: Fixed QR + Tasks, Compact Team & Champions
 
-## What's Happening
-The screenshot shows the QR scanner overlay opened on top of the attendance page. The camera permission was granted and the scanner reports "started successfully" (no error message, no loading spinner), but the camera feed renders as a **solid black rectangle**. The underlying page content ("Attendance", "Today's Status") bleeds through because the overlay uses `bg-black/90` (90% opacity) instead of fully opaque.
+## Problem
+From the screenshots:
+1. **Today's Team** and **Today's Champions** cards use `flex-1` making them take equal space even with just 3 employees or 0 champions — huge empty cards waste screen real estate
+2. The **QR code** is at the bottom-left corner, easy to miss — staff have to scroll/search for it
+3. **Today's Tasks** list (the most important section) shares space equally with Team/Champions, getting squeezed
 
-This is a known issue with the `html5-qrcode` library on Android WebView/Capacitor — the camera stream starts but the `<video>` element inside the scanner div doesn't render frames properly due to CSS/sizing issues.
+## Solution
 
-## Root Causes
-1. **Video element sizing**: `html5-qrcode` injects a `<video>` element into the scanner div, but its dimensions may collapse to 0 or be clipped by the container's `overflow-hidden` + `rounded-lg` combo on Android
-2. **Overlay transparency**: `bg-black/90` lets the page behind show through, creating visual confusion — user sees "Attendance" and "Today's Status" mixed with the scanner UI
-3. **No recovery path**: If the camera shows black, there's no retry button or fallback — the user is stuck
+### Restructure the grid layout in `KioskDashboard.tsx`
 
-## Proposed Changes
+**Current layout** (2-column grid, each column has `flex-1` cards):
+```text
+┌──────────────────┬──────────────────┐
+│ Today's Team     │ Today's Champions│
+│ (flex-1, huge)   │ (flex-1, huge)   │
+├──────────────────┼──────────────────┤
+│ Today's Tasks    │ MTD Score        │
+│ (flex-1)         │ (flex-1)         │
+└──────────────────┴──────────────────┘
+```
 
-### File 1: `src/components/QRScanner.tsx`
-- Change overlay background from `bg-black/90` to `bg-black` (fully opaque) so the page behind doesn't bleed through
-- Add explicit CSS rules for the video element inside the scanner div to force it to fill the container: `[&_video] { width: 100% !important; height: 100% !important; object-fit: cover; }`
-- Increase `minHeight` from 280 to 300 and add `minWidth` to prevent dimension collapse
-- Add a "Camera not working?" retry button that appears after 5 seconds if `isStarting` is still false but the user might see black — gives a recovery path (stops scanner, re-creates it)
+**New layout** — Team & Champions shrink-to-fit, Tasks gets remaining space:
+```text
+┌──────────────────┬──────────────────┐
+│ Today's Team     │ Today's Champions│
+│ (auto height,    │ (auto height,    │
+│  max-h capped)   │  max-h capped)   │
+├──────────────────┼──────────────────┤
+│ Today's Tasks    │ MTD Score        │
+│ (flex-1, fills   │ (flex-1, fills   │
+│  remaining space)│  remaining space)│
+└──────────────────┴──────────────────┘
+```
+
+### Changes to `KioskDashboard.tsx` (lines 637-915)
+
+1. **Today's Team card** (line 641): Change from `flex-1` to `shrink-0` with a `max-h-[40%]` cap. When there are only 3 employees, the card is compact. With many employees, it scrolls within the capped height.
+
+2. **Today's Champions card** (line 819): Same treatment — `shrink-0` with `max-h-[40%]`. With 0 champions, the empty state is small (reduce `py-8` to `py-3`).
+
+3. **Today's Tasks card** (line 709): Keep `flex-1` so it expands to fill all remaining vertical space — always visible, always prominent.
+
+4. **MTD Score card** (line 867): Keep `flex-1` to fill remaining space in the right column.
+
+### Changes to `AttendanceKiosk.tsx`
+
+5. **QR code panel**: Already fixed from the previous change (compact top bar on tablet). No additional changes needed — the QR is already always visible at the top on tablet.
 
 ### What stays the same
-- All scan processing logic, QR validation, check-in/check-out flows — zero changes
-- StaffScanAttendance page — no changes
-- Scanner creation, callbacks, cleanup lifecycle — same logic, just CSS + UX improvements
+- All data fetching, hooks, task pipeline, KPIs, champions logic — zero changes
+- Desktop large-screen behavior preserved (just better proportioned)
+- QR generation, attendance, shift logic — untouched
+- Mobile/responsive breakpoints from previous fix — preserved
 
