@@ -296,6 +296,31 @@ export function useStaffTodayTasks(
           .is("assigned_to", null);
         
         roleTasks = roleTasksPrimary || [];
+        
+        // B2) Multi-role tasks via task_roles junction table
+        const { data: junctionMatches } = await supabase
+          .from("task_roles")
+          .select("task_id")
+          .eq("role_id", resolvedRoleId);
+
+        const junctionTaskIds = (junctionMatches || [])
+          .map((tr: any) => tr.task_id)
+          .filter((id: string) => !roleTasks.some((t: any) => t.id === id));
+
+        if (junctionTaskIds.length > 0) {
+          const { data: junctionTasks } = await supabase
+            .from("tasks")
+            .select(`
+              *,
+              location:locations(id, name),
+              assigned_role:employee_roles(id, name)
+            `)
+            .eq("company_id", companyId)
+            .is("assigned_to", null)
+            .in("id", junctionTaskIds);
+
+          roleTasks = [...roleTasks, ...(junctionTasks || [])];
+        }
       }
       
       // C) LOCATION-ONLY tasks - tasks assigned to the location but NOT to specific employee/role
@@ -779,6 +804,29 @@ export function useKioskTodayTasks(options: {
           .in("assigned_role_id", roleIds);
         
         globalRoleTaskIds = (globalRoleTasks || []).map((t: any) => t.id);
+      }
+      
+      // Also check task_roles junction for multi-role tasks
+      if (roleIds.length > 0) {
+        const { data: kioskJunctionMatches } = await supabase
+          .from("task_roles")
+          .select("task_id")
+          .in("role_id", roleIds);
+
+        const kioskJunctionTaskIds = (kioskJunctionMatches || [])
+          .map((tr: any) => tr.task_id)
+          .filter((id: string) => !globalRoleTaskIds.includes(id));
+
+        if (kioskJunctionTaskIds.length > 0) {
+          const { data: junctionGlobalTasks } = await supabase
+            .from("tasks")
+            .select("id")
+            .eq("company_id", companyId)
+            .is("assigned_to", null)
+            .in("id", kioskJunctionTaskIds);
+
+          globalRoleTaskIds = [...globalRoleTaskIds, ...(junctionGlobalTasks || []).map((t: any) => t.id)];
+        }
       }
       
       const allTaskIds = [...new Set([...taskIdsFromLocations, ...taskIdsFromDirect, ...globalRoleTaskIds])];
