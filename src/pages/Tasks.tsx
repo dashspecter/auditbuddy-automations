@@ -56,14 +56,29 @@ const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 };
 
+// Helper: resolve the display location name based on filter
+const getDisplayLocation = (task: Task, filterLocationId?: string) => {
+  const names = task.task_location_names || [];
+  const ids = task.task_location_ids || [];
+  if (!filterLocationId || names.length === 0) {
+    return { name: names[0] || task.location?.name, otherCount: Math.max(0, names.length - 1) };
+  }
+  const idx = ids.indexOf(filterLocationId);
+  if (idx >= 0 && names[idx]) {
+    return { name: names[idx], otherCount: names.length - 1 };
+  }
+  return { name: names[0], otherCount: Math.max(0, names.length - 1) };
+};
+
 // Simplified TaskListItem for management list (no status badges)
 interface TaskListItemProps {
   task: Task;
   onEdit: () => void;
   onDelete: () => void;
+  filterLocationId?: string;
 }
 
-const TaskListItem = ({ task, onEdit, onDelete }: TaskListItemProps) => {
+const TaskListItem = ({ task, onEdit, onDelete, filterLocationId }: TaskListItemProps) => {
   const { t } = useTranslation();
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
 
@@ -91,22 +106,20 @@ const TaskListItem = ({ task, onEdit, onDelete }: TaskListItemProps) => {
               {task.assigned_role.name}
             </span>
           )}
-          {(task.task_location_names && task.task_location_names.length > 0) ? (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {task.task_location_names[0]}
-              {task.task_location_names.length > 1 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{task.task_location_names.length - 1}
-                </Badge>
-              )}
-            </span>
-          ) : task.location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {task.location.name}
-            </span>
-          )}
+          {(() => {
+            const loc = getDisplayLocation(task, filterLocationId);
+            return loc.name ? (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {loc.name}
+                {loc.otherCount > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    +{loc.otherCount}
+                  </Badge>
+                )}
+              </span>
+            ) : null;
+          })()}
           {task.start_at && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -146,9 +159,10 @@ interface TaskItemProps {
   onEdit: () => void;
   onDelete: () => void;
   context?: 'today' | 'tomorrow' | 'all' | 'pending' | 'overdue' | 'completed';
+  filterLocationId?: string;
 }
 
-const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps) => {
+const TaskItem = ({ task, onComplete, onEdit, onDelete, context, filterLocationId }: TaskItemProps) => {
   const { t } = useTranslation();
   
   // Check if this is a virtual recurring instance using canonical utility
@@ -225,22 +239,20 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context }: TaskItemProps
               {task.assigned_role.name} {!task.is_individual && `(${t('tasks.shared')})`}
             </span>
           )}
-          {(task.task_location_names && task.task_location_names.length > 0) ? (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {task.task_location_names[0]}
-              {task.task_location_names.length > 1 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{task.task_location_names.length - 1}
-                </Badge>
-              )}
-            </span>
-          ) : task.location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {task.location.name}
-            </span>
-          )}
+          {(() => {
+            const loc = getDisplayLocation(task, filterLocationId);
+            return loc.name ? (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {loc.name}
+                {loc.otherCount > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    +{loc.otherCount}
+                  </Badge>
+                )}
+              </span>
+            ) : null;
+          })()}
           {task.start_at && task.duration_minutes && (
             <span className={`flex items-center gap-1 ${showAsOverdue ? "text-destructive font-medium" : ""}`}>
               <Timer className="h-3 w-3" />
@@ -715,6 +727,7 @@ const Tasks = () => {
                         task={task}
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
+                        filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                       />
                     ))}
                   </div>
@@ -768,6 +781,7 @@ const Tasks = () => {
                       onComplete={() => handleComplete(task.id)}
                       onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                       onDelete={() => setDeleteTaskId(task.id)}
+                      filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                     />
                   ))}
                 </CardContent>
@@ -828,6 +842,7 @@ const Tasks = () => {
                               onComplete={() => handleComplete(task.id)}
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
+                              filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                             />
                           ))}
                         </div>
@@ -851,6 +866,7 @@ const Tasks = () => {
                               onComplete={() => handleComplete(task.id)}
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
+                              filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                             />
                           ))}
                         </div>
@@ -874,6 +890,7 @@ const Tasks = () => {
                               onComplete={() => handleComplete(task.id)}
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
+                              filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                             />
                           ))}
                         </div>
@@ -897,6 +914,7 @@ const Tasks = () => {
                               onComplete={() => handleComplete(task.id)}
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
+                              filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                             />
                           ))}
                         </div>
@@ -913,6 +931,7 @@ const Tasks = () => {
                         onComplete={() => handleComplete(task.id)}
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
+                        filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
                       />
                     ))}
                   </div>
