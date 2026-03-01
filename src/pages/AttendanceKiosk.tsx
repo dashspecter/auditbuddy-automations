@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
 import { MapPin, RefreshCw, Wifi, WifiOff, Monitor, TriangleAlert } from "lucide-react";
 import { format } from "date-fns";
 import { useKioskByToken, generateQRToken } from "@/hooks/useAttendanceKiosks";
@@ -252,67 +251,16 @@ const AttendanceKiosk = () => {
         </div>
       </div>
 
-      {/* Main Content - Split View (responsive: stacked on tablet, side-by-side on desktop) */}
-      <div className="flex-1 flex flex-col xl:flex-row overflow-hidden">
-        {/* QR Code Section */}
-        {/* Tablet (<1280px): compact horizontal bar at top */}
-        {/* Desktop (>=1280px): tall sidebar on left */}
-        <div className="xl:w-[400px] flex-shrink-0 flex xl:flex-col items-center justify-center p-4 xl:p-6 border-b xl:border-b-0 xl:border-r bg-card/50">
-          <div className="bg-card rounded-3xl shadow-2xl p-4 xl:p-6 flex xl:flex-col items-center gap-4 xl:gap-0 w-full xl:max-w-sm">
-            <h2 className="hidden xl:block text-xl font-bold text-center mb-4">
-              Scan to Check In/Out
-            </h2>
-            
-            <div className="bg-white p-2 xl:p-4 rounded-2xl flex items-center justify-center xl:mb-4 flex-shrink-0">
-              {qrData && (
-                <QRCodeSVG
-                  value={qrData}
-                  size={220}
-                  level="H"
-                  includeMargin
-                  className="w-[120px] h-[120px] xl:w-full xl:h-auto xl:max-w-[220px]"
-                />
-              )}
-            </div>
-
-            {/* Text + countdown (beside QR on tablet, below QR on desktop) */}
-            <div className="flex-1 xl:flex-initial flex flex-col items-center xl:items-center gap-1">
-              <h2 className="xl:hidden text-base font-bold">
-                Scan to Check In/Out
-              </h2>
-              {/* Countdown indicator */}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <RefreshCw className={`h-4 w-4 ${countdown <= 5 ? 'animate-spin text-primary' : ''}`} />
-                <span className="text-sm">
-                  New code in <span className="font-mono font-bold text-foreground">{countdown}s</span>
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="w-full max-w-[200px] xl:max-w-none mt-1 xl:mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000 ease-linear"
-                  style={{ width: `${(countdown / 30) * 100}%` }}
-                />
-              </div>
-
-              {/* Instructions (desktop only) */}
-              <p className="hidden xl:block text-sm text-muted-foreground mt-4 text-center">
-                Scan with your staff app to record attendance
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard */}
-        <div className="flex-1 overflow-hidden min-h-0">
-          <KioskDashboard 
-            locationId={kiosk.location_id} 
-            companyId={kiosk.company_id} 
-            kioskToken={kioskToken}
-            departmentId={kiosk.department_id}
-          />
-        </div>
+      {/* Main Content - KioskDashboard owns full 3-column layout */}
+      <div className="flex-1 overflow-hidden min-h-0">
+        <KioskDashboard 
+          locationId={kiosk.location_id} 
+          companyId={kiosk.company_id} 
+          kioskToken={kioskToken}
+          departmentId={kiosk.department_id}
+          qrData={qrData}
+          countdown={countdown}
+        />
       </div>
 
       {/* Footer status */}

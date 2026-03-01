@@ -10,6 +10,7 @@ import { useKioskTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffToday
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { QRCodeSVG } from "qrcode.react";
 import { 
   Users, 
   CheckCircle2, 
@@ -19,7 +20,8 @@ import {
   XCircle,
   Timer,
   AlertTriangle,
-  Lock
+  Lock,
+  RefreshCw
 } from "lucide-react";
 import { 
   computeKioskTaskMetrics, 
@@ -39,6 +41,10 @@ interface KioskDashboardProps {
   kioskToken: string;
   /** Optional department filter — when set, only employees whose role belongs to this department are shown. */
   departmentId?: string | null;
+  /** QR code payload string for check-in/out scanning */
+  qrData?: string;
+  /** Countdown seconds until next QR refresh */
+  countdown?: number;
 }
 
 interface Employee {
@@ -75,7 +81,7 @@ interface Task {
   role_names?: string[];
 }
 
-export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId }: KioskDashboardProps) => {
+export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId, qrData, countdown = 30 }: KioskDashboardProps) => {
   const today = new Date();
   // Use proper ISO timestamps for database queries (timestamptz columns)
   const todayStart = startOfDay(today).toISOString();
@@ -572,11 +578,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   };
 
   return (
-    <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
-      {/* Overdue Alert Banner - Prominent when there are overdue tasks */}
-      {/* CRITICAL: Wait for completions to load before showing banner to prevent flash */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Overdue Alert Banner */}
       {!completionsLoading && unifiedOverdueCount > 0 && (
-        <div className="animate-pulse bg-destructive/90 text-destructive-foreground rounded-lg p-4 flex items-center justify-between shadow-lg border-2 border-destructive">
+        <div className="mx-4 mt-4 animate-pulse bg-destructive/90 text-destructive-foreground rounded-lg p-4 flex items-center justify-between shadow-lg border-2 border-destructive flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 rounded-full p-2">
               <AlertTriangle className="h-6 w-6" />
@@ -585,9 +590,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
               <div className="font-bold text-lg">
                 {unifiedOverdueCount} {unifiedOverdueCount === 1 ? 'Task' : 'Tasks'} Overdue!
               </div>
-              <div className="text-sm opacity-90">
-                Action required - check tasks below
-              </div>
+              <div className="text-sm opacity-90">Action required - check tasks below</div>
             </div>
           </div>
           <div className="text-4xl font-bold">{unifiedOverdueCount}</div>
@@ -595,7 +598,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       )}
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 px-4 pt-4 flex-shrink-0">
         <Card className="p-3 bg-green-500/10 border-green-500/20">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-green-500" />
@@ -633,14 +636,44 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         </Card>
       </div>
 
-      {/* Main Content Grid - responsive: single column on tablet, 2 cols on large screens */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
-        {/* Left Column: Staff & Tasks */}
-        <div className="flex flex-col gap-4 overflow-hidden min-h-0">
-          {/* Staff List */}
-          <Card className="flex-shrink-0 max-h-[40%] overflow-hidden flex flex-col">
+      {/* 3-Column Layout: Left sidebar (QR+Team+MTD) | Center (Tasks) | Right (Champions) */}
+      {/* On < xl: stacks vertically */}
+      <div className="flex-1 flex flex-col xl:flex-row gap-4 p-4 overflow-hidden min-h-0">
+
+        {/* ===== LEFT SIDEBAR: QR + Team + MTD ===== */}
+        <div className="xl:w-[300px] flex-shrink-0 flex flex-col gap-3 overflow-hidden">
+          {/* QR Code Card */}
+          {qrData && (
+            <Card className="flex-shrink-0 p-4 flex flex-col items-center gap-2">
+              <div className="bg-white p-2 rounded-xl">
+                <QRCodeSVG
+                  value={qrData}
+                  size={180}
+                  level="H"
+                  includeMargin
+                  className="w-[140px] h-[140px] xl:w-[180px] xl:h-[180px]"
+                />
+              </div>
+              <h3 className="text-sm font-semibold text-center">Scan to Check In/Out</h3>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <RefreshCw className={`h-3 w-3 ${countdown <= 5 ? 'animate-spin text-primary' : ''}`} />
+                <span className="text-xs">
+                  New code in <span className="font-mono font-bold text-foreground">{countdown}s</span>
+                </span>
+              </div>
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000 ease-linear"
+                  style={{ width: `${(countdown / 30) * 100}%` }}
+                />
+              </div>
+            </Card>
+          )}
+
+          {/* Today's Team */}
+          <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
             <div className="p-3 border-b bg-muted/50 flex-shrink-0">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <Users className="h-4 w-4" />
                 Today's Team ({todaysTeam.length})
               </h3>
@@ -651,46 +684,46 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                   const status = attendanceMap.get(employee.id);
                   const isIn = status?.checkedIn && !status?.checkedOut;
                   const isOut = status?.checkedOut;
-                    const employeeShift = employeeShiftMap.get(employee.id);
+                  const employeeShift = employeeShiftMap.get(employee.id);
 
-                    return (
-                      <div
-                        key={employee.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                            {employee.full_name.charAt(0)}
+                  return (
+                    <div
+                      key={employee.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                          {employee.full_name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-medium text-xs">{employee.full_name}</div>
+                          <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <span>{employee.role}</span>
+                            {employeeShift && (
+                              <>
+                                <span className="text-muted-foreground/50">•</span>
+                                <span className="text-primary/80">
+                                  {employeeShift.start.slice(0, 5)}-{employeeShift.end.slice(0, 5)}
+                                </span>
+                              </>
+                            )}
                           </div>
-                          <div>
-                            <div className="font-medium text-sm">{employee.full_name}</div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                              <span>{employee.role}</span>
-                              {employeeShift && (
-                                <>
-                                  <span className="text-muted-foreground/50">•</span>
-                                  <span className="text-primary/80">
-                                    {employeeShift.start.slice(0, 5)} - {employeeShift.end.slice(0, 5)}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                        </div>
                       </div>
                       {isIn ? (
-                        <Badge variant="default" className="bg-green-500 text-white">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                        <Badge variant="default" className="bg-green-500 text-white text-[10px] px-1.5 py-0">
+                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
                           In
                         </Badge>
                       ) : isOut ? (
-                        <Badge variant="secondary">
-                          <XCircle className="h-3 w-3 mr-1" />
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          <XCircle className="h-3 w-3 mr-0.5" />
                           Out
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Not In
+                        <Badge variant="outline" className="text-muted-foreground text-[10px] px-1.5 py-0">
+                          <Clock className="h-3 w-3 mr-0.5" />
+                          —
                         </Badge>
                       )}
                     </div>
@@ -698,188 +731,30 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                 })}
                 {todaysTeam.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    No shifts scheduled for today
+                    No shifts scheduled
                   </div>
                 )}
               </div>
             </ScrollArea>
           </Card>
 
-          {/* Enhanced Tasks List - Grouped by Role */}
-          <Card className="flex-1 overflow-hidden">
-            <div className="p-3 border-b bg-muted/50">
-              <h3 className="font-semibold flex items-center gap-2">
-                <ListTodo className="h-4 w-4" />
-                Today's Tasks ({unifiedPendingCount})
-                {unifiedOverdueCount > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    {unifiedOverdueCount} Overdue
-                  </Badge>
-                )}
-              </h3>
-            </div>
-            <ScrollArea className="h-[calc(100%-48px)]">
-              <div className="p-2 space-y-3">
-                {tasksByRole.map(([role, { tasks: roleTasks, employees: roleEmployees }]) => (
-                  <div key={role} className="space-y-1">
-                    {/* Role Header */}
-                    <div className="flex items-center gap-2 px-2 py-1">
-                      <div className={`h-1.5 w-1.5 rounded-full ${role === "Unassigned" ? "bg-muted-foreground" : "bg-primary"}`} />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {role}
-                      </span>
-                      {roleEmployees.length > 0 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          ({roleEmployees.map(e => e.full_name.split(' ')[0]).join(', ')})
-                        </span>
-                      )}
-                      <div className="flex-1 h-px bg-border" />
-                    </div>
-
-                    {/* Tasks for this role */}
-                    {roleTasks.map((task) => {
-                      // Overdue: due_at is past, OR if no due_at, start_at is past
-                      const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
-                                        (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
-                      const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
-                      const isLocked = task.timeLock && !task.timeLock.canComplete;
-                      const unlockTime = task.timeLock?.unlockAtFormatted;
-                      
-                      return (
-                        <div
-                          key={task.id}
-                          className={`rounded-lg p-2 flex items-center gap-2 transition-all ${
-                            isOverdue 
-                              ? 'bg-destructive/15 border-2 border-destructive/40 shadow-sm animate-pulse' 
-                              : isLocked
-                              ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800'
-                              : 'bg-muted/30'
-                          }`}
-                        >
-                          {isOverdue ? (
-                            <div className="bg-destructive rounded-full p-1.5 flex-shrink-0">
-                              <AlertTriangle className="h-4 w-4 text-destructive-foreground" />
-                            </div>
-                          ) : isLocked ? (
-                            <Lock className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                          ) : (
-                            <Timer className="h-4 w-4 text-primary flex-shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span className={`text-sm truncate block ${
-                              isOverdue ? 'text-destructive font-bold' : 
-                              isLocked ? 'text-orange-700 dark:text-orange-400' : ''
-                            }`}>
-                              {task.title}
-                            </span>
-                            {taskTime && (
-                              <span className={`text-xs ${
-                                isOverdue ? 'text-destructive/70' : 
-                                isLocked ? 'text-orange-600/70 dark:text-orange-400/70' : 
-                                'text-muted-foreground'
-                              }`}>
-                                {isOverdue ? 'Was due: ' : isLocked ? 'Scheduled: ' : 'Scheduled: '}{taskTime}
-                              </span>
-                            )}
-                          </div>
-                          {isOverdue ? (
-                            <Badge variant="destructive" className="text-xs px-2 py-0.5 font-bold animate-pulse">
-                              ⚠ OVERDUE
-                            </Badge>
-                          ) : isLocked && unlockTime ? (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
-                              <Lock className="h-3 w-3 mr-1" />
-                              {unlockTime}
-                            </Badge>
-                          ) : task.start_at ? (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
-                              {formatCountdown(task.start_at)}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-
-                {tasksByRole.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    No tasks scheduled for today
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </Card>
-        </div>
-
-        {/* Right Column: Leaderboard */}
-        <div className="flex flex-col gap-4 overflow-hidden">
-          {/* Daily Leaderboard - Today's Champions */}
-          <Card className="flex-shrink-0 max-h-[40%] overflow-hidden flex flex-col">
+          {/* MTD Score */}
+          <Card className="flex-1 overflow-hidden flex flex-col min-h-0">
             <div className="p-3 border-b bg-muted/50 flex-shrink-0">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                Today's Champions
-              </h3>
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-1">
-                {todaysChampions.map((champion, index) => (
-                  <div
-                    key={champion.employee_id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
-                  >
-                    <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        index === 0
-                          ? "bg-yellow-500 text-yellow-950"
-                          : index === 1
-                          ? "bg-gray-300 text-gray-700"
-                          : index === 2
-                          ? "bg-orange-400 text-orange-950"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{champion.employee_name}</div>
-                      <div className="text-xs text-muted-foreground">{champion.role}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{champion.completed_today}</div>
-                      <div className="text-xs text-muted-foreground">tasks</div>
-                    </div>
-                  </div>
-                ))}
-                {todaysChampions.length === 0 && (
-                  <div className="text-center py-3 text-muted-foreground text-sm">
-                    <Trophy className="h-8 w-8 mx-auto mb-1 opacity-20" />
-                    Complete tasks to appear here!
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </Card>
-
-           {/* MTD Leaderboard - Month-to-Date Score */}
-           <Card className="flex-1 overflow-hidden">
-            <div className="p-3 border-b bg-muted/50">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2 text-sm">
                 <Trophy className="h-4 w-4 text-purple-500" />
                 MTD Score
               </h3>
             </div>
-            <ScrollArea className="h-[calc(100%-48px)]">
+            <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
                 {weeklyScoreLeaderboard.map((emp, index) => (
                   <div
                     key={emp.employee_id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                    className="flex items-center gap-2 p-2 rounded-lg bg-muted/30"
                   >
                     <div
-                      className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      className={`h-6 w-6 rounded-full flex items-center justify-center font-bold text-xs ${
                         index === 0
                           ? "bg-purple-500 text-white"
                           : index === 1
@@ -892,27 +767,174 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{emp.employee_name}</div>
-                      <div className="text-xs text-muted-foreground">{emp.role}</div>
+                      <div className="font-medium text-xs truncate">{emp.employee_name}</div>
+                      <div className="text-[10px] text-muted-foreground">{emp.role}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-purple-600">
-                        {emp.effective_score !== null ? emp.effective_score.toFixed(0) : "—"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">score</div>
+                    <div className="text-sm font-bold text-purple-600">
+                      {emp.effective_score !== null ? emp.effective_score.toFixed(0) : "—"}
                     </div>
                   </div>
                 ))}
                 {weeklyScoreLeaderboard.length === 0 && (
                   <div className="text-center py-3 text-muted-foreground text-sm">
-                    <Trophy className="h-8 w-8 mx-auto mb-1 opacity-20" />
-                    No scores this week yet
+                    <Trophy className="h-6 w-6 mx-auto mb-1 opacity-20" />
+                    No scores yet
                   </div>
                 )}
               </div>
             </ScrollArea>
           </Card>
         </div>
+
+        {/* ===== CENTER: Today's Tasks (dominant) ===== */}
+        <Card className="flex-1 overflow-hidden flex flex-col min-h-0 xl:min-w-0">
+          <div className="p-3 border-b bg-muted/50 flex-shrink-0">
+            <h3 className="font-semibold flex items-center gap-2">
+              <ListTodo className="h-4 w-4" />
+              Today's Tasks ({unifiedPendingCount})
+              {unifiedOverdueCount > 0 && (
+                <Badge variant="destructive" className="ml-auto">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {unifiedOverdueCount} Overdue
+                </Badge>
+              )}
+            </h3>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-3">
+              {tasksByRole.map(([role, { tasks: roleTasks, employees: roleEmployees }]) => (
+                <div key={role} className="space-y-1">
+                  <div className="flex items-center gap-2 px-2 py-1">
+                    <div className={`h-1.5 w-1.5 rounded-full ${role === "Unassigned" ? "bg-muted-foreground" : "bg-primary"}`} />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {role}
+                    </span>
+                    {roleEmployees.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        ({roleEmployees.map(e => e.full_name.split(' ')[0]).join(', ')})
+                      </span>
+                    )}
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  {roleTasks.map((task) => {
+                    const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
+                                      (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
+                    const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
+                    const isLocked = task.timeLock && !task.timeLock.canComplete;
+                    const unlockTime = task.timeLock?.unlockAtFormatted;
+                    
+                    return (
+                      <div
+                        key={task.id}
+                        className={`rounded-lg p-2 flex items-center gap-2 transition-all ${
+                          isOverdue 
+                            ? 'bg-destructive/15 border-2 border-destructive/40 shadow-sm animate-pulse' 
+                            : isLocked
+                            ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800'
+                            : 'bg-muted/30'
+                        }`}
+                      >
+                        {isOverdue ? (
+                          <div className="bg-destructive rounded-full p-1.5 flex-shrink-0">
+                            <AlertTriangle className="h-4 w-4 text-destructive-foreground" />
+                          </div>
+                        ) : isLocked ? (
+                          <Lock className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                        ) : (
+                          <Timer className="h-4 w-4 text-primary flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm truncate block ${
+                            isOverdue ? 'text-destructive font-bold' : 
+                            isLocked ? 'text-orange-700 dark:text-orange-400' : ''
+                          }`}>
+                            {task.title}
+                          </span>
+                          {taskTime && (
+                            <span className={`text-xs ${
+                              isOverdue ? 'text-destructive/70' : 
+                              isLocked ? 'text-orange-600/70 dark:text-orange-400/70' : 
+                              'text-muted-foreground'
+                            }`}>
+                              {isOverdue ? 'Was due: ' : 'Scheduled: '}{taskTime}
+                            </span>
+                          )}
+                        </div>
+                        {isOverdue ? (
+                          <Badge variant="destructive" className="text-xs px-2 py-0.5 font-bold animate-pulse">
+                            ⚠ OVERDUE
+                          </Badge>
+                        ) : isLocked && unlockTime ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
+                            <Lock className="h-3 w-3 mr-1" />
+                            {unlockTime}
+                          </Badge>
+                        ) : task.start_at ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                            {formatCountdown(task.start_at)}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {tasksByRole.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  No tasks scheduled for today
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        {/* ===== RIGHT: Today's Champions (narrower) ===== */}
+        <Card className="xl:w-[280px] flex-shrink-0 overflow-hidden flex flex-col min-h-0">
+          <div className="p-3 border-b bg-muted/50 flex-shrink-0">
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              <Trophy className="h-4 w-4 text-yellow-500" />
+              Today's Champions
+            </h3>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {todaysChampions.map((champion, index) => (
+                <div
+                  key={champion.employee_id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                >
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      index === 0
+                        ? "bg-yellow-500 text-yellow-950"
+                        : index === 1
+                        ? "bg-gray-300 text-gray-700"
+                        : index === 2
+                        ? "bg-orange-400 text-orange-950"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{champion.employee_name}</div>
+                    <div className="text-xs text-muted-foreground">{champion.role}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-primary">{champion.completed_today}</div>
+                    <div className="text-xs text-muted-foreground">tasks</div>
+                  </div>
+                </div>
+              ))}
+              {todaysChampions.length === 0 && (
+                <div className="text-center py-3 text-muted-foreground text-sm">
+                  <Trophy className="h-8 w-8 mx-auto mb-1 opacity-20" />
+                  Complete tasks to appear here!
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
       </div>
     </div>
   );
