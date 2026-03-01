@@ -1,39 +1,27 @@
 
 
-# Show Filtered Location on Task Cards
+# Timezone Bug in Staff Schedule — Missing Shifts
 
 ## Problem
-When filtering by location (e.g. "LBFC Amzei"), task cards always show `task_location_names[0]` — the first location in the array. If a task is assigned to [LBFC Obor, LBFC Amzei], the card shows "LBFC Obor" even when you filtered by "LBFC Amzei". The user expects to see the filtered location displayed prominently.
+Serdar's Sunday Mar 8 shift is missing from the staff schedule page but visible on the home page. This is a **timezone bug**.
 
-## Fix — `src/pages/Tasks.tsx`
+Line 243-244 in `loadWeekShifts` uses `weekEnd.toISOString().split('T')[0]` to build the date range. `toISOString()` converts to UTC — in Romania (UTC+2), midnight Mar 8 local time becomes `2026-03-07T22:00:00Z`, so `split('T')[0]` produces `"2026-03-07"` instead of `"2026-03-08"`. The last day of the week is silently excluded.
 
-### 1. Pass `selectedLocationId` to both card components
-Add a `filterLocationId` prop to `TaskItem` and `TaskListItem`.
+The location schedule query (line 149-150) already does this correctly using `format(weekStart, "yyyy-MM-dd")`.
 
-### 2. Resolve the filtered location name
-Use the existing `useLocations()` data (already available in Tasks.tsx) to build a `locationNameMap`. Pass the resolved name as `filterLocationName` or compute it inside the components.
+## Fix — `src/pages/staff/StaffSchedule.tsx`, lines 243-244
 
-### 3. Update location display logic in both components
-In `TaskItem` (line 228-243) and `TaskListItem` (line 94-109), change the location rendering:
-
-```tsx
-// Current: always shows task_location_names[0]
-{task.task_location_names[0]}
-
-// New: if filtering by a location, show that location first
-// If the filtered location is in the list, show it; otherwise show [0]
+Replace:
+```typescript
+.gte("shifts.shift_date", weekStart.toISOString().split('T')[0])
+.lte("shifts.shift_date", weekEnd.toISOString().split('T')[0])
 ```
 
-Specifically:
-- If `filterLocationId` is set and `task_location_ids` contains it, find its index and show `task_location_names[thatIndex]` instead of `[0]`
-- The "+N" badge should still show the count of *other* locations
-- If no filter is active, behavior stays the same (show first location)
+With:
+```typescript
+.gte("shifts.shift_date", format(weekStart, "yyyy-MM-dd"))
+.lte("shifts.shift_date", format(weekEnd, "yyyy-MM-dd"))
+```
 
-### 4. Wire it up in all render sites
-Pass `filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}` to every `<TaskItem>` and `<TaskListItem>` usage (lines 713, 764, 824, 847, 870, 893, 909).
-
-Also pass to `AllTasksOpsDashboard` and `ByEmployeeTimeline` if they render task location info internally.
-
-## Scope
-Single file change: `src/pages/Tasks.tsx`. The `TaskItem` and `TaskListItem` components are defined inline in this file.
+`format()` from date-fns uses local time, producing the correct date string regardless of timezone. Single file, 2-line change.
 
