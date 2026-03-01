@@ -638,14 +638,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         {/* Left Column: Staff & Tasks */}
         <div className="flex flex-col gap-4 overflow-hidden min-h-0">
           {/* Staff List */}
-          <Card className="flex-1 overflow-hidden">
-            <div className="p-3 border-b bg-muted/50">
+          <Card className="flex-shrink-0 max-h-[40%] overflow-hidden flex flex-col">
+            <div className="p-3 border-b bg-muted/50 flex-shrink-0">
               <h3 className="font-semibold flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Today's Team ({todaysTeam.length})
               </h3>
             </div>
-            <ScrollArea className="h-[calc(100%-48px)]">
+            <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
                 {todaysTeam.map((employee) => {
                   const status = attendanceMap.get(employee.id);
@@ -816,14 +816,14 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         {/* Right Column: Leaderboard */}
         <div className="flex flex-col gap-4 overflow-hidden">
           {/* Daily Leaderboard - Today's Champions */}
-          <Card className="flex-1 overflow-hidden">
-            <div className="p-3 border-b bg-muted/50">
+          <Card className="flex-shrink-0 max-h-[40%] overflow-hidden flex flex-col">
+            <div className="p-3 border-b bg-muted/50 flex-shrink-0">
               <h3 className="font-semibold flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-yellow-500" />
                 Today's Champions
               </h3>
             </div>
-            <ScrollArea className="h-[calc(100%-48px)]">
+            <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
                 {todaysChampions.map((champion, index) => (
                   <div
@@ -854,8 +854,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                   </div>
                 ))}
                 {todaysChampions.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    <Trophy className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                  <div className="text-center py-3 text-muted-foreground text-sm">
+                    <Trophy className="h-8 w-8 mx-auto mb-1 opacity-20" />
                     Complete tasks to appear here!
                   </div>
                 )}
@@ -904,8 +904,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                   </div>
                 ))}
                 {weeklyScoreLeaderboard.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    <Trophy className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                  <div className="text-center py-3 text-muted-foreground text-sm">
+                    <Trophy className="h-8 w-8 mx-auto mb-1 opacity-20" />
                     No scores this week yet
                   </div>
                 )}
