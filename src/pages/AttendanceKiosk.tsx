@@ -227,7 +227,7 @@ const AttendanceKiosk = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-background to-muted flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-4 text-center border-b bg-card flex items-center justify-between">
         <div className="flex items-center gap-2 text-primary">
