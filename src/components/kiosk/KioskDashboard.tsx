@@ -504,14 +504,19 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         }
         roleGroups["General"].tasks.push(task);
       } else {
-        // Add task to its primary role — filtered to department roles when in department kiosk
+        // MULTI-ROLE: Show task ONCE under a combined label with all role names as badges
+        // Filter to department roles when in department kiosk
         const filteredRoleNames = (departmentId && departmentRoleNames)
           ? roleNames.filter(r => departmentRoleNames.includes(r))
           : roleNames;
-        const primaryRole = filteredRoleNames.length > 0 ? filteredRoleNames[0] : roleNames[0];
+        const displayRoles = filteredRoleNames.length > 0 ? filteredRoleNames : roleNames;
+        // Use first role as group key, but store all role names on the task for badge display
+        const primaryRole = displayRoles[0];
         if (!roleGroups[primaryRole]) {
           roleGroups[primaryRole] = { tasks: [], employees: [] };
         }
+        // Attach all role names for badge rendering
+        (task as any)._allRoleNames = displayRoles;
         roleGroups[primaryRole].tasks.push(task);
       }
     });
@@ -844,12 +849,22 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                           <Timer className="h-4 w-4 text-primary flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <span className={`text-sm truncate block ${
-                            isOverdue ? 'text-destructive font-bold' : 
-                            isLocked ? 'text-orange-700 dark:text-orange-400' : ''
-                          }`}>
-                            {task.title}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-sm truncate ${
+                              isOverdue ? 'text-destructive font-bold' : 
+                              isLocked ? 'text-orange-700 dark:text-orange-400' : ''
+                            }`}>
+                              {task.title}
+                            </span>
+                            {/* Show all assigned role badges for multi-role tasks */}
+                            {(task as any)._allRoleNames && (task as any)._allRoleNames.length > 1 && (
+                              (task as any)._allRoleNames.slice(1).map((rn: string) => (
+                                <Badge key={rn} variant="secondary" className="text-[9px] px-1 py-0 leading-tight">
+                                  {rn}
+                                </Badge>
+                              ))
+                            )}
+                          </div>
                           {taskTime && (
                             <span className={`text-xs ${
                               isOverdue ? 'text-destructive/70' : 

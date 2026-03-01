@@ -48,6 +48,9 @@ export interface Task {
   // Multi-location data from task_locations junction table
   task_location_ids?: string[];
   task_location_names?: string[];
+  // Multi-role data from task_roles junction table
+  task_role_ids?: string[];
+  task_role_names?: string[];
   // Joined data
   assigned_employee?: {
     id: string;
@@ -139,6 +142,35 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
         }
       }
 
+      // Batch-fetch all task_roles for these tasks
+      let taskRolesMap: Record<string, string[]> = {};
+      let roleNamesMap: Record<string, string> = {};
+      if (taskIds.length > 0) {
+        const { data: taskRoleRows } = await supabase
+          .from("task_roles")
+          .select("task_id, role_id")
+          .in("task_id", taskIds);
+
+        if (taskRoleRows && taskRoleRows.length > 0) {
+          for (const row of taskRoleRows) {
+            if (!taskRolesMap[row.task_id]) taskRolesMap[row.task_id] = [];
+            taskRolesMap[row.task_id].push(row.role_id);
+          }
+
+          const allRoleIds = Array.from(new Set(taskRoleRows.map(r => r.role_id)));
+          const { data: roleData } = await supabase
+            .from("employee_roles")
+            .select("id, name")
+            .in("id", allRoleIds);
+
+          if (roleData) {
+            for (const role of roleData) {
+              roleNamesMap[role.id] = role.name;
+            }
+          }
+        }
+      }
+
       // Fetch assigned and completed employees separately
       const tasksWithAssignees = await Promise.all(
         (tasks || []).map(async (task: any) => {
@@ -166,6 +198,10 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
           // Enrich with junction-table location data
           const locIds = taskLocationsMap[task.id] || (task.location_id ? [task.location_id] : []);
           const locNames = locIds.map((id: string) => locationNamesMap[id]).filter(Boolean);
+
+          // Enrich with junction-table role data
+          const rIds = taskRolesMap[task.id] || (task.assigned_role_id ? [task.assigned_role_id] : []);
+          const rNames = rIds.map((id: string) => roleNamesMap[id]).filter(Boolean);
           
           return { 
             ...task, 
@@ -173,6 +209,8 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
             completed_employee,
             task_location_ids: locIds,
             task_location_names: locNames,
+            task_role_ids: rIds,
+            task_role_names: rNames,
           } as Task;
         })
       );
