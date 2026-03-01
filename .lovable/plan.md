@@ -1,58 +1,74 @@
 
 
-# Kiosk Layout Redesign: Fixed QR + Tasks, Compact Team & Champions
+# Fix: Multi-Role Task Visibility
 
 ## Problem
-From the screenshots:
-1. **Today's Team** and **Today's Champions** cards use `flex-1` making them take equal space even with just 3 employees or 0 champions — huge empty cards waste screen real estate
-2. The **QR code** is at the bottom-left corner, easy to miss — staff have to scroll/search for it
-3. **Today's Tasks** list (the most important section) shares space equally with Team/Champions, getting squeezed
+Tasks assigned to multiple roles only show for the primary `assigned_role_id`. Additional roles stored in `task_roles` junction table are ignored during read queries.
 
-## Solution
+## Changes — Single File: `src/hooks/useStaffTodayTasks.ts`
 
-### Restructure the grid layout in `KioskDashboard.tsx`
+### Fix 1: Staff Mobile View (after line 298)
+After fetching `roleTasks` via `assigned_role_id`, add a **Step B2** that queries `task_roles` for the employee's `resolvedRoleId`, fetches matching task IDs not already in `roleTasks`, then bulk-fetches those tasks and merges them in.
 
-**Current layout** (2-column grid, each column has `flex-1` cards):
-```text
-┌──────────────────┬──────────────────┐
-│ Today's Team     │ Today's Champions│
-│ (flex-1, huge)   │ (flex-1, huge)   │
-├──────────────────┼──────────────────┤
-│ Today's Tasks    │ MTD Score        │
-│ (flex-1)         │ (flex-1)         │
-└──────────────────┴──────────────────┘
+```typescript
+// B2) Multi-role tasks via task_roles junction table
+const { data: junctionMatches } = await supabase
+  .from("task_roles")
+  .select("task_id")
+  .eq("role_id", resolvedRoleId);
+
+const junctionTaskIds = (junctionMatches || [])
+  .map(tr => tr.task_id)
+  .filter(id => !roleTasks.some(t => t.id === id));
+
+if (junctionTaskIds.length > 0) {
+  const { data: junctionTasks } = await supabase
+    .from("tasks")
+    .select(`*, location:locations(id, name), assigned_role:employee_roles(id, name)`)
+    .eq("company_id", companyId)
+    .is("assigned_to", null)
+    .in("id", junctionTaskIds);
+
+  roleTasks = [...roleTasks, ...(junctionTasks || [])];
+}
 ```
 
-**New layout** — Team & Champions shrink-to-fit, Tasks gets remaining space:
-```text
-┌──────────────────┬──────────────────┐
-│ Today's Team     │ Today's Champions│
-│ (auto height,    │ (auto height,    │
-│  max-h capped)   │  max-h capped)   │
-├──────────────────┼──────────────────┤
-│ Today's Tasks    │ MTD Score        │
-│ (flex-1, fills   │ (flex-1, fills   │
-│  remaining space)│  remaining space)│
-└──────────────────┴──────────────────┘
+Existing deduplication at line ~322 handles overlaps automatically.
+
+### Fix 2: Kiosk View (after line 781)
+After fetching `globalRoleTaskIds` via `assigned_role_id`, query `task_roles` for any of the location's `roleIds`, fetch matching task IDs not already included, verify they belong to the same company, and merge into `globalRoleTaskIds`.
+
+```typescript
+// Also check task_roles junction for multi-role tasks
+const { data: kioskJunctionMatches } = await supabase
+  .from("task_roles")
+  .select("task_id")
+  .in("role_id", roleIds);
+
+const kioskJunctionTaskIds = (kioskJunctionMatches || [])
+  .map(tr => tr.task_id)
+  .filter(id => !globalRoleTaskIds.includes(id));
+
+if (kioskJunctionTaskIds.length > 0) {
+  const { data: junctionGlobalTasks } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("company_id", companyId)
+    .is("assigned_to", null)
+    .in("id", kioskJunctionTaskIds);
+
+  globalRoleTaskIds = [...globalRoleTaskIds, ...(junctionGlobalTasks || []).map(t => t.id)];
+}
 ```
 
-### Changes to `KioskDashboard.tsx` (lines 637-915)
+Existing `Set`-based deduplication at line ~784 handles overlaps.
 
-1. **Today's Team card** (line 641): Change from `flex-1` to `shrink-0` with a `max-h-[40%]` cap. When there are only 3 employees, the card is compact. With many employees, it scrolls within the capped height.
+## What stays the same
+- Task creation/edit (already writes to `task_roles` correctly)
+- `complete_task_guarded` RPC — untouched
+- Time-locks, KPIs, leaderboards, completions — untouched
+- No database migration needed — `task_roles` table already exists
 
-2. **Today's Champions card** (line 819): Same treatment — `shrink-0` with `max-h-[40%]`. With 0 champions, the empty state is small (reduce `py-8` to `py-3`).
-
-3. **Today's Tasks card** (line 709): Keep `flex-1` so it expands to fill all remaining vertical space — always visible, always prominent.
-
-4. **MTD Score card** (line 867): Keep `flex-1` to fill remaining space in the right column.
-
-### Changes to `AttendanceKiosk.tsx`
-
-5. **QR code panel**: Already fixed from the previous change (compact top bar on tablet). No additional changes needed — the QR is already always visible at the top on tablet.
-
-### What stays the same
-- All data fetching, hooks, task pipeline, KPIs, champions logic — zero changes
-- Desktop large-screen behavior preserved (just better proportioned)
-- QR generation, attendance, shift logic — untouched
-- Mobile/responsive breakpoints from previous fix — preserved
+## Risk
+Zero — purely additive read queries. Deduplication already in place at both merge points.
 
