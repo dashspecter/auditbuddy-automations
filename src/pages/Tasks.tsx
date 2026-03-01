@@ -400,7 +400,11 @@ const Tasks = () => {
           return false;
         }
       }
-      if (selectedRoleId !== "all" && t.assigned_role_id !== selectedRoleId) return false;
+      if (selectedRoleId !== "all") {
+        const matchesPrimary = t.assigned_role_id === selectedRoleId;
+        const matchesJunction = (t as any).task_role_ids?.includes(selectedRoleId);
+        if (!matchesPrimary && !matchesJunction) return false;
+      }
       if (selectedEmployeeId !== "all" && t.assigned_to !== selectedEmployeeId) return false;
       return true;
     });

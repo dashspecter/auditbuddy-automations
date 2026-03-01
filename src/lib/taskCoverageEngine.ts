@@ -185,9 +185,22 @@ export function checkTaskCoverage(
     };
   }
   
+  // Collect ALL role names for this task (primary + junction table)
+  const allRoleNames: string[] = [];
+  if (roleName) allRoleNames.push(roleName);
+  const extraRoleNames = (task as any).task_role_names as string[] | undefined;
+  if (extraRoleNames) {
+    for (const rn of extraRoleNames) {
+      if (!allRoleNames.some(n => normalizeRoleName(n) === normalizeRoleName(rn))) {
+        allRoleNames.push(rn);
+      }
+    }
+  }
+
   // Determine if this is a LOCATION-ONLY task (no specific role or employee assignment)
   // These tasks should be visible to ALL employees at the location
-  const isLocationOnlyTask = !roleId && !roleName && !assignedTo && allLocationIds.length > 0;
+  // A task with junction roles is NOT location-only even if it has no primary role
+  const isLocationOnlyTask = !roleId && !roleName && allRoleNames.length === 0 && !assignedTo && allLocationIds.length > 0;
   
   // Find shifts that match location, role (and optionally time)
   const matchingShifts: Shift[] = [];
@@ -230,11 +243,10 @@ export function checkTaskCoverage(
     
     // ROLE-BASED or DIRECT ASSIGNMENT tasks: Check role matching
     roleChecks++;
-    if (roleId || roleName) {
-      // Task requires a role - we MUST have a role name to compare
-      if (!roleName) {
+    if (roleId || allRoleNames.length > 0) {
+      // Task requires a role - check ALL assigned role names (primary + junction)
+      if (allRoleNames.length === 0) {
         // Task has assigned_role_id but the join didn't resolve the name
-        // This is a data issue - log it in DEV and mark as no coverage
         if (import.meta.env.DEV) {
           console.warn("[checkTaskCoverage] Task has assigned_role_id but missing role name:", {
             taskId: task.id,
@@ -247,8 +259,8 @@ export function checkTaskCoverage(
         continue;
       }
       
-      // Use normalized name comparison (case-insensitive, trimmed, diacritics removed)
-      const roleMatches = rolesMatch(shift.role, roleName);
+      // Match shift role against ANY of the task's assigned roles
+      const roleMatches = allRoleNames.some(rn => rolesMatch(shift.role, rn));
       
       if (!roleMatches) {
         lastMismatchReason = "role_mismatch";
