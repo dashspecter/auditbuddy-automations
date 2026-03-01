@@ -509,6 +509,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         const filteredRoleNames = (departmentId && departmentRoleNames)
           ? roleNames.filter(r => departmentRoleNames.includes(r))
           : roleNames;
+        // If department filter is active and no roles match, skip this task entirely
+        if (departmentId && departmentRoleNames && filteredRoleNames.length === 0) {
+          return;
+        }
         const displayRoles = filteredRoleNames.length > 0 ? filteredRoleNames : roleNames;
         // Use first role as group key, but store all role names on the task for badge display
         const primaryRole = displayRoles[0];
@@ -525,6 +529,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     Object.keys(roleGroups).forEach(roleName => {
       if (roleName !== "General") {
         roleGroups[roleName].employees = todaysTeam.filter(e => e.role === roleName);
+      }
+    });
+
+    // Remove role groups with no scheduled employees (stale/mismatched roles)
+    Object.keys(roleGroups).forEach(roleName => {
+      if (roleName !== "General" && roleGroups[roleName].employees.length === 0) {
+        delete roleGroups[roleName];
       }
     });
 
@@ -557,7 +568,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         if (b === "General") return -1;
         return a.localeCompare(b);
       });
-  }, [tasks, todaysTeam, now]);
+  }, [tasks, todaysTeam, now, departmentId, departmentRoleNames]);
 
   // Format countdown
   const formatCountdown = (targetDate: string) => {
