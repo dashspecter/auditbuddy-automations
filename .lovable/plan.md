@@ -1,59 +1,39 @@
 
 
-# Why "Chef" Appears in the Kiosk — and How to Fix It
+# Show Filtered Location on Task Cards
 
-## Root Cause
+## Problem
+When filtering by location (e.g. "LBFC Amzei"), task cards always show `task_location_names[0]` — the first location in the array. If a task is assigned to [LBFC Obor, LBFC Amzei], the card shows "LBFC Obor" even when you filtered by "LBFC Amzei". The user expects to see the filtered location displayed prominently.
 
-The kiosk groups tasks by the role names stored on each task (`role_names` from `task_roles` junction or `assigned_role`). If any task has "Chef" as its primary assigned role, the kiosk creates a "CHEF" group header — **even if no employee with that role is scheduled today**.
+## Fix — `src/pages/Tasks.tsx`
 
-Look at line 514-520 of `KioskDashboard.tsx`:
-```typescript
-const primaryRole = displayRoles[0]; // e.g. "Chef"
-if (!roleGroups[primaryRole]) {
-  roleGroups[primaryRole] = { tasks: [], employees: [] };
-}
+### 1. Pass `selectedLocationId` to both card components
+Add a `filterLocationId` prop to `TaskItem` and `TaskListItem`.
+
+### 2. Resolve the filtered location name
+Use the existing `useLocations()` data (already available in Tasks.tsx) to build a `locationNameMap`. Pass the resolved name as `filterLocationName` or compute it inside the components.
+
+### 3. Update location display logic in both components
+In `TaskItem` (line 228-243) and `TaskListItem` (line 94-109), change the location rendering:
+
+```tsx
+// Current: always shows task_location_names[0]
+{task.task_location_names[0]}
+
+// New: if filtering by a location, show that location first
+// If the filtered location is in the list, show it; otherwise show [0]
 ```
 
-Then at line 525-528, it tries to find matching employees:
-```typescript
-roleGroups[roleName].employees = todaysTeam.filter(e => e.role === roleName);
-// Returns [] for "Chef" since no one has that role
-```
+Specifically:
+- If `filterLocationId` is set and `task_location_ids` contains it, find its index and show `task_location_names[thatIndex]` instead of `[0]`
+- The "+N" badge should still show the count of *other* locations
+- If no filter is active, behavior stays the same (show first location)
 
-The group is created but has zero employees. It still renders with the "CHEF" header and shows tasks that nobody can complete.
+### 4. Wire it up in all render sites
+Pass `filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}` to every `<TaskItem>` and `<TaskListItem>` usage (lines 713, 764, 824, 847, 870, 893, 909).
 
-Additionally, line 509-512 has a fallback that makes it worse: when the department filter removes "Chef" from `filteredRoleNames` (since it's not a department role), the code **falls back to the original unfiltered role names** — reintroducing "Chef":
-```typescript
-const displayRoles = filteredRoleNames.length > 0 ? filteredRoleNames : roleNames;
-```
+Also pass to `AllTasksOpsDashboard` and `ByEmployeeTimeline` if they render task location info internally.
 
-## Two Issues to Fix
-
-1. **Don't show role groups with zero scheduled employees** — if no one is on shift with that role, skip the group entirely (the tasks are unreachable anyway).
-
-2. **Fix the department filter fallback** — when `filteredRoleNames` is empty (no department match), the task should be excluded from the kiosk entirely, not fall back to showing all roles.
-
-## Fix — `src/components/kiosk/KioskDashboard.tsx`
-
-In the `tasksByRole` useMemo (lines 479-560):
-
-1. **Line 512**: Change the fallback — if `filteredRoleNames` is empty and department filter is active, skip the task (it belongs to a role outside this department):
-```typescript
-if (departmentId && departmentRoleNames && filteredRoleNames.length === 0) {
-  return; // Task's roles don't belong to this department — skip
-}
-const displayRoles = filteredRoleNames.length > 0 ? filteredRoleNames : roleNames;
-```
-
-2. **After line 528**: Filter out role groups that have zero scheduled employees (no one can work on these tasks):
-```typescript
-// Remove role groups with no scheduled employees (stale/mismatched roles)
-Object.keys(roleGroups).forEach(roleName => {
-  if (roleName !== "General" && roleGroups[roleName].employees.length === 0) {
-    delete roleGroups[roleName];
-  }
-});
-```
-
-This ensures "Chef" (or any other orphaned role) won't appear when no employee with that role is scheduled.
+## Scope
+Single file change: `src/pages/Tasks.tsx`. The `TaskItem` and `TaskListItem` components are defined inline in this file.
 
