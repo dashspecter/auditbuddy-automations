@@ -633,10 +633,10 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+      {/* Main Content Grid - responsive: single column on tablet, 2 cols on large screens */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
         {/* Left Column: Staff & Tasks */}
-        <div className="flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col gap-4 overflow-hidden min-h-0">
           {/* Staff List */}
           <Card className="flex-1 overflow-hidden">
             <div className="p-3 border-b bg-muted/50">
