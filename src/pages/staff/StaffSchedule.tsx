@@ -240,8 +240,8 @@ const StaffSchedule = () => {
       `)
       .eq("staff_id", employeeId)
       .in("approval_status", ["approved", "pending"])
-      .gte("shifts.shift_date", weekStart.toISOString().split('T')[0])
-      .lte("shifts.shift_date", weekEnd.toISOString().split('T')[0])
+      .gte("shifts.shift_date", format(weekStart, "yyyy-MM-dd"))
+      .lte("shifts.shift_date", format(weekEnd, "yyyy-MM-dd"))
       .order("shift_date", { foreignTable: "shifts", ascending: true });
 
     if (error) {
