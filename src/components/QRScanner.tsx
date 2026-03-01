@@ -14,6 +14,8 @@ let scannerIdCounter = 0;
 export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(true);
+  const [showRetry, setShowRetry] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [scannerId] = useState(() => `qr-reader-${++scannerIdCounter}`);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -59,6 +61,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     isMountedRef.current = true;
     hasScannedRef.current = false;
     isStoppingRef.current = false;
+    setShowRetry(false);
 
     const startScanner = async () => {
       try {
@@ -130,6 +133,10 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         
         if (isMountedRef.current) {
           setIsStarting(false);
+          // Show retry button after 5 seconds in case camera is black
+          setTimeout(() => {
+            if (isMountedRef.current) setShowRetry(true);
+          }, 5000);
         }
       } catch (err: any) {
         console.error("Camera/scanner error:", err);
@@ -167,7 +174,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         });
       }
     };
-  }, [scannerId, safeStopScanner]);
+  }, [scannerId, safeStopScanner, retryCount]);
 
   const handleClose = useCallback(() => {
     console.log("Close button clicked");
@@ -183,8 +190,24 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     }
   }, [safeStopScanner]);
 
+  const handleRetry = useCallback(() => {
+    const scanner = scannerRef.current;
+    setShowRetry(false);
+    setIsStarting(true);
+    setError(null);
+    if (scanner) {
+      safeStopScanner(scanner).finally(() => {
+        try { scanner.clear(); } catch {}
+        scannerRef.current = null;
+        setRetryCount(c => c + 1);
+      });
+    } else {
+      setRetryCount(c => c + 1);
+    }
+  }, [safeStopScanner]);
+
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+    <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="flex justify-between items-center p-4 text-white">
         <h2 className="text-lg font-semibold">Scan QR Code</h2>
         <Button
@@ -199,12 +222,29 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
 
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
-          <div id={scannerId} className="rounded-lg overflow-hidden bg-black" style={{ minHeight: 280 }} />
+          <div
+            id={scannerId}
+            className="rounded-lg overflow-hidden bg-black [&_video]:!w-full [&_video]:!h-full [&_video]:object-cover"
+            style={{ minHeight: 300, minWidth: 250 }}
+          />
           
           {isStarting && !error && (
             <div className="mt-4 text-center text-white/70">
               <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
               <p className="text-sm">Starting camera...</p>
+            </div>
+           )}
+          
+          {showRetry && !isStarting && !error && (
+            <div className="mt-4 text-center">
+              <p className="text-white/70 text-sm mb-2">Camera not working?</p>
+              <Button
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                onClick={handleRetry}
+              >
+                Retry Camera
+              </Button>
             </div>
           )}
           
