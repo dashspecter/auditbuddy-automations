@@ -365,10 +365,51 @@ export function useStaffTodayTasks(
         }
       }
       
-      const enrichedTasks = uniqueTasks.map(t => ({
-        ...t,
-        task_location_ids: taskLocationMap[t.id] || (t.location_id ? [t.location_id] : []),
-      }));
+      // Enrich tasks with task_role_ids and task_role_names from junction table
+      let taskRolesMap: Record<string, string[]> = {};
+      let roleNamesMap: Record<string, string> = {};
+      if (taskIds.length > 0) {
+        const { data: taskRolesData } = await supabase
+          .from("task_roles")
+          .select("task_id, role_id")
+          .in("task_id", taskIds);
+        
+        if (taskRolesData && taskRolesData.length > 0) {
+          // Collect unique role IDs to resolve names
+          const uniqueRoleIds = [...new Set(taskRolesData.map(tr => tr.role_id))];
+          const { data: rolesData } = await supabase
+            .from("employee_roles")
+            .select("id, name")
+            .in("id", uniqueRoleIds);
+          
+          if (rolesData) {
+            for (const r of rolesData) {
+              roleNamesMap[r.id] = r.name;
+            }
+          }
+          
+          for (const tr of taskRolesData) {
+            if (!taskRolesMap[tr.task_id]) taskRolesMap[tr.task_id] = [];
+            taskRolesMap[tr.task_id].push(tr.role_id);
+          }
+        }
+      }
+      
+      const enrichedTasks = uniqueTasks.map(t => {
+        // Build complete role lists: primary + junction
+        const junctionRoleIds = taskRolesMap[t.id] || [];
+        const allRoleIds = t.assigned_role_id 
+          ? [t.assigned_role_id, ...junctionRoleIds.filter(id => id !== t.assigned_role_id)]
+          : junctionRoleIds;
+        const allRoleNames = allRoleIds.map(id => roleNamesMap[id]).filter(Boolean);
+        
+        return {
+          ...t,
+          task_location_ids: taskLocationMap[t.id] || (t.location_id ? [t.location_id] : []),
+          task_role_ids: allRoleIds,
+          task_role_names: allRoleNames,
+        };
+      });
 
       if (import.meta.env.DEV) {
         console.log("[useStaffTodayTasks] Fetched tasks:", {
@@ -749,6 +790,8 @@ export function useKioskTodayTasks(options: {
         return rpcTasks.map((t: any) => ({
           ...t,
           task_location_ids: rpcLocMap[t.id] || (t.location_id ? [t.location_id] : []),
+          task_role_ids: t.role_ids || [],
+          task_role_names: t.role_names || [],
         })) as Task[];
       }
 
@@ -869,7 +912,23 @@ export function useKioskTodayTasks(options: {
         }
       }
 
-      // Attach role_ids and role_names to tasks for kiosk display
+      // Enrich with task_location_ids from junction table
+      const enrichTaskIds = data.map((t: any) => t.id);
+      let kioskLocMap: Record<string, string[]> = {};
+      if (enrichTaskIds.length > 0) {
+        const { data: tlData } = await supabase
+          .from("task_locations")
+          .select("task_id, location_id")
+          .in("task_id", allTaskIds);
+        if (tlData) {
+          for (const tl of tlData) {
+            if (!kioskLocMap[tl.task_id]) kioskLocMap[tl.task_id] = [];
+            kioskLocMap[tl.task_id].push(tl.location_id);
+          }
+        }
+      }
+
+      // Attach role and location enrichment to tasks
       return data.map((task: any) => {
         const taskRoleEntries = (taskRoles || []).filter((tr: any) => tr.task_id === task.id);
         
@@ -894,29 +953,11 @@ export function useKioskTodayTasks(options: {
           ...task,
           role_ids: roleIds,
           role_names: roleNames,
+          task_role_ids: roleIds,
+          task_role_names: roleNames,
+          task_location_ids: kioskLocMap[task.id] || (task.location_id ? [task.location_id] : []),
         };
-      });
-
-      // Enrich with task_location_ids from junction table (same pattern as staff path)
-      const enrichTaskIds = data.map((t: any) => t.id);
-      let kioskLocMap: Record<string, string[]> = {};
-      if (enrichTaskIds.length > 0) {
-        const { data: tlData } = await supabase
-          .from("task_locations")
-          .select("task_id, location_id")
-          .in("task_id", allTaskIds);
-        if (tlData) {
-          for (const tl of tlData) {
-            if (!kioskLocMap[tl.task_id]) kioskLocMap[tl.task_id] = [];
-            kioskLocMap[tl.task_id].push(tl.location_id);
-          }
-        }
-      }
-
-      return data.map((task: any) => ({
-        ...task,
-        task_location_ids: kioskLocMap[task.id] || (task.location_id ? [task.location_id] : []),
-      })) as Task[];
+      }) as Task[];
     },
     enabled,
   });
