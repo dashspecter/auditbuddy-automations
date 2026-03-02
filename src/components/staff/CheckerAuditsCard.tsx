@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck, Plus, ArrowRight, CheckCircle2, Calendar, Clock, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, MapPin, Users, ArrowRight, CheckCircle2, Calendar, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMyScheduledAudits, useMyAudits } from "@/hooks/useMyScheduledAudits";
 import { useAuth } from "@/contexts/AuthContext";
@@ -154,11 +154,43 @@ export const CheckerAuditsCard = () => {
           </div>
         </div>
 
-        <Button className="w-full" onClick={() => navigate("/staff/location-audit")}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t("staffHome.checker.createAudit", "Create Audit")}
-        </Button>
+        <div className="space-y-2">
+          <div
+            className="w-full flex items-center justify-between py-2.5 px-3 border rounded-md cursor-pointer hover:bg-accent transition-colors"
+            onClick={() => navigate("/staff/location-audit")}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-sm">{t("staffHome.checker.locationAudit", "Location Audit")}</div>
+                <div className="text-xs text-muted-foreground">{t("staffHome.checker.locationAuditDesc", "Inspect facilities & compliance")}</div>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+
+          <div
+            className="w-full flex items-center justify-between py-2.5 px-3 border rounded-md cursor-pointer hover:bg-accent transition-colors"
+            onClick={() => navigate("/staff/employee-audit")}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-secondary/50 flex items-center justify-center">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-sm">{t("staffHome.checker.employeeAudit", "Employee Audit")}</div>
+                <div className="text-xs text-muted-foreground">{t("staffHome.checker.employeeAuditDesc", "Evaluate staff performance")}</div>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
       </Card>
 
       {/* Upcoming Scheduled Audits */}
