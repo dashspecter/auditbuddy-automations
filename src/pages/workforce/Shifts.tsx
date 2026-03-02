@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy, Lock } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Users, Calendar as CalendarIcon, Columns3, UserCheck, AlertCircle, Copy, Lock, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useMemo } from "react";
@@ -20,6 +20,8 @@ import { useLocations } from "@/hooks/useLocations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useScheduleGovernanceEnabled, useSchedulePeriod } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
+import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
+import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
 import { startOfWeek, format } from "date-fns";
 
 const Shifts = () => {
@@ -32,6 +34,7 @@ const Shifts = () => {
   const [editingShift, setEditingShift] = useState<any>(null);
   const [changeRequestDialogOpen, setChangeRequestDialogOpen] = useState(false);
   const [pendingChangeRequest, setPendingChangeRequest] = useState<LockedChangeRequestPayload | null>(null);
+  const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
   const isMobile = useIsMobile();
   
   // Data hooks - must come before governance location lookup
@@ -55,6 +58,9 @@ const Shifts = () => {
   const governanceLocationId = editingShift?.location_id || (locations.length > 0 ? locations[0].id : null);
   const { data: schedulePeriod } = useSchedulePeriod(governanceLocationId, currentWeekStart);
   const isPeriodLocked = schedulePeriod?.state === 'locked';
+
+  // Absence tracking
+  const { isAbsent, isDayPastOrToday, refreshAbsences } = useAbsences(dateStr, dateStr);
 
   // Group shifts by location
   const shiftsByLocation = useMemo(() => {
@@ -302,11 +308,34 @@ const Shifts = () => {
                                 {t('workforce.shifts.assignedStaff')}:
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                {approved.map((assignment: any) => (
-                                  <Badge key={assignment.id} variant="secondary" className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
-                                    {getEmployeeName(assignment.staff_id)}
-                                  </Badge>
-                                ))}
+                                {approved.map((assignment: any) => {
+                                  const empAbsent = isAbsent(assignment.staff_id, shift.id);
+                                  return (
+                                    <Badge
+                                      key={assignment.id}
+                                      variant="secondary"
+                                      className={`gap-1 ${empAbsent 
+                                        ? 'bg-destructive/10 text-destructive border-destructive/30' 
+                                        : 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+                                      } ${date && isDayPastOrToday(date) && shift.is_published && !empAbsent ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                      onClick={() => {
+                                        if (date && isDayPastOrToday(date) && shift.is_published && !empAbsent && company?.id) {
+                                          setSelectedAbsence({
+                                            shiftId: shift.id,
+                                            employeeId: assignment.staff_id,
+                                            employeeName: getEmployeeName(assignment.staff_id),
+                                            shiftDate: dateStr,
+                                            locationId: shift.location_id,
+                                            companyId: company.id,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      {getEmployeeName(assignment.staff_id)}
+                                      {empAbsent && <AlertTriangle className="h-3 w-3" />}
+                                    </Badge>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -402,6 +431,13 @@ const Shifts = () => {
       <CopyScheduleDialog
         open={copyDialogOpen}
         onOpenChange={setCopyDialogOpen}
+      />
+
+      {/* Record Absence Dialog */}
+      <RecordAbsenceDialog
+        data={selectedAbsence}
+        onClose={() => setSelectedAbsence(null)}
+        onRecorded={refreshAbsences}
       />
     </div>
   );

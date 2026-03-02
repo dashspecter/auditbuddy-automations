@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2, GraduationCap, Lock, ClipboardCheck, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Settings, Calendar, Users, MapPin, TrendingUp, TrendingDown, Info, ArrowRightLeft, Palmtree, Clock, UserCheck, Send, Eye, EyeOff, LogIn, LogOut, Trash2, GraduationCap, Lock, ClipboardCheck, AlertCircle, AlertTriangle } from "lucide-react";
 import { useShifts, useBulkPublishShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTimeOffRequests, useDeleteTimeOffRequest } from "@/hooks/useTimeOffRequests";
@@ -29,6 +29,8 @@ import { useRealtimeShifts } from "@/hooks/useRealtimeShifts";
 import { useScheduleGovernanceEnabled, useSchedulePeriod, useSchedulePeriodsForWeek, usePendingChangeRequests, useWorkforceExceptions } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
+import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
 import {
   Select,
   SelectContent,
@@ -81,6 +83,8 @@ export const EnhancedShiftWeekView = () => {
     payloadAfter: Record<string, any>;
     shiftSummary?: string;
   } | null>(null);
+  
+  const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
   
   const deleteTimeOff = useDeleteTimeOffRequest();
   
@@ -143,6 +147,12 @@ export const EnhancedShiftWeekView = () => {
   // Fetch attendance logs for the week to show check-in/out indicators
   const { data: attendanceLogs = [] } = useAttendanceLogs(
     selectedLocation === "all" ? undefined : selectedLocation,
+    format(currentWeekStart, 'yyyy-MM-dd'),
+    format(weekEnd, 'yyyy-MM-dd')
+  );
+
+  // Absence tracking
+  const { isAbsent, isDayPastOrToday, refreshAbsences } = useAbsences(
     format(currentWeekStart, 'yyyy-MM-dd'),
     format(weekEnd, 'yyyy-MM-dd')
   );
@@ -1106,6 +1116,36 @@ export const EnhancedShiftWeekView = () => {
                               <div className="flex items-center justify-between">
                                 <div className={`font-medium ${isMissing ? 'text-destructive' : ''}`}>{shift.role}</div>
                                 <div className="flex items-center gap-1">
+                                  {isAbsent(employee.id, shift.id) && (
+                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                      Absent
+                                    </Badge>
+                                  )}
+                                  {!isAbsent(employee.id, shift.id) && isDayPastOrToday(day) && !isPending && shift.is_published && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          className="p-0.5 rounded hover:bg-destructive/20 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (company?.id) {
+                                              setSelectedAbsence({
+                                                shiftId: shift.id,
+                                                employeeId: employee.id,
+                                                employeeName: employee.full_name,
+                                                shiftDate: shift.shift_date,
+                                                locationId: shift.location_id,
+                                                companyId: company.id,
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <AlertTriangle className="h-3 w-3 text-destructive" />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Record absence</TooltipContent>
+                                    </Tooltip>
+                                  )}
                                   {isMissing && (
                                     <Badge variant="destructive" className="text-[10px] px-1 py-0">
                                       Missing
@@ -1278,6 +1318,34 @@ export const EnhancedShiftWeekView = () => {
                             return emp ? (
                               <div key={sa.id} className="text-[11px] font-medium mt-1 flex items-center gap-1">
                                 {emp.full_name}
+                                {isAbsent(emp.id, shift.id) && (
+                                  <Badge variant="destructive" className="text-[10px] px-1 py-0">Absent</Badge>
+                                )}
+                                {!isAbsent(emp.id, shift.id) && isDayPastOrToday(day) && shift.is_published && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        className="p-0.5 rounded hover:bg-destructive/20 transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (company?.id) {
+                                            setSelectedAbsence({
+                                              shiftId: shift.id,
+                                              employeeId: emp.id,
+                                              employeeName: emp.full_name,
+                                              shiftDate: shift.shift_date,
+                                              locationId: shift.location_id,
+                                              companyId: company.id,
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <AlertTriangle className="h-3 w-3 text-destructive" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Record absence</TooltipContent>
+                                  </Tooltip>
+                                )}
                                 {empAttendance && (
                                   <span className="flex items-center gap-0.5">
                                     <Tooltip>
@@ -1500,6 +1568,13 @@ export const EnhancedShiftWeekView = () => {
         onOpenChange={setPendingApprovalsOpen}
         filterPeriodId={pendingApprovalsFilter.periodId}
         filterLocationId={pendingApprovalsFilter.locationId}
+      />
+
+      {/* Record Absence Dialog */}
+      <RecordAbsenceDialog
+        data={selectedAbsence}
+        onClose={() => setSelectedAbsence(null)}
+        onRecorded={refreshAbsences}
       />
     </div>
   );
