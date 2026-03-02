@@ -32,7 +32,7 @@ export default function ModuleManagement() {
   });
 
   const allowedModules = getAvailableModulesForTier(tier);
-  const currentTierName = PRICING_TIERS[tier].name;
+  const currentTierName = PRICING_TIERS[tier as keyof typeof PRICING_TIERS]?.name ?? 'Current';
 
   const isModuleActive = (code: string) =>
     activeModules.some(m => m.module_name === code && m.is_active);

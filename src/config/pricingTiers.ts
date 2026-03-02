@@ -150,6 +150,8 @@ export const getAvailableModulesForTier = (tier: PricingTier | string): string[]
   return config.allowedModules;
 };
 
-export const canAccessModule = (tier: PricingTier, moduleName: string): boolean => {
-  return PRICING_TIERS[tier].allowedModules.includes(moduleName);
+export const canAccessModule = (tier: PricingTier | string, moduleName: string): boolean => {
+  const config = PRICING_TIERS[tier as PricingTier];
+  if (!config) return true; // Unknown tier → allow access
+  return config.allowedModules.includes(moduleName);
 };
