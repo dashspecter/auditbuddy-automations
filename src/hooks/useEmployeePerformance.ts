@@ -160,8 +160,15 @@ export const useEmployeePerformance = (
         })
       );
 
-      // Merge and deduplicate (employee may appear in multiple locations as guest worker)
-      const allScores = results.flat();
+      // Merge and deduplicate by employee_id, keeping highest score
+      const seen = new Map<string, ReturnType<typeof mapRpcRow>>();
+      for (const score of results.flat()) {
+        const existing = seen.get(score.employee_id);
+        if (!existing || score.overall_score > existing.overall_score) {
+          seen.set(score.employee_id, score);
+        }
+      }
+      const allScores = Array.from(seen.values());
       allScores.sort((a, b) => b.overall_score - a.overall_score);
       return allScores;
     },

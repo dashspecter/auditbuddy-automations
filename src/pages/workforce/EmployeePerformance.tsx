@@ -153,11 +153,15 @@ const EmployeePerformance = () => {
     100
   );
 
-  // Compute effective scores for all employees
-  const effectiveScores = useMemo(() => 
-    sortByEffectiveScore(computeEffectiveScores(rawAllScores)), 
-    [rawAllScores]
-  );
+  // Deduplicate by employee_id (safety net) then compute effective scores
+  const effectiveScores = useMemo(() => {
+    const seen = new Map<string, typeof rawAllScores[number]>();
+    for (const s of rawAllScores) {
+      const ex = seen.get(s.employee_id);
+      if (!ex || s.overall_score > ex.overall_score) seen.set(s.employee_id, s);
+    }
+    return sortByEffectiveScore(computeEffectiveScores(Array.from(seen.values())));
+  }, [rawAllScores]);
 
   // Filter to top 20 for leaderboard
   const leaderboard = effectiveScores.slice(0, 20);
