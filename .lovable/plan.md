@@ -142,16 +142,17 @@ const { data: sharedTasks } = await supabase
 
 ## 6. FINAL VERDICT
 
-### Fix first (before next production snapshot):
-1. **Add `company_id` filter** to the edge function's shared tasks query — prevents cross-tenant contamination and reduces payload
-2. **Fix `task_occurs_on_date` strict inequality** — change `<=` to `<` so the creation date is handled correctly within the function
+### All P1/P2 fixes applied:
+1. ✅ **`task_occurs_on_date` strict inequality** — changed `<=` to `<`, added explicit creation-date TRUE return
+2. ✅ **Edge function `company_id` filter** — shared tasks query now scoped per company inside the loop
+3. ✅ **Edge function pagination** — paginated with 1000-row pages, no silent truncation
+4. ✅ **Role matching `LIMIT 1`** — replaced with `EXISTS` + `ANY` across all eligible-count subqueries and task filters
+5. ✅ **Edge function `taskOccursOnDate`** — TypeScript helper updated to match SQL fix (creation date returns true)
 
-### Safe to ship now:
+### Safe to ship:
 - The SQL RPC (`calculate_location_performance_scores`) is correct and production-ready
+- The edge function (`snapshot-monthly-scores`) is now multi-tenant safe with pagination
 - All UI flows are unaffected — no frontend changes were needed or made
 - The fair share model is mathematically sound and produces reasonable numbers
 - Kiosk, dashboard, staff profile, and mobile views all consume the same correct RPC output
-
-### Ship after fixes:
-- The edge function snapshot should be updated before the next monthly run to include the `company_id` filter and handle the >1000 tasks edge case
 
