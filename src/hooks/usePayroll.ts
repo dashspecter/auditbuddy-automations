@@ -50,6 +50,7 @@ export interface DailyPayrollEntry {
   auto_clocked_out: boolean;
   requires_checkin: boolean;
   is_missed: boolean; // True when check-in required but no attendance
+  is_partial: boolean; // True when actual_hours < 75% of scheduled_hours
   is_extra_shift: boolean; // True when this is an extra shift (above expected)
   is_future: boolean; // True when shift is in the future (not yet worked)
   expected_shifts_per_week: number | null;
@@ -74,8 +75,10 @@ export interface PayrollSummaryItem {
   expected_shifts_per_week: number | null;
   extra_shifts: number;
   missing_shifts: number;
+  partial_count: number;
   // Detailed breakdown with dates
   worked_dates: string[];
+  partial_dates: string[]; // Dates where actual < 75% of scheduled
   missed_dates: string[];
   future_dates: string[]; // Dates of future shifts (not yet worked)
   extra_shift_dates: string[]; // Dates of extra shifts
@@ -239,6 +242,10 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           // Determine if shift was missed (no attendance when check-in required AND shift is in the past)
           const isMissed = !isFutureShift && requiresCheckin && !attendanceLog;
           
+          // Determine if shift was partial (worked less than 75% of scheduled)
+          const isPartial = !isFutureShift && !isMissed && !!attendanceLog && actualHours > 0 
+            && actualHours < (scheduledHours * 0.75);
+          
           // Pay based on actual hours worked, or scheduled if no check-in required and no attendance
           // Future shifts and missed shifts have no pay yet
           let dailyAmount = 0;
@@ -270,6 +277,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             auto_clocked_out: autoClockedOut,
             requires_checkin: requiresCheckin,
             is_missed: isMissed,
+            is_partial: isPartial,
             is_future: isFutureShift,
             is_extra_shift: (shift as any).shift_type === 'extra', // Explicitly tagged extras
             expected_shifts_per_week: expectedShiftsPerWeek,
@@ -299,7 +307,8 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     // - Not in the future AND
     // - Has actual hours (attendance recorded), OR
     // - No actual hours but check-in wasn't required (assumed worked, paid at scheduled rate)
-    const wasWorked = !entry.is_future && !entry.is_missed && (entry.actual_hours > 0 || !entry.requires_checkin);
+    const wasWorked = !entry.is_future && !entry.is_missed && !entry.is_partial && (entry.actual_hours > 0 || !entry.requires_checkin);
+    const wasPartial = entry.is_partial;
     const wasMissed = entry.is_missed;
     const isFuture = entry.is_future;
     
@@ -315,6 +324,10 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
       // Track dates
       if (wasWorked && !existing.worked_dates.includes(entry.date)) {
         existing.worked_dates.push(entry.date);
+      }
+      if (wasPartial && !existing.partial_dates.includes(entry.date)) {
+        existing.partial_dates.push(entry.date);
+        existing.partial_count += 1;
       }
       if (wasMissed && !existing.missed_dates.includes(entry.date)) {
         existing.missed_dates.push(entry.date);
@@ -342,7 +355,9 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         expected_shifts_per_week: entry.expected_shifts_per_week || null,
         extra_shifts: 0,
         missing_shifts: 0,
+        partial_count: wasPartial ? 1 : 0,
         worked_dates: wasWorked ? [entry.date] : [],
+        partial_dates: wasPartial ? [entry.date] : [],
         missed_dates: wasMissed ? [entry.date] : [],
         future_dates: isFuture ? [entry.date] : [],
         extra_shift_dates: [],
@@ -429,6 +444,7 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     
     // Sort dates
     item.worked_dates.sort();
+    item.partial_dates.sort();
     item.missed_dates.sort();
     item.future_dates.sort();
     item.extra_shift_dates.sort();

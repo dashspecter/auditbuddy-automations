@@ -412,9 +412,16 @@ const Payroll = () => {
                                 <Badge variant="outline">{item.role}</Badge>
                               </TableCell>
                               <TableCell>
-                                <Badge variant="default" className="bg-green-500">
-                                  {item.worked_dates.length}
-                                </Badge>
+                                <div className="flex items-center gap-1">
+                                  <Badge variant="default" className="bg-green-500">
+                                    {item.worked_dates.length}
+                                  </Badge>
+                                  {item.partial_dates.length > 0 && (
+                                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
+                                      {item.partial_dates.length}
+                                    </Badge>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 {item.missed_dates.length > 0 ? (
@@ -493,6 +500,26 @@ const Payroll = () => {
                                         )}
                                       </div>
                                     </div>
+                                    
+                                    {/* Partial Shifts */}
+                                    {item.partial_dates.length > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2 font-medium text-amber-700">
+                                          <Clock className="h-4 w-4" />
+                                          Partial Shifts ({item.partial_dates.length})
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {item.partial_dates.map(date => {
+                                            const entry = dailyEntries.find(e => e.employee_id === item.employee_id && e.date === date);
+                                            return (
+                                              <Badge key={date} variant="outline" className="text-xs bg-amber-50 border-amber-200 text-amber-700">
+                                                {format(parseISO(date), "MMM d")} ({entry ? entry.actual_hours.toFixed(1) : '?'}h / {entry ? entry.scheduled_hours.toFixed(1) : '?'}h)
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
                                     
                                     {/* Missed Shifts */}
                                     <div className="space-y-2">
