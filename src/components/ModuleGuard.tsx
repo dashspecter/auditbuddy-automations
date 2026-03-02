@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Lock, ArrowLeft } from 'lucide-react';
+import { getModuleDisplayName } from '@/config/moduleRegistry';
 
 interface ModuleGuardProps {
   children: ReactNode;
@@ -36,7 +37,7 @@ export const ModuleGuard = ({ children, module, fallback }: ModuleGuardProps) =>
             </div>
             <CardTitle className="text-2xl">Module Not Activated</CardTitle>
             <CardDescription>
-              This feature requires the <strong>{getModuleName(module)}</strong> module to be activated for your company.
+              This feature requires the <strong>{getModuleDisplayName(module)}</strong> module to be activated for your company.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -58,21 +59,3 @@ export const ModuleGuard = ({ children, module, fallback }: ModuleGuardProps) =>
   return <>{children}</>;
 };
 
-const getModuleName = (module: string): string => {
-  const moduleNames: Record<string, string> = {
-    'location_audits': 'Location Audits',
-    'staff_performance': 'Staff Performance',
-    'equipment_management': 'Equipment Management',
-    'notifications': 'Notifications',
-    'reports': 'Reports & Analytics',
-    'wastage': 'Wastage',
-    'qr_forms': 'QR Forms (HACCP / Quality Records)',
-    'cmms': 'CMMS (Maintenance)',
-    'corrective_actions': 'Corrective Actions',
-    'operations': 'Operations',
-    'payroll': 'Payroll & Labor Costs',
-    'whatsapp_messaging': 'WhatsApp Messaging',
-    'scouts': 'Dashspect Scouts',
-  };
-  return moduleNames[module] || module;
-};
