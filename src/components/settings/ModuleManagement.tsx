@@ -8,69 +8,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useCompanyModules, useToggleModule } from '@/hooks/useCompany';
 import { PRICING_TIERS, getAvailableModulesForTier } from '@/config/pricingTiers';
-import { ClipboardList, Users, Wrench, Bell, Briefcase, Check, X, Lock, Trash2, MessageSquare } from 'lucide-react';
+import { MODULE_REGISTRY, CATEGORY_LABELS, ModuleDefinition } from '@/config/moduleRegistry';
+import { Check, X, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-
-const MODULE_CONFIG = [
-  {
-    id: 'location_audits',
-    name: 'Location Audits',
-    description: 'Comprehensive audit scheduling, templates, and compliance tracking for locations',
-    icon: ClipboardList,
-    color: 'hsl(var(--chart-1))',
-    features: ['Custom templates', 'Scheduled audits', 'Photo documentation', 'Compliance reports'],
-  },
-  {
-    id: 'staff_performance',
-    name: 'Staff Performance',
-    description: 'Employee audit system and performance tracking with detailed analytics',
-    icon: Users,
-    color: 'hsl(var(--chart-2))',
-    features: ['Employee audits', 'Performance metrics', 'Leaderboards', 'Individual reports'],
-  },
-  {
-    id: 'equipment_management',
-    name: 'Equipment Management',
-    description: 'Equipment tracking, maintenance scheduling, and intervention management',
-    icon: Wrench,
-    color: 'hsl(var(--chart-3))',
-    features: ['Equipment tracking', 'Maintenance schedules', 'QR code generation', 'Status history'],
-  },
-  {
-    id: 'notifications',
-    name: 'Notifications',
-    description: 'Advanced notification system with templates and recurring alerts',
-    icon: Bell,
-    color: 'hsl(var(--chart-4))',
-    features: ['Custom templates', 'Scheduled notifications', 'Recurring alerts', 'Role-based targeting'],
-  },
-  {
-    id: 'reports',
-    name: 'Reports & Analytics',
-    description: 'Advanced reporting dashboard with data analytics and insights',
-    icon: Briefcase,
-    color: 'hsl(var(--chart-5))',
-    features: ['Custom reports', 'Data visualization', 'Export capabilities', 'Trend analysis'],
-  },
-  {
-    id: 'wastage',
-    name: 'Wastage',
-    description: 'Track food waste with photos, weights, and cost analytics',
-    icon: Trash2,
-    color: 'hsl(var(--destructive))',
-    features: ['Photo capture', 'Weight tracking', 'Cost analytics', 'Daily rollups'],
-    category: 'Operations',
-  },
-  {
-    id: 'whatsapp_messaging',
-    name: 'WhatsApp Messaging',
-    description: 'Send WhatsApp notifications via Twilio with templates, broadcasts, and delivery tracking',
-    icon: MessageSquare,
-    color: 'hsl(var(--chart-2))',
-    features: ['WhatsApp notifications', 'Message templates', 'Delivery tracking', 'Broadcast announcements'],
-  },
-];
 
 export default function ModuleManagement() {
   const { tier, company } = useCompanyContext();
@@ -80,12 +21,12 @@ export default function ModuleManagement() {
   const navigate = useNavigate();
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    moduleId: string;
+    moduleCode: string;
     moduleName: string;
     action: 'enable' | 'disable';
   }>({
     open: false,
-    moduleId: '',
+    moduleCode: '',
     moduleName: '',
     action: 'enable',
   });
@@ -93,61 +34,43 @@ export default function ModuleManagement() {
   const allowedModules = getAvailableModulesForTier(tier);
   const currentTierName = PRICING_TIERS[tier].name;
 
-  const isModuleActive = (moduleId: string) => {
-    return activeModules.some(m => m.module_name === moduleId && m.is_active);
-  };
+  const isModuleActive = (code: string) =>
+    activeModules.some(m => m.module_name === code && m.is_active);
 
-  const isModuleAllowed = (moduleId: string) => {
-    return allowedModules.includes(moduleId);
-  };
+  const isModuleAllowed = (code: string) => allowedModules.includes(code);
 
-  const handleToggleClick = (moduleId: string, moduleName: string, currentlyActive: boolean) => {
-    if (!isModuleAllowed(moduleId)) {
+  const handleToggleClick = (code: string, name: string, currentlyActive: boolean) => {
+    if (!isModuleAllowed(code)) {
       toast.error(`This module is not available in your ${currentTierName} plan`);
       return;
     }
-
-    setDialogState({
-      open: true,
-      moduleId,
-      moduleName,
-      action: currentlyActive ? 'disable' : 'enable',
-    });
+    setDialogState({ open: true, moduleCode: code, moduleName: name, action: currentlyActive ? 'disable' : 'enable' });
   };
 
   const handleConfirmToggle = async () => {
     if (!company) return;
 
-    // Find the module record by module_name to get the ID
-    const moduleRecord = activeModules.find(m => m.module_name === dialogState.moduleId);
-    
+    const moduleRecord = activeModules.find(m => m.module_name === dialogState.moduleCode);
+
     try {
       if (!moduleRecord && dialogState.action === 'enable') {
-        // Create the module record if it doesn't exist
         const { supabase } = await import('@/integrations/supabase/client');
-        const { data: newModule, error: createError } = await supabase
+        const { error } = await supabase
           .from('company_modules')
           .upsert({
             company_id: company.id,
-            module_name: dialogState.moduleId,
+            module_name: dialogState.moduleCode,
             is_active: true,
-          }, { onConflict: 'company_id,module_name' })
-          .select()
-          .single();
+          }, { onConflict: 'company_id,module_name' });
 
-        if (createError) throw createError;
-
-        // Invalidate queries to refresh the UI
+        if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['company_modules'] });
-
         toast.success(`${dialogState.moduleName} has been enabled`);
       } else if (moduleRecord) {
-        // Update existing module record
         await toggleModule.mutateAsync({
           moduleId: moduleRecord.id,
           isActive: dialogState.action === 'enable',
         });
-
         toast.success(
           dialogState.action === 'enable'
             ? `${dialogState.moduleName} has been enabled`
@@ -160,22 +83,26 @@ export default function ModuleManagement() {
       console.error('Error toggling module:', error);
       toast.error('Failed to update module status');
     } finally {
-      setDialogState({ open: false, moduleId: '', moduleName: '', action: 'enable' });
+      setDialogState({ open: false, moduleCode: '', moduleName: '', action: 'enable' });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Module Management</CardTitle>
-            <CardDescription>Loading modules...</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Module Management</CardTitle>
+          <CardDescription>Loading modules...</CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
+
+  // Group modules by category
+  const grouped = MODULE_REGISTRY.reduce<Record<string, ModuleDefinition[]>>((acc, mod) => {
+    (acc[mod.category] ??= []).push(mod);
+    return acc;
+  }, {});
 
   return (
     <>
@@ -188,81 +115,70 @@ export default function ModuleManagement() {
           </p>
         </div>
 
-        <div className="grid gap-4">
-          {MODULE_CONFIG.map((module) => {
-            const Icon = module.icon;
-            const isActive = isModuleActive(module.id);
-            const isAllowed = isModuleAllowed(module.id);
+        {(['core', 'operations', 'communication', 'analytics'] as const).map((cat) => {
+          const modules = grouped[cat];
+          if (!modules?.length) return null;
+          return (
+            <div key={cat} className="space-y-3">
+              <h3 className="text-lg font-semibold text-muted-foreground">{CATEGORY_LABELS[cat]}</h3>
+              <div className="grid gap-3">
+                {modules.map((mod) => {
+                  const Icon = mod.icon;
+                  const isActive = isModuleActive(mod.code);
+                  const isAllowed = isModuleAllowed(mod.code);
 
-            return (
-              <Card key={module.id} className={isActive ? 'border-primary' : ''}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div
-                        className="p-3 rounded-lg"
-                        style={{ backgroundColor: `${module.color}15` }}
-                      >
-                        <Icon className="h-6 w-6" style={{ color: module.color }} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CardTitle className="text-xl">{module.name}</CardTitle>
-                          {isActive && (
-                            <Badge className="bg-green-500">
-                              <Check className="h-3 w-3 mr-1" />
-                              Active
-                            </Badge>
-                          )}
-                          {!isActive && (
-                            <Badge variant="secondary">
-                              <X className="h-3 w-3 mr-1" />
-                              Inactive
-                            </Badge>
-                          )}
-                          {!isAllowed && (
-                            <Badge variant="destructive">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Upgrade Required
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="mb-4">{module.description}</CardDescription>
-                        <div className="grid grid-cols-2 gap-2">
-                          {module.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-sm">
-                              <div
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: module.color }}
-                              />
-                              <span className="text-muted-foreground">{feature}</span>
+                  return (
+                    <Card key={mod.code} className={isActive ? 'border-primary' : ''}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="p-2 rounded-lg bg-muted shrink-0">
+                              <Icon className={`h-5 w-5 ${mod.color}`} />
                             </div>
-                          ))}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <CardTitle className="text-base">{mod.displayName}</CardTitle>
+                                {isActive && (
+                                  <Badge className="bg-green-500 text-xs">
+                                    <Check className="h-3 w-3 mr-1" />Active
+                                  </Badge>
+                                )}
+                                {!isActive && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <X className="h-3 w-3 mr-1" />Inactive
+                                  </Badge>
+                                )}
+                                {!isAllowed && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    <Lock className="h-3 w-3 mr-1" />Upgrade
+                                  </Badge>
+                                )}
+                              </div>
+                              <CardDescription className="text-sm">{mod.description}</CardDescription>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isActive}
+                            onCheckedChange={() => handleToggleClick(mod.code, mod.displayName, isActive)}
+                            disabled={!isAllowed || toggleModule.isPending}
+                            className="shrink-0"
+                          />
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={isActive}
-                        onCheckedChange={() =>
-                          handleToggleClick(module.id, module.name, isActive)
-                        }
-                        disabled={!isAllowed || toggleModule.isPending}
-                      />
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            );
-          })}
-        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
 
-        {allowedModules.length < MODULE_CONFIG.length && (
+        {allowedModules.length < MODULE_REGISTRY.length && (
           <Card className="border-muted-foreground/20">
             <CardHeader>
               <CardTitle className="text-lg">Unlock More Modules</CardTitle>
               <CardDescription>
-                Upgrade your plan to access all modules and unlock advanced features for your business.
+                Upgrade your plan to access all modules and unlock advanced features.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -281,17 +197,9 @@ export default function ModuleManagement() {
               {dialogState.action === 'enable' ? 'Enable' : 'Disable'} {dialogState.moduleName}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {dialogState.action === 'enable' ? (
-                <>
-                  Enabling this module will make all its features available to your team.
-                  You can disable it at any time.
-                </>
-              ) : (
-                <>
-                  Disabling this module will hide all its features from your team.
-                  Your data will be preserved and you can re-enable it later.
-                </>
-              )}
+              {dialogState.action === 'enable'
+                ? 'Enabling this module will make all its features available to your team. You can disable it at any time.'
+                : 'Disabling this module will hide all its features from your team. Your data will be preserved and you can re-enable it later.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -301,11 +209,7 @@ export default function ModuleManagement() {
               disabled={toggleModule.isPending}
               className={dialogState.action === 'disable' ? 'bg-destructive hover:bg-destructive/90' : ''}
             >
-              {toggleModule.isPending
-                ? 'Processing...'
-                : dialogState.action === 'enable'
-                ? 'Enable Module'
-                : 'Disable Module'}
+              {toggleModule.isPending ? 'Processing...' : dialogState.action === 'enable' ? 'Enable Module' : 'Disable Module'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
