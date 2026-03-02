@@ -8,7 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, ChevronLeft, ChevronRight, MapPin, Plus, Users } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
-import { format, addDays, startOfWeek } from "date-fns";
+import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { format, addDays, startOfWeek, isAfter } from "date-fns";
+
+interface AbsenceSelection {
+  shiftId: string;
+  employeeId: string;
+  employeeName: string;
+  shiftDate: string;
+  locationId: string;
+  companyId: string;
+}
 
 const ManagerSchedule = () => {
   const { user } = useAuth();
@@ -19,12 +29,14 @@ const ManagerSchedule = () => {
   const [shifts, setShifts] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedAbsence, setSelectedAbsence] = useState<AbsenceSelection | null>(null);
+  const [recordedAbsences, setRecordedAbsences] = useState<Set<string>>(new Set());
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   useEffect(() => {
-    // ProtectedRoute handles auth - just load data when user exists
     if (user) {
       loadData();
     }
@@ -32,7 +44,6 @@ const ManagerSchedule = () => {
 
   const loadData = async () => {
     try {
-      // Get employee to get company_id and primary location
       const { data: empData } = await supabase
         .from("employees")
         .select("id, company_id, location_id, locations(id, name)")
@@ -41,21 +52,18 @@ const ManagerSchedule = () => {
 
       if (!empData) return;
 
+      setCompanyId(empData.company_id);
+
       // Load manager's assigned locations (primary + additional)
       const { data: additionalLocations } = await supabase
         .from("staff_locations")
         .select("location_id, locations(id, name)")
         .eq("staff_id", empData.id);
 
-      // Combine primary and additional locations
       const allLocations: any[] = [];
-      
-      // Add primary location
       if (empData.locations) {
         allLocations.push({ id: empData.locations.id, name: empData.locations.name });
       }
-      
-      // Add additional locations
       if (additionalLocations) {
         additionalLocations.forEach((loc: any) => {
           if (loc.locations && !allLocations.find(l => l.id === loc.locations.id)) {
@@ -63,10 +71,8 @@ const ManagerSchedule = () => {
           }
         });
       }
-      
       setManagerLocations(allLocations);
 
-      // Set default location to manager's primary location on first load
       if (selectedLocation === null && empData.location_id) {
         setSelectedLocation(empData.location_id);
       }
@@ -93,19 +99,31 @@ const ManagerSchedule = () => {
         .gte("shift_date", format(weekStart, "yyyy-MM-dd"))
         .lte("shift_date", format(weekEnd, "yyyy-MM-dd"))
         .order("start_time", { ascending: true });
-      
-      // Filter by location if not "all"
+
       if (selectedLocation !== "all") {
         shiftsQuery = shiftsQuery.eq("location_id", selectedLocation);
       }
-      
-      const { data: shiftsData } = await shiftsQuery;
 
+      const { data: shiftsData } = await shiftsQuery;
       if (shiftsData) {
         setShifts(shiftsData);
       }
 
-      // Load location operating schedules (only if specific location selected)
+      // Load existing absence exceptions for the week
+      const { data: exceptions } = await supabase
+        .from("workforce_exceptions")
+        .select("employee_id, shift_id")
+        .eq("company_id", empData.company_id)
+        .eq("exception_type", "absence")
+        .gte("shift_date", format(weekStart, "yyyy-MM-dd"))
+        .lte("shift_date", format(weekEnd, "yyyy-MM-dd"));
+
+      if (exceptions) {
+        const absenceKeys = new Set(exceptions.map(e => `${e.employee_id}_${e.shift_id}`));
+        setRecordedAbsences(absenceKeys);
+      }
+
+      // Load location operating schedules
       if (selectedLocation !== "all") {
         const { data: schedulesData } = await supabase
           .from("location_operating_schedules")
@@ -145,13 +163,38 @@ const ManagerSchedule = () => {
   };
 
   const getOperatingHours = (date: Date) => {
-    const dayOfWeek = (date.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+    const dayOfWeek = (date.getDay() + 6) % 7;
     const schedule = schedules.find(s => s.day_of_week === dayOfWeek);
-    
     if (!schedule) return "24/7";
     if (schedule.is_closed) return "Closed";
-    
     return `${schedule.open_time.slice(0, 5)} - ${schedule.close_time.slice(0, 5)}`;
+  };
+
+  const isDayTappable = (date: Date) => {
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return !isAfter(date, tomorrow);
+  };
+
+  const isAbsenceRecorded = (employeeId: string, shiftId: string) => {
+    return recordedAbsences.has(`${employeeId}_${shiftId}`);
+  };
+
+  const handleAssignmentTap = (shift: any, assignment: any) => {
+    const shiftDate = new Date(shift.shift_date + "T00:00:00");
+    if (!isDayTappable(shiftDate)) return;
+    if (!assignment.employees?.full_name) return;
+    if (isAbsenceRecorded(assignment.staff_id, shift.id)) return;
+
+    setSelectedAbsence({
+      shiftId: shift.id,
+      employeeId: assignment.staff_id,
+      employeeName: assignment.employees.full_name,
+      shiftDate: shift.shift_date,
+      locationId: shift.location_id,
+      companyId: companyId!,
+    });
   };
 
   if (isLoading) {
@@ -168,7 +211,7 @@ const ManagerSchedule = () => {
       <div className="bg-gradient-hero text-primary-foreground px-safe pt-safe pb-4">
         <div className="px-4 pt-4">
           <h1 className="text-2xl font-bold mb-4">Who's Working</h1>
-          
+
           {/* Date Navigation */}
           <Card className="bg-white/10 border-white/20 p-3 mb-3">
             <div className="flex items-center justify-between">
@@ -231,7 +274,8 @@ const ManagerSchedule = () => {
         {weekDays.map((day) => {
           const dayShifts = getShiftsForDay(day);
           const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
-          
+          const canTap = isDayTappable(day);
+
           return (
             <div key={day.toString()} className={isToday ? "bg-primary/5 -mx-4 px-4 py-3 rounded-lg" : ""}>
               <div className="flex items-center justify-between mb-3">
@@ -248,7 +292,7 @@ const ManagerSchedule = () => {
                   {getOperatingHours(day)}
                 </span>
               </div>
-              
+
               <div className="space-y-2">
                 {dayShifts.length === 0 ? (
                   <Card className="p-3 text-center text-sm text-muted-foreground">
@@ -264,21 +308,35 @@ const ManagerSchedule = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           {shift.shift_assignments && shift.shift_assignments.length > 0 ? (
-                            shift.shift_assignments.map((assignment: any) => (
-                              <div key={assignment.id} className="flex items-center gap-3 mb-2">
-                                <div className="flex items-center gap-3 flex-1">
-                                  <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold">
-                                    {assignment.employees?.full_name?.charAt(0)}
+                            shift.shift_assignments.map((assignment: any) => {
+                              const hasAbsence = isAbsenceRecorded(assignment.staff_id, shift.id);
+                              return (
+                                <div
+                                  key={assignment.id}
+                                  className={`flex items-center gap-3 mb-2 ${canTap && !hasAbsence ? "cursor-pointer active:bg-muted/50 -mx-1 px-1 rounded-md transition-colors" : ""}`}
+                                  onClick={() => canTap && handleAssignmentTap(shift, assignment)}
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-base font-bold">
+                                      {assignment.employees?.full_name?.charAt(0)}
+                                    </div>
+                                    <span className="text-base font-semibold">
+                                      {assignment.employees?.full_name}
+                                    </span>
                                   </div>
-                                  <span className="text-base font-semibold">
-                                    {assignment.employees?.full_name}
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {hasAbsence && (
+                                      <Badge variant="destructive" className="text-xs font-medium">
+                                        Absent
+                                      </Badge>
+                                    )}
+                                    <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs font-medium">
+                                      {assignment.approval_status}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <Badge variant={assignment.approval_status === "approved" ? "default" : "secondary"} className="text-xs font-medium">
-                                  {assignment.approval_status}
-                                </Badge>
-                              </div>
-                            ))
+                              );
+                            })
                           ) : (
                             <span className="text-base text-muted-foreground italic font-medium">Unassigned</span>
                           )}
@@ -313,6 +371,12 @@ const ManagerSchedule = () => {
           Create New Shift
         </Button>
       </div>
+
+      <RecordAbsenceDialog
+        data={selectedAbsence}
+        onClose={() => setSelectedAbsence(null)}
+        onRecorded={loadData}
+      />
 
       <StaffBottomNav />
     </div>
