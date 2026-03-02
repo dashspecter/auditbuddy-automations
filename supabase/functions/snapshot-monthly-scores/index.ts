@@ -67,8 +67,11 @@ function taskOccursOnDate(
 
   const interval = recurrenceInterval || 1;
 
-  // Must be after task creation
-  if (target <= taskDay) return false;
+  // Must not be before task creation (FIX: changed from <= to <)
+  if (target < taskDay) return false;
+
+  // Creation date always counts for recurring tasks
+  if (target.getTime() === taskDay.getTime()) return true;
 
   // Check recurrence end
   if (recurrenceEndDate) {
@@ -223,11 +226,23 @@ Deno.serve(async (req) => {
         .lte("created_at", `${endDate}T23:59:59`)
         .not("assigned_to", "is", null);
 
-      // Get shared/individual tasks (unassigned) WITH recurrence fields
-      const { data: sharedTasks } = await supabase
-        .from("tasks")
-        .select("id, assigned_to, status, completed_late, is_individual, assigned_role_id, location_id, recurrence_type, recurrence_interval, recurrence_days_of_week, recurrence_end_date, recurrence_times, start_at, created_at")
-        .is("assigned_to", null);
+      // Get shared/individual tasks (unassigned) WITH recurrence fields — scoped to company + paginated
+      const allSharedTasks: any[] = [];
+      let sharedOffset = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data: page } = await supabase
+          .from("tasks")
+          .select("id, assigned_to, status, completed_late, is_individual, assigned_role_id, location_id, recurrence_type, recurrence_interval, recurrence_days_of_week, recurrence_end_date, recurrence_times, start_at, created_at")
+          .is("assigned_to", null)
+          .eq("company_id", companyId)
+          .range(sharedOffset, sharedOffset + PAGE_SIZE - 1);
+        if (!page || page.length === 0) break;
+        allSharedTasks.push(...page);
+        if (page.length < PAGE_SIZE) break;
+        sharedOffset += PAGE_SIZE;
+      }
+      const sharedTasks = allSharedTasks;
 
       // Get task_locations
       const { data: taskLocationsData } = await supabase
