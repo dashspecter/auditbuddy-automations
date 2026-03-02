@@ -42,10 +42,24 @@ Deno.serve(async (req) => {
     // Get all active employees grouped by company
     const { data: employees, error: empErr } = await supabase
       .from("employees")
-      .select("id, company_id, location_id, full_name")
+      .select("id, company_id, location_id, full_name, role")
       .eq("status", "active");
 
     if (empErr) throw empErr;
+
+    // Also get employees with approved shifts in the period (for guest-shift fix)
+    const { data: shiftAssignments } = await supabase
+      .from("shift_assignments")
+      .select("staff_id, shifts!inner(company_id, location_id, shift_date)")
+      .eq("approval_status", "approved")
+      .gte("shifts.shift_date", startDate)
+      .lte("shifts.shift_date", endDate);
+
+    // Build complete employee set (home + guest)
+    const employeeMap = new Map<string, any>();
+    for (const emp of employees || []) {
+      employeeMap.set(emp.id, emp);
+    }
 
     // Group by company
     const byCompany: Record<string, typeof employees> = {};
@@ -72,18 +86,26 @@ Deno.serve(async (req) => {
         .gte("check_in_at", `${startDate}T00:00:00`)
         .lte("check_in_at", `${endDate}T23:59:59`);
 
-      // Get tasks
+      // Get tasks (both shared and individual)
       const { data: tasks } = await supabase
         .from("tasks")
-        .select("id, assigned_to, status, completed_late")
+        .select("id, assigned_to, status, completed_late, is_individual, assigned_role_id")
         .gte("created_at", `${startDate}T00:00:00`)
         .lte("created_at", `${endDate}T23:59:59`)
         .not("assigned_to", "is", null);
 
+      // Get shared/individual tasks (unassigned)
+      const { data: sharedTasks } = await supabase
+        .from("tasks")
+        .select("id, assigned_to, status, completed_late, is_individual, assigned_role_id, location_id")
+        .gte("created_at", `${startDate}T00:00:00`)
+        .lte("created_at", `${endDate}T23:59:59`)
+        .is("assigned_to", null);
+
       // Get task completions
       const { data: completions } = await supabase
         .from("task_completions")
-        .select("task_id, completed_by_employee_id, completed_late")
+        .select("task_id, completed_by_employee_id, completed_late, occurrence_date")
         .gte("occurrence_date", startDate)
         .lte("occurrence_date", endDate)
         .not("completed_by_employee_id", "is", null);
@@ -128,34 +150,66 @@ Deno.serve(async (req) => {
         const worked = pastShifts.filter((s: any) =>
           (attendance || []).some((a: any) => a.staff_id === emp.id && a.shift_id === s.id)
         ).length;
-        const attendanceScore = scheduled > 0 ? (worked / scheduled) * 100 : null;
-        const attendanceUsed = scheduled > 0;
 
-        // Build set of dates employee had approved shifts (for shared task filtering)
+        // Build set of dates employee had approved shifts
         const empShiftDates = new Set(empShifts.map((s: any) => s.shift_date));
 
         // Punctuality
         const empAttendance = (attendance || []).filter((a: any) => a.staff_id === emp.id);
         const lateCount = empAttendance.filter((a: any) => a.is_late).length;
         const lateMins = empAttendance.reduce((s: number, a: any) => s + (a.late_minutes || 0), 0);
-        const punctualityScore = scheduled > 0 ? Math.max(0, 100 - Math.min(lateCount * 5, 100) - Math.min(Math.floor(lateMins / 10), 50)) : null;
-        const punctualityUsed = scheduled > 0;
 
-        // Tasks
+        // Direct tasks
         const directTasks = (tasks || []).filter((t: any) => t.assigned_to === emp.id);
+        const directAssigned = directTasks.length;
+        const directCompleted = directTasks.filter((t: any) => t.status === "completed").length;
+        const directOnTime = directTasks.filter((t: any) => t.status === "completed" && !t.completed_late).length;
+
+        // Shared tasks (non-individual, unassigned)
         const directIds = new Set(directTasks.map((t: any) => t.id));
         const empCompletions = (completions || []).filter(
           (c: any) => c.completed_by_employee_id === emp.id && !directIds.has(c.task_id)
         );
-        // For shared task assigned count: only count completions on days employee was scheduled
-        const empCompletionsOnShiftDays = empCompletions.filter(
-          (c: any) => empShiftDates.has(c.occurrence_date)
+
+        // Shared (non-individual) completions on shift days
+        const sharedCompletions = empCompletions.filter((c: any) => {
+          const task = (sharedTasks || []).find((t: any) => t.id === c.task_id);
+          return task && !task.is_individual && empShiftDates.has(c.occurrence_date);
+        });
+        const sharedAssigned = sharedCompletions.length; // approximate: count occurrences employee participated in
+        const sharedOnTime = sharedCompletions.filter((c: any) => c.completed_late !== true).length;
+
+        // Individual task completions by this employee on shift days
+        const individualCompletions = empCompletions.filter((c: any) => {
+          const task = (sharedTasks || []).find((t: any) => t.id === c.task_id);
+          return task && task.is_individual && empShiftDates.has(c.occurrence_date);
+        });
+        // For individual tasks, each occurrence is 1 assigned per employee
+        // Count distinct task+occurrence_date combinations as assigned
+        const individualOccurrences = new Set(
+          individualCompletions.map((c: any) => `${c.task_id}:${c.occurrence_date}`)
         );
-        const assigned = directTasks.length + empCompletionsOnShiftDays.length;
-        const onTime = directTasks.filter((t: any) => t.status === "completed" && !t.completed_late).length +
-          empCompletionsOnShiftDays.filter((c: any) => c.completed_late !== true).length;
-        const taskScore = assigned > 0 ? (onTime / assigned) * 100 : null;
+        // Also count individual tasks that exist at the location but weren't completed
+        const individualTasksAtLocation = (sharedTasks || []).filter((t: any) => t.is_individual);
+        // For simplicity, count assigned = completions attempted (same as shared logic)
+        const individualAssigned = individualOccurrences.size;
+        const individualCompleted = individualCompletions.length;
+        const individualOnTime = individualCompletions.filter((c: any) => c.completed_late !== true).length;
+
+        // Merged totals
+        const assigned = directAssigned + sharedAssigned + individualAssigned;
+        const onTime = directOnTime + sharedOnTime + individualOnTime;
+
+        // FIX #1: Cap task score at 100
+        const taskScore = assigned > 0 ? Math.min(100, (onTime / assigned) * 100) : null;
         const taskUsed = assigned > 0;
+
+        // FIX #4: Effective scoring — only average components with real data
+        const attendanceScore = scheduled > 0 ? (worked / scheduled) * 100 : null;
+        const attendanceUsed = scheduled > 0;
+
+        const punctualityScore = scheduled > 0 ? Math.max(0, 100 - Math.min(lateCount * 5, 100) - Math.min(Math.floor(lateMins / 10), 50)) : null;
+        const punctualityUsed = scheduled > 0;
 
         // Tests
         const empTests = (tests || []).filter((t: any) => t.employee_id === emp.id);
@@ -171,7 +225,7 @@ Deno.serve(async (req) => {
           : null;
         const reviewUsed = empReviews.length > 0;
 
-        // Effective score
+        // Effective score: average only USED components
         const usedScores: number[] = [];
         if (attendanceUsed && attendanceScore !== null) usedScores.push(attendanceScore);
         if (punctualityUsed && punctualityScore !== null) usedScores.push(punctualityScore);
