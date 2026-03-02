@@ -1,6 +1,6 @@
 import { Building2, Briefcase, Crown } from 'lucide-react';
 
-export type PricingTier = 'starter' | 'professional' | 'enterprise';
+export type PricingTier = 'free' | 'starter' | 'professional' | 'enterprise';
 
 export interface TierConfig {
   id: PricingTier;
@@ -17,6 +17,29 @@ export interface TierConfig {
 }
 
 export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
+  free: {
+    id: 'free',
+    name: 'Free',
+    description: 'Get started with the basics at no cost',
+    price: 0,
+    billingPeriod: 'month',
+    icon: Building2,
+    color: 'hsl(var(--muted-foreground))',
+    features: [
+      'Up to 5 users',
+      '1 location',
+      'Core modules',
+    ],
+    allowedModules: [
+      'location_audits', 'staff_performance', 'equipment_management',
+      'notifications', 'reports', 'workforce', 'documents', 'inventory',
+      'insights', 'integrations', 'wastage', 'qr_forms',
+      'whatsapp_messaging', 'payroll', 'cmms', 'corrective_actions',
+      'operations', 'scouts',
+    ],
+    maxUsers: 5,
+    maxLocations: 1,
+  },
   starter: {
     id: 'starter',
     name: 'Starter',
