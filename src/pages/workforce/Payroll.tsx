@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope, Info } from "lucide-react";
+import { Coins, Calendar, CalendarDays, CheckCircle, Clock, Users, MapPin, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronRight, Briefcase, X, Palmtree, Stethoscope, Info, UserX } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
@@ -334,6 +334,19 @@ const Payroll = () => {
                           </TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
+                              Absent
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 cursor-help text-muted-foreground/70" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Recorded absences (sick, personal, etc.) — not paid but documented</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
                               {t('workforce.payroll.leave')}
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -431,6 +444,26 @@ const Payroll = () => {
                                 )}
                               </TableCell>
                               <TableCell>
+                                {item.absent_count > 0 ? (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-300">
+                                        <UserX className="h-3 w-3 mr-1" />
+                                        {item.absent_count}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="font-medium mb-1">Recorded Absences:</p>
+                                      {item.absent_details.map(d => (
+                                        <p key={d.date} className="text-xs">{format(parseISO(d.date), "MMM d")} — {d.reason_code}</p>
+                                      ))}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="text-muted-foreground">0</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 {(timeOff.vacationDates.length + timeOff.medicalDates.length + timeOff.otherLeaveDates.length) > 0 ? (
                                   <div className="flex gap-1">
                                     {timeOff.vacationDates.length > 0 && (
@@ -480,7 +513,7 @@ const Payroll = () => {
                             {/* Expanded details row */}
                             {isExpanded && (
                               <TableRow key={`${item.employee_id}-details`} className="bg-muted/30">
-                                <TableCell colSpan={9} className="p-4">
+                                <TableCell colSpan={10} className="p-4">
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     {/* Worked Shifts */}
                                     <div className="space-y-2">
@@ -539,6 +572,23 @@ const Payroll = () => {
                                         )}
                                       </div>
                                     </div>
+                                    
+                                    {/* Recorded Absences */}
+                                    {item.absent_count > 0 && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2 font-medium text-orange-700">
+                                          <UserX className="h-4 w-4" />
+                                          Absences ({item.absent_count})
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {item.absent_details.map(d => (
+                                            <Badge key={d.date} variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
+                                              {format(parseISO(d.date), "MMM d")} ({d.reason_code})
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                     
                                     {/* Future/Scheduled Shifts */}
                                     {item.future_dates.length > 0 && (
