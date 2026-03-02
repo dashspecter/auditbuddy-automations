@@ -1,38 +1,45 @@
 
 
+# Fix: Task completion queries must apply the same role filter as assignment queries
+
 ## Root Cause
 
-The Employee Performance page and all dashboard cards use **`useEmployeePerformance`** — a client-side hook that runs ~10 separate database queries and computes scores in JavaScript. The RPC `calculate_location_performance_scores` was fixed (task caps, individual tasks, guest workers, effective scoring), but **the UI never calls the RPC**. It uses the old client-side logic which still has the original bugs.
+In `calculate_location_performance_scores`, the **shared task assigned** query filters by the employee's role (only counting tasks matching their role), but the **shared task completions** query does NOT filter by role — it counts all completions by the employee at that location regardless of task role.
 
-## Plan: Switch `useEmployeePerformance` to call the server RPC
+This means Serdar (Shift Manager) completed 2 "Host" tasks that aren't in his assigned count, giving 22 completions vs 19 assigned.
 
-### Step 1: Rewrite `useEmployeePerformance` hook
-**File:** `src/hooks/useEmployeePerformance.ts`
+## Fix
 
-Replace the ~500-line client-side calculation with a thin wrapper that:
-1. Fetches all company locations (from `useLocations` or a direct query)
-2. If `locationId` is provided, calls `calculate_location_performance_scores` once
-3. If no `locationId` (all locations mode), calls the RPC once per location and merges results
-4. Maps the RPC response to the existing `EmployeePerformanceScore` interface (same fields, so all consumers keep working)
-5. Sets `warning_contributions` and `warning_monthly_caps` to empty defaults (the RPC doesn't return these detail fields, but they're only used in the expanded warning detail section which can degrade gracefully)
+### Database Migration — Update the RPC
 
-This eliminates: the individual task exclusion bug, task score inflation, guest worker invisibility, and scoring algorithm mismatch — all in one change, since the RPC already has all 4 fixes.
+Add the same role-matching filter to both completion queries (shared and individual):
 
-### Step 2: Keep `usePerformanceLeaderboard` unchanged
-It already wraps `useEmployeePerformance`, so it automatically gets correct data.
+**Shared task completions** (currently lines ~184-197 of the migration): Add role filter joins and WHERE clause matching the assigned query pattern:
+```sql
+-- Add joins for role matching
+LEFT JOIN task_roles tr ON tr.task_id = t.id
+LEFT JOIN employee_roles er_direct ON er_direct.id = t.assigned_role_id
+LEFT JOIN employee_roles er_junction ON er_junction.id = tr.role_id
+-- Add role filter in WHERE
+AND (
+  (t.assigned_role_id IS NULL AND NOT EXISTS (SELECT 1 FROM task_roles tr2 WHERE tr2.task_id = t.id))
+  OR lower(trim(translate(COALESCE(er_direct.name, er_junction.name, ''), 'ăâîșțĂÂÎȘȚ', 'aaistsAIST'))) = v_emp_normalized_role
+)
+```
 
-### Step 3: Keep `effectiveScore.ts` unchanged  
-The `computeEffectiveScore` function reads `shifts_scheduled`, `tasks_assigned`, `tests_taken`, `reviews_count` to determine `_used` flags. Since the RPC now returns 0 for unused components (not 100), the effective score computation will work correctly — components with 0 assigned will be marked as unused.
+**Individual task completions** (currently lines ~242-254): Same role filter addition.
 
-### Step 4: Individual consumer pages  
-All 7 consumers (`EmployeePerformance.tsx`, `EmployeePerformanceDashboard.tsx`, `CompanyPerformanceOverview.tsx`, `CrossModuleStatsRow.tsx`, `AttentionAlertBar.tsx`, `WorkforceAnalytics.tsx`, `WorkforceScorePopup.tsx`, `StaffHome.tsx`, `StaffProfile.tsx`, `StaffScoreBreakdown.tsx`, `EmployeePerformanceDetail.tsx`) use the same `useEmployeePerformance` or `usePerformanceLeaderboard` hook — no changes needed.
+Also add **shift-day filter** to both completion queries to ensure completions are only counted on days the employee was scheduled (matching the assigned query logic).
 
-### Performance consideration
-The RPC is SECURITY DEFINER and fast (~5-50ms per location). Even with 10 locations called in parallel, total time is under 200ms, which is comparable to or faster than the current 10-query client-side approach.
+### Edge Function — Update `snapshot-monthly-scores`
+
+Apply the same role + shift-day filters to the completion counting logic in the snapshot function to keep historical data consistent.
+
+### Files to modify
+- **Database migration**: `CREATE OR REPLACE FUNCTION calculate_location_performance_scores` — add role filter to completion queries
+- **`supabase/functions/snapshot-monthly-scores/index.ts`** — mirror the same fix
 
 ### What stays the same
-- `EmployeePerformanceScore` interface (no changes)
-- `EffectiveEmployeeScore` interface and `computeEffectiveScore` (no changes)
-- All UI components (no changes)
-- The RPC function (already deployed with all 4 fixes)
+- All interfaces, client-side code, and UI components remain unchanged
+- The assigned counting logic is already correct — only completions need fixing
 
