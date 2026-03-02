@@ -1,51 +1,46 @@
 
 
-# Partial Shift Detection in Payroll Summary
+# Record Absence from "Who's Working" Page
 
-## Problem
-Serdar worked 1.8h of a ~7h shift (left early, sick) but the payroll summary shows it as a full green "1" worked shift — identical to someone who completed their entire shift. This hides critical payroll information.
+## What We're Building
 
-## Approach: Introduce "Partial Shift" Classification
+A "Record Absence" flow on the ManagerSchedule page. When a manager taps an assigned employee's shift card, a dialog opens allowing them to mark that employee as absent with a reason. The absence is stored as a `workforce_exception` (existing table -- no schema changes needed) with `exception_type = 'absence'`.
 
-A shift is **partial** when `actual_hours < 75% of scheduled_hours`. These get:
-- An **amber/yellow badge** instead of green in the "Worked" column
-- A separate **"Partial Shifts"** section in the expanded details row
-- The "Worked" column shows both counts: e.g., full shifts in green + partial in amber
+## No Schema Changes Required
 
-### File 1: `src/hooks/usePayroll.ts`
+The `workforce_exceptions` table already has all needed columns: `employee_id`, `shift_id`, `shift_date`, `location_id`, `company_id`, `exception_type`, `reason_code`, `note`, `status`, `requested_by`, `metadata`. We use the existing `create_workforce_exception` database function.
 
-**PayrollSummaryItem interface** — add:
-```typescript
-partial_dates: string[];  // Dates where actual < 75% of scheduled
-```
+## Reason Codes (Extended Set)
 
-**DailyPayrollEntry** — add:
-```typescript
-is_partial: boolean;
-```
+`sick`, `no_show`, `family_emergency`, `excused`, `unplanned_vacation`, `personal`, `suspended`, `other`
 
-**usePayrollFromShifts** (~line 240-276) — after determining `isMissed`, detect partial:
-```typescript
-const isPartial = !isFutureShift && !isMissed && attendanceLog && actualHours > 0 
-  && actualHours < (scheduledHours * 0.75);
-```
+## Implementation (2 files, 1 new component)
 
-**usePayrollSummary** (~line 298-350) — split `wasWorked` into full vs partial:
-- If partial → add to `partial_dates` instead of `worked_dates`
-- Adjust `days_worked` to only count full shifts (or keep total and add `partial_count`)
+### File 1: New `src/components/staff/RecordAbsenceDialog.tsx`
 
-### File 2: `src/pages/workforce/Payroll.tsx`
+A dialog component containing:
+- Employee name + shift date displayed at the top
+- Radio group or select for reason code (the 8 options above)
+- Optional text note field
+- Submit button that calls `create_workforce_exception` with `exception_type: 'absence'`
+- Success toast + data reload on submit
 
-**Worked column** (~line 414-418) — show split badges:
-```
-[3 green] [1 amber]  ← 3 full + 1 partial
-```
+### File 2: Modify `src/pages/staff/ManagerSchedule.tsx`
 
-**Expanded details** (~line 478-494) — add a "Partial Shifts" section with amber styling between Worked and Missed, showing dates + actual hours.
+- Add state for selected assignment (`selectedAbsence: { shiftId, employeeId, employeeName, shiftDate, locationId } | null`)
+- Make each assigned employee row tappable (onClick on the assignment div)
+- Only show the action for past/today shifts (not future)
+- Render `<RecordAbsenceDialog>` at the bottom, controlled by `selectedAbsence` state
+- After successful recording, reload shifts data
+- Also query existing `workforce_exceptions` for the current week to show a small "Absent" badge on shifts that already have a recorded absence
 
-### Threshold
-75% is a reasonable default — a 7h shift with 1.8h worked (25%) is clearly partial. Someone leaving 30min early from an 8h shift (93%) would still count as full.
+## What We Don't Touch
 
-## Scope
-2 files: `src/hooks/usePayroll.ts` (data model + classification), `src/pages/workforce/Payroll.tsx` (display).
+- Payroll logic (`usePayroll.ts`) -- absences recorded here are informational for now; payroll already handles missed shifts via attendance logs
+- Auth flow, navigation, bottom nav, routes -- zero changes
+- Database schema -- reusing existing table and function
+
+## Payroll Visibility (Future)
+
+The payroll summary's "Missed" section could later show the absence reason by joining `workforce_exceptions`, but that's out of scope for this task to keep risk minimal.
 
