@@ -1,42 +1,45 @@
 
 
-# Integrate Recorded Absences into Payroll Views
+# Fix Module Selection Onboarding Flow End-to-End
 
-## Current Gap
-Both payroll hooks (`usePayroll.ts` line 243 and `usePayrollBatchDetails.ts` line ~225) determine "missed" shifts purely by checking if an attendance log exists. They never query `workforce_exceptions`. So a manager-recorded absence (sick, excused, etc.) looks identical to an unexplained no-show in payroll.
+## Problems Identified
 
-## What Changes
+1. **Duplicate key error**: The `create_company_onboarding` RPC already inserts `location_audits` during signup. When the user reaches `ModuleSelection` and clicks "Activate", it does a plain `INSERT` which fails with `duplicate key value violates unique constraint "company_modules_company_id_module_name_key"`.
 
-### 1. `usePayroll.ts` — Staff Payroll Summary (line ~127-291)
-- Query `workforce_exceptions` (type='absence') for the period alongside shifts and attendance
-- Build a lookup: `Set<string>` keyed by `employeeId_shiftId`
-- When a shift has no attendance AND has a recorded absence: mark it as `is_absent: true` with `absence_reason` instead of `is_missed: true`
-- Add `is_absent` and `absence_reason` fields to `DailyPayrollEntry` interface
-- In `usePayrollSummary` (line ~295+): aggregate `absent_days` separately from `missed_days`
+2. **Hardcoded module list**: `ModuleSelection.tsx` only shows 5 modules, but the platform has 18 valid modules (per the DB CHECK constraint). Missing: `workforce`, `documents`, `inventory`, `insights`, `integrations`, `wastage`, `qr_forms`, `whatsapp_messaging`, `payroll`, `cmms`, `corrective_actions`, `operations`, `scouts`.
 
-### 2. `usePayrollBatchDetails.ts` — Batch Details (line ~39-230)
-- Same pattern: query `workforce_exceptions` for the period
-- When computing per-employee metrics, check if a missed shift has a recorded absence
-- Add new fields to `PayrollEmployeeDetail`: `absent_days`, `absent_details: Array<{ date, reason_code }>`
-- Reduce `missing_no_reason` count by subtracting recorded absences
+3. **No single source of truth**: Module definitions (name, description, icon, features) are scattered — hardcoded in `ModuleSelection.tsx`, `ModuleGuard.tsx`, and navigation config independently.
 
-### 3. `Payroll.tsx` — Staff Summary UI
-- Show a new "Absent" column (or split "Missed" into "Absent" + "Missing") with appropriate styling
-- In the expandable row detail, add an "Absences" section showing dates and reasons
+## Plan
 
-### 4. `PayrollBatches.tsx` — Batch Details UI
-- Add "Absent" column to the employee breakdown table
-- Show absence reason on hover/expand
+### 1. Create a shared module registry (`src/config/moduleRegistry.ts`)
+- Single source of truth: a constant array of all 18 modules with their `code`, `displayName`, `description`, `features`, `icon`, and `color`
+- Used by `ModuleSelection`, `ModuleGuard`, and any future module-related UI
+- Replaces the hardcoded `getModuleName()` in `ModuleGuard.tsx`
 
-## No Schema Changes
-We only read from `workforce_exceptions` — no new tables or columns needed.
+### 2. Fix `ModuleSelection.tsx`
+- Import module list from the registry instead of hardcoding 5 modules
+- Show all 18 modules, organized in a scrollable list
+- Change `INSERT` to `UPSERT` (on conflict `company_id, module_name`) to avoid duplicate key errors when `create_company_onboarding` already seeded a module
+- Pre-select modules that were already activated by the RPC (query `company_modules` on mount)
+- Deactivate modules that were unchecked (set `is_active = false`)
+
+### 3. Fix `create_company_onboarding` RPC
+- Change the hardcoded `['location_audits']` in `Auth.tsx` to an empty array `[]`, since the user will pick modules on the next page
+- Update the RPC to allow empty `p_modules` array (currently raises an exception if empty) — add a migration to make the array optional
+
+### 4. Update `ModuleGuard.tsx`
+- Replace inline `getModuleName()` map with import from the shared registry
 
 ## Files Modified
-1. `src/hooks/usePayroll.ts` — query exceptions, split missed vs absent
-2. `src/hooks/usePayrollBatchDetails.ts` — query exceptions, add absent_days/details
-3. `src/pages/workforce/Payroll.tsx` — UI column for absences
-4. `src/pages/workforce/PayrollBatches.tsx` — UI column for absences in batch details
+1. **NEW** `src/config/moduleRegistry.ts` — single source of truth for all module metadata
+2. `src/pages/ModuleSelection.tsx` — use registry, upsert logic, pre-select existing, show all modules
+3. `src/pages/Auth.tsx` — pass empty array to RPC (modules chosen on next page)
+4. `src/components/ModuleGuard.tsx` — use registry for display names
+5. **Migration** — update `create_company_onboarding` to allow empty modules array
 
 ## What We Don't Touch
-- `RecordAbsenceDialog`, `useAbsences`, auth, navigation, routes — zero changes
+- Database CHECK constraint (already has all 18 modules)
+- Auth flow, navigation, routes, RLS policies
+- `useModules.ts`, `CompanyContext.tsx`, `ModuleGate.tsx`
 
