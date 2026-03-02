@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 
 // Field type options available
 const FIELD_TYPES = [
@@ -296,7 +297,7 @@ const TemplateBuilder = () => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Require proof photo</Label>
+              <Label className="text-sm font-medium">Require proof photo <InfoTooltip content="When enabled, staff cannot mark this task as complete without first taking a photo. This ensures accountability and creates a visual record. Use it for cleaning tasks, safety checks, or any task where visual confirmation matters." /></Label>
               <p className="text-xs text-muted-foreground mt-0.5">Auditors must attach a photo before completing this audit</p>
             </div>
             <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
@@ -306,7 +307,7 @@ const TemplateBuilder = () => {
               <Separator />
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-medium">Also require review</Label>
+                  <Label className="text-sm font-medium">Also require review <InfoTooltip content="When enabled, a manager must approve the submitted photo before the task counts as fully completed. If rejected, the task resets to pending and the employee is notified. Great for high-stakes tasks like food safety or compliance checks." /></Label>
                   <p className="text-xs text-muted-foreground mt-0.5">A manager must approve the proof before audit is finalised</p>
                 </div>
                 <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />

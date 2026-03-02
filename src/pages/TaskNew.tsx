@@ -21,6 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 import { ArrowLeft, Save, RefreshCw, Calendar, Users, User, Info, Clock, MapPin, Flag, Share2, UserCheck, Camera, Plus, X as XIcon } from "lucide-react";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -669,7 +670,7 @@ const TaskNew = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="font-medium">Require proof photo</Label>
+                <Label className="font-medium">Require proof photo <InfoTooltip content="When enabled, staff cannot mark this task as complete without first taking a photo. This ensures accountability and creates a visual record. Use it for cleaning tasks, safety checks, or any task where visual confirmation matters." /></Label>
                 <p className="text-xs text-muted-foreground mt-0.5">Staff must attach a photo before completing this task</p>
               </div>
               <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
@@ -678,7 +679,7 @@ const TaskNew = () => {
               <>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="font-medium">Also require review</Label>
+                    <Label className="font-medium">Also require review <InfoTooltip content="When enabled, a manager must approve the submitted photo before the task counts as fully completed. If rejected, the task resets to pending and the employee is notified. Great for high-stakes tasks like food safety or compliance checks." /></Label>
                     <p className="text-xs text-muted-foreground mt-0.5">Manager must approve the proof before task is fully done</p>
                   </div>
                   <Switch checked={reviewRequired} onCheckedChange={setReviewRequired} />
