@@ -6,6 +6,48 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Normalize role name for matching (mirrors SQL translate logic)
+function normalizeRole(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[ăâ]/g, "a")
+    .replace(/[î]/g, "i")
+    .replace(/[ș]/g, "s")
+    .replace(/[ț]/g, "t")
+    .replace(/\s+/g, " ");
+}
+
+// Check if a task matches employee role
+function taskMatchesRole(
+  task: any,
+  empNormalizedRole: string,
+  taskRolesMap: Map<string, string[]>,
+  roleNamesMap: Map<string, string>
+): boolean {
+  const taskId = task.id;
+  const directRoleId = task.assigned_role_id;
+  const junctionRoleIds = taskRolesMap.get(taskId) || [];
+
+  // No role restriction: task has no assigned_role_id AND no task_roles entries
+  if (!directRoleId && junctionRoleIds.length === 0) return true;
+
+  // Check direct role
+  if (directRoleId) {
+    const roleName = roleNamesMap.get(directRoleId);
+    if (normalizeRole(roleName) === empNormalizedRole) return true;
+  }
+
+  // Check junction roles
+  for (const roleId of junctionRoleIds) {
+    const roleName = roleNamesMap.get(roleId);
+    if (normalizeRole(roleName) === empNormalizedRole) return true;
+  }
+
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -110,6 +152,16 @@ Deno.serve(async (req) => {
         .lte("occurrence_date", endDate)
         .not("completed_by_employee_id", "is", null);
 
+      // Get employee_roles for role matching
+      const { data: employeeRoles } = await supabase
+        .from("employee_roles")
+        .select("id, name");
+
+      // Get task_roles junction for role matching
+      const { data: taskRolesData } = await supabase
+        .from("task_roles")
+        .select("task_id, role_id");
+
       // Get test submissions
       const { data: tests } = await supabase
         .from("test_submissions")
@@ -135,12 +187,24 @@ Deno.serve(async (req) => {
         .eq("event_type", "warning")
         .gte("event_date", warningStart.toISOString().split("T")[0]);
 
+      // Build role lookup maps
+      const roleNamesMap = new Map<string, string>();
+      for (const r of employeeRoles || []) {
+        roleNamesMap.set(r.id, r.name);
+      }
+      const taskRolesMap = new Map<string, string[]>();
+      for (const tr of taskRolesData || []) {
+        if (!taskRolesMap.has(tr.task_id)) taskRolesMap.set(tr.task_id, []);
+        taskRolesMap.get(tr.task_id)!.push(tr.role_id);
+      }
+
       // Compute per-location scores for ranking
       const locationScores: Record<string, { empId: string; score: number }[]> = {};
 
       const rows: any[] = [];
 
       for (const emp of companyEmployees!) {
+        const empNormalizedRole = normalizeRole(emp.role);
         // Attendance
         const empShifts = (shifts || []).filter((s: any) =>
           s.shift_assignments?.some((sa: any) => sa.staff_id === emp.id)
@@ -171,18 +235,22 @@ Deno.serve(async (req) => {
           (c: any) => c.completed_by_employee_id === emp.id && !directIds.has(c.task_id)
         );
 
-        // Shared (non-individual) completions on shift days
+        // Shared (non-individual) completions on shift days WITH role filter
         const sharedCompletions = empCompletions.filter((c: any) => {
           const task = (sharedTasks || []).find((t: any) => t.id === c.task_id);
-          return task && !task.is_individual && empShiftDates.has(c.occurrence_date);
+          return task && !task.is_individual 
+            && empShiftDates.has(c.occurrence_date)
+            && taskMatchesRole(task, empNormalizedRole, taskRolesMap, roleNamesMap);
         });
         const sharedAssigned = sharedCompletions.length; // approximate: count occurrences employee participated in
         const sharedOnTime = sharedCompletions.filter((c: any) => c.completed_late !== true).length;
 
-        // Individual task completions by this employee on shift days
+        // Individual task completions by this employee on shift days WITH role filter
         const individualCompletions = empCompletions.filter((c: any) => {
           const task = (sharedTasks || []).find((t: any) => t.id === c.task_id);
-          return task && task.is_individual && empShiftDates.has(c.occurrence_date);
+          return task && task.is_individual 
+            && empShiftDates.has(c.occurrence_date)
+            && taskMatchesRole(task, empNormalizedRole, taskRolesMap, roleNamesMap);
         });
         // For individual tasks, each occurrence is 1 assigned per employee
         // Count distinct task+occurrence_date combinations as assigned
