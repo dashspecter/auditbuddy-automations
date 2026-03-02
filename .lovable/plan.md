@@ -1,34 +1,33 @@
 
 
-# Fix: End-to-End Module Management Across the Platform
+# Fix: Platform Admin Cannot Toggle Modules for Other Companies
 
-## Problems Found
+## Root Cause
+The RLS policy on `company_modules` restricts ALL operations (including upsert) to `company_id = get_user_company_id(auth.uid())`. When a platform admin (Fresh Brunch SRL) tries to toggle modules for PROPER PIZZA, the upsert is silently rejected by RLS because the target `company_id` doesn't match the admin's own company.
 
-1. **CompanyDetail.tsx (Platform Admin)**: Shows "No active modules" as a read-only list with no way to add/remove modules for a client company. Platform admins are stuck.
+## Fix
 
-2. **ModuleManagement.tsx (Settings > Billing & Modules)**: Still hardcodes only 7 of 18 modules — does NOT use the `moduleRegistry.ts` we just created. So even the company's own settings page is incomplete.
+### 1. Add RLS policy for platform admins
+Create a new migration that adds an `ALL` policy on `company_modules` allowing users with the `admin` role in `user_roles` to manage modules for any company:
 
-3. **No admin-level module management**: There is no way for a platform admin to toggle modules on behalf of a client company from the admin detail page.
+```sql
+CREATE POLICY "Platform admins can manage all company modules"
+  ON public.company_modules FOR ALL
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+```
 
-## Plan
+This uses the existing `has_role()` function which checks the `user_roles` table.
 
-### 1. Update ModuleManagement.tsx to use the module registry
-- Replace the hardcoded `MODULE_CONFIG` (7 modules) with `MODULE_REGISTRY` from `src/config/moduleRegistry.ts` (all 18 modules)
-- Group by category (Core, Operations, Communication, Analytics) for consistency with the onboarding selection page
-- Keep the existing toggle/switch UX and confirmation dialog
+### 2. Also add SELECT policy for platform admins
+The current SELECT policy also restricts to the admin's own company. Add:
 
-### 2. Add module management to CompanyDetail.tsx (Platform Admin)
-- Replace the read-only badges section with an interactive module toggle UI
-- Add switches per module so the platform admin can enable/disable modules for any company
-- Use `upsert` logic (same pattern as ModuleSelection) to activate/deactivate modules directly on the target company's `company_modules` rows
-- This operates on the target company's `company_id` (from URL params), not the admin's own company
+```sql
+CREATE POLICY "Platform admins can view all company modules"
+  ON public.company_modules FOR SELECT
+  USING (public.has_role(auth.uid(), 'admin'));
+```
 
-### 3. Files to modify
-- `src/components/settings/ModuleManagement.tsx` — replace hardcoded list with registry
-- `src/pages/admin/CompanyDetail.tsx` — add interactive module management for admins
-
-### 4. What we preserve
-- Existing toggle confirmation dialog in ModuleManagement
-- RLS policies (platform admins already have access via `is_super_admin` checks)
-- The registry as single source of truth — no more duplicate module lists
+### Files
+- **Migration only** — no code changes needed. The `CompanyDetail.tsx` upsert logic is already correct; it's just blocked by RLS.
 
