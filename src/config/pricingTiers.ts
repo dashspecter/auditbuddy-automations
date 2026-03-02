@@ -141,8 +141,13 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
   },
 };
 
-export const getAvailableModulesForTier = (tier: PricingTier): string[] => {
-  return PRICING_TIERS[tier].allowedModules;
+export const getAvailableModulesForTier = (tier: PricingTier | string): string[] => {
+  const config = PRICING_TIERS[tier as PricingTier];
+  if (!config) {
+    // Fallback: if tier is unknown, allow all modules (same as free)
+    return PRICING_TIERS.free.allowedModules;
+  }
+  return config.allowedModules;
 };
 
 export const canAccessModule = (tier: PricingTier, moduleName: string): boolean => {
