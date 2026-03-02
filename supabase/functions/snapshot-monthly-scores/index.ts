@@ -276,8 +276,8 @@ Deno.serve(async (req) => {
         const attendanceScore = scheduled > 0 ? (worked / scheduled) * 100 : null;
         const attendanceUsed = scheduled > 0;
 
-        const punctualityScore = scheduled > 0 ? Math.max(0, 100 - Math.min(lateCount * 5, 100) - Math.min(Math.floor(lateMins / 10), 50)) : null;
-        const punctualityUsed = scheduled > 0;
+        const punctualityScore = worked > 0 ? Math.max(0, 100 - Math.min(lateCount * 5, 100) - Math.min(Math.floor(lateMins / 10), 50)) : null;
+        const punctualityUsed = worked > 0;
 
         // Tests
         const empTests = (tests || []).filter((t: any) => t.employee_id === emp.id);
