@@ -49,10 +49,12 @@ export interface DailyPayrollEntry {
   late_minutes: number;
   auto_clocked_out: boolean;
   requires_checkin: boolean;
-  is_missed: boolean; // True when check-in required but no attendance
+  is_missed: boolean; // True when check-in required but no attendance AND no recorded absence
   is_partial: boolean; // True when actual_hours < 75% of scheduled_hours
   is_extra_shift: boolean; // True when this is an extra shift (above expected)
   is_future: boolean; // True when shift is in the future (not yet worked)
+  is_absent: boolean; // True when check-in required, no attendance, but has recorded absence
+  absence_reason: string | null; // Reason code from workforce_exceptions
   expected_shifts_per_week: number | null;
 }
 
@@ -76,10 +78,13 @@ export interface PayrollSummaryItem {
   extra_shifts: number;
   missing_shifts: number;
   partial_count: number;
+  absent_count: number; // Number of recorded absences (via workforce_exceptions)
   // Detailed breakdown with dates
   worked_dates: string[];
   partial_dates: string[]; // Dates where actual < 75% of scheduled
   missed_dates: string[];
+  absent_dates: string[]; // Dates with recorded absences
+  absent_details: Array<{ date: string; reason_code: string }>; // Absence date + reason
   future_dates: string[]; // Dates of future shifts (not yet worked)
   extra_shift_dates: string[]; // Dates of extra shifts
   vacation_dates: string[];
@@ -176,6 +181,23 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
 
       if (attendanceError) throw attendanceError;
 
+      // Get recorded absences from workforce_exceptions
+      const { data: absenceExceptions, error: absenceError } = await supabase
+        .from("workforce_exceptions")
+        .select("id, employee_id, shift_id, shift_date, reason_code")
+        .eq("exception_type", "absence")
+        .gte("shift_date", startDate)
+        .lte("shift_date", endDate);
+
+      if (absenceError) throw absenceError;
+
+      // Build absence lookup: employeeId_shiftId -> reason_code
+      const absenceLookup = new Map<string, string>();
+      for (const exc of absenceExceptions || []) {
+        const key = `${exc.employee_id}_${exc.shift_id}`;
+        absenceLookup.set(key, exc.reason_code || 'unspecified');
+      }
+
       // Calculate daily payroll entries with actual vs scheduled comparison
       const payrollEntries: DailyPayrollEntry[] = [];
 
@@ -239,20 +261,28 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           const today = startOfDay(new Date());
           const isFutureShift = shiftDate > today;
           
-          // Determine if shift was missed (no attendance when check-in required AND shift is in the past)
-          const isMissed = !isFutureShift && requiresCheckin && !attendanceLog;
+          // Check if this shift has a recorded absence
+          const absenceKey = `${employee.id}_${shift.id}`;
+          const absenceReason = absenceLookup.get(absenceKey) || null;
+          const hasRecordedAbsence = !!absenceReason;
+          
+          // Determine if shift was missed (no attendance, no recorded absence, check-in required, past)
+          const isMissed = !isFutureShift && requiresCheckin && !attendanceLog && !hasRecordedAbsence;
+          
+          // Determine if shift was absent (no attendance but has recorded absence)
+          const isAbsent = !isFutureShift && requiresCheckin && !attendanceLog && hasRecordedAbsence;
           
           // Determine if shift was partial (worked less than 75% of scheduled)
-          const isPartial = !isFutureShift && !isMissed && !!attendanceLog && actualHours > 0 
+          const isPartial = !isFutureShift && !isMissed && !isAbsent && !!attendanceLog && actualHours > 0 
             && actualHours < (scheduledHours * 0.75);
           
           // Pay based on actual hours worked, or scheduled if no check-in required and no attendance
-          // Future shifts and missed shifts have no pay yet
+          // Future shifts, missed shifts, and absent shifts have no pay
           let dailyAmount = 0;
           if (isFutureShift) {
-            dailyAmount = 0; // No pay for future shifts yet
-          } else if (isMissed) {
-            dailyAmount = 0; // No pay for missed shifts
+            dailyAmount = 0;
+          } else if (isMissed || isAbsent) {
+            dailyAmount = 0;
           } else if (actualHours > 0) {
             dailyAmount = actualHours * hourlyRate;
           } else {
@@ -279,7 +309,9 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             is_missed: isMissed,
             is_partial: isPartial,
             is_future: isFutureShift,
-            is_extra_shift: (shift as any).shift_type === 'extra', // Explicitly tagged extras
+            is_absent: isAbsent,
+            absence_reason: absenceReason,
+            is_extra_shift: (shift as any).shift_type === 'extra',
             expected_shifts_per_week: expectedShiftsPerWeek,
           });
         }
@@ -304,12 +336,10 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     const existing = acc.find(e => e.employee_id === entry.employee_id);
     
     // Determine if shift was worked:
-    // - Not in the future AND
-    // - Has actual hours (attendance recorded), OR
-    // - No actual hours but check-in wasn't required (assumed worked, paid at scheduled rate)
-    const wasWorked = !entry.is_future && !entry.is_missed && !entry.is_partial && (entry.actual_hours > 0 || !entry.requires_checkin);
+    const wasWorked = !entry.is_future && !entry.is_missed && !entry.is_absent && !entry.is_partial && (entry.actual_hours > 0 || !entry.requires_checkin);
     const wasPartial = entry.is_partial;
     const wasMissed = entry.is_missed;
+    const wasAbsent = entry.is_absent;
     const isFuture = entry.is_future;
     
     if (existing) {
@@ -331,6 +361,11 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
       }
       if (wasMissed && !existing.missed_dates.includes(entry.date)) {
         existing.missed_dates.push(entry.date);
+      }
+      if (wasAbsent && !existing.absent_dates.includes(entry.date)) {
+        existing.absent_dates.push(entry.date);
+        existing.absent_count += 1;
+        existing.absent_details.push({ date: entry.date, reason_code: entry.absence_reason || 'unspecified' });
       }
       if (isFuture && !existing.future_dates.includes(entry.date)) {
         existing.future_dates.push(entry.date);
@@ -356,9 +391,12 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
         extra_shifts: 0,
         missing_shifts: 0,
         partial_count: wasPartial ? 1 : 0,
+        absent_count: wasAbsent ? 1 : 0,
         worked_dates: wasWorked ? [entry.date] : [],
         partial_dates: wasPartial ? [entry.date] : [],
         missed_dates: wasMissed ? [entry.date] : [],
+        absent_dates: wasAbsent ? [entry.date] : [],
+        absent_details: wasAbsent ? [{ date: entry.date, reason_code: entry.absence_reason || 'unspecified' }] : [],
         future_dates: isFuture ? [entry.date] : [],
         extra_shift_dates: [],
         vacation_dates: [],
@@ -446,6 +484,8 @@ export const usePayrollSummary = (startDate?: string, endDate?: string, location
     item.worked_dates.sort();
     item.partial_dates.sort();
     item.missed_dates.sort();
+    item.absent_dates.sort();
+    item.absent_details.sort((a, b) => a.date.localeCompare(b.date));
     item.future_dates.sort();
     item.extra_shift_dates.sort();
   });

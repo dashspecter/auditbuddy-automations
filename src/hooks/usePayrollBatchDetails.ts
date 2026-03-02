@@ -18,7 +18,10 @@ export interface PayrollEmployeeDetail {
   // Leave
   vacation_days: number;
   medical_days: number;
-  // Absence
+  // Absence (recorded via workforce_exceptions)
+  absent_days: number;
+  absent_details: Array<{ date: string; reason_code: string }>;
+  // Missing (no attendance, no recorded absence)
   missing_no_reason: number;
   missing_no_reason_dates: string[];
   // Cross-location
@@ -91,6 +94,22 @@ export function usePayrollBatchDetails(
         .lte("start_date", periodEnd)
         .gte("end_date", periodStart);
       if (toError) throw toError;
+
+      // 5. Get recorded absences from workforce_exceptions
+      const { data: absenceExceptions, error: absError } = await supabase
+        .from("workforce_exceptions")
+        .select("id, employee_id, shift_id, shift_date, reason_code")
+        .eq("exception_type", "absence")
+        .gte("shift_date", periodStart)
+        .lte("shift_date", periodEnd);
+      if (absError) throw absError;
+
+      // Build absence lookup: employeeId_shiftId -> reason_code
+      const absenceLookup = new Map<string, string>();
+      for (const exc of absenceExceptions || []) {
+        const key = `${exc.employee_id}_${exc.shift_id}`;
+        absenceLookup.set(key, exc.reason_code || 'unspecified');
+      }
 
       // Build lookup structures
       const employeeShifts: Record<string, Array<{
@@ -167,6 +186,7 @@ export function usePayrollBatchDetails(
         let overtimeHours = 0;
         const anomalies: string[] = [];
         const missingDates: string[] = [];
+        const absentDetails: Array<{ date: string; reason_code: string }> = [];
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
         const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
 
@@ -239,8 +259,17 @@ export function usePayrollBatchDetails(
             });
 
             if (!isCoveredByTimeOff) {
-              missingDates.push(shift.date);
-              anomalies.push(`Missing on ${shift.date}`);
+              // Check if there's a recorded absence in workforce_exceptions
+              const absenceKey = `${emp.id}_${shift.shift_id}`;
+              const absenceReason = absenceLookup.get(absenceKey);
+              
+              if (absenceReason) {
+                absentDetails.push({ date: shift.date, reason_code: absenceReason });
+                anomalies.push(`Absent on ${shift.date} (${absenceReason})`);
+              } else {
+                missingDates.push(shift.date);
+                anomalies.push(`Missing on ${shift.date}`);
+              }
             }
           }
         }
@@ -296,6 +325,8 @@ export function usePayrollBatchDetails(
           extra_schedule_dates: extraScheduleDates.sort(),
           vacation_days: vacationDays,
           medical_days: medicalDays,
+          absent_days: absentDetails.length,
+          absent_details: absentDetails.sort((a, b) => a.date.localeCompare(b.date)),
           missing_no_reason: missingDates.length,
           missing_no_reason_dates: missingDates.sort(),
           extra_location_days: extraLocationDetails.length,

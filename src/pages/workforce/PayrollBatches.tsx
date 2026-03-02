@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
-import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download } from "lucide-react";
+import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download, UserX } from "lucide-react";
 import { generatePayrollReportPDF } from "@/lib/payrollReportPdf";
 import { LocationSelector } from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
@@ -402,7 +402,16 @@ export default function PayrollBatches() {
                                 <AlertTriangle className="h-3 w-3" />
                                 <span>Missing</span>
                               </TooltipTrigger>
-                              <TooltipContent>Absent with no reason (no time-off request)</TooltipContent>
+                              <TooltipContent>Absent with no reason (no time-off, no recorded absence)</TooltipContent>
+                            </Tooltip>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
+                                <UserX className="h-3 w-3" />
+                                <span>Absent</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Recorded absences (sick, personal, etc.)</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
@@ -489,6 +498,25 @@ export default function PayrollBatches() {
                                 </Tooltip>
                               ) : (
                                 <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto" />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {emp.absent_days > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-700 dark:text-orange-400">
+                                      {emp.absent_days}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium">Recorded absences:</p>
+                                    {emp.absent_details.map((d, i) => (
+                                      <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")} — {d.reason_code}</p>
+                                    ))}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
                             <TableCell className="text-center">
