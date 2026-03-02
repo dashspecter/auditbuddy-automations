@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
 import { useEvidencePolicy } from "@/hooks/useEvidencePackets";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2 } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2, Camera, ShieldCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -76,11 +77,15 @@ interface TaskListItemProps {
   onEdit: () => void;
   onDelete: () => void;
   filterLocationId?: string;
+  evidenceTaskIds?: Set<string>;
+  reviewTaskIds?: Set<string>;
 }
 
-const TaskListItem = ({ task, onEdit, onDelete, filterLocationId }: TaskListItemProps) => {
+const TaskListItem = ({ task, onEdit, onDelete, filterLocationId, evidenceTaskIds, reviewTaskIds }: TaskListItemProps) => {
   const { t } = useTranslation();
   const isRecurring = task.recurrence_type && task.recurrence_type !== "none";
+  const needsEvidence = evidenceTaskIds?.has(task.id);
+  const needsReview = reviewTaskIds?.has(task.id);
 
   return (
     <div className="flex items-center gap-3 p-4 border rounded-lg hover:bg-accent/5 transition-colors">
@@ -90,6 +95,12 @@ const TaskListItem = ({ task, onEdit, onDelete, filterLocationId }: TaskListItem
             <h4 className="font-medium">{task.title}</h4>
             {isRecurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+            {needsEvidence && (
+              <span title="Evidence required"><Camera className="h-3.5 w-3.5 text-orange-500" /></span>
+            )}
+            {needsReview && (
+              <span title="Manager review required"><ShieldCheck className="h-3.5 w-3.5 text-orange-500" /></span>
             )}
           </div>
           <Badge className={priorityColors[task.priority] || priorityColors.medium}>
@@ -160,13 +171,18 @@ interface TaskItemProps {
   onDelete: () => void;
   context?: 'today' | 'tomorrow' | 'all' | 'pending' | 'overdue' | 'completed';
   filterLocationId?: string;
+  evidenceTaskIds?: Set<string>;
+  reviewTaskIds?: Set<string>;
 }
 
-const TaskItem = ({ task, onComplete, onEdit, onDelete, context, filterLocationId }: TaskItemProps) => {
+const TaskItem = ({ task, onComplete, onEdit, onDelete, context, filterLocationId, evidenceTaskIds, reviewTaskIds }: TaskItemProps) => {
   const { t } = useTranslation();
   
   // Check if this is a virtual recurring instance using canonical utility
   const isVirtualInstance = isVirtualTask(task.id);
+  const baseId = getOriginalTaskId(task.id);
+  const needsEvidence = evidenceTaskIds?.has(baseId);
+  const needsReview = reviewTaskIds?.has(baseId);
   
   // Get task dates using canonical utilities
   const taskDate = getTaskDate(task);
@@ -201,6 +217,12 @@ const TaskItem = ({ task, onComplete, onEdit, onDelete, context, filterLocationI
             </h4>
             {isRecurring && (
               <RefreshCw className="h-3.5 w-3.5 text-primary" />
+            )}
+            {needsEvidence && (
+              <span title="Evidence required"><Camera className="h-3.5 w-3.5 text-orange-500" /></span>
+            )}
+            {needsReview && (
+              <span title="Manager review required"><ShieldCheck className="h-3.5 w-3.5 text-orange-500" /></span>
             )}
             {showScheduledBadge && (
               <Badge variant="outline" className="text-xs border-primary/50 text-primary">{t('tasks.scheduledInstance')}</Badge>
@@ -312,6 +334,24 @@ const Tasks = () => {
 
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
+
+  // ── Batch-fetch evidence policies for indicator icons ──
+  const { data: evidencePoliciesRaw = [] } = useQuery({
+    queryKey: ["evidence-policies-task-indicators"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("evidence_policies")
+        .select("applies_id, evidence_required, review_required")
+        .eq("applies_to", "task_template")
+        .eq("evidence_required", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const evidenceTaskIds = useMemo(() => new Set(evidencePoliciesRaw.map(p => p.applies_id)), [evidencePoliciesRaw]);
+  const reviewTaskIds = useMemo(() => new Set(evidencePoliciesRaw.filter(p => p.review_required).map(p => p.applies_id)), [evidencePoliciesRaw]);
 
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: stats } = useTaskStats();
@@ -728,6 +768,8 @@ const Tasks = () => {
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
                         filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                        evidenceTaskIds={evidenceTaskIds}
+                        reviewTaskIds={reviewTaskIds}
                       />
                     ))}
                   </div>
@@ -782,6 +824,8 @@ const Tasks = () => {
                       onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                       onDelete={() => setDeleteTaskId(task.id)}
                       filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                      evidenceTaskIds={evidenceTaskIds}
+                      reviewTaskIds={reviewTaskIds}
                     />
                   ))}
                 </CardContent>
@@ -843,6 +887,8 @@ const Tasks = () => {
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
                               filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                              evidenceTaskIds={evidenceTaskIds}
+                              reviewTaskIds={reviewTaskIds}
                             />
                           ))}
                         </div>
@@ -867,6 +913,8 @@ const Tasks = () => {
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
                               filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                              evidenceTaskIds={evidenceTaskIds}
+                              reviewTaskIds={reviewTaskIds}
                             />
                           ))}
                         </div>
@@ -891,6 +939,8 @@ const Tasks = () => {
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
                               filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                              evidenceTaskIds={evidenceTaskIds}
+                              reviewTaskIds={reviewTaskIds}
                             />
                           ))}
                         </div>
@@ -915,6 +965,8 @@ const Tasks = () => {
                               onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                               onDelete={() => setDeleteTaskId(task.id)}
                               filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                              evidenceTaskIds={evidenceTaskIds}
+                              reviewTaskIds={reviewTaskIds}
                             />
                           ))}
                         </div>
@@ -932,6 +984,8 @@ const Tasks = () => {
                         onEdit={() => navigate(`/tasks/${task.id}/edit`)}
                         onDelete={() => setDeleteTaskId(task.id)}
                         filterLocationId={selectedLocationId !== "all" ? selectedLocationId : undefined}
+                        evidenceTaskIds={evidenceTaskIds}
+                        reviewTaskIds={reviewTaskIds}
                       />
                     ))}
                   </div>
