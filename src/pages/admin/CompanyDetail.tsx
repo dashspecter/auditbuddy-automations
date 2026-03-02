@@ -1,16 +1,22 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Package } from "lucide-react";
 import { format } from "date-fns";
+import { MODULE_REGISTRY, CATEGORY_LABELS } from "@/config/moduleRegistry";
+import { toast } from "sonner";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [togglingModule, setTogglingModule] = useState<string | null>(null);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['admin-company-detail', id],
@@ -43,14 +49,13 @@ export default function CompanyDetail() {
     enabled: !!id,
   });
 
-  const { data: modules } = useQuery({
+  const { data: modules = [] } = useQuery({
     queryKey: ['admin-company-modules', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('company_modules')
         .select('module_name, is_active')
-        .eq('company_id', id!)
-        .eq('is_active', true);
+        .eq('company_id', id!);
       if (error) throw error;
       return data || [];
     },
@@ -72,6 +77,32 @@ export default function CompanyDetail() {
     enabled: !!id,
   });
 
+  const isModuleActive = (code: string) =>
+    modules.some(m => m.module_name === code && m.is_active);
+
+  const handleToggleModule = async (code: string, displayName: string) => {
+    if (!id) return;
+    setTogglingModule(code);
+    const newState = !isModuleActive(code);
+
+    try {
+      const { error } = await supabase
+        .from('company_modules')
+        .upsert(
+          { company_id: id, module_name: code, is_active: newState },
+          { onConflict: 'company_id,module_name' }
+        );
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
+      toast.success(`${displayName} ${newState ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Error toggling module:', error);
+      toast.error('Failed to update module');
+    } finally {
+      setTogglingModule(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
@@ -86,6 +117,12 @@ export default function CompanyDetail() {
   if (!company) {
     return <div className="p-6 text-center text-muted-foreground">Company not found</div>;
   }
+
+  // Group modules by category
+  const grouped = MODULE_REGISTRY.reduce<Record<string, typeof MODULE_REGISTRY>>((acc, mod) => {
+    (acc[mod.category] ??= []).push(mod);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -130,26 +167,51 @@ export default function CompanyDetail() {
         ))}
       </div>
 
-      {/* Active Modules */}
+      {/* Module Management */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Active Modules
+            Module Management
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {modules?.length === 0 ? (
-              <p className="text-muted-foreground">No active modules</p>
-            ) : (
-              modules?.map((m) => (
-                <Badge key={m.module_name} variant="secondary" className="capitalize">
-                  {m.module_name.replace(/_/g, ' ')}
-                </Badge>
-              ))
-            )}
-          </div>
+        <CardContent className="space-y-6">
+          {(['core', 'operations', 'communication', 'analytics'] as const).map((cat) => {
+            const catModules = grouped[cat];
+            if (!catModules?.length) return null;
+            return (
+              <div key={cat} className="space-y-2">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  {CATEGORY_LABELS[cat]}
+                </h4>
+                <div className="grid gap-2">
+                  {catModules.map((mod) => {
+                    const Icon = mod.icon;
+                    const active = isModuleActive(mod.code);
+                    return (
+                      <div
+                        key={mod.code}
+                        className={`flex items-center justify-between p-3 border rounded-lg ${active ? 'border-primary/40 bg-primary/5' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className={`h-4 w-4 ${mod.color}`} />
+                          <span className="text-sm font-medium">{mod.displayName}</span>
+                          {active && (
+                            <Badge variant="secondary" className="text-xs">Active</Badge>
+                          )}
+                        </div>
+                        <Switch
+                          checked={active}
+                          onCheckedChange={() => handleToggleModule(mod.code, mod.displayName)}
+                          disabled={togglingModule === mod.code}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
