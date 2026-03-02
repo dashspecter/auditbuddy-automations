@@ -11948,6 +11948,17 @@ export type Database = {
         Args: { assignment_id: string }
         Returns: Json
       }
+      task_occurs_on_date: {
+        Args: {
+          p_recurrence_days_of_week: number[]
+          p_recurrence_end_date: string
+          p_recurrence_interval: number
+          p_recurrence_type: string
+          p_target_date: string
+          p_task_created_at: string
+        }
+        Returns: boolean
+      }
       tz_date_range_to_utc: {
         Args: { from_date: string; to_date: string; tz?: string }
         Returns: {
