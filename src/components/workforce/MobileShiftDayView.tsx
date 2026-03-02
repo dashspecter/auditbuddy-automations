@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Users, Clock, Plus, Palmtree, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Users, Clock, Plus, Palmtree, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks, isWithinInterval, parseISO } from "date-fns";
 import { useShifts } from "@/hooks/useShifts";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -13,7 +13,10 @@ import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationSchedules } from "@/hooks/useLocationSchedules";
+import { useCompany } from "@/hooks/useCompany";
+import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
+import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
 
 interface MobileShiftDayViewProps {
   onShiftClick?: (shift: any) => void;
@@ -25,6 +28,7 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedShift, setSelectedShift] = useState<any>(null);
+  const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
   
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -43,6 +47,11 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
   const { data: roles = [] } = useEmployeeRoles();
   const { data: schedules = [] } = useLocationSchedules(selectedLocation === "all" ? undefined : selectedLocation);
   const { data: departmentsList = [] } = useDepartments();
+  const { data: company } = useCompany();
+  const { isAbsent, isDayPastOrToday, refreshAbsences } = useAbsences(
+    format(currentWeekStart, 'yyyy-MM-dd'),
+    format(weekEnd, 'yyyy-MM-dd')
+  );
 
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
@@ -262,6 +271,9 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                                 <span className="font-semibold text-sm truncate">
                                   {employee?.full_name || 'Unassigned'}
                                 </span>
+                                {employee && isAbsent(employee.id, shift.id) && (
+                                  <Badge variant="destructive" className="text-xs">Absent</Badge>
+                                )}
                                 {hasTimeOff && (
                                   <Badge variant="destructive" className="text-xs gap-1">
                                     <Palmtree className="h-3 w-3" />
@@ -277,6 +289,26 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                                   <Badge variant="secondary" className="text-xs">
                                     Draft
                                   </Badge>
+                                )}
+                                {employee && !isAbsent(employee.id, shift.id) && isDayPastOrToday(day) && shift.is_published && !isPending && (
+                                  <button
+                                    className="p-1 rounded hover:bg-destructive/20 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (company?.id) {
+                                        setSelectedAbsence({
+                                          shiftId: shift.id,
+                                          employeeId: employee.id,
+                                          employeeName: employee.full_name,
+                                          shiftDate: shift.shift_date,
+                                          locationId: shift.location_id,
+                                          companyId: company.id,
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                                  </button>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
@@ -325,6 +357,12 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
         onOpenChange={setShiftDialogOpen}
         defaultDate={selectedDate}
         shift={selectedShift}
+      />
+
+      <RecordAbsenceDialog
+        data={selectedAbsence}
+        onClose={() => setSelectedAbsence(null)}
+        onRecorded={refreshAbsences}
       />
     </div>
   );
