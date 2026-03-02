@@ -80,21 +80,28 @@ export default function QrFormEntry() {
   });
 
   // Check for existing submission (monthly grid)
+  // Prefer records with actual data over empty ones; fall back to oldest
   const { data: existingSubmission } = useQuery({
     queryKey: ["form-submission-existing", assignment?.id, selectedYear, selectedMonth],
     queryFn: async () => {
       if (!assignment || assignment.form_templates?.type !== "monthly_grid") return null;
+      // After the unique index migration, there should be at most 1 row.
+      // But defensively fetch up to 5 and pick the best one (with data).
       const { data, error } = await supabase
         .from("form_submissions")
         .select("*")
         .eq("location_form_template_id", assignment.id)
         .eq("period_year", selectedYear)
         .eq("period_month", selectedMonth)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(5);
       if (error) throw error;
-      return data;
+      if (!data || data.length === 0) return null;
+      // Prefer the record that has actual grid data
+      const withData = data.find(
+        (s) => s.data && typeof s.data === "object" && Object.keys((s.data as any)?.grid || {}).length > 0
+      );
+      return withData || data[0];
     },
     enabled: !!assignment && assignment.form_templates?.type === "monthly_grid",
   });
@@ -144,27 +151,36 @@ export default function QrFormEntry() {
         ? { grid: gridData }
         : { rows: rowsData };
 
-      const payload = {
-        company_id: assignment.company_id,
-        location_id: assignment.location_id,
-        location_form_template_id: assignment.id,
-        template_id: assignment.template_id,
-        template_version_id: assignment.template_version_id,
-        period_year: assignment.form_templates?.type === "monthly_grid" ? selectedYear : null,
-        period_month: assignment.form_templates?.type === "monthly_grid" ? selectedMonth : null,
-        status: finalSubmit ? "submitted" : "draft",
-        submitted_by: user.id,
-        submitted_at: finalSubmit ? new Date().toISOString() : null,
-        data: formData,
-      };
+      const isGrid = assignment.form_templates?.type === "monthly_grid";
 
-      if (existingSubmission && (existingSubmission.status === "draft" || existingSubmission.status === "submitted")) {
+      // CRITICAL: Always re-query the database for the freshest submission
+      // to prevent race conditions where two users create duplicates
+      let freshExisting: any = null;
+      if (isGrid) {
+        const { data: freshRows } = await supabase
+          .from("form_submissions")
+          .select("*")
+          .eq("location_form_template_id", assignment.id)
+          .eq("period_year", selectedYear)
+          .eq("period_month", selectedMonth)
+          .order("created_at", { ascending: true })
+          .limit(5);
+        if (freshRows && freshRows.length > 0) {
+          // Prefer the record with actual data
+          freshExisting = freshRows.find(
+            (s) => s.data && typeof s.data === "object" && Object.keys((s.data as any)?.grid || {}).length > 0
+          ) || freshRows[0];
+        }
+      } else if (existingSubmission) {
+        freshExisting = existingSubmission;
+      }
+
+      if (freshExisting && (freshExisting.status === "draft" || freshExisting.status === "submitted")) {
         // Deep-merge grid data: preserve previously saved checkpoint data from other users/sessions
         let mergedData = formData;
-        if (assignment.form_templates?.type === "monthly_grid") {
-          const existingGrid = (existingSubmission.data as any)?.grid || {};
+        if (isGrid) {
+          const existingGrid = (freshExisting.data as any)?.grid || {};
           const mergedGrid: Record<string, any> = {};
-          // Merge all days from existing data first
           const allDays = new Set([
             ...Object.keys(existingGrid),
             ...Object.keys(gridData),
@@ -195,18 +211,32 @@ export default function QrFormEntry() {
             status: finalSubmit ? "submitted" : "draft",
             submitted_at: finalSubmit ? new Date().toISOString() : null,
           })
-          .eq("id", existingSubmission.id);
+          .eq("id", freshExisting.id);
         if (error) throw error;
 
         // Audit entry
         await supabase.from("form_submission_audit").insert({
-          submission_id: existingSubmission.id,
+          submission_id: freshExisting.id,
           action: finalSubmit ? "final_submit" : "update_cell",
           new_value: mergedData as any,
           actor_id: user.id,
         });
       } else {
         // Insert new submission
+        const payload = {
+          company_id: assignment.company_id,
+          location_id: assignment.location_id,
+          location_form_template_id: assignment.id,
+          template_id: assignment.template_id,
+          template_version_id: assignment.template_version_id,
+          period_year: isGrid ? selectedYear : null,
+          period_month: isGrid ? selectedMonth : null,
+          status: finalSubmit ? "submitted" : "draft",
+          submitted_by: user.id,
+          submitted_at: finalSubmit ? new Date().toISOString() : null,
+          data: formData,
+        };
+
         const { data: newSub, error } = await supabase
           .from("form_submissions")
           .insert(payload as any)
