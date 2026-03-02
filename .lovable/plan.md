@@ -1,45 +1,33 @@
 
 
-# Fix: Task completion queries must apply the same role filter as assignment queries
+# Fix: Punctuality should reflect actual attendance
 
-## Root Cause
+## Problem
+Punctuality score starts at 100 and only deducts for late check-ins. An employee with 0 attendance (never clocked in) has 0 late records, resulting in a paradoxical 100% punctuality score.
 
-In `calculate_location_performance_scores`, the **shared task assigned** query filters by the employee's role (only counting tasks matching their role), but the **shared task completions** query does NOT filter by role — it counts all completions by the employee at that location regardless of task role.
+## Solution
+Punctuality should only apply to shifts the employee actually worked. The formula should be:
 
-This means Serdar (Shift Manager) completed 2 "Host" tasks that aren't in his assigned count, giving 22 completions vs 19 assigned.
+**If shifts_worked = 0 → punctuality_score = 0 (and punctuality_used = false)**
 
-## Fix
-
-### Database Migration — Update the RPC
-
-Add the same role-matching filter to both completion queries (shared and individual):
-
-**Shared task completions** (currently lines ~184-197 of the migration): Add role filter joins and WHERE clause matching the assigned query pattern:
+Specifically, in the RPC at lines 293-301:
 ```sql
--- Add joins for role matching
-LEFT JOIN task_roles tr ON tr.task_id = t.id
-LEFT JOIN employee_roles er_direct ON er_direct.id = t.assigned_role_id
-LEFT JOIN employee_roles er_junction ON er_junction.id = tr.role_id
--- Add role filter in WHERE
-AND (
-  (t.assigned_role_id IS NULL AND NOT EXISTS (SELECT 1 FROM task_roles tr2 WHERE tr2.task_id = t.id))
-  OR lower(trim(translate(COALESCE(er_direct.name, er_junction.name, ''), 'ăâîșțĂÂÎȘȚ', 'aaistsAIST'))) = v_emp_normalized_role
-)
+-- Current (broken):
+v_punctuality_used := v_shifts_scheduled > 0;
+
+-- Fixed:
+v_punctuality_used := v_shifts_worked > 0;
 ```
 
-**Individual task completions** (currently lines ~242-254): Same role filter addition.
+This way:
+- Employee with 0 attendance → punctuality is unused (excluded from effective score average)
+- Employee who worked all shifts and was never late → punctuality = 100
+- Employee who worked some shifts and was late → punctuality deducts normally
 
-Also add **shift-day filter** to both completion queries to ensure completions are only counted on days the employee was scheduled (matching the assigned query logic).
+## Files to modify
+1. **Database migration** — Update `calculate_location_performance_scores` RPC: change `v_punctuality_used` condition from `v_shifts_scheduled > 0` to `v_shifts_worked > 0`
+2. **`supabase/functions/snapshot-monthly-scores/index.ts`** — Mirror the same fix: `punctualityUsed` should check `worked > 0` instead of `scheduled > 0`
 
-### Edge Function — Update `snapshot-monthly-scores`
-
-Apply the same role + shift-day filters to the completion counting logic in the snapshot function to keep historical data consistent.
-
-### Files to modify
-- **Database migration**: `CREATE OR REPLACE FUNCTION calculate_location_performance_scores` — add role filter to completion queries
-- **`supabase/functions/snapshot-monthly-scores/index.ts`** — mirror the same fix
-
-### What stays the same
-- All interfaces, client-side code, and UI components remain unchanged
-- The assigned counting logic is already correct — only completions need fixing
+## What stays the same
+- All UI components, hooks, and interfaces — no changes needed
 
