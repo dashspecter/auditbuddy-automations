@@ -1,59 +1,38 @@
 
 
-# Fix All 3 Scoring Bugs in `calculate_location_performance_scores` RPC
+## Root Cause
 
-## Bugs to Fix
+The Employee Performance page and all dashboard cards use **`useEmployeePerformance`** — a client-side hook that runs ~10 separate database queries and computes scores in JavaScript. The RPC `calculate_location_performance_scores` was fixed (task caps, individual tasks, guest workers, effective scoring), but **the UI never calls the RPC**. It uses the old client-side logic which still has the original bugs.
 
-1. **Task score exceeds 100%** — cross-role completions inflate the numerator beyond the denominator. Cap `v_task_score` at 100.
+## Plan: Switch `useEmployeePerformance` to call the server RPC
 
-2. **Guest-shift employees invisible** — the RPC loops `WHERE e.location_id = p_location_id`, missing employees who have approved shifts at the location but whose home location differs (e.g., Sorin Comoli). Change the employee query to also include employees with approved shift assignments at the target location in the date range.
+### Step 1: Rewrite `useEmployeePerformance` hook
+**File:** `src/hooks/useEmployeePerformance.ts`
 
-3. **Individual tasks not scored** — the RPC excludes `is_individual = true` tasks entirely. Individual tasks should be counted per-employee: each individual task assigned at the location (matching role) counts as 1 assigned task per employee, and each completion by that specific employee counts as 1 completion.
+Replace the ~500-line client-side calculation with a thin wrapper that:
+1. Fetches all company locations (from `useLocations` or a direct query)
+2. If `locationId` is provided, calls `calculate_location_performance_scores` once
+3. If no `locationId` (all locations mode), calls the RPC once per location and merges results
+4. Maps the RPC response to the existing `EmployeePerformanceScore` interface (same fields, so all consumers keep working)
+5. Sets `warning_contributions` and `warning_monthly_caps` to empty defaults (the RPC doesn't return these detail fields, but they're only used in the expanded warning detail section which can degrade gracefully)
 
-4. **Unify effective scoring** — stop defaulting missing components to 100. Instead, only average components with real data (matching client-side `effectiveScore.ts` logic). This prevents "everyone is 100" inflation.
+This eliminates: the individual task exclusion bug, task score inflation, guest worker invisibility, and scoring algorithm mismatch — all in one change, since the RPC already has all 4 fixes.
 
-## Changes
+### Step 2: Keep `usePerformanceLeaderboard` unchanged
+It already wraps `useEmployeePerformance`, so it automatically gets correct data.
 
-### 1. Database Migration — Update `calculate_location_performance_scores` RPC
+### Step 3: Keep `effectiveScore.ts` unchanged  
+The `computeEffectiveScore` function reads `shifts_scheduled`, `tasks_assigned`, `tests_taken`, `reviews_count` to determine `_used` flags. Since the RPC now returns 0 for unused components (not 100), the effective score computation will work correctly — components with 0 assigned will be marked as unused.
 
-Replace the function with fixes:
+### Step 4: Individual consumer pages  
+All 7 consumers (`EmployeePerformance.tsx`, `EmployeePerformanceDashboard.tsx`, `CompanyPerformanceOverview.tsx`, `CrossModuleStatsRow.tsx`, `AttentionAlertBar.tsx`, `WorkforceAnalytics.tsx`, `WorkforceScorePopup.tsx`, `StaffHome.tsx`, `StaffProfile.tsx`, `StaffScoreBreakdown.tsx`, `EmployeePerformanceDetail.tsx`) use the same `useEmployeePerformance` or `usePerformanceLeaderboard` hook — no changes needed.
 
-- **Employee loop**: Change `WHERE e.location_id = p_location_id` to:
-  ```sql
-  WHERE e.status = 'active' AND (
-    e.location_id = p_location_id
-    OR e.id IN (
-      SELECT sa.staff_id FROM shift_assignments sa
-      JOIN shifts s ON s.id = sa.shift_id
-      WHERE s.location_id = p_location_id
-        AND s.shift_date >= p_start_date AND s.shift_date <= p_end_date
-        AND sa.approval_status = 'approved'
-    )
-  )
-  ```
+### Performance consideration
+The RPC is SECURITY DEFINER and fast (~5-50ms per location). Even with 10 locations called in parallel, total time is under 200ms, which is comparable to or faster than the current 10-query client-side approach.
 
-- **Individual tasks**: Remove the `COALESCE(t.is_individual, false) = false` filter from shared tasks. Instead, for individual tasks at the location matching the employee's role, count 1 assigned per employee per occurrence, and count completions where `completed_by_employee_id = v_emp.id`.
-
-- **Cap task score**: `v_task_score := LEAST(100, ...)` explicitly on the task score calculation.
-
-- **Effective scoring**: Replace the "default to 100" pattern with tracking which components are used:
-  ```sql
-  IF v_shifts_scheduled > 0 THEN
-    v_attendance_score := ...;
-    -- add to used scores
-  END IF;
-  -- Average only used scores
-  ```
-
-### 2. Update `snapshot-monthly-scores/index.ts` edge function
-Apply the same individual-task fix and task-score cap to keep the monthly snapshot consistent.
-
-### 3. Files to modify
-- **Database migration**: `CREATE OR REPLACE FUNCTION calculate_location_performance_scores` — all 4 fixes
-- **`supabase/functions/snapshot-monthly-scores/index.ts`** — individual task counting + task score cap
-
-### What we preserve
-- The `EmployeePerformanceScore` interface (no changes)
-- Client-side `effectiveScore.ts` and `kioskEffectiveScore.ts` continue working as-is
-- All existing consumers of the RPC remain compatible (same return columns)
+### What stays the same
+- `EmployeePerformanceScore` interface (no changes)
+- `EffectiveEmployeeScore` interface and `computeEffectiveScore` (no changes)
+- All UI components (no changes)
+- The RPC function (already deployed with all 4 fixes)
 
