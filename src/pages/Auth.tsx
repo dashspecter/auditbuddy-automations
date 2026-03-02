@@ -161,7 +161,7 @@ const Auth = () => {
           p_slug: validated.companySlug,
           p_subscription_tier: 'free',
           p_industry_id: null,
-          p_modules: ['location_audits'],
+          p_modules: [],
         });
 
       if (onboardingError) {
