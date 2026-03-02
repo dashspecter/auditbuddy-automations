@@ -1,44 +1,36 @@
 
 
-# Fix: Broken RPC causing empty performance data
+# Fix: RPC still crashing — type mismatch in warning query
 
-## Root Cause
+## What's happening
 
-The `calculate_location_performance_scores` RPC is **crashing with a SQL error**, which is why all performance pages show 0 staff and no data. The error:
+The `calculate_location_performance_scores` RPC is **still crashing** every time it's called. The previous migration fixed the `EXTRACT(EPOCH FROM integer)` bug but introduced a new one on the same line block:
 
 ```
-function pg_catalog.extract(unknown, integer) does not exist
+ERROR: operator does not exist: date >= text
 ```
 
-In the warning penalty calculation (line 404 of migration `20260302091508`):
-
+**Line 410** of the current function:
 ```sql
-EXTRACT(EPOCH FROM (v_today - se.event_date::date)) / (90 * 86400)
+AND se.event_date >= v_ninety_days_ago::text
 ```
 
-`v_today - se.event_date::date` returns an **integer** (number of days), not an interval. PostgreSQL cannot call `EXTRACT(EPOCH FROM integer)`.
-
-Additionally, the second migration (`20260302094346`) created a **separate 4-parameter overload** (`p_company_id, p_location_id, p_start_date, p_end_date`) instead of replacing the broken 3-parameter version. The hook calls the 3-parameter version, which is still the broken one.
+`staff_events.event_date` is a `date` column. `v_ninety_days_ago` is a `DATE` variable. Casting a date to `::text` then comparing `date >= text` is invalid in PostgreSQL. This crashes the entire function, returning zero results for every location.
 
 ## Fix
 
-### Database migration — Fix the warning penalty calculation
-
-Replace the broken expression with simple integer arithmetic:
+One-line change in a new database migration — replace `v_ninety_days_ago::text` with just `v_ninety_days_ago`:
 
 ```sql
--- FROM (broken):
-EXTRACT(EPOCH FROM (v_today - se.event_date::date)) / (90 * 86400)
-
--- TO (fixed):
-(v_today - se.event_date::date)::numeric / 90
+CREATE OR REPLACE FUNCTION public.calculate_location_performance_scores(...)
+-- Everything identical to current version EXCEPT line 410:
+-- FROM:  AND se.event_date >= v_ninety_days_ago::text
+-- TO:    AND se.event_date >= v_ninety_days_ago
 ```
 
-Since `v_today - se.event_date::date` already returns days as an integer, we just divide by 90 to get the decay fraction (0.0 to 1.0). No need for epoch conversion.
+This is a `CREATE OR REPLACE` of the same 3-parameter function — no signature change, no overload issues.
 
-This fix applies to the 3-parameter version of the function that the hook actually calls. Also drop the orphaned 4-parameter overload to avoid confusion.
+## No other changes needed
 
-### No UI changes needed
-
-The hook and all components are correct — they just need the RPC to stop crashing.
+The UI code, hooks, and edge function are all correct. The only problem is this single type cast in the SQL function preventing any data from returning.
 
