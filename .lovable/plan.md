@@ -1,38 +1,32 @@
 
 
-# Fix: Sorin Comoli appearing twice in Performance Leaderboard
+# Add Evidence Required Indicator to Task List
 
-## Root Cause
+## What we'll build
 
-The duplication comes from the **"all locations" code path** in `useEmployeePerformance.ts`. When no specific location is selected, the hook calls the RPC once per location in parallel, then merges with `results.flat()`. The comment on line 163 says "Merge and deduplicate" but **no deduplication actually happens**. If an employee's home location is Location A but they also have approved shifts at Location A (matching both the `e.location_id` check AND the guest-worker subquery), or if cached results persist across filter changes, duplicates appear.
+A small camera icon (from lucide-react's `Camera` icon) next to each task title that has an active evidence policy. This gives managers instant visibility into which tasks require proof without opening each one.
 
-Even when a specific location is selected, the RPC returns one row — but stale React Query cache from a previous "all locations" query can cause the UI to briefly show duplicates.
+## How it works
 
-## Fix
+1. **Batch-fetch evidence policies** — Add a query in the Tasks page that loads all `evidence_policies` where `applies_to = 'task_template'` and `evidence_required = true` for the current company. This returns a set of task IDs that require evidence.
 
-Two layers of protection:
+2. **Pass down to TaskListItem** — Pass a `Set<string>` of task IDs with evidence policies as a prop. The component checks if `task.id` is in the set.
 
-### 1. `useEmployeePerformance.ts` — Deduplicate after merging all-locations results
+3. **Render indicator** — If the task requires evidence, show a `Camera` icon (orange, matching the recurring icon style) next to the title. If manager review is also required, add a small `ShieldCheck` icon beside it.
 
-After `results.flat()` (line 163-164), deduplicate by `employee_id`, keeping the entry with the highest `overall_score`:
+4. **Also add to TaskItem** (the operational task cards in Today/Tomorrow/Pending tabs) for consistency.
 
-```typescript
-const seen = new Map();
-for (const score of results.flat()) {
-  const existing = seen.get(score.employee_id);
-  if (!existing || score.overall_score > existing.overall_score) {
-    seen.set(score.employee_id, score);
-  }
-}
-const allScores = Array.from(seen.values());
-allScores.sort((a, b) => b.overall_score - a.overall_score);
+## Visual result
+
+```text
+General Inventory / Inventar general 🔄 📷   [High]
+  👤 Kitchen Manager  📍 LBFC Amzei  🕐 10:00  ⏱ 60min  🔄 monthly
 ```
 
-### 2. `EmployeePerformanceDashboard.tsx` — Deduplicate in `computeEffectiveScores` input
+The 📷 camera icon appears inline after the title, similar to how the 🔄 recurring icon already works. Orange color to match the design language.
 
-Before computing effective scores (line 134-136), deduplicate `rawAllScores` by `employee_id` as a safety net, so even with cache artifacts, the UI never shows the same person twice.
+## Files to change
 
-### No database changes needed
-
-The RPC itself is correct and returns unique rows per employee.
+- **`src/pages/Tasks.tsx`** — Add a query for evidence policies; pass the set to `TaskListItem` and `TaskItem`; render `Camera` / `ShieldCheck` icons inline with the title
+- No database changes needed — we're reading existing `evidence_policies` data
 
