@@ -1098,6 +1098,8 @@
       "staffDesc": "Manage employees",
       "shifts": "Shifts",
       "shiftsDesc": "Schedule shifts",
+      "training": "Training",
+      "trainingDesc": "Manage training programs",
       "attendance": "Attendance",
       "attendanceDesc": "Track attendance",
       "timeOff": "Time Off",

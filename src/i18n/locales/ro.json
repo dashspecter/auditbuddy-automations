@@ -1086,6 +1086,8 @@
       "staffDesc": "Gestionează angajații",
       "shifts": "Ture",
       "shiftsDesc": "Programează ture",
+      "training": "Training",
+      "trainingDesc": "Gestionează programele de training",
       "attendance": "Prezență",
       "attendanceDesc": "Urmărește prezența",
       "timeOff": "Concediu",
