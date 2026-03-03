@@ -5,8 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
+import { PendingApprovalsSection } from "@/components/staff/PendingApprovalsSection";
 import { Calendar, Plus, Umbrella, Info } from "lucide-react";
 import { format } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -30,6 +33,14 @@ import { useTranslation } from "react-i18next";
 const StaffTimeOff = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { data: roleData } = useUserRole();
+  const { data: company } = useCompany();
+  const isManagerOrAbove = !!(
+    roleData?.isAdmin ||
+    roleData?.isManager ||
+    company?.userRole === 'company_owner' ||
+    company?.userRole === 'company_admin'
+  );
   const [employee, setEmployee] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [balance, setBalance] = useState({ total: 25, used: 0, remaining: 25 });
@@ -193,6 +204,9 @@ const StaffTimeOff = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Pending Approvals for Managers */}
+      {isManagerOrAbove && <PendingApprovalsSection />}
 
       {/* Balance Summary */}
       <div className="px-4 py-4">
