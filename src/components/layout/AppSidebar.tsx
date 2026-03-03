@@ -493,13 +493,14 @@ export function AppSidebar() {
       return true;
     }
 
-    // For company members, ONLY check company permissions (not platform roles)
+    // For company members, check BOTH allowedRoles AND company permissions
     if (isMember) {
-      // If item requires a company permission, check if user has it
+      if (item.allowedRoles && item.allowedRoles.length > 0) {
+        if (!hasAllowedRole(item.allowedRoles)) return false;
+      }
       if (item.companyPermission) {
         return hasPermission(item.companyPermission);
       }
-      // No permission requirement means accessible
       return true;
     }
 
@@ -523,12 +524,14 @@ export function AppSidebar() {
       return true;
     }
 
-    // For company members, check company permissions
+    // For company members, check BOTH allowedRoles AND company permissions
     if (isMember) {
+      if (subItem.allowedRoles && subItem.allowedRoles.length > 0) {
+        if (!hasAllowedRole(subItem.allowedRoles)) return false;
+      }
       if (subItem.companyPermission) {
         return hasPermission(subItem.companyPermission);
       }
-      // No permission requirement means accessible
       return true;
     }
 
