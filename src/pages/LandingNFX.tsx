@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { BookDemoModal } from "@/components/landing/BookDemoModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useCompany } from "@/hooks/useCompany";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +58,10 @@ const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isStaff } = useAuth();
-  const dashboardPath = isStaff ? "/staff" : "/dashboard";
+  const isMobile = useIsMobile();
+  const { data: company } = useCompany();
+  const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+  const dashboardPath = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || "U";
 
   useEffect(() => {
