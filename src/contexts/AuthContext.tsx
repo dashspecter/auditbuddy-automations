@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from('user_roles')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .in('role', ['admin', 'manager']);
+          .in('role', ['admin', 'manager', 'hr']);
 
         if (platformAdminError) {
           console.error('[AuthContext] Error checking platform admin/manager role:', platformAdminError);
