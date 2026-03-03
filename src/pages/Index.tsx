@@ -7,11 +7,15 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useCompany } from "@/hooks/useCompany";
 
 const Index = () => {
   const { t } = useTranslation();
   const { user, loading, isStaff, staffCheckComplete } = useAuth();
   const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
+  const { data: company } = useCompany();
+  const isMobile = useIsMobile();
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
   const isLoading = loading || companyLoading || !staffCheckComplete;
@@ -78,9 +82,11 @@ const Index = () => {
     );
   }
 
-  // Redirect to staff home for staff users, otherwise to dashboard
+  // Redirect to staff home for staff users, otherwise to dashboard (or command on mobile for owner/admin)
   if (user) {
-    return <Navigate to={isStaff ? "/staff" : "/dashboard"} replace />;
+    const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+    const target = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
+    return <Navigate to={target} replace />;
   }
 
   // Otherwise show landing

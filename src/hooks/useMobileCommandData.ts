@@ -1,0 +1,279 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useCompany } from '@/hooks/useCompany';
+import { startOfDay, startOfWeek, subDays, format } from 'date-fns';
+
+export interface ClockedInEmployee {
+  id: string;
+  staffName: string;
+  role: string;
+  locationName: string;
+  locationId: string;
+  checkInAt: string;
+}
+
+export interface ScheduledAuditItem {
+  id: string;
+  templateName: string;
+  locationName: string;
+  assignedTo: string;
+  scheduledFor: string;
+}
+
+export interface CompletedAuditItem {
+  id: string;
+  templateName: string;
+  locationName: string;
+  overallScore: number | null;
+  auditDate: string;
+}
+
+export interface WeeklyAuditSummaryData {
+  totalCompleted: number;
+  averageScore: number;
+  locationsCount: number;
+  negativeAudits: CompletedAuditItem[];
+}
+
+export interface MonthlyNegativeData {
+  lowScoreByLocation: { locationName: string; avgScore: number; count: number }[];
+  openCAs: number;
+  overdueCAs: number;
+  lateEmployees: { name: string; lateCount: number }[];
+}
+
+function useClockedIn(companyId: string | undefined) {
+  return useQuery({
+    queryKey: ['command-clocked-in', companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<ClockedInEmployee[]> => {
+      const todayStart = startOfDay(new Date()).toISOString();
+
+      const { data, error } = await supabase
+        .from('attendance_logs')
+        .select('id, staff_id, check_in_at, employees!attendance_logs_staff_id_fkey(full_name, role), locations!attendance_logs_location_id_fkey(name, id)')
+        .is('check_out_at', null)
+        .gte('check_in_at', todayStart);
+
+      if (error) throw error;
+
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        staffName: row.employees?.full_name ?? 'Unknown',
+        role: row.employees?.role ?? '',
+        locationName: row.locations?.name ?? 'Unknown',
+        locationId: row.locations?.id ?? '',
+        checkInAt: row.check_in_at,
+      }));
+    },
+  });
+}
+
+function useTodayScheduledAudits(companyId: string | undefined) {
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  return useQuery({
+    queryKey: ['command-scheduled-audits', companyId, today],
+    enabled: !!companyId,
+    queryFn: async (): Promise<ScheduledAuditItem[]> => {
+      const { data, error } = await supabase
+        .from('scheduled_audits')
+        .select('id, scheduled_for, assigned_to, audit_templates(name), locations(name), status')
+        .eq('company_id', companyId!)
+        .gte('scheduled_for', `${today}T00:00:00`)
+        .lte('scheduled_for', `${today}T23:59:59`)
+        .in('status', ['scheduled', 'pending']);
+
+      if (error) throw error;
+
+      // Get assigned user names
+      const userIds = [...new Set((data ?? []).map((r: any) => r.assigned_to).filter(Boolean))];
+      let profileMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        profileMap = (profiles ?? []).reduce((acc: any, p: any) => {
+          acc[p.id] = p.full_name;
+          return acc;
+        }, {});
+      }
+
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        templateName: row.audit_templates?.name ?? 'Audit',
+        locationName: row.locations?.name ?? 'Unknown',
+        assignedTo: profileMap[row.assigned_to] ?? 'Unassigned',
+        scheduledFor: row.scheduled_for,
+      }));
+    },
+  });
+}
+
+function useTodayCompletedAudits(companyId: string | undefined) {
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  return useQuery({
+    queryKey: ['command-completed-audits', companyId, today],
+    enabled: !!companyId,
+    queryFn: async (): Promise<CompletedAuditItem[]> => {
+      const { data, error } = await supabase
+        .from('location_audits')
+        .select('id, overall_score, audit_date, location, template_id, audit_templates(name), locations(name)')
+        .eq('company_id', companyId!)
+        .eq('audit_date', today)
+        .in('status', ['completed', 'compliant', 'non_compliant']);
+
+      if (error) throw error;
+
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        templateName: row.audit_templates?.name ?? 'Audit',
+        locationName: row.locations?.name ?? row.location ?? 'Unknown',
+        overallScore: row.overall_score,
+        auditDate: row.audit_date,
+      }));
+    },
+  });
+}
+
+function useWeeklyAuditSummary(companyId: string | undefined) {
+  const monday = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  return useQuery({
+    queryKey: ['command-weekly-audits', companyId, monday],
+    enabled: !!companyId,
+    queryFn: async (): Promise<WeeklyAuditSummaryData> => {
+      const { data, error } = await supabase
+        .from('location_audits')
+        .select('id, overall_score, location, location_id, audit_templates(name), locations(name)')
+        .eq('company_id', companyId!)
+        .gte('audit_date', monday)
+        .lte('audit_date', today)
+        .in('status', ['completed', 'compliant', 'non_compliant']);
+
+      if (error) throw error;
+
+      const audits = data ?? [];
+      const scores = audits.map((a: any) => a.overall_score).filter((s: any) => s != null);
+      const locations = new Set(audits.map((a: any) => a.location_id).filter(Boolean));
+
+      const negativeAudits = audits
+        .filter((a: any) => a.overall_score != null && a.overall_score < 70)
+        .map((a: any) => ({
+          id: a.id,
+          templateName: a.audit_templates?.name ?? 'Audit',
+          locationName: a.locations?.name ?? a.location ?? 'Unknown',
+          overallScore: a.overall_score,
+          auditDate: '',
+        }));
+
+      return {
+        totalCompleted: audits.length,
+        averageScore: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0,
+        locationsCount: locations.size,
+        negativeAudits,
+      };
+    },
+  });
+}
+
+function useMonthlyNegatives(companyId: string | undefined) {
+  const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  return useQuery({
+    queryKey: ['command-monthly-negatives', companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<MonthlyNegativeData> => {
+      // Low-score audits grouped by location
+      const { data: lowAudits } = await supabase
+        .from('location_audits')
+        .select('overall_score, location, locations(name)')
+        .eq('company_id', companyId!)
+        .gte('audit_date', thirtyDaysAgo)
+        .lte('audit_date', today)
+        .in('status', ['completed', 'compliant', 'non_compliant'])
+        .lt('overall_score', 70);
+
+      const byLocation: Record<string, { total: number; count: number; name: string }> = {};
+      (lowAudits ?? []).forEach((a: any) => {
+        const locName = a.locations?.name ?? a.location ?? 'Unknown';
+        if (!byLocation[locName]) byLocation[locName] = { total: 0, count: 0, name: locName };
+        byLocation[locName].total += a.overall_score ?? 0;
+        byLocation[locName].count += 1;
+      });
+
+      const lowScoreByLocation = Object.values(byLocation).map(l => ({
+        locationName: l.name,
+        avgScore: Math.round(l.total / l.count),
+        count: l.count,
+      }));
+
+      // Corrective actions
+      const { data: openCAsData } = await supabase
+        .from('corrective_actions')
+        .select('id, status, due_at')
+        .eq('company_id', companyId!)
+        .in('status', ['open', 'in_progress']);
+
+      const openCAs = openCAsData?.length ?? 0;
+      const overdueCAs = (openCAsData ?? []).filter((ca: any) => ca.due_at && new Date(ca.due_at) < new Date()).length;
+
+      // Late arrivals
+      const { data: lateData } = await supabase
+        .from('attendance_logs')
+        .select('staff_id, employees!attendance_logs_staff_id_fkey(full_name)')
+        .eq('is_late', true)
+        .gte('check_in_at', subDays(new Date(), 30).toISOString());
+
+      const lateByEmployee: Record<string, { name: string; count: number }> = {};
+      (lateData ?? []).forEach((l: any) => {
+        const key = l.staff_id;
+        if (!lateByEmployee[key]) lateByEmployee[key] = { name: l.employees?.full_name ?? 'Unknown', count: 0 };
+        lateByEmployee[key].count += 1;
+      });
+
+      const lateEmployees = Object.values(lateByEmployee)
+        .filter(e => e.count > 3)
+        .sort((a, b) => b.count - a.count)
+        .map(e => ({ name: e.name, lateCount: e.count }));
+
+      return { lowScoreByLocation, openCAs, overdueCAs, lateEmployees };
+    },
+  });
+}
+
+export function useMobileCommandData() {
+  const { data: company } = useCompany();
+  const companyId = company?.id;
+  const queryClient = useQueryClient();
+
+  const clockedIn = useClockedIn(companyId);
+  const scheduledAudits = useTodayScheduledAudits(companyId);
+  const completedAudits = useTodayCompletedAudits(companyId);
+  const weeklySummary = useWeeklyAuditSummary(companyId);
+  const monthlyNegatives = useMonthlyNegatives(companyId);
+
+  const refetchAll = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['command-clocked-in'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-scheduled-audits'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-completed-audits'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-weekly-audits'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-monthly-negatives'] }),
+    ]);
+  };
+
+  return {
+    clockedIn,
+    scheduledAudits,
+    completedAudits,
+    weeklySummary,
+    monthlyNegatives,
+    refetchAll,
+    userRole: company?.userRole,
+  };
+}

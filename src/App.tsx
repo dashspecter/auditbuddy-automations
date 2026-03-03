@@ -18,6 +18,7 @@ import { AppVisibilityManager } from "@/components/AppVisibilityManager";
 import { useIsScoutsDomain } from "@/hooks/useIsScoutsDomain";
 import ScoutPortalApp from "./pages/scout-portal/ScoutPortalApp";
 import Index from "./pages/Index";
+import MobileCommand from "./pages/MobileCommand";
 import Landing from "./pages/Landing";
 import FullPresentation from "./pages/FullPresentation";
 import SalesOffer from "./pages/SalesOffer";
@@ -317,6 +318,7 @@ const App = () => {
                       <Route path="/role-templates" element={<CompanyAdminRoute><RoleTemplates /></CompanyAdminRoute>} />
                       <Route path="/policy-rules" element={<CompanyAdminRoute><PolicyRules /></CompanyAdminRoute>} />
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
+                      <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                       <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
                       <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />
