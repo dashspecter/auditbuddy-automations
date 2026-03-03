@@ -47,16 +47,23 @@ const Auth = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
   const { user, isStaff, staffCheckComplete } = useAuth();
-  const { data: company } = useCompany();
+  const { data: company, isLoading: companyLoading } = useCompany();
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!user || !staffCheckComplete) return;
+    // Staff redirect doesn't need company role
+    if (isStaff) {
+      navigate("/staff", { replace: true });
+      return;
+    }
+    // For non-staff, wait until company role is loaded
+    if (companyLoading) return;
     const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
-    const target = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
+    const target = (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
     navigate(target, { replace: true });
-  }, [user, isStaff, staffCheckComplete, navigate, company?.userRole, isMobile]);
+  }, [user, isStaff, staffCheckComplete, navigate, company?.userRole, companyLoading, isMobile]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
