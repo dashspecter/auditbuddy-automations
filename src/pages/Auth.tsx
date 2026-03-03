@@ -12,6 +12,8 @@ import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useCompany } from '@/hooks/useCompany';
 
 const Auth = () => {
   const { t } = useTranslation();
@@ -45,12 +47,16 @@ const Auth = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
   const { user, isStaff, staffCheckComplete } = useAuth();
+  const { data: company } = useCompany();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!user || !staffCheckComplete) return;
-    navigate(isStaff ? "/staff" : "/dashboard", { replace: true });
-  }, [user, isStaff, staffCheckComplete, navigate]);
+    const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+    const target = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
+    navigate(target, { replace: true });
+  }, [user, isStaff, staffCheckComplete, navigate, company?.userRole, isMobile]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
