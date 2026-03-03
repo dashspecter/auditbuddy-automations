@@ -180,8 +180,13 @@ export function useNavigationResolver(): UseNavigationResolverResult {
       // ── LEGACY FALLBACK ──
       // No template assigned → use existing role + permission system
 
-      // For company members, ONLY check company permissions (not platform roles)
+      // For company members, check BOTH allowedRoles AND company permissions
       if (isMember) {
+        // First check allowedRoles (if defined)
+        if (item.allowedRoles && item.allowedRoles.length > 0) {
+          if (!hasAllowedRole(item.allowedRoles)) return false;
+        }
+        // Then check companyPermission
         if (item.companyPermission) {
           return hasPermission(item.companyPermission);
         }
@@ -219,8 +224,11 @@ export function useNavigationResolver(): UseNavigationResolverResult {
       }
 
       // ── LEGACY FALLBACK ──
-      // For company members, check permissions
+      // For company members, check BOTH allowedRoles AND permissions
       if (isMember) {
+        if (subItem.allowedRoles && subItem.allowedRoles.length > 0) {
+          if (!hasAllowedRole(subItem.allowedRoles)) return false;
+        }
         if (subItem.companyPermission) {
           return hasPermission(subItem.companyPermission);
         }
