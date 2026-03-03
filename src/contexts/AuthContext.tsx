@@ -199,6 +199,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // This prevents the "refresh storm" when token refreshes or user updates
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           logDebug('auth', 'Auth changed, invalidating cached queries (not clearing)');
+
+          // Clear SW caches on sign-in to prevent stale content from previous user sessions
+          if (event === 'SIGNED_IN' && 'caches' in window) {
+            window.caches.keys().then(keys =>
+              keys.forEach(key => window.caches.delete(key))
+            );
+          }
+
           // CHANGED: Use invalidate instead of clear to preserve UI stability
           queryClient.invalidateQueries({ queryKey: ['user_role'] });
           queryClient.invalidateQueries({ queryKey: ['company'] });
