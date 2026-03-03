@@ -1,61 +1,63 @@
 
 
-# Time Off Requests — Access & Approval Audit
+# Investigation: Cook User Seeing Manager Dashboard on Mobile
 
-## Current State
+## What the data shows
 
-### Who can see/manage time off requests?
+**User**: Thayab Abdullah (user_id: `c45832c2-...`)
+- Employee role: **Cook**
+- `company_users` row: **none** (no company_role)
+- `user_roles` row: **none** (no platform role)
+- Has linked employee record: **yes**
 
-**Backend (RLS)** — correctly allows:
-- The employee who owns the request (SELECT, INSERT pending, DELETE own pending)
-- `company_owner` / `company_admin` (full CRUD)
-- Platform `admin` / `manager` roles (SELECT, INSERT, UPDATE, DELETE)
+The staff detection logic in `AuthContext` correctly identifies this user as staff (`isStaff = true`), which should route them to `/staff`.
 
-**Frontend navigation** — problem found:
-- **Sidebar**: Time Off (`/workforce/time-off`) is restricted to `['admin', 'hr']` only. **Managers are excluded** from seeing the nav item.
-- **Route guard**: `/workforce/time-off` uses `<ManagerRoute requiredPermission="manage_employees">`, which managers CAN access — so if they type the URL manually they'd see it. But there's no sidebar link.
-- **Mobile bottom nav (MobileBottomNav)**: No time-off link at all for owner/admin/manager. The main items are Home, Workforce, Audits, Equipment + More sheet. The "More" sheet doesn't include Time Off either.
-- **Staff bottom nav (StaffBottomNav)**: Both staff and manager variants have a "Time Off" link → `/staff/time-off`. But this goes to `StaffTimeOff` (employee self-service view to submit requests), NOT the approval page.
+## What happened
 
-### Pages that exist
+The screenshot shows the `/dashboard` page with the **admin/manager bottom nav** (Home, Workforce, Audits, Equipment, More) and the "Manager Dashboard" view rendered by `RoleBasedView`. This is NOT the staff view at all — it's the full admin/manager layout with `ProtectedLayout`.
 
-| Page | Route | Purpose | Who sees it |
-|------|-------|---------|-------------|
-| `TimeOffApprovals` | `/workforce/time-off` | Approve/reject requests | Admin, HR (sidebar); Manager can access via URL |
-| `StaffTimeOff` | `/staff/time-off` | Employee submits own requests | All staff/managers in staff view |
-| `AddTimeOffDialog` | Dialog (used in shifts calendar) | Manager adds time off for employee | Managers |
+## Root cause: Stale PWA service worker cache
 
-### Problems to fix
+The project uses `vite-plugin-pwa` + `workbox-window`. On the first browser, a **service worker from a previous session** (likely when a manager/admin was logged in on that same device) served stale cached assets. The cached JavaScript contained the old route/view, and rendered before the fresh auth check could redirect to `/staff`.
 
-1. **Navigation gap**: `'manager'` role missing from `allowedRoles` for the Time Off sidebar item in both `navigation.ts` and `navigationConfig.ts`
-2. **Mobile bottom nav**: No path for managers/owners to reach the approvals page on mobile
-3. **Staff manager view**: When a manager is on `/staff/time-off`, they see the employee self-service view, not the approval view — they should see pending requests to approve
+When the user switched to a different browser (clean cache, no service worker), the correct flow executed: auth → staff check → `isStaff = true` → redirect to `/staff`.
 
-## Implementation Plan
+**This is NOT a routing logic bug.** The code paths are correct. It's a cache invalidation issue.
 
-### A. Fix sidebar navigation — add `'manager'` role to Time Off
+## Evidence supporting this conclusion
 
-**Files**: `src/config/navigation.ts` (line 141), `src/config/navigationConfig.ts` (line 94)
+1. The routing logic (`Index.tsx`, `ProtectedRoute.tsx`, `AuthContext`) all correctly handle this user's role data
+2. The `RoleBasedView` fallback in `Dashboard.tsx` shows the manager view when no specific role is found (it falls through to `manager` as the default-ish view via template permissions logic)
+3. The bottom nav being the admin version means the full `ProtectedLayout` + `AppLayout` rendered, not the staff layout — so the user was on `/dashboard`, not `/staff`
+4. Switching browsers fixed it (clean cache = correct behavior)
 
-Change `allowedRoles: ['admin', 'hr']` → `allowedRoles: ['admin', 'manager', 'hr']`
+## Recommended fix: Force service worker update on auth state change
 
-This gives managers access to `/workforce/time-off` (the approvals page) on desktop sidebar and mobile "More" sheet (via Workforce sub-items).
+Add a service worker cache-bust when a new user signs in, so stale cached content from a previous user's session doesn't persist.
 
-### B. Enhance StaffTimeOff for managers — show pending approval requests
+### Changes
 
-**File**: `src/pages/staff/StaffTimeOff.tsx`
+**`src/contexts/AuthContext.tsx`** — On `SIGNED_IN` event, clear service worker caches:
+```typescript
+if (event === 'SIGNED_IN') {
+  // Clear SW caches to prevent stale content from previous user sessions
+  if ('caches' in window) {
+    window.caches.keys().then(keys => 
+      keys.forEach(key => window.caches.delete(key))
+    );
+  }
+}
+```
 
-For managers (detected via `useUserRole`), add a "Pending Approvals" section at the top showing company-wide pending requests with approve/reject actions. This reuses the same approve/reject logic from `TimeOffApprovals`. Below it, the manager's own time-off balance and request form remain.
+This is a 5-line addition. No other files change. No database changes.
 
-This ensures managers on the `/staff/time-off` route (reachable from staff bottom nav) can see and act on requests.
+### What this prevents
+- A staff user seeing an admin/manager dashboard cached from a previous session
+- Any cross-user cache contamination on shared devices
+- The exact scenario reported: correct on clean browser, wrong on browser with existing cache
 
-### C. No database or RLS changes needed
-
-RLS already grants managers full access. The gap is purely in frontend navigation and UI.
-
-### What stays unchanged
-- Desktop dashboard layout
-- Staff self-service request flow
-- All other role flows
-- Database schema and RLS policies
+### Risk: minimal
+- Only runs on `SIGNED_IN` (not token refresh)
+- Clears browser caches (not query cache), so the app simply re-fetches static assets
+- No impact on the current user's session or data
 
