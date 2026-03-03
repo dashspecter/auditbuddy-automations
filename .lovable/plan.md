@@ -1,50 +1,61 @@
 
-You’re right to push for inspection — I reviewed the current code path, and there are 3 concrete reasons this is still showing the old view.
 
-1) Root route bypasses the redirect logic  
-- In `src/App.tsx`, `/` is mapped to `LandingNFX`, not `Index`.
-- Your mobile owner/admin redirect logic exists in `Index.tsx`, so it never runs when users open the app at `/`.
+# Time Off Requests — Access & Approval Audit
 
-2) Auth redirect fires before company role is loaded  
-- In `src/pages/Auth.tsx`, redirect runs as soon as `user` + `staffCheckComplete` are true.
-- `company?.userRole` is often still undefined at that moment.
-- That evaluates `isOwnerOrAdmin = false`, so it sends users to `/dashboard`.
+## Current State
 
-3) Landing page “Dashboard” button is hardcoded to old destination  
-- In `src/pages/LandingNFX.tsx`, logged-in users get `dashboardPath = isStaff ? "/staff" : "/dashboard"`.
-- No mobile owner/admin condition exists there, so even from landing they still go to dashboard.
+### Who can see/manage time off requests?
 
-What I also verified
-- Alex is correctly `company_owner` in data, so this is not a role-data issue.
-- Route exists as `/command` (with two m’s). (`/comand` won’t match.)
+**Backend (RLS)** — correctly allows:
+- The employee who owns the request (SELECT, INSERT pending, DELETE own pending)
+- `company_owner` / `company_admin` (full CRUD)
+- Platform `admin` / `manager` roles (SELECT, INSERT, UPDATE, DELETE)
 
-Implementation plan to fix safely (no scope creep)
-A) Make root authenticated entry deterministic
-- In `App.tsx`, change `/` from `LandingNFX` to `Index` (or use a wrapper that chooses `Index` if logged in, `LandingNFX` if not).
-- Keep `/go` (or similar) for always-show marketing page.
+**Frontend navigation** — problem found:
+- **Sidebar**: Time Off (`/workforce/time-off`) is restricted to `['admin', 'hr']` only. **Managers are excluded** from seeing the nav item.
+- **Route guard**: `/workforce/time-off` uses `<ManagerRoute requiredPermission="manage_employees">`, which managers CAN access — so if they type the URL manually they'd see it. But there's no sidebar link.
+- **Mobile bottom nav (MobileBottomNav)**: No time-off link at all for owner/admin/manager. The main items are Home, Workforce, Audits, Equipment + More sheet. The "More" sheet doesn't include Time Off either.
+- **Staff bottom nav (StaffBottomNav)**: Both staff and manager variants have a "Time Off" link → `/staff/time-off`. But this goes to `StaffTimeOff` (employee self-service view to submit requests), NOT the approval page.
 
-B) Fix auth redirect timing
-- In `Auth.tsx`, gate redirect until company role is resolved for non-staff users:
-  - wait for `useCompany().isLoading === false` before computing owner/admin target
-  - then redirect to `/command` for mobile owner/admin, else existing targets.
+### Pages that exist
 
-C) Align landing CTA with same routing rule
-- In `LandingNFX.tsx`, compute the same target logic used elsewhere:
-  - staff -> `/staff`
-  - mobile + owner/admin -> `/command`
-  - else -> `/dashboard`
-- This prevents mismatch when users navigate from landing while logged in.
+| Page | Route | Purpose | Who sees it |
+|------|-------|---------|-------------|
+| `TimeOffApprovals` | `/workforce/time-off` | Approve/reject requests | Admin, HR (sidebar); Manager can access via URL |
+| `StaffTimeOff` | `/staff/time-off` | Employee submits own requests | All staff/managers in staff view |
+| `AddTimeOffDialog` | Dialog (used in shifts calendar) | Manager adds time off for employee | Managers |
 
-D) Keep everything else untouched
-- No DB changes
-- No RLS changes
-- No permission model changes
-- No changes for staff/member/desktop flows
+### Problems to fix
 
-Validation checklist (targeted)
-1. Mobile + owner/admin login from `/auth` -> lands on `/command`
-2. Mobile + owner/admin opening app at `/` while already logged in -> lands on `/command`
-3. Mobile + staff -> `/staff` unchanged
-4. Desktop + owner/admin -> `/dashboard` unchanged
-5. Landing “Dashboard” button routes correctly per role + device
-6. PWA cold start and browser cold start both follow same behavior
+1. **Navigation gap**: `'manager'` role missing from `allowedRoles` for the Time Off sidebar item in both `navigation.ts` and `navigationConfig.ts`
+2. **Mobile bottom nav**: No path for managers/owners to reach the approvals page on mobile
+3. **Staff manager view**: When a manager is on `/staff/time-off`, they see the employee self-service view, not the approval view — they should see pending requests to approve
+
+## Implementation Plan
+
+### A. Fix sidebar navigation — add `'manager'` role to Time Off
+
+**Files**: `src/config/navigation.ts` (line 141), `src/config/navigationConfig.ts` (line 94)
+
+Change `allowedRoles: ['admin', 'hr']` → `allowedRoles: ['admin', 'manager', 'hr']`
+
+This gives managers access to `/workforce/time-off` (the approvals page) on desktop sidebar and mobile "More" sheet (via Workforce sub-items).
+
+### B. Enhance StaffTimeOff for managers — show pending approval requests
+
+**File**: `src/pages/staff/StaffTimeOff.tsx`
+
+For managers (detected via `useUserRole`), add a "Pending Approvals" section at the top showing company-wide pending requests with approve/reject actions. This reuses the same approve/reject logic from `TimeOffApprovals`. Below it, the manager's own time-off balance and request form remain.
+
+This ensures managers on the `/staff/time-off` route (reachable from staff bottom nav) can see and act on requests.
+
+### C. No database or RLS changes needed
+
+RLS already grants managers full access. The gap is purely in frontend navigation and UI.
+
+### What stays unchanged
+- Desktop dashboard layout
+- Staff self-service request flow
+- All other role flows
+- Database schema and RLS policies
+
