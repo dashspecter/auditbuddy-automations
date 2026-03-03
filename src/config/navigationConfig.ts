@@ -91,7 +91,7 @@ export const navigationItems: NavItem[] = [
       { id: "workforce-shifts", title: "Shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: "workforce-attendance", title: "Attendance", url: "/workforce/attendance", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },
       { id: "workforce-warnings", title: "Warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' },
-      { id: "workforce-timeoff", title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
+      { id: "workforce-timeoff", title: "Time Off", url: "/workforce/time-off", allowedRoles: ['admin', 'manager', 'hr'] },
       { id: "workforce-payroll", title: "Payroll", url: "/workforce/payroll", allowedRoles: ['admin', 'hr'] },
       { id: "workforce-payroll-batches", title: "Payroll Batches", url: "/workforce/payroll-batches", allowedRoles: ['admin', 'hr'] },
       { id: "workforce-alerts", title: "Attendance Alerts", url: "/workforce/attendance-alerts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' },

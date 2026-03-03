@@ -138,7 +138,7 @@ export const navigationItems: NavigationItem[] = [
         ]
       },
       { id: 'workforce-warnings', titleKey: "nav.warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' },
-      { id: 'workforce-timeoff', titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
+      { id: 'workforce-timeoff', titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'manager', 'hr'] },
       { 
         id: 'workforce-payroll', 
         titleKey: "nav.payroll", 
