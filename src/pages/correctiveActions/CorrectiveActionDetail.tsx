@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertOctagon, CheckCircle2, Clock, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { CAStatusBadge } from "@/components/correctiveActions/CAStatusBadge";
 import { StopTheLineBanner } from "@/components/correctiveActions/StopTheLineBanner";
 import { ActionItemCard } from "@/components/correctiveActions/ActionItemCard";
 import { EventTimeline } from "@/components/correctiveActions/EventTimeline";
+import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -29,10 +30,15 @@ export default function CorrectiveActionDetail() {
 
   const isManager = !!(roleData?.isAdmin || roleData?.isManager);
 
-  // Evidence capture placeholder — in a real integration, open EvidenceCaptureModal
-  const handleNeedEvidence = (item: any, onSuccess: (packetId: string) => void) => {
-    toast.info("Evidence capture: open the Evidence Capture panel and attach proof, then the item will be marked done.");
-  };
+  // Evidence capture state
+  const [evidenceTarget, setEvidenceTarget] = useState<{
+    item: any;
+    onSuccess: (packetId: string) => void;
+  } | null>(null);
+
+  const handleNeedEvidence = useCallback((item: any, onSuccess: (packetId: string) => void) => {
+    setEvidenceTarget({ item, onSuccess });
+  }, []);
 
   if (isLoading) {
     return (
@@ -225,6 +231,23 @@ export default function CorrectiveActionDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Evidence capture modal for action items */}
+      {evidenceTarget && ca && (
+        <EvidenceCaptureModal
+          open={!!evidenceTarget}
+          subjectType="corrective_action_item"
+          subjectId={ca.id}
+          subjectItemId={evidenceTarget.item.id}
+          policy={evidenceTarget.item.evidence_required ? { id: "", company_id: ca.company_id, location_id: ca.location_id ?? null, applies_to: "corrective_action_item", applies_id: evidenceTarget.item.id, evidence_required: true, review_required: false, required_media_types: null, min_media_count: 1, instructions: evidenceTarget.item.instructions || "Attach photo evidence for this action item." } : null}
+          onComplete={(packetId) => {
+            evidenceTarget.onSuccess(packetId);
+            setEvidenceTarget(null);
+          }}
+          onCancel={() => setEvidenceTarget(null)}
+          title={`Evidence: ${evidenceTarget.item.title || "Action Item"}`}
+        />
+      )}
     </div>
   );
 }
