@@ -1,84 +1,76 @@
 
 
-# Evidence Review: Approved But Still "Pending Review" — Root Cause & Fix
+# Evidence Review: Why Approved Packets Still Show "Pending Review"
 
-## Root Cause
+## The Actual Situation
 
-The problem is an **RLS policy mismatch**. Here is the full chain of what happens when a manager clicks "Approve":
+The RLS fix from the last edit **IS working**. The approval flow now correctly updates the database. Here's proof from the live DB:
 
 ```text
-1. Mutation reads current packet status     → ✅ SELECT works (company membership)
-2. Mutation UPDATEs packet status to        → ❌ SILENTLY BLOCKED by RLS (0 rows updated)
-   "approved" + sets reviewed_by/at
-3. Mutation INSERTs an evidence_event       → ✅ Works (only checks company membership)
-   with event_type="approved"
-4. UI shows "Approved" in activity log      → But packet.status is still "submitted"
+Subject 8bda8a7b (the one you approved):
+  packet 14076db3 → status: approved  (Mar 3)  ✅ 
+  packet 662493b1 → status: submitted (Mar 2)  ← still pending
+  packet 29ae5a10 → status: submitted (Mar 1)  ← still pending
+  packet dc5ba65b → status: submitted (Feb 27) ← still pending
 ```
 
-**The UPDATE RLS policy** (`evidence_packets_update_reviewers`) only allows users whose `company_role` is one of: `company_owner`, `company_admin`, `company_manager`.
+**You approved 1 of 4 packets.** The other 3 are different daily submissions from the same recurring task. The list still shows "Pending review" because those 3 packets genuinely haven't been reviewed yet.
 
-**User vlad@lbfc.ro** has:
-- `company_role = company_member` (not in the allowed list)
-- `platform role = manager` (in `user_roles` table)
+The approved packet (Mar 3) **did** move to "approved" status in the DB. But the list defaults to the "submitted" filter, so you only see the remaining unreviewed ones — which all look identical because the list only shows a truncated UUID with no task name or date context.
 
-So the platform manager role is completely ignored by the RLS policy. The UPDATE silently affects 0 rows (Supabase doesn't throw an error for this), the event still gets inserted, and the UI shows contradictory state.
+## Root Cause: Missing Context in the List
 
-**User doug@lebab.ro** (company_admin) — his approvals DO work because his company_role IS in the allowed list. This confirms the diagnosis.
+The Evidence Review table shows:
+- **Type**: "Task Occurrence" (unhelpful — they're all the same)
+- **Subject ID**: truncated UUID like `8bda8a7b…` (impossible to distinguish)
+- **No task name**, no employee name, no occurrence date
 
-## Fix Plan (2 changes)
+So after approving one packet for task X on Mar 3, the remaining Mar 2, Mar 1, and Feb 27 packets for the same task look identical. You think you already reviewed it, but these are different days.
 
-### 1. Update RLS policy to include platform managers/admins
+## Fix Plan
 
-Update the `evidence_packets_update_reviewers` policy to also allow users with platform `manager` or `admin` roles via the existing `has_role()` helper:
+### 1. Enrich the list query with task name and employee name
 
+Update `useAllEvidencePackets` in `EvidenceReview.tsx` to join with `tasks` (for task title) and `employees`/`profiles` (for submitter name). Replace the truncated UUID with human-readable info.
+
+### 2. Show occurrence/submission date prominently
+
+Add the submission date as a key identifier so users can tell "Mar 3" apart from "Mar 1".
+
+### 3. Replace raw subject_id with task title
+
+Instead of `8bda8a7b…`, show "Clean espresso machine" or whatever the task title is.
+
+### 4. Show submitter name
+
+Add a "Submitted by" column showing the employee who captured the evidence.
+
+### 5. Add status count summary for approved tab
+
+The status chips at the top already work. After this fix, clicking "approved: 6" will show the 6 approved packets, confirming they were saved correctly.
+
+## Technical Details
+
+**File: `src/pages/EvidenceReview.tsx`**
+
+1. Update the query to join task title and employee name:
 ```sql
-DROP POLICY "evidence_packets_update_reviewers" ON public.evidence_packets;
-
-CREATE POLICY "evidence_packets_update_reviewers"
-  ON public.evidence_packets FOR UPDATE
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT cu.company_id FROM public.company_users cu
-      WHERE cu.user_id = auth.uid()
-        AND (
-          cu.company_role IN ('company_owner', 'company_admin', 'company_manager')
-          OR public.has_role(auth.uid(), 'admin'::app_role)
-          OR public.has_role(auth.uid(), 'manager'::app_role)
-        )
-    )
-  );
+SELECT ep.*, 
+  t.title as task_title,
+  e.first_name || ' ' || e.last_name as submitter_name
+FROM evidence_packets ep
+LEFT JOIN tasks t ON ep.subject_type = 'task_occurrence' AND t.id = ep.subject_id
+LEFT JOIN employees e ON e.user_id = ep.created_by AND e.company_id = ep.company_id
 ```
 
-### 2. Add error handling in mutation for silent RLS failures
+Since PostgREST can't do conditional joins, we'll do a secondary lookup for task names using a separate query or by fetching the title inline via a lightweight helper.
 
-In `useEvidencePackets.ts`, after the UPDATE call, verify that a row was actually updated. If not, throw an error so the user gets feedback instead of a false "Proof approved" toast.
+2. Update the table columns:
+   - Replace "Subject ID" with "Task / Subject" showing the task title
+   - Add "Submitted by" column with employee name
+   - Keep the date column
 
-### 3. Backfill: fix the 3 stuck packets
+3. Update the `EvidenceRow` type to include `task_title` and `submitter_name`.
 
-Run a data fix to update the 3 packets that were "approved" via events but still have `status = submitted`:
-
-```sql
-UPDATE evidence_packets 
-SET status = 'approved', 
-    reviewed_at = ee.created_at,
-    reviewed_by = ee.actor_id
-FROM (
-  SELECT DISTINCT ON (packet_id) packet_id, actor_id, created_at 
-  FROM evidence_events 
-  WHERE event_type = 'approved' 
-  ORDER BY packet_id, created_at DESC
-) ee
-WHERE evidence_packets.id = ee.packet_id 
-  AND evidence_packets.status = 'submitted';
-```
-
-## Summary
-
-| What | Detail |
-|------|--------|
-| Root cause | RLS UPDATE policy ignores platform roles (`manager`, `admin`) |
-| Why silent | Supabase returns no error on 0-row UPDATE |
-| Why events show "approved" | Events INSERT policy is more permissive |
-| Fix | Widen RLS policy + add row-count check + backfill 3 stuck rows |
+**No database changes needed.** The approval flow is already working correctly.
 
