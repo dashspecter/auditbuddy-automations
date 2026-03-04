@@ -348,7 +348,7 @@ export const settingsItems: SettingsNavItem[] = [
     title: "User Management", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresCompanyAdmin: true
+    requiresPlatformAdmin: true
   },
   {
     id: "settings-platform-admin",
