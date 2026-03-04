@@ -131,7 +131,9 @@ export const useUpdateScheduledAudit = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ScheduledAudit> & { id: string }) => {
+    mutationFn: async ({ id, ...raw }: Partial<ScheduledAudit> & { id: string }) => {
+      // Strip joined relations — only send real columns
+      const { audit_templates, locations, profiles, employees, ...updates } = raw as any;
       const { data, error } = await supabase
         .from("scheduled_audits")
         .update(updates)
