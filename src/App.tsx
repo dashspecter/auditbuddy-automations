@@ -459,7 +459,7 @@ const App = () => {
                       
                       {/* Template Marketplace Routes */}
                       <Route path="/marketplace" element={<ProtectedRoute><MarketplaceBrowse /></ProtectedRoute>} />
-                      <Route path="/marketplace/:id" element={<ProtectedRoute><MarketplaceTemplateDetail /></ProtectedRoute>} />
+                      <Route path="/marketplace/template/:slug" element={<ProtectedRoute><MarketplaceTemplateDetail /></ProtectedRoute>} />
                       <Route path="/marketplace/share/:token" element={<MarketplaceShare />} />
                       <Route path="/marketplace/publish" element={<ProtectedRoute><MarketplacePublish /></ProtectedRoute>} />
                       <Route path="/marketplace/my-templates" element={<ProtectedRoute><MyMarketplaceTemplates /></ProtectedRoute>} />
