@@ -703,7 +703,7 @@ const Tasks = () => {
         />
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex-wrap h-auto gap-1">
+          <TabsList className="flex overflow-x-auto h-auto gap-1 max-w-full no-scrollbar">
             <TabsTrigger value="list" className="flex items-center gap-1">
               <ListTodo className="h-3.5 w-3.5" />
               {t('tasks.list', 'List')}

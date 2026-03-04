@@ -41,22 +41,22 @@ export const ManagerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">{t('dashboard.manager.title')}</h2>
-          <p className="text-muted-foreground">{t('dashboard.manager.subtitle')}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">{t('dashboard.manager.title')}</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">{t('dashboard.manager.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? t('common.refreshing') : t('common.refresh')}
+            <RefreshCw className={`h-4 w-4 mr-1 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isRefreshing ? t('common.refreshing') : t('common.refresh')}</span>
           </Button>
-          <Badge variant="secondary" className="text-sm">{t('dashboard.manager.badge')}</Badge>
+          <Badge variant="secondary" className="text-xs sm:text-sm">{t('dashboard.manager.badge')}</Badge>
         </div>
       </div>
 

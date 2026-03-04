@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSelector } from "@/components/LocationSelector";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileCardList, MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
 export default function EmployeeManagement() {
   const { t } = useTranslation();
@@ -55,6 +57,7 @@ export default function EmployeeManagement() {
   const { data: audits, isLoading: auditsLoading } = useStaffAudits();
   const deleteEmployee = useDeleteEmployee();
   const updateEmployee = useUpdateEmployee();
+  const isMobile = useIsMobile();
 
   const handleToggleStatus = (employee: any) => {
     const newStatus = employee.status === "active" ? "inactive" : "active";
@@ -139,21 +142,23 @@ export default function EmployeeManagement() {
 
   return (
     <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{t('workforce.employees.title')}</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('workforce.employees.title')}</h1>
+            <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
               {t('workforce.employees.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setTemplateDialogOpen(true)}>
+            <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={() => setTemplateDialogOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              {t('workforce.employees.uploadTemplate')}
+              <span className="hidden sm:inline">{t('workforce.employees.uploadTemplate')}</span>
+              <span className="sm:hidden">Upload</span>
             </Button>
-            <Button onClick={handleAddNew}>
+            <Button size={isMobile ? "sm" : "default"} onClick={handleAddNew}>
               <Plus className="mr-2 h-4 w-4" />
-              {t('workforce.employees.addEmployee')}
+              <span className="hidden sm:inline">{t('workforce.employees.addEmployee')}</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </div>
         </div>
@@ -178,6 +183,57 @@ export default function EmployeeManagement() {
             <div className="text-center py-12">
               <p className="text-muted-foreground">{t('workforce.employees.noEmployees')}</p>
             </div>
+          ) : isMobile ? (
+            <MobileCardList
+              data={employees}
+              keyExtractor={(emp) => emp.id}
+              renderCard={(employee) => {
+                const additionalLocationsCount = employee.staff_locations?.length || 0;
+                const hasMultipleLocations = additionalLocationsCount > 0;
+                const totalLocationsCount = additionalLocationsCount + 1;
+                return (
+                  <MobileCard onClick={() => handleEdit(employee)}>
+                    <MobileCardHeader
+                      title={employee.full_name}
+                      subtitle={hasMultipleLocations 
+                        ? t('workforce.employees.allLocationsCount', { count: totalLocationsCount })
+                        : employee.locations?.name || '-'
+                      }
+                      badge={
+                        <Badge variant={employee.status === "active" ? "default" : "secondary"}>
+                          {t(`workforce.employees.statuses.${employee.status}`)}
+                        </Badge>
+                      }
+                      actions={
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleToggleStatus(employee); }}>
+                            {employee.status === "active" ? <UserX className="h-4 w-4 text-destructive" /> : <UserCheck className="h-4 w-4 text-green-600" />}
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleDelete(employee.id); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      }
+                    />
+                    <MobileCardRow label={t('workforce.employees.role')} value={employee.role} />
+                    <div className="flex gap-1 mt-2 pt-2 border-t">
+                      {employee.user_id ? (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleResetPassword(employee); }}>
+                          <KeyRound className="h-3.5 w-3.5 mr-1" /> Reset
+                        </Button>
+                      ) : employee.email ? (
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleCreateAccount(employee); }}>
+                          <KeyRound className="h-3.5 w-3.5 mr-1" /> Create Account
+                        </Button>
+                      ) : null}
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleGenerateContract(employee); }}>
+                        <FileText className="h-3.5 w-3.5 mr-1" /> Contract
+                      </Button>
+                    </div>
+                  </MobileCard>
+                );
+              }}
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -191,10 +247,9 @@ export default function EmployeeManagement() {
               </TableHeader>
               <TableBody>
                 {employees.map((employee) => {
-                  // Check if employee has additional locations beyond primary
                   const additionalLocationsCount = employee.staff_locations?.length || 0;
                   const hasMultipleLocations = additionalLocationsCount > 0;
-                  const totalLocationsCount = additionalLocationsCount + 1; // +1 for primary
+                  const totalLocationsCount = additionalLocationsCount + 1;
                   
                   return (
                   <TableRow key={employee.id}>
