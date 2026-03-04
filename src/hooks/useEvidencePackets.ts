@@ -400,6 +400,79 @@ export function useReviewEvidencePacket() {
   });
 }
 
+// ─── Bulk Approve Evidence Packets ────────────────────────────────────────────
+
+export interface BulkApproveResult {
+  successCount: number;
+  failedIds: string[];
+}
+
+export function useBulkApproveEvidence() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (packetIds: string[]): Promise<BulkApproveResult> => {
+      if (!user?.id) throw new Error("Not authenticated");
+
+      const ctx = await getCompanyAndLocation(user.id);
+      if (!ctx) throw new Error("Could not determine company");
+
+      const now = new Date().toISOString();
+      let successCount = 0;
+      const failedIds: string[] = [];
+
+      for (const packetId of packetIds) {
+        try {
+          // Get current status for event log
+          const { data: current } = await supabase
+            .from("evidence_packets")
+            .select("status, company_id")
+            .eq("id", packetId)
+            .single();
+
+          const { data: updated, error: updateErr } = await supabase
+            .from("evidence_packets")
+            .update({
+              status: "approved" as EvidenceStatus,
+              reviewed_by: user.id,
+              reviewed_at: now,
+              review_reason: null,
+            })
+            .eq("id", packetId)
+            .select("id");
+
+          if (updateErr || !updated || updated.length === 0) {
+            failedIds.push(packetId);
+            continue;
+          }
+
+          // Log the event
+          await supabase.from("evidence_events").insert({
+            company_id: current?.company_id ?? ctx.companyId,
+            packet_id: packetId,
+            actor_id: user.id,
+            event_type: "approved",
+            from_status: current?.status ?? "submitted",
+            to_status: "approved",
+            payload: { bulk: true },
+          });
+
+          successCount++;
+        } catch {
+          failedIds.push(packetId);
+        }
+      }
+
+      return { successCount, failedIds };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["evidence_packets_all"] });
+      queryClient.invalidateQueries({ queryKey: ["evidence_packets"] });
+    },
+  });
+}
+
 // ─── Get signed URL for a media item ─────────────────────────────────────────
 
 export async function getEvidenceMediaUrl(storagePath: string): Promise<string | null> {
