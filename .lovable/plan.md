@@ -1,63 +1,36 @@
 
 
-# Investigation: Cook User Seeing Manager Dashboard on Mobile
+# Hiding Billing & Modules for Proper Pizza
 
-## What the data shows
+## Context
 
-**User**: Thayab Abdullah (user_id: `c45832c2-...`)
-- Employee role: **Cook**
-- `company_users` row: **none** (no company_role)
-- `user_roles` row: **none** (no platform role)
-- Has linked employee record: **yes**
+Proper Pizza is on the `free` tier with `active` status. The "Billing & Modules" nav item and the "Modules" / "Billing" tabs in Company Settings are visible to company owners but aren't being used.
 
-The staff detection logic in `AuthContext` correctly identifies this user as staff (`isStaff = true`), which should route them to `/staff`.
+## The question: per-company or global?
 
-## What happened
+There's currently **no per-company feature flag system** in the codebase. Two approaches:
 
-The screenshot shows the `/dashboard` page with the **admin/manager bottom nav** (Home, Workforce, Audits, Equipment, More) and the "Manager Dashboard" view rendered by `RoleBasedView`. This is NOT the staff view at all — it's the full admin/manager layout with `ProtectedLayout`.
+### Option A: Hide globally for non-platform-admin users (recommended)
 
-## Root cause: Stale PWA service worker cache
+Since module management is already done by **platform admins** (you) via the Platform Admin panel, company owners don't need "Billing & Modules" or the Modules/Billing tabs in Company Settings. This applies to ALL client companies, not just Proper Pizza.
 
-The project uses `vite-plugin-pwa` + `workbox-window`. On the first browser, a **service worker from a previous session** (likely when a manager/admin was logged in on that same device) served stale cached assets. The cached JavaScript contained the old route/view, and rendered before the fresh auth check could redirect to `/staff`.
+Changes:
+1. **`navigationConfig.ts` + `navigation.ts` + `AppSidebar.tsx`**: Change `settings-billing` from `requiresOwner: true` → `requiresPlatformAdmin: true` (hides it from company owners, keeps it for platform admins)
+2. **`CompanySettings.tsx`**: Conditionally hide the "Modules" and "Billing" `TabsTrigger` items unless the user is a platform admin
 
-When the user switched to a different browser (clean cache, no service worker), the correct flow executed: auth → staff check → `isStaff = true` → redirect to `/staff`.
+### Option B: Add a per-company flag
 
-**This is NOT a routing logic bug.** The code paths are correct. It's a cache invalidation issue.
+Add a `hide_billing` boolean column to `companies` table, check it in nav and settings. More flexible but adds complexity for something no client company currently uses.
 
-## Evidence supporting this conclusion
+## Recommendation
 
-1. The routing logic (`Index.tsx`, `ProtectedRoute.tsx`, `AuthContext`) all correctly handle this user's role data
-2. The `RoleBasedView` fallback in `Dashboard.tsx` shows the manager view when no specific role is found (it falls through to `manager` as the default-ish view via template permissions logic)
-3. The bottom nav being the admin version means the full `ProtectedLayout` + `AppLayout` rendered, not the staff layout — so the user was on `/dashboard`, not `/staff`
-4. Switching browsers fixed it (clean cache = correct behavior)
+**Option A** — hide billing/modules from all company owners globally. Platform admins already manage modules via the Platform Admin panel. This is simpler, more secure, and applies the right principle: clients shouldn't self-manage billing/modules if that's handled by the platform operator.
 
-## Recommended fix: Force service worker update on auth state change
+### Files to change (4 files, small edits each)
+- `src/config/navigationConfig.ts` — change `requiresOwner` → `requiresPlatformAdmin` on `settings-billing`
+- `src/config/navigation.ts` — same change
+- `src/components/layout/AppSidebar.tsx` — same change in the hardcoded settings array
+- `src/pages/CompanySettings.tsx` — hide "Modules" and "Billing" tabs unless platform admin
 
-Add a service worker cache-bust when a new user signs in, so stale cached content from a previous user's session doesn't persist.
-
-### Changes
-
-**`src/contexts/AuthContext.tsx`** — On `SIGNED_IN` event, clear service worker caches:
-```typescript
-if (event === 'SIGNED_IN') {
-  // Clear SW caches to prevent stale content from previous user sessions
-  if ('caches' in window) {
-    window.caches.keys().then(keys => 
-      keys.forEach(key => window.caches.delete(key))
-    );
-  }
-}
-```
-
-This is a 5-line addition. No other files change. No database changes.
-
-### What this prevents
-- A staff user seeing an admin/manager dashboard cached from a previous session
-- Any cross-user cache contamination on shared devices
-- The exact scenario reported: correct on clean browser, wrong on browser with existing cache
-
-### Risk: minimal
-- Only runs on `SIGNED_IN` (not token refresh)
-- Clears browser caches (not query cache), so the app simply re-fetches static assets
-- No impact on the current user's session or data
+No database changes needed.
 
