@@ -1,60 +1,50 @@
 
 
-# Template Install Creates Empty Template — Root Cause & Fix
+# Corrective Action Staff Flow — Already Implemented
 
-## Root Cause
+## Current Flow (already working)
 
-Same pattern as the evidence review bug: **RLS policy mismatch between company roles and platform roles**.
-
-The install flow in `useInstallMarketplaceTemplate` does 3 things:
-1. Creates `audit_templates` row — **succeeds** (its RLS checks `company_users` membership)
-2. Creates `audit_sections` rows — **silently fails** (RLS requires platform `manager`/`admin` role via `has_role()`)
-3. Creates `audit_fields` rows — **silently fails** (same RLS issue)
-
-**User daniel.proper25@gmail.com** has:
-- `company_role = company_owner` (in `company_users`)
-- No platform role in `user_roles` table
-
-The `audit_sections` and `audit_fields` INSERT policies only check `has_role(auth.uid(), 'manager'::app_role)` or `has_role(auth.uid(), 'admin'::app_role)`, which queries `user_roles` — a table where Daniel has no entries.
-
-Result: template shell is created, but sections and fields are silently dropped. The code has `continue` on section errors, so it doesn't even throw.
-
-## Fix (2 changes)
-
-### 1. Update RLS policies for `audit_sections` and `audit_fields`
-
-Add company-role-based access to the "Managers can manage sections/fields" policies, similar to the evidence packets fix:
-
-```sql
--- audit_sections: allow company owners/admins/managers to manage
-DROP POLICY "Managers can manage sections" ON public.audit_sections;
-CREATE POLICY "Managers can manage sections" ON public.audit_sections
-  FOR ALL TO authenticated
-  USING (
-    has_role(auth.uid(), 'manager'::app_role)
-    OR has_role(auth.uid(), 'admin'::app_role)
-    OR EXISTS (
-      SELECT 1 FROM audit_templates t
-      JOIN company_users cu ON cu.company_id = t.company_id
-      WHERE t.id = audit_sections.template_id
-        AND cu.user_id = auth.uid()
-        AND cu.company_role IN ('company_owner', 'company_admin', 'company_manager')
-    )
-  )
-  WITH CHECK (/* same condition */);
-
--- Same pattern for audit_fields (joining through audit_sections → audit_templates)
+```text
+Manager creates CA ──→ Action items assigned to staff (by user_id or role)
+                                    │
+                                    ▼
+              Staff Mobile Home (/staff)
+              ┌─────────────────────────────────────┐
+              │  🔴 Action Required (red card)       │
+              │  Shows all open CA items assigned    │
+              │  to this employee                    │
+              │                                      │
+              │  [Resolve] button → opens modal      │
+              │  [Retake Test] → for test failures   │
+              └─────────────────────────────────────┘
+                                    │
+                                    ▼
+              ResolutionReportModal opens
+              (staff writes notes + attaches evidence if required)
+                                    │
+                                    ▼
+              Item status → "done"
+              Manager sees "Verify" / "Reject" buttons
+                                    │
+                                    ▼
+              All items verified → CA can be "Closed"
 ```
 
-### 2. Add error handling in install flow
+## Where Staff See It
 
-In `useInstallMarketplaceTemplate`, instead of `continue` on section errors, throw the error so the user gets feedback. Also verify sections were actually created before proceeding to fields.
+On **Staff Home** (`/staff`), the `MyCorrectiveActionsCard` component renders automatically when the logged-in employee has open CA items. It:
 
-### 3. Backfill: populate the empty installed template
+- Queries `corrective_action_items` where `assignee_user_id = current user` and status is `open` or `in_progress`
+- Shows a red "Action Required" card with item count
+- Each item shows: parent CA title, severity, instructions, due date (with overdue warning)
+- **"Resolve" button** opens the `ResolutionReportModal` where staff can write resolution notes and attach evidence
+- **"Retake Test" button** appears for test-failure CAs, navigating directly to the test
 
-Run a one-time fix for Daniel's HACCP template (`d671a1ba`) by re-inserting its sections and fields from the marketplace template content.
+## The Real Issue You Hit
 
-### Files to modify
-- `src/hooks/useMarketplace.ts` — better error handling in install mutation
-- Database migration — updated RLS policies for `audit_sections` and `audit_fields`
+The problem wasn't the staff side — it's the **manager side** on the CA detail page. When the manager clicks "Mark Done" on behalf of staff (for items with `evidence_required`), it shows a placeholder toast instead of opening the evidence capture modal. That's the fix we identified in the previous conversation.
+
+## No Changes Needed
+
+The staff mobile flow is complete. The only gap is the manager-side evidence capture on the CA detail page, which was already identified and planned in the previous message.
 
