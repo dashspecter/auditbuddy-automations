@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -9,15 +10,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { Camera, Search, Filter, ShieldCheck, Loader2, User } from "lucide-react";
+import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
+import { Camera, Search, Filter, ShieldCheck, Loader2, User, CheckCircle2, X } from "lucide-react";
+import { useBulkApproveEvidence } from "@/hooks/useEvidencePackets";
 import type { EvidenceSubjectType, EvidenceStatus } from "@/hooks/useEvidencePackets";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +43,8 @@ interface EvidenceRow {
   notes: string | null;
   redacted_at: string | null;
 }
+
+type DateFilter = "all" | "today" | "yesterday" | "this_week";
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -97,6 +111,17 @@ function useEmployeeNames(companyId: string | undefined, userIds: string[]) {
   });
 }
 
+// ─── Date filter helper ───────────────────────────────────────────────────────
+
+function matchesDateFilter(createdAt: string, filter: DateFilter): boolean {
+  if (filter === "all") return true;
+  const date = new Date(createdAt);
+  if (filter === "today") return isToday(date);
+  if (filter === "yesterday") return isYesterday(date);
+  if (filter === "this_week") return isAfter(date, startOfWeek(new Date(), { weekStartsOn: 1 }));
+  return true;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EvidenceReview() {
@@ -112,8 +137,15 @@ export default function EvidenceReview() {
   const canRedact = !!(rolesData?.isAdmin || rolesData?.companyRole === "company_owner");
 
   const [statusFilter, setStatusFilter] = useState("submitted");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [search, setSearch] = useState("");
   const [viewerPacket, setViewerPacket] = useState<EvidenceRow | null>(null);
+
+  // Selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const bulkApprove = useBulkApproveEvidence();
 
   const { data: packets = [], isLoading } = useAllEvidencePackets(company?.id);
 
@@ -132,6 +164,7 @@ export default function EvidenceReview() {
 
   const filtered = packets.filter((p) => {
     if (statusFilter !== "all" && p.status !== statusFilter) return false;
+    if (!matchesDateFilter(p.created_at, dateFilter)) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     const taskTitle = (p.subject_type === "task_occurrence" ? taskTitles[p.subject_id] : "") ?? "";
@@ -148,6 +181,58 @@ export default function EvidenceReview() {
     acc[p.status] = (acc[p.status] ?? 0) + 1;
     return acc;
   }, {});
+
+  // Selection helpers — only for "submitted" filter
+  const isSelectionMode = statusFilter === "submitted" && canReview;
+  const selectableIds = useMemo(
+    () => (isSelectionMode ? filtered.map((p) => p.id) : []),
+    [filtered, isSelectionMode]
+  );
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+
+  const toggleOne = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(selectableIds));
+    }
+  }, [allSelected, selectableIds]);
+
+  // Clear selection when filters change
+  const handleStatusFilter = (v: string) => {
+    setStatusFilter(v);
+    setSelected(new Set());
+  };
+
+  const handleDateFilter = (v: DateFilter) => {
+    setDateFilter(v);
+    setSelected(new Set());
+  };
+
+  const handleBulkApprove = async () => {
+    setConfirmOpen(false);
+    const ids = [...selected];
+    try {
+      const result = await bulkApprove.mutateAsync(ids);
+      setSelected(new Set());
+      if (result.failedIds.length === 0) {
+        toast.success(`${result.successCount} packet${result.successCount !== 1 ? "s" : ""} approved`);
+      } else {
+        toast.warning(`${result.successCount} approved, ${result.failedIds.length} failed`);
+      }
+    } catch {
+      toast.error("Bulk approve failed");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -170,7 +255,7 @@ export default function EvidenceReview() {
               key={s}
               variant={statusFilter === s ? "default" : "secondary"}
               className="cursor-pointer"
-              onClick={() => setStatusFilter(s)}
+              onClick={() => handleStatusFilter(s)}
             >
               {s}: {statusCounts[s] ?? 0}
             </Badge>
@@ -179,28 +264,49 @@ export default function EvidenceReview() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by task name, submitter, or notes..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by task name, submitter, or notes..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={handleStatusFilter}>
+            <SelectTrigger className="w-full sm:w-44">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="submitted">Submitted</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Date quick-filters */}
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["all", "All dates"],
+            ["today", "Today"],
+            ["yesterday", "Yesterday"],
+            ["this_week", "This week"],
+          ] as [DateFilter, string][]).map(([value, label]) => (
+            <Badge
+              key={value}
+              variant={dateFilter === value ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => handleDateFilter(value)}
+            >
+              {label}
+            </Badge>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -218,6 +324,15 @@ export default function EvidenceReview() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
+                {isSelectionMode && (
+                  <th className="px-4 py-3 w-10">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleAll}
+                      aria-label="Select all"
+                    />
+                  </th>
+                )}
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Task / Subject</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Submitted by</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
@@ -235,9 +350,22 @@ export default function EvidenceReview() {
                 const submitter = packet.created_by
                   ? employeeNames[packet.created_by]
                   : null;
+                const isChecked = selected.has(packet.id);
 
                 return (
-                  <tr key={packet.id} className="hover:bg-muted/30 transition-colors">
+                  <tr
+                    key={packet.id}
+                    className={`hover:bg-muted/30 transition-colors ${isChecked ? "bg-primary/5" : ""}`}
+                  >
+                    {isSelectionMode && (
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() => toggleOne(packet.id)}
+                          aria-label={`Select ${taskTitle ?? packet.subject_type}`}
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-medium">
@@ -287,6 +415,66 @@ export default function EvidenceReview() {
           </table>
         </div>
       )}
+
+      {/* Bulk action bar */}
+      <StickyActionBar show={selected.size > 0}>
+        <div className="flex items-center justify-between w-full gap-3">
+          <span className="text-sm font-medium">
+            {selected.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelected(new Set())}
+              className="gap-1.5"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => setConfirmOpen(true)}
+              disabled={bulkApprove.isPending}
+            >
+              {bulkApprove.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              Bulk Approve
+            </Button>
+          </div>
+        </div>
+      </StickyActionBar>
+
+      {/* Confirm dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve {selected.size} evidence packet{selected.size !== 1 ? "s" : ""}?</DialogTitle>
+            <DialogDescription>
+              This will mark all selected submissions as approved. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleBulkApprove}
+              disabled={bulkApprove.isPending}
+            >
+              {bulkApprove.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Approve {selected.size}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Evidence viewer dialog */}
       {viewerPacket && (
