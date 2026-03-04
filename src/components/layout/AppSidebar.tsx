@@ -252,7 +252,7 @@ const navigationItems = [
     titleKey: "nav.cmms", 
     url: "/cmms", 
     icon: Cog,
-    module: null,
+    module: "cmms",
     allowedRoles: ['admin', 'manager'],
     subItems: [
       { titleKey: "nav.overview", url: "/cmms/overview" },

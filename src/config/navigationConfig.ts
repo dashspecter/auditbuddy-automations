@@ -194,7 +194,7 @@ export const navigationItems: NavItem[] = [
     title: "CMMS", 
     url: "/cmms", 
     icon: Cog,
-    module: null,
+    module: "cmms",
     allowedRoles: ['admin', 'manager'],
     subItems: [
       { id: "cmms-overview", title: "Overview", url: "/cmms/overview" },
