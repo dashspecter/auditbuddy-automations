@@ -1,59 +1,40 @@
 
 
-# Why Day 3 Data Is Missing — Root Cause Found
+# Two User Management Pages — Analysis & Recommendation
 
-## Evidence from Database
+## What Exists Today
 
-| What I Checked | Result |
-|---|---|
-| Gabriela's submissions (all time) | **ZERO rows** in `form_submissions` |
-| Gabriela's audit entries (all time) | **ZERO rows** in `form_submission_audit` |
-| Current FRIGIDER 6 data (March) | Days 1, 2, 4 only — no day 3 |
-| Gabriela's company/location match | Same company + location as the form |
+| Page | Route | Access Guard | Data Source | Purpose |
+|---|---|---|---|---|
+| **Company Settings → Users** | `/company-settings` (Users tab) | `CompanyOwnerRoute` (owner only) | `company_users` table | Manage users within THIS company: invite, set company role (owner/admin/member), toggle platform roles (manager/HR/checker) |
+| **User Management** | `/admin/users` | `AdminRoute` (platform admin OR company admin) | `profiles` + `user_roles` tables (ALL users globally) | Manage ALL platform users across ALL companies, assign platform roles, assign role templates |
 
-**Gabriela's data was never persisted to the database.** She has zero submissions and zero audit entries across the entire system.
+## The Problem
 
-## What Happened — Timeline Reconstruction
+1. **Overlapping functionality**: Both pages let you toggle platform roles (manager/HR/checker). A company owner/admin sees both in the sidebar and doesn't know which to use.
 
-The `upsert_form_submission` function and `form_submission_audit` table were deployed **today** (March 4). Before today, the old save code had two branches:
+2. **User Management shows "0 users"**: It queries the global `profiles` table without filtering by company. For a company admin (not platform admin), RLS likely blocks access to other companies' profiles, and the query has no company filter — so it may return nothing or only the current user.
 
-1. **Branch A** (happy path): Re-query the existing submission → found → client-side deep merge → UPDATE
-2. **Branch B** (data loss): Re-query returns null (transient issue) → INSERT ON CONFLICT UPDATE with **only local gridData, no merge**
+3. **User Management is at `/admin/users`** behind `AdminRoute` which allows both platform admins AND company admins (line 43: `!roleData?.isAdmin && !roleData?.isCompanyAdmin`). But the page was designed for **platform-level** global management — it shouldn't be accessible to company admins at all.
 
-When Gabriela saved on March 3, she hit **Branch B**. Her `gridData` (days 1 + her new day 3) was sent as an upsert. However, the INSERT ON CONFLICT UPDATE **overwrote** the entire row with her local state. This means Romeo's day 1 data was replaced with her version of day 1 + her day 3.
+4. **Confusing nav**: The sidebar shows both "Company Settings" and "User Management" under SETTINGS for company owners/admins, creating confusion about which one to use.
 
-Then on March 4, when Serdar (or someone else adding day 2 with initials "M.G") saved and ALSO hit Branch B, their local state (which may not have included day 3) **overwrote Gabriela's data again**. Each person hitting the no-merge branch caused cascading data loss.
+## Recommendation
 
-## Current Status
+**Company Settings → Users** is the correct page for company-level user management. **User Management** should be restricted to platform admins only (for cross-company, global user administration).
 
-- The `upsert_form_submission` function is now live and **prevents this from happening again** — all saves are atomic server-side deep merges
-- Day 3 data is **permanently lost** from the database — it needs to be manually re-entered
-- The form currently **restricts editing to today only** (`day !== todayDay` disables inputs), so Gabriela cannot re-enter day 3 data
+### Changes
 
-## Fix Plan
+1. **Restrict User Management to platform admins only**
+   - `src/config/navigationConfig.ts` line 351: Change `requiresCompanyAdmin: true` → `requiresPlatformAdmin: true`
+   - `src/App.tsx` line 342: The route already uses `AdminRoute`, but `AdminRoute` allows company admins too. Either create a stricter `PlatformAdminRoute` or update `AdminRoute` to have a `platformOnly` prop for this route.
+   - Simplest approach: change the route guard from `<AdminRoute>` to check `roleData?.isAdmin` only (not `isCompanyAdmin`)
 
-### 1. Allow editing recent past days (not just today)
+2. **No changes needed to Company Settings → Users** — it's working correctly for its purpose
 
-Change the `isDayDisabled` logic in `QrFormEntry.tsx` to allow editing the current day **and the previous 2 days** (configurable). This way if a day is missed or data is lost, staff can still enter it within a reasonable window.
+3. **Files to modify**:
+   - `src/config/navigationConfig.ts` — change User Management visibility to `requiresPlatformAdmin`
+   - `src/App.tsx` — wrap User Management route with platform-admin-only guard
 
-```
-// Current (line 376):
-const isDayDisabled = isLocked || day !== todayDay;
-
-// Proposed:
-const isDayDisabled = isLocked || day > todayDay || day < todayDay - 2;
-```
-
-This allows editing today, yesterday, and the day before. Days further back remain read-only.
-
-### 2. Add save failure toast with retry
-
-If the RPC call fails, ensure the error is clearly visible (already handled by `onError` toast) and the draft is preserved in localStorage (already happening via auto-save). No change needed here — the new flow handles this correctly.
-
-### 3. No database changes needed
-
-The upsert function and audit logging are already in place and working correctly.
-
-### Files to modify
-- `src/pages/qr-forms/QrFormEntry.tsx` — relax the day-disabled check to allow recent past days
+This way, company owners/admins use **Company Settings → Users** (scoped to their company), and only platform admins see **User Management** (global cross-company view).
 
