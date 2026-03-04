@@ -404,21 +404,21 @@ const App = () => {
                       <Route path="/workforce/training/assignments/new" element={<ManagerRoute requiredPermission="manage_employees"><TrainingAssignmentNew /></ManagerRoute>} />
                       <Route path="/workforce/training/assignments/:id" element={<ManagerRoute requiredPermission="manage_employees"><TrainingAssignmentDetail /></ManagerRoute>} />
                       
-                      {/* CMMS Routes */}
-                      <Route path="/cmms" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
-                      <Route path="/cmms/overview" element={<ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute>} />
-                      <Route path="/cmms/dashboard" element={<ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute>} />
-                      <Route path="/cmms/assets" element={<ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute>} />
-                      <Route path="/cmms/assets/:id" element={<ProtectedRoute><CmmsAssetDetail /></ProtectedRoute>} />
-                      <Route path="/cmms/work-orders" element={<ProtectedRoute><CmmsWorkOrders /></ProtectedRoute>} />
-                      <Route path="/cmms/preventive" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPmSchedules /></ManagerRoute>} />
-                      <Route path="/cmms/inventory" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPartsInventory /></ManagerRoute>} />
-                      <Route path="/cmms/vendors" element={<ManagerRoute requiredPermission="manage_audits"><CmmsVendors /></ManagerRoute>} />
-                      <Route path="/cmms/teams" element={<ManagerRoute requiredPermission="manage_audits"><CmmsTeams /></ManagerRoute>} />
-                      <Route path="/cmms/procedures" element={<ManagerRoute requiredPermission="manage_audits"><CmmsProcedures /></ManagerRoute>} />
-                      <Route path="/cmms/procedures/:id" element={<ProtectedRoute><CmmsProcedureDetail /></ProtectedRoute>} />
-                      <Route path="/cmms/purchase-orders" element={<ManagerRoute requiredPermission="manage_audits"><CmmsPurchaseOrders /></ManagerRoute>} />
-                      <Route path="/cmms/reports" element={<ManagerRoute requiredPermission="manage_audits"><CmmsReporting /></ManagerRoute>} />
+                       {/* CMMS Routes */}
+                       <Route path="/cmms" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/overview" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsOverview /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/dashboard" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsDashboard /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/assets" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsAssets /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/assets/:id" element={<ModuleGate module="cmms"><ProtectedRoute><CmmsAssetDetail /></ProtectedRoute></ModuleGate>} />
+                       <Route path="/cmms/work-orders" element={<ModuleGate module="cmms"><ProtectedRoute><CmmsWorkOrders /></ProtectedRoute></ModuleGate>} />
+                       <Route path="/cmms/preventive" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsPmSchedules /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/inventory" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsPartsInventory /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/vendors" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsVendors /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/teams" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsTeams /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/procedures" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsProcedures /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/procedures/:id" element={<ModuleGate module="cmms"><ProtectedRoute><CmmsProcedureDetail /></ProtectedRoute></ModuleGate>} />
+                       <Route path="/cmms/purchase-orders" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsPurchaseOrders /></ManagerRoute></ModuleGate>} />
+                       <Route path="/cmms/reports" element={<ModuleGate module="cmms"><ManagerRoute requiredPermission="manage_audits"><CmmsReporting /></ManagerRoute></ModuleGate>} />
                       
                       {/* Inventory Routes */}
                       <Route path="/inventory" element={<ManagerRoute requiredPermission="manage_audits"><Inventory /></ManagerRoute>} />
@@ -484,15 +484,15 @@ const App = () => {
                       <Route path="/admin/agents/workflows/:id" element={<AdminRoute><AgentWorkflows /></AdminRoute>} />
                       <Route path="/admin/agents/run" element={<AdminRoute><RunAgent /></AdminRoute>} />
                       
-                      {/* Operations Agent Routes */}
-                       <Route path="/operations/daily" element={<ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute>} />
-                       <Route path="/operations/daily/:id" element={<ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute>} />
-                       <Route path="/operations/maintenance" element={<ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute>} />
-                       <Route path="/operations/slas" element={<ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute>} />
+                       {/* Operations Routes */}
+                        <Route path="/operations/daily" element={<ModuleGate module="operations"><ManagerRoute requiredPermission="manage_audits"><DailyOps /></ManagerRoute></ModuleGate>} />
+                        <Route path="/operations/daily/:id" element={<ModuleGate module="operations"><ManagerRoute requiredPermission="manage_audits"><DailyOpsDetail /></ManagerRoute></ModuleGate>} />
+                        <Route path="/operations/maintenance" element={<ModuleGate module="operations"><ManagerRoute requiredPermission="manage_audits"><MaintenanceTasks /></ManagerRoute></ModuleGate>} />
+                        <Route path="/operations/slas" element={<ModuleGate module="operations"><ManagerRoute requiredPermission="manage_audits"><SLAManagement /></ManagerRoute></ModuleGate>} />
                        
-                       {/* Corrective Actions (CAPA-lite) Routes */}
-                       <Route path="/corrective-actions" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionsList /></ManagerRoute>} />
-                       <Route path="/corrective-actions/rules" element={<ManagerRoute requiredPermission="manage_audits"><CorrectiveActionRules /></ManagerRoute>} />
+                        {/* Corrective Actions (CAPA-lite) Routes */}
+                        <Route path="/corrective-actions" element={<ModuleGate module="corrective_actions"><ManagerRoute requiredPermission="manage_audits"><CorrectiveActionsList /></ManagerRoute></ModuleGate>} />
+                        <Route path="/corrective-actions/rules" element={<ModuleGate module="corrective_actions"><ManagerRoute requiredPermission="manage_audits"><CorrectiveActionRules /></ManagerRoute></ModuleGate>} />
                        
                        {/* WhatsApp Messaging Routes */}
                        <Route path="/whatsapp-templates" element={<ManagerRoute requiredPermission="manage_notifications"><WhatsAppTemplates /></ManagerRoute>} />
