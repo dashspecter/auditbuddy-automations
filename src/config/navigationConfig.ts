@@ -284,7 +284,7 @@ export const navigationItems: NavItem[] = [
     title: "Operations", 
     url: "/operations/daily", 
     icon: Settings2,
-    module: null,
+    module: "operations",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits',
     subItems: [

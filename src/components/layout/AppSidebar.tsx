@@ -291,7 +291,7 @@ const navigationItems = [
     titleKey: "nav.operations", 
     url: "/operations/daily", 
     icon: Settings2,
-    module: null,
+    module: "operations",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
@@ -306,7 +306,7 @@ const navigationItems = [
     titleKey: "nav.correctiveActions",
     url: "/corrective-actions",
     icon: ShieldAlert,
-    module: null,
+    module: "corrective_actions",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
     subItems: [
