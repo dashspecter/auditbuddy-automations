@@ -11971,6 +11971,21 @@ export type Database = {
         Returns: string
       }
       update_overdue_interventions: { Args: never; Returns: undefined }
+      upsert_form_submission: {
+        Args: {
+          p_company_id: string
+          p_final_submit?: boolean
+          p_location_form_template_id: string
+          p_location_id: string
+          p_new_data: Json
+          p_period_month: number
+          p_period_year: number
+          p_submitted_by: string
+          p_template_id: string
+          p_template_version_id: string
+        }
+        Returns: Json
+      }
       user_has_location_access: {
         Args: { _location_id: string; _user_id: string }
         Returns: boolean
