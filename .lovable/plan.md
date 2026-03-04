@@ -1,36 +1,41 @@
 
 
-# Hiding Billing & Modules for Proper Pizza
+# Template Marketplace — Broken Navigation Fix
 
-## Context
+## Problem
 
-Proper Pizza is on the `free` tier with `active` status. The "Billing & Modules" nav item and the "Modules" / "Billing" tabs in Company Settings are visible to company owners but aren't being used.
+Two route mismatches cause every template click to 404:
 
-## The question: per-company or global?
+1. **Cards navigate to `/marketplace/template/${slug}`** (line 174 in `MarketplaceBrowse.tsx`)
+2. **Route is defined as `/marketplace/:id`** (line 462 in `App.tsx`)
+3. **Detail page reads `useParams<{ slug: string }>()` and queries by `slug`** — but the route param is named `:id`
 
-There's currently **no per-company feature flag system** in the codebase. Two approaches:
+So clicking any template goes to `/marketplace/template/kitchen-deep-clean-checklist` which doesn't match any route → error page.
 
-### Option A: Hide globally for non-platform-admin users (recommended)
+## Fix (3 small edits)
 
-Since module management is already done by **platform admins** (you) via the Platform Admin panel, company owners don't need "Billing & Modules" or the Modules/Billing tabs in Company Settings. This applies to ALL client companies, not just Proper Pizza.
+### 1. Fix the route in `App.tsx` (line 462)
 
-Changes:
-1. **`navigationConfig.ts` + `navigation.ts` + `AppSidebar.tsx`**: Change `settings-billing` from `requiresOwner: true` → `requiresPlatformAdmin: true` (hides it from company owners, keeps it for platform admins)
-2. **`CompanySettings.tsx`**: Conditionally hide the "Modules" and "Billing" `TabsTrigger` items unless the user is a platform admin
+Change:
+```
+/marketplace/:id → /marketplace/template/:slug
+```
 
-### Option B: Add a per-company flag
+This matches what the cards navigate to and what the detail page expects.
 
-Add a `hide_billing` boolean column to `companies` table, check it in nav and settings. More flexible but adds complexity for something no client company currently uses.
+### 2. Fix the detail page param extraction in `MarketplaceTemplateDetail.tsx` (line 93)
 
-## Recommendation
+Change:
+```typescript
+const { slug } = useParams<{ slug: string }>();
+// Currently: useParams reads "slug" but route param was ":id" — now they match
+```
 
-**Option A** — hide billing/modules from all company owners globally. Platform admins already manage modules via the Platform Admin panel. This is simpler, more secure, and applies the right principle: clients shouldn't self-manage billing/modules if that's handled by the platform operator.
+Actually this already reads `slug`, so once the route uses `:slug`, it works. No change needed here.
 
-### Files to change (4 files, small edits each)
-- `src/config/navigationConfig.ts` — change `requiresOwner` → `requiresPlatformAdmin` on `settings-billing`
-- `src/config/navigation.ts` — same change
-- `src/components/layout/AppSidebar.tsx` — same change in the hardcoded settings array
-- `src/pages/CompanySettings.tsx` — hide "Modules" and "Billing" tabs unless platform admin
+### 3. Verify — no other changes needed
 
-No database changes needed.
+The `useMarketplaceTemplate` hook already queries by `slug` field (line 154 of `useMarketplace.ts`). The data has proper slugs in the database. The only issue is the route path mismatch.
+
+**Total change: 1 line in `App.tsx`** — change `/marketplace/:id` to `/marketplace/template/:slug`.
 
