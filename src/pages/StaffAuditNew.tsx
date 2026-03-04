@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ interface AuditTemplate {
 
 const StaffAuditNew = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const scheduledId = searchParams.get('scheduled');
   const { user } = useAuth();
   const createStaffAudit = useCreateStaffAudit();
   
@@ -58,6 +60,8 @@ const StaffAuditNew = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<AuditTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  const [isScheduledMode, setIsScheduledMode] = useState(false);
+  const [scheduledAuditData, setScheduledAuditData] = useState<any>(null);
   
   // Draft restoration handler
   const handleDraftRestore = useCallback((draft: StaffAuditDraft) => {
@@ -81,6 +85,43 @@ const StaffAuditNew = () => {
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  // Fetch scheduled audit data if coming from calendar
+  useEffect(() => {
+    if (!scheduledId) return;
+    
+    const fetchScheduledAudit = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('scheduled_audits')
+          .select(`
+            *,
+            audit_templates(name, template_type),
+            locations(name),
+            employees(full_name)
+          `)
+          .eq('id', scheduledId)
+          .single();
+        
+        if (error) throw error;
+        if (data) {
+          setScheduledAuditData(data);
+          setIsScheduledMode(true);
+          setFormData(prev => ({
+            ...prev,
+            location_id: data.location_id,
+            employee_id: data.employee_id || '',
+            template_id: data.template_id,
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching scheduled audit:', error);
+        toast.error('Failed to load scheduled audit details');
+      }
+    };
+    
+    fetchScheduledAudit();
+  }, [scheduledId]);
 
   useEffect(() => {
     if (formData.template_id) {
@@ -225,8 +266,19 @@ const StaffAuditNew = () => {
 
       // Clear draft only on successful submission
       await clearDraft();
-      console.log('[StaffAuditNew] Submission successful, draft cleared');
       
+      // If this was a scheduled audit, update its status to completed
+      if (scheduledId) {
+        const { error: updateError } = await supabase
+          .from('scheduled_audits')
+          .update({ status: 'completed' })
+          .eq('id', scheduledId);
+        
+        if (updateError) {
+          console.error('Failed to update scheduled audit status:', updateError);
+        }
+      }
+
       toast.success('Staff audit submitted successfully');
       navigate('/staff-audits');
     } catch (error: any) {
@@ -384,10 +436,12 @@ const StaffAuditNew = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
-            New Staff Audit
+            {isScheduledMode ? 'Scheduled Staff Audit' : 'New Staff Audit'}
           </h1>
           <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
-            Create a new staff performance audit
+            {isScheduledMode && scheduledAuditData
+              ? `Scheduled audit for ${scheduledAuditData.employees?.full_name || 'employee'} at ${scheduledAuditData.locations?.name || 'location'}`
+              : 'Create a new staff performance audit'}
           </p>
         </div>
         {selectedTemplate && (
@@ -412,13 +466,15 @@ const StaffAuditNew = () => {
                     id="location"
                     value={formData.location_id}
                     onValueChange={(value) => {
+                      if (isScheduledMode) return; // Don't allow changes in scheduled mode
                       setFormData(prev => ({
                         ...prev,
                         location_id: value,
-                        employee_id: "", // Reset employee when location changes
+                        employee_id: "",
                       }));
                     }}
                     placeholder="Select location"
+                    disabled={isScheduledMode}
                   />
                 </div>
 
@@ -427,7 +483,7 @@ const StaffAuditNew = () => {
                   <Select
                     value={formData.employee_id}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}
-                    disabled={!formData.location_id || formData.location_id === "__all__"}
+                    disabled={isScheduledMode || !formData.location_id || formData.location_id === "__all__"}
                   >
                     <SelectTrigger id="employee">
                       <SelectValue placeholder="Select employee" />
@@ -482,16 +538,18 @@ const StaffAuditNew = () => {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="template">Template (Optional)</Label>
+                  <Label htmlFor="template">{isScheduledMode ? 'Template' : 'Template (Optional)'}</Label>
                   <Select
                     value={formData.template_id || "none"}
                     onValueChange={(value) => {
+                      if (isScheduledMode) return;
                       setFormData(prev => ({ 
                         ...prev, 
                         template_id: value === "none" ? null : value,
-                        customData: {}, // Reset custom data when template changes
+                        customData: {},
                       }));
                     }}
+                    disabled={isScheduledMode}
                   >
                     <SelectTrigger id="template">
                       <SelectValue placeholder="Select a template" />

@@ -7517,6 +7517,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          employee_id: string | null
           frequency: string | null
           id: string
           location_id: string
@@ -7529,6 +7530,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          employee_id?: string | null
           frequency?: string | null
           id?: string
           location_id: string
@@ -7541,6 +7543,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          employee_id?: string | null
           frequency?: string | null
           id?: string
           location_id?: string
@@ -7554,6 +7557,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_audits_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {

@@ -1,0 +1,1 @@
+ALTER TABLE public.scheduled_audits ADD COLUMN employee_id uuid REFERENCES public.employees(id) ON DELETE SET NULL;
