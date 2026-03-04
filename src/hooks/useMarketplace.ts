@@ -487,7 +487,7 @@ export function useInstallMarketplaceTemplate() {
 
           if (sectionError) {
             console.error("Error creating section:", sectionError);
-            continue;
+            throw new Error(`Failed to create section "${section.name}": ${sectionError.message}`);
           }
 
           // Create fields for this section
@@ -495,7 +495,7 @@ export function useInstallMarketplaceTemplate() {
             for (let fieldIndex = 0; fieldIndex < section.fields.length; fieldIndex++) {
               const field = section.fields[fieldIndex];
               
-              await supabase
+              const { error: fieldError } = await supabase
                 .from("audit_fields")
                 .insert({
                   section_id: newSection.id,
@@ -505,6 +505,11 @@ export function useInstallMarketplaceTemplate() {
                   is_required: field.required || false,
                   options: field.options ? { choices: field.options } : null,
                 });
+
+              if (fieldError) {
+                console.error("Error creating field:", fieldError);
+                throw new Error(`Failed to create field "${field.name}": ${fieldError.message}`);
+              }
             }
           }
         }
