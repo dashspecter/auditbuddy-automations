@@ -293,14 +293,14 @@ const AuditsCalendar = () => {
     return Object.values(eventsByDay).some(count => count > 3);
   }, [events]);
 
-  // Auto-switch to list view on mobile when overlapping
+  // Auto-switch to list view on mobile (always default to list on mobile for readability)
   useEffect(() => {
-    if (isMobile && hasOverlappingEvents) {
+    if (isMobile) {
       setViewMode('list');
-    } else if (!isMobile) {
+    } else {
       setViewMode('calendar');
     }
-  }, [isMobile, hasOverlappingEvents]);
+  }, [isMobile]);
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const { status, isOwnAudit, templateType } = event.resource;
@@ -606,7 +606,7 @@ const AuditsCalendar = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 py-4 sm:px-4 sm:py-8">
         <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
@@ -680,7 +680,7 @@ const AuditsCalendar = () => {
           </Alert>
         )}
 
-        {isMobile && hasOverlappingEvents && (
+        {isMobile && (
           <div className="mb-4 flex gap-2">
             <Button
               variant={viewMode === 'calendar' ? 'default' : 'outline'}
@@ -703,31 +703,33 @@ const AuditsCalendar = () => {
           </div>
         )}
 
-        <Card className="p-6">
-          <div className="mb-4 flex gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--primary) / 0.2)' }} />
-              <span className="text-sm">Location Audit</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(280 65% 60% / 0.2)' }} />
-              <span className="text-sm">Staff Audit</span>
-            </div>
-            <div className="h-4 w-px bg-border mx-2" />
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded border-l-4" style={{ borderLeftColor: 'hsl(var(--primary))' }} />
-              <span className="text-sm">Your Audits</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--destructive) / 0.2)' }} />
-              <span className="text-sm">Overdue</span>
+        <Card className="p-3 sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--primary) / 0.2)' }} />
+                <span className="text-sm">Location Audit</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(280 65% 60% / 0.2)' }} />
+                <span className="text-sm">Staff Audit</span>
+              </div>
+              <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-l-4" style={{ borderLeftColor: 'hsl(var(--primary))' }} />
+                <span className="text-sm">Your Audits</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(var(--destructive) / 0.2)' }} />
+                <span className="text-sm">Overdue</span>
+              </div>
             </div>
             
             {/* Location Filter */}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <Select value={filterLocationId} onValueChange={setFilterLocationId}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Locations" />
                 </SelectTrigger>
                 <SelectContent>
@@ -796,7 +798,7 @@ const AuditsCalendar = () => {
               )}
             </div>
           ) : (
-            <div className="h-[600px] md:h-[600px] h-[500px]">
+            <div className={cn("h-[600px]", isMobile && "h-[450px]")}>
               <Calendar
                 localizer={localizer}
                 events={filteredEvents}
@@ -805,8 +807,8 @@ const AuditsCalendar = () => {
                 style={{ height: '100%' }}
                 eventPropGetter={eventStyleGetter}
                 onSelectEvent={handleSelectEvent}
-                views={['month', 'week', 'day', 'agenda']}
-                defaultView={window.innerWidth < 768 ? 'agenda' : 'month'}
+                views={isMobile ? ['agenda', 'day'] : ['month', 'week', 'day', 'agenda']}
+                defaultView={isMobile ? 'agenda' : 'month'}
                 step={30}
                 timeslots={2}
                 dayLayoutAlgorithm="no-overlap"

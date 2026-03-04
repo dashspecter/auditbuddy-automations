@@ -38,6 +38,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { AutoClockoutSettings } from "@/components/settings/AutoClockoutSettings";
 import { ShiftPresetsManagement } from "@/components/settings/ShiftPresetsManagement";
 import { useCompany } from "@/hooks/useCompany";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileCardList, MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
 const LocationsManagement = () => {
   const { t } = useTranslation();
@@ -52,6 +54,7 @@ const LocationsManagement = () => {
   const { data: company } = useCompany();
   const { data: locations, isLoading } = useLocations(true);
   const deleteLocation = useDeleteLocation();
+  const isMobile = useIsMobile();
 
   const handleTabChange = (value: string) => {
     if (value === "locations") {
@@ -140,6 +143,32 @@ const LocationsManagement = () => {
                 ))}
               </div>
             ) : locations && locations.length > 0 ? (
+              isMobile ? (
+                <MobileCardList
+                  data={locations}
+                  keyExtractor={(loc) => loc.id}
+                  renderCard={(location) => (
+                    <MobileCard onClick={() => handleEdit(location)}>
+                      <MobileCardHeader
+                        title={location.name}
+                        subtitle={location.address || undefined}
+                        badge={
+                          <Badge variant={location.status === "active" ? "default" : "secondary"}>
+                            {location.status}
+                          </Badge>
+                        }
+                        actions={
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleDelete(location.id); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        }
+                      />
+                      <MobileCardRow label={t('locations.management.table.city')} value={location.city || "-"} />
+                      <MobileCardRow label={t('locations.management.table.type')} value={location.type || "-"} />
+                    </MobileCard>
+                  )}
+                />
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -189,6 +218,7 @@ const LocationsManagement = () => {
                   ))}
                 </TableBody>
               </Table>
+              )
             ) : (
               <EmptyState
                 icon={MapPin}
