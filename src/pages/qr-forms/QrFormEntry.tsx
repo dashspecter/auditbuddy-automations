@@ -373,7 +373,7 @@ export default function QrFormEntry() {
                             recommendedRange &&
                             (Number(val) < recommendedRange.min || Number(val) > recommendedRange.max);
 
-                          const isDayDisabled = isLocked || day !== todayDay;
+                          const isDayDisabled = isLocked || day > todayDay || day < todayDay - 2;
 
                           return (
                             <TableCell key={`${day}-${cp.time}-${f.key}`} className="p-1 text-center">
