@@ -381,7 +381,7 @@ const settingsItems = [
     titleKey: "nav.userManagement", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresOwner: true
+    requiresPlatformAdmin: true
   },
   { 
     titleKey: "nav.platformAdmin", 
