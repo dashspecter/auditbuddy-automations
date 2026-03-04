@@ -150,11 +150,26 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: users } = useQuery({
-    queryKey: ['users_for_scheduling'],
+    queryKey: ['users_for_scheduling_company'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data: companyUser } = await supabase
+        .from('company_users')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .single();
+      if (!companyUser) return [];
+      const { data: companyUsers } = await supabase
+        .from('company_users')
+        .select('user_id')
+        .eq('company_id', companyUser.company_id);
+      if (!companyUsers?.length) return [];
+      const userIds = companyUsers.map(cu => cu.user_id);
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
+        .in('id', userIds)
         .order('full_name');
       if (error) throw error;
       return data;
