@@ -1,76 +1,59 @@
 
 
-# Evidence Review: Why Approved Packets Still Show "Pending Review"
+# Bulk Approve for Evidence Review
 
-## The Actual Situation
+## The Problem You've Identified
 
-The RLS fix from the last edit **IS working**. The approval flow now correctly updates the database. Here's proof from the live DB:
+You're absolutely right. With 71 submitted packets, multiple locations, and dozens of photos daily, reviewing each one individually is unsustainable. Most photo evidence for routine tasks (cleaning, temperature logs, restocking) is straightforward — if the photo shows the work done, it's approved. The current one-by-one flow doesn't scale.
 
-```text
-Subject 8bda8a7b (the one you approved):
-  packet 14076db3 → status: approved  (Mar 3)  ✅ 
-  packet 662493b1 → status: submitted (Mar 2)  ← still pending
-  packet 29ae5a10 → status: submitted (Mar 1)  ← still pending
-  packet dc5ba65b → status: submitted (Feb 27) ← still pending
-```
+## Proposed Solution: Bulk Approve with Smart Safeguards
 
-**You approved 1 of 4 packets.** The other 3 are different daily submissions from the same recurring task. The list still shows "Pending review" because those 3 packets genuinely haven't been reviewed yet.
+### What the user sees
 
-The approved packet (Mar 3) **did** move to "approved" status in the DB. But the list defaults to the "submitted" filter, so you only see the remaining unreviewed ones — which all look identical because the list only shows a truncated UUID with no task name or date context.
+1. **Checkbox column** — Each row in the Evidence Review table gets a checkbox. A "Select all" checkbox in the header selects all visible (filtered) packets.
 
-## Root Cause: Missing Context in the List
+2. **Floating action bar** — When 1+ packets are selected, a sticky bar appears at the bottom:
+   - Shows count: "12 selected"
+   - **Bulk Approve** button (green) — approves all selected in one action
+   - **Clear selection** link
+   - No bulk reject (rejections need individual reasons and trigger task resets/notifications — must stay one-by-one)
 
-The Evidence Review table shows:
-- **Type**: "Task Occurrence" (unhelpful — they're all the same)
-- **Subject ID**: truncated UUID like `8bda8a7b…` (impossible to distinguish)
-- **No task name**, no employee name, no occurrence date
+3. **Confirmation dialog** — Before bulk approve executes, a dialog confirms: "Approve 12 evidence packets? This cannot be undone." with Approve / Cancel buttons.
 
-So after approving one packet for task X on Mar 3, the remaining Mar 2, Mar 1, and Feb 27 packets for the same task look identical. You think you already reviewed it, but these are different days.
+4. **Quick filters for faster triage** — Add a "Today" / "Yesterday" / "This week" date filter alongside the existing status filter, so managers can approve today's batch in one sweep.
 
-## Fix Plan
+### Why no Bulk Reject
 
-### 1. Enrich the list query with task name and employee name
+Rejection has side effects: it resets task completions, sends notifications to specific employees, and requires a reason. These are inherently per-packet actions that need individual attention. Bulk approve is safe because approval has no destructive side effects.
 
-Update `useAllEvidencePackets` in `EvidenceReview.tsx` to join with `tasks` (for task title) and `employees`/`profiles` (for submitter name). Replace the truncated UUID with human-readable info.
+## Technical Approach
 
-### 2. Show occurrence/submission date prominently
+### 1. Add selection state to EvidenceReview.tsx
 
-Add the submission date as a key identifier so users can tell "Mar 3" apart from "Mar 1".
+- `useState<Set<string>>` for selected packet IDs
+- Checkbox in each row + select-all in header
+- Only allow selection when viewing "submitted" status filter
 
-### 3. Replace raw subject_id with task title
+### 2. Create `useBulkApproveEvidence` mutation
 
-Instead of `8bda8a7b…`, show "Clean espresso machine" or whatever the task title is.
+- Takes an array of packet IDs
+- Loops through each, calling the same update logic as the single-approve flow (UPDATE status + INSERT event)
+- Since approval has no complex side effects (unlike rejection), a simple loop is sufficient
+- Returns success/failure counts
+- Invalidates the same query keys as single approve
 
-### 4. Show submitter name
+### 3. Add floating action bar component
 
-Add a "Submitted by" column showing the employee who captured the evidence.
+- Renders at the bottom of the page when selection count > 0
+- Contains the approve button and count indicator
+- Includes confirmation dialog before execution
 
-### 5. Add status count summary for approved tab
+### 4. Add date quick-filters
 
-The status chips at the top already work. After this fix, clicking "approved: 6" will show the 6 approved packets, confirming they were saved correctly.
+- "Today" / "Yesterday" / "This week" / "All" toggle buttons next to the status filter
+- Client-side filtering on `created_at` — no extra DB queries needed
 
-## Technical Details
-
-**File: `src/pages/EvidenceReview.tsx`**
-
-1. Update the query to join task title and employee name:
-```sql
-SELECT ep.*, 
-  t.title as task_title,
-  e.first_name || ' ' || e.last_name as submitter_name
-FROM evidence_packets ep
-LEFT JOIN tasks t ON ep.subject_type = 'task_occurrence' AND t.id = ep.subject_id
-LEFT JOIN employees e ON e.user_id = ep.created_by AND e.company_id = ep.company_id
-```
-
-Since PostgREST can't do conditional joins, we'll do a secondary lookup for task names using a separate query or by fetching the title inline via a lightweight helper.
-
-2. Update the table columns:
-   - Replace "Subject ID" with "Task / Subject" showing the task title
-   - Add "Submitted by" column with employee name
-   - Keep the date column
-
-3. Update the `EvidenceRow` type to include `task_title` and `submitter_name`.
-
-**No database changes needed.** The approval flow is already working correctly.
+### Files to modify
+- `src/pages/EvidenceReview.tsx` — selection state, checkboxes, floating bar, date filters
+- `src/hooks/useEvidencePackets.ts` — new `useBulkApproveEvidence` mutation
 
