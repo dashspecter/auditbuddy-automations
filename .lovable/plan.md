@@ -1,53 +1,59 @@
 
 
-# Inactive Modules Showing in Navigation — Root Cause & Fix
+# Why Day 3 Data Is Missing — Root Cause Found
 
-## What's Happening
+## Evidence from Database
 
-The navigation sidebar in `AppSidebar.tsx` uses a hardcoded `navigationItems` array. Each item has a `module` property that `shouldShowItem` checks via `canAccessModule()`. If `module` is `null`, the module check is skipped entirely and the item always shows (for users with matching roles).
+| What I Checked | Result |
+|---|---|
+| Gabriela's submissions (all time) | **ZERO rows** in `form_submissions` |
+| Gabriela's audit entries (all time) | **ZERO rows** in `form_submission_audit` |
+| Current FRIGIDER 6 data (March) | Days 1, 2, 4 only — no day 3 |
+| Gabriela's company/location match | Same company + location as the form |
 
-**The CMMS fix is already applied** (`module: "cmms"`) but several other nav items still have `module: null` despite having corresponding module entries in the registry that can be toggled on/off per company:
+**Gabriela's data was never persisted to the database.** She has zero submissions and zero audit entries across the entire system.
 
-| Nav Item | Current `module` | Should Be | In moduleRegistry? |
-|---|---|---|---|
-| CMMS | `"cmms"` | ✓ Fixed | ✓ |
-| Operations | `null` | `"operations"` | ✓ |
-| Corrective Actions | `null` | `"corrective_actions"` | ✓ |
-| Equipment | `"equipment_management"` | ✓ Already correct | ✓ |
-| Locations | `null` | Keep `null` (core) | No dedicated module |
-| Tasks | `null` | Keep `null` (core) | No dedicated module |
-| Marketplace | `null` | Keep `null` (core) | No dedicated module |
+## What Happened — Timeline Reconstruction
 
-For PROPER PIZZA specifically (from screenshot 2), these are **inactive**: Equipment Management, Operations, QR Forms, CMMS, Corrective Actions, Inventory, Documents.
+The `upsert_form_submission` function and `form_submission_audit` table were deployed **today** (March 4). Before today, the old save code had two branches:
 
-## Why CMMS Might Still Show
+1. **Branch A** (happy path): Re-query the existing submission → found → client-side deep merge → UPDATE
+2. **Branch B** (data loss): Re-query returns null (transient issue) → INSERT ON CONFLICT UPDATE with **only local gridData, no merge**
 
-If the user hasn't hard-refreshed since the fix deployed, the 15-minute `staleTime` on `company_modules` query means cached data persists. However, the fix itself is correct in code. The broader problem is the other items with `module: null`.
+When Gabriela saved on March 3, she hit **Branch B**. Her `gridData` (days 1 + her new day 3) was sent as an upsert. However, the INSERT ON CONFLICT UPDATE **overwrote** the entire row with her local state. This means Romeo's day 1 data was replaced with her version of day 1 + her day 3.
+
+Then on March 4, when Serdar (or someone else adding day 2 with initials "M.G") saved and ALSO hit Branch B, their local state (which may not have included day 3) **overwrote Gabriela's data again**. Each person hitting the no-merge branch caused cascading data loss.
+
+## Current Status
+
+- The `upsert_form_submission` function is now live and **prevents this from happening again** — all saves are atomic server-side deep merges
+- Day 3 data is **permanently lost** from the database — it needs to be manually re-entered
+- The form currently **restricts editing to today only** (`day !== todayDay` disables inputs), so Gabriela cannot re-enter day 3 data
 
 ## Fix Plan
 
-### 1. Gate remaining nav items by their module (AppSidebar.tsx + navigationConfig.ts + navigation.ts)
+### 1. Allow editing recent past days (not just today)
 
-In all three navigation sources, update:
-- **Operations**: `module: null` → `module: "operations"`
-- **Corrective Actions**: `module: null` → `module: "corrective_actions"`
+Change the `isDayDisabled` logic in `QrFormEntry.tsx` to allow editing the current day **and the previous 2 days** (configurable). This way if a day is missed or data is lost, staff can still enter it within a reasonable window.
 
-These are the only two that have `module: null` but clearly map to toggleable modules in the registry.
+```
+// Current (line 376):
+const isDayDisabled = isLocked || day !== todayDay;
 
-### 2. Add ModuleGate to CMMS routes (App.tsx)
+// Proposed:
+const isDayDisabled = isLocked || day > todayDay || day < todayDay - 2;
+```
 
-Currently, CMMS routes only have `ManagerRoute` guards — no module check. A user could navigate directly to `/cmms` even if the module is inactive. Wrap all CMMS routes with `<ModuleGate module="cmms">`.
+This allows editing today, yesterday, and the day before. Days further back remain read-only.
 
-Same for Operations and Corrective Actions routes if they lack module gates.
+### 2. Add save failure toast with retry
 
-### 3. Files to modify
+If the RPC call fails, ensure the error is clearly visible (already handled by `onError` toast) and the draft is preserved in localStorage (already happening via auto-save). No change needed here — the new flow handles this correctly.
 
-- `src/components/layout/AppSidebar.tsx` — change `module: null` to proper module codes for Operations and Corrective Actions
-- `src/config/navigationConfig.ts` — same changes
-- `src/config/navigation.ts` — same changes  
-- `src/App.tsx` — wrap CMMS, Operations, and Corrective Actions routes with `<ModuleGate>`
+### 3. No database changes needed
 
-### 4. No database changes needed
+The upsert function and audit logging are already in place and working correctly.
 
-The module registry and company_modules table already have the correct entries. This is purely a frontend gating issue.
+### Files to modify
+- `src/pages/qr-forms/QrFormEntry.tsx` — relax the day-disabled check to allow recent past days
 
