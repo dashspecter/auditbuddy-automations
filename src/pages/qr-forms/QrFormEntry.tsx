@@ -141,7 +141,7 @@ export default function QrFormEntry() {
     return () => clearInterval(timer);
   }, [saveDraft]);
 
-  // Save / Submit mutation
+  // Save / Submit mutation — single atomic RPC call, no client-side race conditions
   const submitMutation = useMutation({
     mutationFn: async (finalSubmit: boolean) => {
       if (!user || !assignment) throw new Error("Not ready");
@@ -151,115 +151,30 @@ export default function QrFormEntry() {
         ? { grid: gridData }
         : { rows: rowsData };
 
-      const isGrid = assignment.form_templates?.type === "monthly_grid";
+      const { data: result, error } = await supabase.rpc("upsert_form_submission", {
+        p_location_form_template_id: assignment.id,
+        p_template_id: assignment.template_id,
+        p_template_version_id: assignment.template_version_id,
+        p_company_id: assignment.company_id,
+        p_location_id: assignment.location_id,
+        p_period_year: selectedYear,
+        p_period_month: selectedMonth,
+        p_new_data: formData,
+        p_submitted_by: user.id,
+        p_final_submit: finalSubmit,
+      });
 
-      // CRITICAL: Always re-query the database for the freshest submission
-      // to prevent race conditions where two users create duplicates
-      let freshExisting: any = null;
-      if (isGrid) {
-        const { data: freshRows } = await supabase
-          .from("form_submissions")
-          .select("*")
-          .eq("location_form_template_id", assignment.id)
-          .eq("period_year", selectedYear)
-          .eq("period_month", selectedMonth)
-          .order("created_at", { ascending: true })
-          .limit(5);
-        if (freshRows && freshRows.length > 0) {
-          // Prefer the record with actual data
-          freshExisting = freshRows.find(
-            (s) => s.data && typeof s.data === "object" && Object.keys((s.data as any)?.grid || {}).length > 0
-          ) || freshRows[0];
+      if (error) throw error;
+
+      const res = result as any;
+      if (res && !res.success) {
+        if (res.error === "FORM_LOCKED") {
+          throw new Error("This form is locked and cannot be edited.");
         }
-      } else if (existingSubmission) {
-        freshExisting = existingSubmission;
+        throw new Error(res.error || "Save failed");
       }
 
-      if (freshExisting && (freshExisting.status === "draft" || freshExisting.status === "submitted")) {
-        // Deep-merge grid data: preserve previously saved checkpoint data from other users/sessions
-        let mergedData = formData;
-        if (isGrid) {
-          const existingGrid = (freshExisting.data as any)?.grid || {};
-          const mergedGrid: Record<string, any> = {};
-          const allDays = new Set([
-            ...Object.keys(existingGrid),
-            ...Object.keys(gridData),
-          ]);
-          allDays.forEach((day) => {
-            const existingDay = existingGrid[day] || {};
-            const newDay = gridData[day] || {};
-            const allTimes = new Set([
-              ...Object.keys(existingDay),
-              ...Object.keys(newDay),
-            ]);
-            mergedGrid[day] = {};
-            allTimes.forEach((time) => {
-              mergedGrid[day][time] = {
-                ...(existingDay[time] || {}),
-                ...(newDay[time] || {}),
-              };
-            });
-          });
-          mergedData = { grid: mergedGrid };
-        }
-
-        // Update existing submission with merged data
-        const { error } = await supabase
-          .from("form_submissions")
-          .update({
-            data: mergedData as any,
-            status: finalSubmit ? "submitted" : "draft",
-            submitted_at: finalSubmit ? new Date().toISOString() : null,
-          })
-          .eq("id", freshExisting.id);
-        if (error) throw error;
-
-        // Audit entry
-        await supabase.from("form_submission_audit").insert({
-          submission_id: freshExisting.id,
-          action: finalSubmit ? "final_submit" : "update_cell",
-          new_value: mergedData as any,
-          actor_id: user.id,
-        });
-      } else {
-        // UPSERT: Insert new submission OR update if one already exists (race condition safety)
-        const payload = {
-          company_id: assignment.company_id,
-          location_id: assignment.location_id,
-          location_form_template_id: assignment.id,
-          template_id: assignment.template_id,
-          template_version_id: assignment.template_version_id,
-          period_year: isGrid ? selectedYear : null,
-          period_month: isGrid ? selectedMonth : null,
-          status: finalSubmit ? "submitted" : "draft",
-          submitted_by: user.id,
-          submitted_at: finalSubmit ? new Date().toISOString() : null,
-          data: formData,
-        };
-
-        const upsertOptions: any = {};
-        if (isGrid) {
-          // Use the unique index columns for conflict resolution
-          upsertOptions.onConflict = "location_form_template_id,period_year,period_month";
-        }
-
-        const { data: newSub, error } = await supabase
-          .from("form_submissions")
-          .upsert(payload as any, upsertOptions)
-          .select()
-          .single();
-        if (error) throw error;
-
-        // Audit entry
-        await supabase.from("form_submission_audit").insert({
-          submission_id: newSub.id,
-          action: "create",
-          new_value: formData as any,
-          actor_id: user.id,
-        });
-      }
-
-      // Clear draft
+      // Clear draft on final submit
       if (finalSubmit && token) {
         localStorage.removeItem(getDraftKey(token, selectedYear, selectedMonth));
       }
