@@ -8,6 +8,7 @@ import { CompanyProvider } from "@/contexts/CompanyContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
+import { PlatformAdminRoute } from "@/components/PlatformAdminRoute";
 import { ManagerRoute } from "@/components/ManagerRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { PWAUpdateReadyToast } from "@/components/PWAUpdateReadyToast";
@@ -339,7 +340,7 @@ const App = () => {
                       <Route path="/admin/templates" element={<ManagerRoute requiredPermission="manage_audits"><AdminTemplates /></ManagerRoute>} />
                       <Route path="/admin/templates/:id" element={<ManagerRoute requiredPermission="manage_audits"><TemplateEditor /></ManagerRoute>} />
                       <Route path="/admin/template-library" element={<ManagerRoute requiredPermission="manage_audits"><TemplateLibrary /></ManagerRoute>} />
-                      <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                      <Route path="/admin/users" element={<PlatformAdminRoute><UserManagement /></PlatformAdminRoute>} />
                       <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
                       <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/admin/employees" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
