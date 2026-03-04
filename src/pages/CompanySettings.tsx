@@ -257,10 +257,7 @@ export default function CompanySettings() {
               <Settings className="h-4 w-4" />
               General
             </TabsTrigger>
-            <TabsTrigger value="modules" className="gap-2">
-              <Puzzle className="h-4 w-4" />
-              Modules
-            </TabsTrigger>
+            {/* Modules tab hidden from company users - managed by platform admin */}
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Users
@@ -269,10 +266,7 @@ export default function CompanySettings() {
               <Clock className="h-4 w-4" />
               Workforce
             </TabsTrigger>
-            <TabsTrigger value="billing" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Billing
-            </TabsTrigger>
+            {/* Billing tab hidden from company users - managed by platform admin */}
             <TabsTrigger value="messaging" className="gap-2">
               <MessageSquare className="h-4 w-4" />
               Messaging

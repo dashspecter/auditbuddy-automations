@@ -334,7 +334,7 @@ export const settingsItems: SettingsNavItem[] = [
     title: "Billing & Modules", 
     url: "/pricing", 
     icon: CreditCard,
-    requiresOwner: true
+    requiresPlatformAdmin: true
   },
   { 
     id: "settings-company",
