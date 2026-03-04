@@ -1,40 +1,28 @@
 
 
-# Two User Management Pages — Analysis & Recommendation
+# Fix: User Management Still Showing for Company Owners
 
-## What Exists Today
+## Problem
 
-| Page | Route | Access Guard | Data Source | Purpose |
-|---|---|---|---|---|
-| **Company Settings → Users** | `/company-settings` (Users tab) | `CompanyOwnerRoute` (owner only) | `company_users` table | Manage users within THIS company: invite, set company role (owner/admin/member), toggle platform roles (manager/HR/checker) |
-| **User Management** | `/admin/users` | `AdminRoute` (platform admin OR company admin) | `profiles` + `user_roles` tables (ALL users globally) | Manage ALL platform users across ALL companies, assign platform roles, assign role templates |
+The previous fix updated `navigationConfig.ts` and `App.tsx` but missed the **third copy** of the navigation — the hardcoded `settingsItems` array in `AppSidebar.tsx`. This is why User Management still appears in the sidebar for PROPER PIZZA's company owner.
 
-## The Problem
+At line 384 of `AppSidebar.tsx`, User Management has `requiresOwner: true` instead of `requiresPlatformAdmin: true`.
 
-1. **Overlapping functionality**: Both pages let you toggle platform roles (manager/HR/checker). A company owner/admin sees both in the sidebar and doesn't know which to use.
+## Fix
 
-2. **User Management shows "0 users"**: It queries the global `profiles` table without filtering by company. For a company admin (not platform admin), RLS likely blocks access to other companies' profiles, and the query has no company filter — so it may return nothing or only the current user.
+One line change in `src/components/layout/AppSidebar.tsx`:
 
-3. **User Management is at `/admin/users`** behind `AdminRoute` which allows both platform admins AND company admins (line 43: `!roleData?.isAdmin && !roleData?.isCompanyAdmin`). But the page was designed for **platform-level** global management — it shouldn't be accessible to company admins at all.
+- **Line 384**: Change `requiresOwner: true` to `requiresPlatformAdmin: true`
 
-4. **Confusing nav**: The sidebar shows both "Company Settings" and "User Management" under SETTINGS for company owners/admins, creating confusion about which one to use.
+This aligns the sidebar with the route guard (`PlatformAdminRoute`) and `navigationConfig.ts` — all three sources will now agree that User Management is platform-admin-only.
 
-## Recommendation
+Company owners/admins will continue using **Company Settings → Users tab** to manage their company's users.
 
-**Company Settings → Users** is the correct page for company-level user management. **User Management** should be restricted to platform admins only (for cross-company, global user administration).
+## Also: Header dropdown
 
-### Changes
+The Header component (line 669-673) has a "User Management" link in a dropdown menu. Need to check if it's also gated — if not, wrap it with the same platform admin check.
 
-1. **Restrict User Management to platform admins only**
-   - `src/config/navigationConfig.ts` line 351: Change `requiresCompanyAdmin: true` → `requiresPlatformAdmin: true`
-   - `src/App.tsx` line 342: The route already uses `AdminRoute`, but `AdminRoute` allows company admins too. Either create a stricter `PlatformAdminRoute` or update `AdminRoute` to have a `platformOnly` prop for this route.
-   - Simplest approach: change the route guard from `<AdminRoute>` to check `roleData?.isAdmin` only (not `isCompanyAdmin`)
-
-2. **No changes needed to Company Settings → Users** — it's working correctly for its purpose
-
-3. **Files to modify**:
-   - `src/config/navigationConfig.ts` — change User Management visibility to `requiresPlatformAdmin`
-   - `src/App.tsx` — wrap User Management route with platform-admin-only guard
-
-This way, company owners/admins use **Company Settings → Users** (scoped to their company), and only platform admins see **User Management** (global cross-company view).
+### Files to modify
+- `src/components/layout/AppSidebar.tsx` — change `requiresOwner` to `requiresPlatformAdmin` for User Management
+- `src/components/Header.tsx` — verify/fix the User Management link visibility (only if ungated)
 
