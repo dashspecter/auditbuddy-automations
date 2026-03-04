@@ -1,32 +1,24 @@
 
 
-# Mystery Shopper Templates — Cross-Company Data Leak
+# Tests — Cross-Company Data Leak
 
 ## Root Cause
 
-Two issues combine to leak data across companies:
+The RLS policy `"Anyone can view active tests"` on the `tests` table uses `USING (is_active = true)` with no `company_id` check, applied to `{public}` (all roles). This means every authenticated user sees every active test from every company.
 
-### 1. Overly permissive RLS policy
-The policy `"Public can view active templates by token"` allows SELECT on `mystery_shopper_templates` where `is_active = true` — with **no company_id check**. This was likely intended for the public-facing survey form (accessed via token by unauthenticated users), but it applies to all authenticated users too, so PROPER PIZZA sees templates from every company.
+There is already a correct policy `"Users can view active tests in their company"` that scopes by company — but because RLS policies are OR'd together, the permissive "anyone" policy overrides it entirely.
 
-### 2. No company filter in the query
-The `useMysteryShopperTemplates` hook fetches `.select("*")` with no `.eq('company_id', ...)` filter, relying entirely on RLS. Since the permissive RLS policy returns all active templates, cross-company data leaks through.
+## Fix
 
-## Fix Plan
-
-### Database migration — tighten the public token policy
-- Drop `"Public can view active templates by token"` 
-- Recreate it scoped to the `anon` role only (for the public survey form), not `authenticated`:
+Drop the overly permissive policy. The company-scoped policy already covers authenticated users. If public/anon access is needed (e.g., for take-test links), scope it to `anon` only:
 
 ```sql
-DROP POLICY "Public can view active templates by token" ON mystery_shopper_templates;
-CREATE POLICY "Anon can view active templates by token"
-ON mystery_shopper_templates FOR SELECT TO anon
+DROP POLICY "Anyone can view active tests" ON tests;
+
+CREATE POLICY "Anon can view active tests by link"
+ON tests FOR SELECT TO anon
 USING (is_active = true);
 ```
 
-This way authenticated users only see their own company's templates (via the existing `"Users can view templates in their company"` policy), while unauthenticated public survey access still works.
-
-### No code changes needed
-The query doesn't need a `company_id` filter because once the RLS is fixed, authenticated users will only see their own company's templates automatically.
+No code changes needed — the existing company-scoped policy handles authenticated users correctly once the permissive policy is removed.
 
