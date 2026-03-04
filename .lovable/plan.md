@@ -1,76 +1,52 @@
 
 
-# Deep Dive Audit: Staff Audit Scheduling — Issues Found
+# RLS Fix: Scope Kiosk Policy Without Breaking Kiosk View
 
-## Summary
+## The Problem
 
-After examining the database schema, RLS policies, hooks, dialog, calendar, and execution page end-to-end, I found **1 critical bug** that will break the flow at runtime, plus **2 minor issues** worth fixing.
+The current kiosk RLS policy on `employees` has no company scoping, leaking cross-tenant data. But we **cannot** simply add `company_id = get_user_company_id(auth.uid())` because:
 
----
+- The kiosk view (`/kiosk/:token`) runs **outside auth context** (anonymous session, `auth.uid() = NULL`)
+- `KioskDashboard.tsx` queries `employees` directly via the Supabase client (lines 111-116)
+- Adding company scoping would make `get_user_company_id(NULL)` return `NULL`, breaking the kiosk entirely
 
-## Critical Bug: RLS Blocks Status Update After Audit Completion
+## The Safe Fix
 
-**What happens**: When a staff member (checker/staff role) completes a scheduled staff audit via `StaffAuditNew.tsx`, the code at line 271-276 tries to update the `scheduled_audits` row's status to `completed`:
-
-```typescript
-await supabase
-  .from('scheduled_audits')
-  .update({ status: 'completed' })
-  .eq('id', scheduledId);
-```
-
-**Why it fails**: The UPDATE RLS policy on `scheduled_audits` requires `has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'manager')`. A regular staff/checker user who was *assigned* the audit cannot update it. The update silently fails (no error thrown, just 0 rows affected), so the audit gets submitted to `staff_audits` but the schedule stays as `scheduled` forever.
-
-**Fix**: Add an RLS policy allowing the assigned user to update their own scheduled audit's status:
+Replace the kiosk policy with one that scopes by **location's company** instead of the user's company. The policy should ensure a kiosk can only see employees whose `company_id` matches the company that owns the kiosk's location:
 
 ```sql
-CREATE POLICY "Assigned users can update their scheduled audit status"
-ON public.scheduled_audits
-FOR UPDATE
-TO authenticated
+DROP POLICY IF EXISTS "Kiosk can view employees at its location" ON public.employees;
+
+CREATE POLICY "Kiosk can view employees at its location"
+ON public.employees
+FOR SELECT
+TO authenticated, anon
 USING (
-  company_id = get_user_company_id(auth.uid())
-  AND assigned_to = auth.uid()
-)
-WITH CHECK (
-  company_id = get_user_company_id(auth.uid())
-  AND assigned_to = auth.uid()
+  EXISTS (
+    SELECT 1 FROM attendance_kiosks ak
+    WHERE ak.location_id = employees.location_id
+    AND ak.is_active = true
+    AND ak.company_id = employees.company_id  -- same company constraint
+  )
 );
 ```
 
----
+This works because:
+- **For kiosk (anon)**: The kiosk queries `.eq("location_id", locationId)` — the policy validates that an active kiosk exists at that location AND belongs to the same company as the employee. Since kiosks and employees in the same company share `company_id`, Fresh Brunch kiosks only expose Fresh Brunch employees.
+- **For authenticated users from other companies**: Even though the policy is permissive, a PROPER PIZZA user would need an active kiosk at a Fresh Brunch location to see their employees — which doesn't exist. The `ak.company_id = employees.company_id` ensures the kiosk must belong to the employee's company.
 
-## Minor Issue 1: useUpdateScheduledAudit Passes Joined Relations
+## Why This Doesn't Break Fresh Brunch Kiosks
 
-In `useScheduledAuditsNew.ts` line 134, the mutation destructures `{ id, ...updates }` from a `Partial<ScheduledAudit>`. The `ScheduledAudit` interface includes joined relation fields (`audit_templates`, `locations`, `employees`, `profiles`). If these are accidentally included in the update payload, Supabase will reject them as unknown columns.
-
-**Fix**: Explicitly pick only valid columns before sending to `.update()`.
-
----
-
-## Minor Issue 2: Company-Scoped User Filtering Missing in Dialog
-
-The "Assign To" dropdown in `ScheduleAuditDialog.tsx` (line 152-162) fetches ALL profiles across all companies. This is a pre-existing issue but should be addressed — filter users by the current user's company via `company_users` join.
-
----
-
-## What's Working Correctly
-
-- Database: `employee_id` column exists on `scheduled_audits`, nullable, references `employees(id)` — correct
-- RLS: SELECT is company-scoped, INSERT/UPDATE/DELETE require admin/manager — correct for scheduling
-- Badge: `staff` and `location` variants exist in `badge.tsx` — correct
-- Calendar: Staff audit events show employee name, purple color coding, correct routing to `/staff-audits/new?scheduled=ID`
-- Dialog: Template type badges display, employee picker appears conditionally for staff templates, validation enforces employee selection
-- StaffAuditNew: Fetches scheduled audit data, pre-fills and locks fields, updates status on completion (once RLS is fixed)
-- ID extraction: `substring(0, 36)` correctly extracts UUID from `{uuid}-{instanceIndex}` format
-
----
+- Fresh Brunch kiosks have `company_id` = Fresh Brunch's UUID
+- Fresh Brunch employees have `company_id` = Fresh Brunch's UUID  
+- `ak.company_id = employees.company_id` → `true` → employees visible ✓
+- PROPER PIZZA has no kiosks → no rows in `attendance_kiosks` → policy returns `false` → no employees leaked ✓
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| Database migration | Add RLS policy for assigned user UPDATE |
-| `src/hooks/useScheduledAuditsNew.ts` | Sanitize update payload to exclude joined relations |
-| `src/components/ScheduleAuditDialog.tsx` | Filter users query by company (optional but recommended) |
+| Database migration | Drop old policy, create new one with `ak.company_id = employees.company_id` |
+
+No UI changes needed. Single migration file.
 
