@@ -389,6 +389,7 @@ export function useReviewEvidencePacket() {
     },
     onSuccess: (_, args) => {
       queryClient.invalidateQueries({ queryKey: ["evidence_packets", args.subjectType, args.subjectId] });
+      queryClient.invalidateQueries({ queryKey: ["evidence_packets_all"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["task_completions"] });
     },
