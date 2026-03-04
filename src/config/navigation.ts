@@ -449,7 +449,7 @@ export const settingsItems: NavigationItem[] = [
     url: "/pricing",
     icon: CreditCard,
     module: null,
-    requiresOwner: true,
+    requiresPlatformAdmin: true,
     isSettings: true
   },
   {

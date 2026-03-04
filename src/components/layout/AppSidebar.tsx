@@ -369,7 +369,7 @@ const settingsItems = [
     titleKey: "nav.billingModules", 
     url: "/pricing", 
     icon: CreditCard,
-    requiresOwner: true
+    requiresPlatformAdmin: true
   },
   { 
     titleKey: "nav.companySettings", 
