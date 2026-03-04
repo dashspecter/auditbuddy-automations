@@ -13,8 +13,10 @@ export interface ScheduledAudit {
   status: string;
   created_at: string;
   created_by: string;
+  employee_id: string | null;
   audit_templates?: {
     name: string;
+    template_type: string;
   };
   locations?: {
     name: string;
@@ -23,6 +25,9 @@ export interface ScheduledAudit {
     full_name: string | null;
     email: string | null;
   };
+  employees?: {
+    full_name: string;
+  } | null;
 }
 
 export const useScheduledAuditsNew = (locationId?: string) => {
@@ -33,8 +38,9 @@ export const useScheduledAuditsNew = (locationId?: string) => {
         .from("scheduled_audits")
         .select(`
           *,
-          audit_templates(name),
-          locations(name)
+          audit_templates(name, template_type),
+          locations(name),
+          employees(full_name)
         `)
         .order("scheduled_for", { ascending: true });
       
@@ -64,7 +70,6 @@ export const useScheduledAuditsNew = (locationId?: string) => {
         }
       }
       
-      // Attach profile data to each audit
       const auditsWithProfiles = (data || []).map(audit => ({
         ...audit,
         profiles: profilesMap[audit.assigned_to] || null
@@ -79,7 +84,15 @@ export const useCreateScheduledAudit = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (audit: Omit<ScheduledAudit, "id" | "created_at" | "created_by" | "company_id">) => {
+    mutationFn: async (audit: {
+      template_id: string;
+      location_id: string;
+      assigned_to: string;
+      scheduled_for: string;
+      frequency: string | null;
+      status: string;
+      employee_id?: string | null;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
@@ -93,7 +106,12 @@ export const useCreateScheduledAudit = () => {
       
       const { data, error } = await supabase
         .from("scheduled_audits")
-        .insert({ ...audit, created_by: user.id, company_id: companyUser.company_id })
+        .insert({
+          ...audit,
+          created_by: user.id,
+          company_id: companyUser.company_id,
+          employee_id: audit.employee_id || null,
+        })
         .select()
         .single();
       
@@ -102,7 +120,6 @@ export const useCreateScheduledAudit = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-audits-new"] });
-      toast.success("Audit scheduled successfully");
     },
     onError: (error) => {
       toast.error("Failed to schedule audit: " + error.message);
@@ -127,7 +144,6 @@ export const useUpdateScheduledAudit = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-audits-new"] });
-      toast.success("Scheduled audit updated successfully");
     },
     onError: (error) => {
       toast.error("Failed to update scheduled audit: " + error.message);

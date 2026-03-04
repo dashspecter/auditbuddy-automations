@@ -62,6 +62,8 @@ interface CalendarEvent {
     assignedUserId: string;
     isOwnAudit: boolean;
     source?: 'location_audits' | 'scheduled_audits';
+    employeeId?: string | null;
+    employeeName?: string | null;
   };
 }
 
@@ -116,7 +118,10 @@ const AuditsCalendar = () => {
     (scheduledAuditsNew || []).forEach((audit) => {
       const baseDate = new Date(audit.scheduled_for);
       const frequency = audit.frequency || 'one-time';
-      const title = `${audit.locations?.name || 'Unknown Location'} - ${audit.audit_templates?.name || 'Unknown Template'}`;
+      const templateType = audit.audit_templates?.template_type || 'location';
+      const employeeName = audit.employees?.full_name || null;
+      const baseName = `${audit.locations?.name || 'Unknown Location'} - ${audit.audit_templates?.name || 'Unknown Template'}`;
+      const title = employeeName ? `${baseName} — ${employeeName}` : baseName;
       
       const createEvent = (date: Date, instanceIndex: number): CalendarEvent => {
         const endDate = new Date(date.getTime() + 60 * 60 * 1000); // 1 hour duration
@@ -129,11 +134,13 @@ const AuditsCalendar = () => {
             status: audit.status,
             location: audit.locations?.name || 'Unknown Location',
             template: audit.audit_templates?.name || 'Unknown Template',
-            templateType: 'location',
+            templateType,
             assignedTo: audit.profiles?.full_name || audit.profiles?.email || 'Unassigned',
             assignedUserId: audit.assigned_to,
             isOwnAudit: audit.assigned_to === user?.id,
             source: 'scheduled_audits' as const,
+            employeeId: audit.employee_id,
+            employeeName,
           },
         };
       };
@@ -351,10 +358,13 @@ const AuditsCalendar = () => {
     if (selectedEvent) {
       // Handle scheduled audits from scheduled_audits table
       if (selectedEvent.resource.source === 'scheduled_audits') {
-        // Extract the actual ID (remove 'scheduled-' prefix)
         const actualId = selectedEvent.id.replace('scheduled-', '');
-        // Navigate to start a new audit with this scheduled audit's details
-        navigate(`/location-audit?scheduled=${actualId}`);
+        const isStaff = selectedEvent.resource.templateType === 'staff';
+        if (isStaff) {
+          navigate(`/staff-audits/new?scheduled=${actualId.substring(0, 36)}`);
+        } else {
+          navigate(`/location-audit?scheduled=${actualId}`);
+        }
         return;
       }
       
@@ -380,8 +390,13 @@ const AuditsCalendar = () => {
     // Handle scheduled audits from scheduled_audits table
     if (selectedEvent.resource.source === 'scheduled_audits') {
       const actualId = selectedEvent.id.replace('scheduled-', '');
+      const isStaff = selectedEvent.resource.templateType === 'staff';
       setDetailsDialogOpen(false);
-      navigate(`/location-audit?scheduled=${actualId}`);
+      if (isStaff) {
+        navigate(`/staff-audits/new?scheduled=${actualId.substring(0, 36)}`);
+      } else {
+        navigate(`/location-audit?scheduled=${actualId}`);
+      }
       return;
     }
     
@@ -827,6 +842,13 @@ const AuditsCalendar = () => {
                 </div>
               </div>
               
+              {selectedEvent.resource.employeeName && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Employee Being Audited</p>
+                  <p className="font-medium">{selectedEvent.resource.employeeName}</p>
+                </div>
+              )}
+
               <div>
                 <p className="text-sm text-muted-foreground">Assigned To</p>
                 <p className="font-medium">{selectedEvent.resource.assignedTo}</p>
