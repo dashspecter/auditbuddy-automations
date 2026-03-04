@@ -1,59 +1,60 @@
 
 
-# Bulk Approve for Evidence Review
+# Template Install Creates Empty Template — Root Cause & Fix
 
-## The Problem You've Identified
+## Root Cause
 
-You're absolutely right. With 71 submitted packets, multiple locations, and dozens of photos daily, reviewing each one individually is unsustainable. Most photo evidence for routine tasks (cleaning, temperature logs, restocking) is straightforward — if the photo shows the work done, it's approved. The current one-by-one flow doesn't scale.
+Same pattern as the evidence review bug: **RLS policy mismatch between company roles and platform roles**.
 
-## Proposed Solution: Bulk Approve with Smart Safeguards
+The install flow in `useInstallMarketplaceTemplate` does 3 things:
+1. Creates `audit_templates` row — **succeeds** (its RLS checks `company_users` membership)
+2. Creates `audit_sections` rows — **silently fails** (RLS requires platform `manager`/`admin` role via `has_role()`)
+3. Creates `audit_fields` rows — **silently fails** (same RLS issue)
 
-### What the user sees
+**User daniel.proper25@gmail.com** has:
+- `company_role = company_owner` (in `company_users`)
+- No platform role in `user_roles` table
 
-1. **Checkbox column** — Each row in the Evidence Review table gets a checkbox. A "Select all" checkbox in the header selects all visible (filtered) packets.
+The `audit_sections` and `audit_fields` INSERT policies only check `has_role(auth.uid(), 'manager'::app_role)` or `has_role(auth.uid(), 'admin'::app_role)`, which queries `user_roles` — a table where Daniel has no entries.
 
-2. **Floating action bar** — When 1+ packets are selected, a sticky bar appears at the bottom:
-   - Shows count: "12 selected"
-   - **Bulk Approve** button (green) — approves all selected in one action
-   - **Clear selection** link
-   - No bulk reject (rejections need individual reasons and trigger task resets/notifications — must stay one-by-one)
+Result: template shell is created, but sections and fields are silently dropped. The code has `continue` on section errors, so it doesn't even throw.
 
-3. **Confirmation dialog** — Before bulk approve executes, a dialog confirms: "Approve 12 evidence packets? This cannot be undone." with Approve / Cancel buttons.
+## Fix (2 changes)
 
-4. **Quick filters for faster triage** — Add a "Today" / "Yesterday" / "This week" date filter alongside the existing status filter, so managers can approve today's batch in one sweep.
+### 1. Update RLS policies for `audit_sections` and `audit_fields`
 
-### Why no Bulk Reject
+Add company-role-based access to the "Managers can manage sections/fields" policies, similar to the evidence packets fix:
 
-Rejection has side effects: it resets task completions, sends notifications to specific employees, and requires a reason. These are inherently per-packet actions that need individual attention. Bulk approve is safe because approval has no destructive side effects.
+```sql
+-- audit_sections: allow company owners/admins/managers to manage
+DROP POLICY "Managers can manage sections" ON public.audit_sections;
+CREATE POLICY "Managers can manage sections" ON public.audit_sections
+  FOR ALL TO authenticated
+  USING (
+    has_role(auth.uid(), 'manager'::app_role)
+    OR has_role(auth.uid(), 'admin'::app_role)
+    OR EXISTS (
+      SELECT 1 FROM audit_templates t
+      JOIN company_users cu ON cu.company_id = t.company_id
+      WHERE t.id = audit_sections.template_id
+        AND cu.user_id = auth.uid()
+        AND cu.company_role IN ('company_owner', 'company_admin', 'company_manager')
+    )
+  )
+  WITH CHECK (/* same condition */);
 
-## Technical Approach
+-- Same pattern for audit_fields (joining through audit_sections → audit_templates)
+```
 
-### 1. Add selection state to EvidenceReview.tsx
+### 2. Add error handling in install flow
 
-- `useState<Set<string>>` for selected packet IDs
-- Checkbox in each row + select-all in header
-- Only allow selection when viewing "submitted" status filter
+In `useInstallMarketplaceTemplate`, instead of `continue` on section errors, throw the error so the user gets feedback. Also verify sections were actually created before proceeding to fields.
 
-### 2. Create `useBulkApproveEvidence` mutation
+### 3. Backfill: populate the empty installed template
 
-- Takes an array of packet IDs
-- Loops through each, calling the same update logic as the single-approve flow (UPDATE status + INSERT event)
-- Since approval has no complex side effects (unlike rejection), a simple loop is sufficient
-- Returns success/failure counts
-- Invalidates the same query keys as single approve
-
-### 3. Add floating action bar component
-
-- Renders at the bottom of the page when selection count > 0
-- Contains the approve button and count indicator
-- Includes confirmation dialog before execution
-
-### 4. Add date quick-filters
-
-- "Today" / "Yesterday" / "This week" / "All" toggle buttons next to the status filter
-- Client-side filtering on `created_at` — no extra DB queries needed
+Run a one-time fix for Daniel's HACCP template (`d671a1ba`) by re-inserting its sections and fields from the marketplace template content.
 
 ### Files to modify
-- `src/pages/EvidenceReview.tsx` — selection state, checkboxes, floating bar, date filters
-- `src/hooks/useEvidencePackets.ts` — new `useBulkApproveEvidence` mutation
+- `src/hooks/useMarketplace.ts` — better error handling in install mutation
+- Database migration — updated RLS policies for `audit_sections` and `audit_fields`
 
