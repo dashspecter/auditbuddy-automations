@@ -222,7 +222,7 @@ export default function QrFormEntry() {
           actor_id: user.id,
         });
       } else {
-        // Insert new submission
+        // UPSERT: Insert new submission OR update if one already exists (race condition safety)
         const payload = {
           company_id: assignment.company_id,
           location_id: assignment.location_id,
@@ -237,9 +237,15 @@ export default function QrFormEntry() {
           data: formData,
         };
 
+        const upsertOptions: any = {};
+        if (isGrid) {
+          // Use the unique index columns for conflict resolution
+          upsertOptions.onConflict = "location_form_template_id,period_year,period_month";
+        }
+
         const { data: newSub, error } = await supabase
           .from("form_submissions")
-          .insert(payload as any)
+          .upsert(payload as any, upsertOptions)
           .select()
           .single();
         if (error) throw error;
