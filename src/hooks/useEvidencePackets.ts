@@ -305,7 +305,7 @@ export function useReviewEvidencePacket() {
         .eq("id", args.packetId)
         .single();
 
-      const { error: updateErr } = await supabase
+      const { data: updated, error: updateErr } = await supabase
         .from("evidence_packets")
         .update({
           status: args.action,
@@ -313,9 +313,13 @@ export function useReviewEvidencePacket() {
           reviewed_at: now,
           review_reason: args.reason ?? null,
         })
-        .eq("id", args.packetId);
+        .eq("id", args.packetId)
+        .select("id");
 
       if (updateErr) throw updateErr;
+      if (!updated || updated.length === 0) {
+        throw new Error("You don't have permission to review this evidence packet. Please contact an administrator.");
+      }
 
       // Append event
       await supabase.from("evidence_events").insert({
