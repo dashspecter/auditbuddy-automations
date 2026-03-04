@@ -128,12 +128,14 @@ async function logEvent(
 
 // ─── SLA helper ───────────────────────────────────────────────────────────────
 
-export function getSLAPercent(createdAt: string, dueAt: string, closedAt?: string | null): number {
-  const now = closedAt ? new Date(closedAt).getTime() : Date.now();
+export function getSLAPercent(createdAt: string, dueAt: string, closedAt?: string | null, status?: string): number {
+  // For closed/cancelled CAs without a closed_at timestamp, cap at 100% (no live ticking)
+  const isClosed = status === "closed" || status === "cancelled";
+  const resolvedAt = closedAt ? new Date(closedAt).getTime() : (isClosed ? new Date(dueAt).getTime() : Date.now());
   const start = new Date(createdAt).getTime();
   const end = new Date(dueAt).getTime();
   if (end <= start) return 100;
-  return Math.min(100, Math.round(((now - start) / (end - start)) * 100));
+  return Math.min(100, Math.round(((resolvedAt - start) / (end - start)) * 100));
 }
 
 export function isOverdue(dueAt: string): boolean {
