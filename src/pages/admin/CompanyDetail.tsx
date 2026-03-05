@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Package } from "lucide-react";
+import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Package, UserCog } from "lucide-react";
 import { format } from "date-fns";
 import { MODULE_REGISTRY, CATEGORY_LABELS } from "@/config/moduleRegistry";
 import { toast } from "sonner";
@@ -17,6 +19,8 @@ export default function CompanyDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
+  const [editingMaxUsers, setEditingMaxUsers] = useState(false);
+  const [maxUsersInput, setMaxUsersInput] = useState("");
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['admin-company-detail', id],
@@ -167,6 +171,18 @@ export default function CompanyDetail() {
         ))}
       </div>
 
+      {/* User Limit Management */}
+      <UserLimitCard
+        companyId={id!}
+        maxUsers={(company as any).max_users}
+        currentUsers={stats?.userCount ?? 0}
+        editingMaxUsers={editingMaxUsers}
+        setEditingMaxUsers={setEditingMaxUsers}
+        maxUsersInput={maxUsersInput}
+        setMaxUsersInput={setMaxUsersInput}
+        queryClient={queryClient}
+      />
+
       {/* Module Management */}
       <Card>
         <CardHeader>
@@ -241,5 +257,115 @@ export default function CompanyDetail() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Extracted User Limit card for CompanyDetail */
+function UserLimitCard({
+  companyId,
+  maxUsers,
+  currentUsers,
+  editingMaxUsers,
+  setEditingMaxUsers,
+  maxUsersInput,
+  setMaxUsersInput,
+  queryClient,
+}: {
+  companyId: string;
+  maxUsers: number | null;
+  currentUsers: number;
+  editingMaxUsers: boolean;
+  setEditingMaxUsers: (v: boolean) => void;
+  maxUsersInput: string;
+  setMaxUsersInput: (v: string) => void;
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const updateMaxUsers = useMutation({
+    mutationFn: async (value: number | null) => {
+      const { error } = await supabase
+        .from('companies')
+        .update({ max_users: value } as any)
+        .eq('id', companyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-company-detail', companyId] });
+      toast.success('User limit updated');
+      setEditingMaxUsers(false);
+    },
+    onError: () => toast.error('Failed to update user limit'),
+  });
+
+  const handleSave = () => {
+    const trimmed = maxUsersInput.trim();
+    if (trimmed === '' || trimmed === '0') {
+      updateMaxUsers.mutate(null);
+    } else {
+      const num = parseInt(trimmed, 10);
+      if (isNaN(num) || num < 1) {
+        toast.error('Enter a valid number or leave empty for unlimited');
+        return;
+      }
+      updateMaxUsers.mutate(num);
+    }
+  };
+
+  const atCapacity = maxUsers !== null && currentUsers >= maxUsers;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserCog className="h-5 w-5" />
+          User Limit
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-6">
+          <div>
+            <p className="text-sm text-muted-foreground">Current Usage</p>
+            <p className={`text-xl font-bold ${atCapacity ? 'text-destructive' : ''}`}>
+              {currentUsers} / {maxUsers ?? '∞'}
+            </p>
+          </div>
+          {editingMaxUsers ? (
+            <div className="flex items-center gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="max-users" className="text-xs">Max users (empty = unlimited)</Label>
+                <Input
+                  id="max-users"
+                  type="number"
+                  min={1}
+                  className="w-32"
+                  value={maxUsersInput}
+                  onChange={(e) => setMaxUsersInput(e.target.value)}
+                  placeholder="∞"
+                />
+              </div>
+              <Button size="sm" onClick={handleSave} disabled={updateMaxUsers.isPending}>
+                Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingMaxUsers(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setMaxUsersInput(maxUsers?.toString() ?? '');
+                setEditingMaxUsers(true);
+              }}
+            >
+              Edit Limit
+            </Button>
+          )}
+        </div>
+        {atCapacity && (
+          <p className="text-sm text-destructive mt-2">This company has reached its user limit.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

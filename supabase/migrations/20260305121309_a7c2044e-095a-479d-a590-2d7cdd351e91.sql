@@ -1,0 +1,1 @@
+ALTER TABLE public.companies ADD COLUMN max_users integer DEFAULT NULL;
