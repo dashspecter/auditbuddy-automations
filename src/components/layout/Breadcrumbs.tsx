@@ -33,6 +33,12 @@ const routeNameMap: Record<string, string> = {
   edit: "Edit",
   "staff-audits": "Employee Audits",
   reports: "Reports",
+  companies: "Companies",
+  platform: "Platform Admin",
+};
+
+const pathOverrideMap: Record<string, string> = {
+  "/admin": "/admin/platform",
 };
 
 export const Breadcrumbs = () => {
@@ -52,7 +58,8 @@ export const Breadcrumbs = () => {
     .map((segment, index, filteredSegments) => {
       // Build path from original segments up to this filtered segment
       const originalIndex = pathSegments.indexOf(segment);
-      const path = `/${pathSegments.slice(0, originalIndex + 1).join("/")}`;
+      const rawPath = `/${pathSegments.slice(0, originalIndex + 1).join("/")}`;
+      const path = pathOverrideMap[rawPath] || rawPath;
       const isLast = index === filteredSegments.length - 1;
       const name = routeNameMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
 
