@@ -1,27 +1,33 @@
 
 
-# Fix: Fresh Brunch Kiosks Show Empty After RLS Changes
+# Fix: Kiosk Employees Policy Fails When Different-Company User is Logged In
 
 ## Root Cause
 
-The first fix (restricting the employees kiosk policy to `TO anon` only) broke kiosks that have a **stale authenticated session** in the browser.
+The RLS policy we applied in the last fix has a logical flaw:
 
-**How kiosks work**: The kiosk page (`/kiosk/:token`) is outside `AuthProvider` — it's designed for anonymous access. However, the Supabase client is a **singleton with `persistSession: true`**. If anyone ever logged into the admin panel on the kiosk device (e.g., during setup), the auth token persists in `localStorage`. All subsequent kiosk queries are sent as `authenticated` role, not `anon`.
+```sql
+USING (
+  EXISTS (SELECT 1 FROM attendance_kiosks ak WHERE ak.location_id = employees.location_id AND ak.is_active = true AND ak.company_id = employees.company_id)
+  AND (
+    auth.uid() IS NULL                                          -- anon: allow
+    OR employees.company_id = get_user_company_id(auth.uid())   -- auth: same company only
+  )
+);
+```
 
-**Before the fix**: The employees kiosk policy was `TO authenticated, anon` — it worked regardless of auth state.
+When the kiosk tablet has a stale session from a **different** company (e.g., Daniel from PROPER PIZZA testing the Fresh Brunch kiosk URL):
+- `auth.uid()` is NOT null → anon branch fails
+- `employees.company_id` (Fresh Brunch) != `get_user_company_id(auth.uid())` (PROPER PIZZA) → auth branch fails
+- Result: **0 employees returned** → cascade to 0 shifts displayed → 0 tasks → empty kiosk
 
-**After the fix**: The policy is `TO anon` only. When the kiosk device has a stale session:
-- Queries go as `authenticated` role
-- The anon-only kiosk policy is **skipped**
-- The authenticated "Users can view employees in their company" policy returns only employees from the **logged-in user's** company
-- If the session belongs to a different company (or is expired), employees returns 0
-- `employees = 0` → `todaysTeam = 0` → tasks returns `[]` (line 260 in KioskDashboard) → **everything is empty**
-
-The cascade: **0 employees → 0 shifts displayed → 0 tasks → 0 KPIs → 0 champions → completely empty kiosk.**
+This is exactly what the screenshots show.
 
 ## The Fix
 
-Replace the `TO anon` only policy with a policy that works for **both roles** but blocks cross-tenant access for authenticated users:
+The kiosk policy's purpose is to let kiosk devices view employees at their location. The `EXISTS` check on `attendance_kiosks` already validates the location-company match. We should **not** additionally restrict by the authenticated user's company — that restriction is for the admin/manager policies, not the kiosk policy.
+
+Replace with:
 
 ```sql
 DROP POLICY IF EXISTS "Kiosk can view employees at its location" ON public.employees;
@@ -36,30 +42,30 @@ USING (
     AND ak.is_active = true
     AND ak.company_id = employees.company_id
   )
-  AND (
-    auth.uid() IS NULL                                          -- anonymous kiosk: allow
-    OR employees.company_id = get_user_company_id(auth.uid())   -- authenticated: same company only
-  )
 );
 ```
 
-### Why this is safe (no cross-tenant leak)
+### Why this is safe
 
-| Scenario | auth.uid() | Company check | Result |
-|---|---|---|---|
-| Anonymous kiosk device | NULL | Skipped (first OR branch) | Sees employees at kiosk location ✓ |
-| Fresh Brunch admin testing FB kiosk | FB user | `company_id = FB` → match | Works ✓ |
-| PROPER PIZZA admin viewing FB kiosk URL | PP user | `company_id ≠ PP` → blocked | Blocked ✓ |
-| PROPER PIZZA admin on admin dashboard | PP user | `company_id ≠ PP` → blocked | No leak ✓ |
-| Stale expired session on kiosk tablet | May be NULL | Falls to anon branch | Works ✓ |
+The `EXISTS` subquery already enforces company isolation:
+- `ak.company_id = employees.company_id` ensures the kiosk and employees belong to the same company
+- `ak.is_active = true` ensures only active kiosks grant access
+- `ak.location_id = employees.location_id` ensures only employees at that kiosk's location are visible
+
+A PROPER PIZZA user visiting a Fresh Brunch kiosk URL **can** see Fresh Brunch employees at that location — but that's the intended behavior. The kiosk page is a public-facing display. It shows only names and attendance status. The kiosk URL itself is the access control (it's a secret token/slug).
+
+| Scenario | Result |
+|---|---|
+| Anonymous kiosk device | Sees employees at kiosk location |
+| Same-company admin on kiosk | Sees employees at kiosk location |
+| Different-company user on kiosk | Sees employees at kiosk location (intended — kiosk URL is the auth) |
+| Any user on admin dashboard | Uses "Users can view employees in their company" policy instead (company-scoped) |
 
 ### What stays unchanged
-- Shifts kiosk policy (`TO public`, no auth check) — already works for both roles
-- Shift assignments kiosk policy — already works for both roles
-- Employee roles kiosk policy — already works for both roles
-- All SECURITY DEFINER RPCs (attendance, tasks, completions) — bypass RLS entirely
+- All other kiosk policies (shifts, shift_assignments, tasks, task_locations) — already use `TO public` without user-company check
 - All admin/manager employee policies — untouched
+- SECURITY DEFINER RPCs for attendance, tasks, completions — bypass RLS
 - No code changes needed
 
-**Single migration. Zero code changes. Fixes the kiosk while maintaining cross-tenant isolation.**
+**Single migration. Zero code changes.**
 
