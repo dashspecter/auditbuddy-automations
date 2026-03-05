@@ -1,51 +1,58 @@
 
+Problem found (deep-dive result):
+- The kiosk is not empty because `get_kiosk_employees` failed. It is returning data correctly.
+- The break happens in this request: `GET /employee_roles?department_id=...` (returns `[]` for anon kiosk).
+- Then `KioskDashboard` applies department filter with `departmentRoleNames=[]`, which filters all employees out:
+  - `employees = allEmployees.filter(e => departmentRoleNames.includes(e.role))` → empty
+  - `todaysTeam` becomes 0
+  - tasks are forced to empty (`if (todaysTeam.length === 0) return []`)
+  - KPI/cards/champions all collapse to zero.
 
-# Fix: Kiosk Dashboard Empty After RPC Migration
+Why this started after the last fixes:
+- Current kiosk employee_roles RLS policy depends on a subquery against `employees`.
+- We removed the kiosk SELECT policy on `employees` (moved to RPC for security isolation).
+- So anon kiosk can no longer satisfy that subquery, and employee_roles visibility collapses to zero.
+- This is a hidden RLS dependency between tables.
 
-## Root Cause Analysis
+Implementation plan (surgical, low blast radius):
+1) Add a dedicated kiosk RPC for department role names
+- New DB function: `public.get_kiosk_department_role_names(p_token text, p_location_id uuid, p_department_id uuid)`
+- SECURITY DEFINER, validates active kiosk by `(device_token OR custom_slug)` + location match.
+- Returns role names from `employee_roles` for that `department_id` and matching company.
+- Grant EXECUTE to `anon` and `authenticated`.
+- `NOTIFY pgrst, 'reload schema'`.
 
-The kiosk data is empty because of a **token mismatch** between how `useKioskByToken` finds the kiosk and how the RPCs validate the token:
+2) Update kiosk UI to use RPC instead of direct `employee_roles` table select
+- File: `src/components/kiosk/KioskDashboard.tsx`
+- Replace:
+  - `.from("employee_roles").select("name").eq("department_id", departmentId)`
+- With:
+  - `supabase.rpc("get_kiosk_department_role_names", { p_token: kioskToken, p_location_id: locationId, p_department_id: departmentId })`
+- Keep existing filtering behavior unchanged (so department scoping remains exact).
 
-1. `useKioskByToken` uses **case-insensitive `ilike`** fallback to find the kiosk record — so even if the URL has different casing (e.g., `LBFC-Amzei-1` vs `lbfc-amzei-1`), it finds the kiosk
-2. But `kioskToken` passed to `KioskDashboard` comes **from the URL** (line 259: `kioskToken={kioskToken}`), not from the DB record
-3. The `get_kiosk_employees` RPC uses **exact `=` comparison** on `custom_slug` — if casing differs, it returns 0 employees
-4. 0 employees → `todaysTeam = 0` → tasks forced to `[]` (line 258) → everything cascades to empty
+3) Keep all existing employee/task/completion kiosk flows unchanged
+- No changes to:
+  - `get_kiosk_employees`
+  - `get_kiosk_tasks`
+  - `get_kiosk_task_completions`
+  - admin/company RLS policies.
+- This avoids reopening cross-company leakage risk.
 
-The same token mismatch affects ALL kiosk RPCs (`get_kiosk_attendance_logs`, `get_kiosk_tasks`, `get_kiosk_task_completions`), but previously employees bypassed this via RLS (no token needed). Now that employees also use an RPC, the issue is exposed.
+4) Verification checklist (must run end-to-end)
+- Fresh Brunch kiosk URL (affected one):
+  - confirm role query returns non-empty via new RPC
+  - `Today’s Team` > 0 when scheduled
+  - tasks list appears
+  - champions/MTD cards populate as expected
+- PROPER PIZZA admin:
+  - employee list remains company-isolated (no Fresh Brunch rows)
+- Regression smoke:
+  - another kiosk token (different location/department) still works
+  - uppercase/lowercase kiosk URL still works.
 
-## The Fix (2 surgical changes)
-
-### 1. Use canonical token from DB record (AttendanceKiosk.tsx, line 259)
-
-Instead of passing the URL-derived `kioskToken`, pass the kiosk's actual `custom_slug` or `device_token` from the DB record:
-
-```typescript
-// Before:
-kioskToken={kioskToken}
-
-// After:
-kioskToken={kiosk.custom_slug || kiosk.device_token}
-```
-
-This guarantees every RPC receives the exact value stored in the database, regardless of URL casing or encoding.
-
-### 2. Add case-insensitive slug matching to the RPC (defense in depth)
-
-Update `get_kiosk_employees` to use `ILIKE` for the slug comparison:
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_kiosk_employees(...)
--- Change: k.custom_slug = p_token → lower(k.custom_slug) = lower(p_token)
-```
-
-Also add `NOTIFY pgrst, 'reload schema'` to ensure PostgREST picks up the function immediately.
-
-### What stays unchanged
-- All other kiosk RPCs (attendance, tasks, completions) — already working with canonical tokens
-- All admin/manager policies — untouched
-- KioskDashboard component logic — only the token source changes
-- useKioskByToken hook — untouched
-- No RLS policy changes
-
-**2 files changed. 1 migration. Surgical fix.**
-
+Technical notes:
+- This fix removes reliance on fragile cross-table RLS chaining (employee_roles policy depending on employees visibility).
+- It preserves your security direction: public kiosk reads are token-validated through server-side functions, while admin dashboards stay company-scoped by RLS.
+- Expected file changes:
+  - one migration SQL (new RPC + grants + notify)
+  - one frontend file (`KioskDashboard.tsx`) query swap only.
