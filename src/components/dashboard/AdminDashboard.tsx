@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { MaintenanceInterventions } from "./MaintenanceInterventions";
+import { CompanySetupChecklist } from "./CompanySetupChecklist";
 import { AttentionAlertBar } from "./AttentionAlertBar";
 import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
 import { DecliningLocationsCard } from "./DecliningLocationsCard";
@@ -74,6 +75,9 @@ export const AdminDashboard = () => {
 
       {/* Draft Audits Reminder */}
       <DraftAudits />
+
+      {/* Company Setup Checklist */}
+      <CompanySetupChecklist />
 
       {/* 1. Attention Alert Bar */}
       <AttentionAlertBar dateFrom={dateFrom} dateTo={dateTo} />
