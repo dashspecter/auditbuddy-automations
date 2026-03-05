@@ -1,33 +1,38 @@
 
 
-# Fix: Restore Original `TO public` Kiosk Policies
+# Fix: Cross-Company Data Leak on Locations and Departments
 
-## Root Cause
+## Problem
 
-The compatibility migration restored kiosk policies as `TO anon`, but the originals that were "working perfectly" used `TO public` (all roles). This matters because:
+The kiosk recovery migration added two policies with `USING (true)`:
+- `"Public can view locations"` — exposes ALL company locations to every user
+- `"Public can view departments"` — exposes ALL company departments to every user
 
-1. The `shifts` and `shift_assignments` tables have "Kiosk can view..." RLS policies whose subqueries read `attendance_kiosks`
-2. If a browser has ANY authenticated session (even stale), the request runs as `authenticated` role, not `anon`
-3. The `TO anon` policy on `attendance_kiosks` does NOT apply to `authenticated` role
-4. So the subquery inside the shifts policy returns nothing → shifts empty → Today's Team (0) → Tasks (0)
+Proper Pizza (brand new, zero data) sees Fresh Brunch locations because these policies bypass company isolation entirely.
 
-MTD scores and employee names still work because they use SECURITY DEFINER RPCs that bypass RLS entirely.
+## Why kiosks won't break
 
-## Fix (single migration, no code changes)
+Kiosk dashboards get location/department names through `SECURITY DEFINER` RPCs (`get_kiosk_by_token_or_slug`, `get_kiosk_employees`), which bypass RLS. They do **not** need direct table-level `SELECT` on `locations` or `departments`. The `attendance_kiosks` `TO public` policy (needed for shift subqueries) stays untouched.
 
-Drop the four `TO anon` policies and recreate them as `TO public` to match pre-change behavior exactly:
+## Fix — single migration, no code changes
 
-- `attendance_kiosks`: SELECT and UPDATE for active kiosks → `TO public`
-- `locations`: SELECT → `TO public`
-- `departments`: SELECT → `TO public`
+```sql
+DROP POLICY "Public can view locations" ON public.locations;
+DROP POLICY "Public can view departments" ON public.departments;
+```
 
-This restores the exact policy configuration that was working before the hardening attempt.
+Existing company-scoped policies already handle authenticated users:
+- `"Users can view locations in their company"` — `company_id = get_user_company_id(auth.uid())`
+- `"Users can view departments in their company"` — via `company_users` join
+
+## Verification checklist
+
+1. Proper Pizza sees zero locations, zero departments (correct — new account)
+2. Fresh Brunch sees only LBFC locations and their departments
+3. Fresh Brunch kiosk URLs still load with shifts, tasks, employees (RPCs unaffected)
+4. Shift scheduling dropdowns show only own-company locations
 
 ## Risk
 
-Zero — this is restoring the original behavior that was proven working in production.
-
-## Files changed
-
-- 1 database migration only (no frontend code changes needed)
+Zero — removing overly permissive policies while company-scoped policies remain intact. Kiosks use RPCs that bypass RLS.
 
