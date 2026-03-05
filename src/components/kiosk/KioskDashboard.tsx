@@ -89,17 +89,18 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }).toISOString();
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 }).toISOString();
 
-  // Fetch department role names when departmentId is set
+  // Fetch department role names via token-validated RPC (bypasses broken RLS chain)
   const { data: departmentRoleNames } = useQuery({
-    queryKey: ["kiosk-department-roles", departmentId],
+    queryKey: ["kiosk-department-roles", departmentId, kioskToken, locationId],
     queryFn: async () => {
       if (!departmentId) return null;
-      const { data, error } = await supabase
-        .from("employee_roles")
-        .select("name")
-        .eq("department_id", departmentId);
+      const { data, error } = await supabase.rpc("get_kiosk_department_role_names" as any, {
+        p_token: kioskToken,
+        p_location_id: locationId,
+        p_department_id: departmentId,
+      });
       if (error) throw error;
-      return data.map(r => r.name);
+      return ((data as any[]) ?? []).map((r: any) => r.name);
     },
     enabled: !!departmentId,
   });
