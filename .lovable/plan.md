@@ -1,47 +1,47 @@
 
 
-# Add Owner Info to Company Cards in Platform Admin
+# Fix: Owner info not showing for non-Fresh Brunch companies
 
-## What to do
+## Problem
+The owner query uses the Supabase client which goes through RLS. The `company_users` RLS policy restricts visibility to same-company rows only. So the platform admin (logged in as Fresh Brunch) can only see Fresh Brunch's owner — all other companies show no owner.
 
-Show the company owner's name and email on each company card in the "All Companies" list.
+## Solution
+Create a `SECURITY DEFINER` RPC that returns all company owners with their profile info. This function will be restricted to platform admins via an internal role check.
 
-## How
+### 1. New DB function (migration)
 
-### 1. Extend the companies query to fetch owner info
+```sql
+CREATE OR REPLACE FUNCTION public.get_all_company_owners()
+RETURNS TABLE(company_id uuid, full_name text, email text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  -- Only platform admins can call this
+  IF NOT has_role(auth.uid(), 'admin') THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
 
-After fetching companies, do a single query on `company_users` (filtered by `company_role = 'company_owner'`) joined with `profiles` to get owner name/email. Merge into company data.
+  RETURN QUERY
+  SELECT cu.company_id, p.full_name, p.email
+  FROM company_users cu
+  JOIN profiles p ON p.id = cu.user_id
+  WHERE cu.company_role = 'company_owner';
+END;
+$$;
+```
+
+### 2. Update `PlatformAdmin.tsx` (lines 70-89)
+
+Replace the two separate queries (company_users + profiles) with one RPC call:
 
 ```typescript
-// After fetching companies, fetch owners in one query
-const { data: owners } = await supabase
-  .from('company_users')
-  .select('company_id, profiles(full_name, email)')
-  .eq('company_role', 'company_owner');
+const { data: owners } = await supabase.rpc('get_all_company_owners');
 
-// Map owner to each company
-return data.map(c => ({
-  ...c,
-  owner: owners?.find(o => o.company_id === c.id)?.profiles || null
-}));
+return (data || []).map(c => {
+  const owner = owners?.find(o => o.company_id === c.id);
+  return { ...c, owner: owner ? { full_name: owner.full_name, email: owner.email } : null };
+}) as Company[];
 ```
 
-### 2. Update the Company interface
-
-Add `owner?: { full_name: string | null; email: string } | null` to the `Company` interface.
-
-### 3. Display owner in the company card
-
-Add a line below the slug showing owner name/email with a `Shield` or `Users` icon:
-
-```tsx
-{company.owner && (
-  <div className="flex items-center gap-2">
-    <Shield className="h-4 w-4" />
-    <span>{company.owner.full_name || 'No name'} — {company.owner.email}</span>
-  </div>
-)}
-```
-
-**1 file changed: `src/pages/PlatformAdmin.tsx`**. No migrations, no new files.
+**1 migration + 1 file edit (`PlatformAdmin.tsx`).**
 
