@@ -1,59 +1,97 @@
 
 
-# Fix: Kiosk RLS Policy Leaks Employee Data to All Authenticated Users
+# Fix: Tests Visible Across Companies (Cross-Tenant Data Leak)
 
 ## Root Cause
 
-The kiosk policy we created earlier has a critical flaw. It applies to **both `anon` AND `authenticated` roles**:
+Two compounding issues in the `tests` table:
+
+### Issue 1: RLS policy has no company filter
+
+The policy **"Admins and managers can manage tests"** grants full CRUD to anyone with an admin/manager role — across ALL companies:
 
 ```sql
-CREATE POLICY "Kiosk can view employees at its location"
-ON public.employees FOR SELECT
-TO authenticated, anon   -- ← BUG: includes authenticated users
+-- CURRENT (INSECURE)
 USING (
-  EXISTS (
-    SELECT 1 FROM attendance_kiosks ak
-    WHERE ak.location_id = employees.location_id
-    AND ak.is_active = true
-    AND ak.company_id = employees.company_id
-  )
-);
+  has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'manager')
+  OR has_company_role(auth.uid(), 'company_admin')
+  OR has_company_role(auth.uid(), 'company_owner')
+)
 ```
 
-Because RLS permissive policies are **OR'd together**, any authenticated user (including Daniel from PROPER PIZZA) can see employees at **any location that has an active kiosk** — regardless of company. The policy checks that `ak.company_id = employees.company_id` (kiosk and employee same company), but it does NOT check that the **requesting user** belongs to that company. Fresh Brunch has 5 active kiosks across their locations, so Daniel sees all Fresh Brunch employees at those locations.
+The `has_company_role` function also lacks company scoping — it checks if the user has that role in ANY company, not their current one:
 
-**Data proof:**
-- Daniel (PROPER PIZZA) has `get_user_company_id` = `7919a60f` (PROPER PIZZA, 0 employees)
-- The "Users can view employees in their company" policy correctly returns 0 rows for him
-- BUT the kiosk policy matches all Fresh Brunch employees at kiosk locations (5 kiosks → covers most of their 65 employees), leaking ~29 active ones
+```sql
+-- has_company_role implementation (no company_id filter!)
+SELECT EXISTS (
+  SELECT 1 FROM company_users
+  WHERE user_id = _user_id AND company_role = _role
+)
+```
+
+Result: Daniel (PROPER PIZZA owner) matches `has_company_role('company_owner')` → sees ALL tests from ALL companies.
+
+### Issue 2: All existing tests have `company_id = NULL`
+
+The `company_id` column is nullable and was never populated. Even if we fix the RLS, the existing `company_id`-based SELECT policy also fails because it checks `company_id IN (user's companies)` and NULL doesn't match anything — so the company-scoped policy never matches these tests either. The role-based policy (without company filter) is the only one that returns rows.
+
+### Issue 3: `test_submissions` has the same problem
+
+The policies "Admins and managers can view all submissions" and "Employees can view their own submissions" both use `has_role()` without company scoping.
 
 ## The Fix
 
-Restrict the kiosk policy to `anon` role only, since kiosks operate without authentication:
+### Database Migration (single migration, 3 parts)
+
+**Part A**: Backfill `company_id` on existing tests using the `created_by` user's company:
 
 ```sql
-DROP POLICY IF EXISTS "Kiosk can view employees at its location" ON public.employees;
+UPDATE tests SET company_id = get_user_company_id(created_by)
+WHERE company_id IS NULL;
 
-CREATE POLICY "Kiosk can view employees at its location"
-ON public.employees
-FOR SELECT
-TO anon   -- Only anonymous kiosk sessions, NOT authenticated users
+ALTER TABLE tests ALTER COLUMN company_id SET NOT NULL;
+```
+
+**Part B**: Replace the role-only RLS policy with a company-scoped one:
+
+```sql
+DROP POLICY "Admins and managers can manage tests" ON tests;
+
+CREATE POLICY "Company managers can manage their tests"
+ON tests FOR ALL TO authenticated
+USING (company_id = get_user_company_id(auth.uid()))
+WITH CHECK (company_id = get_user_company_id(auth.uid()));
+```
+
+This replaces the role-only check with a company-scoped check. Any authenticated user in the company can manage tests (the role gating happens at the UI/code level already).
+
+**Part C**: Fix `test_submissions` SELECT policies to add company scoping:
+
+```sql
+DROP POLICY "Admins and managers can view all submissions" ON test_submissions;
+
+CREATE POLICY "Users can view submissions in their company"
+ON test_submissions FOR SELECT TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM attendance_kiosks ak
-    WHERE ak.location_id = employees.location_id
-    AND ak.is_active = true
-    AND ak.company_id = employees.company_id
+    SELECT 1 FROM tests t
+    WHERE t.id = test_submissions.test_id
+    AND t.company_id = get_user_company_id(auth.uid())
   )
 );
 ```
 
-This is the only change needed. One migration, zero code changes.
+### No Code Changes Needed
 
-## Why This Is Safe
+The existing queries in `TestManagement.tsx`, `TestCreation.tsx`, `TestEdit.tsx` don't filter by `company_id` client-side — they rely on RLS. Once RLS is fixed, the correct data will be returned automatically.
 
-- **Kiosks use anonymous sessions** (`auth.uid() = NULL`) — they only need the `anon` role
-- **Authenticated users** already have proper policies: "Users can view employees in their company" (scoped by `get_user_company_id`) and "Employees can view their own record"
-- **PROPER PIZZA** will correctly see 0 employees (they have none)
-- **Fresh Brunch** kiosks continue working exactly as before (anonymous, scoped by company)
+The only code change: ensure `TestCreation.tsx` and `TestEdit.tsx` set `company_id` when inserting/updating tests (need to verify this).
+
+## Impact
+
+| Before | After |
+|---|---|
+| PROPER PIZZA sees 9 tests from Fresh Brunch | PROPER PIZZA sees 0 tests (correct) |
+| Fresh Brunch tests unchanged | Fresh Brunch tests unchanged |
+| New companies see other companies' tests | New companies start clean |
 
