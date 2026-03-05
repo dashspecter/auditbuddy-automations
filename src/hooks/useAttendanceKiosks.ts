@@ -23,9 +23,21 @@ export const useAttendanceKiosks = () => {
   return useQuery({
     queryKey: ["attendance-kiosks"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: companyData } = await supabase
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!companyData) throw new Error("No company found");
+
       const { data, error } = await supabase
         .from("attendance_kiosks")
         .select(`*, locations:location_id(name), departments:department_id(name)`)
+        .eq("company_id", companyData.company_id)
         .order("created_at", { ascending: false });
       
       if (error) throw error;
@@ -124,8 +136,7 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
         }
       })();
 
-      // Some users may type an apostrophe as a dash (e.g. "bab-s") instead of removing it ("babs").
-      // Try a small set of safe fallbacks.
+      // Try candidates (handle apostrophe-as-dash typo)
       const slugCandidates = Array.from(
         new Set([
           normalizedToken,
@@ -133,76 +144,44 @@ export const useKioskByToken = (tokenOrSlug: string | undefined) => {
         ])
       ).filter(Boolean);
 
-      let data: any = null;
-      let error: any = null;
-
-      // First try to find by custom_slug (friendly URL) - exact match
       for (const candidate of slugCandidates) {
-        const result = await supabase
-          .from("attendance_kiosks")
-          .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
-          .eq("custom_slug", candidate)
-          .eq("is_active", true)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc("get_kiosk_by_token_or_slug", {
+          p_token: candidate,
+        });
 
-        if (result.error) {
-          error = result.error;
-          break;
-        }
-        if (result.data) {
-          data = result.data;
-          break;
-        }
-      }
+        if (error) throw error;
 
-      // If not found by slug (case issues), try case-insensitive match
-      if (!data && !error) {
-        for (const candidate of slugCandidates) {
-          const result = await supabase
-            .from("attendance_kiosks")
-            .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
-            .ilike("custom_slug", candidate)
-            .eq("is_active", true)
-            .maybeSingle();
-
-          if (result.error) {
-            error = result.error;
-            break;
-          }
-          if (result.data) {
-            data = result.data;
-            break;
-          }
-        }
-      }
-
-      // If not found by slug, try by device_token (UUID)
-      if (!data && !error) {
-        const result = await supabase
-          .from("attendance_kiosks")
-          .select(`*, locations:location_id(name, address), custom_slug, department_id, departments:department_id(id, name)`)
-          .eq("device_token", normalizedToken)
-          .eq("is_active", true)
-          .maybeSingle();
-
-        data = result.data;
-        error = result.error;
-      }
-
-      if (error) throw error;
-      return data as (
-        | (AttendanceKiosk & {
+        if (data && data.length > 0) {
+          const row = data[0];
+          return {
+            id: row.id,
+            location_id: row.location_id,
+            company_id: row.company_id,
+            department_id: row.department_id,
+            device_token: row.device_token,
+            device_name: row.device_name,
+            is_active: row.is_active,
+            last_active_at: row.last_active_at,
+            registered_by: row.registered_by,
+            registered_at: row.registered_at,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            custom_slug: row.custom_slug,
+            locations: { name: row.location_name, address: row.location_address },
+            departments: row.department_name ? { id: row.department_id!, name: row.department_name } : null,
+          } as AttendanceKiosk & {
             locations: { name: string; address: string | null };
             custom_slug: string | null;
             departments: { id: string; name: string } | null;
-          })
-        | null
-      );
+          };
+        }
+      }
+
+      return null;
     },
     enabled: !!tokenOrSlug,
-    // Keep refreshing to maintain connection
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-    staleTime: 4 * 60 * 1000, // Data is fresh for 4 minutes
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 4 * 60 * 1000,
   });
 };
 

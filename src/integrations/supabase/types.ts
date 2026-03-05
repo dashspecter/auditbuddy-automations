@@ -11671,6 +11671,27 @@ export type Database = {
           staff_id: string
         }[]
       }
+      get_kiosk_by_token_or_slug: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          custom_slug: string
+          department_id: string
+          department_name: string
+          device_name: string
+          device_token: string
+          id: string
+          is_active: boolean
+          last_active_at: string
+          location_address: string
+          location_id: string
+          location_name: string
+          registered_at: string
+          registered_by: string
+          updated_at: string
+        }[]
+      }
       get_kiosk_department_role_names: {
         Args: {
           p_department_id: string
@@ -12017,6 +12038,10 @@ export type Database = {
       tz_timestamp_to_local_date: {
         Args: { ts: string; tz?: string }
         Returns: string
+      }
+      update_kiosk_last_active: {
+        Args: { p_kiosk_id: string }
+        Returns: undefined
       }
       update_overdue_interventions: { Args: never; Returns: undefined }
       upsert_form_submission: {

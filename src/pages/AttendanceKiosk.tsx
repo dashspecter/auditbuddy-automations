@@ -109,10 +109,7 @@ const AttendanceKiosk = () => {
     
     const updateActivity = async () => {
       try {
-        await supabase
-          .from("attendance_kiosks")
-          .update({ last_active_at: new Date().toISOString() })
-          .eq("id", kiosk.id);
+        await supabase.rpc("update_kiosk_last_active", { p_kiosk_id: kiosk.id });
       } catch (err) {
         console.log('Activity update failed:', err);
       }
