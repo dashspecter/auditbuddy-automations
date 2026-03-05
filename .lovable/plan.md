@@ -1,51 +1,48 @@
 
 
-# Fix: Remove Incorrect Platform Admin Escalation
+# Fix: Company Owners Get Full Management Access
 
-## Problem
+## Why not just give owners "admin" access?
 
-The recent backfill migration inserted `role = 'admin'` into `user_roles` for ALL company owners. In this platform, `user_roles.admin` = **platform administrator** (cross-company access, Platform Administration page, debug tools). Company owners only need `company_owner` in `company_users` — that already grants them full control over their own company via `isCompanyAdmin` checks.
+Because `has_role('admin')` is used in two different contexts:
 
-This means Daniel Popescu (Proper Pizza), gigi kent (BenStone), and Abdullah Thayab (Naturacreta) currently have **god-mode access** to the entire platform.
+1. **Operational tables** (locations, employees, shifts, etc.) — policies check `has_role('admin') OR has_role('manager')`. These are what company owners need.
+2. **Platform-only tables** — policies check `has_role('admin')` ALONE. These 18 policies protect:
+   - `modules`, `industries`, `module_industries`, `company_modules` (platform config)
+   - `scout_*` tables (mystery shopper system — 10 tables)
+   - `notification_templates` (global templates)
+   - `user_roles` (platform role assignments)
 
-## Fix (single migration)
+If we make owners pass the `admin` check, they'd gain access to ALL of the above — managing other companies' modules, editing platform scout templates, assigning platform roles. That's the exact escalation we just fixed.
 
-### 1. Remove incorrect platform admin roles
+## The right approach: owners pass the `manager` check
 
-Delete `user_roles` entries for the three client-owned accounts that should NOT be platform admins:
+Every operational policy uses `has_role('admin') OR has_role('manager')`. By making company owners implicitly pass the `manager` check, they get full management of their company data while platform-only tables stay locked.
+
+## Change: One function update
+
+Update `has_role()` so that when checking for `manager`, it also returns `true` if the user is a `company_owner` or `company_admin` in `company_users`:
 
 ```sql
-DELETE FROM public.user_roles
-WHERE role = 'admin'
-  AND user_id IN (
-    -- Daniel Popescu (Proper Pizza)
-    '595298fc-a95f-4adf-86da-d2115808b37d',
-    -- gigi kent (BenStone)
-    '3445bf86-21b4-45b7-8269-04927bb4357e',
-    -- Abdullah Thayab (Naturacreta)
-    '5ae75931-b114-4139-8792-1606a242a1cb'
-  );
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+  OR (
+    _role = 'manager'::app_role
+    AND EXISTS (
+      SELECT 1 FROM public.company_users
+      WHERE user_id = _user_id
+        AND company_role IN ('company_owner', 'company_admin')
+    )
+  )
+$$;
 ```
 
-Keep `alex@grecea.work` and `alex@lebab.ro` as platform admins.
-
-### 2. Revert onboarding RPC
-
-Remove the `INSERT INTO user_roles` line from `create_company_onboarding`. New company owners should NOT get platform admin. They already get `company_owner` in `company_users`, which grants full company management via existing RLS policies and `isCompanyAdmin` checks.
-
-### 3. Verify RLS works without `user_roles.admin`
-
-Company owners can manage their data because RLS policies check BOTH:
-- `has_role(auth.uid(), 'admin')` — platform admin path
-- `company_users.company_role IN ('company_owner', 'company_admin')` — company admin path
-
-Tables like `locations`, `employees`, `shifts` have policies that check company role, so company owners are NOT blocked.
-
-## Risk
-
-Low. We are removing an accidental privilege escalation. Company owners retain full company management through their `company_owner` role in `company_users`.
-
-## Files changed
-
-- 1 database migration (remove bad roles + revert onboarding RPC)
+This single change instantly unblocks ~40+ tables for company owners. No policy rewrites, no frontend changes. Data isolation is maintained because every operational policy also checks `company_id`.
 
