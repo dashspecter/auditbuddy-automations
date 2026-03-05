@@ -1,40 +1,13 @@
 
 
-# Fix: Kiosk Employees Policy Fails When Different-Company User is Logged In
+# Fix: PROPER PIZZA Seeing Fresh Brunch Employees via Kiosk RLS Policy
 
 ## Root Cause
 
-The RLS policy we applied in the last fix has a logical flaw:
+The kiosk employees policy we just created is **too permissive for authenticated users**:
 
 ```sql
-USING (
-  EXISTS (SELECT 1 FROM attendance_kiosks ak WHERE ak.location_id = employees.location_id AND ak.is_active = true AND ak.company_id = employees.company_id)
-  AND (
-    auth.uid() IS NULL                                          -- anon: allow
-    OR employees.company_id = get_user_company_id(auth.uid())   -- auth: same company only
-  )
-);
-```
-
-When the kiosk tablet has a stale session from a **different** company (e.g., Daniel from PROPER PIZZA testing the Fresh Brunch kiosk URL):
-- `auth.uid()` is NOT null → anon branch fails
-- `employees.company_id` (Fresh Brunch) != `get_user_company_id(auth.uid())` (PROPER PIZZA) → auth branch fails
-- Result: **0 employees returned** → cascade to 0 shifts displayed → 0 tasks → empty kiosk
-
-This is exactly what the screenshots show.
-
-## The Fix
-
-The kiosk policy's purpose is to let kiosk devices view employees at their location. The `EXISTS` check on `attendance_kiosks` already validates the location-company match. We should **not** additionally restrict by the authenticated user's company — that restriction is for the admin/manager policies, not the kiosk policy.
-
-Replace with:
-
-```sql
-DROP POLICY IF EXISTS "Kiosk can view employees at its location" ON public.employees;
-
-CREATE POLICY "Kiosk can view employees at its location"
-ON public.employees FOR SELECT
-TO anon, authenticated
+-- Current (leaking)
 USING (
   EXISTS (
     SELECT 1 FROM attendance_kiosks ak
@@ -42,30 +15,95 @@ USING (
     AND ak.is_active = true
     AND ak.company_id = employees.company_id
   )
-);
+)
 ```
 
-### Why this is safe
+Fresh Brunch has 5 active kiosks across 4 locations, covering 34 employees. Since this policy applies to `authenticated` users too, Daniel (PROPER PIZZA) on the admin dashboard gets **both** policies OR'd together:
+1. "Users can view employees in their company" → PROPER PIZZA employees (29)
+2. "Kiosk can view employees at its location" → Fresh Brunch employees at kiosk locations (34)
 
-The `EXISTS` subquery already enforces company isolation:
-- `ak.company_id = employees.company_id` ensures the kiosk and employees belong to the same company
-- `ak.is_active = true` ensures only active kiosks grant access
-- `ak.location_id = employees.location_id` ensures only employees at that kiosk's location are visible
+Result: PROPER PIZZA sees 29 + 34 = ~63 employees. The screenshot confirms this — 29 results shown are a mix.
 
-A PROPER PIZZA user visiting a Fresh Brunch kiosk URL **can** see Fresh Brunch employees at that location — but that's the intended behavior. The kiosk page is a public-facing display. It shows only names and attendance status. The kiosk URL itself is the access control (it's a secret token/slug).
+## Why Previous Fixes Failed
 
-| Scenario | Result |
+- **`TO anon` only**: Broke kiosks with stale authenticated sessions
+- **`TO anon, authenticated` + company check**: Broke kiosks when stale session is from a different company
+- **`TO anon, authenticated` without company check**: Leaks employees to other companies on admin dashboard
+
+The fundamental problem: **you cannot write a single permissive SELECT policy that correctly serves both kiosk pages and admin dashboards**.
+
+## The Fix: SECURITY DEFINER RPC (matches existing kiosk architecture)
+
+All other kiosk data (attendance, tasks, completions) already uses SECURITY DEFINER RPCs that validate the kiosk token. Employees is the **only** outlier using direct table access. We align it with the existing pattern:
+
+### Step 1: Create `get_kiosk_employees` RPC
+
+```sql
+CREATE OR REPLACE FUNCTION public.get_kiosk_employees(
+  p_token TEXT,
+  p_location_id UUID
+)
+RETURNS TABLE (id UUID, full_name TEXT, avatar_url TEXT, role TEXT, user_id UUID)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Validate kiosk token (same pattern as get_kiosk_attendance_logs)
+  IF NOT EXISTS (
+    SELECT 1 FROM attendance_kiosks k
+    WHERE k.is_active = true
+      AND k.location_id = p_location_id
+      AND (k.device_token = p_token OR k.custom_slug = p_token)
+  ) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT e.id, e.full_name, e.avatar_url, e.role, e.user_id
+  FROM employees e
+  WHERE e.location_id = p_location_id
+    AND e.status = 'active'
+  ORDER BY e.full_name;
+END;
+$$;
+```
+
+### Step 2: Drop the kiosk employees RLS policy
+
+```sql
+DROP POLICY IF EXISTS "Kiosk can view employees at its location" ON public.employees;
+```
+
+The remaining policies ("Users can view employees in their company", "Admins and managers can manage employees in their company", etc.) are all properly company-scoped.
+
+### Step 3: Update 2 code locations to use the RPC
+
+**`src/components/kiosk/KioskDashboard.tsx`** (line ~111):
+```typescript
+// Before: supabase.from("employees").select(...)
+// After:
+const { data, error } = await supabase.rpc("get_kiosk_employees", {
+  p_token: kioskToken,
+  p_location_id: locationId,
+});
+```
+
+**`src/hooks/useStaffTodayTasks.ts`** (line ~731):
+Same change — call the RPC instead of direct table query.
+
+## Why This Is Safe
+
+| Scenario | How it works |
 |---|---|
-| Anonymous kiosk device | Sees employees at kiosk location |
-| Same-company admin on kiosk | Sees employees at kiosk location |
-| Different-company user on kiosk | Sees employees at kiosk location (intended — kiosk URL is the auth) |
-| Any user on admin dashboard | Uses "Users can view employees in their company" policy instead (company-scoped) |
+| Kiosk device (anon or stale auth) | RPC validates token, bypasses RLS → employees returned |
+| Admin dashboard (any company) | No kiosk policy exists → only company-scoped policy applies |
+| Cross-company admin on kiosk URL | RPC validates token, returns data regardless of auth state |
 
-### What stays unchanged
-- All other kiosk policies (shifts, shift_assignments, tasks, task_locations) — already use `TO public` without user-company check
-- All admin/manager employee policies — untouched
-- SECURITY DEFINER RPCs for attendance, tasks, completions — bypass RLS
-- No code changes needed
+This matches exactly how `get_kiosk_attendance_logs`, `get_kiosk_tasks`, and `get_kiosk_task_completions` already work. No new patterns introduced.
 
-**Single migration. Zero code changes.**
+## What stays unchanged
+- All admin/manager employee policies (company-scoped)
+- All other kiosk RPCs (attendance, tasks, completions)
+- Kiosk UI components (only the data-fetching call changes)
+- All other tables and RLS policies
 
