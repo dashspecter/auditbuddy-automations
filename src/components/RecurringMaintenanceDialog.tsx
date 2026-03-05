@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ interface RecurringMaintenanceDialogProps {
 }
 
 export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: RecurringMaintenanceDialogProps) => {
+  const { company } = useCompanyContext();
   const [formData, setFormData] = useState({
     equipment_id: "",
     location_id: "",
@@ -121,7 +123,7 @@ export const RecurringMaintenanceDialog = ({ open, onOpenChange, schedule }: Rec
         onSuccess: () => onOpenChange(false),
       });
     } else {
-      createMutation.mutate(submitData, {
+      createMutation.mutate({ ...submitData, company_id: company?.id || '' }, {
         onSuccess: () => onOpenChange(false),
       });
     }

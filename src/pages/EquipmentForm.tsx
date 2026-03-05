@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +41,7 @@ type EquipmentFormValues = z.infer<typeof equipmentSchema>;
 export default function EquipmentForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { company } = useCompanyContext();
   const isEditing = !!id;
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -161,6 +163,7 @@ export default function EquipmentForm() {
         nextCheckDate.setHours(9, 0, 0, 0); // Set to 9:00 AM
         
         await createIntervention.mutateAsync({
+          company_id: company?.id || '',
           equipment_id: equipmentId,
           location_id: cleanedData.location_id,
           title: `Scheduled Maintenance - ${cleanedData.name}`,
