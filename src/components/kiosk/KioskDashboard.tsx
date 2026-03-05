@@ -104,18 +104,16 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     enabled: !!departmentId,
   });
 
-  // Fetch employees at this location
+  // Fetch employees at this location via SECURITY DEFINER RPC (bypasses RLS, validates kiosk token)
   const { data: allEmployees = [] } = useQuery({
-    queryKey: ["kiosk-employees", locationId],
+    queryKey: ["kiosk-employees", locationId, kioskToken],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, avatar_url, role, user_id")
-        .eq("location_id", locationId)
-        .eq("status", "active")
-        .order("full_name");
+      const { data, error } = await supabase.rpc("get_kiosk_employees", {
+        p_token: kioskToken,
+        p_location_id: locationId,
+      });
       if (error) throw error;
-      return data as Employee[];
+      return (data ?? []) as Employee[];
     },
     refetchInterval: 30000,
   });
