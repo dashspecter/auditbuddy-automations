@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Save, Plus, Trash2, ArrowLeft, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/hooks/useCompany";
 
 interface Question {
   id?: string;
@@ -22,6 +23,7 @@ interface Question {
 const TestEdit = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { data: company } = useCompany();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -229,6 +231,7 @@ const TestEdit = () => {
           is_active: false,
           is_template: false,
           created_by: user?.id,
+          company_id: company?.id,
         })
         .select()
         .single();

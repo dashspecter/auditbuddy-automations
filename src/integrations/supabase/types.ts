@@ -9630,7 +9630,7 @@ export type Database = {
       }
       tests: {
         Row: {
-          company_id: string | null
+          company_id: string
           created_at: string
           created_by: string
           description: string | null
@@ -9647,7 +9647,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          company_id?: string | null
+          company_id: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -9664,7 +9664,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          company_id?: string | null
+          company_id?: string
           created_at?: string
           created_by?: string
           description?: string | null

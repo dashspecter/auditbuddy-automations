@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Save, Sparkles, Plus, Trash2, PencilLine } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/hooks/useCompany";
 import { useLocations } from "@/hooks/useLocations";
 
 const DRAFT_STORAGE_KEY = "test_creation_draft";
@@ -83,6 +84,7 @@ const getInitialTab = () => {
 const TestCreation = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { data: company } = useCompany();
   const navigate = useNavigate();
   const { data: locations } = useLocations();
   const [documents, setDocuments] = useState<any[]>([]);
@@ -223,6 +225,7 @@ const TestCreation = () => {
           expires_at: formData.expiresAt || null,
           is_template: formData.isTemplate,
           created_by: user?.id,
+          company_id: company?.id,
         })
         .select()
         .single();
