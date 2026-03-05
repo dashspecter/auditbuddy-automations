@@ -11552,11 +11552,11 @@ export type Database = {
       }
       create_company_onboarding: {
         Args: {
-          p_industry_id: string
-          p_modules: string[]
+          p_industry_id?: string
+          p_modules?: string[]
           p_name: string
           p_slug: string
-          p_subscription_tier: string
+          p_subscription_tier?: string
         }
         Returns: string
       }
