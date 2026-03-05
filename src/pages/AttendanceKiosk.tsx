@@ -256,7 +256,7 @@ const AttendanceKiosk = () => {
         <KioskDashboard 
           locationId={kiosk.location_id} 
           companyId={kiosk.company_id} 
-          kioskToken={kioskToken}
+          kioskToken={kiosk.custom_slug || kiosk.device_token}
           departmentId={kiosk.department_id}
           qrData={qrData}
           countdown={countdown}
