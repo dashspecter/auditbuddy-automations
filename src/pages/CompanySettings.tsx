@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -415,6 +416,19 @@ export default function CompanySettings() {
                                 </Button>
                               </>
                             )}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-muted-foreground font-medium">Company Role</span>
+                              <InfoTooltip
+                                side="top"
+                                content={
+                                  <div className="space-y-1.5">
+                                    <p><strong>Owner</strong> — Full control over the company, can manage all settings, users, and data</p>
+                                    <p><strong>Admin</strong> — Management access to company data (locations, staff, shifts, audits) but cannot change company settings or manage users</p>
+                                    <p><strong>Member</strong> — Basic access, can view data assigned to them</p>
+                                  </div>
+                                }
+                              />
+                            </div>
                             {company?.userRole === 'company_owner' ? (
                               <Select
                                 value={user.company_role}
@@ -440,43 +454,55 @@ export default function CompanySettings() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-4 pt-2 border-t flex-wrap">
-                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                            <Checkbox
-                              checked={user.platform_roles?.includes('manager') || false}
-                              onCheckedChange={() => handlePlatformRoleToggle(
-                                user.user_id, 
-                                'manager', 
-                                user.platform_roles?.includes('manager') || false
-                              )}
-                              disabled={company?.userRole !== 'company_owner'}
+                        <div className="pt-2 border-t">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <span className="text-xs text-muted-foreground font-medium">Additional Permissions</span>
+                            <InfoTooltip
+                              side="top"
+                              content="These are additional permission flags that can be combined with the company role above"
                             />
-                            <span className="text-sm">Manager</span>
-                          </label>
-                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                            <Checkbox
-                              checked={user.platform_roles?.includes('hr') || false}
-                              onCheckedChange={() => handlePlatformRoleToggle(
-                                user.user_id, 
-                                'hr', 
-                                user.platform_roles?.includes('hr') || false
-                              )}
-                              disabled={company?.userRole !== 'company_owner'}
-                            />
-                            <span className="text-sm">HR</span>
-                          </label>
-                          <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                            <Checkbox
-                              checked={user.platform_roles?.includes('checker') || false}
-                              onCheckedChange={() => handlePlatformRoleToggle(
-                                user.user_id, 
-                                'checker', 
-                                user.platform_roles?.includes('checker') || false
-                              )}
-                              disabled={company?.userRole !== 'company_owner'}
-                            />
-                            <span className="text-sm">Checker</span>
-                          </label>
+                          </div>
+                          <div className="flex gap-4 flex-wrap">
+                            <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                              <Checkbox
+                                checked={user.platform_roles?.includes('manager') || false}
+                                onCheckedChange={() => handlePlatformRoleToggle(
+                                  user.user_id, 
+                                  'manager', 
+                                  user.platform_roles?.includes('manager') || false
+                                )}
+                                disabled={company?.userRole !== 'company_owner'}
+                              />
+                              <span className="text-sm">Manager</span>
+                              <InfoTooltip side="top" content="Grants access to management features like creating shifts, assigning tasks, and viewing reports" />
+                            </label>
+                            <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                              <Checkbox
+                                checked={user.platform_roles?.includes('hr') || false}
+                                onCheckedChange={() => handlePlatformRoleToggle(
+                                  user.user_id, 
+                                  'hr', 
+                                  user.platform_roles?.includes('hr') || false
+                                )}
+                                disabled={company?.userRole !== 'company_owner'}
+                              />
+                              <span className="text-sm">HR</span>
+                              <InfoTooltip side="top" content="Grants access to HR features like Time Off, Payroll, and Payroll Batches" />
+                            </label>
+                            <label className={`flex items-center gap-2 ${company?.userRole === 'company_owner' ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                              <Checkbox
+                                checked={user.platform_roles?.includes('checker') || false}
+                                onCheckedChange={() => handlePlatformRoleToggle(
+                                  user.user_id, 
+                                  'checker', 
+                                  user.platform_roles?.includes('checker') || false
+                                )}
+                                disabled={company?.userRole !== 'company_owner'}
+                              />
+                              <span className="text-sm">Checker</span>
+                              <InfoTooltip side="top" content="Grants access to perform audits and inspections" />
+                            </label>
+                          </div>
                         </div>
                       </div>
                     ))}
