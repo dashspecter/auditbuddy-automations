@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 
 interface PresenceUser {
   id: string;
@@ -15,6 +16,8 @@ export const useSchedulePresence = (weekKey: string, locationId?: string) => {
   const [activeUsers, setActiveUsers] = useState<PresenceUser[]>([]);
   const [userProfile, setUserProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
   const { user } = useAuth();
+  const { company } = useCompanyContext();
+  const companyId = company?.id;
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Fetch current user's profile
@@ -45,14 +48,15 @@ export const useSchedulePresence = (weekKey: string, locationId?: string) => {
       full_name: userProfile?.full_name || user.email?.split('@')[0] || 'Unknown',
       avatar_url: userProfile?.avatar_url,
       viewing_location: locationId || 'all',
+      company_id: companyId,
       online_at: new Date().toISOString(),
     });
-  }, [user, userProfile, locationId]);
+  }, [user, userProfile, locationId, companyId]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !companyId) return;
 
-    const channelName = `schedule-presence-${weekKey}`;
+    const channelName = `schedule-presence-${companyId}-${weekKey}`;
     
     const channel = supabase.channel(channelName, {
       config: {
@@ -72,7 +76,7 @@ export const useSchedulePresence = (weekKey: string, locationId?: string) => {
         Object.values(state).forEach((presences: any[]) => {
           presences.forEach((presence) => {
             // Don't include current user
-            if (presence.id !== user.id) {
+            if (presence.id !== user.id && presence.company_id === companyId) {
               users.push({
                 id: presence.id,
                 email: presence.email,
@@ -103,7 +107,7 @@ export const useSchedulePresence = (weekKey: string, locationId?: string) => {
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [user, weekKey, updatePresence]);
+  }, [user, companyId, weekKey, updatePresence]);
 
   // Update presence when location or profile changes
   useEffect(() => {
