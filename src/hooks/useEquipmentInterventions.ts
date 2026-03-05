@@ -125,7 +125,7 @@ export const useCreateEquipmentIntervention = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (intervention: Omit<EquipmentIntervention, "id" | "created_at" | "updated_at" | "created_by">) => {
+    mutationFn: async (intervention: Omit<EquipmentIntervention, "id" | "created_at" | "updated_at" | "created_by" | "company_id"> & { company_id: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 

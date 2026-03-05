@@ -6,9 +6,14 @@ import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
 import { Link } from "react-router-dom";
 import { format, isPast, isFuture, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 
 export const MaintenanceInterventions = () => {
+  const { hasModule } = useCompanyContext();
   const { data: interventions, isLoading } = useEquipmentInterventions();
+
+  // Module gate: don't render if maintenance module is not active
+  if (!hasModule('maintenance')) return null;
 
   const upcomingInterventions = interventions?.filter(
     (i) => i.status === "scheduled" && isFuture(new Date(i.scheduled_for))

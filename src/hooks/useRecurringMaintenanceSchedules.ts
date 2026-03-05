@@ -78,7 +78,7 @@ export const useCreateRecurringMaintenanceSchedule = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (schedule: Omit<RecurringMaintenanceSchedule, "id" | "created_at" | "updated_at" | "created_by" | "last_generated_date">) => {
+    mutationFn: async (schedule: Omit<RecurringMaintenanceSchedule, "id" | "created_at" | "updated_at" | "created_by" | "last_generated_date" | "company_id"> & { company_id: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 

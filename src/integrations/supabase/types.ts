@@ -3993,7 +3993,7 @@ export type Database = {
         Row: {
           after_photo_url: string | null
           before_photo_url: string | null
-          company_id: string | null
+          company_id: string
           created_at: string
           created_by: string
           description: string | null
@@ -4013,7 +4013,7 @@ export type Database = {
         Insert: {
           after_photo_url?: string | null
           before_photo_url?: string | null
-          company_id?: string | null
+          company_id: string
           created_at?: string
           created_by: string
           description?: string | null
@@ -4033,7 +4033,7 @@ export type Database = {
         Update: {
           after_photo_url?: string | null
           before_photo_url?: string | null
-          company_id?: string | null
+          company_id?: string
           created_at?: string
           created_by?: string
           description?: string | null
@@ -7155,6 +7155,7 @@ export type Database = {
       recurring_maintenance_schedules: {
         Row: {
           assigned_user_id: string
+          company_id: string
           created_at: string
           created_by: string
           day_of_month: number | null
@@ -7175,6 +7176,7 @@ export type Database = {
         }
         Insert: {
           assigned_user_id: string
+          company_id: string
           created_at?: string
           created_by: string
           day_of_month?: number | null
@@ -7195,6 +7197,7 @@ export type Database = {
         }
         Update: {
           assigned_user_id?: string
+          company_id?: string
           created_at?: string
           created_by?: string
           day_of_month?: number | null
@@ -7219,6 +7222,13 @@ export type Database = {
             columns: ["assigned_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_maintenance_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
