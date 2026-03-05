@@ -67,32 +67,14 @@ export default function PlatformAdmin() {
 
       if (error) throw error;
 
-      // Fetch owners in one query
-      const { data: ownerLinks } = await supabase
-        .from('company_users')
-        .select('company_id, user_id')
-        .eq('company_role', 'company_owner');
-
-      let ownerProfiles: Record<string, { full_name: string | null; email: string }> = {};
-      if (ownerLinks && ownerLinks.length > 0) {
-        const ownerUserIds = ownerLinks.map(o => o.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', ownerUserIds);
-
-        if (profiles) {
-          for (const p of profiles) {
-            ownerProfiles[p.id] = { full_name: p.full_name, email: p.email };
-          }
-        }
-      }
+      // Fetch all company owners via RPC (bypasses RLS for platform admins)
+      const { data: owners } = await supabase.rpc('get_all_company_owners');
 
       return (data || []).map(c => {
-        const ownerLink = ownerLinks?.find(o => o.company_id === c.id);
+        const owner = owners?.find((o: any) => o.company_id === c.id);
         return {
           ...c,
-          owner: ownerLink ? ownerProfiles[ownerLink.user_id] || null : null,
+          owner: owner ? { full_name: owner.full_name, email: owner.email } : null,
         };
       }) as Company[];
     },

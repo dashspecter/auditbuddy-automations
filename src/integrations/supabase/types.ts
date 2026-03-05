@@ -11647,6 +11647,14 @@ export type Database = {
         Returns: string
       }
       generate_short_code: { Args: never; Returns: string }
+      get_all_company_owners: {
+        Args: never
+        Returns: {
+          company_id: string
+          email: string
+          full_name: string
+        }[]
+      }
       get_company_timezone: { Args: { p_company_id: string }; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
       get_kiosk_attendance_logs: {
