@@ -30,6 +30,7 @@ interface Company {
     name: string;
     slug: string;
   };
+  owner?: { full_name: string | null; email: string } | null;
 }
 
 interface UserWithRoles {
@@ -65,7 +66,35 @@ export default function PlatformAdmin() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Company[];
+
+      // Fetch owners in one query
+      const { data: ownerLinks } = await supabase
+        .from('company_users')
+        .select('company_id, user_id')
+        .eq('company_role', 'company_owner');
+
+      let ownerProfiles: Record<string, { full_name: string | null; email: string }> = {};
+      if (ownerLinks && ownerLinks.length > 0) {
+        const ownerUserIds = ownerLinks.map(o => o.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', ownerUserIds);
+
+        if (profiles) {
+          for (const p of profiles) {
+            ownerProfiles[p.id] = { full_name: p.full_name, email: p.email };
+          }
+        }
+      }
+
+      return (data || []).map(c => {
+        const ownerLink = ownerLinks?.find(o => o.company_id === c.id);
+        return {
+          ...c,
+          owner: ownerLink ? ownerProfiles[ownerLink.user_id] || null : null,
+        };
+      }) as Company[];
     },
   });
 
@@ -464,6 +493,12 @@ export default function PlatformAdmin() {
                                 <Users className="h-4 w-4" />
                                 <span>/{company.slug}</span>
                               </div>
+                              {company.owner && (
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4" />
+                                  <span>{company.owner.full_name || 'No name'} — {company.owner.email}</span>
+                                </div>
+                              )}
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
                                 <span>Created {format(new Date(company.created_at), 'MMM d, yyyy')}</span>
