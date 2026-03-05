@@ -1,97 +1,53 @@
 
 
-# Fix: Tests Visible Across Companies (Cross-Tenant Data Leak)
+# Fix: Maintenance Data Leaking Across Companies + Missing Module Gate
 
-## Root Cause
+## Confirmed Root Causes (verified against live DB & RLS)
 
-Two compounding issues in the `tests` table:
+### Problem 1: `equipment_interventions` RLS leak
 
-### Issue 1: RLS policy has no company filter
+The **"Admins and managers can manage interventions"** policy grants ALL access to anyone with `has_role('admin')`, `has_role('manager')`, `has_company_role('company_admin')`, or `has_company_role('company_owner')` — with **zero company scoping**. Since these are permissive policies (OR'd), Daniel from PROPER PIZZA matches `has_company_role('company_owner')` and sees all 11 interventions (all with `company_id = NULL`).
 
-The policy **"Admins and managers can manage tests"** grants full CRUD to anyone with an admin/manager role — across ALL companies:
+Additionally, the **"Users can view interventions in their company"** and **"Users can view their assigned interventions"** policies both fall back to `has_role('manager')` / `has_role('admin')` without company filtering.
 
-```sql
--- CURRENT (INSECURE)
-USING (
-  has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'manager')
-  OR has_company_role(auth.uid(), 'company_admin')
-  OR has_company_role(auth.uid(), 'company_owner')
-)
-```
+**Data state**: All 11 `equipment_interventions` rows have `company_id = NULL`.
 
-The `has_company_role` function also lacks company scoping — it checks if the user has that role in ANY company, not their current one:
+### Problem 2: `recurring_maintenance_schedules` has no `company_id` column at all
 
-```sql
--- has_company_role implementation (no company_id filter!)
-SELECT EXISTS (
-  SELECT 1 FROM company_users
-  WHERE user_id = _user_id AND company_role = _role
-)
-```
+The table entirely lacks a `company_id` column. Its only RLS policy is role-based with no company scoping — same pattern as above.
 
-Result: Daniel (PROPER PIZZA owner) matches `has_company_role('company_owner')` → sees ALL tests from ALL companies.
+### Problem 3: No module gating on `MaintenanceInterventions` widget
 
-### Issue 2: All existing tests have `company_id = NULL`
+The component renders unconditionally on both Admin and Manager dashboards. PROPER PIZZA doesn't have the maintenance module active but still sees the widget.
 
-The `company_id` column is nullable and was never populated. Even if we fix the RLS, the existing `company_id`-based SELECT policy also fails because it checks `company_id IN (user's companies)` and NULL doesn't match anything — so the company-scoped policy never matches these tests either. The role-based policy (without company filter) is the only one that returns rows.
+## The Fix (single migration + 1 UI change)
 
-### Issue 3: `test_submissions` has the same problem
+### Part A: Fix `equipment_interventions` RLS
 
-The policies "Admins and managers can view all submissions" and "Employees can view their own submissions" both use `has_role()` without company scoping.
+1. Backfill `company_id` from `created_by` user's company
+2. Make `company_id` NOT NULL
+3. Drop all 4 existing policies, replace with 2 company-scoped policies:
+   - SELECT for authenticated: `company_id = get_user_company_id(auth.uid())`
+   - ALL for managers: `company_id = get_user_company_id(auth.uid())` (role gating stays in UI)
 
-## The Fix
+### Part B: Fix `recurring_maintenance_schedules`
 
-### Database Migration (single migration, 3 parts)
+1. Add `company_id` column (UUID, FK to companies)
+2. Backfill from equipment's company_id via join
+3. Make NOT NULL
+4. Drop both existing policies, replace with company-scoped ones
 
-**Part A**: Backfill `company_id` on existing tests using the `created_by` user's company:
+### Part C: Module gate the dashboard widget
 
-```sql
-UPDATE tests SET company_id = get_user_company_id(created_by)
-WHERE company_id IS NULL;
+In `MaintenanceInterventions.tsx`: wrap the component with a `hasModule('maintenance')` check from `useCompanyContext`. If the module isn't active, return `null` — the widget simply won't render.
 
-ALTER TABLE tests ALTER COLUMN company_id SET NOT NULL;
-```
+Same check in both `ManagerDashboard.tsx` and `AdminDashboard.tsx` where `<MaintenanceInterventions />` is used.
 
-**Part B**: Replace the role-only RLS policy with a company-scoped one:
+## What stays unchanged
 
-```sql
-DROP POLICY "Admins and managers can manage tests" ON tests;
-
-CREATE POLICY "Company managers can manage their tests"
-ON tests FOR ALL TO authenticated
-USING (company_id = get_user_company_id(auth.uid()))
-WITH CHECK (company_id = get_user_company_id(auth.uid()));
-```
-
-This replaces the role-only check with a company-scoped check. Any authenticated user in the company can manage tests (the role gating happens at the UI/code level already).
-
-**Part C**: Fix `test_submissions` SELECT policies to add company scoping:
-
-```sql
-DROP POLICY "Admins and managers can view all submissions" ON test_submissions;
-
-CREATE POLICY "Users can view submissions in their company"
-ON test_submissions FOR SELECT TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM tests t
-    WHERE t.id = test_submissions.test_id
-    AND t.company_id = get_user_company_id(auth.uid())
-  )
-);
-```
-
-### No Code Changes Needed
-
-The existing queries in `TestManagement.tsx`, `TestCreation.tsx`, `TestEdit.tsx` don't filter by `company_id` client-side — they rely on RLS. Once RLS is fixed, the correct data will be returned automatically.
-
-The only code change: ensure `TestCreation.tsx` and `TestEdit.tsx` set `company_id` when inserting/updating tests (need to verify this).
-
-## Impact
-
-| Before | After |
-|---|---|
-| PROPER PIZZA sees 9 tests from Fresh Brunch | PROPER PIZZA sees 0 tests (correct) |
-| Fresh Brunch tests unchanged | Fresh Brunch tests unchanged |
-| New companies see other companies' tests | New companies start clean |
+- Equipment table RLS (already properly company-scoped)
+- Equipment maintenance events RLS (already scoped via equipment join)
+- All desktop/mobile layouts
+- Kiosk access patterns
+- All other modules
 
