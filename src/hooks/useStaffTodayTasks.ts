@@ -724,19 +724,19 @@ export function useKioskTodayTasks(options: {
   const completionsPollInterval = useSmartPolling({ activeInterval: 5000, backgroundInterval: 60000, enabled });
   const legacyPollInterval = useSmartPolling({ activeInterval: 8000, backgroundInterval: 60000, enabled });
 
-  // Fetch all active employees at this location (include user_id for completer mapping)
+  // Fetch all active employees at this location via SECURITY DEFINER RPC (bypasses RLS, validates kiosk token)
   const { data: employees = [] } = useQuery({
-    queryKey: ["kiosk-employees", locationId],
+    queryKey: ["kiosk-employees", locationId, kioskToken || ""],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, role, avatar_url, user_id")
-        .eq("location_id", locationId)
-        .eq("status", "active");
+      if (!kioskToken) return [];
+      const { data, error } = await supabase.rpc("get_kiosk_employees", {
+        p_token: kioskToken,
+        p_location_id: locationId,
+      });
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
-    enabled,
+    enabled: enabled && !!kioskToken,
   });
 
   // Fetch all tasks for this location (templates only, we'll expand)

@@ -11663,6 +11663,16 @@ export type Database = {
           staff_id: string
         }[]
       }
+      get_kiosk_employees: {
+        Args: { p_location_id: string; p_token: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_kiosk_task_completions: {
         Args: {
           p_company_id: string
