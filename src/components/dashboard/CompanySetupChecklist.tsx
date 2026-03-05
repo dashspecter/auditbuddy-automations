@@ -119,7 +119,7 @@ export const CompanySetupChecklist = () => {
       title: "Invite team members",
       description: "Add users in Company Settings",
       completed: (companyUsersCount || 0) > 1,
-      path: "/settings/company",
+      path: "/settings/company?tab=users",
       actionLabel: "Invite",
     },
     {
