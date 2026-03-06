@@ -115,11 +115,11 @@ export const usePerformanceTrends = (
 
   // Location performance (uses overall_score from audits + cached sections)
   const locationPerformance = useMemo(() => {
-    if (!audits) return [];
+    if (filteredAudits.length === 0) return [];
 
     const locationMap = new Map<string, { id: string; name: string; audits: any[] }>();
 
-    audits.forEach(audit => {
+    filteredAudits.forEach(audit => {
       if (audit.overall_score == null || audit.overall_score === 0) return;
       const locationId = audit.location_id || 'unknown';
       const locationName = (audit as any).locations?.name || (audit as any).location || 'Unknown Location';
@@ -173,7 +173,7 @@ export const usePerformanceTrends = (
         audits: locationAudits
       } as LocationPerformance;
     }).sort((a, b) => b.avgScore - a.avgScore);
-  }, [audits, cachedAudits]);
+  }, [filteredAudits, cachedAudits]);
 
   return {
     sectionPerformance,
