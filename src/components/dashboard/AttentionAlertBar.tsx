@@ -5,8 +5,9 @@ import { useTaskStats } from "@/hooks/useTasks";
 import { useCorrectiveActions } from "@/hooks/useCorrectiveActions";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
 import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
-import { format, subMonths } from "date-fns";
+import { format, subDays } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { useMemo } from "react";
 import { useState } from "react";
 import { DashboardPreviewDialog } from "./DashboardPreviewDialog";
 import { AuditScorePopup } from "./popups/AuditScorePopup";
@@ -25,25 +26,26 @@ export const AttentionAlertBar = ({ dateFrom, dateTo }: AttentionAlertBarProps) 
   const { t } = useTranslation();
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
 
+  const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
   const dashboardStats = useDashboardStats({ dateFrom, dateTo });
-  const { data: taskStats } = useTaskStats();
+  const { data: taskStats } = useTaskStats({ since: sevenDaysAgo });
   const { data: cas } = useCorrectiveActions();
   const { data: interventions } = useEquipmentInterventions();
 
   const now = new Date();
-  const startDate = format(subMonths(now, 1), "yyyy-MM-dd");
-  const endDate = format(now, "yyyy-MM-dd");
+  const startDate = dateFrom ? format(dateFrom, "yyyy-MM-dd") : format(subDays(now, 30), "yyyy-MM-dd");
+  const endDate = dateTo ? format(dateTo, "yyyy-MM-dd") : format(now, "yyyy-MM-dd");
   const { allScores } = usePerformanceLeaderboard(startDate, endDate);
 
   const overdueAudits = dashboardStats.overdueAudits || 0;
-  const overdueTasks = taskStats?.overdue || 0;
+  const recentlyOverdueTasks = taskStats?.recentlyOverdue || 0;
   const openCAs = cas?.filter(ca => ca.status === "open" || ca.status === "in_progress").length || 0;
   const overdueInterventions = interventions?.filter(i => i.status === "overdue").length || 0;
   const atRiskEmployees = allScores?.filter(e => e.overall_score < 50).length || 0;
 
   const items = [
     { count: overdueAudits, label: t("dashboard.attention.overdueAudits", "Overdue Audits"), icon: ClipboardCheck, alertType: "audits", color: "bg-destructive/10 text-destructive border-destructive/20" },
-    { count: overdueTasks, label: t("dashboard.attention.overdueTasks", "Overdue Tasks"), icon: ListTodo, alertType: "tasks", color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400" },
+    { count: recentlyOverdueTasks, label: t("dashboard.attention.newlyOverdueTasks", "Newly Overdue (7d)"), icon: ListTodo, alertType: "tasks", color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400" },
     { count: openCAs, label: t("dashboard.attention.openCAs", "Open CAs"), icon: Shield, alertType: "cas", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400" },
     { count: overdueInterventions, label: t("dashboard.attention.overdueMaintenance", "Overdue Maintenance"), icon: Wrench, alertType: "maintenance", color: "bg-warning/15 text-warning border-warning/30" },
     { count: atRiskEmployees, label: t("dashboard.attention.atRiskEmployees", "At-Risk Employees"), icon: Users, alertType: "workforce", color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400" },
