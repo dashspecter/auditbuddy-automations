@@ -553,13 +553,14 @@ export const useMyTasks = () => {
   });
 };
 
-export const useTaskStats = () => {
+export const useTaskStats = (options?: { since?: Date }) => {
   const { company } = useCompanyContext();
+  const sinceTime = options?.since?.getTime();
 
   return useQuery({
-    queryKey: ["task-stats", company?.id],
+    queryKey: ["task-stats", company?.id, sinceTime],
     queryFn: async () => {
-      if (!company?.id) return { total: 0, pending: 0, overdue: 0, completed: 0, completedLate: 0 };
+      if (!company?.id) return { total: 0, pending: 0, overdue: 0, recentlyOverdue: 0, completed: 0, completedLate: 0 };
 
       const { data, error } = await supabase
         .from("tasks")
@@ -573,6 +574,7 @@ export const useTaskStats = () => {
         total: data.length,
         pending: 0,
         overdue: 0,
+        recentlyOverdue: 0,
         completed: 0,
         completedLate: 0,
       };
@@ -584,17 +586,22 @@ export const useTaskStats = () => {
             stats.completedLate++;
           }
         } else if (task.status === "pending" || task.status === "in_progress") {
-          // Check if overdue based on start_at + duration_minutes OR due_at
           let isOverdue = false;
+          let deadline: Date | null = null;
           if (task.start_at && task.duration_minutes) {
-            const deadline = new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
+            deadline = new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
             isOverdue = now > deadline;
           } else if (task.due_at) {
-            isOverdue = new Date(task.due_at) < now;
+            deadline = new Date(task.due_at);
+            isOverdue = deadline < now;
           }
           
           if (isOverdue) {
             stats.overdue++;
+            // Count tasks whose deadline fell within the `since` window
+            if (deadline && options?.since && deadline >= options.since) {
+              stats.recentlyOverdue++;
+            }
           } else {
             stats.pending++;
           }
