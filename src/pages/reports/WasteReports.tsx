@@ -251,7 +251,7 @@ export default function WasteReports() {
     doc.setFontSize(12);
     doc.text("Summary", 14, 42);
     doc.setFontSize(10);
-    doc.text(`Total Weight: ${report.kpis.total_weight_kg.toFixed(2)} kg`, 14, 50);
+    doc.text(`Total Quantity: ${report.kpis.total_weight_kg.toFixed(2)}`, 14, 50);
     doc.text(`Total Cost: ${report.kpis.total_cost.toFixed(2)} RON`, 14, 56);
     doc.text(`Entries: ${report.kpis.entry_count}`, 14, 62);
     doc.text(`Avg Cost/Entry: ${report.kpis.avg_cost_per_entry.toFixed(2)} RON`, 14, 68);
@@ -426,8 +426,8 @@ export default function WasteReports() {
                         <Scale className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Total Weight</p>
-                        <p className="text-2xl font-bold">{report.kpis.total_weight_kg.toFixed(1)} kg</p>
+                        <p className="text-sm text-muted-foreground">Total Quantity</p>
+                        <p className="text-2xl font-bold">{report.kpis.total_weight_kg.toFixed(1)}</p>
                       </div>
                     </div>
                   </CardContent>
