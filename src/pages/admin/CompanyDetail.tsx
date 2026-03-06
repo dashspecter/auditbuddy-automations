@@ -13,6 +13,9 @@ import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Packa
 import { format } from "date-fns";
 import { MODULE_REGISTRY, CATEGORY_LABELS } from "@/config/moduleRegistry";
 import { toast } from "sonner";
+import { useCompanyOverview } from "./company-detail/useCompanyOverview";
+import { CompanyActivityOverview } from "./company-detail/CompanyActivityOverview";
+import { CompanyOnboardingChecklist } from "./company-detail/CompanyOnboardingChecklist";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +24,7 @@ export default function CompanyDetail() {
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
   const [editingMaxUsers, setEditingMaxUsers] = useState(false);
   const [maxUsersInput, setMaxUsersInput] = useState("");
+  const { data: overview, isLoading: overviewLoading } = useCompanyOverview(id);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['admin-company-detail', id],
@@ -170,6 +174,16 @@ export default function CompanyDetail() {
           </Card>
         ))}
       </div>
+
+      {/* Activity Overview */}
+      {overviewLoading ? (
+        <Skeleton className="h-48" />
+      ) : overview ? (
+        <>
+          <CompanyActivityOverview overview={overview} />
+          <CompanyOnboardingChecklist overview={overview} />
+        </>
+      ) : null}
 
       {/* User Limit Management */}
       <UserLimitCard
