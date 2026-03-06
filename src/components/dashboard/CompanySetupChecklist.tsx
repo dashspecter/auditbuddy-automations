@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,21 +14,24 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, Circle, Rocket, X, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-
 export const CompanySetupChecklist = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { company } = useCompanyContext();
   const { data: roleData } = useUserRoles();
-  const [dismissed, setDismissed] = useState(() => {
+
+  const dismissKey = `dashspect_setup_checklist_dismissed_${company?.id}`;
+  const [dismissed, setDismissed] = useState(false);
+
+  // Re-evaluate dismissed state when company changes
+  useEffect(() => {
     try {
-      return localStorage.getItem(DISMISS_KEY) === "true";
+      setDismissed(localStorage.getItem(dismissKey) === "true");
     } catch {
-      return false;
+      setDismissed(false);
     }
-  });
+  }, [dismissKey]);
 
   // Only show for company_owner or company_admin
   const companyRole = roleData?.companyRole;
@@ -153,7 +156,7 @@ export const CompanySetupChecklist = () => {
 
   const handleDismiss = () => {
     try {
-      localStorage.setItem(DISMISS_KEY, "true");
+      localStorage.setItem(dismissKey, "true");
     } catch {}
     setDismissed(true);
   };
