@@ -28,7 +28,7 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
 
   const summary = data ?? {
     totalCompleted: 0, averageScore: 0, locationsCount: 0, negativeAudits: [],
-    openTasks: 0, openCAs: 0, overdueCAs: 0, shiftsScheduled: 0, shiftsFilled: 0,
+    todayTasksTotal: 0, todayTasks: [], openCAs: 0, overdueCAs: 0, shiftsScheduled: 0, shiftsFilled: 0,
   };
   const scoreColor = summary.averageScore >= 80 ? 'text-green-600' : summary.averageScore >= 60 ? 'text-amber-600' : 'text-red-600';
   const shiftFillColor = summary.shiftsScheduled > 0 && summary.shiftsFilled < summary.shiftsScheduled ? 'text-amber-600' : 'text-green-600';
@@ -70,9 +70,9 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
               <div className="bg-muted/50 rounded-lg py-2 px-1">
                 <div className="flex items-center justify-center gap-1">
                   <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-lg font-bold text-foreground">{summary.openTasks}</p>
+                  <p className={cn('text-lg font-bold', summary.todayTasksTotal > 0 ? 'text-amber-600' : 'text-foreground')}>{summary.todayTasksTotal}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Active Tasks</p>
+                <p className="text-xs text-muted-foreground">Due Today</p>
               </div>
               <div className="bg-muted/50 rounded-lg py-2 px-1">
                 <div className="flex items-center justify-center gap-1">
@@ -95,6 +95,27 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
                 <p className="text-xs text-muted-foreground">Shifts Filled</p>
               </div>
             </div>
+
+            {/* Today's tasks by location */}
+            {summary.todayTasks.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <CheckSquare className="h-3 w-3" />
+                  Tasks due today
+                </p>
+                <div className="space-y-1">
+                  {summary.todayTasks.map(t => (
+                    <div key={t.locationName} className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-1.5">
+                      <span className="text-foreground">
+                        <MapPin className="h-3 w-3 inline mr-1 text-muted-foreground" />
+                        {t.locationName}
+                      </span>
+                      <span className="text-amber-600 font-semibold text-xs">{t.count} {t.count === 1 ? 'task' : 'tasks'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Negative audits */}
             {summary.negativeAudits.length > 0 && (
