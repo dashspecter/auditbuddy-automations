@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import Landing from "./Landing";
+import LandingNFX from "./LandingNFX";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -90,7 +90,7 @@ const Index = () => {
   }
 
   // Otherwise show landing
-  return <Landing />;
+  return <LandingNFX />;
 };
 
 export default Index;
