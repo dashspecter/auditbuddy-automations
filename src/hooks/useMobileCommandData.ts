@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
-import { startOfDay, startOfWeek, subDays, format } from 'date-fns';
+import { startOfDay, startOfWeek, subDays, format, differenceInCalendarDays, differenceInCalendarWeeks, differenceInCalendarMonths } from 'date-fns';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -140,6 +140,57 @@ function useScheduledToday(companyId: string | undefined) {
   });
 }
 
+function doesRecurringScheduleFallOnDate(
+  schedule: { start_date: string; recurrence_pattern: string; day_of_week: number | null; day_of_month: number | null; end_date: string | null },
+  targetDate: Date
+): boolean {
+  const startDate = new Date(schedule.start_date);
+  startDate.setHours(0, 0, 0, 0);
+  const target = new Date(targetDate);
+  target.setHours(0, 0, 0, 0);
+
+  if (target < startDate) return false;
+  if (schedule.end_date) {
+    const endDate = new Date(schedule.end_date);
+    endDate.setHours(23, 59, 59, 999);
+    if (target > endDate) return false;
+  }
+
+  const pattern = schedule.recurrence_pattern;
+
+  if (pattern === 'daily') {
+    return true;
+  }
+
+  if (pattern === 'weekly') {
+    if (schedule.day_of_week !== null) {
+      return target.getDay() === schedule.day_of_week;
+    }
+    return differenceInCalendarDays(target, startDate) % 7 === 0;
+  }
+
+  if (pattern === 'every_4_weeks') {
+    // Align to day_of_week first
+    const aligned = new Date(startDate);
+    if (schedule.day_of_week !== null) {
+      while (aligned.getDay() !== schedule.day_of_week) {
+        aligned.setDate(aligned.getDate() + 1);
+      }
+    }
+    const daysDiff = differenceInCalendarDays(target, aligned);
+    return daysDiff >= 0 && daysDiff % 28 === 0;
+  }
+
+  if (pattern === 'monthly') {
+    const targetDay = schedule.day_of_month ?? startDate.getDate();
+    const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    const effectiveDay = Math.min(targetDay, daysInMonth);
+    return target.getDate() === effectiveDay;
+  }
+
+  return false;
+}
+
 function useTodayScheduledAudits(companyId: string | undefined) {
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -147,6 +198,7 @@ function useTodayScheduledAudits(companyId: string | undefined) {
     queryKey: ['command-scheduled-audits', companyId, today],
     enabled: !!companyId,
     queryFn: async (): Promise<ScheduledAuditItem[]> => {
+      // 1. One-time scheduled audits
       const { data, error } = await supabase
         .from('scheduled_audits')
         .select('id, scheduled_for, assigned_to, audit_templates(name), locations(name), status')
@@ -159,24 +211,65 @@ function useTodayScheduledAudits(companyId: string | undefined) {
 
       const userIds = [...new Set((data ?? []).map((r: any) => r.assigned_to).filter(Boolean))];
       let profileMap: Record<string, string> = {};
-      if (userIds.length > 0) {
+
+      // 2. Recurring audit schedules
+      const { data: recurringData } = await supabase
+        .from('recurring_audit_schedules')
+        .select('id, start_date, start_time, recurrence_pattern, day_of_week, day_of_month, end_date, is_active, location_id, template_id, assigned_user_id, audit_templates(name), locations(name)')
+        .eq('is_active', true);
+
+      const todayDate = new Date(today + 'T00:00:00');
+      const recurringItems: ScheduledAuditItem[] = [];
+
+      for (const schedule of (recurringData ?? []) as any[]) {
+        if (!doesRecurringScheduleFallOnDate(schedule, todayDate)) continue;
+
+        const scheduledFor = `${today}T${schedule.start_time || '12:00:00'}`;
+        recurringItems.push({
+          id: `recurring-${schedule.id}`,
+          templateName: schedule.audit_templates?.name ?? 'Audit',
+          locationName: schedule.locations?.name ?? 'Unknown',
+          assignedTo: '', // resolved below
+          scheduledFor,
+        });
+
+        if (schedule.assigned_user_id) {
+          userIds.push(schedule.assigned_user_id);
+        }
+      }
+
+      // Resolve profile names
+      const uniqueUserIds = [...new Set(userIds.filter(Boolean))];
+      if (uniqueUserIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, full_name')
-          .in('id', userIds);
+          .in('id', uniqueUserIds);
         profileMap = (profiles ?? []).reduce((acc: any, p: any) => {
           acc[p.id] = p.full_name;
           return acc;
         }, {});
       }
 
-      return (data ?? []).map((row: any) => ({
+      const oneTimeItems = (data ?? []).map((row: any) => ({
         id: row.id,
         templateName: row.audit_templates?.name ?? 'Audit',
         locationName: row.locations?.name ?? 'Unknown',
         assignedTo: profileMap[row.assigned_to] ?? 'Unassigned',
         scheduledFor: row.scheduled_for,
       }));
+
+      // Resolve assigned names for recurring items
+      for (const item of recurringItems) {
+        const schedule = (recurringData ?? []).find((s: any) => `recurring-${s.id}` === item.id) as any;
+        if (schedule?.assigned_user_id) {
+          item.assignedTo = profileMap[schedule.assigned_user_id] ?? 'Unassigned';
+        } else {
+          item.assignedTo = 'Unassigned';
+        }
+      }
+
+      return [...oneTimeItems, ...recurringItems];
     },
   });
 }
