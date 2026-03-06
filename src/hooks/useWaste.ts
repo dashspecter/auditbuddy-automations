@@ -73,6 +73,8 @@ export interface WasteReportKPIs {
   total_cost: number;
   entry_count: number;
   avg_cost_per_entry: number;
+  total_weight_kg_normalized: number;
+  total_items_count: number;
 }
 
 export interface WasteReportProduct {
