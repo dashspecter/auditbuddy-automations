@@ -13,6 +13,7 @@ const MobileCommand = () => {
   const navigate = useNavigate();
   const {
     clockedIn,
+    scheduledToday,
     scheduledAudits,
     completedAudits,
     weeklySummary,
@@ -21,14 +22,12 @@ const MobileCommand = () => {
     userRole,
   } = useMobileCommandData();
 
-  // Guard: only company_owner and company_admin
   useEffect(() => {
     if (userRole && userRole !== 'company_owner' && userRole !== 'company_admin') {
       navigate('/dashboard', { replace: true });
     }
   }, [userRole, navigate]);
 
-  // Auto-refresh on tab return
   useAppVisibility({
     onVisible: () => { refetchAll(); },
   });
@@ -41,7 +40,8 @@ const MobileCommand = () => {
 
           <LiveWorkforceSection
             data={clockedIn.data}
-            isLoading={clockedIn.isLoading}
+            scheduled={scheduledToday.data}
+            isLoading={clockedIn.isLoading || scheduledToday.isLoading}
           />
 
           <TodayAuditsSection
