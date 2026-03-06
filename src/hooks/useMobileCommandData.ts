@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
 import { startOfDay, startOfWeek, subDays, format } from 'date-fns';
 
+// ── Types ──────────────────────────────────────────────────────────
+
 export interface ClockedInEmployee {
   id: string;
   staffName: string;
@@ -10,6 +12,16 @@ export interface ClockedInEmployee {
   locationName: string;
   locationId: string;
   checkInAt: string;
+}
+
+export interface ScheduledEmployee {
+  staffId: string;
+  staffName: string;
+  role: string;
+  locationName: string;
+  locationId: string;
+  shiftStart: string;
+  shiftEnd: string;
 }
 
 export interface ScheduledAuditItem {
@@ -33,14 +45,29 @@ export interface WeeklyAuditSummaryData {
   averageScore: number;
   locationsCount: number;
   negativeAudits: CompletedAuditItem[];
+  openTasks: number;
+  openCAs: number;
+  overdueCAs: number;
+  shiftsScheduled: number;
+  shiftsFilled: number;
+}
+
+export interface OpenCAItem {
+  id: string;
+  title: string;
+  locationName: string;
+  severity: string;
+  dueAt: string;
+  isOverdue: boolean;
 }
 
 export interface MonthlyNegativeData {
   lowScoreByLocation: { locationName: string; avgScore: number; count: number }[];
-  openCAs: number;
-  overdueCAs: number;
+  openCAList: OpenCAItem[];
   lateEmployees: { name: string; lateCount: number }[];
 }
+
+// ── Hooks ──────────────────────────────────────────────────────────
 
 function useClockedIn(companyId: string | undefined) {
   return useQuery({
@@ -69,6 +96,44 @@ function useClockedIn(companyId: string | undefined) {
   });
 }
 
+function useScheduledToday(companyId: string | undefined) {
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  return useQuery({
+    queryKey: ['command-scheduled-today', companyId, today],
+    enabled: !!companyId,
+    queryFn: async (): Promise<ScheduledEmployee[]> => {
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('id, start_time, end_time, location_id, locations(name, id), shift_assignments(staff_id, approval_status, employees(full_name, role))')
+        .eq('company_id', companyId!)
+        .eq('shift_date', today)
+        .eq('is_published', true)
+        .in('status', ['published', 'open']);
+
+      if (error) throw error;
+
+      const result: ScheduledEmployee[] = [];
+      for (const shift of (data ?? []) as any[]) {
+        const assignments = shift.shift_assignments ?? [];
+        for (const a of assignments) {
+          if (a.approval_status !== 'approved') continue;
+          result.push({
+            staffId: a.staff_id,
+            staffName: a.employees?.full_name ?? 'Unknown',
+            role: a.employees?.role ?? '',
+            locationName: shift.locations?.name ?? 'Unknown',
+            locationId: shift.locations?.id ?? '',
+            shiftStart: shift.start_time,
+            shiftEnd: shift.end_time,
+          });
+        }
+      }
+      return result;
+    },
+  });
+}
+
 function useTodayScheduledAudits(companyId: string | undefined) {
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -86,7 +151,6 @@ function useTodayScheduledAudits(companyId: string | undefined) {
 
       if (error) throw error;
 
-      // Get assigned user names
       const userIds = [...new Set((data ?? []).map((r: any) => r.assigned_to).filter(Boolean))];
       let profileMap: Record<string, string> = {};
       if (userIds.length > 0) {
@@ -146,7 +210,8 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
     queryKey: ['command-weekly-audits', companyId, monday],
     enabled: !!companyId,
     queryFn: async (): Promise<WeeklyAuditSummaryData> => {
-      const { data, error } = await supabase
+      // Audits
+      const { data: auditData, error: auditErr } = await supabase
         .from('location_audits')
         .select('id, overall_score, location, location_id, audit_templates(name), locations(name)')
         .eq('company_id', companyId!)
@@ -154,9 +219,9 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
         .lte('audit_date', today)
         .in('status', ['completed', 'compliant', 'non_compliant']);
 
-      if (error) throw error;
+      if (auditErr) throw auditErr;
 
-      const audits = data ?? [];
+      const audits = auditData ?? [];
       const scores = audits.map((a: any) => a.overall_score).filter((s: any) => s != null);
       const locations = new Set(audits.map((a: any) => a.location_id).filter(Boolean));
 
@@ -170,11 +235,51 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
           auditDate: '',
         }));
 
+      // Open tasks this week
+      const taskResult = await (supabase
+        .from('tasks') as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', companyId!)
+        .eq('is_active', true);
+      const taskCount = taskResult.count as number | null;
+
+      // Open CAs
+      const { data: caData } = await supabase
+        .from('corrective_actions')
+        .select('id, due_at')
+        .eq('company_id', companyId!)
+        .in('status', ['open', 'in_progress']);
+
+      const openCAs = caData?.length ?? 0;
+      const overdueCAs = (caData ?? []).filter((ca: any) => ca.due_at && new Date(ca.due_at) < new Date()).length;
+
+      // Shifts this week
+      const { data: shiftData } = await supabase
+        .from('shifts')
+        .select('id, required_count, shift_assignments(id, approval_status)')
+        .eq('company_id', companyId!)
+        .gte('shift_date', monday)
+        .lte('shift_date', today)
+        .eq('is_published', true)
+        .in('status', ['published', 'open']);
+
+      let shiftsScheduled = 0;
+      let shiftsFilled = 0;
+      for (const s of (shiftData ?? []) as any[]) {
+        shiftsScheduled += s.required_count ?? 1;
+        shiftsFilled += (s.shift_assignments ?? []).filter((a: any) => a.approval_status === 'approved').length;
+      }
+
       return {
         totalCompleted: audits.length,
         averageScore: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0,
         locationsCount: locations.size,
         negativeAudits,
+        openTasks: taskCount ?? 0,
+        openCAs,
+        overdueCAs,
+        shiftsScheduled,
+        shiftsFilled,
       };
     },
   });
@@ -212,15 +317,23 @@ function useMonthlyNegatives(companyId: string | undefined) {
         count: l.count,
       }));
 
-      // Corrective actions
-      const { data: openCAsData } = await supabase
+      // Corrective actions — full list
+      const { data: caData } = await supabase
         .from('corrective_actions')
-        .select('id, status, due_at')
+        .select('id, title, status, due_at, severity, location_id, locations(name)')
         .eq('company_id', companyId!)
-        .in('status', ['open', 'in_progress']);
+        .in('status', ['open', 'in_progress'])
+        .order('due_at', { ascending: true }) as { data: any[] | null };
 
-      const openCAs = openCAsData?.length ?? 0;
-      const overdueCAs = (openCAsData ?? []).filter((ca: any) => ca.due_at && new Date(ca.due_at) < new Date()).length;
+      const now = new Date();
+      const openCAList: OpenCAItem[] = (caData ?? []).map((ca: any) => ({
+        id: ca.id,
+        title: ca.title,
+        locationName: ca.locations?.name ?? 'No location',
+        severity: ca.severity ?? 'medium',
+        dueAt: ca.due_at,
+        isOverdue: ca.due_at ? new Date(ca.due_at) < now : false,
+      }));
 
       // Late arrivals
       const { data: lateData } = await supabase
@@ -241,10 +354,12 @@ function useMonthlyNegatives(companyId: string | undefined) {
         .sort((a, b) => b.count - a.count)
         .map(e => ({ name: e.name, lateCount: e.count }));
 
-      return { lowScoreByLocation, openCAs, overdueCAs, lateEmployees };
+      return { lowScoreByLocation, openCAList, lateEmployees };
     },
   });
 }
+
+// ── Main export ────────────────────────────────────────────────────
 
 export function useMobileCommandData() {
   const { data: company } = useCompany();
@@ -252,6 +367,7 @@ export function useMobileCommandData() {
   const queryClient = useQueryClient();
 
   const clockedIn = useClockedIn(companyId);
+  const scheduledToday = useScheduledToday(companyId);
   const scheduledAudits = useTodayScheduledAudits(companyId);
   const completedAudits = useTodayCompletedAudits(companyId);
   const weeklySummary = useWeeklyAuditSummary(companyId);
@@ -260,6 +376,7 @@ export function useMobileCommandData() {
   const refetchAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['command-clocked-in'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-scheduled-today'] }),
       queryClient.invalidateQueries({ queryKey: ['command-scheduled-audits'] }),
       queryClient.invalidateQueries({ queryKey: ['command-completed-audits'] }),
       queryClient.invalidateQueries({ queryKey: ['command-weekly-audits'] }),
@@ -269,6 +386,7 @@ export function useMobileCommandData() {
 
   return {
     clockedIn,
+    scheduledToday,
     scheduledAudits,
     completedAudits,
     weeklySummary,

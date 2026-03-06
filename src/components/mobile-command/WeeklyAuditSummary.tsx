@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { BarChart3, ChevronDown, AlertTriangle, MapPin } from 'lucide-react';
+import { BarChart3, ChevronDown, AlertTriangle, MapPin, CheckSquare, FileWarning, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WeeklyAuditSummaryData } from '@/hooks/useMobileCommandData';
 
@@ -26,8 +26,12 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
     );
   }
 
-  const summary = data ?? { totalCompleted: 0, averageScore: 0, locationsCount: 0, negativeAudits: [] };
+  const summary = data ?? {
+    totalCompleted: 0, averageScore: 0, locationsCount: 0, negativeAudits: [],
+    openTasks: 0, openCAs: 0, overdueCAs: 0, shiftsScheduled: 0, shiftsFilled: 0,
+  };
   const scoreColor = summary.averageScore >= 80 ? 'text-green-600' : summary.averageScore >= 60 ? 'text-amber-600' : 'text-red-600';
+  const shiftFillColor = summary.shiftsScheduled > 0 && summary.shiftsFilled < summary.shiftsScheduled ? 'text-amber-600' : 'text-green-600';
 
   return (
     <Card>
@@ -45,7 +49,7 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4">
-            {/* KPI row */}
+            {/* Audit KPIs */}
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="bg-muted/50 rounded-lg py-2 px-1">
                 <p className="text-lg font-bold text-foreground">{summary.totalCompleted}</p>
@@ -58,6 +62,37 @@ export const WeeklyAuditSummarySection = ({ data, isLoading }: Props) => {
               <div className="bg-muted/50 rounded-lg py-2 px-1">
                 <p className="text-lg font-bold text-foreground">{summary.locationsCount}</p>
                 <p className="text-xs text-muted-foreground">Locations</p>
+              </div>
+            </div>
+
+            {/* Operations KPIs */}
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-muted/50 rounded-lg py-2 px-1">
+                <div className="flex items-center justify-center gap-1">
+                  <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold text-foreground">{summary.openTasks}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Active Tasks</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg py-2 px-1">
+                <div className="flex items-center justify-center gap-1">
+                  <FileWarning className="h-3.5 w-3.5 text-amber-500" />
+                  <p className={cn('text-lg font-bold', summary.overdueCAs > 0 ? 'text-red-600' : 'text-foreground')}>
+                    {summary.openCAs}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Open CAs{summary.overdueCAs > 0 && <span className="text-red-600"> ({summary.overdueCAs} late)</span>}
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded-lg py-2 px-1">
+                <div className="flex items-center justify-center gap-1">
+                  <CalendarCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className={cn('text-lg font-bold', shiftFillColor)}>
+                    {summary.shiftsFilled}/{summary.shiftsScheduled}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">Shifts Filled</p>
               </div>
             </div>
 
