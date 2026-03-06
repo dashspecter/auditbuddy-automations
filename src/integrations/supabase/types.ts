@@ -2804,7 +2804,7 @@ export type Database = {
           industry_id: string | null
           is_paused: boolean
           logo_url: string | null
-          max_users: number | null
+          max_employees: number | null
           name: string
           pause_reason: string | null
           paused_at: string | null
@@ -2826,7 +2826,7 @@ export type Database = {
           industry_id?: string | null
           is_paused?: boolean
           logo_url?: string | null
-          max_users?: number | null
+          max_employees?: number | null
           name: string
           pause_reason?: string | null
           paused_at?: string | null
@@ -2848,7 +2848,7 @@ export type Database = {
           industry_id?: string | null
           is_paused?: boolean
           logo_url?: string | null
-          max_users?: number | null
+          max_employees?: number | null
           name?: string
           pause_reason?: string | null
           paused_at?: string | null
