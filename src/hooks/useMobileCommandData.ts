@@ -40,12 +40,18 @@ export interface CompletedAuditItem {
   auditDate: string;
 }
 
+export interface TodayTaskByLocation {
+  locationName: string;
+  count: number;
+}
+
 export interface WeeklyAuditSummaryData {
   totalCompleted: number;
   averageScore: number;
   locationsCount: number;
   negativeAudits: CompletedAuditItem[];
-  openTasks: number;
+  todayTasksTotal: number;
+  todayTasks: TodayTaskByLocation[];
   openCAs: number;
   overdueCAs: number;
   shiftsScheduled: number;
@@ -235,13 +241,33 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
           auditDate: '',
         }));
 
-      // Active tasks (pending = not yet completed)
-      const taskResult = await (supabase
+      // Today's due tasks grouped by location
+      const todayStart = `${today}T00:00:00`;
+      const todayEnd = `${today}T23:59:59`;
+      const { data: taskData } = await (supabase
         .from('tasks') as any)
-        .select('id', { count: 'exact', head: true })
+        .select('id, task_locations(location_id, locations(name))')
         .eq('company_id', companyId!)
-        .eq('status', 'pending');
-      const taskCount = taskResult.count as number | null;
+        .eq('status', 'pending')
+        .gte('due_at', todayStart)
+        .lte('due_at', todayEnd);
+
+      const tasksByLoc: Record<string, number> = {};
+      for (const t of (taskData ?? []) as any[]) {
+        const locs = t.task_locations ?? [];
+        if (locs.length === 0) {
+          tasksByLoc['All Locations'] = (tasksByLoc['All Locations'] ?? 0) + 1;
+        } else {
+          for (const tl of locs) {
+            const name = tl.locations?.name ?? 'Unknown';
+            tasksByLoc[name] = (tasksByLoc[name] ?? 0) + 1;
+          }
+        }
+      }
+      const todayTasks: TodayTaskByLocation[] = Object.entries(tasksByLoc)
+        .map(([locationName, count]) => ({ locationName, count }))
+        .sort((a, b) => b.count - a.count);
+      const todayTasksTotal = (taskData ?? []).length;
 
       // Open CAs
       const { data: caData } = await supabase
@@ -275,7 +301,8 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
         averageScore: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0,
         locationsCount: locations.size,
         negativeAudits,
-        openTasks: taskCount ?? 0,
+        todayTasksTotal,
+        todayTasks,
         openCAs,
         overdueCAs,
         shiftsScheduled,
