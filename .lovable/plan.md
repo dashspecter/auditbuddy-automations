@@ -1,65 +1,72 @@
 
 
-# Wastage Prices Bug — Root Cause Analysis & Fix Plan
+# Enhance Mobile Command Center — Richer Operational Snapshot
 
-## The Problem: Two Incompatible Data Eras
+## What You're Asking For (3 things)
 
-The waste_entries table has **140 entries using an old convention** that conflicts with the current one. Here's what happened:
+1. **Live Workforce**: Show who is *scheduled* for each location today, not just who's clocked in — so you can see who's missing
+2. **This Week**: Expand beyond just audit stats — add open tasks, open CAs, and workforce summary for the week
+3. **30-Day Attention / CAs**: Show the actual CA title + location, not just a count
 
-1. **Originally**: `weight_g` stored grams, `unit_cost` was per-kg. Trigger did `(weight_g / 1000) * unit_cost` = correct RON.
-2. **Feb 2 migration**: Renamed `weight_g` → `weight_kg` and **divided all values by 1000**. So 3772g became 3.772. Trigger changed to `weight_kg * unit_cost` = still correct.
-3. **After migration**: Product prices were changed from per-kg to per-gram (e.g., Cooked Chicken: 20 → 0.2). New entries store **raw gram values** as `weight_kg` (e.g., 804 for 804 grams).
+All three make sense and are achievable with existing data.
 
-This created two incompatible data sets in the same column:
+---
 
+## Changes
+
+### 1. Live Workforce — Add "Expected" Employees
+
+Currently shows only clocked-in employees grouped by location. We'll enhance it to also show **scheduled employees for today** per location, so you can see at a glance who hasn't arrived yet.
+
+**Data**: Query `shifts` (today, published) → `shift_assignments` (approved) → `employees` (name, role) → `locations` (name). Group by location. Cross-reference with clocked-in list to mark each person as "Here" or "Expected".
+
+**UI**: Each location section shows:
+- Employees already clocked in (green dot, with clock-in time)
+- Employees scheduled but not yet clocked in (gray dot, with shift start time)
+- A small ratio badge like "2/4 arrived"
+
+**Files**: `useMobileCommandData.ts` (new `useScheduledToday` query), `LiveWorkforceSection.tsx` (merged display)
+
+### 2. This Week — Expand Beyond Audits
+
+Currently only shows audit KPIs (completed count, avg score, locations). We'll add:
+
+- **Open Tasks**: Count of tasks due this week (from `tasks` table, status open/in_progress)
+- **Open CAs**: Count of open corrective actions with overdue count
+- **Workforce**: Total shifts scheduled vs filled this week
+
+**UI**: Add a second row of KPI tiles below the audit KPIs:
 ```text
-OLD entries (140):   weight_kg = 3.772 (actually kg), unit_cost_used = 20 (per kg)
-                     cost = 3.772 × 20 = 75.44 RON ✓
-
-NEW entries (95):    weight_kg = 804 (actually grams), unit_cost_used = 0.36 (per gram)
-                     cost = 804 × 0.36 = 289.44 RON ✓
+[ Tasks Due: 5 ] [ Open CAs: 3 ] [ Shifts: 12/15 ]
 ```
 
-**Both cost_totals are correct**, but the **weight_kg values are incompatible** — some are kg, some are grams.
+**Files**: `useMobileCommandData.ts` (expand `useWeeklyAuditSummary` to also fetch tasks + CAs + shifts for the week), `WeeklyAuditSummary.tsx` (add extra KPI row)
 
-## Impact on the Report
+### 3. Open CAs — Show Title + Location
 
-- **Total Weight (26.9 kg)**: Wrong. Old entries' kg values get divided by 1000 AGAIN in the normalization query (`e.weight_kg / 1000`), turning 3.772 kg into 0.003772 kg.
-- **Total Cost (10,100 RON)**: Technically correct (each entry's cost is internally consistent), but inflated by old entries with stale pricing.
-- **Entries list**: Old entries show e.g. "3.772 g" at 75.44 RON, which looks absurd.
+Currently the 30-Day Attention section shows "X open corrective actions (Y overdue)" as a single line. We'll expand it to list each open CA with its title, location, and severity.
 
-## Fix: Normalize Old Entries to Current Convention
+**Data**: Change the CA query from `select('id, status, due_at')` to `select('id, status, due_at, title, severity, locations(name)')`. Return the list in `MonthlyNegativeData`.
 
-Backfill the 140 old entries to match the current "grams + per-gram" convention:
-
-- **Multiply `weight_kg` by 1000** (convert kg back to grams)
-- **Divide `unit_cost_used` by 1000** (convert per-kg to per-gram)
-- **`cost_total` stays unchanged** because (weight × 1000) × (price / 1000) = same value
-
-This makes all entries use the same convention: weight_kg stores raw grams for g-UOM products, unit_cost_used is per-gram.
-
-### Identifying old entries
-Entries where `unit_cost_used / current_product.unit_cost ≈ 100` are old-convention entries. More precisely: entries where `unit_cost_used > product.unit_cost * 10` for g-UOM products.
-
-### Data fix (via insert/update tool, not migration)
-```sql
-UPDATE waste_entries e
-SET weight_kg = e.weight_kg * 1000,
-    unit_cost_used = e.unit_cost_used / 1000
-FROM waste_products p
-WHERE e.waste_product_id = p.id
-  AND p.uom = 'g'
-  AND e.unit_cost_used > p.unit_cost * 10
-  AND e.status = 'recorded';
+**UI**: Instead of a single summary line, show each CA as a compact row:
+```
+🔴 [Critical] Fix broken freezer — LBFC Amzei (overdue)
+🟡 [Medium] Update cleaning schedule — Bab's Obor
 ```
 
-### Rebuild daily rollups
-After the backfill, truncate and rebuild `waste_daily_rollups` from scratch.
+**Files**: `useMobileCommandData.ts` (enrich CA query + type), `MonthlyNegativeSummary.tsx` (render CA list)
 
-### No code changes needed
-The trigger, report RPC, and UI code are all correct for the current convention. Only the stale data needs fixing.
+---
 
-## Files/Systems Affected
-- **Database data**: `waste_entries` (140 rows), `waste_daily_rollups` (rebuild)
-- **No code changes** — the trigger and report functions work correctly once data is consistent
+## Files to Change
+
+| File | What |
+|------|------|
+| `src/hooks/useMobileCommandData.ts` | Add `useScheduledToday` hook; expand weekly summary with tasks/CAs/shifts; enrich CA query with title/location/severity |
+| `src/components/mobile-command/LiveWorkforceSection.tsx` | Merge scheduled + clocked-in employees per location; show arrival status |
+| `src/components/mobile-command/WeeklyAuditSummary.tsx` | Add second KPI row for tasks, CAs, shifts |
+| `src/components/mobile-command/MonthlyNegativeSummary.tsx` | Render individual CA rows with title, location, severity badge |
+| `src/pages/MobileCommand.tsx` | Pass new data props (scheduled employees) to LiveWorkforceSection |
+
+No database migrations needed — all data exists in current tables.
 
