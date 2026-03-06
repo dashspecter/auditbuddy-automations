@@ -235,12 +235,12 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
           auditDate: '',
         }));
 
-      // Open tasks this week
+      // Active tasks (pending = not yet completed)
       const taskResult = await (supabase
         .from('tasks') as any)
         .select('id', { count: 'exact', head: true })
         .eq('company_id', companyId!)
-        .eq('is_active', true);
+        .eq('status', 'pending');
       const taskCount = taskResult.count as number | null;
 
       // Open CAs
