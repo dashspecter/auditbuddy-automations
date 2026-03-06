@@ -1,45 +1,49 @@
 
 
-# Two Bugs Found in Dashboard Analytics
+# Why "Today's Audits" Shows Nothing on Mobile
 
-## Bug 1: Weakest Operational Areas — Wrong Percentages (4%, 5%)
+## Root Cause
 
-**Root cause**: The `recompute_audit_section_scores` DB function computes `total_score` as an AVG across fields, but treats rating fields (1-5 scale) and yes/no fields (0 or 100) differently:
-- Rating fields: `AVG(raw_value)` → produces values like 4, 5 (on a 1-5 scale)
-- Yes/No fields: `AVG(0 or 100)` → produces values like 67, 100 (already 0-100%)
+The calendar and mobile command center use **different data sources** and **different logic**:
 
-The frontend (`buildSectionPerformance`) displays `total_score` directly as a percentage. So rating-based sections show "4%" instead of "80%" (4/5 × 100).
+**Calendar** combines THREE sources:
+1. `location_audits` with `scheduled_start` (pre-generated audits)
+2. `scheduled_audits` table (one-time scheduled)
+3. `recurring_audit_schedules` — **expanded client-side** into virtual occurrences
 
-**Data proof**: Deposit section has `total_score: 4` with `scored_fields: 3` — all rating fields scored ~4 out of 5. That's 80%, not 4%.
+The audits you see on Mar 6 (LBFC Timpuri Noi, LBFC Mosilor) come from **`recurring_audit_schedules`** — they have `recurrence_pattern: 'every_4_weeks'` with start dates in mid/late February. The calendar expands these into future dates client-side, landing some on today.
 
-**Fix**: Update the DB function to normalize rating fields to 0-100 scale: `(rating / 5.0) * 100`. Then backfill all cached scores. No frontend changes needed.
+**Mobile command center** only queries `scheduled_audits` table with `scheduled_for` matching today. There are **zero rows** in that table for today. It also never looks at `recurring_audit_schedules` at all.
 
-```sql
--- In recompute_audit_section_scores, change:
-WHEN af.field_type = 'rating' THEN (afr.response_value::text)::numeric
--- To:
-WHEN af.field_type = 'rating' THEN ((afr.response_value::text)::numeric / 5.0) * 100
+So the calendar shows audits; mobile does not. Both are "correct" given their own logic, but the mobile view is incomplete.
+
+## Fix
+
+The mobile `useTodayScheduledAudits` needs to also expand `recurring_audit_schedules` for today, using the same recurrence logic the calendar uses.
+
+### Changes
+
+**`src/hooks/useMobileCommandData.ts`** — `useTodayScheduledAudits`:
+
+1. Keep the existing `scheduled_audits` query (for one-time scheduled audits)
+2. Add a second query: fetch all active `recurring_audit_schedules` for the company
+3. For each recurring schedule, compute whether today falls on a valid occurrence date (using the same `start_date`, `recurrence_pattern`, `day_of_week` logic as the calendar)
+4. If today matches, add it to the results as a `ScheduledAuditItem`
+5. Merge both lists, deduplicating by location+template if a `location_audits` entry already exists for today
+
+**No other files change** — the `TodayAuditsSection` component already renders `ScheduledAuditItem[]` correctly.
+
+### Recurrence matching logic (extracted from calendar):
+```text
+For each recurring_audit_schedule:
+  - start from start_date, advance by pattern (daily/weekly/every_4_weeks/monthly)
+  - check if today's date is hit
+  - if yes → include as a scheduled audit item with start_time
 ```
 
-Then re-run the backfill loop to update all existing cached scores.
+This is a pure client-side computation over a small dataset (20 recurring schedules).
 
----
-
-## Bug 2: Declining Locations — Ignores Date Picker
-
-**Root cause**: `usePerformanceTrends` computes `locationPerformance` from ALL audits (line 118-176 uses raw `audits` from `useLocationAudits()`). The `filteredAudits` variable (line 96-106) correctly applies dateFrom/dateTo filters but is **never used** — it's a dead variable.
-
-So "Declining Locations" always shows all-time trends regardless of the dashboard date picker (Last 7 days, etc.).
-
-**Fix**: In `usePerformanceTrends.ts`, change `locationPerformance` to use `filteredAudits` instead of `audits`. One line change in the memo.
-
----
-
-## Summary of Changes
-
-| What | Where | Type |
-|------|-------|------|
-| Normalize rating scores to 0-100 | DB function `recompute_audit_section_scores` | Migration |
-| Backfill all cached section scores | One-time migration | Migration |
-| Use `filteredAudits` in `locationPerformance` | `src/hooks/usePerformanceTrends.ts` line 122 | Code |
+| File | Change |
+|------|--------|
+| `src/hooks/useMobileCommandData.ts` | Add recurring schedule expansion in `useTodayScheduledAudits` |
 
