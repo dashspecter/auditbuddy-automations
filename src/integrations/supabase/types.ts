@@ -11669,6 +11669,10 @@ export type Database = {
           full_name: string
         }[]
       }
+      get_company_overview: {
+        Args: { target_company_id: string }
+        Returns: Json
+      }
       get_company_timezone: { Args: { p_company_id: string }; Returns: string }
       get_employee_company_id: { Args: { _user_id: string }; Returns: string }
       get_kiosk_attendance_logs: {
