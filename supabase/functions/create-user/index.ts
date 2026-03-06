@@ -177,26 +177,7 @@ serve(async (req) => {
         throw new Error('Insufficient permissions to invite users to this company');
       }
 
-      // Enforce user limit
-      const { data: companyData } = await supabaseAdmin
-        .from('companies')
-        .select('max_users')
-        .eq('id', companyId)
-        .single();
-
-      if (companyData?.max_users != null) {
-        const { count: currentUserCount } = await supabaseAdmin
-          .from('company_users')
-          .select('*', { count: 'exact', head: true })
-          .eq('company_id', companyId);
-
-        if ((currentUserCount ?? 0) >= companyData.max_users) {
-          return new Response(
-            JSON.stringify({ error: `User limit reached (${companyData.max_users}). Contact your platform administrator to increase the limit.` }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-          );
-        }
-      }
+      // User invites are no longer limited by employee count — that limit applies to workforce employees only
 
       // Check if user already exists
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();

@@ -150,11 +150,7 @@ export default function CompanySettings() {
   // Mutation to invite user to company
   const inviteUserMutation = useMutation({
     mutationFn: async ({ email, fullName, role }: { email: string; fullName: string; role: 'company_member' | 'company_admin' }) => {
-      // Client-side user limit check
-      const maxUsers = (company as any)?.max_users;
-      if (maxUsers != null && users.length >= maxUsers) {
-        throw new Error(`User limit reached (${maxUsers}). Contact your platform administrator to increase the limit.`);
-      }
+      // User invites are no longer limited by employee count
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
@@ -346,20 +342,14 @@ export default function CompanySettings() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                     Company Users
-                    {(company as any)?.max_users != null && (
-                      <Badge variant={users.length >= (company as any).max_users ? 'destructive' : 'secondary'}>
-                        {users.length} / {(company as any).max_users}
-                      </Badge>
-                    )}
                   </CardTitle>
                   <CardDescription>Manage users in your company</CardDescription>
                 </div>
                 {company?.userRole === 'company_owner' && (
                   <Button
                     onClick={() => setInviteDialogOpen(true)}
-                    disabled={(company as any)?.max_users != null && users.length >= (company as any).max_users}
                   >
                     Invite User
                   </Button>

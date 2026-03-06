@@ -22,8 +22,8 @@ export default function CompanyDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [togglingModule, setTogglingModule] = useState<string | null>(null);
-  const [editingMaxUsers, setEditingMaxUsers] = useState(false);
-  const [maxUsersInput, setMaxUsersInput] = useState("");
+  const [editingMaxEmployees, setEditingMaxEmployees] = useState(false);
+  const [maxEmployeesInput, setMaxEmployeesInput] = useState("");
   const { data: overview, isLoading: overviewLoading } = useCompanyOverview(id);
 
   const { data: company, isLoading } = useQuery({
@@ -185,15 +185,15 @@ export default function CompanyDetail() {
         </>
       ) : null}
 
-      {/* User Limit Management */}
-      <UserLimitCard
+      {/* Employee Limit Management */}
+      <EmployeeLimitCard
         companyId={id!}
-        maxUsers={(company as any).max_users}
-        currentUsers={stats?.userCount ?? 0}
-        editingMaxUsers={editingMaxUsers}
-        setEditingMaxUsers={setEditingMaxUsers}
-        maxUsersInput={maxUsersInput}
-        setMaxUsersInput={setMaxUsersInput}
+        maxEmployees={(company as any).max_employees}
+        currentEmployees={overview?.employees_count ?? 0}
+        editingMaxEmployees={editingMaxEmployees}
+        setEditingMaxEmployees={setEditingMaxEmployees}
+        maxEmployeesInput={maxEmployeesInput}
+        setMaxEmployeesInput={setMaxEmployeesInput}
         queryClient={queryClient}
       />
 
@@ -274,92 +274,93 @@ export default function CompanyDetail() {
   );
 }
 
-/** Extracted User Limit card for CompanyDetail */
-function UserLimitCard({
+/** Employee Limit card for CompanyDetail */
+function EmployeeLimitCard({
   companyId,
-  maxUsers,
-  currentUsers,
-  editingMaxUsers,
-  setEditingMaxUsers,
-  maxUsersInput,
-  setMaxUsersInput,
+  maxEmployees,
+  currentEmployees,
+  editingMaxEmployees,
+  setEditingMaxEmployees,
+  maxEmployeesInput,
+  setMaxEmployeesInput,
   queryClient,
 }: {
   companyId: string;
-  maxUsers: number | null;
-  currentUsers: number;
-  editingMaxUsers: boolean;
-  setEditingMaxUsers: (v: boolean) => void;
-  maxUsersInput: string;
-  setMaxUsersInput: (v: string) => void;
+  maxEmployees: number | null;
+  currentEmployees: number;
+  editingMaxEmployees: boolean;
+  setEditingMaxEmployees: (v: boolean) => void;
+  maxEmployeesInput: string;
+  setMaxEmployeesInput: (v: string) => void;
   queryClient: ReturnType<typeof useQueryClient>;
 }) {
-  const updateMaxUsers = useMutation({
+  const updateMaxEmployees = useMutation({
     mutationFn: async (value: number | null) => {
       const { error } = await supabase
         .from('companies')
-        .update({ max_users: value } as any)
+        .update({ max_employees: value } as any)
         .eq('id', companyId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-company-detail', companyId] });
-      toast.success('User limit updated');
-      setEditingMaxUsers(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-company-overview', companyId] });
+      toast.success('Employee limit updated');
+      setEditingMaxEmployees(false);
     },
-    onError: () => toast.error('Failed to update user limit'),
+    onError: () => toast.error('Failed to update employee limit'),
   });
 
   const handleSave = () => {
-    const trimmed = maxUsersInput.trim();
+    const trimmed = maxEmployeesInput.trim();
     if (trimmed === '' || trimmed === '0') {
-      updateMaxUsers.mutate(null);
+      updateMaxEmployees.mutate(null);
     } else {
       const num = parseInt(trimmed, 10);
       if (isNaN(num) || num < 1) {
         toast.error('Enter a valid number or leave empty for unlimited');
         return;
       }
-      updateMaxUsers.mutate(num);
+      updateMaxEmployees.mutate(num);
     }
   };
 
-  const atCapacity = maxUsers !== null && currentUsers >= maxUsers;
+  const atCapacity = maxEmployees !== null && currentEmployees >= maxEmployees;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserCog className="h-5 w-5" />
-          User Limit
+          Employee Limit
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-6">
           <div>
-            <p className="text-sm text-muted-foreground">Current Usage</p>
+            <p className="text-sm text-muted-foreground">Current Employees</p>
             <p className={`text-xl font-bold ${atCapacity ? 'text-destructive' : ''}`}>
-              {currentUsers} / {maxUsers ?? '∞'}
+              {currentEmployees} / {maxEmployees ?? '∞'}
             </p>
           </div>
-          {editingMaxUsers ? (
+          {editingMaxEmployees ? (
             <div className="flex items-center gap-2">
               <div className="space-y-1">
-                <Label htmlFor="max-users" className="text-xs">Max users (empty = unlimited)</Label>
+                <Label htmlFor="max-employees" className="text-xs">Max employees (empty = unlimited)</Label>
                 <Input
-                  id="max-users"
+                  id="max-employees"
                   type="number"
                   min={1}
                   className="w-32"
-                  value={maxUsersInput}
-                  onChange={(e) => setMaxUsersInput(e.target.value)}
+                  value={maxEmployeesInput}
+                  onChange={(e) => setMaxEmployeesInput(e.target.value)}
                   placeholder="∞"
                 />
               </div>
-              <Button size="sm" onClick={handleSave} disabled={updateMaxUsers.isPending}>
+              <Button size="sm" onClick={handleSave} disabled={updateMaxEmployees.isPending}>
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditingMaxUsers(false)}>
+              <Button size="sm" variant="ghost" onClick={() => setEditingMaxEmployees(false)}>
                 Cancel
               </Button>
             </div>
@@ -368,8 +369,8 @@ function UserLimitCard({
               size="sm"
               variant="outline"
               onClick={() => {
-                setMaxUsersInput(maxUsers?.toString() ?? '');
-                setEditingMaxUsers(true);
+                setMaxEmployeesInput(maxEmployees?.toString() ?? '');
+                setEditingMaxEmployees(true);
               }}
             >
               Edit Limit
@@ -377,7 +378,7 @@ function UserLimitCard({
           )}
         </div>
         {atCapacity && (
-          <p className="text-sm text-destructive mt-2">This company has reached its user limit.</p>
+          <p className="text-sm text-destructive mt-2">This company has reached its employee limit.</p>
         )}
       </CardContent>
     </Card>

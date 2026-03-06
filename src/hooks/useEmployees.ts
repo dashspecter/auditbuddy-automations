@@ -154,6 +154,25 @@ export const useCreateEmployee = () => {
         .single();
 
       if (!companyUser) throw new Error("No company found for user");
+
+      // Client-side employee limit check
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('max_employees')
+        .eq('id', companyUser.company_id)
+        .single();
+
+      const maxEmployees = (companyData as any)?.max_employees;
+      if (maxEmployees != null) {
+        const { count } = await supabase
+          .from('employees')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', companyUser.company_id);
+
+        if ((count ?? 0) >= maxEmployees) {
+          throw new Error(`Employee limit reached (${maxEmployees}). Contact your platform administrator to increase the limit.`);
+        }
+      }
       
       const { data, error } = await supabase
         .from("employees")
