@@ -227,7 +227,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       (e) => !shiftTeamIds.has(e.id) && attendanceMap.has(e.id)
     );
     return [...shiftTeam, ...unscheduledTeam];
-  }, [employees, employeeShiftMap, attendanceMap]);
+  }, [employees, shifts, attendance]);
 
   // Scheduled employee IDs (used for Champions gating)
   const scheduledEmployeeIds = useMemo(() => {
