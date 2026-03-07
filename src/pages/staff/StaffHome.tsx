@@ -28,6 +28,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { computeEffectiveScore } from "@/lib/effectiveScore";
 import { TierBadge } from "@/components/staff/TierBadge";
 import { useStaffOnDuty } from "@/hooks/useStaffOnDuty";
+import { useWorkforcePolicy } from "@/hooks/useScheduleGovernance";
 import { StaffCheckpointsCard } from "@/components/staff/StaffCheckpointsCard";
 import { MyCorrectiveActionsCard } from "@/components/staff/MyCorrectiveActionsCard";
 

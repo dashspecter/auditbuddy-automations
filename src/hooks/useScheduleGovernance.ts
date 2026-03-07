@@ -566,6 +566,7 @@ export const useResolveWorkforceException = () => {
               role: employeeRole,
               is_published: true,
               status: 'published',
+              shift_type: 'extra',
               created_by: user.id,
             })
             .select()
