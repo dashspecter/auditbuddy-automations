@@ -58,6 +58,7 @@ const StaffHome = () => {
   const [additionalLocationsCount, setAdditionalLocationsCount] = useState(0);
   const [hideEarnings, setHideEarnings] = useState(false);
   const [clockInEnabled, setClockInEnabled] = useState(true);
+  const [openAttendanceLog, setOpenAttendanceLog] = useState<any>(null);
 
   
   // Date range for performance - this month
@@ -135,6 +136,18 @@ const StaffHome = () => {
         
         setEmployee(empData);
         await loadShifts(empData.id);
+        
+        // Check for open attendance log today (for unscheduled clock-ins)
+        const todayDate = new Date().toISOString().split('T')[0];
+        const { data: openLog } = await supabase
+          .from("attendance_logs")
+          .select("*, locations(name)")
+          .eq("staff_id", empData.id)
+          .gte("check_in_at", `${todayDate}T00:00:00`)
+          .order("check_in_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setOpenAttendanceLog(openLog || null);
         
         // Check additional locations count
         const { count: additionalCount } = await supabase
@@ -399,6 +412,31 @@ const StaffHome = () => {
                 {t('staffHome.awaitingApproval')}
               </div>
             )}
+          </Card>
+        ) : !isManager && openAttendanceLog && !openAttendanceLog.check_out_at ? (
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">{t('staffHome.clockedIn', "You're Clocked In")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('staffHome.since', 'Since')} {new Date(openAttendanceLog.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {openAttendanceLog.locations?.name && ` • ${openAttendanceLog.locations.name}`}
+                </p>
+              </div>
+            </div>
+            <Button variant="default" className="w-full" onClick={() => navigate("/staff/scan-attendance")}>
+              <QrCode className="h-4 w-4 mr-2" />
+              {t('staffHome.clockOut', 'Clock Out')}
+            </Button>
+          </Card>
+        ) : !isManager && openAttendanceLog?.check_out_at ? (
+          <Card className="p-6 text-center">
+            <div className="text-sm text-muted-foreground">
+              {t('staffHome.shiftCompleted', 'Shift completed')} • {t('staffHome.clockedOutAt', 'Clocked out at')} {new Date(openAttendanceLog.check_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
           </Card>
         ) : !isManager ? (
           <Card className="p-6 text-center">

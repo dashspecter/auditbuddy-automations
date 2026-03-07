@@ -218,8 +218,16 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     });
   });
 
-  // Filter employees to only those with shifts today - MUST be computed before tasks
-  const todaysTeam = employees.filter((e) => employeeShiftMap.has(e.id));
+  // Filter employees to those with shifts today OR who have clocked in (unscheduled)
+  const todaysTeam = useMemo(() => {
+    const shiftTeam = employees.filter((e) => employeeShiftMap.has(e.id));
+    const shiftTeamIds = new Set(shiftTeam.map((e) => e.id));
+    // Add employees who clocked in but have no shift (unscheduled clock-ins)
+    const unscheduledTeam = employees.filter(
+      (e) => !shiftTeamIds.has(e.id) && attendanceMap.has(e.id)
+    );
+    return [...shiftTeam, ...unscheduledTeam];
+  }, [employees, employeeShiftMap, attendanceMap]);
 
   // Scheduled employee IDs (used for Champions gating)
   const scheduledEmployeeIds = useMemo(() => {
