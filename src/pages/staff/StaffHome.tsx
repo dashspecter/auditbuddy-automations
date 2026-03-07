@@ -40,6 +40,7 @@ const StaffHome = () => {
   const { data: roleData } = useUserRole();
   const { hasModule } = useCompanyContext();
   const { isOnDuty, locationId: onDutyLocationId } = useStaffOnDuty();
+  const { data: workforcePolicy } = useWorkforcePolicy();
   // Use unified occurrence hook for consistent counts with the StaffTasks page
   const { todayGrouped, upcomingTasks, activeTasks, debug: taskDebug } = useMyTaskOccurrences();
   
@@ -403,6 +404,12 @@ const StaffHome = () => {
           <Card className="p-6 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">{t('staffHome.noShiftToday')}</p>
+            {clockInEnabled && workforcePolicy?.unscheduled_clock_in_policy !== 'block' && (
+              <Button variant="outline" className="mt-3 w-full" onClick={() => navigate("/staff/scan-attendance")}>
+                <QrCode className="h-4 w-4 mr-2" />
+                {t('staffHome.clockInQR', 'Clock In')}
+              </Button>
+            )}
             <Button variant="link" className="mt-2" onClick={() => navigate("/staff/shift-pool")}>
               {t('staffHome.browseShifts')}
             </Button>
