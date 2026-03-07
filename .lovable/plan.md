@@ -1,30 +1,55 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+# Fix: Unscheduled Clock-In UI + Extra Shift Tagging
 
-## Root Cause
+Two strictly additive changes across two files. No other files touched.
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+## Change 1 — Show Clock In button when no shift scheduled
 
-```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
+**File:** `src/pages/staff/StaffHome.tsx`
+
+- Import `useWorkforcePolicy` from `@/hooks/useScheduleGovernance`
+- Call `const { data: workforcePolicy } = useWorkforcePolicy()` near top of component
+- In the "no shift today" card (lines 401-408), add a conditional Clock In button before the Browse Shifts link:
+
+```tsx
+{clockInEnabled && workforcePolicy?.unscheduled_clock_in_policy !== 'block' && (
+  <Button variant="outline" className="mt-3 w-full" onClick={() => navigate("/staff/scan-attendance")}>
+    <QrCode className="h-4 w-4 mr-2" />
+    {t('staffHome.clockInQR', 'Clock In')}
+  </Button>
+)}
 ```
 
-## Fix
+`QrCode` is already imported (line 10). Navigation target `/staff/scan-attendance` already handles the full unscheduled flow.
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+## Change 2 — Tag auto-created shift as 'extra'
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+**File:** `src/hooks/useScheduleGovernance.ts` (line 560-570)
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+Add `shift_type: 'extra'` to the shift insert object so auto-created shifts from approved unscheduled clock-in exceptions display the orange badge on the schedule grid:
 
-| File | Change |
-|------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+```typescript
+.insert({
+  company_id: exception.company_id,
+  location_id: exception.location_id,
+  shift_date: exception.shift_date,
+  start_time: startTime,
+  end_time: endTime,
+  role: employeeRole,
+  is_published: true,
+  status: 'published',
+  shift_type: 'extra',        // ← add this line
+  created_by: user.id,
+})
+```
 
-One file, ~5 lines changed. No database changes.
+## Summary
+
+| File | Change | Lines |
+|------|--------|-------|
+| `src/pages/staff/StaffHome.tsx` | Add `useWorkforcePolicy` + conditional Clock In button | ~8 lines added |
+| `src/hooks/useScheduleGovernance.ts` | Add `shift_type: 'extra'` to insert | 1 line added |
+
+No database changes. No other files modified. Both changes are additive — existing behavior is untouched.
 
