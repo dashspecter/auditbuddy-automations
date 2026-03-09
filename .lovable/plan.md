@@ -1,29 +1,30 @@
 
 
-# Integrate Contract Features into the Workforce Staff Page
+# Why the Setup Checklist Doesn't Show for New Companies
 
-## Problem
+## Root Cause
 
-The contract template upload button and contract generation button were added to the old `/admin/employees` page (`EmployeeManagement.tsx`), but you're using the `/workforce/staff` page (`Staff.tsx` + `StaffTable.tsx`). That's why you don't see any contract-related buttons.
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
-## What Needs to Change
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
 
-### 1. `Staff.tsx` — Add "Upload Template" button
-Add the `ContractTemplateDialog` import and an "Upload Template" button next to "Add Staff" in the header area.
+## Fix
 
-### 2. `StaffTable.tsx` — Add contract generation button per employee
-Add a `FileText` icon button in the Actions column (both mobile and desktop views) that opens the `GenerateContractDialog` for that employee. Currently the Actions column only has: KeyRound (reset password), Edit, View. We need to add the contract generation icon between KeyRound and Edit.
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-### 3. Both files need state management
-- `Staff.tsx`: state for `templateDialogOpen` + render `ContractTemplateDialog`
-- `StaffTable.tsx`: state for `contractDialogOpen` + `employeeForContract` + render `GenerateContractDialog`
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-## Files Changed
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
 | File | Change |
 |------|--------|
-| `src/pages/workforce/Staff.tsx` | Add Upload Template button + `ContractTemplateDialog` |
-| `src/components/workforce/StaffTable.tsx` | Add FileText contract button per row + `GenerateContractDialog` |
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
 
-No backend changes needed — the edge functions and dialogs already exist.
+One file, ~5 lines changed. No database changes.
 
