@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { ScanIdDocumentButton } from "@/components/ScanIdDocumentButton";
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -438,6 +439,12 @@ export const EmployeeDialog = ({
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="px-4 pb-4 space-y-4">
+                {/* AI Document Scanner */}
+                <ScanIdDocumentButton
+                  formData={formData}
+                  onApplyFields={(fields) => setFormData((prev: any) => ({ ...prev, ...fields }))}
+                />
+
                 {/* Employee Type Toggle */}
                 <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg border border-border">
                   <Checkbox 

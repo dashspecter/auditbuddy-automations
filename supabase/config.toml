@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.qr-form-public-view]
 verify_jwt = false
+
+[functions.scan-id-document]
+verify_jwt = false
+
+[functions.ai-fill-contract]
+verify_jwt = false

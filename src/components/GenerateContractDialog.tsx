@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -16,15 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileDown, Loader2 } from "lucide-react";
+import { FileDown, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
-import Docxtemplater from "docxtemplater";
-import PizZip from "pizzip";
 import { saveAs } from "file-saver";
-
 
 interface Employee {
   id: string;
@@ -38,13 +34,11 @@ interface Employee {
   hourly_rate?: number;
   annual_vacation_days?: number;
   locations?: { name: string };
-  // ID Document fields (Romanian)
   localitate?: string;
   serie_id?: string;
   numar_id?: string;
   valabilitate_id?: string;
   cnp?: string;
-  // Additional contract fields
   domiciliu?: string;
   emisa_de?: string;
   valabila_de_la?: string;
@@ -52,7 +46,6 @@ interface Employee {
   cod_cor?: string;
   valoare_tichet?: number;
   perioada_proba_end?: string;
-  // Foreign employee fields
   is_foreign?: boolean;
   nr_permis_sedere?: string;
   permis_institutie_emitenta?: string;
@@ -86,7 +79,6 @@ export function GenerateContractDialog({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
-
 
   useEffect(() => {
     if (open && user) {
@@ -130,159 +122,51 @@ export function GenerateContractDialog({
       return;
     }
 
-    const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
-    if (!selectedTemplate) {
-      toast.error("Template not found");
-      return;
-    }
-
     setGenerating(true);
     try {
-      // Refetch employee data to ensure we have all fields
-      const { data: freshEmployee, error: employeeError } = await supabase
-        .from("employees")
-        .select(`
-          full_name, localitate, serie_id, numar_id, valabilitate_id, cnp,
-          domiciliu, emisa_de, valabila_de_la, ocupatia, cod_cor, 
-          valoare_tichet, perioada_proba_end, hire_date, base_salary,
-          is_foreign, nr_permis_sedere, permis_institutie_emitenta,
-          permis_data_eliberare, permis_data_expirare, numar_aviz,
-          aviz_data_eliberare, aviz_institutie, spor_weekend,
-          locations(name)
-        `)
-        .eq("id", employee.id)
-        .single();
-
-      if (employeeError || !freshEmployee) {
-        throw new Error("Failed to fetch employee data");
-      }
-
-      
-
-      // Fetch the template file
-      const response = await fetch(selectedTemplate.file_url);
-      if (!response.ok) throw new Error("Failed to fetch template");
-
-      const arrayBuffer = await response.arrayBuffer();
-      const zip = new PizZip(arrayBuffer);
-      
-      // Simple parser that just looks up values by key
-      const simpleParser = (tag: string) => {
-        return {
-          get: (scope: any) => {
-            if (!tag || tag.trim() === '') return "";
-            const trimmedTag = tag.trim();
-            const value = scope[trimmedTag];
-            return value !== undefined && value !== null ? String(value) : "";
-          }
-        };
-      };
-
-      // Configure docxtemplater with simple parser
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-        delimiters: { start: "{{", end: "}}" },
-        parser: simpleParser,
+      const { data, error } = await supabase.functions.invoke("ai-fill-contract", {
+        body: {
+          employee_id: employee.id,
+          template_id: selectedTemplateId,
+        },
       });
 
-      // Format dates if they're date strings
-      const formatDate = (dateStr: string | null | undefined) => {
-        if (!dateStr) return "";
-        if (dateStr.includes('-')) {
-          return format(new Date(dateStr), "dd.MM.yyyy");
-        }
-        return String(dateStr);
-      };
-
-      const data = {
-        // Employee name variants used in the document
-        "nume angajat": freshEmployee.full_name ?? "",
-        "nume salariat": freshEmployee.full_name ?? "",
-        "nume complet": freshEmployee.full_name ?? "",
-        
-        // Address and location
-        "domiciliu": freshEmployee.domiciliu ?? "",
-        "localitate": freshEmployee.localitate ?? "",
-        "punct de lucru": (freshEmployee.locations as any)?.name ?? "",
-        
-        // ID Document fields (Romanian)
-        "seria ci": freshEmployee.serie_id ?? "",
-        "nr ci": freshEmployee.numar_id ?? "",
-        "emisa de": freshEmployee.emisa_de ?? "",
-        "valabila de la": formatDate(freshEmployee.valabila_de_la),
-        "pana la": formatDate(freshEmployee.valabilitate_id),
-        "CNP": freshEmployee.cnp ?? "",
-        "cnp": freshEmployee.cnp ?? "",
-        
-        // Foreign employee - Residence Permit
-        "nr permis sedere": freshEmployee.nr_permis_sedere ?? "",
-        "institutie emitenta": freshEmployee.permis_institutie_emitenta ?? "",
-        "data eliberare": formatDate(freshEmployee.permis_data_eliberare),
-        "data expirare": formatDate(freshEmployee.permis_data_expirare),
-        
-        // Foreign employee - Work Permit (Aviz)
-        "numar aviz": freshEmployee.numar_aviz ?? "",
-        "institutie": freshEmployee.aviz_institutie ?? "",
-        
-        // Job details
-        "ocupatia": freshEmployee.ocupatia ?? "",
-        "cod cor": freshEmployee.cod_cor ?? "",
-        
-        // Dates
-        "data incepere activitate": formatDate(freshEmployee.hire_date),
-        "perioada de proba": formatDate(freshEmployee.perioada_proba_end),
-        
-        // Salary details
-        "valoare salariu": freshEmployee.base_salary?.toString() ?? "",
-        "valoare spor weekend": freshEmployee.spor_weekend?.toString() ?? "",
-        "valoare tichet": freshEmployee.valoare_tichet?.toString() ?? "",
-        
-        // Legacy field names for compatibility
-        "serie id": freshEmployee.serie_id ?? "",
-        "numar id": freshEmployee.numar_id ?? "",
-        "valabilitate id": formatDate(freshEmployee.valabilitate_id),
-      };
-
-      
-
-      // Render the document
-      try {
-        doc.render(data);
-      } catch (renderError: any) {
-        console.error("Render error details:", renderError);
-        if (renderError.properties && renderError.properties.errors) {
-          const errors = renderError.properties.errors;
-          console.error("Template errors:", errors);
-          const errorMessages = errors
-            .slice(0, 3) // Show first 3 errors
-            .map((e: any) => {
-              const id = e.properties?.id || e.properties?.xtag || 'Unknown placeholder';
-              return `"${id}"`;
-            })
-            .join(", ");
-          const moreCount = errors.length > 3 ? ` (+${errors.length - 3} more)` : "";
-          throw new Error(`Template has invalid placeholders: ${errorMessages}${moreCount}`);
-        }
-        throw renderError;
+      if (error) {
+        throw new Error(error.message || "Failed to generate contract");
       }
 
-      // Generate the output
-      const out = doc.getZip().generate({
-        type: "blob",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      if (!data?.success || !data?.docx_base64) {
+        throw new Error(data?.error || "Failed to generate contract");
+      }
+
+      // Convert base64 to blob and download
+      const binaryString = atob(data.docx_base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      // Save as DOCX
-      const fileName = `Contract_${freshEmployee.full_name?.replace(/\s+/g, "_") || "Employee"}_${format(new Date(), "yyyy-MM-dd")}.docx`;
-      saveAs(out, fileName);
+      const fileName = data.file_name || 
+        `Contract_${employee.full_name?.replace(/\s+/g, "_") || "Employee"}_${format(new Date(), "yyyy-MM-dd")}.docx`;
+      saveAs(blob, fileName);
 
-      toast.success("Contract generated and downloaded!");
+      toast.success(
+        `Contract generat! ${data.applied_count}/${data.total_replacements} câmpuri completate.`
+      );
       onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error generating contract:", error);
-      toast.error(error.message || "Failed to generate contract");
+    } catch (err: any) {
+      console.error("Error generating contract:", err);
+      if (err.message?.includes("429") || err.message?.includes("Rate limit")) {
+        toast.error("Prea multe cereri. Încercați din nou în câteva secunde.");
+      } else if (err.message?.includes("402")) {
+        toast.error("Credite AI epuizate. Contactați administratorul.");
+      } else {
+        toast.error(err.message || "Failed to generate contract");
+      }
     } finally {
       setGenerating(false);
     }
@@ -370,6 +254,16 @@ export function GenerateContractDialog({
                 </div>
               </div>
 
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="font-medium">Completare inteligentă cu AI</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  AI-ul va analiza template-ul și va completa automat datele angajatului în contract.
+                </p>
+              </div>
+
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
@@ -378,7 +272,7 @@ export function GenerateContractDialog({
                   {generating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      AI completează contractul...
                     </>
                   ) : (
                     <>
