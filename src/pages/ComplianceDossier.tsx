@@ -19,6 +19,13 @@ import autoTable from "jspdf-autotable";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface RejectedEvidenceItem {
+  taskName: string;
+  submittedBy: string;
+  rejectedAt: string;
+  reason: string;
+}
+
 interface DossierData {
   tasks: {
     total: number;
@@ -42,6 +49,10 @@ interface DossierData {
     total: number;
     completed: number;
     items: Array<{ staff: string; module: string; status: string; startDate: string }>;
+  };
+  rejectedEvidence: {
+    total: number;
+    items: RejectedEvidenceItem[];
   };
 }
 
