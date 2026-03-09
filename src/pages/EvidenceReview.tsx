@@ -489,6 +489,16 @@ export default function EvidenceReview() {
               )}
               Bulk Approve
             </Button>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  Approves all selected submitted packets at once. Only works for "Submitted" items. This action cannot be undone.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </StickyActionBar>
