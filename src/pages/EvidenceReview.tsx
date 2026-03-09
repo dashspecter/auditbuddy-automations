@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
@@ -26,7 +28,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
-import { Camera, Search, Filter, ShieldCheck, Loader2, User, CheckCircle2, X } from "lucide-react";
+import { Camera, Search, Filter, ShieldCheck, Loader2, User, CheckCircle2, X, HelpCircle, ChevronDown, Info } from "lucide-react";
 import { useBulkApproveEvidence } from "@/hooks/useEvidencePackets";
 import type { EvidenceSubjectType, EvidenceStatus } from "@/hooks/useEvidencePackets";
 import { toast } from "sonner";
@@ -248,20 +250,62 @@ export default function EvidenceReview() {
           </p>
         </div>
 
-        {/* Status summary chips */}
-        <div className="flex flex-wrap gap-2">
-          {["submitted", "approved", "rejected"].map((s) => (
-            <Badge
-              key={s}
-              variant={statusFilter === s ? "default" : "secondary"}
-              className="cursor-pointer"
-              onClick={() => handleStatusFilter(s)}
-            >
-              {s}: {statusCounts[s] ?? 0}
-            </Badge>
-          ))}
-        </div>
+        {/* Status summary chips with tooltips */}
+        <TooltipProvider delayDuration={300}>
+          <div className="flex flex-wrap gap-2">
+            {([
+              ["submitted", "Awaiting manager review. The task is completed but proof has not been verified yet."],
+              ["approved", "Proof accepted by a manager. The task completion is confirmed."],
+              ["rejected", "Proof was rejected. The task was reset to pending and the employee was notified to resubmit."],
+            ] as [string, string][]).map(([s, tip]) => (
+              <Tooltip key={s}>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant={statusFilter === s ? "default" : "secondary"}
+                    className="cursor-pointer"
+                    onClick={() => handleStatusFilter(s)}
+                  >
+                    {s}: {statusCounts[s] ?? 0}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                  {tip}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
       </div>
+
+      {/* Collapsible help banner */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            <span>How does evidence review work?</span>
+            <ChevronDown className="h-3 w-3 ml-auto" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border space-y-2 text-xs text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+              <p><strong className="text-foreground">Submitted</strong> — The employee completed the task and uploaded proof. It's waiting for your review.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-500" />
+              <p><strong className="text-foreground">Approved</strong> — You accepted the proof. The task stays marked as completed and counts towards the employee's score.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-destructive" />
+              <p><strong className="text-foreground">Rejected</strong> — The proof was not adequate. The task resets to pending, the employee is notified, and it won't count until they resubmit valid proof.</p>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Filters */}
       <div className="flex flex-col gap-3">
@@ -445,6 +489,16 @@ export default function EvidenceReview() {
               )}
               Bulk Approve
             </Button>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs">
+                  Approves all selected submitted packets at once. Only works for "Submitted" items. This action cannot be undone.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </StickyActionBar>

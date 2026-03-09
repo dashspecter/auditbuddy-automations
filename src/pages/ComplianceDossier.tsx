@@ -9,15 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import {
   FileDown, ShieldCheck, ClipboardCheck, ListTodo, GraduationCap,
-  CheckCircle2, XCircle, Clock, Loader2, Building2,
+  CheckCircle2, XCircle, Clock, Loader2, Building2, AlertTriangle, Info,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+interface RejectedEvidenceItem {
+  taskName: string;
+  submittedBy: string;
+  rejectedAt: string;
+  reason: string;
+}
 
 interface DossierData {
   tasks: {
@@ -42,6 +49,10 @@ interface DossierData {
     total: number;
     completed: number;
     items: Array<{ staff: string; module: string; status: string; startDate: string }>;
+  };
+  rejectedEvidence: {
+    total: number;
+    items: RejectedEvidenceItem[];
   };
 }
 
@@ -202,6 +213,39 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
         startDate: t.start_date ?? "",
       }));
 
+      // ── 6. Rejected evidence packets ────────────────────────────────────
+      const { data: rejectedPackets } = await supabase
+        .from("evidence_packets")
+        .select("subject_id, reviewed_at, review_reason, created_by")
+        .eq("location_id", locationId!)
+        .eq("status", "rejected")
+        .eq("subject_type", "task_occurrence")
+        .gte("reviewed_at", from)
+        .lte("reviewed_at", to);
+
+      // Resolve task names and submitter names for rejected packets
+      const rejectedTaskIds = [...new Set((rejectedPackets ?? []).map((p: any) => p.subject_id).filter(Boolean))];
+      const rejectedUserIds = [...new Set((rejectedPackets ?? []).map((p: any) => p.created_by).filter(Boolean))];
+
+      let rejectedTaskMap: Record<string, string> = {};
+      if (rejectedTaskIds.length > 0) {
+        const { data: rTasks } = await supabase.from("tasks").select("id, title").in("id", rejectedTaskIds);
+        (rTasks ?? []).forEach((t: any) => { rejectedTaskMap[t.id] = t.title; });
+      }
+
+      let rejectedSubmitterMap: Record<string, string> = {};
+      if (rejectedUserIds.length > 0) {
+        const { data: rEmps } = await supabase.from("employees").select("user_id, full_name").in("user_id", rejectedUserIds);
+        (rEmps ?? []).forEach((e: any) => { if (e.user_id) rejectedSubmitterMap[e.user_id] = e.full_name; });
+      }
+
+      const rejectedItems: RejectedEvidenceItem[] = (rejectedPackets ?? []).map((p: any) => ({
+        taskName: rejectedTaskMap[p.subject_id] ?? "Unknown task",
+        submittedBy: rejectedSubmitterMap[p.created_by] ?? "—",
+        rejectedAt: p.reviewed_at?.slice(0, 10) ?? "",
+        reason: p.review_reason ?? "—",
+      }));
+
       return {
         tasks: {
           total: taskItems.length,
@@ -225,6 +269,10 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
           total: trainingItems.length,
           completed: trainingItems.filter(t => t.status === "completed").length,
           items: trainingItems,
+        },
+        rejectedEvidence: {
+          total: rejectedItems.length,
+          items: rejectedItems,
         },
       };
     },
@@ -336,6 +384,15 @@ function exportPDF(data: DossierData, locationName: string, monthLabel: string, 
     data.training.items.map(t => [t.startDate, t.staff, t.module, t.status]),
     ["Start Date", "Staff", "Module", "Status"]
   );
+
+  // Rejected Evidence
+  if (data.rejectedEvidence.items.length > 0) {
+    addSection(
+      `Rejected Evidence  (${data.rejectedEvidence.total} rejected)`,
+      data.rejectedEvidence.items.map(r => [r.rejectedAt, r.taskName, r.submittedBy, r.reason]),
+      ["Date Rejected", "Task", "Submitted By", "Reason"]
+    );
+  }
 
   // Footer
   const pages = (doc as any).internal.getNumberOfPages();
@@ -646,6 +703,40 @@ export default function ComplianceDossier() {
               </div>
             )}
           </Section>
+
+          {/* Rejected Evidence */}
+          {data.rejectedEvidence.items.length > 0 && (
+            <Section icon={AlertTriangle} title="Rejected Evidence" meta={`${data.rejectedEvidence.total} rejected`}>
+              <div className="space-y-3">
+                <div className="flex gap-2 p-2.5 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Rejected evidence means the proof was not accepted by a manager. The associated task was reset to pending and may need to be redone by the employee.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b">
+                      <th className="text-left py-2 font-medium text-muted-foreground">Date Rejected</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Task</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Submitted By</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Reason</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border">
+                      {data.rejectedEvidence.items.map((r, i) => (
+                        <tr key={i} className="hover:bg-muted/30">
+                          <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">{r.rejectedAt}</td>
+                          <td className="py-2 pr-3 font-medium">{r.taskName}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{r.submittedBy}</td>
+                          <td className="py-2 pr-3 text-muted-foreground italic text-xs">{r.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Section>
+          )}
         </div>
       )}
     </div>
