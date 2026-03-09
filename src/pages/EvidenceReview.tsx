@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer";
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
@@ -26,7 +28,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
-import { Camera, Search, Filter, ShieldCheck, Loader2, User, CheckCircle2, X } from "lucide-react";
+import { Camera, Search, Filter, ShieldCheck, Loader2, User, CheckCircle2, X, HelpCircle, ChevronDown, Info } from "lucide-react";
 import { useBulkApproveEvidence } from "@/hooks/useEvidencePackets";
 import type { EvidenceSubjectType, EvidenceStatus } from "@/hooks/useEvidencePackets";
 import { toast } from "sonner";
