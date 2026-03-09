@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone, Mail, KeyRound } from "lucide-react";
+import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone, Mail, KeyRound, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
