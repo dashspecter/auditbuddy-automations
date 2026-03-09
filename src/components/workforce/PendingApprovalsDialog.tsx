@@ -320,7 +320,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Acknowledge without excusing. Clears it from the queue but keeps it on record.
+                                 Acknowledge without excusing — the late arrival remains on record and affects scores.
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
