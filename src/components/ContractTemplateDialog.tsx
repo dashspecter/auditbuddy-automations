@@ -126,8 +126,17 @@ export function ContractTemplateDialog({
 
     setUploading(true);
     try {
+      // Get user's company ID FIRST (needed for storage path)
+      const { data: companyUser } = await supabase
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!companyUser) throw new Error("Company not found");
+
       const fileName = `${Date.now()}-${selectedFile.name}`;
-      const filePath = `contract-templates/${fileName}`;
+      const filePath = `${companyUser.company_id}/contract-templates/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("documents")
@@ -138,15 +147,6 @@ export function ContractTemplateDialog({
       const { data: urlData } = supabase.storage
         .from("documents")
         .getPublicUrl(filePath);
-
-      // Get user's company ID
-      const { data: companyUser } = await supabase
-        .from("company_users")
-        .select("company_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!companyUser) throw new Error("Company not found");
 
       // Save template reference in documents table
       const { error: dbError } = await supabase.from("documents").insert({
