@@ -213,6 +213,39 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
         startDate: t.start_date ?? "",
       }));
 
+      // ── 6. Rejected evidence packets ────────────────────────────────────
+      const { data: rejectedPackets } = await supabase
+        .from("evidence_packets")
+        .select("subject_id, reviewed_at, review_reason, created_by")
+        .eq("location_id", locationId!)
+        .eq("status", "rejected")
+        .eq("subject_type", "task_occurrence")
+        .gte("reviewed_at", from)
+        .lte("reviewed_at", to);
+
+      // Resolve task names and submitter names for rejected packets
+      const rejectedTaskIds = [...new Set((rejectedPackets ?? []).map((p: any) => p.subject_id).filter(Boolean))];
+      const rejectedUserIds = [...new Set((rejectedPackets ?? []).map((p: any) => p.created_by).filter(Boolean))];
+
+      let rejectedTaskMap: Record<string, string> = {};
+      if (rejectedTaskIds.length > 0) {
+        const { data: rTasks } = await supabase.from("tasks").select("id, title").in("id", rejectedTaskIds);
+        (rTasks ?? []).forEach((t: any) => { rejectedTaskMap[t.id] = t.title; });
+      }
+
+      let rejectedSubmitterMap: Record<string, string> = {};
+      if (rejectedUserIds.length > 0) {
+        const { data: rEmps } = await supabase.from("employees").select("user_id, full_name").in("user_id", rejectedUserIds);
+        (rEmps ?? []).forEach((e: any) => { if (e.user_id) rejectedSubmitterMap[e.user_id] = e.full_name; });
+      }
+
+      const rejectedItems: RejectedEvidenceItem[] = (rejectedPackets ?? []).map((p: any) => ({
+        taskName: rejectedTaskMap[p.subject_id] ?? "Unknown task",
+        submittedBy: rejectedSubmitterMap[p.created_by] ?? "—",
+        rejectedAt: p.reviewed_at?.slice(0, 10) ?? "",
+        reason: p.review_reason ?? "—",
+      }));
+
       return {
         tasks: {
           total: taskItems.length,
@@ -236,6 +269,10 @@ function useDossierData(companyId: string | undefined, locationId: string | unde
           total: trainingItems.length,
           completed: trainingItems.filter(t => t.status === "completed").length,
           items: trainingItems,
+        },
+        rejectedEvidence: {
+          total: rejectedItems.length,
+          items: rejectedItems,
         },
       };
     },
