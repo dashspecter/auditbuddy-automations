@@ -478,7 +478,7 @@ const StaffStaffAudit = () => {
                       </div>
                     )}
 
-                    {field.field_type === "yes_no" && (
+                    {(field.field_type === "yes_no" || field.field_type === "yesno" || field.field_type === "checkbox") && (
                       <div className="flex gap-2">
                         <Button
                           variant={formData.customData[field.id] === "yes" ? "default" : "outline"}
