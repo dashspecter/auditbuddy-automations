@@ -231,7 +231,7 @@ const StaffStaffAudit = () => {
           if (value !== undefined && value !== null) {
             totalScore += Number(value);
           }
-        } else if (field.field_type === "yes_no") {
+        } else if (field.field_type === "yes_no" || field.field_type === "yesno" || field.field_type === "checkbox") {
           maxScore += 1;
           const value = formData.customData[field.id];
           if (value === "yes" || value === true) {
@@ -478,7 +478,7 @@ const StaffStaffAudit = () => {
                       </div>
                     )}
 
-                    {field.field_type === "yes_no" && (
+                    {(field.field_type === "yes_no" || field.field_type === "yesno" || field.field_type === "checkbox") && (
                       <div className="flex gap-2">
                         <Button
                           variant={formData.customData[field.id] === "yes" ? "default" : "outline"}
