@@ -97,7 +97,7 @@ class SimpleZip {
     let data = entry.data;
     if (entry.compressed) {
       // Decompress using DecompressionStream
-      const ds = new DecompressionStream("raw-deflate" as any);
+      const ds = new DecompressionStream("deflate-raw");
       const writer = ds.writable.getWriter();
       writer.write(data);
       writer.close();
