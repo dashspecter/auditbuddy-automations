@@ -310,7 +310,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Excuse this exception — it won't count against the employee's score or record.
+                               Excuse this late arrival — it will NOT count against the employee's punctuality score or payroll late count.
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -320,7 +320,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Acknowledge without excusing. Clears it from the queue but keeps it on record.
+                                 Acknowledge without excusing — the late arrival remains on record and affects scores.
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -331,7 +331,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Mark as a violation. It will count against the employee's record.
+                                 Keep this on record — it WILL count against the employee's punctuality score and payroll.
                               </TooltipContent>
                             </Tooltip>
                           </div>

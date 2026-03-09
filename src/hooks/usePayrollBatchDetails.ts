@@ -107,6 +107,22 @@ export function usePayrollBatchDetails(
         .lte("shift_date", periodEnd);
       if (absErr) throw absErr;
 
+      // 6. Get approved late exceptions (excused lates)
+      const { data: approvedLateExceptions, error: lateExcErr } = await supabase
+        .from("workforce_exceptions")
+        .select("id, employee_id, attendance_id")
+        .eq("exception_type", "late_start")
+        .eq("status", "approved")
+        .gte("shift_date", periodStart)
+        .lte("shift_date", periodEnd);
+      if (lateExcErr) throw lateExcErr;
+
+      // Build excused late lookup: attendance_id -> true
+      const excusedLateAttendanceIds = new Set<string>();
+      for (const exc of approvedLateExceptions || []) {
+        if (exc.attendance_id) excusedLateAttendanceIds.add(exc.attendance_id);
+      }
+
       // Build absence lookup: employeeId_shiftId -> reason_code
       const absenceLookup = new Map<string, string>();
       for (const exc of absenceExceptions || []) {
@@ -223,12 +239,14 @@ export function usePayrollBatchDetails(
               earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason });
             }
 
-            // Late tracking
-            if (attLog?.is_late) {
+            // Late tracking — skip excused lates
+            if (attLog?.is_late && !excusedLateAttendanceIds.has(attLog.id)) {
               lateCount++;
               totalLateMinutes += attLog.late_minutes || 0;
               lateDates.push(shift.date);
               anomalies.push(`Late on ${shift.date}`);
+            } else if (attLog?.is_late && excusedLateAttendanceIds.has(attLog.id)) {
+              anomalies.push(`Late on ${shift.date} (excused)`);
             }
             if (attLog?.auto_clocked_out) anomalies.push(`Auto-clocked out on ${shift.date}`);
           } else {
