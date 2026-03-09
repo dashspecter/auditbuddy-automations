@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import {
   FileDown, ShieldCheck, ClipboardCheck, ListTodo, GraduationCap,
-  CheckCircle2, XCircle, Clock, Loader2, Building2,
+  CheckCircle2, XCircle, Clock, Loader2, Building2, AlertTriangle, Info,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
