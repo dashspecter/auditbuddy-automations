@@ -186,6 +186,7 @@ export const useCreateEmployee = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+      queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
       toast.success("Employee added successfully");
     },
     onError: (error) => {
