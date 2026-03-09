@@ -337,10 +337,22 @@ function RedactionPanel({ packet, onRedacted }: { packet: EvidencePacket; onReda
 
   return (
     <div className="space-y-2 pt-3 border-t">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-        <ShieldAlert className="h-3.5 w-3.5" />
-        Admin: Redact Media
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+          <ShieldAlert className="h-3.5 w-3.5" />
+          Admin: Redact Media
+        </p>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+              Permanently hide media for privacy/compliance reasons. This cannot be undone.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       {!confirming ? (
         <Button
           size="sm"
