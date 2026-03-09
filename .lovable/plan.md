@@ -1,28 +1,30 @@
 
 
-# Bug: Employee Edits Don't Persist in the Staff Table View
+# Why the Setup Checklist Doesn't Show for New Companies
 
 ## Root Cause
 
-`StaffTable.tsx` uses the `useEmployeesCursor` hook (query key: `["employees-cursor"]`). After a successful update, `useUpdateEmployee` invalidates:
-- `["employees"]`
-- `["employees-paginated"]`
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
-But it does **NOT** invalidate `["employees-cursor"]`. So the cached employee data remains stale, and when you re-open the Edit dialog, you see the old values.
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
 
-Notably, `useDeleteEmployee` already correctly invalidates all three query keys — the update mutation was simply missed.
+## Fix
 
-## The Fix
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-Add `queryClient.invalidateQueries({ queryKey: ["employees-cursor"] })` to the `onSuccess` callback of `useUpdateEmployee` in `src/hooks/useEmployees.ts`.
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-For consistency, also add it to `useCreateEmployee`'s `onSuccess`.
-
-## Files Changed
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
 | File | Change |
 |------|--------|
-| `src/hooks/useEmployees.ts` | Add `["employees-cursor"]` invalidation to `useUpdateEmployee` and `useCreateEmployee` `onSuccess` callbacks |
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
 
-One file, two one-line additions.
+One file, ~5 lines changed. No database changes.
 
