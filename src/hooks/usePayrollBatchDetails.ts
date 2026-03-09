@@ -9,9 +9,16 @@ export interface PayrollEmployeeDetail {
   location_name: string;
   // Core metrics
   days_worked: number;
-  days_confirmed: number; // Backed by check-in/check-out
+  days_confirmed: number;
   regular_hours: number;
   overtime_hours: number;
+  // Partial shifts (actual < 75% of scheduled)
+  partial_count: number;
+  partial_dates: string[];
+  // Late arrivals
+  late_count: number;
+  total_late_minutes: number;
+  late_dates: string[];
   // Extra schedule (unscheduled attendance, manager-approved)
   extra_schedule_days: number;
   extra_schedule_dates: string[];
@@ -34,10 +41,10 @@ export interface PayrollEmployeeDetail {
   anomalies: string[];
 }
 
+const PARTIAL_THRESHOLD = 0.75;
+
 /**
  * Computes detailed payroll breakdown for a batch period.
- * Queries shifts, attendance, and time-off data to produce
- * accurate per-employee metrics.
  */
 export function usePayrollBatchDetails(
   periodStart?: string,
@@ -52,20 +59,16 @@ export function usePayrollBatchDetails(
 
       const today = startOfDay(new Date());
 
-      // 1. Get active employees for this company (filtered by location if specified)
+      // 1. Get active employees
       let empQuery = supabase
         .from("employees")
         .select("id, full_name, role, location_id, locations(name)")
         .eq("status", "active");
-      
-      if (locationId) {
-        empQuery = empQuery.eq("location_id", locationId);
-      }
-      
+      if (locationId) empQuery = empQuery.eq("location_id", locationId);
       const { data: employees, error: empError } = await empQuery;
       if (empError) throw empError;
 
-      // 2. Get shifts with assignments for the period
+      // 2. Get shifts with assignments
       const { data: shifts, error: shiftsError } = await supabase
         .from("shifts")
         .select(`
@@ -78,7 +81,7 @@ export function usePayrollBatchDetails(
         .eq("shift_assignments.approval_status", "approved");
       if (shiftsError) throw shiftsError;
 
-      // 3. Get attendance logs for the period
+      // 3. Get attendance logs
       const { data: attendanceLogs, error: attError } = await supabase
         .from("attendance_logs")
         .select("id, staff_id, shift_id, check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, approved_by, early_departure_reason")
@@ -86,7 +89,7 @@ export function usePayrollBatchDetails(
         .lte("check_in_at", `${periodEnd}T23:59:59`);
       if (attError) throw attError;
 
-      // 4. Get time-off requests (approved) for the period
+      // 4. Get time-off requests (approved)
       const { data: timeOffRequests, error: toError } = await supabase
         .from("time_off_requests")
         .select("id, employee_id, start_date, end_date, request_type, status")
@@ -96,30 +99,24 @@ export function usePayrollBatchDetails(
       if (toError) throw toError;
 
       // 5. Get recorded absences from workforce_exceptions
-      const { data: absenceExceptions, error: absError } = await supabase
+      const { data: absenceExceptions, error: absErr } = await supabase
         .from("workforce_exceptions")
         .select("id, employee_id, shift_id, shift_date, reason_code")
         .eq("exception_type", "absence")
         .gte("shift_date", periodStart)
         .lte("shift_date", periodEnd);
-      if (absError) throw absError;
+      if (absErr) throw absErr;
 
       // Build absence lookup: employeeId_shiftId -> reason_code
       const absenceLookup = new Map<string, string>();
       for (const exc of absenceExceptions || []) {
-        const key = `${exc.employee_id}_${exc.shift_id}`;
-        absenceLookup.set(key, exc.reason_code || 'unspecified');
+        absenceLookup.set(`${exc.employee_id}_${exc.shift_id}`, exc.reason_code || 'unspecified');
       }
 
       // Build lookup structures
       const employeeShifts: Record<string, Array<{
-        shift_id: string;
-        date: string;
-        start_time: string;
-        end_time: string;
-        location_id: string;
-        location_name: string;
-        requires_checkin: boolean;
+        shift_id: string; date: string; start_time: string; end_time: string;
+        location_id: string; location_name: string; requires_checkin: boolean;
       }>> = {};
 
       for (const shift of shifts || []) {
@@ -128,10 +125,8 @@ export function usePayrollBatchDetails(
           const staffId = (sa as any).staff_id;
           if (!employeeShifts[staffId]) employeeShifts[staffId] = [];
           employeeShifts[staffId].push({
-            shift_id: shift.id,
-            date: shift.shift_date,
-            start_time: shift.start_time,
-            end_time: shift.end_time,
+            shift_id: shift.id, date: shift.shift_date,
+            start_time: shift.start_time, end_time: shift.end_time,
             location_id: shift.location_id,
             location_name: locData?.name || "Unknown",
             requires_checkin: locData?.requires_checkin || false,
@@ -139,31 +134,16 @@ export function usePayrollBatchDetails(
         }
       }
 
-      // Attendance logs by employee
       const attByEmployee: Record<string, typeof attendanceLogs> = {};
       for (const log of attendanceLogs || []) {
         if (!attByEmployee[log.staff_id]) attByEmployee[log.staff_id] = [];
         attByEmployee[log.staff_id]!.push(log);
       }
 
-      // Time-off by employee
       const timeOffByEmployee: Record<string, typeof timeOffRequests> = {};
       for (const req of timeOffRequests || []) {
         if (!timeOffByEmployee[req.employee_id]) timeOffByEmployee[req.employee_id] = [];
         timeOffByEmployee[req.employee_id]!.push(req);
-      }
-
-      // Location lookup for employees
-      const employeeLocationMap: Record<string, string> = {};
-      for (const emp of employees || []) {
-        employeeLocationMap[emp.id] = emp.location_id;
-      }
-
-      // Location name lookup
-      const locationNames: Record<string, string> = {};
-      for (const shift of shifts || []) {
-        const locData = shift.locations as any;
-        if (locData?.name) locationNames[shift.location_id] = locData.name;
       }
 
       // Calculate details for each employee
@@ -176,12 +156,10 @@ export function usePayrollBatchDetails(
         const empLocationData = emp.locations as any;
         const empLocationName = empLocationData?.name || "Unknown";
 
-        // Past shifts only
         const pastShifts = empShifts.filter(s => startOfDay(parseISO(s.date)) <= today);
 
-        // Days worked: shifts that have attendance OR don't require check-in
         let daysWorked = 0;
-        let daysConfirmed = 0; // Backed by actual check-in AND check-out
+        let daysConfirmed = 0;
         let regularHours = 0;
         let overtimeHours = 0;
         const anomalies: string[] = [];
@@ -189,14 +167,14 @@ export function usePayrollBatchDetails(
         const absentDetails: Array<{ date: string; reason_code: string }> = [];
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
         const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
-
-        const workedDatesSet = new Set<string>();
+        const partialDates: string[] = [];
+        const lateDates: string[] = [];
+        let lateCount = 0;
+        let totalLateMinutes = 0;
 
         for (const shift of pastShifts) {
-          // Find matching attendance
           let attLog = empAttendance.find(a => a.shift_id === shift.shift_id);
           if (!attLog) {
-            // Try by date
             attLog = empAttendance.find(a => {
               if (a.staff_id !== emp.id) return false;
               if (a.shift_id) return false;
@@ -208,14 +186,7 @@ export function usePayrollBatchDetails(
           const hasCheckOut = !!(attLog?.check_out_at);
 
           if (hasAttendance || !shift.requires_checkin) {
-            daysWorked++;
-            workedDatesSet.add(shift.date);
-
-            if (hasAttendance && hasCheckOut) {
-              daysConfirmed++;
-            }
-
-            // Calculate hours
+            // Calculate scheduled hours
             const startTime = parseISO(`${shift.date}T${shift.start_time}`);
             let endTime = parseISO(`${shift.date}T${shift.end_time}`);
             if (endTime <= startTime) endTime = new Date(endTime.getTime() + 86400000);
@@ -226,43 +197,48 @@ export function usePayrollBatchDetails(
               actualHours = differenceInMinutes(new Date(attLog!.check_out_at!), new Date(attLog!.check_in_at)) / 60;
             }
 
+            // Partial shift detection: actual < 75% of scheduled
+            const isPartial = hasAttendance && hasCheckOut && actualHours < scheduledHours * PARTIAL_THRESHOLD;
+
+            if (isPartial) {
+              partialDates.push(shift.date);
+              anomalies.push(`Partial shift on ${shift.date} (${actualHours.toFixed(1)}h / ${scheduledHours.toFixed(1)}h)`);
+            }
+
+            daysWorked++;
+            if (hasAttendance && hasCheckOut) daysConfirmed++;
+
             regularHours += Math.min(actualHours, scheduledHours);
             if (actualHours > scheduledHours) {
               overtimeHours += actualHours - scheduledHours;
             }
 
-            // Check cross-location work
+            // Cross-location
             if (shift.location_id !== emp.location_id) {
-              extraLocationDetails.push({
-                date: shift.date,
-                location_name: shift.location_name,
-              });
+              extraLocationDetails.push({ date: shift.date, location_name: shift.location_name });
             }
 
-            // Track early departures
+            // Early departures
             if (attLog && (attLog as any).early_departure_reason) {
-              earlyDepartureDetails.push({
-                date: shift.date,
-                reason: (attLog as any).early_departure_reason,
-              });
+              earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason });
             }
 
-            // Track anomalies
-            if (attLog?.is_late) anomalies.push(`Late on ${shift.date}`);
+            // Late tracking
+            if (attLog?.is_late) {
+              lateCount++;
+              totalLateMinutes += attLog.late_minutes || 0;
+              lateDates.push(shift.date);
+              anomalies.push(`Late on ${shift.date}`);
+            }
             if (attLog?.auto_clocked_out) anomalies.push(`Auto-clocked out on ${shift.date}`);
           } else {
-            // Check if the missed day is covered by time-off
-            const isCoveredByTimeOff = empTimeOff.some(req => {
-              const start = req.start_date;
-              const end = req.end_date;
-              return shift.date >= start && shift.date <= end;
-            });
+            const isCoveredByTimeOff = empTimeOff.some(req =>
+              shift.date >= req.start_date && shift.date <= req.end_date
+            );
 
             if (!isCoveredByTimeOff) {
-              // Check if there's a recorded absence in workforce_exceptions
               const absenceKey = `${emp.id}_${shift.shift_id}`;
               const absenceReason = absenceLookup.get(absenceKey);
-              
               if (absenceReason) {
                 absentDetails.push({ date: shift.date, reason_code: absenceReason });
                 anomalies.push(`Absent on ${shift.date} (${absenceReason})`);
@@ -274,41 +250,29 @@ export function usePayrollBatchDetails(
           }
         }
 
-        // Extra schedule: attendance logs WITHOUT a matching scheduled shift (unscheduled work)
+        // Extra schedule: attendance without matching shift
         const scheduledShiftIds = new Set(empShifts.map(s => s.shift_id));
         const scheduledDates = new Set(empShifts.map(s => s.date));
         const extraScheduleDates: string[] = [];
 
         for (const log of empAttendance) {
           const logDate = format(new Date(log.check_in_at), 'yyyy-MM-dd');
-          const matchesShift = log.shift_id && scheduledShiftIds.has(log.shift_id);
-          const matchesDate = scheduledDates.has(logDate);
-
-          if (!matchesShift && !matchesDate) {
-            // This is an unscheduled attendance
-            if (!extraScheduleDates.includes(logDate)) {
-              extraScheduleDates.push(logDate);
-            }
+          if (!(log.shift_id && scheduledShiftIds.has(log.shift_id)) && !scheduledDates.has(logDate)) {
+            if (!extraScheduleDates.includes(logDate)) extraScheduleDates.push(logDate);
           }
         }
 
-        // Count time-off days within the period
+        // Time-off days
         let vacationDays = 0;
         let medicalDays = 0;
-
         for (const req of empTimeOff) {
           const start = parseISO(req.start_date) < parseISO(periodStart) ? parseISO(periodStart) : parseISO(req.start_date);
           const end = parseISO(req.end_date) > parseISO(periodEnd) ? parseISO(periodEnd) : parseISO(req.end_date);
           const days = eachDayOfInterval({ start, end }).length;
-
-          if (req.request_type === "vacation" || req.request_type === "annual_leave") {
-            vacationDays += days;
-          } else if (req.request_type === "medical" || req.request_type === "sick_leave") {
-            medicalDays += days;
-          }
+          if (req.request_type === "vacation" || req.request_type === "annual_leave") vacationDays += days;
+          else if (req.request_type === "medical" || req.request_type === "sick_leave") medicalDays += days;
         }
 
-        // Only include employees that have some activity in the period
         const hasActivity = empShifts.length > 0 || empAttendance.length > 0 || empTimeOff.length > 0;
         if (!hasActivity) continue;
 
@@ -321,6 +285,11 @@ export function usePayrollBatchDetails(
           days_confirmed: daysConfirmed,
           regular_hours: Math.round(regularHours * 10) / 10,
           overtime_hours: Math.round(overtimeHours * 10) / 10,
+          partial_count: partialDates.length,
+          partial_dates: partialDates.sort(),
+          late_count: lateCount,
+          total_late_minutes: totalLateMinutes,
+          late_dates: lateDates.sort(),
           extra_schedule_days: extraScheduleDates.length,
           extra_schedule_dates: extraScheduleDates.sort(),
           vacation_days: vacationDays,
@@ -337,9 +306,7 @@ export function usePayrollBatchDetails(
         });
       }
 
-      // Sort by name
       details.sort((a, b) => a.employee_name.localeCompare(b.employee_name));
-
       return details;
     },
     enabled: !!periodStart && !!periodEnd && !!companyId,
