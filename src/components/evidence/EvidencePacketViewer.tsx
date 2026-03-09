@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Camera,
   CheckCircle,
@@ -14,6 +15,7 @@ import {
   X,
   Loader2,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
