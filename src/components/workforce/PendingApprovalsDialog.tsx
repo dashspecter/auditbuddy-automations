@@ -331,7 +331,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Mark as a violation. It will count against the employee's record.
+                                 Keep this on record — it WILL count against the employee's punctuality score and payroll.
                               </TooltipContent>
                             </Tooltip>
                           </div>

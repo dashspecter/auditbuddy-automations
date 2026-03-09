@@ -239,12 +239,14 @@ export function usePayrollBatchDetails(
               earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason });
             }
 
-            // Late tracking
-            if (attLog?.is_late) {
+            // Late tracking — skip excused lates
+            if (attLog?.is_late && !excusedLateAttendanceIds.has(attLog.id)) {
               lateCount++;
               totalLateMinutes += attLog.late_minutes || 0;
               lateDates.push(shift.date);
               anomalies.push(`Late on ${shift.date}`);
+            } else if (attLog?.is_late && excusedLateAttendanceIds.has(attLog.id)) {
+              anomalies.push(`Late on ${shift.date} (excused)`);
             }
             if (attLog?.auto_clocked_out) anomalies.push(`Auto-clocked out on ${shift.date}`);
           } else {

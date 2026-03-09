@@ -256,8 +256,10 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           let autoClockedOut = false;
 
           if (attendanceLog) {
-            isLate = attendanceLog.is_late || false;
-            lateMinutes = attendanceLog.late_minutes || 0;
+            // Check if this late was excused via an approved exception
+            const isExcusedLate = attendanceLog && excusedLateAttendanceIds.has(attendanceLog.id);
+            isLate = isExcusedLate ? false : (attendanceLog.is_late || false);
+            lateMinutes = isExcusedLate ? 0 : (attendanceLog.late_minutes || 0);
             autoClockedOut = attendanceLog.auto_clocked_out || false;
             
             if (attendanceLog.check_out_at) {
