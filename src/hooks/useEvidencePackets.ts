@@ -345,9 +345,18 @@ export function useReviewEvidencePacket() {
 
         // Determine occurrence_date from the packet's capture time
         const capturedAt = current.client_captured_at ?? current.created_at;
-        // Convert to Europe/Bucharest date (company timezone)
+        // Look up company timezone, fall back to browser timezone
+        let companyTz: string;
+        try {
+          const { data: tzData } = await supabase.rpc("get_company_timezone", {
+            p_company_id: current.company_id ?? ctx.companyId,
+          });
+          companyTz = (tzData as string) || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch {
+          companyTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
         const capturedDate = new Date(capturedAt);
-        const occurrenceDate = capturedDate.toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" }); // YYYY-MM-DD
+        const occurrenceDate = capturedDate.toLocaleDateString("en-CA", { timeZone: companyTz }); // YYYY-MM-DD
 
         // Delete the task_completions row for this task + occurrence_date
         await supabase

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Camera, Upload, X, Info, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -123,6 +124,14 @@ export function EvidenceCaptureModal({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Help text for staff */}
+          <div className="flex gap-2 p-2.5 rounded-lg bg-muted/60 border border-border">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Photos you submit will be reviewed by a manager before the task is marked complete. You'll be notified if it's rejected.
+            </p>
+          </div>
+
           {/* Instructions panel */}
           {instructions && (
             <div className="flex gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
@@ -170,7 +179,6 @@ export function EvidenceCaptureModal({
 
           {/* Capture buttons */}
           <div className="grid grid-cols-2 gap-2">
-            {/* Camera capture (opens device camera on mobile) */}
             <Button
               type="button"
               variant="outline"
@@ -191,7 +199,6 @@ export function EvidenceCaptureModal({
               onChange={(e) => handleFileSelect(e.target.files)}
             />
 
-            {/* File upload fallback */}
             <Button
               type="button"
               variant="outline"
@@ -247,26 +254,35 @@ export function EvidenceCaptureModal({
           >
             Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || captured.length < minCount}
-            className="flex-1 sm:flex-none gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="hidden sm:inline">Submitting...</span>
-                <span className="sm:hidden">Wait...</span>
-              </>
-            ) : (
-              <>
-                <Camera className="h-4 w-4" />
-                <span className="hidden sm:inline">Submit Proof</span>
-                <span className="sm:hidden">Submit</span>
-              </>
-            )}
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || captured.length < minCount}
+                  className="flex-1 sm:flex-none gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="hidden sm:inline">Submitting...</span>
+                      <span className="sm:hidden">Wait...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4" />
+                      <span className="hidden sm:inline">Submit Proof</span>
+                      <span className="sm:hidden">Submit</span>
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                Once submitted, a manager will review your evidence. You'll be notified if it's rejected.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </DialogFooter>
       </DialogContent>
     </Dialog>
