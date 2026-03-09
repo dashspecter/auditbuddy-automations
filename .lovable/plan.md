@@ -1,30 +1,33 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+# Bug: Staff Audit Missing Input Controls (Yes/No Toggles)
 
 ## Root Cause
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+The `StaffStaffAudit.tsx` component checks for `field.field_type === "yes_no"` but the database stores field types as `yesno` and `checkbox`. Since neither matches the `"yes_no"` string, **no input control is rendered** — only the label text appears.
 
+The `LocationAudit.tsx` page works correctly because it handles all three variants:
 ```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
+case 'yesno':
+case 'yes_no':
+case 'checkbox':
 ```
 
-## Fix
+## The Fix
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+Update `StaffStaffAudit.tsx` in two places:
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+### 1. Field rendering (lines 448-511)
+Add `yesno` and `checkbox` cases alongside the existing `yes_no` check. The yes/no buttons should render for all three field type values.
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+### 2. Score calculation (lines 234-239)
+The `calculateScore` function also only checks `"yes_no"`. Add `"yesno"` and `"checkbox"` so scores are computed correctly.
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+| `src/pages/staff/StaffStaffAudit.tsx` | Add `yesno` and `checkbox` to field rendering + score calculation |
 
-One file, ~5 lines changed. No database changes.
+One file, two small edits. No backend changes needed.
 
