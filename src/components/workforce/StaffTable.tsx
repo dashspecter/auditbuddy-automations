@@ -12,6 +12,7 @@ import { Search, Eye, X, Filter, ChevronLeft, ChevronRight, Edit, MapPin, Phone,
 import { Link } from "react-router-dom";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
+import { GenerateContractDialog } from "@/components/GenerateContractDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
 
@@ -30,6 +31,8 @@ export const StaffTable = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [employeeToResetPassword, setEmployeeToResetPassword] = useState<Employee | null>(null);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [employeeForContract, setEmployeeForContract] = useState<Employee | null>(null);
   const pageSize = 20;
   const isMobile = useIsMobile();
 
@@ -106,6 +109,11 @@ export const StaffTable = () => {
     resetPagination();
   };
 
+  const openContractDialog = (member: Employee) => {
+    setEmployeeForContract(member);
+    setContractDialogOpen(true);
+  };
+
   const renderMobileCard = (member: Employee) => {
     const roleData = roleMap.get(member.role);
     const additionalLocationsCount = member.staff_locations?.length || 0;
@@ -135,6 +143,15 @@ export const StaffTable = () => {
           }
           actions={
             <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-9 w-9 p-0"
+                onClick={() => openContractDialog(member)}
+                title={t('workforce.staff.generateContract', 'Generate Contract')}
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
               {member.user_id && (
                 <Button 
                   variant="ghost" 
@@ -369,6 +386,14 @@ export const StaffTable = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => openContractDialog(member)}
+                            title={t('workforce.staff.generateContract', 'Generate Contract')}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           {member.user_id && (
                             <Button 
                               variant="ghost" 
@@ -411,32 +436,30 @@ export const StaffTable = () => {
           
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-              <div className="text-sm text-muted-foreground text-center sm:text-left">
-                {t('workforce.components.staffTable.showing', { from: (pageIndex * pageSize) + 1, to: Math.min((pageIndex + 1) * pageSize, totalCount), total: totalCount })}
-              </div>
-              <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground order-2 sm:order-1">
+                {t('workforce.components.staffTable.page')} {currentPage} / {totalPages}
+                {` (${totalCount} ${t('workforce.components.staffTable.total')})`}
+              </p>
+              <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={goPrev}
                   disabled={pageIndex === 0}
-                  className="h-10 sm:h-9"
+                  className="h-9"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-1">{t('workforce.components.staffTable.previous')}</span>
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  {t('workforce.components.staffTable.previous')}
                 </Button>
-                <div className="text-sm text-muted-foreground px-2">
-                  {currentPage} / {totalPages}
-                </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={goNext}
                   disabled={!hasMore}
-                  className="h-10 sm:h-9"
+                  className="h-9"
                 >
-                  <span className="hidden sm:inline mr-1">{t('workforce.components.staffTable.next')}</span>
-                  <ChevronRight className="h-4 w-4" />
+                  {t('workforce.components.staffTable.next')}
+                  <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
             </div>
@@ -491,6 +514,15 @@ export const StaffTable = () => {
           full_name: employeeToResetPassword.full_name,
           email: employeeToResetPassword.email || null
         } : null}
+      />
+
+      <GenerateContractDialog
+        open={contractDialogOpen}
+        onOpenChange={(open) => {
+          setContractDialogOpen(open);
+          if (!open) setEmployeeForContract(null);
+        }}
+        employee={employeeForContract}
       />
     </div>
   );

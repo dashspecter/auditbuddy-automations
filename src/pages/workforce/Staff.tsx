@@ -7,6 +7,7 @@ import { UserPlus, Settings2, Info, Upload } from "lucide-react";
 import { StaffTable } from "@/components/workforce/StaffTable";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
+import { ContractTemplateDialog } from "@/components/ContractTemplateDialog";
 import { useLocations } from "@/hooks/useLocations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +50,7 @@ const Staff = () => {
   const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRolesDialogOpen, setIsRolesDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const { data: locations } = useLocations();
   const { data: capacity } = useEmployeeCapacity();
 
@@ -69,6 +71,10 @@ const Staff = () => {
               {capacity.current} / {capacity.max} employees
             </Badge>
           )}
+          <Button variant="outline" className="gap-2" onClick={() => setIsTemplateDialogOpen(true)}>
+            <Upload className="h-4 w-4" />
+            {t('workforce.staff.uploadTemplate', 'Contract Templates')}
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setIsRolesDialogOpen(true)}>
             <Settings2 className="h-4 w-4" />
             {t('workforce.staff.manageRoles')}
@@ -117,6 +123,12 @@ const Staff = () => {
       <RoleManagementDialog
         open={isRolesDialogOpen}
         onOpenChange={setIsRolesDialogOpen}
+      />
+
+      <ContractTemplateDialog
+        open={isTemplateDialogOpen}
+        onOpenChange={setIsTemplateDialogOpen}
+        onTemplateUploaded={() => {}}
       />
     </div>
   );
