@@ -617,21 +617,23 @@ const StaffScanAttendance = () => {
               // Dedupe: check if pending exception already exists
               const alreadyExists = await checkExistingException('late_start');
               if (!alreadyExists) {
-                await supabase.from('workforce_exceptions').insert({
-                  company_id: company.id,
-                  location_id: locationId,
-                  employee_id: currentEmployee.id,
-                  exception_type: 'late_start',
-                  status: 'pending',
-                  shift_id: scheduledShift?.shift_id,
-                  shift_date: today,
-                  detected_at: checkInTime,
-                  attendance_id: newAttendance.id,
-                  requested_by: user?.id,
-                  metadata: { late_minutes: lateMinutes }
+                const { error: lateError } = await supabase.rpc('create_workforce_exception', {
+                  p_company_id: company.id,
+                  p_location_id: locationId,
+                  p_employee_id: currentEmployee.id,
+                  p_exception_type: 'late_start',
+                  p_shift_date: today,
+                  p_shift_id: scheduledShift?.shift_id,
+                  p_attendance_id: newAttendance.id,
+                  p_metadata: { late_minutes: lateMinutes }
                 });
                 
-                console.log("Created late_start exception");
+                if (lateError) {
+                  console.error("Failed to create late_start exception:", lateError);
+                  toast.warning("Clock-in successful, but late arrival exception could not be recorded.");
+                } else {
+                  console.log("Created late_start exception via RPC");
+                }
               } else {
                 console.log("Skipping duplicate late_start exception");
               }
