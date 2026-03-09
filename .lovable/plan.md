@@ -1,36 +1,30 @@
 
 
-# Fix: Contract Template Upload RLS Violation
+# Why the Setup Checklist Doesn't Show for New Companies
 
 ## Root Cause
 
-The storage bucket `documents` has an INSERT policy:
-```
-folder_name[1] = get_user_company_id(auth.uid())
-```
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
-But `ContractTemplateDialog.tsx` uploads to:
-```
-contract-templates/${fileName}
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
 ```
 
-The first path segment is `contract-templates` instead of the company ID → **RLS rejects the upload**.
+## Fix
 
-## The Fix
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-In `ContractTemplateDialog.tsx`, restructure the upload flow:
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-1. **Move the company_id lookup BEFORE the storage upload** (currently it happens after)
-2. **Change the file path** from `contract-templates/${fileName}` to `${companyId}/contract-templates/${fileName}`
-3. Update the `file_url` and delete logic to use the new path structure
-
-This matches the pattern used by other storage uploads in the app (waste-photos, equipment-documents all use `company_id` as the first folder).
-
-## Files Changed
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
 | File | Change |
 |------|--------|
-| `src/components/ContractTemplateDialog.tsx` | Reorder `handleUpload` to fetch company_id first, prefix upload path with company_id |
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
 
-One file, small reorder of existing logic. No backend/migration changes needed.
+One file, ~5 lines changed. No database changes.
 
