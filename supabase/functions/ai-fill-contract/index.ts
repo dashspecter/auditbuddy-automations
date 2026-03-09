@@ -79,7 +79,6 @@ class SimpleZip {
       } else if (compressionMethod === 8) {
         // Deflated - we'll store raw and decompress on read
         try {
-          const ds = new DecompressionStream("raw-deflate" as any);
           // Store compressed, will decompress when needed
           this.entries.set(fileName, { data: fileData, compressed: true });
         } catch {
