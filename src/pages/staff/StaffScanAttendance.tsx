@@ -585,20 +585,25 @@ const StaffScanAttendance = () => {
             // Dedupe: check if pending exception already exists
             const alreadyExists = await checkExistingException('unscheduled_shift');
             if (!alreadyExists) {
-              await supabase.from('workforce_exceptions').insert({
-                company_id: company.id,
-                location_id: locationId,
-                employee_id: currentEmployee.id,
-                exception_type: 'unscheduled_shift',
-                status: 'pending',
-                shift_date: today,
-                detected_at: checkInTime,
-                attendance_id: newAttendance.id,
-                requested_by: user?.id,
-                metadata: { clock_in_time: checkInTime }
+              const { error: exceptionError } = await supabase.rpc('create_workforce_exception', {
+                p_company_id: company.id,
+                p_location_id: locationId,
+                p_employee_id: currentEmployee.id,
+                p_exception_type: 'unscheduled_shift',
+                p_shift_date: today,
+                p_attendance_id: newAttendance.id,
+                p_metadata: { clock_in_time: checkInTime }
               });
               
-              console.log("Created unscheduled_shift exception");
+              if (exceptionError) {
+                console.error("Failed to create unscheduled_shift exception:", exceptionError);
+                // Rollback: delete the attendance record
+                await supabase.from('attendance_logs').delete().eq('id', newAttendance.id);
+                toast.error("Clock-in failed: could not create exception ticket. Please try again.");
+                return;
+              }
+              
+              console.log("Created unscheduled_shift exception via RPC");
               toast.info("Clock-in recorded. Pending manager approval.", { duration: 5000 });
             } else {
               console.log("Skipping duplicate unscheduled_shift exception");
