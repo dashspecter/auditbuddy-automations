@@ -488,7 +488,7 @@ const StaffScanAttendance = () => {
           const graceMinutes = policy.grace_minutes ?? 60;
           
           // Use the RPC to find scheduled shift with policy's grace window
-          const { data: rpcResult } = await supabase.rpc('find_scheduled_shift_for_clockin', {
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('find_scheduled_shift_for_clockin', {
             p_company_id: company.id,
             p_employee_id: currentEmployee.id,
             p_location_id: locationId,
@@ -496,15 +496,35 @@ const StaffScanAttendance = () => {
             p_grace_minutes: graceMinutes
           });
           
-          // RPC returns an array, get first result
-          const shiftResult = Array.isArray(rpcResult) && rpcResult.length > 0 ? rpcResult[0] : null;
-          
-          if (shiftResult) {
-            scheduledShift = { shift_id: shiftResult.shift_id };
-            isLate = shiftResult.is_late || false;
-            lateMinutes = shiftResult.late_minutes || 0;
+          if (rpcError) {
+            console.error("[ClockIn] RPC find_scheduled_shift failed:", rpcError.message);
+            // Fallback: direct query to prevent false unscheduled exceptions
+            const today = now.toISOString().split('T')[0];
+            const { data: fallbackShift } = await supabase
+              .from("shift_assignments")
+              .select("shift_id, shifts!inner(id, shift_date, location_id, start_time, end_time)")
+              .eq("staff_id", currentEmployee.id)
+              .eq("shifts.shift_date", today)
+              .eq("shifts.location_id", locationId)
+              .eq("approval_status", "approved")
+              .limit(1)
+              .maybeSingle();
+            if (fallbackShift) {
+              scheduledShift = { shift_id: fallbackShift.shift_id };
+            } else {
+              isUnscheduled = true;
+            }
           } else {
-            isUnscheduled = true;
+            // RPC returns an array, get first result
+            const shiftResult = Array.isArray(rpcResult) && rpcResult.length > 0 ? rpcResult[0] : null;
+            
+            if (shiftResult) {
+              scheduledShift = { shift_id: shiftResult.shift_id };
+              isLate = shiftResult.is_late || false;
+              lateMinutes = shiftResult.late_minutes || 0;
+            } else {
+              isUnscheduled = true;
+            }
           }
           
           console.log("Governance enabled. Policy:", policy, "Scheduled:", !!scheduledShift, "Unscheduled:", isUnscheduled);
