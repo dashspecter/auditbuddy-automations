@@ -296,19 +296,46 @@ export function PendingApprovalsDialog({
                           </div>
                         )}
 
-                        <div className="flex gap-2 pt-2">
-                          <Button size="sm" variant="default" onClick={() => handleResolveException(exception.id, 'approved')} disabled={resolveException.isPending} className="flex-1">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleResolveException(exception.id, 'resolved')} disabled={resolveException.isPending} className="flex-1">
-                            Resolve
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleResolveException(exception.id, 'denied')} disabled={resolveException.isPending} className="flex-1">
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Deny
-                          </Button>
+                        <div className="flex items-center gap-1 pt-2 text-xs text-muted-foreground">
+                          <HelpCircle className="h-3 w-3" />
+                          <span>How should this exception be handled?</span>
                         </div>
+                        <TooltipProvider delayDuration={200}>
+                          <div className="flex gap-2 pt-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="default" onClick={() => handleResolveException(exception.id, 'approved')} disabled={resolveException.isPending} className="flex-1">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-[200px] text-xs">
+                                Excuse this exception — it won't count against the employee's score or record.
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" onClick={() => handleResolveException(exception.id, 'resolved')} disabled={resolveException.isPending} className="flex-1">
+                                  Resolve
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-[200px] text-xs">
+                                Acknowledge without excusing. Clears it from the queue but keeps it on record.
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="destructive" onClick={() => handleResolveException(exception.id, 'denied')} disabled={resolveException.isPending} className="flex-1">
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Deny
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-[200px] text-xs">
+                                Mark as a violation. It will count against the employee's record.
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       </div>
                     ))}
                   </div>
