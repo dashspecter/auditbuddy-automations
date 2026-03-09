@@ -1,30 +1,45 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+# Fix: "Record Absence" Fails Due to Check Constraint
 
 ## Root Cause
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+The `workforce_exceptions` table was created with a CHECK constraint that only allows these `exception_type` values:
 
-```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
+'late_start', 'early_leave', 'unscheduled_shift', 'no_show', 'shift_extended', 'overtime'
 ```
 
-## Fix
+The "Record Absence" dialog passes `exception_type: 'absence'`, which the database rejects. The value `'absence'` was never added to the allowed list.
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+## The Fix
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+**One database migration** to update the CHECK constraint:
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+1. Drop the existing `workforce_exceptions_exception_type_check` constraint
+2. Re-create it with `'absence'` added to the allowed values
+
+No code changes needed — the dialog and RPC already pass the correct value; the database just doesn't accept it yet.
+
+## Migration SQL
+
+```sql
+ALTER TABLE public.workforce_exceptions
+  DROP CONSTRAINT workforce_exceptions_exception_type_check;
+
+ALTER TABLE public.workforce_exceptions
+  ADD CONSTRAINT workforce_exceptions_exception_type_check
+  CHECK (exception_type IN (
+    'late_start', 'early_leave', 'unscheduled_shift',
+    'no_show', 'shift_extended', 'overtime', 'absence'
+  ));
+```
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+| New migration SQL | Add `'absence'` to the `exception_type` check constraint |
 
-One file, ~5 lines changed. No database changes.
+One migration, zero code changes.
 
