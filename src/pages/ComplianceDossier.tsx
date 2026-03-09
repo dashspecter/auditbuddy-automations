@@ -385,6 +385,15 @@ function exportPDF(data: DossierData, locationName: string, monthLabel: string, 
     ["Start Date", "Staff", "Module", "Status"]
   );
 
+  // Rejected Evidence
+  if (data.rejectedEvidence.items.length > 0) {
+    addSection(
+      `Rejected Evidence  (${data.rejectedEvidence.total} rejected)`,
+      data.rejectedEvidence.items.map(r => [r.rejectedAt, r.taskName, r.submittedBy, r.reason]),
+      ["Date Rejected", "Task", "Submitted By", "Reason"]
+    );
+  }
+
   // Footer
   const pages = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
