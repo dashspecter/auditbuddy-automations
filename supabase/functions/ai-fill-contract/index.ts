@@ -372,13 +372,18 @@ serve(async (req) => {
       });
     }
 
-    // Download the DOCX template
-    const templateResponse = await fetch(template.file_url);
-    if (!templateResponse.ok) {
-      throw new Error("Failed to download template file");
+    // Download the DOCX template via storage SDK (bucket is private)
+    const urlParts = template.file_url.split('/documents/');
+    const storagePath = decodeURIComponent(urlParts[urlParts.length - 1]);
+
+    const { data: fileData, error: downloadError } = await supabaseService
+      .storage.from('documents').download(storagePath);
+
+    if (downloadError || !fileData) {
+      throw new Error("Failed to download template file: " + (downloadError?.message || "unknown"));
     }
 
-    const templateBuffer = new Uint8Array(await templateResponse.arrayBuffer());
+    const templateBuffer = new Uint8Array(await fileData.arrayBuffer());
     const zip = new SimpleZip(templateBuffer);
 
     // Extract document.xml
