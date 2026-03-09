@@ -703,6 +703,40 @@ export default function ComplianceDossier() {
               </div>
             )}
           </Section>
+
+          {/* Rejected Evidence */}
+          {data.rejectedEvidence.items.length > 0 && (
+            <Section icon={AlertTriangle} title="Rejected Evidence" meta={`${data.rejectedEvidence.total} rejected`}>
+              <div className="space-y-3">
+                <div className="flex gap-2 p-2.5 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Rejected evidence means the proof was not accepted by a manager. The associated task was reset to pending and may need to be redone by the employee.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b">
+                      <th className="text-left py-2 font-medium text-muted-foreground">Date Rejected</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Task</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Submitted By</th>
+                      <th className="text-left py-2 font-medium text-muted-foreground">Reason</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border">
+                      {data.rejectedEvidence.items.map((r, i) => (
+                        <tr key={i} className="hover:bg-muted/30">
+                          <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">{r.rejectedAt}</td>
+                          <td className="py-2 pr-3 font-medium">{r.taskName}</td>
+                          <td className="py-2 pr-3 text-muted-foreground">{r.submittedBy}</td>
+                          <td className="py-2 pr-3 text-muted-foreground italic text-xs">{r.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Section>
+          )}
         </div>
       )}
     </div>
