@@ -310,7 +310,7 @@ export function PendingApprovalsDialog({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="max-w-[200px] text-xs">
-                                Excuse this exception — it won't count against the employee's score or record.
+                               Excuse this late arrival — it will NOT count against the employee's punctuality score or payroll late count.
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>

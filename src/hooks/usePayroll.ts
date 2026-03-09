@@ -191,6 +191,23 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
 
       if (absenceError) throw absenceError;
 
+      // Get approved late exceptions (excused lates)
+      const { data: approvedLateExceptions, error: lateExcError } = await supabase
+        .from("workforce_exceptions")
+        .select("id, employee_id, attendance_id")
+        .eq("exception_type", "late_start")
+        .eq("status", "approved")
+        .gte("shift_date", startDate)
+        .lte("shift_date", endDate);
+
+      if (lateExcError) throw lateExcError;
+
+      // Build excused late lookup: attendance_id -> true
+      const excusedLateAttendanceIds = new Set<string>();
+      for (const exc of approvedLateExceptions || []) {
+        if (exc.attendance_id) excusedLateAttendanceIds.add(exc.attendance_id);
+      }
+
       // Build absence lookup: employeeId_shiftId -> reason_code
       const absenceLookup = new Map<string, string>();
       for (const exc of absenceExceptions || []) {

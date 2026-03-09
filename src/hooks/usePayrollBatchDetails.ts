@@ -107,6 +107,22 @@ export function usePayrollBatchDetails(
         .lte("shift_date", periodEnd);
       if (absErr) throw absErr;
 
+      // 6. Get approved late exceptions (excused lates)
+      const { data: approvedLateExceptions, error: lateExcErr } = await supabase
+        .from("workforce_exceptions")
+        .select("id, employee_id, attendance_id")
+        .eq("exception_type", "late_start")
+        .eq("status", "approved")
+        .gte("shift_date", periodStart)
+        .lte("shift_date", periodEnd);
+      if (lateExcErr) throw lateExcErr;
+
+      // Build excused late lookup: attendance_id -> true
+      const excusedLateAttendanceIds = new Set<string>();
+      for (const exc of approvedLateExceptions || []) {
+        if (exc.attendance_id) excusedLateAttendanceIds.add(exc.attendance_id);
+      }
+
       // Build absence lookup: employeeId_shiftId -> reason_code
       const absenceLookup = new Map<string, string>();
       for (const exc of absenceExceptions || []) {
