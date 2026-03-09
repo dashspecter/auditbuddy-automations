@@ -214,29 +214,57 @@ function ReviewPanel({ packet, subjectType, subjectId }: {
 
   return (
     <div className="space-y-3 pt-3 border-t">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Review</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Review</p>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+              Your decision affects the employee's task record and performance score.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       {!showRejectInput ? (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={handleApprove}
-            disabled={reviewMutation.isPending}
-          >
-            <CheckCircle className="h-4 w-4" />
-            Approve
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="flex-1 gap-1.5"
-            onClick={() => setShowRejectInput(true)}
-            disabled={reviewMutation.isPending}
-          >
-            <XCircle className="h-4 w-4" />
-            Reject
-          </Button>
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={handleApprove}
+                  disabled={reviewMutation.isPending}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Approve
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Accept this proof. The task completion will be confirmed and count towards the employee's score.
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="flex-1 gap-1.5"
+                  onClick={() => setShowRejectInput(true)}
+                  disabled={reviewMutation.isPending}
+                >
+                  <XCircle className="h-4 w-4" />
+                  Reject
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Reject this proof. The task will be reset to pending and the employee will be notified to resubmit.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       ) : (
         <div className="space-y-2">
           <Textarea
