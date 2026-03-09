@@ -824,22 +824,24 @@ const StaffScanAttendance = () => {
                   if (existing) {
                     toast.info("You already have a pending approval request for today.");
                   } else {
-                    await supabase.from('workforce_exceptions').insert({
-                      company_id: company.id,
-                      location_id: blockedLocationId,
-                      employee_id: employee.id,
-                      exception_type: 'unscheduled_shift',
-                      status: 'pending',
-                      shift_date: today,
-                      detected_at: now,
-                      requested_by: user.id,
-                      metadata: { 
+                    const { error: blockedError } = await supabase.rpc('create_workforce_exception', {
+                      p_company_id: company.id,
+                      p_location_id: blockedLocationId,
+                      p_employee_id: employee.id,
+                      p_exception_type: 'unscheduled_shift',
+                      p_shift_date: today,
+                      p_metadata: { 
                         clock_in_time: now, 
                         reason_requested: true,
                         blocked_by_policy: true 
                       }
                     });
-                    toast.success("Manager approval requested. You'll be notified when approved.");
+                    if (blockedError) {
+                      console.error("Failed to create blocked exception:", blockedError);
+                      toast.error("Could not submit approval request. Please try again.");
+                    } else {
+                      toast.success("Manager approval requested. You'll be notified when approved.");
+                    }
                   }
                 }
                 setShowBlockedDialog(false);
