@@ -138,7 +138,7 @@ class SimpleZip {
       if (entry.compressed) {
         // Decompress first
         try {
-          const ds = new DecompressionStream("raw-deflate" as any);
+          const ds = new DecompressionStream("deflate-raw");
           const writer = ds.writable.getWriter();
           writer.write(fileData);
           writer.close();
