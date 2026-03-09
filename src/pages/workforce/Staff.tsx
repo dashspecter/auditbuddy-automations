@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Settings2, Info } from "lucide-react";
+import { UserPlus, Settings2, Info, Upload } from "lucide-react";
 import { StaffTable } from "@/components/workforce/StaffTable";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { RoleManagementDialog } from "@/components/workforce/RoleManagementDialog";
