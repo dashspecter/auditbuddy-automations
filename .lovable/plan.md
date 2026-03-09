@@ -1,72 +1,30 @@
 
-## What’s happening (deep dive)
 
-You fixed the first issue (private template download), but generation now fails at the **next step**:
+# Why the Setup Checklist Doesn't Show for New Companies
 
-1. UI calls backend function `ai-fill-contract`
-2. Function authenticates user + scopes to company
-3. Function downloads template file successfully
-4. Function tries to open DOCX ZIP and read `word/document.xml`
-5. It crashes with:
-   `Failed to construct 'DecompressionStream' ... 'raw-deflate' is not valid`
-6. Backend returns 500, frontend shows generic toast: **“Edge Function returned a non-2xx status code”**
+## Root Cause
 
-So this is a **new blocker in ZIP decompression**, not the old storage access bug.
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
----
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
 
-## Root cause
+## Fix
 
-In `supabase/functions/ai-fill-contract/index.ts`, the custom ZIP parser uses:
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-- `new DecompressionStream("raw-deflate" as any)`
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-That compression format string is invalid in this runtime.  
-DOCX entries are deflated ZIP entries, so decompressing `word/document.xml` fails before AI replacement begins.
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
----
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
 
-## Smart fix plan (safe + durable)
+One file, ~5 lines changed. No database changes.
 
-1. **Patch decompression format usage in all locations**
-   - Replace invalid `"raw-deflate"` with runtime-compatible raw-deflate handling.
-   - Apply consistently in:
-     - ZIP parse/read path
-     - ZIP rebuild path
-
-2. **Centralize decompression into one helper**
-   - Add `decompressZipDeflate()` utility instead of repeated inline DecompressionStream code.
-   - Include clear error text when decompression fails (file name + compression method).
-
-3. **Harden DOCX parsing flow**
-   - Validate `word/document.xml` exists.
-   - If not found or unsupported compression method, return explicit 4xx/5xx JSON error (not generic throw).
-   - Keep tenant/company scoping unchanged.
-
-4. **Improve frontend error visibility**
-   - In `GenerateContractDialog`, parse backend JSON error message from function invoke failures.
-   - Show meaningful toast (e.g., “Template ZIP decompression failed”) instead of generic non-2xx.
-
-5. **Verify end-to-end**
-   - Generate contract using at least 2 templates (one recently uploaded, one older).
-   - Confirm:
-     - no 500 in logs
-     - docx downloads
-     - replacements count is returned
-     - re-open/regenerate works repeatedly
-
----
-
-## Technical details
-
-- **Files to update**
-  - `supabase/functions/ai-fill-contract/index.ts`
-  - `src/components/GenerateContractDialog.tsx` (error parsing only)
-
-- **No database migration needed**
-  - This is function/runtime + client error handling only.
-
-- **Why this is “smart”**
-  - Fixes immediate runtime crash
-  - Prevents future silent failures via explicit parsing/decompression errors
-  - Gives actionable UI feedback instead of opaque generic errors

@@ -79,7 +79,6 @@ class SimpleZip {
       } else if (compressionMethod === 8) {
         // Deflated - we'll store raw and decompress on read
         try {
-          const ds = new DecompressionStream("raw-deflate" as any);
           // Store compressed, will decompress when needed
           this.entries.set(fileName, { data: fileData, compressed: true });
         } catch {
@@ -98,7 +97,7 @@ class SimpleZip {
     let data = entry.data;
     if (entry.compressed) {
       // Decompress using DecompressionStream
-      const ds = new DecompressionStream("raw-deflate" as any);
+      const ds = new DecompressionStream("deflate-raw");
       const writer = ds.writable.getWriter();
       writer.write(data);
       writer.close();
@@ -139,7 +138,7 @@ class SimpleZip {
       if (entry.compressed) {
         // Decompress first
         try {
-          const ds = new DecompressionStream("raw-deflate" as any);
+          const ds = new DecompressionStream("deflate-raw");
           const writer = ds.writable.getWriter();
           writer.write(fileData);
           writer.close();
