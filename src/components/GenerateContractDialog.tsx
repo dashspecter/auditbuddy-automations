@@ -132,7 +132,20 @@ export function GenerateContractDialog({
       });
 
       if (error) {
-        throw new Error(error.message || "Failed to generate contract");
+        // Try to parse the error body for a meaningful message
+        const errorBody = typeof error === 'object' && 'context' in error 
+          ? (error as any).context?.body 
+          : null;
+        let message = "Failed to generate contract";
+        if (errorBody) {
+          try {
+            const parsed = typeof errorBody === 'string' ? JSON.parse(errorBody) : errorBody;
+            if (parsed?.error) message = parsed.error;
+          } catch {}
+        } else if (error.message) {
+          message = error.message;
+        }
+        throw new Error(message);
       }
 
       if (!data?.success || !data?.docx_base64) {
