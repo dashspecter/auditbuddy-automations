@@ -2,23 +2,36 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle, XCircle, Calendar, Clock, Users, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, Clock, Users, ArrowLeftRight, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { usePendingApprovals, useApproveShiftAssignment, useRejectShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useTimeOffRequests, useUpdateTimeOffRequest } from "@/hooks/useTimeOffRequests";
 import { usePendingSwapRequests, useApproveSwapRequest, useRejectSwapRequest } from "@/hooks/useShiftSwapRequests";
+import { useWorkforceExceptions, useResolveWorkforceException } from "@/hooks/useScheduleGovernance";
 import { format } from "date-fns";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+
+const EXCEPTION_TYPE_LABELS: Record<string, string> = {
+  late_start: 'Late Start',
+  early_leave: 'Early Leave',
+  unscheduled_shift: 'Unscheduled Clock-in',
+  no_show: 'No Show',
+  shift_extended: 'Extended Shift',
+  overtime: 'Overtime',
+  absence: 'Absence',
+};
 
 export const ManagerApprovalsSection = () => {
   const { data: pendingShifts = [], isLoading: shiftsLoading } = usePendingApprovals();
   const { data: timeOffRequests = [], isLoading: timeOffLoading } = useTimeOffRequests();
   const { data: swapRequests = [], isLoading: swapsLoading } = usePendingSwapRequests();
+  const { data: exceptions = [], isLoading: exceptionsLoading } = useWorkforceExceptions({ status: 'pending' });
   const approveShift = useApproveShiftAssignment();
   const rejectShift = useRejectShiftAssignment();
   const updateTimeOff = useUpdateTimeOffRequest();
   const approveSwap = useApproveSwapRequest();
   const rejectSwap = useRejectSwapRequest();
+  const resolveException = useResolveWorkforceException();
   
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -26,11 +39,9 @@ export const ManagerApprovalsSection = () => {
   const pendingTimeOff = timeOffRequests.filter(req => req.status === 'pending');
 
   const handleApproveShift = async (id: string) => {
-    console.log("[ManagerApprovals] Approve button clicked for:", id);
     setProcessingId(id);
     try {
       await approveShift.mutateAsync(id);
-      console.log("[ManagerApprovals] Approval mutation completed");
     } catch (error) {
       console.error("[ManagerApprovals] Error during approval:", error);
     } finally {
@@ -39,12 +50,9 @@ export const ManagerApprovalsSection = () => {
   };
 
   const handleRejectShift = async (id: string) => {
-    console.log("[ManagerApprovals] Reject button clicked for:", id);
     setProcessingId(id);
     try {
-      console.log("[ManagerApprovals] Calling mutateAsync...");
       await rejectShift.mutateAsync(id);
-      console.log("[ManagerApprovals] Mutation completed successfully");
     } catch (error) {
       console.error("[ManagerApprovals] Error during rejection:", error);
     } finally {
@@ -88,9 +96,20 @@ export const ManagerApprovalsSection = () => {
     setProcessingId(null);
   };
 
-  const totalPending = pendingShifts.length + pendingTimeOff.length + swapRequests.length;
+  const handleResolveException = async (exceptionId: string, status: 'approved' | 'denied') => {
+    setProcessingId(exceptionId);
+    try {
+      await resolveException.mutateAsync({ exceptionId, status });
+    } catch (error) {
+      console.error("[ManagerApprovals] Error resolving exception:", error);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-  if (shiftsLoading || timeOffLoading || swapsLoading) {
+  const totalPending = pendingShifts.length + pendingTimeOff.length + swapRequests.length + exceptions.length;
+
+  if (shiftsLoading || timeOffLoading || swapsLoading || exceptionsLoading) {
     return (
       <Card className="p-4">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
@@ -120,6 +139,58 @@ export const ManagerApprovalsSection = () => {
         
         <CollapsibleContent>
           <div className="px-4 pb-4 space-y-4">
+
+            {/* Workforce Exceptions */}
+            {exceptions.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Workforce Exceptions
+                </h3>
+                {exceptions.map((exception) => (
+                  <Card key={exception.id} className="p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{exception.employees?.full_name || 'Unknown'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(exception.shift_date), "EEE, MMM d")}
+                        </div>
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          {EXCEPTION_TYPE_LABELS[exception.exception_type] || exception.exception_type}
+                        </Badge>
+                        {exception.locations?.name && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{exception.locations.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleResolveException(exception.id, 'approved')}
+                        disabled={processingId === exception.id}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleResolveException(exception.id, 'denied')}
+                        disabled={processingId === exception.id}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Deny
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
 
             {/* Pending Shift Assignments */}
             {pendingShifts.length > 0 && (

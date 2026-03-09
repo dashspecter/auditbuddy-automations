@@ -585,20 +585,25 @@ const StaffScanAttendance = () => {
             // Dedupe: check if pending exception already exists
             const alreadyExists = await checkExistingException('unscheduled_shift');
             if (!alreadyExists) {
-              await supabase.from('workforce_exceptions').insert({
-                company_id: company.id,
-                location_id: locationId,
-                employee_id: currentEmployee.id,
-                exception_type: 'unscheduled_shift',
-                status: 'pending',
-                shift_date: today,
-                detected_at: checkInTime,
-                attendance_id: newAttendance.id,
-                requested_by: user?.id,
-                metadata: { clock_in_time: checkInTime }
+              const { error: exceptionError } = await supabase.rpc('create_workforce_exception', {
+                p_company_id: company.id,
+                p_location_id: locationId,
+                p_employee_id: currentEmployee.id,
+                p_exception_type: 'unscheduled_shift',
+                p_shift_date: today,
+                p_attendance_id: newAttendance.id,
+                p_metadata: { clock_in_time: checkInTime }
               });
               
-              console.log("Created unscheduled_shift exception");
+              if (exceptionError) {
+                console.error("Failed to create unscheduled_shift exception:", exceptionError);
+                // Rollback: delete the attendance record
+                await supabase.from('attendance_logs').delete().eq('id', newAttendance.id);
+                toast.error("Clock-in failed: could not create exception ticket. Please try again.");
+                return;
+              }
+              
+              console.log("Created unscheduled_shift exception via RPC");
               toast.info("Clock-in recorded. Pending manager approval.", { duration: 5000 });
             } else {
               console.log("Skipping duplicate unscheduled_shift exception");
@@ -612,21 +617,23 @@ const StaffScanAttendance = () => {
               // Dedupe: check if pending exception already exists
               const alreadyExists = await checkExistingException('late_start');
               if (!alreadyExists) {
-                await supabase.from('workforce_exceptions').insert({
-                  company_id: company.id,
-                  location_id: locationId,
-                  employee_id: currentEmployee.id,
-                  exception_type: 'late_start',
-                  status: 'pending',
-                  shift_id: scheduledShift?.shift_id,
-                  shift_date: today,
-                  detected_at: checkInTime,
-                  attendance_id: newAttendance.id,
-                  requested_by: user?.id,
-                  metadata: { late_minutes: lateMinutes }
+                const { error: lateError } = await supabase.rpc('create_workforce_exception', {
+                  p_company_id: company.id,
+                  p_location_id: locationId,
+                  p_employee_id: currentEmployee.id,
+                  p_exception_type: 'late_start',
+                  p_shift_date: today,
+                  p_shift_id: scheduledShift?.shift_id,
+                  p_attendance_id: newAttendance.id,
+                  p_metadata: { late_minutes: lateMinutes }
                 });
                 
-                console.log("Created late_start exception");
+                if (lateError) {
+                  console.error("Failed to create late_start exception:", lateError);
+                  toast.warning("Clock-in successful, but late arrival exception could not be recorded.");
+                } else {
+                  console.log("Created late_start exception via RPC");
+                }
               } else {
                 console.log("Skipping duplicate late_start exception");
               }
@@ -817,22 +824,24 @@ const StaffScanAttendance = () => {
                   if (existing) {
                     toast.info("You already have a pending approval request for today.");
                   } else {
-                    await supabase.from('workforce_exceptions').insert({
-                      company_id: company.id,
-                      location_id: blockedLocationId,
-                      employee_id: employee.id,
-                      exception_type: 'unscheduled_shift',
-                      status: 'pending',
-                      shift_date: today,
-                      detected_at: now,
-                      requested_by: user.id,
-                      metadata: { 
+                    const { error: blockedError } = await supabase.rpc('create_workforce_exception', {
+                      p_company_id: company.id,
+                      p_location_id: blockedLocationId,
+                      p_employee_id: employee.id,
+                      p_exception_type: 'unscheduled_shift',
+                      p_shift_date: today,
+                      p_metadata: { 
                         clock_in_time: now, 
                         reason_requested: true,
                         blocked_by_policy: true 
                       }
                     });
-                    toast.success("Manager approval requested. You'll be notified when approved.");
+                    if (blockedError) {
+                      console.error("Failed to create blocked exception:", blockedError);
+                      toast.error("Could not submit approval request. Please try again.");
+                    } else {
+                      toast.success("Manager approval requested. You'll be notified when approved.");
+                    }
                   }
                 }
                 setShowBlockedDialog(false);
