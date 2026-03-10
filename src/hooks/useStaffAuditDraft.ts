@@ -329,8 +329,8 @@ export const useStaffAuditDraft = ({
   const [isRestoring, setIsRestoring] = useState(true);
   const [hasPendingDraft, setHasPendingDraft] = useState(false);
   
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasRestoredRef = useRef(false);
   const lastSavedDataRef = useRef<string>('');
   const isHydratingRef = useRef(true);
