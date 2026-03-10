@@ -188,6 +188,8 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       '',
       sub.worked,
       `${sub.partial}`,
+      `${sub.half}`,
+      `${sub.extraHalf}`,
       sub.confirmed,
       `${sub.late} (${sub.lateMins}min)`,
       `${sub.absent}`,
