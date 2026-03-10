@@ -281,6 +281,7 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
         priority: task.priority,
         start_at: task.start_at,
         due_at: task.due_at,
+        duration_minutes: task.duration_minutes,
         role_ids: originalTask?.role_ids || [],
         role_names: originalTask?.role_names || [],
         // Flag shared/location-only tasks for the General group
