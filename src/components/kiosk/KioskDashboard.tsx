@@ -846,8 +846,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                     <div className="flex-1 h-px bg-border" />
                   </div>
                   {roleTasks.map((task) => {
-                    const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
-                                      (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
+                    const overdueDeadline = getTaskDeadline(task);
+                    const isOverdue = task.status !== "completed" && overdueDeadline ? isPast(overdueDeadline) : false;
                     const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
                     const isLocked = task.timeLock && !task.timeLock.canComplete;
                     const unlockTime = task.timeLock?.unlockAtFormatted;
