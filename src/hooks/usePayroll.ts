@@ -292,7 +292,10 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
           const isAbsent = !isFutureShift && requiresCheckin && !attendanceLog && hasRecordedAbsence;
           
           // Determine if shift was partial (worked less than 75% of scheduled)
-          const isPartial = !isFutureShift && !isMissed && !isAbsent && !!attendanceLog && actualHours > 0 
+          // Half shifts are intentionally short — skip partial detection for them
+          const shiftType = (shift as any).shift_type;
+          const isHalfType = shiftType === 'half' || shiftType === 'extra_half';
+          const isPartial = !isHalfType && !isFutureShift && !isMissed && !isAbsent && !!attendanceLog && actualHours > 0 
             && actualHours < (scheduledHours * 0.75);
           
           // Pay based on actual hours worked, or scheduled if no check-in required and no attendance
