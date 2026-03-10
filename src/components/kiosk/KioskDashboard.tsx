@@ -931,11 +931,22 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                             <Lock className="h-3 w-3 mr-1" />
                             {unlockTime}
                           </Badge>
-                        ) : task.start_at ? (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
-                            {formatCountdown(task.start_at)}
-                          </Badge>
-                        ) : null}
+                        ) : task.start_at ? (() => {
+                          const countdown = formatTaskCountdown(task);
+                          if (!countdown.text) return null;
+                          return (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] px-1.5 py-0 font-mono ${
+                                countdown.state === 'in-progress' 
+                                  ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800' 
+                                  : ''
+                              }`}
+                            >
+                              {countdown.text}
+                            </Badge>
+                          );
+                        })() : null}
                       </div>
                     );
                   })}
