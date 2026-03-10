@@ -15,6 +15,12 @@ export interface PayrollEmployeeDetail {
   // Partial shifts (actual < 75% of scheduled)
   partial_count: number;
   partial_dates: string[];
+  // Half shifts (intentionally scheduled as half)
+  half_shift_count: number;
+  half_shift_dates: string[];
+  // Extra half shifts
+  extra_half_count: number;
+  extra_half_dates: string[];
   // Late arrivals
   late_count: number;
   total_late_minutes: number;
@@ -72,7 +78,7 @@ export function usePayrollBatchDetails(
       const { data: shifts, error: shiftsError } = await supabase
         .from("shifts")
         .select(`
-          id, shift_date, start_time, end_time, location_id,
+          id, shift_date, start_time, end_time, location_id, shift_type,
           locations(name, requires_checkin),
           shift_assignments!inner(staff_id, approval_status)
         `)
@@ -133,6 +139,7 @@ export function usePayrollBatchDetails(
       const employeeShifts: Record<string, Array<{
         shift_id: string; date: string; start_time: string; end_time: string;
         location_id: string; location_name: string; requires_checkin: boolean;
+        shift_type: string | null;
       }>> = {};
 
       for (const shift of shifts || []) {
@@ -146,6 +153,7 @@ export function usePayrollBatchDetails(
             location_id: shift.location_id,
             location_name: locData?.name || "Unknown",
             requires_checkin: locData?.requires_checkin || false,
+            shift_type: (shift as any).shift_type || null,
           });
         }
       }
@@ -184,6 +192,8 @@ export function usePayrollBatchDetails(
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
         const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
         const partialDates: string[] = [];
+        const halfShiftDates: string[] = [];
+        const extraHalfDates: string[] = [];
         const lateDates: string[] = [];
         let lateCount = 0;
         let totalLateMinutes = 0;
@@ -214,11 +224,20 @@ export function usePayrollBatchDetails(
             }
 
             // Partial shift detection: actual < 75% of scheduled
-            const isPartial = hasAttendance && hasCheckOut && actualHours < scheduledHours * PARTIAL_THRESHOLD;
+            // Skip for half/extra_half shifts — they are intentionally short
+            const isHalfType = shift.shift_type === 'half' || shift.shift_type === 'extra_half';
+            const isPartial = !isHalfType && hasAttendance && hasCheckOut && actualHours < scheduledHours * PARTIAL_THRESHOLD;
 
             if (isPartial) {
               partialDates.push(shift.date);
               anomalies.push(`Partial shift on ${shift.date} (${actualHours.toFixed(1)}h / ${scheduledHours.toFixed(1)}h)`);
+            }
+
+            // Track half shift types
+            if (shift.shift_type === 'half') {
+              halfShiftDates.push(shift.date);
+            } else if (shift.shift_type === 'extra_half') {
+              extraHalfDates.push(shift.date);
             }
 
             daysWorked++;
@@ -305,6 +324,10 @@ export function usePayrollBatchDetails(
           overtime_hours: Math.round(overtimeHours * 10) / 10,
           partial_count: partialDates.length,
           partial_dates: partialDates.sort(),
+          half_shift_count: halfShiftDates.length,
+          half_shift_dates: halfShiftDates.sort(),
+          extra_half_count: extraHalfDates.length,
+          extra_half_dates: extraHalfDates.sort(),
           late_count: lateCount,
           total_late_minutes: totalLateMinutes,
           late_dates: lateDates.sort(),
