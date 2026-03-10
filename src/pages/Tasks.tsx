@@ -467,9 +467,9 @@ const Tasks = () => {
   };
 
   // Get SHIFT-AWARE tasks from unified pipeline, filtered by location/role/employee
-  const todayTasks = useMemo(() => filterTasks(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
-  const tomorrowTasks = useMemo(() => filterTasks(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
-  const locationFilteredTasks = useMemo(() => filterTasks(tasks), [tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
+  const todayTasks = useMemo(() => filterTasks(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
+  const tomorrowTasks = useMemo(() => filterTasks(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
+  const locationFilteredTasks = useMemo(() => filterTasks(tasks), [tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
 
   // Build "Happening Now" using base IDs to handle virtual occurrence IDs properly
   // Step 1: Get base IDs of tasks happening right now
