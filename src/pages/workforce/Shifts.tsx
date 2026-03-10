@@ -43,7 +43,9 @@ const Shifts = () => {
   const { data: pendingApprovals } = usePendingApprovals();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useLocations();
-  const pendingCount = pendingApprovals?.length || 0;
+  const { data: pendingExceptions = [] } = useWorkforceExceptions({ status: 'pending' });
+  const pendingChangeRequests = usePendingChangeRequests();
+  const pendingCount = (pendingApprovals?.length || 0) + pendingExceptions.length + (pendingChangeRequests.data?.length || 0);
   
   // Governance hooks
   const { data: company } = useCompany();
