@@ -4,7 +4,7 @@ import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveSco
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, startOfMonth, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
-import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import { getOccurrencesForDate, getOriginalTaskId, getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 import type { Task as BaseTask } from "@/hooks/useTasks";
 import { useKioskTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
 import { Card } from "@/components/ui/card";
@@ -77,6 +77,7 @@ interface Task {
   priority: string;
   start_at: string | null;
   due_at: string | null;
+  duration_minutes?: number | null;
   role_ids?: string[];
   role_names?: string[];
 }
@@ -325,8 +326,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   // so they respect the department filter
   // =====================================================
   const unifiedCompletedCount = tasks.filter(t => t.status === "completed").length;
-  const unifiedOverdueCount = tasks.filter(t => t.status !== "completed" && t.due_at && isPast(new Date(t.due_at))).length;
-  const unifiedPendingCount = tasks.filter(t => t.status !== "completed" && !(t.due_at && isPast(new Date(t.due_at)))).length;
+  const isTaskOverdueCheck = (t: { status: string; start_at: string | null; due_at: string | null; duration_minutes?: number | null }) => {
+    if (t.status === "completed") return false;
+    const deadline = getTaskDeadline(t as any);
+    return deadline ? isPast(deadline) : false;
+  };
+  const unifiedOverdueCount = tasks.filter(t => isTaskOverdueCheck(t)).length;
+  const unifiedPendingCount = tasks.filter(t => t.status !== "completed" && !isTaskOverdueCheck(t)).length;
 
   // DEV: Log unified KPI debug info
   if (import.meta.env.DEV) {
@@ -548,9 +554,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
 
     // Sort tasks within each group: OVERDUE FIRST, then by start_at
     // Overdue = due_at past OR (no due_at AND start_at past)
-    const checkOverdue = (t: Task) => 
-      (t.due_at && isPast(new Date(t.due_at))) || 
-      (!t.due_at && t.start_at && isPast(new Date(t.start_at)));
+    const checkOverdue = (t: Task) => {
+      if (t.status === "completed") return false;
+      const deadline = getTaskDeadline(t as any);
+      return deadline ? isPast(deadline) : false;
+    };
     
     Object.values(roleGroups).forEach(group => {
       group.tasks.sort((a, b) => {
@@ -595,9 +603,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   // Keep isTaskOverdue helper for task list display
   const isTaskOverdue = (t: Task) => {
     if (t.status === "completed") return false;
-    if (t.due_at && isPast(new Date(t.due_at))) return true;
-    if (!t.due_at && t.start_at && isPast(new Date(t.start_at))) return true;
-    return false;
+    const deadline = getTaskDeadline(t as any);
+    return deadline ? isPast(deadline) : false;
   };
 
   return (
@@ -840,8 +847,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
                     <div className="flex-1 h-px bg-border" />
                   </div>
                   {roleTasks.map((task) => {
-                    const isOverdue = (task.due_at && isPast(new Date(task.due_at))) || 
-                                      (!task.due_at && task.start_at && isPast(new Date(task.start_at)));
+                    const overdueDeadline = getTaskDeadline(task as any);
+                    const isOverdue = task.status !== "completed" && overdueDeadline ? isPast(overdueDeadline) : false;
                     const taskTime = task.start_at ? format(new Date(task.start_at), "HH:mm") : null;
                     const isLocked = task.timeLock && !task.timeLock.canComplete;
                     const unlockTime = task.timeLock?.unlockAtFormatted;

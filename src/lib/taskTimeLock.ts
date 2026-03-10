@@ -13,6 +13,7 @@
 
 import { Task } from "@/hooks/useTasks";
 import { format, addMinutes, subMinutes, isBefore, isAfter, differenceInMinutes } from "date-fns";
+import { getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 // =============================================================
 // TYPES
@@ -99,18 +100,8 @@ export function getTaskScheduledTime(task: Task): Date | null {
   return null;
 }
 
-/**
- * Get the deadline for a task
- */
-export function getTaskDeadline(task: Task): Date | null {
-  if (task.start_at && task.duration_minutes) {
-    return addMinutes(new Date(task.start_at), task.duration_minutes);
-  }
-  if (task.due_at) {
-    return new Date(task.due_at);
-  }
-  return null;
-}
+// getTaskDeadline is imported from taskOccurrenceEngine.ts (single source of truth)
+export { getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 // =============================================================
 // MAIN FUNCTION

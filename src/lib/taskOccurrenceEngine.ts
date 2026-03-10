@@ -117,6 +117,10 @@ export const getTaskDeadline = (task: Task): Date | null => {
     return new Date(new Date(task.start_at).getTime() + task.duration_minutes * 60000);
   }
   if (task.due_at) return new Date(task.due_at);
+  // Grace period: start_at alone is NOT a deadline, add 30min window
+  if (task.start_at) {
+    return new Date(new Date(task.start_at).getTime() + 30 * 60000);
+  }
   return null;
 };
 
