@@ -735,6 +735,14 @@ export const EnhancedShiftWeekView = () => {
           </div>
           <span>{t('training.shift', 'Training')}</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          <Badge className="text-[10px] px-1 py-0 bg-teal-500 text-white border-transparent">½</Badge>
+          <span>{t('workforce.shifts.halfShift', 'Half Shift')}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Badge className="text-[10px] px-1 py-0 bg-orange-400 text-white border-transparent">½ Extra</Badge>
+          <span>{t('workforce.shifts.extraHalfShift', 'Extra Half Shift')}</span>
+        </div>
       </div>
 
       {/* Week grid with employee rows */}
