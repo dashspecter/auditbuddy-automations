@@ -130,6 +130,7 @@ import TaskNew from "./pages/TaskNew";
 import TaskEdit from "./pages/TaskEdit";
 import TasksCalendar from "./pages/TasksCalendar";
 import ComplianceDossier from "./pages/ComplianceDossier";
+import EmployeeDossier from "./pages/EmployeeDossier";
 import EvidenceReview from "./pages/EvidenceReview";
 import Inventory from "./pages/Inventory";
 import Insights from "./pages/Insights";
