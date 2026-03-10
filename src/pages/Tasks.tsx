@@ -694,11 +694,12 @@ const Tasks = () => {
             </SelectContent>
           </Select>
         </div>
-        {(selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all") && (
+        {hasActiveFilter && (
           <Button variant="ghost" size="sm" onClick={() => {
             setSelectedLocationId("all");
             setSelectedRoleId("all");
             setSelectedEmployeeId("all");
+            setSearchQuery("");
           }}>
             {t('common.clearFilter', 'Clear')}
           </Button>
