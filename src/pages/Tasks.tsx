@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
 import { useEvidencePolicy } from "@/hooks/useEvidencePackets";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2, Camera, ShieldCheck } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2, Camera, ShieldCheck, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
