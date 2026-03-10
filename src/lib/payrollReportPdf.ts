@@ -166,6 +166,8 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       (a, e) => ({
         worked: a.worked + e.days_worked,
         partial: a.partial + e.partial_count,
+        half: a.half + (e.half_shift_count || 0),
+        extraHalf: a.extraHalf + (e.extra_half_count || 0),
         confirmed: a.confirmed + e.days_confirmed,
         late: a.late + e.late_count,
         lateMins: a.lateMins + e.total_late_minutes,
@@ -178,7 +180,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
         reg: a.reg + e.regular_hours,
         ot: a.ot + e.overtime_hours,
       }),
-      { worked: 0, partial: 0, confirmed: 0, late: 0, lateMins: 0, absent: 0, extra: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, reg: 0, ot: 0 }
+      { worked: 0, partial: 0, half: 0, extraHalf: 0, confirmed: 0, late: 0, lateMins: 0, absent: 0, extra: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, reg: 0, ot: 0 }
     );
 
     rows.push([
