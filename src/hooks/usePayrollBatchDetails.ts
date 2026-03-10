@@ -233,6 +233,13 @@ export function usePayrollBatchDetails(
               anomalies.push(`Partial shift on ${shift.date} (${actualHours.toFixed(1)}h / ${scheduledHours.toFixed(1)}h)`);
             }
 
+            // Track half shift types
+            if (shift.shift_type === 'half') {
+              halfShiftDates.push(shift.date);
+            } else if (shift.shift_type === 'extra_half') {
+              extraHalfDates.push(shift.date);
+            }
+
             daysWorked++;
             if (hasAttendance && hasCheckOut) daysConfirmed++;
 
