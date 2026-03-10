@@ -137,6 +137,12 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       emp.partial_count > 0
         ? `${emp.partial_count} (${formatDateList(emp.partial_dates)})`
         : '0',
+      (emp.half_shift_count || 0) > 0
+        ? `${emp.half_shift_count} (${formatDateList(emp.half_shift_dates || [])})`
+        : '0',
+      (emp.extra_half_count || 0) > 0
+        ? `${emp.extra_half_count} (${formatDateList(emp.extra_half_dates || [])})`
+        : '0',
       emp.days_confirmed,
       emp.late_count > 0
         ? `${emp.late_count} (${emp.total_late_minutes}min)`
