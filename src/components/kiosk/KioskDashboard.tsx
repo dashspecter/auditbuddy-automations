@@ -77,6 +77,7 @@ interface Task {
   priority: string;
   start_at: string | null;
   due_at: string | null;
+  duration_minutes?: number | null;
   role_ids?: string[];
   role_names?: string[];
 }
