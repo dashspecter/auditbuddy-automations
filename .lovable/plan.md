@@ -1,30 +1,66 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+# Fix: `duration_minutes` Missing from Kiosk Task Mapping
 
 ## Root Cause
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+In `src/components/kiosk/KioskDashboard.tsx` lines 276-289, the task mapping explicitly picks fields but **omits `duration_minutes`**:
 
 ```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
+return {
+  id: task.id,
+  title: task.title,
+  status: task.status,
+  assigned_to: task.assigned_to,
+  priority: task.priority,
+  start_at: task.start_at,
+  due_at: task.due_at,
+  role_ids: originalTask?.role_ids || [],
+  role_names: originalTask?.role_names || [],
+  // ... no duration_minutes!
+}
 ```
+
+This causes `getTaskDeadline` to skip the `start_at + duration_minutes` calculation and fall through to the 30-minute fallback: `start_at + 30min = 11:00`. At 10:47:56, that's exactly **12m 4s** — matching the screenshot.
+
+The correct deadline should be `10:30 + 60min = 11:30`, showing ~42 minutes remaining.
 
 ## Fix
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+**File: `src/components/kiosk/KioskDashboard.tsx`** (line ~282)
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+Add `duration_minutes` to the mapped task object:
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+```typescript
+return {
+  id: task.id,
+  title: task.title,
+  status: task.status,
+  assigned_to: task.assigned_to,
+  priority: task.priority,
+  start_at: task.start_at,
+  due_at: task.due_at,
+  duration_minutes: task.duration_minutes,  // ← ADD THIS
+  role_ids: originalTask?.role_ids || [],
+  role_names: originalTask?.role_names || [],
+  isLocationOnly: !task.assigned_role_id && !task.assigned_to,
+  timeLock: task.timeLock,
+}
+```
 
-| File | Change |
-|------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+Also audit the same mapping for any other fields used by `getTaskDeadline` or `isTaskOverdue` — specifically `assigned_role_id` is already referenced on line 287 but not included in the mapping (it works because it's only used for the `isLocationOnly` flag, not downstream). No other missing fields affect deadline calculation.
 
-One file, ~5 lines changed. No database changes.
+## General Rule (Summary)
+
+**Task deadline priority:**
+1. `start_at + duration_minutes` (if both exist)
+2. `due_at` (explicit deadline)
+3. `start_at + 30min` (fallback — should rarely apply)
+
+**Badge states:**
+- **Upcoming** (`now < start_at`): countdown to start
+- **In Progress** (`start_at ≤ now < deadline`): countdown to deadline
+- **Overdue** (`now ≥ deadline`): red overdue badge
+
+The bug was purely a data-mapping omission, not a logic error.
 
