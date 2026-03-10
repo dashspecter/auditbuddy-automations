@@ -13,6 +13,7 @@
 
 import { Task } from "@/hooks/useTasks";
 import { format, addMinutes, subMinutes, isBefore, isAfter, differenceInMinutes } from "date-fns";
+import { getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 
 // =============================================================
 // TYPES
