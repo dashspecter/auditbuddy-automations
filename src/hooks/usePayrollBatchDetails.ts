@@ -15,6 +15,12 @@ export interface PayrollEmployeeDetail {
   // Partial shifts (actual < 75% of scheduled)
   partial_count: number;
   partial_dates: string[];
+  // Half shifts (intentionally scheduled as half)
+  half_shift_count: number;
+  half_shift_dates: string[];
+  // Extra half shifts
+  extra_half_count: number;
+  extra_half_dates: string[];
   // Late arrivals
   late_count: number;
   total_late_minutes: number;
