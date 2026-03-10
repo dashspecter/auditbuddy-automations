@@ -585,18 +585,40 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       });
   }, [tasks, todaysTeam, now, departmentId, departmentRoleNames]);
 
-  // Format countdown
-  const formatCountdown = (targetDate: string) => {
-    const target = new Date(targetDate);
-    const diffMins = differenceInMinutes(target, now);
-    const diffSecs = differenceInSeconds(target, now) % 60;
+  // Format countdown with three states: upcoming, in-progress, overdue
+  const formatTaskCountdown = (task: Task): { text: string; state: 'upcoming' | 'in-progress' | 'overdue' } => {
+    const startAt = task.start_at ? new Date(task.start_at) : null;
+    const deadline = getTaskDeadline(task as any);
 
-    if (diffMins < 0) return "Overdue";
-    if (diffMins === 0) return `${diffSecs}s`;
-    if (diffMins < 60) return `${diffMins}m ${Math.abs(diffSecs)}s`;
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return `${hours}h ${mins}m`;
+    // If deadline is past → overdue
+    if (deadline && isPast(deadline)) {
+      return { text: "Overdue", state: 'overdue' };
+    }
+
+    // If start_at is past but deadline is future → in-progress, count down to deadline
+    if (startAt && isPast(startAt) && deadline) {
+      const diffMins = differenceInMinutes(deadline, now);
+      const diffSecs = differenceInSeconds(deadline, now) % 60;
+      if (diffMins === 0) return { text: `⏱ ${diffSecs}s left`, state: 'in-progress' };
+      if (diffMins < 60) return { text: `⏱ ${diffMins}m ${Math.abs(diffSecs)}s left`, state: 'in-progress' };
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      return { text: `⏱ ${hours}h ${mins}m left`, state: 'in-progress' };
+    }
+
+    // If start_at is future → upcoming, count down to start
+    if (startAt) {
+      const diffMins = differenceInMinutes(startAt, now);
+      const diffSecs = differenceInSeconds(startAt, now) % 60;
+      if (diffMins < 0) return { text: "Overdue", state: 'overdue' };
+      if (diffMins === 0) return { text: `${diffSecs}s`, state: 'upcoming' };
+      if (diffMins < 60) return { text: `${diffMins}m ${Math.abs(diffSecs)}s`, state: 'upcoming' };
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      return { text: `${hours}h ${mins}m`, state: 'upcoming' };
+    }
+
+    return { text: "", state: 'upcoming' };
   };
 
   // LEGACY: These are now replaced by unified counts from useKioskTodayTasks
