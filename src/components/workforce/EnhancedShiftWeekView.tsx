@@ -1179,6 +1179,16 @@ export const EnhancedShiftWeekView = () => {
                                       Extra
                                     </Badge>
                                   )}
+                                  {shift.shift_type === 'half' && (
+                                    <Badge className="text-[10px] px-1 py-0 bg-teal-500 text-white border-transparent hover:bg-teal-600">
+                                      ½
+                                    </Badge>
+                                  )}
+                                  {shift.shift_type === 'extra_half' && (
+                                    <Badge className="text-[10px] px-1 py-0 bg-orange-400 text-white border-transparent hover:bg-orange-500">
+                                      ½ Extra
+                                    </Badge>
+                                  )}
                                   {isPending && (
                                     <Badge variant="outline" className="text-[10px] px-1 py-0 border-orange-500 text-orange-500">
                                       Pending
