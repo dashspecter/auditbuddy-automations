@@ -326,9 +326,9 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   // so they respect the department filter
   // =====================================================
   const unifiedCompletedCount = tasks.filter(t => t.status === "completed").length;
-  const isTaskOverdueCheck = (t: BaseTask) => {
+  const isTaskOverdueCheck = (t: { status: string; start_at: string | null; due_at: string | null; duration_minutes?: number | null }) => {
     if (t.status === "completed") return false;
-    const deadline = getTaskDeadline(t);
+    const deadline = getTaskDeadline(t as any);
     return deadline ? isPast(deadline) : false;
   };
   const unifiedOverdueCount = tasks.filter(t => isTaskOverdueCheck(t)).length;
