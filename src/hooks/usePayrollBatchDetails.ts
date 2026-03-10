@@ -128,13 +128,7 @@ export function usePayrollBatchDetails(
         employees = data || [];
       }
 
-      // 3. Get attendance logs
-      const { data: attendanceLogs, error: attError } = await supabase
-        .from("attendance_logs")
-        .select("id, staff_id, shift_id, check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, approved_by, early_departure_reason")
-        .gte("check_in_at", `${periodStart}T00:00:00`)
-        .lte("check_in_at", `${periodEnd}T23:59:59`);
-      if (attError) throw attError;
+      // 3. Attendance logs already fetched above (with location filter)
 
       // 4. Get time-off requests (approved)
       const { data: timeOffRequests, error: toError } = await supabase
