@@ -140,7 +140,7 @@ export default function StaffAuditDetail() {
             </Button>
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Employee Audit Details</h1>
+            <h1 className="text-2xl font-bold">{(audit as any).audit_templates?.name || "Employee Audit Details"}</h1>
             <p className="text-muted-foreground">
               Audit for {audit.employees?.full_name}
             </p>
