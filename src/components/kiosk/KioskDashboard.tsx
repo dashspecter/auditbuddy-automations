@@ -325,8 +325,13 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   // so they respect the department filter
   // =====================================================
   const unifiedCompletedCount = tasks.filter(t => t.status === "completed").length;
-  const unifiedOverdueCount = tasks.filter(t => t.status !== "completed" && t.due_at && isPast(new Date(t.due_at))).length;
-  const unifiedPendingCount = tasks.filter(t => t.status !== "completed" && !(t.due_at && isPast(new Date(t.due_at)))).length;
+  const isTaskOverdueCheck = (t: BaseTask) => {
+    if (t.status === "completed") return false;
+    const deadline = getTaskDeadline(t);
+    return deadline ? isPast(deadline) : false;
+  };
+  const unifiedOverdueCount = tasks.filter(t => isTaskOverdueCheck(t)).length;
+  const unifiedPendingCount = tasks.filter(t => t.status !== "completed" && !isTaskOverdueCheck(t)).length;
 
   // DEV: Log unified KPI debug info
   if (import.meta.env.DEV) {
