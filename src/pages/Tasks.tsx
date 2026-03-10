@@ -640,8 +640,18 @@ const Tasks = () => {
         </Card>
       </div>
 
-      {/* Filters: Location, Role, Employee */}
+      {/* Filters: Search, Location, Role, Employee */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('tasks.searchByTitle', 'Search tasks...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
