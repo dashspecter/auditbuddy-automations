@@ -133,6 +133,7 @@ export function usePayrollBatchDetails(
       const employeeShifts: Record<string, Array<{
         shift_id: string; date: string; start_time: string; end_time: string;
         location_id: string; location_name: string; requires_checkin: boolean;
+        shift_type: string | null;
       }>> = {};
 
       for (const shift of shifts || []) {
