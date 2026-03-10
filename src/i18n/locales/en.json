@@ -175,6 +175,7 @@
     "sendNotifications": "Send Notifications",
     "locationPerformance": "Location Performance",
     "employeePerformance": "Employee Performance",
+    "employeeDossier": "Employee Dossier",
     "vouchers": "Vouchers",
     "tests": "Tests",
     "createTest": "Create Test",
