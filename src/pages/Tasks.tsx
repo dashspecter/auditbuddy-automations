@@ -327,6 +327,7 @@ const Tasks = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ── Evidence gate state ──
   const [evidenceGateTaskId, setEvidenceGateTaskId] = useState<string | null>(null);
