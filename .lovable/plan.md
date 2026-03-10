@@ -1,31 +1,30 @@
 
 
-# Fix Misleading "Overdue" Countdown for In-Progress Tasks
+# Why the Setup Checklist Doesn't Show for New Companies
 
-## Problem
-The kiosk task countdown badge uses `formatCountdown(task.start_at)`. Once a task's start time passes, `differenceInMinutes` goes negative, and the function returns "Overdue" — even though the task has a `duration_minutes` window and is still within its active period.
+## Root Cause
 
-Example: "Completare termograme - dimineata" starts at 10:30 with 60min duration (deadline 11:30). At 10:40, the countdown shows "Overdue" instead of showing ~50 minutes remaining.
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
-## Solution
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
 
-### `src/components/kiosk/KioskDashboard.tsx`
+## Fix
 
-1. **Change countdown target**: Instead of `formatCountdown(task.start_at)`, compute the **deadline** using `getTaskDeadline(task)` and count down to that.
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-2. **Three states for the badge**:
-   - **Before start**: Show countdown to `start_at` (e.g., "19m 19s") — keeps current behavior for upcoming tasks
-   - **In progress** (past start, before deadline): Show remaining time to deadline (e.g., "⏱ 50m left")
-   - **Past deadline**: The existing `isOverdue` check already handles this with the red "⚠ OVERDUE" badge
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-3. Update `formatCountdown` (or add inline logic at line ~912) to:
-   - If `start_at` is in the future → countdown to start_at (current behavior)
-   - If `start_at` is past but deadline is future → countdown to deadline with "left" suffix
-   - If deadline is past → already handled by `isOverdue` branch above
-
-### Files Changed
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
 | File | Change |
-|---|---|
-| `src/components/kiosk/KioskDashboard.tsx` | Use deadline instead of start_at for countdown when task is in-progress |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+
+One file, ~5 lines changed. No database changes.
 
