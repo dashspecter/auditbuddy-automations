@@ -1,30 +1,26 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+# Add Search Bar to Task List
 
-## Root Cause
+## What
+Add a search input to the Tasks page that filters tasks by title in real-time. It will sit alongside the existing Location/Role/Employee filters and apply across all tabs (List, Today, Tomorrow, Pending, Overdue, Completed).
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+## How
 
-```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
-```
+### `src/pages/Tasks.tsx`
+1. Add a `searchQuery` state variable
+2. Add a search `Input` with a `Search` icon, placed at the start of the existing filter row (line ~640)
+3. Update the `filterTasks` helper to also match `task.title` against the search query (case-insensitive)
+4. Update `filteredStats` to reflect search-filtered counts
+5. Include search in the "Clear" button reset logic
 
-## Fix
+The search will be a simple `includes` match — fast, no debounce needed for 85 tasks. It filters the same `filterTasks` function all tabs already use, so every view gets search automatically.
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
-
-### `src/components/dashboard/CompanySetupChecklist.tsx`
-
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+### Files Changed
 
 | File | Change |
-|------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+|---|---|
+| `src/pages/Tasks.tsx` | Add search state, search input in filter bar, update `filterTasks` to match title |
 
-One file, ~5 lines changed. No database changes.
+No database or backend changes needed.
 
