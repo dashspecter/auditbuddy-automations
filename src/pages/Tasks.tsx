@@ -520,7 +520,7 @@ const Tasks = () => {
     return locationFilteredTasks;
   }, [activeTab, locationFilteredTasks, todayTasks, tomorrowTasks]);
 
-  const hasActiveFilter = selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all";
+  const hasActiveFilter = selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all" || searchQuery !== "";
   const filteredStats = useMemo(() => {
     if (!hasActiveFilter) return stats;
     const total = locationFilteredTasks.length;
