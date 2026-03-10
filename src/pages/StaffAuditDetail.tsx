@@ -211,6 +211,15 @@ export default function StaffAuditDetail() {
                 )}
               </div>
             </div>
+            {(audit as any).audit_templates?.name && (
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Audit Template</p>
+                  <p className="font-medium">{(audit as any).audit_templates.name}</p>
+                </div>
+              </div>
+            )}
             {(audit as any).auditor_profile && (
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
