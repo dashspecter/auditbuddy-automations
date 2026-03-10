@@ -1,18 +1,30 @@
 
 
-# Show Audit Template Name on Staff Audit Detail Page
+# Why the Setup Checklist Doesn't Show for New Companies
 
-## Problem
-The `staff_audits` table has a `template_id` column linking to the audit template, but the detail page (`StaffAuditDetail.tsx`) never joins or displays it. There's no way to see which audit template was used.
+## Root Cause
+
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
+```
 
 ## Fix
 
-**File: `src/pages/StaffAuditDetail.tsx`**
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-1. **Add template to the Supabase query** — include `audit_templates(name)` in the `.select()` join (line 22-26)
-2. **Display the template name** in the header or Audit Information card — show it as the audit title (e.g., "Monthly Performance Review") alongside the employee name
-3. Update the page title from generic "Employee Audit Details" to show the template name, e.g., `{audit.audit_templates?.name || "Employee Audit Details"}`
-4. Add the template name as a row in the Audit Information card
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-No database changes needed — `template_id` and the `audit_templates` table already exist.
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+
+One file, ~5 lines changed. No database changes.
 

@@ -22,7 +22,8 @@ export default function StaffAuditDetail() {
         .select(`
           *,
           employees(full_name, role, avatar_url, email, phone),
-          locations(name, address)
+          locations(name, address),
+          audit_templates(name)
         `)
         .eq("id", id)
         .maybeSingle();
@@ -139,7 +140,7 @@ export default function StaffAuditDetail() {
             </Button>
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Employee Audit Details</h1>
+            <h1 className="text-2xl font-bold">{(audit as any).audit_templates?.name || "Employee Audit Details"}</h1>
             <p className="text-muted-foreground">
               Audit for {audit.employees?.full_name}
             </p>
@@ -210,6 +211,15 @@ export default function StaffAuditDetail() {
                 )}
               </div>
             </div>
+            {(audit as any).audit_templates?.name && (
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Audit Template</p>
+                  <p className="font-medium">{(audit as any).audit_templates.name}</p>
+                </div>
+              </div>
+            )}
             {(audit as any).auditor_profile && (
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
