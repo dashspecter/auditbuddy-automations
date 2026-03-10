@@ -602,9 +602,8 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
   // Keep isTaskOverdue helper for task list display
   const isTaskOverdue = (t: Task) => {
     if (t.status === "completed") return false;
-    if (t.due_at && isPast(new Date(t.due_at))) return true;
-    if (!t.due_at && t.start_at && isPast(new Date(t.start_at))) return true;
-    return false;
+    const deadline = getTaskDeadline(t);
+    return deadline ? isPast(deadline) : false;
   };
 
   return (
