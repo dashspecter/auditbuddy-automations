@@ -18,7 +18,7 @@ import { usePendingApprovals } from "@/hooks/useShiftAssignments";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useScheduleGovernanceEnabled, useSchedulePeriod } from "@/hooks/useScheduleGovernance";
+import { useScheduleGovernanceEnabled, useSchedulePeriod, useWorkforceExceptions, usePendingChangeRequests } from "@/hooks/useScheduleGovernance";
 import { useCompany } from "@/hooks/useCompany";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
