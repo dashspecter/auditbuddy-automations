@@ -1,26 +1,30 @@
 
 
-# Fix: Database CHECK Constraint Blocking Half Shift Types
+# Why the Setup Checklist Doesn't Show for New Companies
 
 ## Root Cause
 
-The `shifts` table has a database CHECK constraint (`shifts_shift_type_check`) that only allows three values:
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
 ```
-CHECK (shift_type = ANY (ARRAY['regular', 'training', 'extra']))
-```
-
-When the UI sends `'half'` or `'extra_half'`, the database rejects the insert — causing the "Something Went Wrong" error.
 
 ## Fix
 
-A single database migration to update the constraint to include the two new values:
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-```sql
-ALTER TABLE public.shifts DROP CONSTRAINT shifts_shift_type_check;
-ALTER TABLE public.shifts ADD CONSTRAINT shifts_shift_type_check 
-  CHECK (shift_type = ANY (ARRAY['regular', 'training', 'extra', 'half', 'extra_half']));
-```
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-No code changes needed — the UI and payroll logic already handle `'half'` and `'extra_half'` correctly from the previous implementation. This is purely a database constraint issue.
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+
+One file, ~5 lines changed. No database changes.
 
