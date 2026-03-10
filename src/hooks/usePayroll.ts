@@ -333,7 +333,7 @@ export const usePayrollFromShifts = (startDate?: string, endDate?: string, locat
             is_future: isFutureShift,
             is_absent: isAbsent,
             absence_reason: absenceReason,
-            is_extra_shift: (shift as any).shift_type === 'extra',
+            is_extra_shift: (shift as any).shift_type === 'extra' || (shift as any).shift_type === 'extra_half',
             expected_shifts_per_week: expectedShiftsPerWeek,
           });
         }

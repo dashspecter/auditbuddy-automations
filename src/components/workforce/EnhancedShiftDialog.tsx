@@ -81,7 +81,7 @@ export const EnhancedShiftDialog = ({
     is_published: false,
     close_duty: false,
     break_duration_minutes: "0",
-    shift_type: "regular" as 'regular' | 'training' | 'extra',
+    shift_type: "regular" as 'regular' | 'training' | 'extra' | 'half' | 'extra_half',
     shift_status: "draft" as 'draft' | 'open' | 'published',
   });
   const [breaks, setBreaks] = useState<Array<{ start: string; end: string }>>([]);
