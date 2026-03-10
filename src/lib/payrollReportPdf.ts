@@ -83,6 +83,8 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     ['Employees', `${employees.length}`],
     ['Regular Hours', `${totals.regularHours.toFixed(1)}h`],
     ['Overtime Hours', `${totals.overtimeHours.toFixed(1)}h`],
+    ['Half Shifts', `${totals.halfShifts}`],
+    ['Extra Half Shifts', `${totals.extraHalf}`],
     ['Partial Shifts', `${totals.partial}`],
     ['Late Arrivals', `${totals.late} (${totals.lateMinutes}min total)`],
     ['Extra Schedule Days', `${totals.extraSchedule}`],
