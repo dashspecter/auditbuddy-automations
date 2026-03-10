@@ -4,7 +4,7 @@ import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveSco
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, startOfMonth, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
-import { getOccurrencesForDate, getOriginalTaskId } from "@/lib/taskOccurrenceEngine";
+import { getOccurrencesForDate, getOriginalTaskId, getTaskDeadline } from "@/lib/taskOccurrenceEngine";
 import type { Task as BaseTask } from "@/hooks/useTasks";
 import { useKioskTodayTasks, StaffTaskWithTimeLock } from "@/hooks/useStaffTodayTasks";
 import { Card } from "@/components/ui/card";
