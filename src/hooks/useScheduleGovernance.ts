@@ -529,7 +529,20 @@ export const useResolveWorkforceException = () => {
 
           // Parse clock-in to extract local time parts
           const clockInDate = new Date(clockInTime);
-          const startTime = `${String(clockInDate.getHours()).padStart(2, '0')}:${String(clockInDate.getMinutes()).padStart(2, '0')}:00`;
+          let startTime = `${String(clockInDate.getHours()).padStart(2, '0')}:${String(clockInDate.getMinutes()).padStart(2, '0')}:00`;
+
+          // Clamp start time to location opening hours if employee arrived early
+          const dayOfWeek = clockInDate.getDay() === 0 ? 6 : clockInDate.getDay() - 1; // JS Sunday=0 → our Monday=0
+          const { data: scheduleData } = await supabase
+            .from('location_operating_schedules')
+            .select('open_time')
+            .eq('location_id', exception.location_id)
+            .eq('day_of_week', dayOfWeek)
+            .maybeSingle();
+
+          if (scheduleData?.open_time && startTime < scheduleData.open_time) {
+            startTime = scheduleData.open_time;
+          }
 
           // Determine end time: use actual check-out if available, otherwise +8h
           let endTime: string;
