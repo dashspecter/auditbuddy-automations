@@ -46,7 +46,7 @@ export const ShiftDialog = ({
     role: "",
     required_count: "1",
     notes: "",
-    shift_type: "regular" as 'regular' | 'training' | 'extra',
+    shift_type: "regular" as 'regular' | 'training' | 'extra' | 'half' | 'extra_half',
   });
 
   const createShift = useCreateShift();
