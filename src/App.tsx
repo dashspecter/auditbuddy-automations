@@ -432,6 +432,8 @@ const App = () => {
                       <Route path="/tasks/calendar" element={<ManagerRoute requiredPermission="manage_audits"><TasksCalendar /></ManagerRoute>} />
                       <Route path="/evidence-review" element={<ProtectedRoute><EvidenceReview /></ProtectedRoute>} />
                       <Route path="/compliance-dossier" element={<ProtectedRoute><ComplianceDossier /></ProtectedRoute>} />
+                      <Route path="/employee-dossier" element={<ManagerRoute requiredPermission="view_reports"><EmployeeDossier /></ManagerRoute>} />
+                      <Route path="/employee-dossier/:employeeId" element={<ManagerRoute requiredPermission="view_reports"><EmployeeDossier /></ManagerRoute>} />
                       
                       {/* Insights/AI Routes */}
                       <Route path="/insights" element={<ManagerRoute requiredPermission="view_reports"><Insights /></ManagerRoute>} />

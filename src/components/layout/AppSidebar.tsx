@@ -280,6 +280,7 @@ const navigationItems = [
       { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.complianceDossier", url: "/compliance-dossier", allowedRoles: ['admin', 'manager'], companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.employeePerformance", url: "/reports?tab=employee", companyPermission: 'view_reports' as CompanyPermission },
+      { titleKey: "nav.employeeDossier", url: "/employee-dossier", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.vouchers", url: "/audits/vouchers", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.overview", url: "/insights", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.aiFeed", url: "/ai-feed", companyPermission: 'view_reports' as CompanyPermission },
