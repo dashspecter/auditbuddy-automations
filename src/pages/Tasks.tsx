@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
 import { useEvidencePolicy } from "@/hooks/useEvidencePackets";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2, Camera, ShieldCheck } from "lucide-react";
+import { Plus, ListTodo, CheckCircle2, Clock, AlertCircle, MapPin, Calendar, RefreshCw, Timer, AlertTriangle, Users, LayoutDashboard, User, Pencil, Trash2, Camera, ShieldCheck, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTasks, useTaskStats, useCompleteTask, useDeleteTask, Task } from "@/hooks/useTasks";
@@ -326,6 +327,7 @@ const Tasks = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ── Evidence gate state ──
   const [evidenceGateTaskId, setEvidenceGateTaskId] = useState<string | null>(null);
@@ -440,9 +442,11 @@ const Tasks = () => {
     }
   };
 
-  // Helper to filter by location, role, and employee
+  // Helper to filter by search, location, role, and employee
   const filterTasks = (taskList: Task[]) => {
     return taskList.filter(t => {
+      // Search filter
+      if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (selectedLocationId !== "all") {
         // Use junction-table location IDs if available, fallback to location_id
         const taskLocIds = t.task_location_ids;
@@ -463,9 +467,9 @@ const Tasks = () => {
   };
 
   // Get SHIFT-AWARE tasks from unified pipeline, filtered by location/role/employee
-  const todayTasks = useMemo(() => filterTasks(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
-  const tomorrowTasks = useMemo(() => filterTasks(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
-  const locationFilteredTasks = useMemo(() => filterTasks(tasks), [tasks, selectedLocationId, selectedRoleId, selectedEmployeeId]);
+  const todayTasks = useMemo(() => filterTasks(todayResult.tasks as Task[]), [todayResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
+  const tomorrowTasks = useMemo(() => filterTasks(tomorrowResult.tasks as Task[]), [tomorrowResult.tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
+  const locationFilteredTasks = useMemo(() => filterTasks(tasks), [tasks, selectedLocationId, selectedRoleId, selectedEmployeeId, searchQuery]);
 
   // Build "Happening Now" using base IDs to handle virtual occurrence IDs properly
   // Step 1: Get base IDs of tasks happening right now
@@ -516,7 +520,7 @@ const Tasks = () => {
     return locationFilteredTasks;
   }, [activeTab, locationFilteredTasks, todayTasks, tomorrowTasks]);
 
-  const hasActiveFilter = selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all";
+  const hasActiveFilter = selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all" || searchQuery !== "";
   const filteredStats = useMemo(() => {
     if (!hasActiveFilter) return stats;
     const total = locationFilteredTasks.length;
@@ -636,8 +640,18 @@ const Tasks = () => {
         </Card>
       </div>
 
-      {/* Filters: Location, Role, Employee */}
+      {/* Filters: Search, Location, Role, Employee */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('tasks.searchByTitle', 'Search tasks...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
@@ -680,11 +694,12 @@ const Tasks = () => {
             </SelectContent>
           </Select>
         </div>
-        {(selectedLocationId !== "all" || selectedRoleId !== "all" || selectedEmployeeId !== "all") && (
+        {hasActiveFilter && (
           <Button variant="ghost" size="sm" onClick={() => {
             setSelectedLocationId("all");
             setSelectedRoleId("all");
             setSelectedEmployeeId("all");
+            setSearchQuery("");
           }}>
             {t('common.clearFilter', 'Clear')}
           </Button>
