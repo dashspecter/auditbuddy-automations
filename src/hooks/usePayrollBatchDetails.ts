@@ -147,6 +147,7 @@ export function usePayrollBatchDetails(
             location_id: shift.location_id,
             location_name: locData?.name || "Unknown",
             requires_checkin: locData?.requires_checkin || false,
+            shift_type: (shift as any).shift_type || null,
           });
         }
       }
