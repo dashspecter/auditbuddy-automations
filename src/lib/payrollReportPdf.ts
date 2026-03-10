@@ -73,8 +73,10 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       late: acc.late + e.late_count,
       lateMinutes: acc.lateMinutes + e.total_late_minutes,
       absent: acc.absent + e.absent_days,
+      halfShifts: acc.halfShifts + (e.half_shift_count || 0),
+      extraHalf: acc.extraHalf + (e.extra_half_count || 0),
     }),
-    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, extraSchedule: 0, crossLocation: 0, partial: 0, late: 0, lateMinutes: 0, absent: 0 }
+    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, extraSchedule: 0, crossLocation: 0, partial: 0, late: 0, lateMinutes: 0, absent: 0, halfShifts: 0, extraHalf: 0 }
   );
 
   const summaryData = [
