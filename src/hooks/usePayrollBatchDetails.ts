@@ -216,7 +216,9 @@ export function usePayrollBatchDetails(
             }
 
             // Partial shift detection: actual < 75% of scheduled
-            const isPartial = hasAttendance && hasCheckOut && actualHours < scheduledHours * PARTIAL_THRESHOLD;
+            // Skip for half/extra_half shifts — they are intentionally short
+            const isHalfType = shift.shift_type === 'half' || shift.shift_type === 'extra_half';
+            const isPartial = !isHalfType && hasAttendance && hasCheckOut && actualHours < scheduledHours * PARTIAL_THRESHOLD;
 
             if (isPartial) {
               partialDates.push(shift.date);

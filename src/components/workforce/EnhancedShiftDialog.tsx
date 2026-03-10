@@ -821,7 +821,7 @@ export const EnhancedShiftDialog = ({
             <Select
               value={formData.shift_type}
               onValueChange={(value) =>
-                setFormData({ ...formData, shift_type: value as 'regular' | 'training' | 'extra' })
+                setFormData({ ...formData, shift_type: value as 'regular' | 'training' | 'extra' | 'half' | 'extra_half' })
               }
             >
               <SelectTrigger>
@@ -829,7 +829,9 @@ export const EnhancedShiftDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="regular">{t('workforce.components.shiftDialog.regular', 'Regular')}</SelectItem>
+                <SelectItem value="half">{t('workforce.components.shiftDialog.half', 'Half Shift')}</SelectItem>
                 <SelectItem value="extra">{t('workforce.components.shiftDialog.extra', 'Extra')}</SelectItem>
+                <SelectItem value="extra_half">{t('workforce.components.shiftDialog.extraHalf', 'Extra Half Shift')}</SelectItem>
                 <SelectItem value="training">{t('workforce.components.shiftDialog.training', 'Training')}</SelectItem>
               </SelectContent>
             </Select>
