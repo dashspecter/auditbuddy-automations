@@ -204,26 +204,28 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
 
     autoTable(doc, {
       startY: locY,
-      head: [['Employee', 'Role', 'Days\nWorked', 'Partial\nShifts', 'Conf.\nDays', 'Late', 'Absent', 'Extra\nSchedule', 'Vacation', 'Medical', 'Early\nDep.', 'Missing\n(no reason)', 'Reg.\nHrs', 'OT\nHrs']],
+      head: [['Employee', 'Role', 'Days\nWorked', 'Partial\nShifts', 'Half\nShifts', 'Extra\nHalf', 'Conf.\nDays', 'Late', 'Absent', 'Extra\nSchedule', 'Vacation', 'Medical', 'Early\nDep.', 'Missing\n(no reason)', 'Reg.\nHrs', 'OT\nHrs']],
       body: rows,
       theme: 'grid',
       ...tableStyles,
-      styles: { ...tableStyles.styles, fontSize: 6.5, cellPadding: 1.5 },
+      styles: { ...tableStyles.styles, fontSize: 6, cellPadding: 1.2 },
       columnStyles: {
-        0: { cellWidth: 30 },   // Employee
-        1: { cellWidth: 18 },   // Role
-        2: { halign: 'center', cellWidth: 14 }, // Days Worked
-        3: { cellWidth: 22 },   // Partial
-        4: { halign: 'center', cellWidth: 14 }, // Confirmed
-        5: { cellWidth: 20 },   // Late
-        6: { cellWidth: 24 },   // Absent
-        7: { cellWidth: 22 },   // Extra Schedule
-        8: { halign: 'center', cellWidth: 14 }, // Vacation
-        9: { halign: 'center', cellWidth: 14 }, // Medical
-        10: { cellWidth: 24 },  // Early Dep
-        11: { cellWidth: 24 },  // Missing
-        12: { halign: 'center', cellWidth: 14 }, // Reg Hrs
-        13: { halign: 'center', cellWidth: 14 }, // OT Hrs
+        0: { cellWidth: 28 },   // Employee
+        1: { cellWidth: 16 },   // Role
+        2: { halign: 'center', cellWidth: 12 }, // Days Worked
+        3: { cellWidth: 18 },   // Partial
+        4: { cellWidth: 16 },   // Half Shifts
+        5: { cellWidth: 16 },   // Extra Half
+        6: { halign: 'center', cellWidth: 12 }, // Confirmed
+        7: { cellWidth: 18 },   // Late
+        8: { cellWidth: 20 },   // Absent
+        9: { cellWidth: 18 },   // Extra Schedule
+        10: { halign: 'center', cellWidth: 12 }, // Vacation
+        11: { halign: 'center', cellWidth: 12 }, // Medical
+        12: { cellWidth: 20 },  // Early Dep
+        13: { cellWidth: 20 },  // Missing
+        14: { halign: 'center', cellWidth: 12 }, // Reg Hrs
+        15: { halign: 'center', cellWidth: 12 }, // OT Hrs
       },
       didParseCell: (data) => {
         if (data.row.index === rows.length - 1) {
