@@ -442,9 +442,11 @@ const Tasks = () => {
     }
   };
 
-  // Helper to filter by location, role, and employee
+  // Helper to filter by search, location, role, and employee
   const filterTasks = (taskList: Task[]) => {
     return taskList.filter(t => {
+      // Search filter
+      if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (selectedLocationId !== "all") {
         // Use junction-table location IDs if available, fallback to location_id
         const taskLocIds = t.task_location_ids;
