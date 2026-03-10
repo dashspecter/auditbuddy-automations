@@ -553,9 +553,11 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
 
     // Sort tasks within each group: OVERDUE FIRST, then by start_at
     // Overdue = due_at past OR (no due_at AND start_at past)
-    const checkOverdue = (t: Task) => 
-      (t.due_at && isPast(new Date(t.due_at))) || 
-      (!t.due_at && t.start_at && isPast(new Date(t.start_at)));
+    const checkOverdue = (t: Task) => {
+      if (t.status === "completed") return false;
+      const deadline = getTaskDeadline(t);
+      return deadline ? isPast(deadline) : false;
+    };
     
     Object.values(roleGroups).forEach(group => {
       group.tasks.sort((a, b) => {
