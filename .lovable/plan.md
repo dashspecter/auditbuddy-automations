@@ -1,44 +1,30 @@
 
 
-# Fix: Cross-Location Employees Missing from Payroll & Reports
+# Why the Setup Checklist Doesn't Show for New Companies
 
 ## Root Cause
 
-Found a confirmed bug in **`usePayrollBatchDetails.ts`** (line 73):
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
 ```typescript
-if (locationId) empQuery = empQuery.eq("location_id", locationId);
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
 ```
-
-This filters employees by their **primary** `location_id`. An employee whose primary location is "Location A" but who has shifts assigned at "Location B" will be **completely excluded** from Location B's payroll batch details — showing 0 shifts, 0 hours, or not appearing at all.
-
-The **Payroll page** (`usePayrollFromShifts`) works differently — it goes through shifts → shift_assignments → employees, so it should correctly pick up cross-location workers. However, the batch details page is the more commonly used reporting surface.
 
 ## Fix
 
-**File: `src/hooks/usePayrollBatchDetails.ts`**
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-Instead of filtering employees by their primary `location_id`, the logic should:
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-1. **Filter shifts by location** (not employees) — add `location_id` filter to the shifts query (line 78-87)
-2. **Derive the employee list from those shifts** — collect all `staff_id` values from shift_assignments at the target location, then fetch those employees regardless of their primary location
-3. Keep the current behavior when no location filter is applied (show all employees)
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
-This is the same pattern that `usePayrollFromShifts` already uses correctly.
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
 
-### Specific Changes
-
-```typescript
-// Before (broken): filter employees by primary location
-let empQuery = supabase.from("employees").select("...").eq("status", "active");
-if (locationId) empQuery = empQuery.eq("location_id", locationId);
-
-// After (fixed): filter shifts by location, derive employees from assignments
-let shiftsQuery = supabase.from("shifts").select(`...`).gte(...).lte(...);
-if (locationId) shiftsQuery = shiftsQuery.eq("location_id", locationId);
-// Then collect unique staff_ids from shift_assignments
-// Fetch employees by those IDs (no location_id filter)
-```
-
-This ensures that any employee assigned to a shift at Location B appears in Location B's payroll — regardless of their primary location setting.
+One file, ~5 lines changed. No database changes.
 

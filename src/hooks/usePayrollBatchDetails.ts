@@ -65,17 +65,8 @@ export function usePayrollBatchDetails(
 
       const today = startOfDay(new Date());
 
-      // 1. Get active employees
-      let empQuery = supabase
-        .from("employees")
-        .select("id, full_name, role, location_id, locations(name)")
-        .eq("status", "active");
-      if (locationId) empQuery = empQuery.eq("location_id", locationId);
-      const { data: employees, error: empError } = await empQuery;
-      if (empError) throw empError;
-
-      // 2. Get shifts with assignments
-      const { data: shifts, error: shiftsError } = await supabase
+      // 1. Get shifts with assignments (filter by location here, not on employees)
+      let shiftsQuery = supabase
         .from("shifts")
         .select(`
           id, shift_date, start_time, end_time, location_id, shift_type,
@@ -85,15 +76,59 @@ export function usePayrollBatchDetails(
         .gte("shift_date", periodStart)
         .lte("shift_date", periodEnd)
         .eq("shift_assignments.approval_status", "approved");
+      if (locationId) shiftsQuery = shiftsQuery.eq("location_id", locationId);
+      const { data: shifts, error: shiftsError } = await shiftsQuery;
       if (shiftsError) throw shiftsError;
 
-      // 3. Get attendance logs
-      const { data: attendanceLogs, error: attError } = await supabase
+      // 2. Derive employee IDs from shift assignments (cross-location safe)
+      const staffIdsFromShifts = new Set<string>();
+      for (const shift of shifts || []) {
+        for (const sa of shift.shift_assignments || []) {
+          staffIdsFromShifts.add((sa as any).staff_id);
+        }
+      }
+
+      // Also include employees with attendance logs at this location during the period
+      let attQuery = supabase
         .from("attendance_logs")
         .select("id, staff_id, shift_id, check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, approved_by, early_departure_reason")
         .gte("check_in_at", `${periodStart}T00:00:00`)
         .lte("check_in_at", `${periodEnd}T23:59:59`);
+      if (locationId) attQuery = attQuery.eq("location_id", locationId);
+      const { data: attendanceLogs, error: attError } = await attQuery;
       if (attError) throw attError;
+
+      for (const log of attendanceLogs || []) {
+        staffIdsFromShifts.add(log.staff_id);
+      }
+
+      // Fetch employees by collected IDs (no location filter — cross-location safe)
+      let employees: any[] = [];
+      if (staffIdsFromShifts.size > 0) {
+        const staffIdArray = Array.from(staffIdsFromShifts);
+        // Supabase .in() has a limit; batch if needed
+        const batchSize = 100;
+        for (let i = 0; i < staffIdArray.length; i += batchSize) {
+          const batch = staffIdArray.slice(i, i + batchSize);
+          const { data, error: empError } = await supabase
+            .from("employees")
+            .select("id, full_name, role, location_id, locations(name)")
+            .eq("status", "active")
+            .in("id", batch);
+          if (empError) throw empError;
+          if (data) employees = employees.concat(data);
+        }
+      } else if (!locationId) {
+        // No location filter and no shifts found — fall back to all active employees
+        const { data, error: empError } = await supabase
+          .from("employees")
+          .select("id, full_name, role, location_id, locations(name)")
+          .eq("status", "active");
+        if (empError) throw empError;
+        employees = data || [];
+      }
+
+      // 3. Attendance logs already fetched above (with location filter)
 
       // 4. Get time-off requests (approved)
       const { data: timeOffRequests, error: toError } = await supabase
