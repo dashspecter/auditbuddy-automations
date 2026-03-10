@@ -72,7 +72,7 @@ export function usePayrollBatchDetails(
       const { data: shifts, error: shiftsError } = await supabase
         .from("shifts")
         .select(`
-          id, shift_date, start_time, end_time, location_id,
+          id, shift_date, start_time, end_time, location_id, shift_type,
           locations(name, requires_checkin),
           shift_assignments!inner(staff_id, approval_status)
         `)
