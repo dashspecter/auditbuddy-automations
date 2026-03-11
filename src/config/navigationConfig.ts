@@ -326,6 +326,18 @@ export const navigationItems: NavItem[] = [
       { id: "waste-settings", title: "Settings", url: "/admin/waste/settings", allowedRoles: ['admin', 'manager'] },
     ]
   },
+  {
+    id: "approvals",
+    title: "Approvals",
+    url: "/approvals",
+    icon: Landmark,
+    module: "government_ops",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { id: "approvals-queue", title: "Approval Queue", url: "/approvals" },
+      { id: "approvals-workflows", title: "Workflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
+    ],
+  },
 ];
 
 export const settingsItems: SettingsNavItem[] = [
