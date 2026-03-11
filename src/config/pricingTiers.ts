@@ -96,6 +96,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'corrective_actions',
       'operations',
       'scouts',
+      'government_ops',
     ],
     maxUsers: 100,
     maxLocations: 3,
