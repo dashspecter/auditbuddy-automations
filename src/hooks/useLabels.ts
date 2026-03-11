@@ -22,7 +22,7 @@ export const useLabels = () => {
         .eq("company_id", companyId);
 
       if (error) throw error;
-      return (data || []) as LabelOverride[];
+      return (data || []) as unknown as LabelOverride[];
     },
     enabled: !!companyId,
     staleTime: 10 * 60 * 1000, // 10 minutes — labels rarely change
