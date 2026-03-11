@@ -1,29 +1,30 @@
 
 
-# Bug: Staff Audit Template Dropdown Not Filtered by Checker Assignments
+# Why the Setup Checklist Doesn't Show for New Companies
 
-## Problem
+## Root Cause
 
-You're right — there's an inconsistency. The **Location Audit** flow on mobile (`StaffLocationAudit.tsx`) correctly filters templates by checker assignments:
+The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
 
-```text
-1. Fetch all templates
-2. Fetch audit_template_checkers for this user
-3. If assignments exist → show only assigned templates
-4. If no assignments → show all (backwards compatible)
+```typescript
+// Current — global key, one dismiss covers ALL companies
+const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
+localStorage.getItem(DISMISS_KEY) === "true" → hidden
 ```
-
-But the **Employee Audit** flow on mobile (`StaffStaffAudit.tsx`) **skips step 2-4 entirely** — it shows ALL staff-type templates to everyone. That's why Iulian/Zack see every template in the dropdown in your screenshot.
 
 ## Fix
 
-**File: `src/pages/staff/StaffStaffAudit.tsx`** (~lines 118-128)
+Make the dismiss key company-specific so each company gets its own checklist lifecycle.
 
-Add the same checker-assignment filtering that already exists in `StaffLocationAudit.tsx`:
+### `src/components/dashboard/CompanySetupChecklist.tsx`
 
-1. After fetching staff templates, query `audit_template_checkers` for the current user
-2. If the user has assignments, filter the template list to only assigned ones
-3. If no assignments exist, show all (backwards compatible fallback)
+- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
+- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
+- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
 
-This is a ~10-line addition mirroring the existing pattern from the location audit flow. No database changes needed.
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+
+One file, ~5 lines changed. No database changes.
 
