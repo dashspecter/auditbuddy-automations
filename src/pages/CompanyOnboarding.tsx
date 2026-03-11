@@ -44,6 +44,7 @@ export default function CompanyOnboarding() {
     'construction_builders': HardHat,
     'retail': ShoppingBag,
     'services': Sparkles,
+    'government': Landmark,
     'other': Building2,
   };
 

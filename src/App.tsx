@@ -319,6 +319,7 @@ const App = () => {
                       <Route path="/activity-log" element={<CompanyAdminRoute><ActivityLog /></CompanyAdminRoute>} />
                       <Route path="/role-templates" element={<CompanyAdminRoute><RoleTemplates /></CompanyAdminRoute>} />
                       <Route path="/policy-rules" element={<CompanyAdminRoute><PolicyRules /></CompanyAdminRoute>} />
+                      <Route path="/settings/terminology" element={<CompanyAdminRoute><TerminologySettings /></CompanyAdminRoute>} />
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
