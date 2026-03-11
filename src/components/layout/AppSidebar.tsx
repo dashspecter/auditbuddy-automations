@@ -408,6 +408,12 @@ const settingsItems = [
     icon: Bot,
     requiresPlatformAdmin: true
   },
+  {
+    titleKey: "nav.terminology",
+    url: "/settings/terminology",
+    icon: Languages,
+    requiresOwnerOrAdmin: true
+  },
 ];
 
 export function AppSidebar() {
