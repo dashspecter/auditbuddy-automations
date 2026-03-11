@@ -187,6 +187,15 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     color: 'text-sky-500',
     category: 'analytics',
   },
+  {
+    code: 'government_ops',
+    displayName: 'Government Operations',
+    description: 'Approval workflows and executive dashboard for government institutions',
+    features: ['Multi-step approval workflows', 'Executive dashboard', 'Department health grid', 'Activity audit trail'],
+    icon: Landmark,
+    color: 'text-stone-600',
+    category: 'operations',
+  },
 ];
 
 /** Look up a module display name by its code. Falls back to the code itself. */
