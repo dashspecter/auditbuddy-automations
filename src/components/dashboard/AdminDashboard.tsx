@@ -23,7 +23,12 @@ import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 import { ExecutiveDashboard } from "./ExecutiveDashboard";
 
 export const AdminDashboard = () => {
+  const { t } = useTranslation();
   const { data: industry } = useCompanyIndustry();
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subWeeks(new Date(), 1));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Government companies get the Executive (Mayor) Dashboard
   if (industry?.slug === "government") {

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, ClipboardCheck, ArrowRight } from "lucide-react";
-import { useApprovalRequests, useApproveRequest, useRejectRequest } from "@/hooks/useApprovals";
+import { useApprovalRequests, useApproveOrReject } from "@/hooks/useApprovals";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useState } from "react";
