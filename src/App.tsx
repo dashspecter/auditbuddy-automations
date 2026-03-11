@@ -323,7 +323,7 @@ const App = () => {
                       <Route path="/role-templates" element={<CompanyAdminRoute><RoleTemplates /></CompanyAdminRoute>} />
                       <Route path="/policy-rules" element={<CompanyAdminRoute><PolicyRules /></CompanyAdminRoute>} />
                       <Route path="/settings/terminology" element={<CompanyAdminRoute><TerminologySettings /></CompanyAdminRoute>} />
-                      <Route path="/approvals" element={<ProtectedRoute><ApprovalQueue /></ProtectedRoute>} />
+                      <Route path="/approvals" element={<ProtectedRoute><ModuleGate module="government_ops"><ApprovalQueue /></ModuleGate></ProtectedRoute>} />
                       <Route path="/settings/approval-workflows" element={<CompanyAdminRoute><ApprovalWorkflowsPage /></CompanyAdminRoute>} />
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />

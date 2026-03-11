@@ -22,7 +22,6 @@ export const PendingApprovalsWidget = () => {
         request_id: requestId,
         step_order: stepOrder,
         decision,
-        total_steps: 99, // will approve current step; full approval requires all steps
       });
     } finally {
       setProcessingId(null);
