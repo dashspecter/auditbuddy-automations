@@ -5,7 +5,7 @@ import {
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
   MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert,
-  MessageSquare
+  MessageSquare, Languages
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
