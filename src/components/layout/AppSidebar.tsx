@@ -345,6 +345,18 @@ const navigationItems = [
     module: null,
     allowedRoles: ['admin', 'manager', 'hr', 'checker']
   },
+  // 17. Approvals (Government Operations)
+  {
+    titleKey: "nav.approvals",
+    url: "/approvals",
+    icon: Landmark,
+    module: "government_ops",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { titleKey: "nav.approvalQueue", url: "/approvals" },
+      { titleKey: "nav.approvalWorkflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
+    ],
+  },
 ];
 
 const settingsItems = [
