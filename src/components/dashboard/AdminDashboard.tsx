@@ -35,8 +35,6 @@ export const AdminDashboard = () => {
     return <ExecutiveDashboard />;
   }
 
-
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {

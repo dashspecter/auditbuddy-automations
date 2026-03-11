@@ -51,4 +51,14 @@
 
 ---
 
-## Phase 4: Integration & Testing — TODO
+## Phase 4: Integration & Testing ✅ COMPLETE
+
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
