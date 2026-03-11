@@ -38,13 +38,16 @@
 
 ---
 
-## Phase 3: Executive (Mayor) Dashboard — TODO
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-### 3A. New Components
-- DepartmentHealthGrid, PendingApprovalsWidget, ActivityFeedWidget, ExecutiveDashboard
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
-### 3B. Conditional Dashboard Routing
-- AdminDashboard renders ExecutiveDashboard for government companies
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
 
 ---
 
