@@ -1,35 +1,26 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Landmark } from "lucide-react";
 import { DashboardGreeting } from "./DashboardGreeting";
-import { MaintenanceInterventions } from "./MaintenanceInterventions";
-import { CompanySetupChecklist } from "./CompanySetupChecklist";
-import { AttentionAlertBar } from "./AttentionAlertBar";
+import { DepartmentHealthGrid } from "./DepartmentHealthGrid";
 import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
-import { DecliningLocationsCard } from "./DecliningLocationsCard";
-import { WeakestSectionsCard } from "./WeakestSectionsCard";
-import { OpenCorrectiveActionsWidget } from "./OpenCorrectiveActionsWidget";
-import { WhatsAppStatsWidget } from "./WhatsAppStatsWidget";
+import { PendingApprovalsWidget } from "./PendingApprovalsWidget";
 import { TasksWidget } from "./TasksWidget";
-import { WorkforceAnalytics } from "./WorkforceAnalytics";
+import { OpenCorrectiveActionsWidget } from "./OpenCorrectiveActionsWidget";
+import { ActivityFeedWidget } from "./ActivityFeedWidget";
+import { AttentionAlertBar } from "./AttentionAlertBar";
 import { DraftAudits } from "./DraftAudits";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { subWeeks } from "date-fns";
+import { useLabels } from "@/hooks/useLabels";
 import { useTranslation } from "react-i18next";
-import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
-import { ExecutiveDashboard } from "./ExecutiveDashboard";
 
-export const AdminDashboard = () => {
-  const { data: industry } = useCompanyIndustry();
-
-  // Government companies get the Executive (Mayor) Dashboard
-  if (industry?.slug === "government") {
-    return <ExecutiveDashboard />;
-  }
+export const ExecutiveDashboard = () => {
   const { t } = useTranslation();
+  const { label } = useLabels();
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subWeeks(new Date(), 1));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const queryClient = useQueryClient();
@@ -53,8 +44,13 @@ export const AdminDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">{t('dashboard.admin.title')}</h2>
-          <p className="text-muted-foreground">{t('dashboard.admin.subtitle')}</p>
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Landmark className="h-6 w-6 text-primary" />
+            Executive Overview
+          </h2>
+          <p className="text-muted-foreground">
+            {label("company", "Institution")} performance at a glance
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -66,7 +62,9 @@ export const AdminDashboard = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? t('common.refreshing') : t('common.refresh')}
           </Button>
-          <Badge variant="default" className="text-sm">{t('dashboard.admin.badge')}</Badge>
+          <Badge variant="default" className="text-sm">
+            {label("owner", "Mayor")}
+          </Badge>
         </div>
       </div>
 
@@ -81,38 +79,29 @@ export const AdminDashboard = () => {
       {/* Greeting */}
       <DashboardGreeting />
 
-      {/* Draft Audits Reminder */}
+      {/* Draft Audits */}
       <DraftAudits />
 
-      {/* Company Setup Checklist */}
-      <CompanySetupChecklist />
-
-      {/* 1. Attention Alert Bar */}
+      {/* Attention Alerts */}
       <AttentionAlertBar dateFrom={dateFrom} dateTo={dateTo} />
 
-      {/* 2. Cross-Module KPI Stats */}
+      {/* Department Health Grid — government-specific */}
+      <DepartmentHealthGrid />
+
+      {/* Cross-Module KPIs */}
       <CrossModuleStatsRow dateFrom={dateFrom} dateTo={dateTo} />
 
-      {/* 3. Declining Locations + Weakest Sections */}
+      {/* Approvals + Activity side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <DecliningLocationsCard dateFrom={dateFrom} dateTo={dateTo} />
-        <WeakestSectionsCard dateFrom={dateFrom} dateTo={dateTo} />
+        <PendingApprovalsWidget />
+        <ActivityFeedWidget />
       </div>
 
-      {/* 4. Workforce Health Summary */}
-      <WorkforceAnalytics period="month" showDateFilter={false} />
-
-      {/* 5. Tasks + Corrective Actions Side-by-Side */}
+      {/* Tasks + CAs side by side */}
       <div className="grid gap-6 lg:grid-cols-2">
         <TasksWidget />
         <OpenCorrectiveActionsWidget />
       </div>
-
-      {/* 6. WhatsApp Stats */}
-      <WhatsAppStatsWidget />
-
-      {/* 7. Maintenance Schedule */}
-      <MaintenanceInterventions />
     </div>
   );
 };
