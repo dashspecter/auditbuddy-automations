@@ -73,7 +73,7 @@ export const PendingApprovalsWidget = () => {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
-                    onClick={() => handleApprove(req.id, req.current_step)}
+                    onClick={() => handleDecision(req.id, req.current_step, "approved")}
                     disabled={processingId === req.id}
                   >
                     <CheckCircle2 className="h-4 w-4" />
