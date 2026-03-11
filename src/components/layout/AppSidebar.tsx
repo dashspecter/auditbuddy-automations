@@ -5,7 +5,7 @@ import {
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
   MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert,
-  MessageSquare, Languages
+  MessageSquare, Languages, Landmark
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -344,6 +344,18 @@ const navigationItems = [
     icon: Store,
     module: null,
     allowedRoles: ['admin', 'manager', 'hr', 'checker']
+  },
+  // 17. Approvals (Government Operations)
+  {
+    titleKey: "nav.approvals",
+    url: "/approvals",
+    icon: Landmark,
+    module: "government_ops",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { titleKey: "nav.approvalQueue", url: "/approvals" },
+      { titleKey: "nav.approvalWorkflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
+    ],
   },
 ];
 

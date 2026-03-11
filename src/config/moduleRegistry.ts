@@ -2,7 +2,7 @@ import {
   MapPin, Users, Settings, Bell, BarChart3, Briefcase,
   FileText, Package, Lightbulb, Link, Trash2, QrCode,
   MessageSquare, DollarSign, Wrench, AlertTriangle,
-  ClipboardList, Search, LucideIcon,
+  ClipboardList, Search, Landmark, LucideIcon,
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -186,6 +186,15 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Link,
     color: 'text-sky-500',
     category: 'analytics',
+  },
+  {
+    code: 'government_ops',
+    displayName: 'Government Operations',
+    description: 'Approval workflows and executive dashboard for government institutions',
+    features: ['Multi-step approval workflows', 'Executive dashboard', 'Department health grid', 'Activity audit trail'],
+    icon: Landmark,
+    color: 'text-stone-600',
+    category: 'operations',
   },
 ];
 

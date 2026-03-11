@@ -472,6 +472,148 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_decisions: {
+        Row: {
+          comment: string | null
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          request_id: string
+          step_order: number
+        }
+        Insert: {
+          comment?: string | null
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          request_id: string
+          step_order: number
+        }
+        Update: {
+          comment?: string | null
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          request_id?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_decisions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          company_id: string
+          created_at: string
+          current_step: number
+          entity_id: string | null
+          entity_title: string
+          entity_type: string
+          id: string
+          requested_by: string
+          status: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          current_step?: number
+          entity_id?: string | null
+          entity_title: string
+          entity_type: string
+          id?: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          current_step?: number
+          entity_id?: string | null
+          entity_title?: string
+          entity_type?: string
+          id?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflows: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          name: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_categories: {
         Row: {
           company_id: string

@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
   GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
-  AlertTriangle, Trash2, MessageSquare, Languages,
+  AlertTriangle, Trash2, MessageSquare, Languages, Landmark,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -325,6 +325,18 @@ export const navigationItems: NavItem[] = [
       { id: "waste-reasons", title: "Reasons", url: "/admin/waste/reasons", allowedRoles: ['admin', 'manager'] },
       { id: "waste-settings", title: "Settings", url: "/admin/waste/settings", allowedRoles: ['admin', 'manager'] },
     ]
+  },
+  {
+    id: "approvals",
+    title: "Approvals",
+    url: "/approvals",
+    icon: Landmark,
+    module: "government_ops",
+    allowedRoles: ['admin', 'manager'],
+    subItems: [
+      { id: "approvals-queue", title: "Approval Queue", url: "/approvals" },
+      { id: "approvals-workflows", title: "Workflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
+    ],
   },
 ];
 
