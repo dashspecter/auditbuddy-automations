@@ -12194,6 +12194,15 @@ export type Database = {
         }
         Returns: string
       }
+      process_approval_decision: {
+        Args: {
+          p_comment?: string
+          p_decision: string
+          p_request_id: string
+          p_step_order: number
+        }
+        Returns: Json
+      }
       recompute_audit_section_scores: {
         Args: { p_audit_id: string }
         Returns: undefined
