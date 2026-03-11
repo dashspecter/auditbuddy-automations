@@ -33,8 +33,6 @@ export const AdminDashboard = () => {
   // Government companies get the Executive (Mayor) Dashboard
   if (industry?.slug === "government") {
     return <ExecutiveDashboard />;
-  }
-
 
 
   const handleRefresh = async () => {
