@@ -3,35 +3,38 @@
 ## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
 ### 1A. Database ✅
-- Created `company_label_overrides` table with RLS (company-scoped SELECT for members, INSERT/UPDATE/DELETE for owner/admin)
-- Inserted "Government / Public Administration" industry (slug: `government`, id: `1c24d70b-00b2-4fb8-8ef8-9392e94a67d2`)
-- Linked all 18 modules to the government industry via `module_industries`
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
 ### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides when industry slug = `government`
-- Labels: company→Institution, employees→Civil Servants, locations→Departments, audits→Inspections, manager→Department Head, owner→Mayor/Secretary General, shifts→Duty Rosters, equipment→Municipal Assets
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
 ### 1C. Frontend ✅
-- `src/hooks/useLabels.ts` — hook with `label(key, fallback)` function
-- `src/hooks/useCompanyIndustry.ts` — fetches industry slug for current company
-- `src/pages/settings/TerminologySettings.tsx` — settings page for editing label overrides
-- Added `Landmark` icon for `government` in `CompanyOnboarding.tsx`
-- Added `Languages` icon + "Terminology" settings nav item in `AppSidebar.tsx` and `navigationConfig.ts`
-- Added `/settings/terminology` route in `App.tsx`
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
 ---
 
-## Phase 2: Multi-Step Approval Engine — TODO
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-### 2A. Database Tables
-- `approval_workflows`, `approval_requests`, `approval_decisions` with RLS
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-### 2B. Module Registration
-- `government_ops` in moduleRegistry, pricingTiers, modules table
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-### 2C. Approval UI
-- ApprovalQueue page, ApprovalWorkflows settings, useApprovals hook
-- Nav items gated by `government_ops` module
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
 ---
 
