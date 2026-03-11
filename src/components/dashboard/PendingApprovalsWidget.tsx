@@ -82,7 +82,7 @@ export const PendingApprovalsWidget = () => {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleReject(req.id, req.current_step)}
+                    onClick={() => handleDecision(req.id, req.current_step, "rejected")}
                     disabled={processingId === req.id}
                   >
                     <XCircle className="h-4 w-4" />
