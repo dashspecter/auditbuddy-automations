@@ -12,23 +12,18 @@ export const PendingApprovalsWidget = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: requests, isLoading } = useApprovalRequests("pending");
-  const approveMutation = useApproveRequest();
-  const rejectMutation = useRejectRequest();
+  const decisionMutation = useApproveOrReject();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const handleApprove = async (requestId: string, stepOrder: number) => {
+  const handleDecision = async (requestId: string, stepOrder: number, decision: "approved" | "rejected") => {
     setProcessingId(requestId);
     try {
-      await approveMutation.mutateAsync({ requestId, stepOrder, comment: "" });
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleReject = async (requestId: string, stepOrder: number) => {
-    setProcessingId(requestId);
-    try {
-      await rejectMutation.mutateAsync({ requestId, stepOrder, comment: "" });
+      await decisionMutation.mutateAsync({
+        request_id: requestId,
+        step_order: stepOrder,
+        decision,
+        total_steps: 99, // will approve current step; full approval requires all steps
+      });
     } finally {
       setProcessingId(null);
     }

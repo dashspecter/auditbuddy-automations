@@ -34,11 +34,8 @@ export const AdminDashboard = () => {
   if (industry?.slug === "government") {
     return <ExecutiveDashboard />;
   }
-  const { t } = useTranslation();
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(subWeeks(new Date(), 1));
-  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
-  const queryClient = useQueryClient();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
