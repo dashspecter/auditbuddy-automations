@@ -35,7 +35,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'notifications', 'reports', 'workforce', 'documents', 'inventory',
       'insights', 'integrations', 'wastage', 'qr_forms',
       'whatsapp_messaging', 'payroll', 'cmms', 'corrective_actions',
-      'operations', 'scouts',
+      'operations', 'scouts', 'government_ops',
     ],
     maxUsers: 5,
     maxLocations: 1,
