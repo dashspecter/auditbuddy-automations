@@ -1,64 +1,133 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Fix Plan: All QA Audit Issues (5 Items)
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
-
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+## Overview
+Five fixes addressing the "Must fix" and "Should fix" items from the audit. Three are database changes (one migration), one is a component fix, and one is a route fix.
 
 ---
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+## Fix 1 (P1-2): Add unique constraint on `approval_decisions`
+**Migration** — prevents duplicate decisions on the same step:
+```sql
+ALTER TABLE public.approval_decisions 
+  ADD CONSTRAINT uq_approval_decision_per_step UNIQUE (request_id, step_order);
+```
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+## Fix 2 (P1-3 + P1-1): Create `process_approval_decision` RPC
+**Same migration** — replaces the two-write client logic with a single atomic, role-checked database function:
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+```sql
+CREATE OR REPLACE FUNCTION public.process_approval_decision(
+  p_request_id uuid,
+  p_step_order int,
+  p_decision text,
+  p_comment text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_request approval_requests%ROWTYPE;
+  v_total_steps int;
+  v_new_status text;
+  v_new_step int;
+  v_user_id uuid := auth.uid();
+BEGIN
+  -- Fetch request + verify company
+  SELECT * INTO v_request FROM approval_requests
+  WHERE id = p_request_id AND company_id = get_user_company_id(v_user_id);
+  IF NOT FOUND THEN RAISE EXCEPTION 'Request not found or access denied'; END IF;
+  IF v_request.status != 'pending' THEN RAISE EXCEPTION 'Request is not pending'; END IF;
+  IF v_request.current_step != p_step_order THEN RAISE EXCEPTION 'Step mismatch'; END IF;
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+  -- Verify caller has owner/admin/manager role
+  IF NOT (
+    has_company_role(v_user_id, 'company_owner') OR
+    has_company_role(v_user_id, 'company_admin') OR
+    has_role(v_user_id, 'manager')
+  ) THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+
+  -- Insert decision (unique constraint prevents duplicates)
+  INSERT INTO approval_decisions (request_id, step_order, decided_by, decision, comment)
+  VALUES (p_request_id, p_step_order, v_user_id, p_decision, p_comment);
+
+  -- Calculate new status
+  v_total_steps := jsonb_array_length(
+    (SELECT steps FROM approval_workflows WHERE id = v_request.workflow_id)
+  );
+  v_new_step := p_step_order;
+
+  IF p_decision = 'rejected' THEN
+    v_new_status := 'rejected';
+  ELSIF p_step_order >= v_total_steps THEN
+    v_new_status := 'approved';
+  ELSE
+    v_new_status := 'pending';
+    v_new_step := p_step_order + 1;
+  END IF;
+
+  UPDATE approval_requests
+  SET status = v_new_status, current_step = v_new_step, updated_at = now()
+  WHERE id = p_request_id;
+
+  RETURN jsonb_build_object('new_status', v_new_status);
+END;
+$$;
+```
+
+Also tighten the existing UPDATE policy on `approval_requests`:
+```sql
+DROP POLICY "Owners and admins can update approval requests" ON public.approval_requests;
+CREATE POLICY "Owners and admins can update approval requests"
+  ON public.approval_requests FOR UPDATE TO authenticated
+  USING (
+    company_id = get_user_company_id(auth.uid())
+    AND (has_company_role(auth.uid(), 'company_owner') 
+      OR has_company_role(auth.uid(), 'company_admin')
+      OR has_role(auth.uid(), 'manager'))
+  )
+  WITH CHECK (
+    company_id = get_user_company_id(auth.uid())
+    AND (has_company_role(auth.uid(), 'company_owner') 
+      OR has_company_role(auth.uid(), 'company_admin')
+      OR has_role(auth.uid(), 'manager'))
+  );
+```
+
+## Fix 3: Refactor `useApproveOrReject` to use the RPC
+**File**: `src/hooks/useApprovals.ts` (lines 236-300)
+
+Replace the two separate Supabase calls with a single `supabase.rpc('process_approval_decision', {...})` call. Remove `total_steps` from the input interface since the RPC calculates it server-side.
+
+## Fix 4 (P2-1): Fix `PendingApprovalsWidget` total_steps
+**File**: `src/components/dashboard/PendingApprovalsWidget.tsx` (line 18-29)
+
+After the RPC refactor, `total_steps` is no longer needed client-side. The `handleDecision` call simplifies to just `request_id`, `step_order`, `decision`. No more hardcoded `99`.
+
+## Fix 5 (P2-2): Wrap `/approvals` route in ModuleGate
+**File**: `src/App.tsx` (line 326)
+
+Change from:
+```tsx
+<Route path="/approvals" element={<ProtectedRoute><ApprovalQueue /></ProtectedRoute>} />
+```
+To:
+```tsx
+<Route path="/approvals" element={<ProtectedRoute><ModuleGate module="government_ops"><ApprovalQueue /></ModuleGate></ProtectedRoute>} />
+```
 
 ---
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+## Files Changed
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+| File | Change |
+|---|---|
+| New migration SQL | Unique constraint + RPC + tightened RLS policy |
+| `src/hooks/useApprovals.ts` | Refactor `useApproveOrReject` to use RPC, remove `total_steps` param |
+| `src/components/dashboard/PendingApprovalsWidget.tsx` | Remove `total_steps: 99`, simplify call |
+| `src/pages/ApprovalQueue.tsx` | Remove `total_steps` calculation, simplify call |
+| `src/App.tsx` | Add `ModuleGate` wrapper on `/approvals` route |
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
-
----
-
-## Phase 4: Integration & Testing ✅ COMPLETE
-
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
