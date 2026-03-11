@@ -55,7 +55,7 @@ export const PRICING_TIERS: Record<PricingTier, TierConfig> = {
       'Basic reports',
       'Email support',
     ],
-    allowedModules: ['location_audits', 'reports', 'workforce', 'wastage', 'qr_forms', 'corrective_actions', 'operations'],
+    allowedModules: ['location_audits', 'reports', 'workforce', 'wastage', 'qr_forms', 'corrective_actions', 'operations', 'government_ops'],
     maxUsers: 10,
     maxLocations: 1,
   },
