@@ -3,7 +3,7 @@ import {
   Wrench, Package, FileText, Lightbulb, Plug, 
   CreditCard, Building2, Bell, BarChart, 
   GraduationCap, UserCog, Bug, Shield, Store, Settings2, Cog,
-  AlertTriangle, Trash2, MessageSquare,
+  AlertTriangle, Trash2, MessageSquare, Languages,
   LucideIcon
 } from "lucide-react";
 import { CompanyPermission } from "@/hooks/useCompanyPermissions";
@@ -370,6 +370,13 @@ export const settingsItems: SettingsNavItem[] = [
     url: "/debug",
     icon: Bug,
     requiresPlatformAdmin: true
+  },
+  {
+    id: "settings-terminology",
+    title: "Terminology",
+    url: "/settings/terminology",
+    icon: Languages,
+    requiresOwner: true
   },
 ];
 

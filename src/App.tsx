@@ -87,6 +87,7 @@ import ModuleSelection from "./pages/ModuleSelection";
 import { CompanyAdminRoute } from "./components/CompanyAdminRoute";
 import { CompanyOwnerRoute } from "./components/CompanyOwnerRoute";
 import PricingPlans from "./pages/PricingPlans";
+import TerminologySettings from "./pages/settings/TerminologySettings";
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PendingApproval from "./pages/PendingApproval";
 import Workforce from "./pages/Workforce";
@@ -319,6 +320,7 @@ const App = () => {
                       <Route path="/activity-log" element={<CompanyAdminRoute><ActivityLog /></CompanyAdminRoute>} />
                       <Route path="/role-templates" element={<CompanyAdminRoute><RoleTemplates /></CompanyAdminRoute>} />
                       <Route path="/policy-rules" element={<CompanyAdminRoute><PolicyRules /></CompanyAdminRoute>} />
+                      <Route path="/settings/terminology" element={<CompanyAdminRoute><TerminologySettings /></CompanyAdminRoute>} />
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Check, ClipboardList, Wrench, Bell, Users, Briefcase, LogOut, Store, HardHat, ShoppingBag, Sparkles } from "lucide-react";
+import { Building2, Check, ClipboardList, Wrench, Bell, Users, Briefcase, LogOut, Store, HardHat, ShoppingBag, Sparkles, Landmark } from "lucide-react";
 import { PRICING_TIERS, PricingTier } from "@/config/pricingTiers";
 import { useCompany } from "@/hooks/useCompany";
 import { useIndustries } from "@/hooks/useIndustries";
@@ -44,6 +44,7 @@ export default function CompanyOnboarding() {
     'construction_builders': HardHat,
     'retail': ShoppingBag,
     'services': Sparkles,
+    'government': Landmark,
     'other': Building2,
   };
 

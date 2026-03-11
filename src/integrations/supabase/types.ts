@@ -2921,6 +2921,41 @@ export type Database = {
           },
         ]
       }
+      company_label_overrides: {
+        Row: {
+          company_id: string
+          created_at: string
+          custom_value: string
+          id: string
+          label_key: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          custom_value: string
+          id?: string
+          label_key: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          custom_value?: string
+          id?: string
+          label_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_label_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_modules: {
         Row: {
           activated_at: string
@@ -11566,11 +11601,11 @@ export type Database = {
           }
         | {
             Args: {
-              p_industry_id?: string
-              p_modules?: string[]
+              p_industry_id: string
+              p_modules: string[]
               p_name: string
               p_slug: string
-              p_subscription_tier?: string
+              p_subscription_tier: string
             }
             Returns: string
           }
