@@ -371,6 +371,13 @@ export const settingsItems: SettingsNavItem[] = [
     icon: Bug,
     requiresPlatformAdmin: true
   },
+  {
+    id: "settings-terminology",
+    title: "Terminology",
+    url: "/settings/terminology",
+    icon: Languages,
+    requiresOwner: true
+  },
 ];
 
 /**
