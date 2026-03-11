@@ -2,7 +2,7 @@ import {
   MapPin, Users, Settings, Bell, BarChart3, Briefcase,
   FileText, Package, Lightbulb, Link, Trash2, QrCode,
   MessageSquare, DollarSign, Wrench, AlertTriangle,
-  ClipboardList, Search, LucideIcon,
+  ClipboardList, Search, Landmark, LucideIcon,
 } from 'lucide-react';
 
 export interface ModuleDefinition {
