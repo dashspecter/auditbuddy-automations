@@ -88,6 +88,8 @@ import { CompanyAdminRoute } from "./components/CompanyAdminRoute";
 import { CompanyOwnerRoute } from "./components/CompanyOwnerRoute";
 import PricingPlans from "./pages/PricingPlans";
 import TerminologySettings from "./pages/settings/TerminologySettings";
+import ApprovalQueue from "./pages/ApprovalQueue";
+import ApprovalWorkflowsPage from "./pages/settings/ApprovalWorkflows";
 import PlatformAdmin from "./pages/PlatformAdmin";
 import PendingApproval from "./pages/PendingApproval";
 import Workforce from "./pages/Workforce";
