@@ -1,30 +1,24 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+## Problem
 
-## Root Cause
+The broadcast **does** find 1 opted-in recipient, but the insert fails because a message with the same idempotency key (`broadcast:{template_id}:{employee_id}:{date}`) already exists with status `sent` from an earlier attempt today.
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
-
-```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
-```
+The cleanup code only deletes records with status `failed` or `queued` — it doesn't skip already-`sent` records gracefully. So the insert hits a unique constraint violation and returns 0.
 
 ## Fix
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+In `supabase/functions/whatsapp-broadcast/index.ts`:
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+1. **Before inserting**, also filter out recipients who already have a `sent` message for today's idempotency key. This way we skip already-delivered recipients rather than failing on them.
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+2. **Improve the response** — when all recipients were already sent to, return a clear message like "All recipients already received this broadcast today" instead of "sent to 0".
 
-| File | Change |
-|------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+### Changes
 
-One file, ~5 lines changed. No database changes.
+**`supabase/functions/whatsapp-broadcast/index.ts`** (~lines 87-110):
+- After building the `messages` array and computing idempotency keys, query `outbound_messages` for any keys that already exist with status `sent`
+- Filter those recipients out of the `messages` array before inserting
+- If all filtered out, return a descriptive message
+- Keep the existing cleanup of `failed`/`queued` records
 
