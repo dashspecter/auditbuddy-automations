@@ -96,6 +96,18 @@ Deno.serve(async (req) => {
       scheduled_for: scheduled_for || null,
     }));
 
+    // Clear failed/queued messages from previous attempts today so retry works
+    const keys = messages.map((m: any) => m.idempotency_key);
+    const keyBatchSize = 50;
+    for (let i = 0; i < keys.length; i += keyBatchSize) {
+      const keyBatch = keys.slice(i, i + keyBatchSize);
+      await serviceClient
+        .from("outbound_messages")
+        .delete()
+        .in("idempotency_key", keyBatch)
+        .in("status", ["failed", "queued"]);
+    }
+
     // Process in batches of 50
     const batchSize = 50;
     let inserted = 0;
