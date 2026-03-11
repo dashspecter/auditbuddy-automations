@@ -123,8 +123,21 @@ const StaffStaffAudit = () => {
           .eq("is_active", true)
           .eq("template_type", "staff");
 
-        if (templatesData) {
-          setTemplates(templatesData);
+        if (templatesData && templatesData.length > 0) {
+          // Filter by checker assignments (same logic as StaffLocationAudit)
+          const { data: assignments } = await supabase
+            .from("audit_template_checkers")
+            .select("template_id")
+            .eq("user_id", user.id);
+
+          if (assignments && assignments.length > 0) {
+            const assignedIds = assignments.map(a => a.template_id);
+            const filtered = templatesData.filter(t => assignedIds.includes(t.id));
+            setTemplates(filtered);
+          } else {
+            // Backwards compatible: no assignments → show all
+            setTemplates(templatesData);
+          }
         }
       } catch (error) {
         console.error("Error loading data:", error);
