@@ -14,6 +14,8 @@ export default function WhatsAppBroadcast() {
   const { company } = useCompanyContext();
   const { data: templates = [] } = useWaTemplates();
   const approvedTemplates = templates.filter((t: any) => t.approval_status === 'approved');
+  const selectedTemplate = approvedTemplates.find((t: any) => t.id === templateId);
+  const missingContentSid = selectedTemplate && !selectedTemplate.provider_template_id;
 
   const [templateId, setTemplateId] = useState('');
   const [sending, setSending] = useState(false);

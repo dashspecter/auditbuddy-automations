@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useWaTemplates, useCreateWaTemplate, useUpdateWaTemplate, useDeleteWaTemplate } from '@/hooks/useWhatsApp';
 import { useAuth } from '@/contexts/AuthContext';
 
