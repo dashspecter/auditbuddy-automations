@@ -249,6 +249,7 @@ Deno.serve(async (req) => {
       success: true,
       total_recipients: recipients.length,
       inserted,
+      skipped,
       errors,
       scheduled: !!scheduled_for,
     }), { status: 200, headers: corsHeaders });
