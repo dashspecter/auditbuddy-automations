@@ -85,9 +85,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "No eligible recipients found", count: 0 }), { status: 200, headers: corsHeaders });
     }
 
-    // Insert messages in batches
+    // Build messages with idempotency keys
     const today = new Date().toISOString().split("T")[0];
-    const messages = recipients.map((r: any) => ({
+    let messages = recipients.map((r: any) => ({
       company_id,
       employee_id: r.employee_id,
       channel: "whatsapp",
@@ -100,16 +100,43 @@ Deno.serve(async (req) => {
       scheduled_for: scheduled_for || null,
     }));
 
-    // Clear failed/queued messages from previous attempts today so retry works
     const keys = messages.map((m: any) => m.idempotency_key);
+
+    // Find already-sent keys so we skip them
+    const alreadySentKeys = new Set<string>();
     const keyBatchSize = 50;
     for (let i = 0; i < keys.length; i += keyBatchSize) {
       const keyBatch = keys.slice(i, i + keyBatchSize);
+
+      // Query already-sent
+      const { data: sentRows } = await serviceClient
+        .from("outbound_messages")
+        .select("idempotency_key")
+        .in("idempotency_key", keyBatch)
+        .eq("status", "sent");
+      (sentRows || []).forEach((r: any) => alreadySentKeys.add(r.idempotency_key));
+
+      // Clean up failed/queued for retry
       await serviceClient
         .from("outbound_messages")
         .delete()
         .in("idempotency_key", keyBatch)
         .in("status", ["failed", "queued"]);
+    }
+
+    // Filter out already-sent recipients
+    const skipped = messages.filter((m: any) => alreadySentKeys.has(m.idempotency_key)).length;
+    messages = messages.filter((m: any) => !alreadySentKeys.has(m.idempotency_key));
+
+    if (messages.length === 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        total_recipients: recipients.length,
+        inserted: 0,
+        skipped,
+        errors: 0,
+        message: "All recipients already received this broadcast today",
+      }), { status: 200, headers: corsHeaders });
     }
 
     // Process in batches of 50
@@ -222,6 +249,7 @@ Deno.serve(async (req) => {
       success: true,
       total_recipients: recipients.length,
       inserted,
+      skipped,
       errors,
       scheduled: !!scheduled_for,
     }), { status: 200, headers: corsHeaders });
