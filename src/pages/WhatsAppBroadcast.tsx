@@ -82,7 +82,14 @@ export default function WhatsAppBroadcast() {
               </Select>
             </div>
 
-            <Button onClick={() => setConfirmOpen(true)} disabled={!templateId || sending}>
+            {missingContentSid && (
+              <div className="flex items-center gap-2 text-sm text-yellow-700 bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>This template is missing a Twilio Content SID. Broadcasts will fail. Edit the template and add the Provider Template ID (HX...).</span>
+              </div>
+            )}
+
+            <Button onClick={() => setConfirmOpen(true)} disabled={!templateId || sending || missingContentSid}>
               <Send className="h-4 w-4 mr-2" />{sending ? 'Sending...' : 'Send Broadcast'}
             </Button>
           </CardContent>
