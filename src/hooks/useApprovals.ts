@@ -242,54 +242,23 @@ export const useApproveOrReject = () => {
       step_order: number;
       decision: "approved" | "rejected";
       comment?: string;
-      total_steps: number;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
-
-      // Insert decision
-      const { error: decisionError } = await supabase
-        .from("approval_decisions" as any)
-        .insert({
-          request_id: input.request_id,
-          step_order: input.step_order,
-          decided_by: userData.user!.id,
-          decision: input.decision,
-          comment: input.comment || null,
-        } as any);
-      if (decisionError) throw decisionError;
-
-      // Update request status
-      let newStatus: string;
-      let newStep = input.step_order;
-
-      if (input.decision === "rejected") {
-        newStatus = "rejected";
-      } else if (input.step_order >= input.total_steps) {
-        newStatus = "approved";
-      } else {
-        newStatus = "pending";
-        newStep = input.step_order + 1;
-      }
-
-      const { error: updateError } = await supabase
-        .from("approval_requests" as any)
-        .update({
-          status: newStatus,
-          current_step: newStep,
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq("id", input.request_id);
-      if (updateError) throw updateError;
-
-      return { newStatus };
+      const { data, error } = await supabase.rpc("process_approval_decision", {
+        p_request_id: input.request_id,
+        p_step_order: input.step_order,
+        p_decision: input.decision,
+        p_comment: input.comment || null,
+      });
+      if (error) throw error;
+      return data as { new_status: string };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["approval_requests"] });
       queryClient.invalidateQueries({ queryKey: ["approval_decisions"] });
       toast.success(
-        result.newStatus === "approved"
+        result.new_status === "approved"
           ? "Request fully approved"
-          : result.newStatus === "rejected"
+          : result.new_status === "rejected"
           ? "Request rejected"
           : "Step approved, forwarded to next approver"
       );

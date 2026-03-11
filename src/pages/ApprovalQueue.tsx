@@ -21,19 +21,12 @@ export default function ApprovalQueue() {
 
   const handleDecision = async () => {
     if (!selectedRequest || !decision) return;
-    const totalSteps = selectedRequest.workflow?.steps
-      ? (typeof selectedRequest.workflow.steps === 'string'
-          ? JSON.parse(selectedRequest.workflow.steps)
-          : selectedRequest.workflow.steps
-        ).length
-      : 1;
 
     await approveOrReject.mutateAsync({
       request_id: selectedRequest.id,
       step_order: selectedRequest.current_step,
       decision,
       comment: comment || undefined,
-      total_steps: totalSteps,
     });
 
     setSelectedRequest(null);
