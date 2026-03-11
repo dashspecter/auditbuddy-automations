@@ -49,6 +49,10 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Template not found or not approved" }), { status: 400, headers: corsHeaders });
     }
 
+    if (!template.provider_template_id) {
+      return new Response(JSON.stringify({ error: "Template missing Twilio Content SID (provider_template_id). Set it in WhatsApp → Templates settings before sending." }), { status: 400, headers: corsHeaders });
+    }
+
     // Resolve recipients
     let query = supabase
       .from("employee_messaging_preferences")

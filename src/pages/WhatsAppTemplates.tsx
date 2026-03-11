@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useWaTemplates, useCreateWaTemplate, useUpdateWaTemplate, useDeleteWaTemplate } from '@/hooks/useWhatsApp';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -95,7 +95,16 @@ export default function WhatsAppTemplates() {
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No templates yet</TableCell></TableRow>
                 ) : templates.map((t: any) => (
                   <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {t.name}
+                        {!t.provider_template_id && (
+                          <span title="Missing Twilio Content SID — broadcasts will fail">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell><Badge variant="outline">{t.language?.toUpperCase()}</Badge></TableCell>
                     <TableCell>{t.category}</TableCell>
                     <TableCell><Badge className={statusColors[t.approval_status] || ''}>{t.approval_status}</Badge></TableCell>
