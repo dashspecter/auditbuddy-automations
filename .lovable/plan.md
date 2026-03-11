@@ -1,30 +1,35 @@
 
 
-# Why the Setup Checklist Doesn't Show for New Companies
+## Problem
 
-## Root Cause
+Twilio error **63016**: "Failed to send freeform message because you are outside the allowed window. Please use a Message Template."
 
-The dismiss key `dashspect_setup_checklist_dismissed` in localStorage is **not company-scoped**. If you dismissed the checklist on a previous company, it stays dismissed forever — even when you create a brand new company with zero setup done.
+The `task_upcoming` template has no `provider_template_id` (Twilio Content SID). Without it, the edge function sends a freeform `Body` message, which WhatsApp only allows within a 24-hour session window (after the recipient messages you first). Outside that window, you **must** use an approved WhatsApp Message Template via Twilio's Content API.
 
-```typescript
-// Current — global key, one dismiss covers ALL companies
-const DISMISS_KEY = "dashspect_setup_checklist_dismissed";
-localStorage.getItem(DISMISS_KEY) === "true" → hidden
-```
+## Solution
 
-## Fix
+Two changes:
 
-Make the dismiss key company-specific so each company gets its own checklist lifecycle.
+### 1. Prevent sending templates without a Content SID (code fix)
 
-### `src/components/dashboard/CompanySetupChecklist.tsx`
+Add validation in the broadcast edge function to reject sends when `provider_template_id` is missing — returning a clear error instead of silently failing at Twilio.
 
-- Change the dismiss key from a static string to `dashspect_setup_checklist_dismissed_${company.id}`
-- The `dismissed` state initialization and `handleDismiss` both need to use the company-scoped key
-- Add `company?.id` as a dependency so the dismissed state recalculates when switching companies
+**File:** `supabase/functions/whatsapp-broadcast/index.ts`
+- After fetching the template, check if `provider_template_id` is set
+- If not, return an error: `"Template missing Twilio Content SID (provider_template_id). Set it in Templates settings."`
 
-| File | Change |
-|------|--------|
-| `src/components/dashboard/CompanySetupChecklist.tsx` | Scope dismiss key to `company.id` |
+Also add a warning in the broadcast UI (`WhatsAppBroadcast.tsx`) — filter the template dropdown to only show templates that have a `provider_template_id`, or show a warning badge next to templates missing one.
 
-One file, ~5 lines changed. No database changes.
+### 2. Add guidance in the Templates page (UX fix)
+
+**File:** `src/pages/WhatsAppTemplates.tsx`
+- Show a warning indicator on templates where `provider_template_id` is empty
+- Add helper text explaining that the Content SID (`HX...`) is required for sending outside the 24-hour window
+
+## What you need to do
+
+1. Create a Content Template in your Twilio Console (Messaging → Content Editor) that matches your `task_upcoming` template
+2. Copy the Content SID (starts with `HX...`)
+3. Go to **WhatsApp → Templates** in your app, edit `task_upcoming`, and paste the Content SID into the "Provider Template ID" field
+4. Then re-send the broadcast
 
