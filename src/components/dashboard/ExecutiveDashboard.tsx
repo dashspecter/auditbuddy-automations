@@ -15,6 +15,7 @@ import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { subWeeks } from "date-fns";
 import { useLabels } from "@/hooks/useLabels";
 import { useTranslation } from "react-i18next";
