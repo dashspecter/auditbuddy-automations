@@ -42,6 +42,7 @@ const Payroll = () => {
   const employeesLabel = employeesTerm();
   const locationLabel = locationTerm();
   const locationsLabel = locationsTerm();
+  const employeeLabelLower = employeeLabel.toLowerCase();
   const employeesLabelLower = employeesLabel.toLowerCase();
   const locationLabelLower = locationLabel.toLowerCase();
   const allLocationsLabel = `All ${locationsLabel}`;
