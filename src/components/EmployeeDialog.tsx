@@ -636,7 +636,7 @@ export const EmployeeDialog = ({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select primary location" />
+                <SelectValue placeholder={`Select primary ${term.location().toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
