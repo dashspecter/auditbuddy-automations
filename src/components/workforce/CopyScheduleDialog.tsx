@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface CopyScheduleDialogProps {
   open: boolean;
@@ -35,6 +36,20 @@ interface CopyScheduleDialogProps {
 }
 
 export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogProps) => {
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [sourceStartDate, setSourceStartDate] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [sourceEndDate, setSourceEndDate] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));
   const [periodType, setPeriodType] = useState<"week" | "2weeks" | "month" | "custom">("week");
