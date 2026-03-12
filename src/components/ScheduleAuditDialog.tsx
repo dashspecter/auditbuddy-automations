@@ -376,7 +376,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
             {/* Footer buttons */}
             <div className="flex justify-between items-center pt-4 mt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                {fields.length} audit{fields.length !== 1 ? 's' : ''} to schedule
+                {`${fields.length} ${auditLabelLower}${fields.length !== 1 ? 's' : ''} to schedule`}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -387,7 +387,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Scheduling...' : `Schedule ${fields.length} Audit${fields.length !== 1 ? 's' : ''}`}
+                  {isSubmitting ? 'Scheduling...' : `Schedule ${fields.length} ${auditLabel}${fields.length !== 1 ? 's' : ''}`}
                 </Button>
               </div>
             </div>
