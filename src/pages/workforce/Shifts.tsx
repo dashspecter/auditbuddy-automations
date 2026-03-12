@@ -322,7 +322,7 @@ const Shifts = () => {
                             <div className="mt-3 pt-3 border-t">
                               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                                 <UserCheck className="h-4 w-4 text-green-600" />
-                                {t('workforce.shifts.assignedStaff')}:
+                                {`Assigned ${employeesLabel}`}:
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {approved.map((assignment: any) => {
