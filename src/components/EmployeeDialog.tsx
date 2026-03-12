@@ -42,6 +42,7 @@ export const EmployeeDialog = ({
   employee,
   locations,
 }: EmployeeDialogProps) => {
+  const term = useTerminology();
   const [formData, setFormData] = useState({
     full_name: "",
     location_id: "", // Primary location
