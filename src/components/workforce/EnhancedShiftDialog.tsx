@@ -1229,7 +1229,7 @@ export const EnhancedShiftDialog = ({
                 <SelectItem value="open">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    Open — visible to matching-role employees to claim
+                    Open — visible to matching-role {t_.employees().toLowerCase()} to claim
                   </div>
                 </SelectItem>
                 <SelectItem value="published">
