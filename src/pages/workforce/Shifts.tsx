@@ -378,7 +378,7 @@ const Shifts = () => {
                           {needsMore > 0 && (
                             <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
                               <AlertCircle className="h-4 w-4" />
-                              {t('workforce.shifts.needsMore', { count: needsMore, person: needsMore === 1 ? 'person' : 'people' })}
+                              {`Needs ${needsMore} more ${needsMore === 1 ? employeeLabel.toLowerCase() : employeesLabel.toLowerCase()}`}
                             </div>
                           )}
                           
