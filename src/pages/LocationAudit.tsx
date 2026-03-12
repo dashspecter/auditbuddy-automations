@@ -998,7 +998,7 @@ const LocationAudit = () => {
       try { clearDraft(); } catch (e) { console.warn('[audit-submit] clearDraft failed:', e); }
 
       // Immediate success feedback
-      toast.success("Location audit submitted successfully!");
+      toast.success(`${locationLabel} ${auditLabel} submitted successfully!`);
       navigate(`/audit-summary/${auditId}`);
       fireAuditCAPARules(auditId);
     };
