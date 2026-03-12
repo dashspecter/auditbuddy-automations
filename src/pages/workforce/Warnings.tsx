@@ -162,10 +162,10 @@ export default function Warnings() {
                   
                   <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t("common.allLocations", "All Locations")} />
+                      <SelectValue placeholder={t("common.allLocationsLabel", `All ${locationsLabel}`)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="all">{t("common.allLocationsLabel", `All ${locationsLabel}`)}</SelectItem>
                       {locations?.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
