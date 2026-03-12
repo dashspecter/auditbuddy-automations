@@ -470,7 +470,7 @@ const AuditEntryCard = ({
           name={`audits.${index}.template_id`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Audit Template</FormLabel>
+              <FormLabel>{`${auditLabel} Template`}</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -486,7 +486,7 @@ const AuditEntryCard = ({
                           variant={template.template_type === 'staff' ? 'staff' : 'location'}
                           className="text-[10px] px-1.5 py-0"
                         >
-                          {template.template_type === 'staff' ? 'Staff' : 'Location'}
+                          {template.template_type === 'staff' ? employeeLabel : locationLabel}
                         </Badge>
                       </div>
                     </SelectItem>
