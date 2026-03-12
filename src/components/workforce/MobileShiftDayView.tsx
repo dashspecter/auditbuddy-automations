@@ -236,16 +236,16 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
               
               <div className="p-3 space-y-2">
                 {shiftsWithAssignments.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground mb-2">No shifts scheduled</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleAddShift(day)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Shift
-                    </Button>
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground mb-2">{`No ${shiftsLabel.toLowerCase()} scheduled`}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleAddShift(day)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        {`Add ${shiftLabel}`}
+                      </Button>
                   </div>
                 ) : (
                   <>
