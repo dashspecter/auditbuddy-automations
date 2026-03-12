@@ -247,12 +247,12 @@ const StaffAuditNew = () => {
     }
 
     if (!formData.location_id || formData.location_id === "__all__") {
-      toast.error('Please select a location');
+      toast.error(`Please select a ${locationLabelLower}`);
       return;
     }
 
     if (!formData.employee_id) {
-      toast.error('Please select an employee');
+      toast.error(`Please select a ${employeeLabelLower}`);
       return;
     }
 
