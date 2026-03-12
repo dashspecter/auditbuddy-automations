@@ -774,15 +774,15 @@ const Payroll = () => {
         <TabsContent value="locations">
           <Card>
             <CardHeader>
-              <CardTitle>Payroll by Location</CardTitle>
-              <CardDescription>Labor costs breakdown per location</CardDescription>
+              <CardTitle>{`Payroll by ${locationLabel}`}</CardTitle>
+              <CardDescription>{`Labor costs breakdown per ${locationLabelLower}`}</CardDescription>
             </CardHeader>
             <CardContent>
               {locationSummary.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Location</TableHead>
+                      <TableHead>{locationLabel}</TableHead>
                       <TableHead>Shifts</TableHead>
                       <TableHead>Total Hours</TableHead>
                       <TableHead className="text-right">Total Cost</TableHead>
@@ -817,7 +817,7 @@ const Payroll = () => {
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No location data available.</p>
+                  <p>{`No ${locationLabelLower} data available.`}</p>
                 </div>
               )}
             </CardContent>
