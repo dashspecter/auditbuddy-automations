@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface ContractTemplate {
   id: string;

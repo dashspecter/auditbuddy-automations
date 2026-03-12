@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DepartmentManagementDialog } from "./DepartmentManagementDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface RoleManagementDialogProps {
   open: boolean;
