@@ -88,6 +88,9 @@ const TestCreation = () => {
   const { data: company } = useCompany();
   const navigate = useNavigate();
   const { data: locations } = useLocations();
+  const { location, locations: locationsTerm } = useTerminology();
+  const locationLabel = location();
+  const locationsLabel = locationsTerm();
   const [documents, setDocuments] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
   const [formData, setFormData] = useState(getInitialFormData);
