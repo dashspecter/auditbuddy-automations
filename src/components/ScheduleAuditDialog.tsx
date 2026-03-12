@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useTerminology } from '@/hooks/useTerminology';
 
 const DRAFT_KEY = 'schedule-audit-dialog-draft';
 
