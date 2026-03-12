@@ -234,14 +234,14 @@ const Shifts = () => {
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-                <p className="text-muted-foreground">{t('workforce.shifts.loadingShifts')}</p>
+                <p className="text-muted-foreground">{`Loading ${shiftsLabel.toLowerCase()}...`}</p>
               </div>
             ) : shifts.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
-                <p>{t('workforce.shifts.noShifts')}</p>
+                <p>{`No ${shiftsLabel.toLowerCase()} scheduled for this date.`}</p>
                 <Button className="mt-4" variant="outline" onClick={() => setShiftDialogOpen(true)}>
                   <CalendarPlus className="mr-2 h-4 w-4" />
-                  {t('workforce.shifts.createShift')}
+                  {`Create ${shiftLabel}`}
                 </Button>
               </div>
             ) : (
