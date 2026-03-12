@@ -107,7 +107,7 @@ export default function PayrollBatches() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('workforce.payrollBatches.title')}</h1>
-          <p className="text-muted-foreground">{t('workforce.payrollBatches.subtitle')}</p>
+          <p className="text-muted-foreground">{`Manage payroll processing and ${employeesLabelLower} payments`}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
