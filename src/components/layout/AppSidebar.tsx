@@ -15,11 +15,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useCompany } from "@/hooks/useCompany";
 import { usePermissions, CompanyPermission } from "@/hooks/useCompanyPermissions";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AIGuideChat } from "@/components/AIGuideChat";
 import { useTranslation } from "react-i18next";
+import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
+import { useLabels } from "@/hooks/useLabels";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
