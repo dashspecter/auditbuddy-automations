@@ -432,9 +432,9 @@ export default function PayrollBatches() {
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
                                 <Building2 className="h-3 w-3" />
-                                <span>Other Loc.</span>
+                                <span>{`Other ${locationLabel}`}</span>
                               </TooltipTrigger>
-                              <TooltipContent>Shifts worked at a different location</TooltipContent>
+                              <TooltipContent>{`Shifts worked at a different ${locationLabelLower}`}</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">{t('workforce.payrollBatches.regular')}</TableHead>
