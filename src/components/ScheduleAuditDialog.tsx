@@ -425,6 +425,14 @@ const AuditEntryCard = ({
   const templateId = useWatch({ control: form.control, name: `audits.${index}.template_id` });
   const selectedTemplateType = templateId ? templateMap[templateId]?.template_type : null;
   const isStaffTemplate = selectedTemplateType === 'staff';
+  const { employee, employees, location, audit } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
 
   // Clear employee_id when switching to a location template
   useEffect(() => {
