@@ -258,7 +258,7 @@ export const StaffTable = () => {
           <div className="grid grid-cols-3 gap-2">
             <Select value={locationFilter || "all"} onValueChange={handleFilterChange(setLocationFilter)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('workforce.components.staffTable.location')} />
+                <SelectValue placeholder={term.location()} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{`All ${term.locations()}`}</SelectItem>
