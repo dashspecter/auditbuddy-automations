@@ -23,16 +23,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
 import { isCompletedAudit, isDraftAudit, isDiscardedAudit, getCompletionDate } from "@/lib/auditHelpers";
-
-const auditsSubItems = [
-  { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
-  { title: "Employee Audits", url: "/staff-audits/all", icon: Users, description: "Staff audits" },
-  { title: "Mystery Shopper", url: "/audits/mystery-shopper", icon: UserSearch, description: "Mystery visits" },
-  { title: "Templates", url: "/audits/templates", icon: Library, description: "Audit templates" },
-  { title: "Calendar", url: "/audits-calendar", icon: Calendar, description: "Audit calendar" },
-  { title: "Schedules", url: "/recurring-schedules", icon: CalendarClock, description: "Recurring audits" },
-  { title: "Photo Gallery", url: "/photos", icon: Image, description: "All photos" },
-];
+import { useTerminology } from "@/hooks/useTerminology";
+import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 
 const Audits = () => {
   const navigate = useNavigate();
@@ -45,6 +37,65 @@ const Audits = () => {
   const [showDrafts, setShowDrafts] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { audit, audits: auditsTerm, employee, location } = useTerminology();
+  const { data: industry } = useCompanyIndustry();
+
+  const auditLabel = audit();
+  const auditsLabel = auditsTerm();
+  const employeeLabel = employee();
+  const locationLabel = location();
+  const auditLabelLower = auditLabel.toLowerCase();
+  const auditsLabelLower = auditsLabel.toLowerCase();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const isGovernment = industry?.slug === "government";
+
+  const auditsSubItems = useMemo(() => {
+    const items = [
+      {
+        title: `${locationLabel} ${auditLabel}`,
+        url: "/audits",
+        icon: MapPin,
+        description: `${locationLabel} ${auditsLabelLower}`,
+        isCurrent: true,
+      },
+      {
+        title: `${employeeLabel} ${auditLabel}`,
+        url: "/staff-audits/all",
+        icon: Users,
+        description: `${employeeLabel} ${auditsLabelLower}`,
+      },
+      {
+        title: "Mystery Shopper",
+        url: "/audits/mystery-shopper",
+        icon: UserSearch,
+        description: "Mystery visits",
+      },
+      {
+        title: "Templates",
+        url: "/audits/templates",
+        icon: Library,
+        description: `${auditLabel} templates`,
+      },
+      {
+        title: "Calendar",
+        url: "/audits-calendar",
+        icon: Calendar,
+        description: `${auditLabel} calendar`,
+      },
+      {
+        title: "Schedules",
+        url: "/recurring-schedules",
+        icon: CalendarClock,
+        description: `Recurring ${auditsLabelLower}`,
+      },
+      { title: "Photo Gallery", url: "/photos", icon: Image, description: "All photos" },
+    ];
+
+    return isGovernment
+      ? items.filter((item) => item.url !== "/audits/mystery-shopper")
+      : items;
+  }, [auditLabel, auditsLabelLower, employeeLabel, isGovernment, locationLabel]);
 
   // Fetch template fields for fallback score calculation
   const templateIds = useMemo(() => {
@@ -178,7 +229,7 @@ const Audits = () => {
     await queryClient.invalidateQueries({ queryKey: ['audit_templates'] });
     toast({
       title: "Refreshed",
-      description: "Audits data has been updated.",
+      description: `${auditsLabel} data has been updated.`,
     });
   };
 
@@ -193,8 +244,10 @@ const Audits = () => {
         <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Audits</h1>
-                <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
+                <h1 className="text-3xl font-bold text-foreground">{auditsLabel}</h1>
+                <p className="text-muted-foreground mt-1">
+                  {`View and manage all ${locationLabelLower} and ${employeeLabelLower} ${auditsLabelLower}`}
+                </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 {isMobile ? (
@@ -221,13 +274,13 @@ const Audits = () => {
                   </DropdownMenu>
                 )}
                 <Button
-                  variant="default" 
-                  className="gap-2 w-full sm:w-auto" 
+                  variant="default"
+                  className="gap-2 w-full sm:w-auto"
                   data-tour="new-audit-button"
                   onClick={() => navigate('/location-audit')}
                 >
                   <Plus className="h-4 w-4" />
-                  New Audit
+                  {`New ${auditLabel}`}
                 </Button>
               </div>
             </div>
@@ -256,7 +309,7 @@ const Audits = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search by location or checker..." 
+                  placeholder={`Search by ${locationLabelLower} or checker...`}
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -268,8 +321,8 @@ const Audits = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="location">Location</SelectItem>
-                  <SelectItem value="staff">Staff Performance</SelectItem>
+                  <SelectItem value="location">{locationLabel}</SelectItem>
+                  <SelectItem value="staff">{`${employeeLabel} Performance`}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -301,13 +354,13 @@ const Audits = () => {
 
             {isLoading ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading audits...</p>
+                <p className="text-muted-foreground">{`Loading ${auditsLabelLower}...`}</p>
               </div>
             ) : filteredAudits.length === 0 ? (
               <EmptyState
                 icon={FileEdit}
-                title={audits?.length === 0 ? "No Audits Yet" : "No Matching Audits"}
-                description={audits?.length === 0 ? "Create your first audit using the button above." : "No audits match your current filters."}
+                title={audits?.length === 0 ? `No ${auditsLabel} Yet` : `No Matching ${auditsLabel}`}
+                description={audits?.length === 0 ? `Create your first ${auditLabelLower} using the button above.` : `No ${auditsLabelLower} match your current filters.`}
               />
             ) : (
               <div className="space-y-3">
@@ -354,7 +407,7 @@ const Audits = () => {
                             variant={getTemplateType(audit.template_id) === 'staff' ? 'staff' : 'location'} 
                             className="text-xs"
                           >
-                            {getTemplateType(audit.template_id) === 'staff' ? 'Staff Audit' : 'Location Audit'}
+                            {getTemplateType(audit.template_id) === 'staff' ? `${employeeLabel} ${auditLabel}` : `${locationLabel} ${auditLabel}`}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">

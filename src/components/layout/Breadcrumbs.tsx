@@ -29,11 +29,21 @@ const staticRouteNameMap: Record<string, string> = {
   reports: "Reports",
   companies: "Companies",
   platform: "Platform Admin",
+  mystery: "Mystery",
+  shopper: "Shopper",
+  all: "All",
 };
 
 const pathOverrideMap: Record<string, string> = {
   "/admin": "/admin/platform",
 };
+
+const toTitleCaseSegment = (segment: string) =>
+  segment
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 export const Breadcrumbs = () => {
   const location = useLocation();
@@ -53,6 +63,11 @@ export const Breadcrumbs = () => {
     equipment: term.equipment(),
     locations: term.locations(),
     "staff-audits": `${term.employee()} ${term.audits()}`,
+    "audits-calendar": `${term.audits()} Calendar`,
+    "recurring-schedules": `Recurring ${term.audits()}`,
+    "recurring-audit-schedules": `Recurring ${term.audits()}`,
+    "badge-settings": "Badge Settings",
+    "mystery-shopper": "Mystery Shopper",
   };
 
   const routeNameMap = { ...staticRouteNameMap, ...dynamicRouteNames };
@@ -67,7 +82,7 @@ export const Breadcrumbs = () => {
       const rawPath = `/${pathSegments.slice(0, originalIndex + 1).join("/")}`;
       const path = pathOverrideMap[rawPath] || rawPath;
       const isLast = index === filteredSegments.length - 1;
-      const name = routeNameMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+      const name = routeNameMap[segment] || toTitleCaseSegment(segment);
 
       return {
         name,
@@ -86,7 +101,7 @@ export const Breadcrumbs = () => {
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        
+
         {breadcrumbItems.map((item) => (
           <BreadcrumbItem key={item.path}>
             <BreadcrumbSeparator>

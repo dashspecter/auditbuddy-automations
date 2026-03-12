@@ -37,7 +37,7 @@ export const RULE_TYPES = [
   { value: "attendance_min", label: "Min Attendance Score" },
   { value: "punctuality_min", label: "Min Punctuality Score" },
   { value: "task_min", label: "Min Task Score" },
-  { value: "rank_max", label: "Max Rank at Location" },
+  { value: "rank_max", label: "Max Rank by Unit" },
   { value: "score_improvement", label: "Score Improvement vs Last Month" },
   { value: "streak_min", label: "Score Streak (consecutive months)" },
   { value: "effective_score_min", label: "Min Effective Score" },
@@ -49,7 +49,7 @@ const BADGE_DEFINITIONS: PerformanceBadge[] = [
   { key: "perfect_attendance", name: "Perfect Attendance", description: "100% attendance score this month", icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
   { key: "always_on_time",     name: "Always On Time",     description: "100% punctuality score this month", icon: Clock,        color: "text-blue-600 dark:text-blue-400" },
   { key: "task_champion",      name: "Task Champion",      description: "100% task completion score this month", icon: ListTodo,     color: "text-purple-600 dark:text-purple-400" },
-  { key: "top_3",              name: "Top 3 Finish",       description: "Ranked in top 3 at your location", icon: Trophy,       color: "text-yellow-600 dark:text-yellow-400" },
+  { key: "top_3",              name: "Top 3 Finish",       description: "Ranked in top 3 in your unit", icon: Trophy,       color: "text-yellow-600 dark:text-yellow-400" },
   { key: "rising_star",        name: "Rising Star",        description: "Score improved 10+ points from last month", icon: TrendingUp,   color: "text-emerald-600 dark:text-emerald-400" },
   { key: "consistency_streak", name: "Consistency Streak",  description: "Score above 80 for 3+ consecutive months", icon: Flame,        color: "text-orange-600 dark:text-orange-400" },
 ];
