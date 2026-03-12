@@ -20,16 +20,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLocations } from "@/hooks/useLocations";
 import { useDepartments } from "@/hooks/useDepartments";
-import { 
-  useAttendanceKiosks, 
-  useCreateKiosk, 
-  useDeleteKiosk 
+import { useTerminology } from "@/hooks/useTerminology";
+import {
+  useAttendanceKiosks,
+  useCreateKiosk,
+  useDeleteKiosk
 } from "@/hooks/useAttendanceKiosks";
-import { 
-  Plus, 
-  Trash2, 
-  ExternalLink, 
-  Tablet, 
+import {
+  Plus,
+  Trash2,
+  ExternalLink,
+  Tablet,
   MapPin,
   Copy,
   Check,
@@ -51,7 +52,22 @@ export const KioskManagementDialog = ({
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [deviceName, setDeviceName] = useState("Attendance Kiosk");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const locationsLabelLower = locationsLabel.toLowerCase();
+
   const { data: locations = [] } = useLocations();
   const { data: departments = [] } = useDepartments();
   const { data: kiosks = [], isLoading } = useAttendanceKiosks();

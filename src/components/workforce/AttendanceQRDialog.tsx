@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Printer } from "lucide-react";
 
@@ -30,6 +31,11 @@ export const AttendanceQRDialog = ({
 }: AttendanceQRDialogProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [qrType, setQrType] = useState<"checkin" | "checkout">("checkin");
+  const { location: locationTerm, employees: employeesTerm } = useTerminology();
+  const locationLabel = locationTerm();
+  const employeesLabel = employeesTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
   const { data: locations = [] } = useLocations();
 
   const qrData = selectedLocation

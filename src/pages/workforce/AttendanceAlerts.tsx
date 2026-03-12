@@ -14,6 +14,7 @@ import { AlertTriangle, Clock, CheckCircle2, Eye, Bot, RefreshCw, UserX, Zap } f
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const getAlertTypeLabels = (t: any): Record<string, { label: string; icon: any; color: string }> => ({
   late_pattern: { label: t('workforce.attendanceAlerts.alertTypes.latePattern'), icon: Clock, color: "text-yellow-500" },
@@ -32,6 +33,11 @@ const getStatusOptions = (t: any) => [
 
 export default function AttendanceAlerts() {
   const { t } = useTranslation();
+  const { employee: employeeTerm, location: locationTerm, locations: locationsTerm } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const locationLabelLower = locationLabel.toLowerCase();
   const [selectedStatus, setSelectedStatus] = useState<string>("open");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>(format(subMonths(new Date(), 1), "yyyy-MM-dd"));
