@@ -658,7 +658,7 @@ export const EnhancedShiftDialog = ({
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('workforce.components.enhancedShiftDialog.selectLocation')} />
+                  <SelectValue placeholder={`Select ${t_.location().toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location) => (
