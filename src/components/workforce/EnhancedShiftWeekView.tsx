@@ -581,13 +581,13 @@ export const EnhancedShiftWeekView = () => {
           <div className="h-6 w-px bg-border" />
           
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "employee" | "location")}>
-            <ToggleGroupItem value="employee" aria-label={t('workforce.shifts.employeeView')} className="gap-1">
+            <ToggleGroupItem value="employee" aria-label={`${employeeLabel} view`} className="gap-1">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('workforce.shifts.employees')}</span>
+              <span className="hidden sm:inline">{employeesLabel}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="location" aria-label={t('workforce.shifts.locationView')} className="gap-1">
+            <ToggleGroupItem value="location" aria-label={`${locationLabel} view`} className="gap-1">
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('workforce.shifts.locations')}</span>
+              <span className="hidden sm:inline">{locationsLabel}</span>
             </ToggleGroupItem>
           </ToggleGroup>
 
