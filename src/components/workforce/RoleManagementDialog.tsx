@@ -262,7 +262,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this role? This action cannot be undone.
-              Employees with this role will need to be reassigned.
+              {term.employees()} with this role will need to be reassigned.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

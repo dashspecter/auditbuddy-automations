@@ -183,7 +183,7 @@ export function ContractTemplateDialog({
         <DialogHeader>
           <DialogTitle>Contract Templates</DialogTitle>
           <DialogDescription>
-            Manage your contract templates for employee contracts
+            {`Manage your contract templates for ${term.employee().toLowerCase()} contracts`}
           </DialogDescription>
         </DialogHeader>
 
