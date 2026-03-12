@@ -17,12 +17,25 @@ import { useCompany } from "@/hooks/useCompany";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface MobileShiftDayViewProps {
   onShiftClick?: (shift: any) => void;
 }
 
 export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) => {
+  const {
+    employee: employeeTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
