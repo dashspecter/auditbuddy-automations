@@ -777,7 +777,7 @@ export function AppSidebar() {
                                     className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                                     activeClassName="text-primary font-medium bg-primary/10"
                                   >
-                                    {t(nestedItem.titleKey)}
+                                    {resolveLabel(nestedItem)}
                                   </NavLink>
                                 ))}
                               </CollapsibleContent>
