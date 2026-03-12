@@ -36,6 +36,19 @@ export default function PayrollBatches() {
   const [selectedBatch, setSelectedBatch] = useState<PayrollBatch | null>(null);
   const [newPeriod, setNewPeriod] = useState({ start: "", end: "" });
   const [selectedLocationId, setSelectedLocationId] = useState("__all__");
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const locationsLabelLower = locationsLabel.toLowerCase();
 
   const { data: batches, isLoading, refetch } = usePayrollBatches();
   const updateBatch = useUpdatePayrollBatch();
