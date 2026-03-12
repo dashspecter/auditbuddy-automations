@@ -537,8 +537,8 @@ export const EnhancedShiftWeekView = () => {
         <div className="rounded-lg border px-4 py-2 bg-muted/50 text-sm text-muted-foreground flex items-center gap-2">
           <Info className="h-4 w-4" />
           {aggregatePeriodState === 'mixed' 
-            ? 'Schedule periods have different states across locations. Select a specific location to manage.'
-            : `All locations are in ${aggregatePeriodState} state.`
+            ? `Schedule periods have different states across ${locationsLabel.toLowerCase()}. Select a specific ${locationLabel.toLowerCase()} to manage.`
+            : `All ${locationsLabel.toLowerCase()} are in ${aggregatePeriodState} state.`
           }
         </div>
       )}
