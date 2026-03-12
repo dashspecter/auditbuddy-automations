@@ -531,7 +531,7 @@ const AuditEntryCard = ({
             render={({ field }) => (
               <FormItem className="md:col-span-2">
                 <FormLabel>
-                  Employee to Audit <span className="text-destructive">*</span>
+                  {`${employeeLabel} to ${auditLabel}`} <span className="text-destructive">*</span>
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
@@ -540,13 +540,13 @@ const AuditEntryCard = ({
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={locationId ? "Select employee" : "Select a location first"} />
+                      <SelectValue placeholder={locationId ? `Select ${employeeLabelLower}` : `Select a ${locationLabelLower} first`} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {activeEmployees.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground">
-                        No active employees at this location
+                        {`No active ${employeesLabelLower} at this ${locationLabelLower}`}
                       </div>
                     ) : (
                       activeEmployees.map((emp) => (
