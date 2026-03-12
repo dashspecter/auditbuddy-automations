@@ -277,7 +277,7 @@ const Shifts = () => {
                               <div className="font-semibold text-base">{shift.role}</div>
                               {shift.is_open_shift && (
                                 <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                                  {t('workforce.shifts.openShift')}
+                                  {`Open ${shiftLabel}`}
                                 </Badge>
                               )}
                               <Badge 
