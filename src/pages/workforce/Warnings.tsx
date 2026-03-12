@@ -17,6 +17,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useWarnings, useDeleteStaffEvent } from "@/hooks/useStaffEvents";
 import { WarningDialog } from "@/components/workforce/WarningDialog";
 import { WarningDetailDialog } from "@/components/workforce/WarningDetailDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Warnings() {
   const { t } = useTranslation();
+  const { employees: employeesTerm, locations: locationsTerm } = useTerminology();
+  const employeesLabel = employeesTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationsLabel = locationsTerm();
   const { company } = useCompanyContext();
   const { data: locations } = useLocations();
   const { data: employees } = useEmployees();
@@ -116,7 +121,7 @@ export default function Warnings() {
               {t("warnings.title", "Warnings & Notes")}
             </h1>
             <p className="text-muted-foreground">
-              {t("warnings.description", "Track employee warnings and coaching notes")}
+              {t("warnings.descriptionWithTerminology", `Track ${employeesLabelLower} warnings and coaching notes`)}
             </p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)}>
@@ -157,10 +162,10 @@ export default function Warnings() {
                   
                   <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t("common.allLocations", "All Locations")} />
+                      <SelectValue placeholder={t("common.allLocationsLabel", `All ${locationsLabel}`)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="all">{t("common.allLocationsLabel", `All ${locationsLabel}`)}</SelectItem>
                       {locations?.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
@@ -169,10 +174,10 @@ export default function Warnings() {
                   
                   <Select value={filterEmployeeId || "all"} onValueChange={(v) => setFilterEmployeeId(v === "all" ? "" : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t("warnings.allEmployees", "All Employees")} />
+                      <SelectValue placeholder={t("warnings.allEmployeesLabel", `All ${employeesLabel}`)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Employees</SelectItem>
+                      <SelectItem value="all">{t("warnings.allEmployeesLabel", `All ${employeesLabel}`)}</SelectItem>
                       {employees?.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
                       ))}

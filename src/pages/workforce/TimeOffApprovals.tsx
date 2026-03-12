@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface TimeOffRequest {
   id: string;
@@ -37,6 +38,8 @@ interface TimeOffRequest {
 
 const TimeOffApprovals = () => {
   const { t } = useTranslation();
+  const { employees } = useTerminology();
+  const employeesLabelLower = employees().toLowerCase();
   const { user } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,7 +172,9 @@ const TimeOffApprovals = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">{t('workforce.timeOff.title')}</h2>
-          <p className="text-muted-foreground text-sm sm:text-base">{t('workforce.timeOff.subtitle')}</p>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {t('workforce.timeOff.subtitleWithTerminology', `Review and manage ${employeesLabelLower} time off requests`)}
+          </p>
         </div>
       </div>
 
@@ -192,7 +197,7 @@ const TimeOffApprovals = () => {
           {requests.length === 0 ? (
             <Card className="p-8 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t('workforce.timeOff.noPending')}</p>
+              <p className="text-muted-foreground">{t('workforce.timeOff.noPendingWithTerminology', `No pending ${employeesLabelLower} time off requests`)}</p>
             </Card>
           ) : (
             requests.map((request) => (

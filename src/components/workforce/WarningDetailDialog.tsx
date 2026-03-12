@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface WarningDetailDialogProps {
   open: boolean;
@@ -32,6 +33,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function WarningDetailDialog({ open, onOpenChange, event }: WarningDetailDialogProps) {
   const { t } = useTranslation();
+  const { location } = useTerminology();
+  const locationLabel = location();
 
   if (!event) return null;
 
@@ -102,8 +105,8 @@ export function WarningDetailDialog({ open, onOpenChange, event }: WarningDetail
             
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{t("common.location", "Location")}:</span>
-              <span>{event.employee?.locations?.name || "Global"}</span>
+              <span className="text-muted-foreground">{t("common.locationLabel", locationLabel)}:</span>
+              <span>{event.employee?.locations?.name || t("warnings.globalLocation", "Global")}</span>
             </div>
             
             <div className="flex items-center gap-2">

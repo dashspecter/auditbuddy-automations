@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateStaffEvent, useUpdateStaffEvent, WarningMetadata } from "@/hooks/useStaffEvents";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface WarningDialogProps {
   open: boolean;
@@ -54,6 +55,10 @@ export function WarningDialog({
   prefillTitle,
 }: WarningDialogProps) {
   const { t } = useTranslation();
+  const { employee, location } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabel = location();
   const { user } = useAuth();
   const { company } = useCompanyContext();
   const createEvent = useCreateStaffEvent();
@@ -158,18 +163,18 @@ export function WarningDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isWarning
-              ? t("warnings.warningDescription", "Issue a formal warning to an employee")
-              : t("warnings.noteDescription", "Record a coaching note for an employee")}
+              ? t("warnings.warningDescriptionWithTerminology", `Issue a formal warning to a ${employeeLabelLower}`)
+              : t("warnings.noteDescriptionWithTerminology", `Record a coaching note for a ${employeeLabelLower}`)}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Employee */}
           <div className="space-y-2">
-            <Label htmlFor="employee">{t("warnings.employee", "Employee")} *</Label>
+            <Label htmlFor="employee">{t("warnings.employeeLabel", employeeLabel)} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder={t("warnings.selectEmployee", "Select employee")} />
+                <SelectValue placeholder={t("warnings.selectEmployeeLabel", `Select ${employeeLabelLower}`)} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((emp) => (
@@ -250,13 +255,13 @@ export function WarningDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">{t("common.location", "Location")}</Label>
+              <Label htmlFor="location">{t("common.locationLabel", locationLabel)}</Label>
               <Select value={locationId || "global"} onValueChange={(v) => setLocationId(v === "global" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("warnings.globalLocation", "Global")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="global">Global</SelectItem>
+                  <SelectItem value="global">{t("warnings.globalLocation", "Global")}</SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
