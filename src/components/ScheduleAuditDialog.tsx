@@ -448,7 +448,7 @@ const AuditEntryCard = ({
     <Card className="p-4 relative">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-muted-foreground">
-          Audit #{index + 1}
+          {`${auditLabel} #${index + 1}`}
         </span>
         {canRemove && (
           <Button
