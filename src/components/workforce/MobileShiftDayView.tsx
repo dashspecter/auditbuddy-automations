@@ -169,11 +169,11 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
             <SelectTrigger className="bg-white/10 border-white/20 text-primary-foreground">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <SelectValue placeholder="Select location" />
+                <SelectValue placeholder={`Select ${locationLabel.toLowerCase()}`} />
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
               {locations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>
                   {loc.name}
