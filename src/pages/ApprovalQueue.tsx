@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApprovalRequests, useApproveOrReject, ApprovalRequest } from "@/hooks/useApprovals";
-import { CheckCircle2, XCircle, Clock, Loader2, FileText, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Loader2, FileText, ArrowRight, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ApprovalQueue() {
