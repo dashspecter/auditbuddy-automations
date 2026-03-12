@@ -282,7 +282,7 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-sm truncate">
-                                  {employee?.full_name || 'Unassigned'}
+                                  {employee?.full_name || `Unassigned ${employeeLabel.toLowerCase()}`}
                                 </span>
                                 {employee && isAbsent(employee.id, shift.id) && (
                                   <Badge variant="destructive" className="text-xs">Absent</Badge>
