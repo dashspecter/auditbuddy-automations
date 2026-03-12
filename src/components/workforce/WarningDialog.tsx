@@ -55,6 +55,10 @@ export function WarningDialog({
   prefillTitle,
 }: WarningDialogProps) {
   const { t } = useTranslation();
+  const { employee, location } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabel = location();
   const { user } = useAuth();
   const { company } = useCompanyContext();
   const createEvent = useCreateStaffEvent();

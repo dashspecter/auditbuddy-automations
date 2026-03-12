@@ -33,6 +33,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function WarningDetailDialog({ open, onOpenChange, event }: WarningDetailDialogProps) {
   const { t } = useTranslation();
+  const { location } = useTerminology();
+  const locationLabel = location();
 
   if (!event) return null;
 

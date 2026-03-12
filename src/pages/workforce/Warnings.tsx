@@ -48,6 +48,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Warnings() {
   const { t } = useTranslation();
+  const { employee, employees, locations } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabel = employees();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationsLabel = locations();
   const { company } = useCompanyContext();
   const { data: locations } = useLocations();
   const { data: employees } = useEmployees();

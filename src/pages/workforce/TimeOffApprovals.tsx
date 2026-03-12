@@ -38,6 +38,8 @@ interface TimeOffRequest {
 
 const TimeOffApprovals = () => {
   const { t } = useTranslation();
+  const { employees } = useTerminology();
+  const employeesLabelLower = employees().toLowerCase();
   const { user } = useAuth();
   const [requests, setRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
