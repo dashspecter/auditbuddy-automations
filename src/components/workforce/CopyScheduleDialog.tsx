@@ -110,7 +110,7 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             Copy Schedule Forward
           </DialogTitle>
           <DialogDescription>
-            Copy shifts from a source period to future dates. Perfect for repeating weekly patterns.
+            {`Copy ${shiftsLabel.toLowerCase()} from a source period to future dates. Perfect for repeating weekly patterns.`}
           </DialogDescription>
         </DialogHeader>
 
