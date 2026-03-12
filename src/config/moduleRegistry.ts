@@ -39,6 +39,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Users,
     color: 'text-green-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'equipment_management',
