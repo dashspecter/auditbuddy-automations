@@ -247,9 +247,9 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
           {/* Include Assignments */}
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
-              <Label>Include Staff Assignments</Label>
+              <Label>{`Include ${employeesLabel} Assignments`}</Label>
               <p className="text-xs text-muted-foreground">
-                Copy approved assignments to new shifts
+                {`Copy approved ${employeesLabel.toLowerCase()} assignments to new ${shiftsLabel.toLowerCase()}`}
               </p>
             </div>
             <Switch checked={includeAssignments} onCheckedChange={setIncludeAssignments} />
