@@ -974,7 +974,7 @@ export const EnhancedShiftDialog = ({
               </div>
             </div>
             <Input
-              placeholder={t('workforce.components.enhancedShiftDialog.searchEmployees', 'Search employees...')}
+              placeholder={`Search ${t_.employees().toLowerCase()}...`}
               value={employeeSearch}
               onChange={(e) => setEmployeeSearch(e.target.value)}
               className="h-8 text-sm"
