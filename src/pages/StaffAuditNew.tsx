@@ -46,9 +46,9 @@ const StaffAuditNew = () => {
   const scheduledId = searchParams.get('scheduled');
   const { user } = useAuth();
   const createStaffAudit = useCreateStaffAudit();
-  const { employee, employees, location, audit } = useTerminology();
+  const { employee, employees: employeesTerm, location, audit } = useTerminology();
   const employeeLabel = employee();
-  const employeesLabel = employees();
+  const employeesLabel = employeesTerm();
   const locationLabel = location();
   const auditLabel = audit();
   const employeeLabelLower = employeeLabel.toLowerCase();
