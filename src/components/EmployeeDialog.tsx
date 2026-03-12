@@ -875,7 +875,7 @@ export const EmployeeDialog = ({
               Cancel
             </Button>
             <Button type="submit" disabled={createEmployee.isPending || updateEmployee.isPending}>
-              {employee ? "Update" : "Add"} Employee
+              {employee ? "Update" : "Add"} {term.employee()}
             </Button>
           </div>
         </form>
