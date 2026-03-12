@@ -39,11 +39,6 @@ export default function StaffAudits() {
   const employeeLabelLower = employeeLabel.toLowerCase();
   const auditsLabelLower = auditsLabel.toLowerCase();
 
-  // Open form automatically if review=new query param is present
-  useEffect(() => {
-    // retained behavior for deep-linking into review mode
-  }, [searchParams]);
-
   const [formData, setFormData] = useState({
     location_id: "",
     employee_id: "",
