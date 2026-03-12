@@ -71,6 +71,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: ClipboardList,
     color: 'text-cyan-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'wastage',
