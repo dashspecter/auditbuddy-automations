@@ -764,7 +764,7 @@ export const EnhancedShiftWeekView = () => {
       <div className="border rounded-lg overflow-hidden bg-card max-h-[calc(100vh-280px)] overflow-y-auto">
         <div className="grid grid-cols-8 border-b sticky top-0 z-10 bg-card">
           <div className="p-3 border-r bg-muted/50 font-medium sticky left-0">
-            {viewMode === "employee" ? t('workforce.shifts.employee') : t('workforce.shifts.locationHeader')}
+            {viewMode === "employee" ? employeeLabel : locationLabel}
           </div>
           {weekDays.map((day) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
