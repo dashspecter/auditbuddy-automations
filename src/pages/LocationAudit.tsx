@@ -1146,7 +1146,7 @@ const LocationAudit = () => {
                   if (isScheduledAudit) {
                     return (
                       <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">
-                        🔒 Location is locked for scheduled audits
+                        {`🔒 ${locationLabel} is locked for scheduled ${auditsLabel.toLowerCase()}`}
                       </p>
                     );
                   }
