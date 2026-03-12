@@ -318,7 +318,7 @@ const Payroll = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-8"></TableHead>
-                          <TableHead>{t('workforce.attendance.employee')}</TableHead>
+                          <TableHead>{employeeLabel}</TableHead>
                           <TableHead>{t('workforce.attendance.role')}</TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
