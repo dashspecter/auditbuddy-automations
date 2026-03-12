@@ -38,6 +38,19 @@ const Attendance = () => {
 
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const allLocationsLabel = `All ${locationsLabel}`;
+  const allEmployeesLabel = `All ${employeesLabel}`;
 
   const today = new Date().toISOString().split('T')[0];
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
