@@ -335,16 +335,16 @@ export const EmployeeDialog = ({
           
           if (error) {
             console.error("Failed to create user account:", error);
-            toast.error("Employee created but failed to create login account");
+            toast.error(`${term.employee()} created but failed to create login account`);
           } else if (data?.error) {
             console.error("Failed to create user account:", data.error);
-            toast.error(`Employee created but failed to create login account: ${data.error}`);
+            toast.error(`${term.employee()} created but failed to create login account: ${data.error}`);
           } else {
-            toast.success("Employee created with login credentials!");
+            toast.success(`${term.employee()} created with login credentials!`);
           }
         } catch (err) {
           console.error("Error creating user:", err);
-          toast.error("Employee created but failed to create login account");
+          toast.error(`${term.employee()} created but failed to create login account`);
         }
       }
     }
