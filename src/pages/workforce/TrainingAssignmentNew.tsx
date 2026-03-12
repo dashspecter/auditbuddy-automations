@@ -124,14 +124,14 @@ const TrainingAssignmentNew = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>{t('training.trainee', 'Trainee')} *</Label>
+                <Label>{t('training.traineeLabel', employeeLabel)} *</Label>
                 <Select
                   value={formData.trainee_employee_id}
                   onValueChange={(v) => setFormData({ ...formData, trainee_employee_id: v })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t('training.selectTrainee', 'Select trainee')} />
+                    <SelectValue placeholder={t('training.selectTraineeLabel', `Select ${employeeLabelLower}`)} />
                   </SelectTrigger>
                   <SelectContent>
                     {activeEmployees.map(emp => (

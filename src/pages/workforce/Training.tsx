@@ -155,7 +155,7 @@ const Training = () => {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Kitchen Level 1"
+                    placeholder={t('training.moduleNameExample', 'e.g., Orientation Level 1')}
                     required
                   />
                 </div>
