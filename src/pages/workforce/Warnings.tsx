@@ -174,10 +174,10 @@ export default function Warnings() {
                   
                   <Select value={filterEmployeeId || "all"} onValueChange={(v) => setFilterEmployeeId(v === "all" ? "" : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t("warnings.allEmployees", "All Employees")} />
+                      <SelectValue placeholder={t("warnings.allEmployeesLabel", `All ${employeesLabel}`)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Employees</SelectItem>
+                      <SelectItem value="all">{t("warnings.allEmployeesLabel", `All ${employeesLabel}`)}</SelectItem>
                       {employees?.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
                       ))}
