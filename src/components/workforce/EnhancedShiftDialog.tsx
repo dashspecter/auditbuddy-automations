@@ -1223,7 +1223,7 @@ export const EnhancedShiftDialog = ({
                 <SelectItem value="draft">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    Draft — internal only, not visible to employees
+                    Draft — internal only, not visible to {t_.employees().toLowerCase()}
                   </div>
                 </SelectItem>
                 <SelectItem value="open">
