@@ -99,7 +99,7 @@ const Shifts = () => {
 
   const getLocationName = (locationId: string) => {
     const location = locations.find(l => l.id === locationId);
-    return location?.name || t('workforce.shifts.unknownLocation');
+    return location?.name || `Unknown ${locationLabel}`;
   };
 
   const getAssignedEmployees = (shift: any) => {
