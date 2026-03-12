@@ -1064,7 +1064,7 @@ const LocationAudit = () => {
           size="sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Back to Audits</span>
+          <span className="hidden sm:inline">{`Back to ${auditsLabel}`}</span>
           <span className="sm:hidden">Back</span>
         </Button>
 
