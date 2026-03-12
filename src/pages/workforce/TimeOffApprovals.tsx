@@ -172,7 +172,9 @@ const TimeOffApprovals = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">{t('workforce.timeOff.title')}</h2>
-          <p className="text-muted-foreground text-sm sm:text-base">{t('workforce.timeOff.subtitle')}</p>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            {t('workforce.timeOff.subtitleWithTerminology', `Review and manage ${employeesLabelLower} time off requests`)}
+          </p>
         </div>
       </div>
 

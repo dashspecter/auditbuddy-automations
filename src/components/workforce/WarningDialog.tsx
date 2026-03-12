@@ -163,8 +163,8 @@ export function WarningDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isWarning
-              ? t("warnings.warningDescription", "Issue a formal warning to an employee")
-              : t("warnings.noteDescription", "Record a coaching note for an employee")}
+              ? t("warnings.warningDescriptionWithTerminology", `Issue a formal warning to a ${employeeLabelLower}`)
+              : t("warnings.noteDescriptionWithTerminology", `Record a coaching note for a ${employeeLabelLower}`)}
           </DialogDescription>
         </DialogHeader>
 
