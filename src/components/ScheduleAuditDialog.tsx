@@ -307,7 +307,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Schedule New Audits
+            {`Schedule New ${auditsLabel}`}
           </DialogTitle>
         </DialogHeader>
 
