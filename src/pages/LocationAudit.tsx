@@ -73,12 +73,12 @@ const LocationAudit = () => {
   const templateIdFromUrl = searchParams.get('template');
   const scheduledAuditId = searchParams.get('scheduled');
   const recurringScheduleId = searchParams.get('recurring_schedule');
-  const { location, locations, audit, audits } = useTerminology();
+  const { location, audit, audits } = useTerminology();
   const locationLabel = location();
-  const locationsLabel = locations();
   const auditLabel = audit();
   const auditsLabel = audits();
   const locationLabelLower = locationLabel.toLowerCase();
+  const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<AuditTemplate | null>(null);
   const [loading, setLoading] = useState(true);
