@@ -947,7 +947,7 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => setShowAllLocations(checked as boolean)}
                 />
                 <Label htmlFor="show_all_locations" className="cursor-pointer text-xs font-normal">
-                  {t('workforce.components.enhancedShiftDialog.showAllLocations')}
+                  {t('workforce.components.enhancedShiftDialog.showAllLocations', `Show all ${t_.locations().toLowerCase()}`)}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
