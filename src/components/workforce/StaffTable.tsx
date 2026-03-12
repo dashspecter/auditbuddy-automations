@@ -197,7 +197,7 @@ export const StaffTable = () => {
             }
           />
           <MobileCardRow
-            label={t('workforce.components.staffTable.location')}
+            label={term.location()}
             value={
               hasMultipleLocations ? (
                 <Badge variant="secondary" className="text-xs">
