@@ -151,7 +151,7 @@ export function PendingApprovalsDialog({
                 <div className="text-center py-8 text-muted-foreground">Loading...</div>
               ) : !pendingApprovals || pendingApprovals.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No pending shift approvals
+                  {`No pending ${shiftLabel.toLowerCase()} approvals`}
                 </div>
               ) : (
                 <div className="space-y-4">
