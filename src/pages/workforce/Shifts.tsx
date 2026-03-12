@@ -261,7 +261,7 @@ const Shifts = () => {
                       <MapPin className="h-4 w-4 text-primary" />
                       <h3 className="font-semibold text-lg">{getLocationName(locationId)}</h3>
                       <Badge variant="outline" className="ml-auto">
-                        {locationShifts.length} shift{locationShifts.length !== 1 ? 's' : ''}
+                        {locationShifts.length} {locationShifts.length === 1 ? shiftLabel : shiftsLabel}
                       </Badge>
                     </div>
                     {locationShifts.map((shift) => {
