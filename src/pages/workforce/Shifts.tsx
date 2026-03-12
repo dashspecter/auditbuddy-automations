@@ -22,10 +22,18 @@ import { useScheduleGovernanceEnabled, useSchedulePeriod, useWorkforceExceptions
 import { useCompany } from "@/hooks/useCompany";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import { startOfWeek, format } from "date-fns";
 
 const Shifts = () => {
   const { t } = useTranslation();
+  const { employee, employees, location, locations, shift, shifts } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const locationLabel = location();
+  const locationsLabel = locations();
+  const shiftLabel = shift();
+  const shiftsLabel = shifts();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
