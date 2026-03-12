@@ -476,13 +476,13 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>{t('tests.creation.locationOptional')}</Label>
+                      <Label>{`${locationLabel} (Optional)`}</Label>
                       <Select
                         value={formData.locationId}
                         onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('tests.creation.allLocations')} />
+                          <SelectValue placeholder={`All ${locationsLabel}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {locations?.map((loc) => (
