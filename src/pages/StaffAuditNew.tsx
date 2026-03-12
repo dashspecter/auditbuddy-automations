@@ -289,7 +289,7 @@ const StaffAuditNew = () => {
         }
       }
 
-      toast.success('Staff audit submitted successfully');
+      toast.success(`${employeeLabel} ${auditLabel} submitted successfully`);
       navigate('/staff-audits');
     } catch (error: any) {
       console.error('Error submitting audit:', error);
