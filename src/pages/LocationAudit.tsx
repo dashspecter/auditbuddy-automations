@@ -1125,12 +1125,12 @@ const LocationAudit = () => {
               </div>
               
               <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="location" className="text-sm">Location *</Label>
+                <Label htmlFor="location" className="text-sm">{locationLabel} *</Label>
                 <LocationSelector
                   id="location"
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
-                  placeholder="Select location"
+                  placeholder={`Select ${locationLabelLower}`}
                   disabled={(() => {
                     // Disable if this is a scheduled audit
                     if (isScheduledAudit) return true;
