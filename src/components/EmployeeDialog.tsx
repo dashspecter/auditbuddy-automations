@@ -649,7 +649,7 @@ export const EmployeeDialog = ({
 
             {/* Additional Locations */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Additional Locations</Label>
+              <Label className="text-sm text-muted-foreground">{`Additional ${term.locations()}`}</Label>
               
               {additionalLocations.length > 0 && (
                 <div className="flex flex-wrap gap-2">
