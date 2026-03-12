@@ -142,7 +142,7 @@ export default function PayrollBatches() {
                   />
               </div>
               <div className="space-y-2">
-                <Label>{t('common.location')}</Label>
+                <Label>{locationLabel}</Label>
                 <LocationSelector
                   value={selectedLocationId}
                   onValueChange={setSelectedLocationId}
@@ -150,8 +150,8 @@ export default function PayrollBatches() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {selectedLocationId === "__all__"
-                    ? t('workforce.payrollBatches.allLocationsHint', 'Payroll will include all locations')
-                    : t('workforce.payrollBatches.singleLocationHint', 'Payroll will only include employees from this location')}
+                    ? `Payroll will include all ${locationsLabelLower}`
+                    : `Payroll will only include ${employeesLabelLower} from this ${locationLabelLower}`}
                 </p>
               </div>
             </div>
