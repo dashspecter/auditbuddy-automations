@@ -21,6 +21,7 @@ interface RoleManagementDialogProps {
 export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialogProps) {
   const { data: roles = [], isLoading } = useEmployeeRoles();
   const { data: departments = [] } = useDepartments();
+  const term = useTerminology();
   const createRole = useCreateEmployeeRole();
   const updateRole = useUpdateEmployeeRole();
   const deleteRole = useDeleteEmployeeRole();
