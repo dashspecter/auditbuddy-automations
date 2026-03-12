@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScanIdDocumentButton } from "@/components/ScanIdDocumentButton";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export const EmployeeDialog = ({
   employee,
   locations,
 }: EmployeeDialogProps) => {
+  const term = useTerminology();
   const [formData, setFormData] = useState({
     full_name: "",
     location_id: "", // Primary location
@@ -333,16 +335,16 @@ export const EmployeeDialog = ({
           
           if (error) {
             console.error("Failed to create user account:", error);
-            toast.error("Employee created but failed to create login account");
+            toast.error(`${term.employee()} created but failed to create login account`);
           } else if (data?.error) {
             console.error("Failed to create user account:", data.error);
-            toast.error(`Employee created but failed to create login account: ${data.error}`);
+            toast.error(`${term.employee()} created but failed to create login account: ${data.error}`);
           } else {
-            toast.success("Employee created with login credentials!");
+            toast.success(`${term.employee()} created with login credentials!`);
           }
         } catch (err) {
           console.error("Error creating user:", err);
-          toast.error("Employee created but failed to create login account");
+          toast.error(`${term.employee()} created but failed to create login account`);
         }
       }
     }
@@ -354,7 +356,7 @@ export const EmployeeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{employee ? "Edit Employee" : "Add Employee"}</DialogTitle>
+          <DialogTitle>{employee ? `Edit ${term.employee()}` : `Add ${term.employee()}`}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -624,7 +626,7 @@ export const EmployeeDialog = ({
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="location">Primary Location</Label>
+            <Label htmlFor="location">{`Primary ${term.location()}`}</Label>
             <Select
               value={formData.location_id}
               onValueChange={(value) => {
@@ -634,7 +636,7 @@ export const EmployeeDialog = ({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select primary location" />
+                <SelectValue placeholder={`Select primary ${term.location().toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
@@ -647,7 +649,7 @@ export const EmployeeDialog = ({
 
             {/* Additional Locations */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Additional Locations</Label>
+              <Label className="text-sm text-muted-foreground">{`Additional ${term.locations()}`}</Label>
               
               {additionalLocations.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -673,7 +675,7 @@ export const EmployeeDialog = ({
                     onValueChange={setSelectedLocationToAdd}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Add another location..." />
+                      <SelectValue placeholder={`Add another ${term.location().toLowerCase()}...`} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableLocationsToAdd.map((location) => (
@@ -764,10 +766,10 @@ export const EmployeeDialog = ({
                   htmlFor="createUserAccount"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  Create login account for employee
+                  {`Create login account for ${term.employee().toLowerCase()}`}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Allow this employee to log in and view their shifts
+                  {`Allow this ${term.employee().toLowerCase()} to log in and view their shifts`}
                 </p>
               </div>
             </div>
@@ -781,7 +783,7 @@ export const EmployeeDialog = ({
                   <Label className="text-sm font-medium">Login Account</Label>
                   <p className="text-sm text-muted-foreground">
                     {employee.user_id 
-                      ? "This employee has a linked login account" 
+                      ? `This ${term.employee().toLowerCase()} has a linked login account` 
                       : "No login account linked"}
                   </p>
                 </div>
@@ -804,7 +806,7 @@ export const EmployeeDialog = ({
                     <Input
                       id="newUserPassword"
                       type="password"
-                      placeholder="Enter password for employee login"
+                      placeholder={`Enter password for ${term.employee().toLowerCase()} login`}
                       value={formData.newUserPassword || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
                       className="mt-1"
@@ -873,7 +875,7 @@ export const EmployeeDialog = ({
               Cancel
             </Button>
             <Button type="submit" disabled={createEmployee.isPending || updateEmployee.isPending}>
-              {employee ? "Update" : "Add"} Employee
+              {employee ? "Update" : "Add"} {term.employee()}
             </Button>
           </div>
         </form>

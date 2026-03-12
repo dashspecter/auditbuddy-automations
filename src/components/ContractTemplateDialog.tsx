@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface ContractTemplate {
   id: string;
@@ -36,6 +37,7 @@ export function ContractTemplateDialog({
   onTemplateUploaded,
 }: ContractTemplateDialogProps) {
   const { user } = useAuth();
+  const term = useTerminology();
   const [uploading, setUploading] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -181,7 +183,7 @@ export function ContractTemplateDialog({
         <DialogHeader>
           <DialogTitle>Contract Templates</DialogTitle>
           <DialogDescription>
-            Manage your contract templates for employee contracts
+            {`Manage your contract templates for ${term.employee().toLowerCase()} contracts`}
           </DialogDescription>
         </DialogHeader>
 

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DepartmentManagementDialog } from "./DepartmentManagementDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface RoleManagementDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface RoleManagementDialogProps {
 export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialogProps) {
   const { data: roles = [], isLoading } = useEmployeeRoles();
   const { data: departments = [] } = useDepartments();
+  const term = useTerminology();
   const createRole = useCreateEmployeeRole();
   const updateRole = useUpdateEmployeeRole();
   const deleteRole = useDeleteEmployeeRole();
@@ -76,10 +78,10 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
-              Manage Employee Roles
+              {`Manage ${term.employee()} Roles`}
             </DialogTitle>
             <DialogDescription>
-              Create and manage custom roles for your employees
+              {`Create and manage custom roles for your ${term.employees().toLowerCase()}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -97,7 +99,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Server, Manager"
+                    placeholder="e.g., Analyst, Coordinator"
                     required
                   />
                 </div>
@@ -260,7 +262,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
             <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this role? This action cannot be undone.
-              Employees with this role will need to be reassigned.
+              {term.employees()} with this role will need to be reassigned.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

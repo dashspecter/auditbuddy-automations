@@ -14,6 +14,7 @@ import {
   Settings
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface WorkforceGuideStep {
   title: string;
@@ -26,122 +27,136 @@ interface WorkforceGuideStep {
   order: number;
 }
 
-const WORKFORCE_GUIDES: WorkforceGuideStep[] = [
-  {
-    title: "1. Set Up Roles & Departments",
-    description: "Define the roles and departments in your organization before adding staff",
-    icon: <Briefcase className="h-5 w-5" />,
-    link: "/workforce?action=roles",
-    linkLabel: "Manage Roles",
-    order: 1,
-    steps: [
-      "Click 'Manage Roles' on the Workforce page",
-      "Create departments (e.g., Kitchen, Service, Management)",
-      "Add roles within each department (e.g., Chef, Server, Manager)",
-      "Set colors for easy visual identification"
-    ]
-  },
-  {
-    title: "2. Add Staff Members",
-    description: "Create profiles for all your team members with their information",
-    icon: <UserPlus className="h-5 w-5" />,
-    link: "/workforce/staff",
-    linkLabel: "Add Staff",
-    order: 2,
-    dependencies: ["Roles & Departments"],
-    steps: [
-      "Click 'Add Staff Member' to create a new profile",
-      "Enter personal details: name, email, phone",
-      "Assign to a location and role",
-      "Set hourly rate and contract type",
-      "Optionally create a login account for self-service"
-    ]
-  },
-  {
-    title: "3. Configure Shift Scheduling",
-    description: "Create and publish shifts for your staff members",
-    icon: <Calendar className="h-5 w-5" />,
-    link: "/workforce/shifts",
-    linkLabel: "View Shifts",
-    order: 3,
-    dependencies: ["Staff Members"],
-    steps: [
-      "Navigate to Shift Scheduling",
-      "Create shifts by clicking on the calendar",
-      "Assign staff to shifts based on their roles",
-      "Use 'Copy Schedule' to replicate weeks",
-      "Publish shifts to notify staff"
-    ]
-  },
-  {
-    title: "4. Set Up Attendance Tracking",
-    description: "Track when staff clock in and out of their shifts",
-    icon: <Clock className="h-5 w-5" />,
-    link: "/workforce/attendance",
-    linkLabel: "View Attendance",
-    order: 4,
-    dependencies: ["Shifts"],
-    steps: [
-      "Staff can clock in via the mobile app or kiosk",
-      "Set up QR code kiosks for quick check-ins",
-      "Configure auto-clockout settings in Company Settings",
-      "Review attendance logs and late arrivals",
-      "Approve or adjust attendance records"
-    ]
-  },
-  {
-    title: "5. Manage Time Off Requests",
-    description: "Handle vacation, sick leave, and other time off requests",
-    icon: <CalendarPlus className="h-5 w-5" />,
-    link: "/workforce/time-off",
-    linkLabel: "Time Off",
-    order: 5,
-    dependencies: ["Staff Members"],
-    steps: [
-      "Staff submit time off requests via their portal",
-      "Review pending requests in the approvals section",
-      "Approve or deny with comments",
-      "Track remaining vacation days per employee",
-      "View time off calendar for coverage planning"
-    ]
-  },
-  {
-    title: "6. Process Payroll",
-    description: "Calculate and manage payroll based on attendance data",
-    icon: <DollarSign className="h-5 w-5" />,
-    link: "/workforce/payroll",
-    linkLabel: "View Payroll",
-    order: 6,
-    dependencies: ["Attendance", "Hourly Rates"],
-    steps: [
-      "Select or create a pay period",
-      "Review hours worked from attendance logs",
-      "System calculates regular and overtime hours",
-      "Review total pay per employee",
-      "Export payroll data for processing"
-    ]
-  }
-];
+function useWorkforceGuides(): WorkforceGuideStep[] {
+  const term = useTerminology();
+  const empLower = term.employees().toLowerCase();
+  const empSingle = term.employee().toLowerCase();
+  const locLower = term.locations().toLowerCase();
 
-const HOW_IT_WORKS = [
-  {
-    title: "Staff → Shifts",
-    description: "Staff members are assigned to shifts based on their role and location",
-    icon: <Users className="h-4 w-4" />
-  },
-  {
-    title: "Shifts → Attendance",
-    description: "Attendance is tracked against scheduled shifts to measure punctuality",
-    icon: <Clock className="h-4 w-4" />
-  },
-  {
-    title: "Attendance → Payroll",
-    description: "Hours worked from attendance feed into payroll calculations",
-    icon: <DollarSign className="h-4 w-4" />
-  }
-];
+  return [
+    {
+      title: "1. Set Up Roles & Departments",
+      description: `Define the roles and departments in your organization before adding ${empLower}`,
+      icon: <Briefcase className="h-5 w-5" />,
+      link: "/workforce?action=roles",
+      linkLabel: "Manage Roles",
+      order: 1,
+      steps: [
+        "Click 'Manage Roles' on the Workforce page",
+        "Create departments (e.g., Operations, Administration, Management)",
+        "Add roles within each department (e.g., Analyst, Coordinator, Director)",
+        "Set colors for easy visual identification"
+      ]
+    },
+    {
+      title: `2. Add ${term.employees()}`,
+      description: `Create profiles for all your team members with their information`,
+      icon: <UserPlus className="h-5 w-5" />,
+      link: "/workforce/staff",
+      linkLabel: `Add ${term.employees()}`,
+      order: 2,
+      dependencies: ["Roles & Departments"],
+      steps: [
+        `Click 'Add ${term.employee()}' to create a new profile`,
+        "Enter personal details: name, email, phone",
+        `Assign to a ${term.location().toLowerCase()} and role`,
+        "Set salary details and contract type",
+        "Optionally create a login account for self-service"
+      ]
+    },
+    {
+      title: `3. Configure ${term.shift()} Scheduling`,
+      description: `Create and publish ${term.shifts().toLowerCase()} for your ${empLower}`,
+      icon: <Calendar className="h-5 w-5" />,
+      link: "/workforce/shifts",
+      linkLabel: `View ${term.shifts()}`,
+      order: 3,
+      dependencies: [term.employees()],
+      steps: [
+        `Navigate to ${term.shift()} Scheduling`,
+        `Create ${term.shifts().toLowerCase()} by clicking on the calendar`,
+        `Assign ${empLower} to ${term.shifts().toLowerCase()} based on their roles`,
+        "Use 'Copy Schedule' to replicate weeks",
+        `Publish ${term.shifts().toLowerCase()} to notify ${empLower}`
+      ]
+    },
+    {
+      title: "4. Set Up Attendance Tracking",
+      description: `Track when ${empLower} clock in and out of their ${term.shifts().toLowerCase()}`,
+      icon: <Clock className="h-5 w-5" />,
+      link: "/workforce/attendance",
+      linkLabel: "View Attendance",
+      order: 4,
+      dependencies: [term.shifts()],
+      steps: [
+        `${term.employees()} can clock in via the mobile app or kiosk`,
+        "Set up QR code kiosks for quick check-ins",
+        "Configure auto-clockout settings in Company Settings",
+        "Review attendance logs and late arrivals",
+        "Approve or adjust attendance records"
+      ]
+    },
+    {
+      title: "5. Manage Time Off Requests",
+      description: `Handle vacation, sick leave, and other time off requests`,
+      icon: <CalendarPlus className="h-5 w-5" />,
+      link: "/workforce/time-off",
+      linkLabel: "Time Off",
+      order: 5,
+      dependencies: [term.employees()],
+      steps: [
+        `${term.employees()} submit time off requests via their portal`,
+        "Review pending requests in the approvals section",
+        "Approve or deny with comments",
+        `Track remaining vacation days per ${empSingle}`,
+        "View time off calendar for coverage planning"
+      ]
+    },
+    {
+      title: "6. Process Payroll",
+      description: `Calculate and manage payroll based on attendance data`,
+      icon: <DollarSign className="h-5 w-5" />,
+      link: "/workforce/payroll",
+      linkLabel: "View Payroll",
+      order: 6,
+      dependencies: ["Attendance", "Salary Rates"],
+      steps: [
+        "Select or create a pay period",
+        "Review hours worked from attendance logs",
+        "System calculates regular and overtime hours",
+        `Review total pay per ${empSingle}`,
+        "Export payroll data for processing"
+      ]
+    }
+  ];
+}
+
+function useHowItWorks() {
+  const term = useTerminology();
+  return [
+    {
+      title: `${term.employees()} → ${term.shifts()}`,
+      description: `${term.employees()} are assigned to ${term.shifts().toLowerCase()} based on their role and ${term.location().toLowerCase()}`,
+      icon: <Users className="h-4 w-4" />
+    },
+    {
+      title: `${term.shifts()} → Attendance`,
+      description: `Attendance is tracked against scheduled ${term.shifts().toLowerCase()} to measure punctuality`,
+      icon: <Clock className="h-4 w-4" />
+    },
+    {
+      title: "Attendance → Payroll",
+      description: "Hours worked from attendance feed into payroll calculations",
+      icon: <DollarSign className="h-4 w-4" />
+    }
+  ];
+}
 
 export function WorkforceGuides() {
+  const guides = useWorkforceGuides();
+  const howItWorks = useHowItWorks();
+  const term = useTerminology();
+
   return (
     <div className="space-y-8">
       {/* How It Works Overview */}
@@ -154,7 +169,7 @@ export function WorkforceGuides() {
         <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-2">
-              {HOW_IT_WORKS.map((item, index) => (
+              {howItWorks.map((item, index) => (
                 <div key={item.title} className="flex items-center gap-2">
                   <div className="flex flex-col items-center text-center p-4 rounded-lg bg-background/80 min-w-[200px]">
                     <div className="p-2 bg-primary/10 rounded-full mb-2">
@@ -163,7 +178,7 @@ export function WorkforceGuides() {
                     <h4 className="font-semibold text-sm">{item.title}</h4>
                     <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                   </div>
-                  {index < HOW_IT_WORKS.length - 1 && (
+                  {index < howItWorks.length - 1 && (
                     <ArrowRight className="h-5 w-5 text-primary hidden md:block" />
                   )}
                 </div>
@@ -181,7 +196,7 @@ export function WorkforceGuides() {
         </p>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {WORKFORCE_GUIDES.map((guide) => (
+          {guides.map((guide) => (
             <Card key={guide.title} className="flex flex-col">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -244,9 +259,9 @@ export function WorkforceGuides() {
               </p>
             </div>
             <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-1">Shift Presets</h4>
+              <h4 className="font-semibold mb-1">{term.shift()} Presets</h4>
               <p className="text-sm text-muted-foreground">
-                Create shift presets for common shift times to speed up scheduling.
+                {`Create ${term.shift().toLowerCase()} presets for common ${term.shift().toLowerCase()} times to speed up scheduling.`}
               </p>
             </div>
             <div className="p-4 bg-muted/50 rounded-lg">
@@ -256,9 +271,9 @@ export function WorkforceGuides() {
               </p>
             </div>
             <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold mb-1">Staff Self-Service</h4>
+              <h4 className="font-semibold mb-1">{`${term.employee()} Self-Service`}</h4>
               <p className="text-sm text-muted-foreground">
-                Give staff login access so they can view schedules, request time off, and clock in.
+                {`Give ${term.employees().toLowerCase()} login access so they can view schedules, request time off, and clock in.`}
               </p>
             </div>
           </div>

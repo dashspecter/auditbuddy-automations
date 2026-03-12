@@ -1,83 +1,64 @@
+# City Hall Internal Operations — Implementation Progress
 
+## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-# Terminology Consistency Fix for Government Institution Module
+### 1A. Database ✅
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
-## Problem
-When a government institution views the Workforce module, they see hardcoded restaurant/generic terms like "Staff", "Employees", "Locations", "Chef, Server, Manager" instead of their configured overrides ("Civil Servants", "Departments", etc.). The `useLabels` hook exists but isn't used in most workforce components.
+### 1B. Onboarding RPC ✅
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
-## Approach
-Create a reusable terminology helper hook, then integrate it into all affected components. Non-government companies see no change (defaults remain).
+### 1C. Frontend ✅
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
-## Implementation
+---
 
-### 1. Create `src/hooks/useTerminology.ts`
-A thin wrapper around `useLabels` returning common singular/plural terms:
-- `employee` / `employees` (→ "Civil Servant" / "Civil Servants")
-- `location` / `locations` (→ "Department" / "Departments")
-- `shift` / `shifts`
-- `company`
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-### 2. Fix `Staff.tsx` (~6 string replacements)
-- Capacity badge: `employees` → terminology
-- Alert title/description: "Employee limit reached" → terminology-aware
-- Button labels and page title already use i18n keys but the i18n defaults are wrong — will use terminology hook to override at render time
-- Job titles info box: replace "Chef, Server, Manager" with generic "e.g., Analyst, Coordinator, Director"
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-### 3. Fix `EmployeeDialog.tsx` (~15 string replacements)
-- Dialog title: "Add Employee" / "Edit Employee"
-- "Primary Location" / "Additional Locations" labels
-- "Select primary location" placeholder
-- "Manage Roles" button
-- "Create login account for employee" checkbox
-- "Allow this employee to log in..." description
-- Login account status text
-- "Enter password for employee login" placeholder
-- "Add an email address to enable login account creation"
-- Submit button: "Add Employee" / "Update Employee"
-- Toast messages (3 instances)
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-### 4. Fix `RoleManagementDialog.tsx` (~4 replacements)
-- Title: "Manage Employee Roles"
-- Description: "Create and manage custom roles for your employees"
-- Placeholder: "e.g., Server, Manager" → "e.g., Analyst, Coordinator"
-- Delete warning: "Employees with this role will need to be reassigned"
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
-### 5. Fix `ContractTemplateDialog.tsx` (~1 replacement)
-- Description: "Manage your contract templates for employee contracts"
+---
 
-### 6. Fix `StaffTable.tsx` — i18n keys already used
-The StaffTable uses i18n keys like `staffTable.allLocations`, `staffTable.location`, `staffTable.loadingStaff`, `staffTable.noStaffFound`. These resolve from `en.json`. Two options:
-- Option A: Override at component level using terminology hook
-- Option B: Keep i18n defaults generic
-Will use Option A for location-related labels; staff-related labels will stay generic since the i18n key structure handles it.
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-### 7. Fix `WorkforceGuides.tsx` — full text rewrite
-All guide text is hardcoded with restaurant terminology. Will make it use the terminology hook:
-- "Staff Members" → `employees` label
-- "Chef, Server, Manager" → generic examples
-- "Kitchen, Service, Management" → generic
-- "Add Staff Member" → `Add ${employee}`
-- "hourly rate" stays (universal)
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
-### 8. Update i18n `en.json` defaults
-Make default values more generic where they currently say "Chef, Server, Manager":
-- `workforce.staff.jobTitlesDescription` — replace restaurant examples
-- `workforce.staff.manageRoles` — "Manage Roles" (drop "Employee")
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
 
-### Files Modified
-| File | Changes |
-|---|---|
-| **New:** `src/hooks/useTerminology.ts` | Centralized helper |
-| `src/pages/workforce/Staff.tsx` | ~6 replacements |
-| `src/components/EmployeeDialog.tsx` | ~15 replacements |
-| `src/components/workforce/RoleManagementDialog.tsx` | ~4 replacements |
-| `src/components/ContractTemplateDialog.tsx` | ~1 replacement |
-| `src/components/workforce/StaffTable.tsx` | ~3 replacements (location labels) |
-| `src/components/workforce/WorkforceGuides.tsx` | Full text terminology-aware rewrite |
-| `src/i18n/locales/en.json` | Update generic defaults |
-| `src/i18n/locales/ro.json` | Matching updates |
+---
 
-### Impact
-- **Government institutions**: See "Civil Servants", "Departments", etc. everywhere consistently
-- **All other companies**: See the same defaults as before — zero visual change
+## Phase 4: Integration & Testing ✅ COMPLETE
 
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
