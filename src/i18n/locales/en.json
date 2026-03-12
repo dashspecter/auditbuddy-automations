@@ -218,7 +218,11 @@
     "scoutsJobs": "Jobs",
     "scoutsReview": "Review Queue",
     "scoutsTemplates": "Templates",
-    "scoutsCreateJob": "Create Job"
+    "scoutsCreateJob": "Create Job",
+    "approvals": "Approvals",
+    "approvalQueue": "Approval Queue",
+    "approvalWorkflows": "Workflows",
+    "terminology": "Terminology"
   },
   "auth": {
     "signIn": "Sign In",
