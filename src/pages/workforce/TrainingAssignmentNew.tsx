@@ -19,11 +19,16 @@ import { useCreateTrainingAssignment, useGenerateTrainingTasks, useGenerateTrain
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TrainingAssignmentNew = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+  const { employee, location } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabel = location();
+  const locationLabelLower = locationLabel.toLowerCase();
   const { data: modules = [] } = useTrainingModules();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useLocations();

@@ -40,10 +40,19 @@ import {
 } from "@/components/ui/select";
 import { useCreateTrainingModule } from "@/hooks/useTrainingModules";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const Training = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { employee, employees, location, shifts } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employees().toLowerCase();
+  const locationLabel = location();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const shiftsLabel = shifts();
+  const shiftsLabelLower = shiftsLabel.toLowerCase();
   const [activeTab, setActiveTab] = useState("modules");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
