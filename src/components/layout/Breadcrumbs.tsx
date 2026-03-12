@@ -8,30 +8,24 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useTerminology } from "@/hooks/useTerminology";
 
-const routeNameMap: Record<string, string> = {
+const staticRouteNameMap: Record<string, string> = {
   dashboard: "Home",
   workforce: "Workforce",
-  staff: "Staff",
-  shifts: "Shifts",
-  attendance: "Attendance",
   "time-off": "Time Off",
   payroll: "Payroll",
-  audits: "Audits",
   tasks: "Tasks",
-  equipment: "Equipment",
   inventory: "Inventory",
   documents: "Documents",
   insights: "Insights",
   integrations: "Integrations",
-  locations: "Locations",
   admin: "Admin",
   settings: "Settings",
   company: "Company",
   pricing: "Billing & Modules",
   new: "New",
   edit: "Edit",
-  "staff-audits": "Employee Audits",
   reports: "Reports",
   companies: "Companies",
   platform: "Platform Admin",
@@ -43,20 +37,32 @@ const pathOverrideMap: Record<string, string> = {
 
 export const Breadcrumbs = () => {
   const location = useLocation();
+  const term = useTerminology();
   const pathSegments = location.pathname.split("/").filter(Boolean);
 
   if (pathSegments.length === 0 || pathSegments[0] === "dashboard") {
-    return null; // Don't show breadcrumbs on home page
+    return null;
   }
 
+  // Dynamic route names that respect terminology overrides
+  const dynamicRouteNames: Record<string, string> = {
+    staff: term.employees(),
+    shifts: term.shifts(),
+    attendance: "Attendance",
+    audits: term.audits(),
+    equipment: term.equipment(),
+    locations: term.locations(),
+    "staff-audits": `${term.employee()} ${term.audits()}`,
+  };
+
+  const routeNameMap = { ...staticRouteNameMap, ...dynamicRouteNames };
+
   const breadcrumbItems = pathSegments
-    .filter((segment, index) => {
-      // Hide UUID segments (staff-audits/:id pattern)
+    .filter((segment) => {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
       return !isUUID;
     })
     .map((segment, index, filteredSegments) => {
-      // Build path from original segments up to this filtered segment
       const originalIndex = pathSegments.indexOf(segment);
       const rawPath = `/${pathSegments.slice(0, originalIndex + 1).join("/")}`;
       const path = pathOverrideMap[rawPath] || rawPath;
@@ -81,7 +87,7 @@ export const Breadcrumbs = () => {
           </BreadcrumbLink>
         </BreadcrumbItem>
         
-        {breadcrumbItems.map((item, index) => (
+        {breadcrumbItems.map((item) => (
           <BreadcrumbItem key={item.path}>
             <BreadcrumbSeparator>
               <ChevronRight className="h-4 w-4" />
