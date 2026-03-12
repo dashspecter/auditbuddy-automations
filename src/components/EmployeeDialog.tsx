@@ -766,10 +766,10 @@ export const EmployeeDialog = ({
                   htmlFor="createUserAccount"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
-                  Create login account for employee
+                  {`Create login account for ${term.employee().toLowerCase()}`}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Allow this employee to log in and view their shifts
+                  {`Allow this ${term.employee().toLowerCase()} to log in and view their shifts`}
                 </p>
               </div>
             </div>
