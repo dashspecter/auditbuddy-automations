@@ -407,7 +407,7 @@ const Audits = () => {
                             variant={getTemplateType(audit.template_id) === 'staff' ? 'staff' : 'location'} 
                             className="text-xs"
                           >
-                            {getTemplateType(audit.template_id) === 'staff' ? 'Staff Audit' : 'Location Audit'}
+                            {getTemplateType(audit.template_id) === 'staff' ? `${employeeLabel} ${auditLabel}` : `${locationLabel} ${auditLabel}`}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
