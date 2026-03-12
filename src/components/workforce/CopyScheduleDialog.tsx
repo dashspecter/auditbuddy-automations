@@ -207,14 +207,14 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 <MapPin className="h-3 w-3" />
-                Location
+                {locationLabel}
               </Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All locations" />
+                  <SelectValue placeholder={`All ${locationsLabel.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>
                       {loc.name}
@@ -226,14 +226,14 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 <Users className="h-3 w-3" />
-                Employee
+                {employeeLabel}
               </Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All employees" />
+                  <SelectValue placeholder={`All ${employeesLabel.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{`All ${employeesLabel}`}</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.full_name}
