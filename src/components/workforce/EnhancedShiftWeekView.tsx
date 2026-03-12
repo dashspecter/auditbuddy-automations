@@ -898,7 +898,7 @@ export const EnhancedShiftWeekView = () => {
                           return (
                             <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
                               <UserCheck className="h-3 w-3" />
-                              No staff assigned
+                              {`No ${employeesLabel.toLowerCase()} assigned`}
                             </div>
                           );
                         }
