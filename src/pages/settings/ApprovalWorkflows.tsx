@@ -15,7 +15,8 @@ import {
   ApprovalWorkflow,
   ApprovalWorkflowStep,
 } from "@/hooks/useApprovals";
-import { Plus, Trash2, GripVertical, Loader2, Landmark, Pencil } from "lucide-react";
+import { Plus, Trash2, GripVertical, Loader2, Landmark, Pencil, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ENTITY_TYPES = [
   { value: "general", label: "General" },
