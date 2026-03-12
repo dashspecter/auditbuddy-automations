@@ -31,6 +31,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   Select,
   SelectContent,
@@ -38,27 +39,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+...
 export const EnhancedShiftWeekView = () => {
   const { t } = useTranslation();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
