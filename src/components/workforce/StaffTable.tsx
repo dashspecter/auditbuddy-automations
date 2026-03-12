@@ -15,6 +15,7 @@ import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import { GenerateContractDialog } from "@/components/GenerateContractDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface CursorState {
   val: string;
@@ -23,6 +24,7 @@ interface CursorState {
 
 export const StaffTable = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("");
@@ -195,7 +197,7 @@ export const StaffTable = () => {
             }
           />
           <MobileCardRow
-            label={t('workforce.components.staffTable.location')}
+            label={term.location()}
             value={
               hasMultipleLocations ? (
                 <Badge variant="secondary" className="text-xs">
@@ -256,10 +258,10 @@ export const StaffTable = () => {
           <div className="grid grid-cols-3 gap-2">
             <Select value={locationFilter || "all"} onValueChange={handleFilterChange(setLocationFilter)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('workforce.components.staffTable.location')} />
+                <SelectValue placeholder={term.location()} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('workforce.components.staffTable.allLocations')}</SelectItem>
+                <SelectItem value="all">{`All ${term.locations()}`}</SelectItem>
                 {locations?.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
@@ -318,7 +320,7 @@ export const StaffTable = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">{t('workforce.components.staffTable.loadingStaff')}</div>
+        <div className="text-center py-8 text-muted-foreground">{`Loading ${term.employees().toLowerCase()}...`}</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
         <>
           {isMobile ? (
@@ -332,7 +334,7 @@ export const StaffTable = () => {
                   <TableRow>
                     <TableHead>{t('workforce.components.staffTable.name')}</TableHead>
                     <TableHead>{t('workforce.components.staffTable.role')}</TableHead>
-                    <TableHead className="hidden sm:table-cell">{t('workforce.components.staffTable.location')}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{term.location()}</TableHead>
                     <TableHead>{t('workforce.components.staffTable.status')}</TableHead>
                     <TableHead className="hidden md:table-cell">{t('workforce.components.staffTable.contract')}</TableHead>
                     <TableHead className="hidden lg:table-cell">{t('workforce.components.staffTable.contact')}</TableHead>
@@ -468,14 +470,14 @@ export const StaffTable = () => {
       ) : (
         <div className="text-center py-12 text-muted-foreground space-y-4">
           <div>
-            <p className="font-medium">{t('workforce.components.staffTable.noStaffFound')}</p>
+            <p className="font-medium">{`No ${term.employees().toLowerCase()} found`}</p>
             {activeFilterCount > 0 ? (
               <p className="text-sm mt-2">
                 {t('workforce.components.staffTable.noResultsFilter')}
               </p>
             ) : (
               <p className="text-sm mt-2">
-                {t('workforce.components.staffTable.noStaffAdded')}
+                {`No ${term.employees().toLowerCase()} have been added yet.`}
               </p>
             )}
           </div>
