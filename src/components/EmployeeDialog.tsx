@@ -675,7 +675,7 @@ export const EmployeeDialog = ({
                     onValueChange={setSelectedLocationToAdd}
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Add another location..." />
+                      <SelectValue placeholder={`Add another ${term.location().toLowerCase()}...`} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableLocationsToAdd.map((location) => (
