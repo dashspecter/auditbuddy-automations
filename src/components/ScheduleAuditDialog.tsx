@@ -252,7 +252,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
       if (tpl?.template_type === 'staff' && !audit.employee_id) {
         form.setError(`audits.${i}.employee_id`, {
           type: 'manual',
-          message: 'Employee is required for staff audits',
+          message: `${employeeLabel} is required for ${employeeLabelLower} ${auditsLabel.toLowerCase()}`,
         });
         return;
       }
