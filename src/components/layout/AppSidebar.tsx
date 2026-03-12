@@ -491,6 +491,10 @@ export function AppSidebar() {
   const { data: roleData } = useUserRole();
   const { data: company } = useCompany();
   const { hasPermission } = usePermissions();
+  const { data: industry } = useCompanyIndustry();
+  const { label } = useLabels();
+  
+  const isGovernment = industry?.slug === "government";
   
   const currentPath = location.pathname;
   
@@ -502,6 +506,15 @@ export function AppSidebar() {
   const isCompanyAdmin = company?.userRole === 'company_admin';
   const isMember = company?.userRole === 'company_member';
 
+  // Resolve a nav item label: use terminology override if labelKey exists, else i18n
+  const resolveLabel = useCallback((item: { titleKey: string; labelKey?: string | null }) => {
+    if (item.labelKey) {
+      const override = label(item.labelKey, "");
+      if (override) return override;
+    }
+    return t(item.titleKey);
+  }, [label, t]);
+
   const isActive = (path: string) => currentPath === path;
   const isParentActive = (item: any) => {
     if (item.subItems) {
@@ -510,9 +523,22 @@ export function AppSidebar() {
     return false;
   };
 
+  // Filter nav items for government — hide items and sub-items marked hideForGovernment
+  const filteredNavigationItems = useMemo(() => {
+    return navigationItems
+      .filter(item => !(isGovernment && (item as any).hideForGovernment))
+      .map(item => {
+        if (!item.subItems) return item;
+        return {
+          ...item,
+          subItems: item.subItems.filter((sub: any) => !(isGovernment && sub.hideForGovernment)),
+        };
+      });
+  }, [isGovernment]);
+
   // Auto-expand parent groups when navigating to a child route
   useEffect(() => {
-    navigationItems.forEach((item) => {
+    filteredNavigationItems.forEach((item) => {
       if (item.subItems && isParentActive(item)) {
         expandGroup(item.titleKey);
       }
