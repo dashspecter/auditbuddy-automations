@@ -15,6 +15,8 @@ export interface ModuleDefinition {
   color: string;
   /** Group for UI organisation */
   category: 'core' | 'operations' | 'communication' | 'analytics';
+  /** If true, this module is auto-activated when government_ops is enabled */
+  governmentDefault?: boolean;
 }
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
