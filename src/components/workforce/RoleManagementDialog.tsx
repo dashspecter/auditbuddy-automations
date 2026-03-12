@@ -78,10 +78,10 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Briefcase className="h-5 w-5" />
-              Manage Employee Roles
+              {`Manage ${term.employee()} Roles`}
             </DialogTitle>
             <DialogDescription>
-              Create and manage custom roles for your employees
+              {`Create and manage custom roles for your ${term.employees().toLowerCase()}`}
             </DialogDescription>
           </DialogHeader>
 
