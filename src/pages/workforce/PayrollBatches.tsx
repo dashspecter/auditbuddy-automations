@@ -184,7 +184,7 @@ export default function PayrollBatches() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('workforce.payrollBatches.period')}</TableHead>
-                  <TableHead>{t('workforce.payrollBatches.employees')}</TableHead>
+                  <TableHead>{employeesLabel}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.totalHours')}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.overtime')}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.status')}</TableHead>
