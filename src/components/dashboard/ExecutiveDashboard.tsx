@@ -46,10 +46,22 @@ export const ExecutiveDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-primary" />
-            Executive Overview
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Landmark className="h-6 w-6 text-primary" />
+              Executive Overview
+            </h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[280px]">
+                  <p className="text-xs">This dashboard provides a real-time summary of your institution's performance across all departments — including inspections, tasks, attendance, and pending approvals.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <p className="text-muted-foreground">
             {label("company", "Institution")} performance at a glance
           </p>
