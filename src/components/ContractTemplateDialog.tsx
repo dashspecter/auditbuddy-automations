@@ -37,6 +37,7 @@ export function ContractTemplateDialog({
   onTemplateUploaded,
 }: ContractTemplateDialogProps) {
   const { user } = useAuth();
+  const term = useTerminology();
   const [uploading, setUploading] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
