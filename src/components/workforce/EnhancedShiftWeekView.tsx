@@ -665,7 +665,7 @@ export const EnhancedShiftWeekView = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>View pending shift approvals, schedule changes and exceptions</p>
+                <p>{`View pending ${shiftsLabel.toLowerCase()} approvals, schedule changes and exceptions`}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
