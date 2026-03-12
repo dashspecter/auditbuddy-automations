@@ -93,7 +93,7 @@ export const AddTimeOffDialog = ({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>{t('workforce.components.addTimeOffDialog.employee')} *</Label>
+            <Label>{t_.employee()} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
                 <SelectValue placeholder={t('workforce.components.addTimeOffDialog.selectEmployee')} />
