@@ -783,7 +783,7 @@ export const EmployeeDialog = ({
                   <Label className="text-sm font-medium">Login Account</Label>
                   <p className="text-sm text-muted-foreground">
                     {employee.user_id 
-                      ? "This employee has a linked login account" 
+                      ? `This ${term.employee().toLowerCase()} has a linked login account` 
                       : "No login account linked"}
                   </p>
                 </div>
