@@ -9,9 +9,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { GraduationCap, User, Users, Clock, MapPin, ClipboardList, CheckCircle2, ExternalLink } from "lucide-react";
+import { GraduationCap, User, Users, Clock, MapPin, ClipboardList, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Shift } from "@/hooks/useShifts";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface TrainingShiftCardProps {
   shift: Shift;
@@ -20,6 +21,10 @@ interface TrainingShiftCardProps {
 
 export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardProps) => {
   const { t } = useTranslation();
+  const { employee, employees } = useTerminology();
+  const employeeLabelLower = employee().toLowerCase();
+  const employeesLabel = employees();
+  const employeesLabelLower = employeesLabel.toLowerCase();
   const navigate = useNavigate();
 
   const session = shift.training_session;
@@ -52,7 +57,7 @@ export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardP
             </div>
             <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
               <Users className="h-2.5 w-2.5" />
-              {traineeCount} trainee{traineeCount !== 1 ? 's' : ''}
+              {traineeCount} {traineeCount === 1 ? employeeLabelLower : employeesLabelLower}
             </div>
           </div>
         </SheetTrigger>
@@ -101,6 +106,9 @@ export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardP
 const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { employees } = useTerminology();
+  const employeesLabel = employees();
+  const employeesLabelLower = employeesLabel.toLowerCase();
 
   const session = shift.training_session;
   const module = shift.training_module;
@@ -166,7 +174,7 @@ const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
         {/* Trainees */}
         <div>
           <div className="text-sm font-medium text-muted-foreground mb-2">
-            {t('training.trainees', 'Trainees')} ({trainees.length})
+            {t('training.traineesLabel', employeesLabel)} ({trainees.length})
           </div>
           <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
             {trainees.map(trainee => (
@@ -176,7 +184,7 @@ const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
             ))}
             {trainees.length === 0 && (
               <span className="text-sm text-muted-foreground">
-                {t('training.noTrainees', 'No trainees assigned')}
+                {t('training.noTraineesAssigned', `No ${employeesLabelLower} assigned`)}
               </span>
             )}
           </div>

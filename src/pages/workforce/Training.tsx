@@ -11,7 +11,7 @@ import {
   Plus, BookOpen, Users, Calendar, Clock, ChevronRight, 
   GraduationCap, Target, Search, Filter, Trash2
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTrainingModules, useDeleteTrainingModule } from "@/hooks/useTrainingModules";
 import { useTrainingAssignments } from "@/hooks/useTrainingAssignments";
 import {
@@ -40,10 +40,19 @@ import {
 } from "@/components/ui/select";
 import { useCreateTrainingModule } from "@/hooks/useTrainingModules";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const Training = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { employee, employees, location, shifts } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employees().toLowerCase();
+  const locationLabel = location();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const shiftsLabel = shifts();
+  const shiftsLabelLower = shiftsLabel.toLowerCase();
   const [activeTab, setActiveTab] = useState("modules");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -124,7 +133,7 @@ const Training = () => {
             {t('training.title', 'Training')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {t('training.description', 'Manage training modules and staff onboarding')}
+            {t('training.descriptionWithTerminology', `Manage training modules and ${employeesLabelLower} onboarding`)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -146,7 +155,7 @@ const Training = () => {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Kitchen Level 1"
+                    placeholder={t('training.moduleNameExample', 'e.g., Orientation Level 1')}
                     required
                   />
                 </div>
@@ -166,7 +175,7 @@ const Training = () => {
                       id="category"
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      placeholder="e.g., Kitchen, Service"
+                      placeholder={t('training.categoryExample', `e.g., ${locationLabel}, Compliance`)}
                     />
                   </div>
                   <div>
@@ -231,7 +240,7 @@ const Training = () => {
           </Dialog>
           <Button variant="outline" onClick={() => navigate('/workforce/training/assignments/new')}>
             <Users className="mr-2 h-4 w-4" />
-            {t('training.assignTrainee', 'Assign Trainee')}
+            {t('training.assignEmployee', `Assign ${employeeLabel}`)}
           </Button>
         </div>
       </div>
@@ -373,7 +382,7 @@ const Training = () => {
                 <p className="text-muted-foreground">{t('training.noAssignments', 'No training assignments yet')}</p>
                 <Button className="mt-4" onClick={() => navigate('/workforce/training/assignments/new')}>
                   <Plus className="mr-2 h-4 w-4" />
-                  {t('training.assignFirst', 'Assign first trainee')}
+                  {t('training.assignFirstEmployee', `Assign first ${employeeLabelLower}`)}
                 </Button>
               </CardContent>
             </Card>
@@ -422,10 +431,10 @@ const Training = () => {
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
-                {t('training.calendarComingSoon', 'Training calendar integration with shifts is available in the Shifts page')}
+                {t('training.calendarUsesShifts', `Training calendar integration with ${shiftsLabelLower} is available in the ${shiftsLabel} page`)}
               </p>
               <Button className="mt-4" variant="outline" onClick={() => navigate('/workforce/shifts')}>
-                {t('training.viewShifts', 'View Shifts Calendar')}
+                {t('training.viewShiftsCalendar', `View ${shiftsLabel} Calendar`)}
               </Button>
             </CardContent>
           </Card>

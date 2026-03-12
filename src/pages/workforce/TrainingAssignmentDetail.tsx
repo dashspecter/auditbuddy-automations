@@ -36,13 +36,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TrainingAssignmentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+  const { employee, location } = useTerminology();
+  const employeeLabelLower = employee().toLowerCase();
+  const employeeLabel = employee();
+  const locationLabel = location();
   const { data: assignment, isLoading } = useTrainingAssignment(id);
   const { data: days = [] } = useTrainingModuleDays(assignment?.module_id);
   const { data: evaluations = [] } = useTrainingEvaluations(id);
@@ -120,7 +124,7 @@ const TrainingAssignmentDetail = () => {
   const handleSubmitEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignment || !currentEmployee) {
-      alert("You must be an employee to submit evaluations");
+      alert(`You must be a ${employeeLabelLower} to submit evaluations`);
       return;
     }
     
@@ -141,7 +145,7 @@ const TrainingAssignmentDetail = () => {
 
   const handleStartAuditEvaluation = async (requiredEval: any) => {
     if (!assignment || !currentEmployee) {
-      alert("You must be an employee to start evaluations");
+      alert(`You must be a ${employeeLabelLower} to start evaluations`);
       return;
     }
 
@@ -300,7 +304,7 @@ const TrainingAssignmentDetail = () => {
                 <GraduationCap className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('training.trainee', 'Trainee')}</p>
+                <p className="text-sm text-muted-foreground">{t('training.traineeLabel', employeeLabel)}</p>
                 <p className="font-medium">{assignment.trainee?.full_name}</p>
                 {assignment.trainee?.role && (
                   <p className="text-xs text-muted-foreground">{assignment.trainee.role}</p>
@@ -618,7 +622,7 @@ const TrainingAssignmentDetail = () => {
           <CardContent className="py-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{t('common.location', 'Location')}: {assignment.location.name}</span>
+              <span>{t('common.locationLabel', locationLabel)}: {assignment.location.name}</span>
             </div>
           </CardContent>
         </Card>

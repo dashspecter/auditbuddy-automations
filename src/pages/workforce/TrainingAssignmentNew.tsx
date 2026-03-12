@@ -19,11 +19,16 @@ import { useCreateTrainingAssignment, useGenerateTrainingTasks, useGenerateTrain
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TrainingAssignmentNew = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+  const { employee, location } = useTerminology();
+  const employeeLabel = employee();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabel = location();
+  const locationLabelLower = locationLabel.toLowerCase();
   const { data: modules = [] } = useTrainingModules();
   const { data: employees = [] } = useEmployees();
   const { data: locations = [] } = useLocations();
@@ -101,9 +106,9 @@ const TrainingAssignmentNew = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('training.assignTrainee', 'Assign Trainee')}</h1>
+          <h1 className="text-2xl font-bold">{t('training.assignEmployee', `Assign ${employeeLabel}`)}</h1>
           <p className="text-muted-foreground">
-            {t('training.assignDescription', 'Assign a training module to a staff member')}
+            {t('training.assignDescriptionEmployee', `Assign a training module to a ${employeeLabelLower}`)}
           </p>
         </div>
       </div>
@@ -119,14 +124,14 @@ const TrainingAssignmentNew = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>{t('training.trainee', 'Trainee')} *</Label>
+                <Label>{t('training.traineeLabel', employeeLabel)} *</Label>
                 <Select
                   value={formData.trainee_employee_id}
                   onValueChange={(v) => setFormData({ ...formData, trainee_employee_id: v })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t('training.selectTrainee', 'Select trainee')} />
+                    <SelectValue placeholder={t('training.selectTraineeLabel', `Select ${employeeLabelLower}`)} />
                   </SelectTrigger>
                   <SelectContent>
                     {activeEmployees.map(emp => (
@@ -179,16 +184,16 @@ const TrainingAssignmentNew = () => {
               </div>
 
               <div>
-                <Label>{t('common.location', 'Location')}</Label>
+                <Label>{t('common.locationLabel', locationLabel)}</Label>
                 <Select
                   value={formData.location_id}
                   onValueChange={(v) => setFormData({ ...formData, location_id: v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t('common.selectLocation', 'Select location (optional)')} />
+                    <SelectValue placeholder={t('common.selectLocationLabel', `Select ${locationLabelLower} (optional)`)} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__any__">Any location</SelectItem>
+                    <SelectItem value="__any__">{t('common.anyLocationLabel', `Any ${locationLabelLower}`)}</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}
