@@ -24,6 +24,7 @@ interface CursorState {
 
 export const StaffTable = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("");
