@@ -149,6 +149,16 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
   const scheduleAudit = useScheduleAudit();
   const createScheduledAudit = useCreateScheduledAudit();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { employee, employees, location, audit, audits } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const auditsLabel = audits();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const auditLabelLower = auditLabel.toLowerCase();
 
   const { data: users } = useQuery({
     queryKey: ['users_for_scheduling_company'],
