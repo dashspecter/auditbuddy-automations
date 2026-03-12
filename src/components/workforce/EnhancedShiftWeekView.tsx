@@ -31,6 +31,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   Select,
   SelectContent,
@@ -59,6 +60,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export const EnhancedShiftWeekView = () => {
   const { t } = useTranslation();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftsLabel = shiftsTerm();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -522,8 +535,8 @@ export const EnhancedShiftWeekView = () => {
         <div className="rounded-lg border px-4 py-2 bg-muted/50 text-sm text-muted-foreground flex items-center gap-2">
           <Info className="h-4 w-4" />
           {aggregatePeriodState === 'mixed' 
-            ? 'Schedule periods have different states across locations. Select a specific location to manage.'
-            : `All locations are in ${aggregatePeriodState} state.`
+            ? `Schedule periods have different states across ${locationsLabel.toLowerCase()}. Select a specific ${locationLabel.toLowerCase()} to manage.`
+            : `All ${locationsLabel.toLowerCase()} are in ${aggregatePeriodState} state.`
           }
         </div>
       )}
@@ -566,22 +579,22 @@ export const EnhancedShiftWeekView = () => {
           <div className="h-6 w-px bg-border" />
           
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "employee" | "location")}>
-            <ToggleGroupItem value="employee" aria-label={t('workforce.shifts.employeeView')} className="gap-1">
+            <ToggleGroupItem value="employee" aria-label={`${employeeLabel} view`} className="gap-1">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('workforce.shifts.employees')}</span>
+              <span className="hidden sm:inline">{employeesLabel}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="location" aria-label={t('workforce.shifts.locationView')} className="gap-1">
+            <ToggleGroupItem value="location" aria-label={`${locationLabel} view`} className="gap-1">
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('workforce.shifts.locations')}</span>
+              <span className="hidden sm:inline">{locationsLabel}</span>
             </ToggleGroupItem>
           </ToggleGroup>
 
           <Select value={selectedLocation} onValueChange={setSelectedLocation}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
+              <SelectValue placeholder={`All ${locationsLabel}`} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+              <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -650,7 +663,7 @@ export const EnhancedShiftWeekView = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>View pending shift approvals, schedule changes and exceptions</p>
+                <p>{`View pending ${shiftsLabel.toLowerCase()} approvals, schedule changes and exceptions`}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -749,7 +762,7 @@ export const EnhancedShiftWeekView = () => {
       <div className="border rounded-lg overflow-hidden bg-card max-h-[calc(100vh-280px)] overflow-y-auto">
         <div className="grid grid-cols-8 border-b sticky top-0 z-10 bg-card">
           <div className="p-3 border-r bg-muted/50 font-medium sticky left-0">
-            {viewMode === "employee" ? t('workforce.shifts.employee') : t('workforce.shifts.locationHeader')}
+            {viewMode === "employee" ? employeeLabel : locationLabel}
           </div>
           {weekDays.map((day) => {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -883,7 +896,7 @@ export const EnhancedShiftWeekView = () => {
                           return (
                             <div className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
                               <UserCheck className="h-3 w-3" />
-                              No staff assigned
+                              {`No ${employeesLabel.toLowerCase()} assigned`}
                             </div>
                           );
                         }
@@ -924,7 +937,7 @@ export const EnhancedShiftWeekView = () => {
         <div className="grid grid-cols-8 border-b bg-muted/60">
           <div className="p-3 border-r font-medium flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            Open Shifts
+            {`Open ${shiftsLabel}`}
           </div>
           {weekDays.map((day) => {
             const openShifts = getOpenShiftsForDay(day);
@@ -1059,8 +1072,8 @@ export const EnhancedShiftWeekView = () => {
                       {selectedLocation === "all" && (
                         <div className="text-[10px] text-muted-foreground truncate">
                           📍 {employee.staff_locations && employee.staff_locations.length > 0 
-                            ? `All Locations (${employee.staff_locations.length + 1})` 
-                            : employee.locations?.name || 'No location'}
+                            ? `All ${locationsLabel} (${employee.staff_locations.length + 1})` 
+                            : employee.locations?.name || `No ${locationLabel.toLowerCase()}`}
                         </div>
                       )}
                     </div>
@@ -1282,7 +1295,7 @@ export const EnhancedShiftWeekView = () => {
             {/* Shifts row for this location */}
             <div className="grid grid-cols-8 border-b hover:bg-muted/30 transition-colors">
               <div className="p-3 border-r text-xs text-muted-foreground">
-                All shifts
+                {`All ${shiftsLabel.toLowerCase()}`}
               </div>
               {weekDays.map((day) => {
                 const locationShifts = getShiftsForLocationAndDay(location.id, day);
@@ -1415,7 +1428,7 @@ export const EnhancedShiftWeekView = () => {
                       );
                     })}
                     {locationShifts.length === 0 && (
-                      <div className="text-xs text-muted-foreground text-center py-2">No shifts</div>
+                      <div className="text-xs text-muted-foreground text-center py-2">{`No ${shiftsLabel.toLowerCase()}`}</div>
                     )}
                   </div>
                 );

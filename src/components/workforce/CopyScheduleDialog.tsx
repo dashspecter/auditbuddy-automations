@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface CopyScheduleDialogProps {
   open: boolean;
@@ -35,6 +36,18 @@ interface CopyScheduleDialogProps {
 }
 
 export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogProps) => {
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftsLabel = shiftsTerm();
   const [sourceStartDate, setSourceStartDate] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [sourceEndDate, setSourceEndDate] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));
   const [periodType, setPeriodType] = useState<"week" | "2weeks" | "month" | "custom">("week");
@@ -95,7 +108,7 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             Copy Schedule Forward
           </DialogTitle>
           <DialogDescription>
-            Copy shifts from a source period to future dates. Perfect for repeating weekly patterns.
+            {`Copy ${shiftsLabel.toLowerCase()} from a source period to future dates. Perfect for repeating weekly patterns.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -192,14 +205,14 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 <MapPin className="h-3 w-3" />
-                Location
+                {locationLabel}
               </Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All locations" />
+                  <SelectValue placeholder={`All ${locationsLabel.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>
                       {loc.name}
@@ -211,14 +224,14 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 <Users className="h-3 w-3" />
-                Employee
+                {employeeLabel}
               </Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All employees" />
+                  <SelectValue placeholder={`All ${employeesLabel.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{`All ${employeesLabel}`}</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.full_name}
@@ -232,9 +245,9 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
           {/* Include Assignments */}
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
-              <Label>Include Staff Assignments</Label>
+              <Label>{`Include ${employeesLabel} Assignments`}</Label>
               <p className="text-xs text-muted-foreground">
-                Copy approved assignments to new shifts
+                {`Copy approved ${employeesLabel.toLowerCase()} assignments to new ${shiftsLabel.toLowerCase()}`}
               </p>
             </div>
             <Switch checked={includeAssignments} onCheckedChange={setIncludeAssignments} />

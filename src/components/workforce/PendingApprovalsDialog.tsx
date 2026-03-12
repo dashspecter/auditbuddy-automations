@@ -18,6 +18,7 @@ import {
   SCHEDULE_CHANGE_REASON_CODES
 } from "@/hooks/useScheduleGovernance";
 import { Separator } from "@/components/ui/separator";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface PendingApprovalsDialogProps {
   open: boolean;
@@ -32,6 +33,14 @@ export function PendingApprovalsDialog({
   filterPeriodId,
   filterLocationId 
 }: PendingApprovalsDialogProps) {
+  const {
+    employee: employeeTerm,
+    shifts: shiftsTerm,
+    shift: shiftTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const shiftsLabel = shiftsTerm();
+  const shiftLabel = shiftTerm();
   const [activeTab, setActiveTab] = useState("shift-assignments");
   
   // Original shift assignment approvals
@@ -110,7 +119,7 @@ export function PendingApprovalsDialog({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="shift-assignments" className="relative">
               <Users className="h-4 w-4 mr-1" />
-              Shifts
+              {shiftsLabel}
               {pendingCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5">{pendingCount}</Badge>
               )}
@@ -142,7 +151,7 @@ export function PendingApprovalsDialog({
                 <div className="text-center py-8 text-muted-foreground">Loading...</div>
               ) : !pendingApprovals || pendingApprovals.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No pending shift approvals
+                  {`No pending ${shiftLabel.toLowerCase()} approvals`}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -152,9 +161,9 @@ export function PendingApprovalsDialog({
                         <div className="space-y-1">
                           <div className="font-medium">{assignment.employees?.full_name}</div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="outline">Employee: {assignment.employees?.role}</Badge>
+                            <Badge variant="outline">{`${employeeLabel}: ${assignment.employees?.role}`}</Badge>
                             <span>→</span>
-                            <Badge variant="outline">Shift: {assignment.shifts?.role}</Badge>
+                            <Badge variant="outline">{`${shiftLabel}: ${assignment.shifts?.role}`}</Badge>
                           </div>
                         </div>
                       </div>

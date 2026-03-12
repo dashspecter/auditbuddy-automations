@@ -22,10 +22,23 @@ import { useScheduleGovernanceEnabled, useSchedulePeriod, useWorkforceExceptions
 import { useCompany } from "@/hooks/useCompany";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import { startOfWeek, format } from "date-fns";
 
 const Shifts = () => {
   const { t } = useTranslation();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
@@ -84,7 +97,7 @@ const Shifts = () => {
 
   const getLocationName = (locationId: string) => {
     const location = locations.find(l => l.id === locationId);
-    return location?.name || t('workforce.shifts.unknownLocation');
+    return location?.name || `Unknown ${locationLabel}`;
   };
 
   const getAssignedEmployees = (shift: any) => {
@@ -101,9 +114,9 @@ const Shifts = () => {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">{t('workforce.shifts.title')}</h1>
+              <h1 className="text-2xl font-bold">{`${shiftLabel} Scheduling`}</h1>
               <p className="text-muted-foreground text-sm">
-                {t('workforce.shifts.subtitle')}
+                {`Create and manage ${shiftsLabel.toLowerCase()} for your ${employeesLabel.toLowerCase()}`}
               </p>
             </div>
           </div>
@@ -150,9 +163,9 @@ const Shifts = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('workforce.shifts.title')}</h1>
+          <h1 className="text-3xl font-bold">{`${shiftLabel} Scheduling`}</h1>
           <p className="text-muted-foreground mt-1">
-            {t('workforce.shifts.subtitle')}
+            {`Create and manage ${shiftsLabel.toLowerCase()} for your ${employeesLabel.toLowerCase()}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -204,38 +217,38 @@ const Shifts = () => {
           )}
           
           <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
-            <CardDescription>{t('workforce.shifts.selectDate')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border"
-            />
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
+                <CardDescription>{`Select a date to view or create ${shiftsLabel.toLowerCase()}`}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md border"
+                />
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('workforce.shifts.shiftsFor')} {date?.toLocaleDateString()}</CardTitle>
-            <CardDescription>{t('workforce.shifts.viewManage')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>{`${shiftsLabel} for`} {date?.toLocaleDateString()}</CardTitle>
+                <CardDescription>{`View and manage today's ${shiftsLabel.toLowerCase()}`}</CardDescription>
+              </CardHeader>
+              <CardContent>
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-                <p className="text-muted-foreground">{t('workforce.shifts.loadingShifts')}</p>
+                <p className="text-muted-foreground">{`Loading ${shiftsLabel.toLowerCase()}...`}</p>
               </div>
             ) : shifts.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
-                <p>{t('workforce.shifts.noShifts')}</p>
+                <p>{`No ${shiftsLabel.toLowerCase()} scheduled for this date.`}</p>
                 <Button className="mt-4" variant="outline" onClick={() => setShiftDialogOpen(true)}>
                   <CalendarPlus className="mr-2 h-4 w-4" />
-                  {t('workforce.shifts.createShift')}
+                  {`Create ${shiftLabel}`}
                 </Button>
               </div>
             ) : (
@@ -246,7 +259,7 @@ const Shifts = () => {
                       <MapPin className="h-4 w-4 text-primary" />
                       <h3 className="font-semibold text-lg">{getLocationName(locationId)}</h3>
                       <Badge variant="outline" className="ml-auto">
-                        {locationShifts.length} shift{locationShifts.length !== 1 ? 's' : ''}
+                        {locationShifts.length} {locationShifts.length === 1 ? shiftLabel : shiftsLabel}
                       </Badge>
                     </div>
                     {locationShifts.map((shift) => {
@@ -262,7 +275,7 @@ const Shifts = () => {
                               <div className="font-semibold text-base">{shift.role}</div>
                               {shift.is_open_shift && (
                                 <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                                  {t('workforce.shifts.openShift')}
+                                  {`Open ${shiftLabel}`}
                                 </Badge>
                               )}
                               <Badge 
@@ -307,7 +320,7 @@ const Shifts = () => {
                             <div className="mt-3 pt-3 border-t">
                               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                                 <UserCheck className="h-4 w-4 text-green-600" />
-                                {t('workforce.shifts.assignedStaff')}:
+                                {`Assigned ${employeesLabel}`}:
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {approved.map((assignment: any) => {
@@ -363,7 +376,7 @@ const Shifts = () => {
                           {needsMore > 0 && (
                             <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
                               <AlertCircle className="h-4 w-4" />
-                              {t('workforce.shifts.needsMore', { count: needsMore, person: needsMore === 1 ? 'person' : 'people' })}
+                              {`Needs ${needsMore} more ${needsMore === 1 ? employeeLabel.toLowerCase() : employeesLabel.toLowerCase()}`}
                             </div>
                           )}
                           

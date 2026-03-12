@@ -17,12 +17,25 @@ import { useCompany } from "@/hooks/useCompany";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { EnhancedShiftDialog } from "./EnhancedShiftDialog";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface MobileShiftDayViewProps {
   onShiftClick?: (shift: any) => void;
 }
 
 export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) => {
+  const {
+    employee: employeeTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
@@ -156,11 +169,11 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
             <SelectTrigger className="bg-white/10 border-white/20 text-primary-foreground">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <SelectValue placeholder="Select location" />
+                <SelectValue placeholder={`Select ${locationLabel.toLowerCase()}`} />
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
               {locations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>
                   {loc.name}
@@ -223,16 +236,16 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
               
               <div className="p-3 space-y-2">
                 {shiftsWithAssignments.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground mb-2">No shifts scheduled</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleAddShift(day)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Shift
-                    </Button>
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground mb-2">{`No ${shiftsLabel.toLowerCase()} scheduled`}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleAddShift(day)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        {`Add ${shiftLabel}`}
+                      </Button>
                   </div>
                 ) : (
                   <>
@@ -269,7 +282,7 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-sm truncate">
-                                  {employee?.full_name || 'Unassigned'}
+                                  {employee?.full_name || `Unassigned ${employeeLabel.toLowerCase()}`}
                                 </span>
                                 {employee && isAbsent(employee.id, shift.id) && (
                                   <Badge variant="destructive" className="text-xs">Absent</Badge>
@@ -342,7 +355,7 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                       onClick={() => handleAddShift(day)}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      Add Shift
+                      {`Add ${shiftLabel}`}
                     </Button>
                   </>
                 )}
