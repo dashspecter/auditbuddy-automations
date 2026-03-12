@@ -11,7 +11,7 @@ import {
   Plus, BookOpen, Users, Calendar, Clock, ChevronRight, 
   GraduationCap, Target, Search, Filter, Trash2
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTrainingModules, useDeleteTrainingModule } from "@/hooks/useTrainingModules";
 import { useTrainingAssignments } from "@/hooks/useTrainingAssignments";
 import {
