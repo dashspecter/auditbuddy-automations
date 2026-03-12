@@ -17,6 +17,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useWarnings, useDeleteStaffEvent } from "@/hooks/useStaffEvents";
 import { WarningDialog } from "@/components/workforce/WarningDialog";
 import { WarningDetailDialog } from "@/components/workforce/WarningDetailDialog";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   AlertDialog,
   AlertDialogAction,
