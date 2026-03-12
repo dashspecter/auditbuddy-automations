@@ -471,7 +471,7 @@ const StaffAuditNew = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
+                  <Label htmlFor="location">{locationLabel} *</Label>
                   <LocationSelector
                     id="location"
                     value={formData.location_id}
@@ -483,7 +483,7 @@ const StaffAuditNew = () => {
                         employee_id: "",
                       }));
                     }}
-                    placeholder="Select location"
+                    placeholder={`Select ${locationLabelLower}`}
                     disabled={isScheduledMode}
                   />
                 </div>
