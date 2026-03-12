@@ -49,6 +49,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Settings,
     color: 'text-purple-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'workforce',
