@@ -29,6 +29,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: MapPin,
     color: 'text-blue-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'staff_performance',
