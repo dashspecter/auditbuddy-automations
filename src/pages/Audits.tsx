@@ -308,7 +308,7 @@ const Audits = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search by location or checker..." 
+                  placeholder={`Search by ${locationLabelLower} or checker...`}
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -320,8 +320,8 @@ const Audits = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="location">Location</SelectItem>
-                  <SelectItem value="staff">Staff Performance</SelectItem>
+                  <SelectItem value="location">{locationLabel}</SelectItem>
+                  <SelectItem value="staff">{`${employeeLabel} Performance`}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -353,13 +353,13 @@ const Audits = () => {
 
             {isLoading ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading audits...</p>
+                <p className="text-muted-foreground">{`Loading ${auditsLabelLower}...`}</p>
               </div>
             ) : filteredAudits.length === 0 ? (
               <EmptyState
                 icon={FileEdit}
-                title={audits?.length === 0 ? "No Audits Yet" : "No Matching Audits"}
-                description={audits?.length === 0 ? "Create your first audit using the button above." : "No audits match your current filters."}
+                title={audits?.length === 0 ? `No ${auditsLabel} Yet` : `No Matching ${auditsLabel}`}
+                description={audits?.length === 0 ? `Create your first ${auditLabelLower} using the button above.` : `No ${auditsLabelLower} match your current filters.`}
               />
             ) : (
               <div className="space-y-3">
