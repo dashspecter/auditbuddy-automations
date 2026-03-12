@@ -124,7 +124,22 @@ export const AttendanceQRDialog = ({
         </DialogHeader>
 
         <div className="space-y-4">
-...
+          <div className="space-y-2">
+            <Label>QR Code Type</Label>
+            <Select
+              value={qrType}
+              onValueChange={(value: "checkin" | "checkout") => setQrType(value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="checkin">Check In</SelectItem>
+                <SelectItem value="checkout">Check Out</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label>{locationLabel}</Label>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>

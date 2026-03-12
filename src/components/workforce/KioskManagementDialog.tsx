@@ -54,16 +54,13 @@ export const KioskManagementDialog = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const {
-    employee: employeeTerm,
     employees: employeesTerm,
     location: locationTerm,
     locations: locationsTerm,
   } = useTerminology();
-  const employeeLabel = employeeTerm();
   const employeesLabel = employeesTerm();
   const locationLabel = locationTerm();
   const locationsLabel = locationsTerm();
-  const employeeLabelLower = employeeLabel.toLowerCase();
   const employeesLabelLower = employeesLabel.toLowerCase();
   const locationLabelLower = locationLabel.toLowerCase();
   const locationsLabelLower = locationsLabel.toLowerCase();
