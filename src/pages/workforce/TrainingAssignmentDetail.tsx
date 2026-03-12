@@ -43,7 +43,10 @@ const TrainingAssignmentDetail = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+  const { employee, location } = useTerminology();
+  const employeeLabelLower = employee().toLowerCase();
+  const employeeLabel = employee();
+  const locationLabel = location();
   const { data: assignment, isLoading } = useTrainingAssignment(id);
   const { data: days = [] } = useTrainingModuleDays(assignment?.module_id);
   const { data: evaluations = [] } = useTrainingEvaluations(id);
