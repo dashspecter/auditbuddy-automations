@@ -23,16 +23,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
 import { isCompletedAudit, isDraftAudit, isDiscardedAudit, getCompletionDate } from "@/lib/auditHelpers";
-
-const auditsSubItems = [
-  { title: "Location Audits", url: "/audits", icon: MapPin, description: "Location audits", isCurrent: true },
-  { title: "Employee Audits", url: "/staff-audits/all", icon: Users, description: "Staff audits" },
-  { title: "Mystery Shopper", url: "/audits/mystery-shopper", icon: UserSearch, description: "Mystery visits" },
-  { title: "Templates", url: "/audits/templates", icon: Library, description: "Audit templates" },
-  { title: "Calendar", url: "/audits-calendar", icon: Calendar, description: "Audit calendar" },
-  { title: "Schedules", url: "/recurring-schedules", icon: CalendarClock, description: "Recurring audits" },
-  { title: "Photo Gallery", url: "/photos", icon: Image, description: "All photos" },
-];
+import { useTerminology } from "@/hooks/useTerminology";
+import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 
 const Audits = () => {
   const navigate = useNavigate();
