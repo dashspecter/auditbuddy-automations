@@ -178,6 +178,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: BarChart3,
     color: 'text-pink-500',
     category: 'analytics',
+    governmentDefault: true,
   },
   {
     code: 'insights',
