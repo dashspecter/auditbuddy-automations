@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const DRAFT_STORAGE_KEY = "test_creation_draft";
 
