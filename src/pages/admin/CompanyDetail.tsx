@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Package, UserCog } from "lucide-react";
 import { format } from "date-fns";
-import { MODULE_REGISTRY, CATEGORY_LABELS } from "@/config/moduleRegistry";
+import { MODULE_REGISTRY, CATEGORY_LABELS, GOVERNMENT_DEFAULT_MODULES } from "@/config/moduleRegistry";
 import { toast } from "sonner";
 import { useCompanyOverview } from "./company-detail/useCompanyOverview";
 import { CompanyActivityOverview } from "./company-detail/CompanyActivityOverview";
