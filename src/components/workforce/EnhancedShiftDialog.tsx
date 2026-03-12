@@ -983,7 +983,7 @@ export const EnhancedShiftDialog = ({
               <div className="space-y-3">
                 {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound') : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation') : t('workforce.components.enhancedShiftDialog.selectLocationFirst'))}
+                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound', `No ${t_.employees().toLowerCase()} found`) : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation', `No ${t_.employees().toLowerCase()} at this ${t_.location().toLowerCase()}`) : `Select a ${t_.location().toLowerCase()} first`)}
                   </p>
                 ) : (
                   availableEmployees
