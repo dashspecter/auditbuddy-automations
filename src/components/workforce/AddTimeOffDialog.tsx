@@ -96,7 +96,7 @@ export const AddTimeOffDialog = ({
             <Label>{t_.employee()} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder={t('workforce.components.addTimeOffDialog.selectEmployee')} />
+                <SelectValue placeholder={`Select ${t_.employee().toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((emp) => (

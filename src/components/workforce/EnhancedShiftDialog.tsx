@@ -1285,7 +1285,7 @@ export const EnhancedShiftDialog = ({
                   (shiftValidation && !shiftValidation.isValid)
                 }
               >
-                {shift ? t('workforce.components.enhancedShiftDialog.update') : t('workforce.components.enhancedShiftDialog.create')} {t('workforce.components.enhancedShiftDialog.shift')}
+                {shift ? t('workforce.components.enhancedShiftDialog.update', 'Update') : t('workforce.components.enhancedShiftDialog.create', 'Create')} {t_.shift()}
               </Button>
             </div>
           </div>
