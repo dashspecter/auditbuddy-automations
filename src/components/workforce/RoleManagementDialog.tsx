@@ -99,7 +99,7 @@ export function RoleManagementDialog({ open, onOpenChange }: RoleManagementDialo
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Server, Manager"
+                    placeholder="e.g., Analyst, Coordinator"
                     required
                   />
                 </div>
