@@ -289,7 +289,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
         }
       }
       
-      toast.success(`${values.audits.length} audit(s) scheduled successfully`);
+      toast.success(`${values.audits.length} ${auditLabelLower}${values.audits.length !== 1 ? 's' : ''} scheduled successfully`);
       clearDraft();
       form.reset();
       onOpenChange(false);
