@@ -4,11 +4,20 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { ClipboardList, Star, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ClipboardList, Star } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
+
 export default function StaffAuditsViewAll() {
   const { data: audits, isLoading } = useStaffAudits();
   const navigate = useNavigate();
+  const { employee, employees, audit, audits: auditsTerm } = useTerminology();
+
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const auditLabel = audit();
+  const auditsLabel = auditsTerm();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const auditsLabelLower = auditsLabel.toLowerCase();
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500";
@@ -17,7 +26,6 @@ export default function StaffAuditsViewAll() {
   };
 
   const handleAuditClick = (audit: any) => {
-    // Navigate to the staff audit detail page
     navigate(`/staff-audits/${audit.id}`);
   };
 
@@ -26,17 +34,16 @@ export default function StaffAuditsViewAll() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
-            All Employee Audits
+            {`All ${employeesLabel} ${auditsLabel}`}
           </h1>
           <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
-            Complete history of all employee audits
+            {`Complete history of all ${employeeLabelLower} ${auditsLabelLower}`}
           </p>
         </div>
       </div>
 
-      {/* Quick Action Cards - Mobile friendly */}
       <div className="grid grid-cols-2 gap-3">
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors border-2 border-primary/20"
           onClick={() => navigate("/staff-audits/new")}
         >
@@ -44,10 +51,10 @@ export default function StaffAuditsViewAll() {
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <ClipboardList className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-sm font-medium">New Staff Audit</span>
+            <span className="text-sm font-medium">{`New ${employeeLabel} ${auditLabel}`}</span>
           </CardContent>
         </Card>
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors border-2 border-amber-500/20"
           onClick={() => navigate("/staff-audits?review=new")}
         >
@@ -62,9 +69,9 @@ export default function StaffAuditsViewAll() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Employee Audits</CardTitle>
+          <CardTitle>{`All ${employeesLabel} ${auditsLabel}`}</CardTitle>
           <CardDescription>
-            Complete history of all employee audits
+            {`Complete history of all ${employeeLabelLower} ${auditsLabelLower}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,10 +91,8 @@ export default function StaffAuditsViewAll() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-foreground">
-                        {audit.employees?.full_name}
-                      </h3>
-                      <Badge variant="staff" className="text-xs">Staff Audit</Badge>
+                      <h3 className="font-semibold text-foreground">{audit.employees?.full_name}</h3>
+                      <Badge variant="staff" className="text-xs">{`${employeeLabel} ${auditLabel}`}</Badge>
                       <Badge variant="outline">{audit.employees?.role}</Badge>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
@@ -96,22 +101,18 @@ export default function StaffAuditsViewAll() {
                       <span>{format(new Date(audit.audit_date), "MMM dd, yyyy")}</span>
                     </div>
                     {audit.notes && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {audit.notes}
-                      </p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{audit.notes}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className={getScoreColor(audit.score)}>
-                      {audit.score}%
-                    </Badge>
+                    <Badge className={getScoreColor(audit.score)}>{audit.score}%</Badge>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No employee audits found.
+              {`No ${employeeLabelLower} ${auditsLabelLower} found.`}
             </div>
           )}
         </CardContent>
