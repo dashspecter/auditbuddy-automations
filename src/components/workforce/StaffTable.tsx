@@ -470,14 +470,14 @@ export const StaffTable = () => {
       ) : (
         <div className="text-center py-12 text-muted-foreground space-y-4">
           <div>
-            <p className="font-medium">{t('workforce.components.staffTable.noStaffFound')}</p>
+            <p className="font-medium">{`No ${term.employees().toLowerCase()} found`}</p>
             {activeFilterCount > 0 ? (
               <p className="text-sm mt-2">
                 {t('workforce.components.staffTable.noResultsFilter')}
               </p>
             ) : (
               <p className="text-sm mt-2">
-                {t('workforce.components.staffTable.noStaffAdded')}
+                {`No ${term.employees().toLowerCase()} have been added yet.`}
               </p>
             )}
           </div>
