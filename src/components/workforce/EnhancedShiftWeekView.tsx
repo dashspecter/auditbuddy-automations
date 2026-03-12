@@ -939,7 +939,7 @@ export const EnhancedShiftWeekView = () => {
         <div className="grid grid-cols-8 border-b bg-muted/60">
           <div className="p-3 border-r font-medium flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            Open Shifts
+            {`Open ${shiftsLabel}`}
           </div>
           {weekDays.map((day) => {
             const openShifts = getOpenShiftsForDay(day);
