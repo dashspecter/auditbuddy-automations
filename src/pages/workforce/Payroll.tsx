@@ -289,8 +289,8 @@ const Payroll = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="current">{t('workforce.payroll.staffSummary')}</TabsTrigger>
-          <TabsTrigger value="locations">{t('workforce.payroll.byLocation')}</TabsTrigger>
+          <TabsTrigger value="current">{`${employeesLabel} Summary`}</TabsTrigger>
+          <TabsTrigger value="locations">{`By ${locationLabel}`}</TabsTrigger>
           <TabsTrigger value="daily">{t('workforce.payroll.dailyBreakdown')}</TabsTrigger>
           <TabsTrigger value="history">{t('workforce.payroll.historyTab')}</TabsTrigger>
         </TabsList>
@@ -298,12 +298,12 @@ const Payroll = () => {
         <TabsContent value="current">
           <Card>
             <CardHeader>
-              <CardTitle>{t('workforce.payroll.staffPayrollSummary')}</CardTitle>
+              <CardTitle>{`${employeesLabel} Payroll Summary`}</CardTitle>
               <CardDescription>
                 {activePeriod 
                   ? `${format(new Date(activePeriod.start_date), "MMMM d")} - ${format(new Date(activePeriod.end_date), "MMMM d, yyyy")}`
                   : t('workforce.payroll.noActivePeriod')}
-                {selectedLocationId !== "all" && ` • ${t('workforce.payroll.filteredByLocation')}`}
+                {selectedLocationId !== "all" && ` • Filtered by ${locationLabelLower}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
