@@ -27,13 +27,20 @@ import { startOfWeek, format } from "date-fns";
 
 const Shifts = () => {
   const { t } = useTranslation();
-  const { employee, employees, location, locations, shift, shifts } = useTerminology();
-  const employeeLabel = employee();
-  const employeesLabel = employees();
-  const locationLabel = location();
-  const locationsLabel = locations();
-  const shiftLabel = shift();
-  const shiftsLabel = shifts();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+    shift: shiftTerm,
+    shifts: shiftsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const shiftLabel = shiftTerm();
+  const shiftsLabel = shiftsTerm();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [pendingDialogOpen, setPendingDialogOpen] = useState(false);
