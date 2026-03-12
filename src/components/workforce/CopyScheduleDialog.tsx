@@ -41,14 +41,12 @@ export const CopyScheduleDialog = ({ open, onOpenChange }: CopyScheduleDialogPro
     employees: employeesTerm,
     location: locationTerm,
     locations: locationsTerm,
-    shift: shiftTerm,
     shifts: shiftsTerm,
   } = useTerminology();
   const employeeLabel = employeeTerm();
   const employeesLabel = employeesTerm();
   const locationLabel = locationTerm();
   const locationsLabel = locationsTerm();
-  const shiftLabel = shiftTerm();
   const shiftsLabel = shiftsTerm();
   const [sourceStartDate, setSourceStartDate] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [sourceEndDate, setSourceEndDate] = useState<Date>(endOfWeek(new Date(), { weekStartsOn: 1 }));

@@ -31,14 +31,12 @@ const Shifts = () => {
     employee: employeeTerm,
     employees: employeesTerm,
     location: locationTerm,
-    locations: locationsTerm,
     shift: shiftTerm,
     shifts: shiftsTerm,
   } = useTerminology();
   const employeeLabel = employeeTerm();
   const employeesLabel = employeesTerm();
   const locationLabel = locationTerm();
-  const locationsLabel = locationsTerm();
   const shiftLabel = shiftTerm();
   const shiftsLabel = shiftsTerm();
   const [date, setDate] = useState<Date | undefined>(new Date());

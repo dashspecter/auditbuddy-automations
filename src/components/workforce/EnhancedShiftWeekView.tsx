@@ -65,14 +65,12 @@ export const EnhancedShiftWeekView = () => {
     employees: employeesTerm,
     location: locationTerm,
     locations: locationsTerm,
-    shift: shiftTerm,
     shifts: shiftsTerm,
   } = useTerminology();
   const employeeLabel = employeeTerm();
   const employeesLabel = employeesTerm();
   const locationLabel = locationTerm();
   const locationsLabel = locationsTerm();
-  const shiftLabel = shiftTerm();
   const shiftsLabel = shiftsTerm();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
