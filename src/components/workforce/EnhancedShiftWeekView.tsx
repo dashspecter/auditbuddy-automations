@@ -1430,7 +1430,7 @@ export const EnhancedShiftWeekView = () => {
                       );
                     })}
                     {locationShifts.length === 0 && (
-                      <div className="text-xs text-muted-foreground text-center py-2">No shifts</div>
+                      <div className="text-xs text-muted-foreground text-center py-2">{`No ${shiftsLabel.toLowerCase()}`}</div>
                     )}
                   </div>
                 );
