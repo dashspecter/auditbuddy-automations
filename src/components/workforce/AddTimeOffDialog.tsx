@@ -11,6 +11,7 @@ import { CalendarIcon, Palmtree } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCreateTimeOffRequest } from "@/hooks/useTimeOffRequests";
+import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
 
 interface AddTimeOffDialogProps {
@@ -36,6 +37,7 @@ export const AddTimeOffDialog = ({
   const [reason, setReason] = useState("");
   
   const createTimeOff = useCreateTimeOffRequest();
+  const t_ = useTerminology();
 
   useEffect(() => {
     if (open) {
@@ -85,16 +87,16 @@ export const AddTimeOffDialog = ({
             {t('workforce.components.addTimeOffDialog.title')}
           </DialogTitle>
           <DialogDescription>
-            {t('workforce.components.addTimeOffDialog.description')}
+            {t('workforce.components.addTimeOffDialog.description', `Add vacation or absence for a ${t_.employee().toLowerCase()}. This will be automatically approved.`)}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>{t('workforce.components.addTimeOffDialog.employee')} *</Label>
+            <Label>{t_.employee()} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder={t('workforce.components.addTimeOffDialog.selectEmployee')} />
+                <SelectValue placeholder={`Select ${t_.employee().toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((emp) => (

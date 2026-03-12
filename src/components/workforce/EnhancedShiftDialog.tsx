@@ -35,6 +35,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
 import { useShiftPresets } from "@/hooks/useShiftPresets";
+import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -104,6 +105,7 @@ export const EnhancedShiftDialog = ({
   const { data: employees = [] } = useEmployees(showAllLocations ? undefined : (formData.location_id || undefined));
   const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
   const { data: shiftPresets = [] } = useShiftPresets();
+  const t_ = useTerminology();
 
   // Fetch existing shift assignments for the selected date to filter out unavailable employees
   const { data: existingAssignments = [] } = useQuery({
@@ -640,14 +642,14 @@ export const EnhancedShiftDialog = ({
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>
-            {shift ? t('workforce.components.enhancedShiftDialog.editShift') : t('workforce.components.enhancedShiftDialog.createShift')}
+            {shift ? `${t('workforce.components.enhancedShiftDialog.editShift', `Edit ${t_.shift()}`)}` : `${t('workforce.components.enhancedShiftDialog.createShift', `Create ${t_.shift()}`)}`}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto flex-1 px-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('workforce.components.enhancedShiftDialog.location')} *</Label>
+              <Label>{t_.location()} *</Label>
               <Select
                 value={formData.location_id}
                 onValueChange={(value) =>
@@ -656,7 +658,7 @@ export const EnhancedShiftDialog = ({
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('workforce.components.enhancedShiftDialog.selectLocation')} />
+                  <SelectValue placeholder={`Select ${t_.location().toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location) => (
@@ -704,7 +706,7 @@ export const EnhancedShiftDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="required_count">
-                {t('workforce.components.enhancedShiftDialog.staffNeeded')} *
+                {t('workforce.components.enhancedShiftDialog.staffNeeded', `${t_.employees()} Needed for this Role`)} *
                 {formData.role && (
                   <span className="text-xs text-muted-foreground block mt-1">
                     {String(t('workforce.components.enhancedShiftDialog.totalPositions', { role: roles.find(r => r.name === formData.role)?.name || 'staff' }))}
@@ -817,7 +819,7 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Type */}
           <div className="space-y-2">
-            <Label>{t('workforce.components.shiftDialog.shiftType', 'Shift Type')}</Label>
+            <Label>{t_.shift()} {t('workforce.components.shiftDialog.type', 'Type')}</Label>
             <Select
               value={formData.shift_type}
               onValueChange={(value) =>
@@ -895,7 +897,7 @@ export const EnhancedShiftDialog = ({
           {/* Assign Employees */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>{t('workforce.components.enhancedShiftDialog.assignEmployees')}</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.assignEmployees', `Assign Specific ${t_.employees()} (Optional)`)}</Label>
               <div className="flex items-center gap-2">
                 {batchMode && (
                   <Badge variant="secondary">
@@ -945,7 +947,7 @@ export const EnhancedShiftDialog = ({
                   onCheckedChange={(checked) => setShowAllLocations(checked as boolean)}
                 />
                 <Label htmlFor="show_all_locations" className="cursor-pointer text-xs font-normal">
-                  {t('workforce.components.enhancedShiftDialog.showAllLocations')}
+                  {t('workforce.components.enhancedShiftDialog.showAllLocations', `Show all ${t_.locations().toLowerCase()}`)}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -972,7 +974,7 @@ export const EnhancedShiftDialog = ({
               </div>
             </div>
             <Input
-              placeholder={t('workforce.components.enhancedShiftDialog.searchEmployees', 'Search employees...')}
+              placeholder={`Search ${t_.employees().toLowerCase()}...`}
               value={employeeSearch}
               onChange={(e) => setEmployeeSearch(e.target.value)}
               className="h-8 text-sm"
@@ -981,7 +983,7 @@ export const EnhancedShiftDialog = ({
               <div className="space-y-3">
                 {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound') : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation') : t('workforce.components.enhancedShiftDialog.selectLocationFirst'))}
+                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound', `No ${t_.employees().toLowerCase()} found`) : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation', `No ${t_.employees().toLowerCase()} at this ${t_.location().toLowerCase()}`) : `Select a ${t_.location().toLowerCase()} first`)}
                   </p>
                 ) : (
                   availableEmployees
@@ -1140,7 +1142,7 @@ export const EnhancedShiftDialog = ({
               <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                 {availableEmployees.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound') : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation') : t('workforce.components.enhancedShiftDialog.selectLocationFirst'))}
+                    {showAllLocations ? t('workforce.components.enhancedShiftDialog.noEmployeesFound', `No ${t_.employees().toLowerCase()} found`) : (formData.location_id ? t('workforce.components.enhancedShiftDialog.noEmployeesLocation', `No ${t_.employees().toLowerCase()} at this ${t_.location().toLowerCase()}`) : `Select a ${t_.location().toLowerCase()} first`)}
                   </p>
                 ) : (
                   availableEmployees
@@ -1207,7 +1209,7 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Status */}
           <div className="space-y-2">
-            <Label>Shift Status</Label>
+            <Label>{t_.shift()} Status</Label>
             <Select
               value={formData.shift_status}
               onValueChange={(value) =>
@@ -1221,19 +1223,19 @@ export const EnhancedShiftDialog = ({
                 <SelectItem value="draft">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    Draft — internal only, not visible to employees
+                    Draft — internal only, not visible to {t_.employees().toLowerCase()}
                   </div>
                 </SelectItem>
                 <SelectItem value="open">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    Open — visible to matching-role employees to claim
+                    Open — visible to matching-role {t_.employees().toLowerCase()} to claim
                   </div>
                 </SelectItem>
                 <SelectItem value="published">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-green-500" />
-                    Published — in schedule, visible to assigned employees
+                    Published — in schedule, visible to assigned {t_.employees().toLowerCase()}
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -1283,7 +1285,7 @@ export const EnhancedShiftDialog = ({
                   (shiftValidation && !shiftValidation.isValid)
                 }
               >
-                {shift ? t('workforce.components.enhancedShiftDialog.update') : t('workforce.components.enhancedShiftDialog.create')} {t('workforce.components.enhancedShiftDialog.shift')}
+                {shift ? t('workforce.components.enhancedShiftDialog.update', 'Update') : t('workforce.components.enhancedShiftDialog.create', 'Create')} {t_.shift()}
               </Button>
             </div>
           </div>
