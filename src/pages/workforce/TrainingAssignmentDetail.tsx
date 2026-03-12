@@ -304,7 +304,7 @@ const TrainingAssignmentDetail = () => {
                 <GraduationCap className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('training.trainee', 'Trainee')}</p>
+                <p className="text-sm text-muted-foreground">{t('training.traineeLabel', employeeLabel)}</p>
                 <p className="font-medium">{assignment.trainee?.full_name}</p>
                 {assignment.trainee?.role && (
                   <p className="text-xs text-muted-foreground">{assignment.trainee.role}</p>

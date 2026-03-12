@@ -174,7 +174,7 @@ const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
         {/* Trainees */}
         <div>
           <div className="text-sm font-medium text-muted-foreground mb-2">
-            {t('training.trainees', 'Trainees')} ({trainees.length})
+            {t('training.traineesLabel', employeesLabel)} ({trainees.length})
           </div>
           <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
             {trainees.map(trainee => (
@@ -184,7 +184,7 @@ const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
             ))}
             {trainees.length === 0 && (
               <span className="text-sm text-muted-foreground">
-                {t('training.noTrainees', 'No trainees assigned')}
+                {t('training.noTraineesAssigned', `No ${employeesLabelLower} assigned`)}
               </span>
             )}
           </div>
