@@ -94,15 +94,31 @@ export default function CompanyDetail() {
     const newState = !isModuleActive(code);
 
     try {
-      const { error } = await supabase
-        .from('company_modules')
-        .upsert(
-          { company_id: id, module_name: code, is_active: newState },
-          { onConflict: 'company_id,module_name' }
-        );
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
-      toast.success(`${displayName} ${newState ? 'enabled' : 'disabled'}`);
+      // When enabling government_ops, also bulk-enable all government default modules
+      if (code === 'government_ops' && newState) {
+        const modulesToEnable = [...new Set([code, ...GOVERNMENT_DEFAULT_MODULES])];
+        const rows = modulesToEnable.map((m) => ({
+          company_id: id,
+          module_name: m,
+          is_active: true,
+        }));
+        const { error } = await supabase
+          .from('company_modules')
+          .upsert(rows, { onConflict: 'company_id,module_name' });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
+        toast.success(`${displayName} enabled with all companion modules`);
+      } else {
+        const { error } = await supabase
+          .from('company_modules')
+          .upsert(
+            { company_id: id, module_name: code, is_active: newState },
+            { onConflict: 'company_id,module_name' }
+          );
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
+        toast.success(`${displayName} ${newState ? 'enabled' : 'disabled'}`);
+      }
     } catch (error) {
       console.error('Error toggling module:', error);
       toast.error('Failed to update module');

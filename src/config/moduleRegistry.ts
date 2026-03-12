@@ -227,3 +227,8 @@ export const CATEGORY_LABELS: Record<ModuleDefinition['category'], string> = {
   communication: 'Communication',
   analytics: 'Analytics & Insights',
 };
+
+/** Module codes that should auto-activate when government_ops is enabled */
+export const GOVERNMENT_DEFAULT_MODULES: string[] = MODULE_REGISTRY
+  .filter((m) => m.governmentDefault)
+  .map((m) => m.code);
