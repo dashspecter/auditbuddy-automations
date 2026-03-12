@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface AuditField {
   id: string;
