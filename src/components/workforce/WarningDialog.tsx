@@ -255,13 +255,13 @@ export function WarningDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">{t("common.location", "Location")}</Label>
+              <Label htmlFor="location">{t("common.locationLabel", locationLabel)}</Label>
               <Select value={locationId || "global"} onValueChange={(v) => setLocationId(v === "global" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("warnings.globalLocation", "Global")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="global">Global</SelectItem>
+                  <SelectItem value="global">{t("warnings.globalLocation", "Global")}</SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}

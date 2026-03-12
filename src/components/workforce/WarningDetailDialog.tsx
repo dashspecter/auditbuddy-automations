@@ -105,8 +105,8 @@ export function WarningDetailDialog({ open, onOpenChange, event }: WarningDetail
             
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{t("common.location", "Location")}:</span>
-              <span>{event.employee?.locations?.name || "Global"}</span>
+              <span className="text-muted-foreground">{t("common.locationLabel", locationLabel)}:</span>
+              <span>{event.employee?.locations?.name || t("warnings.globalLocation", "Global")}</span>
             </div>
             
             <div className="flex items-center gap-2">

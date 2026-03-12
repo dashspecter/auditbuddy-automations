@@ -197,7 +197,7 @@ const TimeOffApprovals = () => {
           {requests.length === 0 ? (
             <Card className="p-8 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t('workforce.timeOff.noPending')}</p>
+              <p className="text-muted-foreground">{t('workforce.timeOff.noPendingWithTerminology', `No pending ${employeesLabelLower} time off requests`)}</p>
             </Card>
           ) : (
             requests.map((request) => (
