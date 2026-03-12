@@ -1209,7 +1209,7 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Status */}
           <div className="space-y-2">
-            <Label>Shift Status</Label>
+            <Label>{t_.shift()} Status</Label>
             <Select
               value={formData.shift_status}
               onValueChange={(value) =>
