@@ -626,7 +626,7 @@ export const EmployeeDialog = ({
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="location">Primary Location</Label>
+            <Label htmlFor="location">{`Primary ${term.location()}`}</Label>
             <Select
               value={formData.location_id}
               onValueChange={(value) => {
