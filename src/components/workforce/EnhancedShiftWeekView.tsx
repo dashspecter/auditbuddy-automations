@@ -1297,7 +1297,7 @@ export const EnhancedShiftWeekView = () => {
             {/* Shifts row for this location */}
             <div className="grid grid-cols-8 border-b hover:bg-muted/30 transition-colors">
               <div className="p-3 border-r text-xs text-muted-foreground">
-                All shifts
+                {`All ${shiftsLabel.toLowerCase()}`}
               </div>
               {weekDays.map((day) => {
                 const locationShifts = getShiftsForLocationAndDay(location.id, day);
