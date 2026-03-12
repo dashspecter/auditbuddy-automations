@@ -240,7 +240,7 @@ const Training = () => {
           </Dialog>
           <Button variant="outline" onClick={() => navigate('/workforce/training/assignments/new')}>
             <Users className="mr-2 h-4 w-4" />
-            {t('training.assignTrainee', 'Assign Trainee')}
+            {t('training.assignEmployee', `Assign ${employeeLabel}`)}
           </Button>
         </div>
       </div>
