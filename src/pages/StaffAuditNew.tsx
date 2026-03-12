@@ -446,12 +446,12 @@ const StaffAuditNew = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
-            {isScheduledMode ? 'Scheduled Staff Audit' : 'New Staff Audit'}
+            {isScheduledMode ? `Scheduled ${employeeLabel} ${auditLabel}` : `New ${employeeLabel} ${auditLabel}`}
           </h1>
           <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
             {isScheduledMode && scheduledAuditData
-              ? `Scheduled audit for ${scheduledAuditData.employees?.full_name || 'employee'} at ${scheduledAuditData.locations?.name || 'location'}`
-              : 'Create a new staff performance audit'}
+              ? `Scheduled ${auditLabelLower} for ${scheduledAuditData.employees?.full_name || employeeLabelLower} at ${scheduledAuditData.locations?.name || locationLabelLower}`
+              : `Create a new ${employeeLabelLower} ${auditLabelLower}`}
           </p>
         </div>
         {selectedTemplate && (
