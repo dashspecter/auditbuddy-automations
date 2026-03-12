@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
+import { useTerminology } from "@/hooks/useTerminology";
 import { PayPeriodDialog } from "@/components/workforce/PayPeriodDialog";
 import { format, parseISO, eachDayOfInterval, isWithinInterval } from "date-fns";
 import { Badge } from "@/components/ui/badge";

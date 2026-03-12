@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download, UserX } from "lucide-react";
 import { generatePayrollReportPDF } from "@/lib/payrollReportPdf";
 import { LocationSelector } from "@/components/LocationSelector";
