@@ -219,18 +219,27 @@ const Shifts = () => {
           )}
           
           <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-            <CardHeader>
-              <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
-              <CardDescription>{`Select a date to view or create ${shiftsLabel.toLowerCase()}`}</CardDescription>
-            </CardHeader>
-...
-          <Card>
-            <CardHeader>
-              <CardTitle>{`${shiftsLabel} for`} {date?.toLocaleDateString()}</CardTitle>
-              <CardDescription>{`View and manage today's ${shiftsLabel.toLowerCase()}`}</CardDescription>
-            </CardHeader>
-          <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('workforce.shifts.calendarView')}</CardTitle>
+                <CardDescription>{`Select a date to view or create ${shiftsLabel.toLowerCase()}`}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md border"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{`${shiftsLabel} for`} {date?.toLocaleDateString()}</CardTitle>
+                <CardDescription>{`View and manage today's ${shiftsLabel.toLowerCase()}`}</CardDescription>
+              </CardHeader>
+              <CardContent>
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
