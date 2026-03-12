@@ -48,9 +48,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function Warnings() {
   const { t } = useTranslation();
-  const { employee: employeeTerm, employees: employeesTerm, locations: locationsTerm } = useTerminology();
-  const employeeLabel = employeeTerm();
-  const employeeLabelLower = employeeLabel.toLowerCase();
+  const { employees: employeesTerm, locations: locationsTerm } = useTerminology();
   const employeesLabel = employeesTerm();
   const employeesLabelLower = employeesLabel.toLowerCase();
   const locationsLabel = locationsTerm();
