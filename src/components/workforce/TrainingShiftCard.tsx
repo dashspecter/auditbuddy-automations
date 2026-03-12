@@ -109,6 +109,8 @@ const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
   const { employees } = useTerminology();
   const employeesLabel = employees();
   const employeesLabelLower = employeesLabel.toLowerCase();
+
+  const session = shift.training_session;
   const module = shift.training_module;
   
   const trainers = session?.attendees?.filter(a => a.attendee_role === 'trainer') || [];
