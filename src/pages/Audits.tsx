@@ -229,7 +229,7 @@ const Audits = () => {
     await queryClient.invalidateQueries({ queryKey: ['audit_templates'] });
     toast({
       title: "Refreshed",
-      description: "Audits data has been updated.",
+      description: `${auditsLabel} data has been updated.`,
     });
   };
 
