@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/hooks/useCompany";
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const DRAFT_STORAGE_KEY = "test_creation_draft";
 
@@ -87,6 +88,9 @@ const TestCreation = () => {
   const { data: company } = useCompany();
   const navigate = useNavigate();
   const { data: locations } = useLocations();
+  const { location, locations: locationsTerm } = useTerminology();
+  const locationLabel = location();
+  const locationsLabel = locationsTerm();
   const [documents, setDocuments] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
   const [formData, setFormData] = useState(getInitialFormData);
@@ -291,13 +295,13 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>{t('tests.creation.locationOptional')}</Label>
+                      <Label>{`${locationLabel} (Optional)`}</Label>
                       <Select
                         value={formData.locationId}
                         onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('tests.creation.allLocations')} />
+                          <SelectValue placeholder={`All ${locationsLabel}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {locations?.map((loc) => (
@@ -472,13 +476,13 @@ const TestCreation = () => {
                       />
                     </div>
                     <div>
-                      <Label>{t('tests.creation.locationOptional')}</Label>
+                      <Label>{`${locationLabel} (Optional)`}</Label>
                       <Select
                         value={formData.locationId}
                         onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('tests.creation.allLocations')} />
+                          <SelectValue placeholder={`All ${locationsLabel}`} />
                         </SelectTrigger>
                         <SelectContent>
                           {locations?.map((loc) => (

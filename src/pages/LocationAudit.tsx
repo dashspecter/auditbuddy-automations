@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface AuditField {
   id: string;
@@ -72,7 +73,11 @@ const LocationAudit = () => {
   const templateIdFromUrl = searchParams.get('template');
   const scheduledAuditId = searchParams.get('scheduled');
   const recurringScheduleId = searchParams.get('recurring_schedule');
-  
+  const { location, audit, audits } = useTerminology();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const auditsLabel = audits();
+  const locationLabelLower = locationLabel.toLowerCase();
   const [templates, setTemplates] = useState<TemplateBasic[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<AuditTemplate | null>(null);
@@ -993,7 +998,7 @@ const LocationAudit = () => {
       try { clearDraft(); } catch (e) { console.warn('[audit-submit] clearDraft failed:', e); }
 
       // Immediate success feedback
-      toast.success("Location audit submitted successfully!");
+      toast.success(`${locationLabel} ${auditLabel} submitted successfully!`);
       navigate(`/audit-summary/${auditId}`);
       fireAuditCAPARules(auditId);
     };
@@ -1059,7 +1064,7 @@ const LocationAudit = () => {
           size="sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Back to Audits</span>
+          <span className="hidden sm:inline">{`Back to ${auditsLabel}`}</span>
           <span className="sm:hidden">Back</span>
         </Button>
 
@@ -1067,14 +1072,14 @@ const LocationAudit = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-                Location Standard Checker
+                {`${locationLabel} Standard Checker`}
                 {currentDraftId && (
                   <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-muted-foreground block sm:inline mt-1 sm:mt-0">
                     (Editing Draft)
                   </span>
                 )}
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">Complete the location audit form</p>
+              <p className="text-sm sm:text-base text-muted-foreground">{`Complete the ${locationLabelLower} ${auditLabel.toLowerCase()} form`}</p>
             </div>
             {selectedTemplate && (
               <Button
@@ -1120,12 +1125,12 @@ const LocationAudit = () => {
               </div>
               
               <div className="space-y-1.5 sm:space-y-2">
-                <Label htmlFor="location" className="text-sm">Location *</Label>
+                <Label htmlFor="location" className="text-sm">{locationLabel} *</Label>
                 <LocationSelector
                   id="location"
                   value={formData.location_id}
                   onValueChange={(value) => setFormData({ ...formData, location_id: value })}
-                  placeholder="Select location"
+                  placeholder={`Select ${locationLabelLower}`}
                   disabled={(() => {
                     // Disable if this is a scheduled audit
                     if (isScheduledAudit) return true;
@@ -1141,7 +1146,7 @@ const LocationAudit = () => {
                   if (isScheduledAudit) {
                     return (
                       <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">
-                        🔒 Location is locked for scheduled audits
+                        {`🔒 ${locationLabel} is locked for scheduled ${auditsLabel.toLowerCase()}`}
                       </p>
                     );
                   }
@@ -1152,7 +1157,7 @@ const LocationAudit = () => {
                                              (template?.template_locations && template.template_locations.length === 1);
                   return hasSpecificLocation && (
                     <p className="text-xs text-muted-foreground">
-                      This template is assigned to a specific location
+                      {`This template is assigned to a specific ${locationLabelLower}`}
                     </p>
                   );
                 })()}

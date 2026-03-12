@@ -22,6 +22,7 @@ import { AIGuideChat } from "@/components/AIGuideChat";
 import { useTranslation } from "react-i18next";
 import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 import { useLabels } from "@/hooks/useLabels";
+import { useTerminology } from "@/hooks/useTerminology";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
@@ -493,6 +494,13 @@ export function AppSidebar() {
   const { hasPermission } = usePermissions();
   const { data: industry } = useCompanyIndustry();
   const { label } = useLabels();
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
+  const auditLabel = term.audit();
+  const auditsLabel = term.audits();
   
   const isGovernment = industry?.slug === "government";
   
@@ -506,14 +514,34 @@ export function AppSidebar() {
   const isCompanyAdmin = company?.userRole === 'company_admin';
   const isMember = company?.userRole === 'company_member';
 
-  // Resolve a nav item label: use terminology override if labelKey exists, else i18n
+  const dynamicTitleMap = useMemo<Record<string, string>>(() => ({
+    "nav.employeeAudits": `${employeesLabel} ${auditsLabel}`,
+    "nav.newStaffAudit": `New ${employeeLabel} ${auditLabel}`,
+    "nav.newPerformanceReview": `New ${employeeLabel} Performance Review`,
+    "nav.employeeTests": `${employeesLabel} Tests`,
+    "nav.createTest": `Create ${employeeLabel} Test`,
+    "nav.auditTemplates": `${auditLabel} Templates`,
+    "nav.locationAudits": locationsLabel,
+    "nav.templates": `${auditLabel} Templates`,
+    "nav.templateLibrary": `${auditLabel} Template Library`,
+    "nav.locationsGeneral": `${locationsLabel}`,
+    "nav.employeePerformance": `${employeeLabel} Performance`,
+    "nav.locationPerformance": `${locationLabel} Performance`,
+  }), [auditLabel, auditsLabel, employeeLabel, employeesLabel, locationLabel, locationsLabel]);
+
+  // Resolve a nav item label: use dynamic terminology map first,
+  // then explicit label overrides, then i18n fallback
   const resolveLabel = useCallback((item: { titleKey: string; labelKey?: string | null }) => {
+    const dynamicTitle = dynamicTitleMap[item.titleKey];
+    if (dynamicTitle) return dynamicTitle;
+
     if (item.labelKey) {
       const override = label(item.labelKey, "");
       if (override) return override;
     }
+
     return t(item.titleKey);
-  }, [label, t]);
+  }, [dynamicTitleMap, label, t]);
 
   const isActive = (path: string) => currentPath === path;
   const isParentActive = (item: any) => {
@@ -749,7 +777,7 @@ export function AppSidebar() {
                                     className="block px-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                                     activeClassName="text-primary font-medium bg-primary/10"
                                   >
-                                    {t(nestedItem.titleKey)}
+                                    {resolveLabel(nestedItem)}
                                   </NavLink>
                                 ))}
                               </CollapsibleContent>

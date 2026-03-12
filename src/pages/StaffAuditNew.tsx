@@ -16,6 +16,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateStaffAudit } from "@/hooks/useStaffAudits";
 import { TemplatePreviewDialog } from "@/components/TemplatePreviewDialog";
 import { useStaffAuditDraft, StaffAuditDraft } from "@/hooks/useStaffAuditDraft";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface AuditField {
   id: string;
@@ -45,6 +46,15 @@ const StaffAuditNew = () => {
   const scheduledId = searchParams.get('scheduled');
   const { user } = useAuth();
   const createStaffAudit = useCreateStaffAudit();
+  const { employee, employees: employeesTerm, location, audit } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employeesTerm();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const auditLabelLower = auditLabel.toLowerCase();
   
   const [formData, setFormData] = useState({
     location_id: "",
@@ -237,12 +247,12 @@ const StaffAuditNew = () => {
     }
 
     if (!formData.location_id || formData.location_id === "__all__") {
-      toast.error('Please select a location');
+      toast.error(`Please select a ${locationLabelLower}`);
       return;
     }
 
     if (!formData.employee_id) {
-      toast.error('Please select an employee');
+      toast.error(`Please select a ${employeeLabelLower}`);
       return;
     }
 
@@ -279,7 +289,7 @@ const StaffAuditNew = () => {
         }
       }
 
-      toast.success('Staff audit submitted successfully');
+      toast.success(`${employeeLabel} ${auditLabel} submitted successfully`);
       navigate('/staff-audits');
     } catch (error: any) {
       console.error('Error submitting audit:', error);
@@ -436,12 +446,12 @@ const StaffAuditNew = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-foreground leading-tight">
-            {isScheduledMode ? 'Scheduled Staff Audit' : 'New Staff Audit'}
+            {isScheduledMode ? `Scheduled ${employeeLabel} ${auditLabel}` : `New ${employeeLabel} ${auditLabel}`}
           </h1>
           <p className="text-xs sm:text-base text-muted-foreground mt-0.5 sm:mt-2">
             {isScheduledMode && scheduledAuditData
-              ? `Scheduled audit for ${scheduledAuditData.employees?.full_name || 'employee'} at ${scheduledAuditData.locations?.name || 'location'}`
-              : 'Create a new staff performance audit'}
+              ? `Scheduled ${auditLabelLower} for ${scheduledAuditData.employees?.full_name || employeeLabelLower} at ${scheduledAuditData.locations?.name || locationLabelLower}`
+              : `Create a new ${employeeLabelLower} ${auditLabelLower}`}
           </p>
         </div>
         {selectedTemplate && (
@@ -461,7 +471,7 @@ const StaffAuditNew = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
+                  <Label htmlFor="location">{locationLabel} *</Label>
                   <LocationSelector
                     id="location"
                     value={formData.location_id}
@@ -473,25 +483,25 @@ const StaffAuditNew = () => {
                         employee_id: "",
                       }));
                     }}
-                    placeholder="Select location"
+                    placeholder={`Select ${locationLabelLower}`}
                     disabled={isScheduledMode}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee">Employee *</Label>
+                  <Label htmlFor="employee">{employeeLabel} *</Label>
                   <Select
                     value={formData.employee_id}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}
                     disabled={isScheduledMode || !formData.location_id || formData.location_id === "__all__"}
                   >
                     <SelectTrigger id="employee">
-                      <SelectValue placeholder="Select employee" />
+                      <SelectValue placeholder={`Select ${employeeLabelLower}`} />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       {activeEmployees.length === 0 ? (
                         <div className="p-2 text-sm text-muted-foreground">
-                          No active employees found for this location
+                          {`No active ${employeesLabelLower} found for this ${locationLabelLower}`}
                         </div>
                       ) : (
                         activeEmployees.map((employee) => (
@@ -504,7 +514,7 @@ const StaffAuditNew = () => {
                   </Select>
                   {!formData.location_id || formData.location_id === "__all__" ? (
                     <p className="text-sm text-muted-foreground">
-                      Please select a location first
+                      {`Please select a ${locationLabelLower} first`}
                     </p>
                   ) : null}
                 </div>
@@ -565,7 +575,7 @@ const StaffAuditNew = () => {
                   </Select>
                   {templates.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      No staff templates available
+                      {`No ${employeeLabelLower} templates available`}
                     </p>
                   )}
                 </div>
@@ -616,7 +626,7 @@ const StaffAuditNew = () => {
                   disabled={createStaffAudit.isPending}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {createStaffAudit.isPending ? 'Submitting...' : 'Submit Audit'}
+                  {createStaffAudit.isPending ? 'Submitting...' : `Submit ${auditLabel}`}
                 </Button>
                 <Button 
                   type="button" 

@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useTerminology } from '@/hooks/useTerminology';
 
 const DRAFT_KEY = 'schedule-audit-dialog-draft';
 
@@ -148,6 +149,16 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
   const scheduleAudit = useScheduleAudit();
   const createScheduledAudit = useCreateScheduledAudit();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { employee, employees: employeesTerm, location, audit, audits } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employeesTerm();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const auditsLabel = audits();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const auditLabelLower = auditLabel.toLowerCase();
 
   const { data: users } = useQuery({
     queryKey: ['users_for_scheduling_company'],
@@ -241,7 +252,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
       if (tpl?.template_type === 'staff' && !audit.employee_id) {
         form.setError(`audits.${i}.employee_id`, {
           type: 'manual',
-          message: 'Employee is required for staff audits',
+          message: `${employeeLabel} is required for ${employeeLabelLower} ${auditsLabel.toLowerCase()}`,
         });
         return;
       }
@@ -278,7 +289,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
         }
       }
       
-      toast.success(`${values.audits.length} audit(s) scheduled successfully`);
+      toast.success(`${values.audits.length} ${auditLabelLower}${values.audits.length !== 1 ? 's' : ''} scheduled successfully`);
       clearDraft();
       form.reset();
       onOpenChange(false);
@@ -296,7 +307,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Schedule New Audits
+            {`Schedule New ${auditsLabel}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -308,13 +319,13 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                 control={form.control}
                 name="location_id"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
+                    <FormItem>
+                      <FormLabel>{locationLabel}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Select ${locationLabelLower}`} />
+                          </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {locations?.map((location) => (
@@ -358,14 +369,14 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                 className="w-full mt-4"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Another Audit
+                {`Add Another ${auditLabel}`}
               </Button>
             </ScrollArea>
 
             {/* Footer buttons */}
             <div className="flex justify-between items-center pt-4 mt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                {fields.length} audit{fields.length !== 1 ? 's' : ''} to schedule
+                {`${fields.length} ${auditLabelLower}${fields.length !== 1 ? 's' : ''} to schedule`}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -376,7 +387,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Scheduling...' : `Schedule ${fields.length} Audit${fields.length !== 1 ? 's' : ''}`}
+                  {isSubmitting ? 'Scheduling...' : `Schedule ${fields.length} ${auditLabel}${fields.length !== 1 ? 's' : ''}`}
                 </Button>
               </div>
             </div>
@@ -414,6 +425,14 @@ const AuditEntryCard = ({
   const templateId = useWatch({ control: form.control, name: `audits.${index}.template_id` });
   const selectedTemplateType = templateId ? templateMap[templateId]?.template_type : null;
   const isStaffTemplate = selectedTemplateType === 'staff';
+  const { employee, employees, location, audit } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
 
   // Clear employee_id when switching to a location template
   useEffect(() => {
@@ -429,7 +448,7 @@ const AuditEntryCard = ({
     <Card className="p-4 relative">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-muted-foreground">
-          Audit #{index + 1}
+          {`${auditLabel} #${index + 1}`}
         </span>
         {canRemove && (
           <Button
@@ -451,7 +470,7 @@ const AuditEntryCard = ({
           name={`audits.${index}.template_id`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Audit Template</FormLabel>
+              <FormLabel>{`${auditLabel} Template`}</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -467,7 +486,7 @@ const AuditEntryCard = ({
                           variant={template.template_type === 'staff' ? 'staff' : 'location'}
                           className="text-[10px] px-1.5 py-0"
                         >
-                          {template.template_type === 'staff' ? 'Staff' : 'Location'}
+                          {template.template_type === 'staff' ? employeeLabel : locationLabel}
                         </Badge>
                       </div>
                     </SelectItem>
@@ -512,7 +531,7 @@ const AuditEntryCard = ({
             render={({ field }) => (
               <FormItem className="md:col-span-2">
                 <FormLabel>
-                  Employee to Audit <span className="text-destructive">*</span>
+                  {`${employeeLabel} to ${auditLabel}`} <span className="text-destructive">*</span>
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
@@ -521,13 +540,13 @@ const AuditEntryCard = ({
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={locationId ? "Select employee" : "Select a location first"} />
+                      <SelectValue placeholder={locationId ? `Select ${employeeLabelLower}` : `Select a ${locationLabelLower} first`} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {activeEmployees.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground">
-                        No active employees at this location
+                        {`No active ${employeesLabelLower} at this ${locationLabelLower}`}
                       </div>
                     ) : (
                       activeEmployees.map((emp) => (
