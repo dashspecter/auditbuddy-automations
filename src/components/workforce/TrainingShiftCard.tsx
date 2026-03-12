@@ -106,8 +106,9 @@ export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardP
 const TrainingShiftPanel = ({ shift }: { shift: Shift }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-
-  const session = shift.training_session;
+  const { employees } = useTerminology();
+  const employeesLabel = employees();
+  const employeesLabelLower = employeesLabel.toLowerCase();
   const module = shift.training_module;
   
   const trainers = session?.attendees?.filter(a => a.attendee_role === 'trainer') || [];

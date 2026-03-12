@@ -145,7 +145,7 @@ const TrainingAssignmentDetail = () => {
 
   const handleStartAuditEvaluation = async (requiredEval: any) => {
     if (!assignment || !currentEmployee) {
-      alert("You must be an employee to start evaluations");
+      alert(`You must be a ${employeeLabelLower} to start evaluations`);
       return;
     }
 
