@@ -74,7 +74,7 @@ export const AttendanceQRDialog = ({
     const printWindow = window.open("", "", "width=600,height=600");
     if (!printWindow) return;
 
-    const location = locations.find((l) => l.id === selectedLocation);
+    const selectedLocationData = locations.find((l) => l.id === selectedLocation);
     const svg = document.getElementById("attendance-qr");
     if (!svg) return;
 
@@ -100,7 +100,7 @@ export const AttendanceQRDialog = ({
         <body>
           <div class="qr-container">
             <h1>${qrType === "checkin" ? "Check In" : "Check Out"}</h1>
-            <h2>${location?.name || "Location"}</h2>
+            <h2>${selectedLocationData?.name || locationLabel}</h2>
             ${svg.outerHTML}
             <p style="margin-top: 20px; color: #999;">Scan to ${qrType === "checkin" ? "check in" : "check out"}</p>
           </div>
@@ -119,32 +119,17 @@ export const AttendanceQRDialog = ({
         <DialogHeader>
           <DialogTitle>Generate Attendance QR Code</DialogTitle>
           <DialogDescription>
-            Create a QR code for staff to scan when checking in or out
+            {`Create a QR code for ${employeesLabelLower} to scan when checking in or out`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+...
           <div className="space-y-2">
-            <Label>QR Code Type</Label>
-            <Select
-              value={qrType}
-              onValueChange={(value: "checkin" | "checkout") => setQrType(value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="checkin">Check In</SelectItem>
-                <SelectItem value="checkout">Check Out</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Location</Label>
+            <Label>{locationLabel}</Label>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a location" />
+                <SelectValue placeholder={`Select a ${locationLabelLower}`} />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (

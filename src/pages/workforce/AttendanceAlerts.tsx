@@ -129,13 +129,13 @@ export default function AttendanceAlerts() {
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>{t('workforce.attendanceAlerts.location')}</Label>
+              <Label>{locationLabel}</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('workforce.attendanceAlerts.selectLocation')} />
+                  <SelectValue placeholder={`Select ${locationLabelLower}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations?.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
@@ -161,126 +161,24 @@ export default function AttendanceAlerts() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-2xl font-bold text-red-500">
-              {alerts?.filter(a => a.status === "open").length || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.openAlerts')}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-2xl font-bold text-blue-500">
-              {alerts?.filter(a => a.status === "acknowledged").length || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.acknowledged')}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-2xl font-bold text-green-500">
-              {alerts?.filter(a => a.status === "resolved").length || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.resolved')}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-2xl font-bold">
-              {alerts?.length || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.totalAlerts')}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('workforce.attendanceAlerts.alertList')}</CardTitle>
-          <CardDescription>{t('workforce.attendanceAlerts.alertsDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : alerts && alerts.length > 0 ? (
-            <Table>
-              <TableHeader>
+...
                 <TableRow>
                   <TableHead>{t('workforce.attendanceAlerts.alertType')}</TableHead>
-                  <TableHead>{t('workforce.attendanceAlerts.employee')}</TableHead>
-                  <TableHead>{t('workforce.attendanceAlerts.locationCol')}</TableHead>
+                  <TableHead>{employeeLabel}</TableHead>
+                  <TableHead>{locationLabel}</TableHead>
                   <TableHead>{t('workforce.attendanceAlerts.date')}</TableHead>
                   <TableHead>{t('workforce.attendanceAlerts.statusCol')}</TableHead>
                   <TableHead className="text-right">{t('workforce.attendanceAlerts.actionsCol')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {alerts.map((alert) => {
-                  const typeInfo = getAlertTypeInfo(alert.alert_type);
-                  const Icon = typeInfo.icon;
-                  
-                  return (
-                    <TableRow key={alert.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${typeInfo.color}`} />
-                          <span className="font-medium">{typeInfo.label}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{alert.employee?.full_name || "-"}</TableCell>
-                      <TableCell>{alert.location?.name || "-"}</TableCell>
-                      <TableCell>{format(new Date(alert.date), "MMM d, yyyy")}</TableCell>
-                      <TableCell>{getStatusBadge(alert.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedAlert(alert)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          {t('workforce.attendanceAlerts.view')}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-12">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
-              <p className="text-muted-foreground">{t('workforce.attendanceAlerts.noAlerts')}</p>
-              <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.noAlertsDesc')}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Alert Detail Dialog */}
-      <Dialog open={!!selectedAlert} onOpenChange={() => setSelectedAlert(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('workforce.attendanceAlerts.alertDetails')}</DialogTitle>
-            <DialogDescription>
-              {selectedAlert && getAlertTypeInfo(selectedAlert.alert_type).label}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedAlert && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+...
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.employee')}</p>
+                  <p className="text-sm text-muted-foreground">{employeeLabel}</p>
                   <p className="font-medium">{selectedAlert.employee?.full_name || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.locationCol')}</p>
+                  <p className="text-sm text-muted-foreground">{locationLabel}</p>
                   <p className="font-medium">{selectedAlert.location?.name || "-"}</p>
                 </div>
                 <div>

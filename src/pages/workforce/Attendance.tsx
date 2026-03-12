@@ -182,17 +182,17 @@ const Attendance = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">{t('workforce.attendance.title')}</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            {t('workforce.attendance.subtitle')}
+            {`Monitor ${employeesLabelLower} check-ins, check-outs, and work hours`}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -203,10 +203,10 @@ const Attendance = () => {
           <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <User className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allEmployees', 'All Employees')} />
+              <SelectValue placeholder={allEmployeesLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allEmployees', 'All Employees')}</SelectItem>
+              <SelectItem value="all">{allEmployeesLabel}</SelectItem>
               {employees.map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>
                   {emp.full_name}
