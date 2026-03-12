@@ -1,4 +1,5 @@
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 import {
   Select,
   SelectContent,
@@ -8,7 +9,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useTranslation } from "react-i18next";
 
 interface LocationSelectorProps {
   value: string;
@@ -29,7 +29,10 @@ export const LocationSelector = ({
   allowAll = false,
   id,
 }: LocationSelectorProps) => {
-  const { t } = useTranslation();
+  const { location: locationTerm, locations: locationsTerm } = useTerminology();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const locationLabelLower = locationLabel.toLowerCase();
   const { data: locations, isLoading } = useLocations();
 
   if (isLoading) {
@@ -39,11 +42,11 @@ export const LocationSelector = ({
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger id={id}>
-        <SelectValue placeholder={placeholder ?? t("common.selectLocation")} />
+        <SelectValue placeholder={placeholder ?? `Select ${locationLabelLower}`} />
       </SelectTrigger>
       <SelectContent>
         {allowAll && (
-          <SelectItem value="__all__">{t("common.allLocations")}</SelectItem>
+          <SelectItem value="__all__">{`All ${locationsLabel}`}</SelectItem>
         )}
         {locations?.map((location) => (
           <SelectItem key={location.id} value={location.id}>

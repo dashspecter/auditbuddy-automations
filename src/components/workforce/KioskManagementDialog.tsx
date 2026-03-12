@@ -20,16 +20,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLocations } from "@/hooks/useLocations";
 import { useDepartments } from "@/hooks/useDepartments";
-import { 
-  useAttendanceKiosks, 
-  useCreateKiosk, 
-  useDeleteKiosk 
+import { useTerminology } from "@/hooks/useTerminology";
+import {
+  useAttendanceKiosks,
+  useCreateKiosk,
+  useDeleteKiosk
 } from "@/hooks/useAttendanceKiosks";
-import { 
-  Plus, 
-  Trash2, 
-  ExternalLink, 
-  Tablet, 
+import {
+  Plus,
+  Trash2,
+  ExternalLink,
+  Tablet,
   MapPin,
   Copy,
   Check,
@@ -51,7 +52,19 @@ export const KioskManagementDialog = ({
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [deviceName, setDeviceName] = useState("Attendance Kiosk");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
+  const {
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const locationsLabelLower = locationsLabel.toLowerCase();
+
   const { data: locations = [] } = useLocations();
   const { data: departments = [] } = useDepartments();
   const { data: kiosks = [], isLoading } = useAttendanceKiosks();
@@ -60,16 +73,16 @@ export const KioskManagementDialog = ({
 
   const handleCreate = async () => {
     if (!selectedLocation) {
-      toast.error("Please select a location");
+      toast.error(`Please select a ${locationLabelLower}`);
       return;
     }
-    
+
     await createKiosk.mutateAsync({
       locationId: selectedLocation,
       deviceName,
       departmentId: selectedDepartment || undefined,
     });
-    
+
     setSelectedLocation("");
     setSelectedDepartment("");
     setDeviceName("Attendance Kiosk");
@@ -98,8 +111,7 @@ export const KioskManagementDialog = ({
         <DialogHeader>
           <DialogTitle>Manage Attendance Kiosks</DialogTitle>
           <DialogDescription>
-            Register devices as attendance kiosks for your locations. 
-            Each kiosk displays a dynamic QR code that employees scan to check in/out.
+            {`Register devices as attendance kiosks for your ${locationsLabelLower}. Each kiosk displays a dynamic QR code that ${employeesLabelLower} scan to check in/out.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,10 +124,10 @@ export const KioskManagementDialog = ({
             </h3>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label>Location</Label>
+                <Label>{locationLabel}</Label>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
+                    <SelectValue placeholder={`Select ${locationLabelLower}`} />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map((location) => (
@@ -150,8 +162,8 @@ export const KioskManagementDialog = ({
                 />
               </div>
             </div>
-            <Button 
-              className="mt-4 w-full" 
+            <Button
+              className="mt-4 w-full"
               onClick={handleCreate}
               disabled={createKiosk.isPending}
             >
@@ -246,10 +258,10 @@ export const KioskManagementDialog = ({
           <Card className="p-4 bg-muted/50">
             <h4 className="font-medium mb-2">How it works:</h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Register a kiosk for each location where you want attendance tracking</li>
-              <li>Open the kiosk URL on a tablet or dedicated device at the location</li>
+              <li>{`Register a kiosk for each ${locationLabelLower} where you want attendance tracking`}</li>
+              <li>{`Open the kiosk URL on a tablet or dedicated device at the ${locationLabelLower}`}</li>
               <li>The kiosk displays a QR code that refreshes every 30 seconds</li>
-              <li>Employees scan the QR code with their phone to check in/out</li>
+              <li>{`${employeesLabel} scan the QR code with their phone to check in/out`}</li>
               <li>The dynamic QR prevents screenshots and ensures physical presence</li>
             </ol>
           </Card>

@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBatch } from "@/hooks/useWorkforceAgent";
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download, UserX } from "lucide-react";
 import { generatePayrollReportPDF } from "@/lib/payrollReportPdf";
 import { LocationSelector } from "@/components/LocationSelector";
@@ -35,6 +36,19 @@ export default function PayrollBatches() {
   const [selectedBatch, setSelectedBatch] = useState<PayrollBatch | null>(null);
   const [newPeriod, setNewPeriod] = useState({ start: "", end: "" });
   const [selectedLocationId, setSelectedLocationId] = useState("__all__");
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const locationsLabelLower = locationsLabel.toLowerCase();
 
   const { data: batches, isLoading, refetch } = usePayrollBatches();
   const updateBatch = useUpdatePayrollBatch();
@@ -93,7 +107,7 @@ export default function PayrollBatches() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('workforce.payrollBatches.title')}</h1>
-          <p className="text-muted-foreground">{t('workforce.payrollBatches.subtitle')}</p>
+          <p className="text-muted-foreground">{`Manage payroll processing and ${employeesLabelLower} payments`}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -128,7 +142,7 @@ export default function PayrollBatches() {
                   />
               </div>
               <div className="space-y-2">
-                <Label>{t('common.location')}</Label>
+                <Label>{locationLabel}</Label>
                 <LocationSelector
                   value={selectedLocationId}
                   onValueChange={setSelectedLocationId}
@@ -136,8 +150,8 @@ export default function PayrollBatches() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {selectedLocationId === "__all__"
-                    ? t('workforce.payrollBatches.allLocationsHint', 'Payroll will include all locations')
-                    : t('workforce.payrollBatches.singleLocationHint', 'Payroll will only include employees from this location')}
+                    ? `Payroll will include all ${locationsLabelLower}`
+                    : `Payroll will only include ${employeesLabelLower} from this ${locationLabelLower}`}
                 </p>
               </div>
             </div>
@@ -170,7 +184,7 @@ export default function PayrollBatches() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('workforce.payrollBatches.period')}</TableHead>
-                  <TableHead>{t('workforce.payrollBatches.employees')}</TableHead>
+                  <TableHead>{employeesLabel}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.totalHours')}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.overtime')}</TableHead>
                   <TableHead>{t('workforce.payrollBatches.status')}</TableHead>
@@ -301,7 +315,7 @@ export default function PayrollBatches() {
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{enhancedDetails.length || selectedBatch.summary_json.employee_count || 0}</p>
-                    <p className="text-xs text-muted-foreground">{t('workforce.payrollBatches.employees')}</p>
+                    <p className="text-xs text-muted-foreground">{employeesLabel}</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -336,7 +350,7 @@ export default function PayrollBatches() {
                 </Card>
               </div>
 
-              <h4 className="font-medium mt-4">{t('workforce.payrollBatches.employeeBreakdown')}</h4>
+              <h4 className="font-medium mt-4">{`${employeesLabel} Breakdown`}</h4>
 
               {detailsLoading ? (
                 <div className="space-y-2">
@@ -350,7 +364,7 @@ export default function PayrollBatches() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[140px]">{t('workforce.payrollBatches.employee')}</TableHead>
+                          <TableHead className="min-w-[140px]">{employeeLabel}</TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
@@ -418,9 +432,9 @@ export default function PayrollBatches() {
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
                                 <Building2 className="h-3 w-3" />
-                                <span>Other Loc.</span>
+                                <span>{`Other ${locationLabel}`}</span>
                               </TooltipTrigger>
-                              <TooltipContent>Shifts worked at a different location</TooltipContent>
+                              <TooltipContent>{`Shifts worked at a different ${locationLabelLower}`}</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">{t('workforce.payrollBatches.regular')}</TableHead>
@@ -528,7 +542,7 @@ export default function PayrollBatches() {
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">Other locations:</p>
+                                    <p className="font-medium">{`Other ${locationsLabelLower}:`}</p>
                                     {emp.extra_location_details.map((d, i) => (
                                       <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")} — {d.location_name}</p>
                                     ))}

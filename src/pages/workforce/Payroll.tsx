@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriods, usePayrollSummary, useCreatePayrollPeriod, PayrollSummaryItem } from "@/hooks/usePayroll";
 import { useLocations } from "@/hooks/useLocations";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
+import { useTerminology } from "@/hooks/useTerminology";
 import { PayPeriodDialog } from "@/components/workforce/PayPeriodDialog";
 import { format, parseISO, eachDayOfInterval, isWithinInterval } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,20 @@ const Payroll = () => {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const { data: periods = [], isLoading: periodsLoading } = usePayrollPeriods();
   const { data: locations = [] } = useLocations();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const allLocationsLabel = `All ${locationsLabel}`;
   const createPeriod = useCreatePayrollPeriod();
 
   // Use selected period if viewing history, otherwise use active period
@@ -131,10 +146,10 @@ const Payroll = () => {
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -275,8 +290,8 @@ const Payroll = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="current">{t('workforce.payroll.staffSummary')}</TabsTrigger>
-          <TabsTrigger value="locations">{t('workforce.payroll.byLocation')}</TabsTrigger>
+          <TabsTrigger value="current">{`${employeesLabel} Summary`}</TabsTrigger>
+          <TabsTrigger value="locations">{`By ${locationLabel}`}</TabsTrigger>
           <TabsTrigger value="daily">{t('workforce.payroll.dailyBreakdown')}</TabsTrigger>
           <TabsTrigger value="history">{t('workforce.payroll.historyTab')}</TabsTrigger>
         </TabsList>
@@ -284,12 +299,12 @@ const Payroll = () => {
         <TabsContent value="current">
           <Card>
             <CardHeader>
-              <CardTitle>{t('workforce.payroll.staffPayrollSummary')}</CardTitle>
+              <CardTitle>{`${employeesLabel} Payroll Summary`}</CardTitle>
               <CardDescription>
                 {activePeriod 
                   ? `${format(new Date(activePeriod.start_date), "MMMM d")} - ${format(new Date(activePeriod.end_date), "MMMM d, yyyy")}`
                   : t('workforce.payroll.noActivePeriod')}
-                {selectedLocationId !== "all" && ` • ${t('workforce.payroll.filteredByLocation')}`}
+                {selectedLocationId !== "all" && ` • Filtered by ${locationLabelLower}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -304,7 +319,7 @@ const Payroll = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-8"></TableHead>
-                          <TableHead>{t('workforce.attendance.employee')}</TableHead>
+                          <TableHead>{employeeLabel}</TableHead>
                           <TableHead>{t('workforce.attendance.role')}</TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
@@ -673,7 +688,7 @@ const Payroll = () => {
                                           )}
                                           {item.extra_shifts > 0 && !item.overtime_rate && (
                                             <div className="text-xs text-muted-foreground ml-2">
-                                              Set overtime rate in employee profile to calculate premium pay
+                                              {`Set overtime rate in ${employeeLabelLower} profile to calculate premium pay`}
                                             </div>
                                           )}
                                         </div>
@@ -760,15 +775,15 @@ const Payroll = () => {
         <TabsContent value="locations">
           <Card>
             <CardHeader>
-              <CardTitle>Payroll by Location</CardTitle>
-              <CardDescription>Labor costs breakdown per location</CardDescription>
+              <CardTitle>{`Payroll by ${locationLabel}`}</CardTitle>
+              <CardDescription>{`Labor costs breakdown per ${locationLabelLower}`}</CardDescription>
             </CardHeader>
             <CardContent>
               {locationSummary.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Location</TableHead>
+                      <TableHead>{locationLabel}</TableHead>
                       <TableHead>Shifts</TableHead>
                       <TableHead>Total Hours</TableHead>
                       <TableHead className="text-right">Total Cost</TableHead>
@@ -803,7 +818,7 @@ const Payroll = () => {
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No location data available.</p>
+                  <p>{`No ${locationLabelLower} data available.`}</p>
                 </div>
               )}
             </CardContent>
@@ -822,8 +837,8 @@ const Payroll = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Location</TableHead>
+                      <TableHead>{employeeLabel}</TableHead>
+                      <TableHead>{locationLabel}</TableHead>
                       <TableHead>Scheduled</TableHead>
                       <TableHead>Actual</TableHead>
                       <TableHead>Status</TableHead>

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Printer } from "lucide-react";
 
@@ -30,6 +31,11 @@ export const AttendanceQRDialog = ({
 }: AttendanceQRDialogProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [qrType, setQrType] = useState<"checkin" | "checkout">("checkin");
+  const { location: locationTerm, employees: employeesTerm } = useTerminology();
+  const locationLabel = locationTerm();
+  const employeesLabel = employeesTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
   const { data: locations = [] } = useLocations();
 
   const qrData = selectedLocation
@@ -68,7 +74,7 @@ export const AttendanceQRDialog = ({
     const printWindow = window.open("", "", "width=600,height=600");
     if (!printWindow) return;
 
-    const location = locations.find((l) => l.id === selectedLocation);
+    const selectedLocationData = locations.find((l) => l.id === selectedLocation);
     const svg = document.getElementById("attendance-qr");
     if (!svg) return;
 
@@ -94,7 +100,7 @@ export const AttendanceQRDialog = ({
         <body>
           <div class="qr-container">
             <h1>${qrType === "checkin" ? "Check In" : "Check Out"}</h1>
-            <h2>${location?.name || "Location"}</h2>
+            <h2>${selectedLocationData?.name || locationLabel}</h2>
             ${svg.outerHTML}
             <p style="margin-top: 20px; color: #999;">Scan to ${qrType === "checkin" ? "check in" : "check out"}</p>
           </div>
@@ -113,7 +119,7 @@ export const AttendanceQRDialog = ({
         <DialogHeader>
           <DialogTitle>Generate Attendance QR Code</DialogTitle>
           <DialogDescription>
-            Create a QR code for staff to scan when checking in or out
+            {`Create a QR code for ${employeesLabelLower} to scan when checking in or out`}
           </DialogDescription>
         </DialogHeader>
 
@@ -135,10 +141,10 @@ export const AttendanceQRDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Location</Label>
+            <Label>{locationLabel}</Label>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a location" />
+                <SelectValue placeholder={`Select a ${locationLabelLower}`} />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (

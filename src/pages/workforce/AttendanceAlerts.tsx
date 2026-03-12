@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAttendanceAlerts, useUpdateAttendanceAlert, useDetectAttendanceRisks } from "@/hooks/useWorkforceAgent";
 import { useLocations } from "@/hooks/useLocations";
+import { useTerminology } from "@/hooks/useTerminology";
 import { AlertTriangle, Clock, CheckCircle2, Eye, Bot, RefreshCw, UserX, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,12 @@ const getStatusOptions = (t: any) => [
 
 export default function AttendanceAlerts() {
   const { t } = useTranslation();
+  const { employee: employeeTerm, location: locationTerm, locations: locationsTerm } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const locationLabelLower = locationLabel.toLowerCase();
+
   const [selectedStatus, setSelectedStatus] = useState<string>("open");
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>(format(subMonths(new Date(), 1), "yyyy-MM-dd"));
@@ -118,18 +125,17 @@ export default function AttendanceAlerts() {
         </div>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>{t('workforce.attendanceAlerts.location')}</Label>
+              <Label>{locationLabel}</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('workforce.attendanceAlerts.selectLocation')} />
+                  <SelectValue placeholder={`Select ${locationLabelLower}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations?.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
@@ -208,8 +214,8 @@ export default function AttendanceAlerts() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('workforce.attendanceAlerts.alertType')}</TableHead>
-                  <TableHead>{t('workforce.attendanceAlerts.employee')}</TableHead>
-                  <TableHead>{t('workforce.attendanceAlerts.locationCol')}</TableHead>
+                  <TableHead>{employeeLabel}</TableHead>
+                  <TableHead>{locationLabel}</TableHead>
                   <TableHead>{t('workforce.attendanceAlerts.date')}</TableHead>
                   <TableHead>{t('workforce.attendanceAlerts.statusCol')}</TableHead>
                   <TableHead className="text-right">{t('workforce.attendanceAlerts.actionsCol')}</TableHead>
@@ -219,7 +225,7 @@ export default function AttendanceAlerts() {
                 {alerts.map((alert) => {
                   const typeInfo = getAlertTypeInfo(alert.alert_type);
                   const Icon = typeInfo.icon;
-                  
+
                   return (
                     <TableRow key={alert.id}>
                       <TableCell>
@@ -257,7 +263,6 @@ export default function AttendanceAlerts() {
         </CardContent>
       </Card>
 
-      {/* Alert Detail Dialog */}
       <Dialog open={!!selectedAlert} onOpenChange={() => setSelectedAlert(null)}>
         <DialogContent>
           <DialogHeader>
@@ -270,11 +275,11 @@ export default function AttendanceAlerts() {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.employee')}</p>
+                  <p className="text-sm text-muted-foreground">{employeeLabel}</p>
                   <p className="font-medium">{selectedAlert.employee?.full_name || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('workforce.attendanceAlerts.locationCol')}</p>
+                  <p className="text-sm text-muted-foreground">{locationLabel}</p>
                   <p className="font-medium">{selectedAlert.location?.name || "-"}</p>
                 </div>
                 <div>

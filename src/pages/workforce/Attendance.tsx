@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAttendanceLogs } from "@/hooks/useAttendanceLogs";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useTerminology } from "@/hooks/useTerminology";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
 import {
   DropdownMenu,
@@ -37,6 +38,19 @@ const Attendance = () => {
 
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const allLocationsLabel = `All ${locationsLabel}`;
+  const allEmployeesLabel = `All ${employeesLabel}`;
 
   const today = new Date().toISOString().split('T')[0];
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -97,7 +111,9 @@ const Attendance = () => {
         <div className="text-center text-muted-foreground py-12">
           <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>{t('workforce.attendance.noLogs')}</p>
-          <p className="text-sm mt-2">{t('workforce.attendance.logsWillAppear')}</p>
+          <p className="text-sm mt-2">
+            {t('workforce.attendance.logsWillAppear', `${employeesLabel} attendance logs will appear here`) }
+          </p>
         </div>
       );
     }
@@ -106,9 +122,9 @@ const Attendance = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t('workforce.attendance.employee')}</TableHead>
+            <TableHead>{employeeLabel}</TableHead>
             <TableHead>{t('workforce.attendance.role')}</TableHead>
-            <TableHead>{t('workforce.attendance.location')}</TableHead>
+            <TableHead>{locationLabel}</TableHead>
             <TableHead>{t('workforce.attendance.clockIn')}</TableHead>
             <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
             <TableHead>{t('workforce.attendance.duration')}</TableHead>
@@ -166,17 +182,17 @@ const Attendance = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">{t('workforce.attendance.title')}</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            {t('workforce.attendance.subtitle')}
+            {`Monitor ${employeesLabelLower} check-ins, check-outs, and work hours`}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -187,10 +203,10 @@ const Attendance = () => {
           <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <User className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allEmployees', 'All Employees')} />
+              <SelectValue placeholder={allEmployeesLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allEmployees', 'All Employees')}</SelectItem>
+              <SelectItem value="all">{allEmployeesLabel}</SelectItem>
               {employees.map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>
                   {emp.full_name}
