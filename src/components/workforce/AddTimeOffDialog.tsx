@@ -87,7 +87,7 @@ export const AddTimeOffDialog = ({
             {t('workforce.components.addTimeOffDialog.title')}
           </DialogTitle>
           <DialogDescription>
-            {t('workforce.components.addTimeOffDialog.description')}
+            {t('workforce.components.addTimeOffDialog.description', `Add vacation or absence for a ${t_.employee().toLowerCase()}. This will be automatically approved.`)}
           </DialogDescription>
         </DialogHeader>
 
