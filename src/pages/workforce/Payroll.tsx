@@ -687,7 +687,7 @@ const Payroll = () => {
                                           )}
                                           {item.extra_shifts > 0 && !item.overtime_rate && (
                                             <div className="text-xs text-muted-foreground ml-2">
-                                              Set overtime rate in employee profile to calculate premium pay
+                                              {`Set overtime rate in ${employeeLabelLower} profile to calculate premium pay`}
                                             </div>
                                           )}
                                         </div>
