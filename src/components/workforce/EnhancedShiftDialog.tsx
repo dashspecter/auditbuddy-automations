@@ -897,7 +897,7 @@ export const EnhancedShiftDialog = ({
           {/* Assign Employees */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>{t('workforce.components.enhancedShiftDialog.assignEmployees')}</Label>
+              <Label>{t('workforce.components.enhancedShiftDialog.assignEmployees', `Assign Specific ${t_.employees()} (Optional)`)}</Label>
               <div className="flex items-center gap-2">
                 {batchMode && (
                   <Badge variant="secondary">
