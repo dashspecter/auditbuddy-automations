@@ -119,7 +119,7 @@ export function PendingApprovalsDialog({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="shift-assignments" className="relative">
               <Users className="h-4 w-4 mr-1" />
-              Shifts
+              {shiftsLabel}
               {pendingCount > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5">{pendingCount}</Badge>
               )}
