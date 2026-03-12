@@ -406,67 +406,79 @@ const settingsItems = [
     titleKey: "nav.activityLog", 
     url: "/activity-log", 
     icon: History,
-    requiresOwnerOrAdmin: true
+    requiresOwnerOrAdmin: true,
+    description: "View a log of all user actions and system events",
   },
   { 
     titleKey: "nav.roleTemplates", 
     url: "/role-templates", 
     icon: ShieldCheck,
-    requiresOwnerOrAdmin: true
+    requiresOwnerOrAdmin: true,
+    description: "Define reusable permission sets for team members",
   },
   { 
     titleKey: "nav.policyRules", 
     url: "/policy-rules", 
     icon: ShieldAlert,
-    requiresOwnerOrAdmin: true
+    requiresOwnerOrAdmin: true,
+    description: "Automated rules and governance policies",
   },
   { 
     titleKey: "nav.billingModules", 
     url: "/pricing", 
     icon: CreditCard,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Manage subscription plans and active modules",
   },
   { 
     titleKey: "nav.companySettings", 
+    labelKey: "company",
     url: "/settings/company", 
     icon: Building2,
-    requiresOwnerOrAdmin: true
+    requiresOwnerOrAdmin: true,
+    description: "Manage institution profile, departments, and configuration",
   },
   { 
     titleKey: "nav.userManagement", 
     url: "/admin/users", 
     icon: UserCog,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Manage platform user accounts and access",
   },
   { 
     titleKey: "nav.platformAdmin", 
     url: "/admin/platform", 
     icon: Shield,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Platform-wide administration panel",
   },
   { 
     titleKey: "nav.systemHealth", 
     url: "/system-health", 
     icon: Activity,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Monitor system performance and uptime",
   },
   { 
     titleKey: "nav.debugData", 
     url: "/debug/system-health", 
     icon: Bug,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Debug tools for platform diagnostics",
   },
   { 
     titleKey: "nav.aiAgents", 
     url: "/admin/agents", 
     icon: Bot,
-    requiresPlatformAdmin: true
+    requiresPlatformAdmin: true,
+    description: "Configure AI automation agents",
   },
   {
     titleKey: "nav.terminology",
     url: "/settings/terminology",
     icon: Languages,
-    requiresOwnerOrAdmin: true
+    requiresOwnerOrAdmin: true,
+    description: "Customize platform labels to match your institution's language",
   },
 ];
 
