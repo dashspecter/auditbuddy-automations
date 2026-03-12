@@ -12,6 +12,7 @@ import {
 import { GraduationCap, User, Users, Clock, MapPin, ClipboardList, CheckCircle2, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Shift } from "@/hooks/useShifts";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface TrainingShiftCardProps {
   shift: Shift;
@@ -20,6 +21,10 @@ interface TrainingShiftCardProps {
 
 export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardProps) => {
   const { t } = useTranslation();
+  const { employee, employees } = useTerminology();
+  const employeeLabelLower = employee().toLowerCase();
+  const employeesLabel = employees();
+  const employeesLabelLower = employeesLabel.toLowerCase();
   const navigate = useNavigate();
 
   const session = shift.training_session;
