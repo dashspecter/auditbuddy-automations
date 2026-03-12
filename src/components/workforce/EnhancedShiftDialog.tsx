@@ -706,7 +706,7 @@ export const EnhancedShiftDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="required_count">
-                {t('workforce.components.enhancedShiftDialog.staffNeeded')} *
+                {t('workforce.components.enhancedShiftDialog.staffNeeded', `${t_.employees()} Needed for this Role`)} *
                 {formData.role && (
                   <span className="text-xs text-muted-foreground block mt-1">
                     {String(t('workforce.components.enhancedShiftDialog.totalPositions', { role: roles.find(r => r.name === formData.role)?.name || 'staff' }))}
