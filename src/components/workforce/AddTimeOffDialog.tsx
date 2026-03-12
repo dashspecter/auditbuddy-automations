@@ -37,6 +37,7 @@ export const AddTimeOffDialog = ({
   const [reason, setReason] = useState("");
   
   const createTimeOff = useCreateTimeOffRequest();
+  const t_ = useTerminology();
 
   useEffect(() => {
     if (open) {

@@ -105,6 +105,7 @@ export const EnhancedShiftDialog = ({
   const { data: employees = [] } = useEmployees(showAllLocations ? undefined : (formData.location_id || undefined));
   const { data: operatingSchedules = [] } = useLocationOperatingSchedules(formData.location_id);
   const { data: shiftPresets = [] } = useShiftPresets();
+  const t_ = useTerminology();
 
   // Fetch existing shift assignments for the selected date to filter out unavailable employees
   const { data: existingAssignments = [] } = useQuery({
