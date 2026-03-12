@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { GraduationCap, User, Users, Clock, MapPin, ClipboardList, CheckCircle2, ExternalLink } from "lucide-react";
+import { GraduationCap, User, Users, Clock, MapPin, ClipboardList, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Shift } from "@/hooks/useShifts";
 import { useTerminology } from "@/hooks/useTerminology";

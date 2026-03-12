@@ -622,7 +622,7 @@ const TrainingAssignmentDetail = () => {
           <CardContent className="py-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{t('common.location', 'Location')}: {assignment.location.name}</span>
+              <span>{t('common.locationLabel', locationLabel)}: {assignment.location.name}</span>
             </div>
           </CardContent>
         </Card>
