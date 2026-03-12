@@ -431,10 +431,10 @@ const Training = () => {
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
-                {t('training.calendarComingSoon', 'Training calendar integration with shifts is available in the Shifts page')}
+                {t('training.calendarUsesShifts', `Training calendar integration with ${shiftsLabelLower} is available in the ${shiftsLabel} page`)}
               </p>
               <Button className="mt-4" variant="outline" onClick={() => navigate('/workforce/shifts')}>
-                {t('training.viewShifts', 'View Shifts Calendar')}
+                {t('training.viewShiftsCalendar', `View ${shiftsLabel} Calendar`)}
               </Button>
             </CardContent>
           </Card>
