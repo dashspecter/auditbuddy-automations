@@ -1235,7 +1235,7 @@ export const EnhancedShiftDialog = ({
                 <SelectItem value="published">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-green-500" />
-                    Published — in schedule, visible to assigned employees
+                    Published — in schedule, visible to assigned {t_.employees().toLowerCase()}
                   </div>
                 </SelectItem>
               </SelectContent>
