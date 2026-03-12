@@ -32,6 +32,19 @@ const Payroll = () => {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const { data: periods = [], isLoading: periodsLoading } = usePayrollPeriods();
   const { data: locations = [] } = useLocations();
+  const {
+    employee: employeeTerm,
+    employees: employeesTerm,
+    location: locationTerm,
+    locations: locationsTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const employeesLabel = employeesTerm();
+  const locationLabel = locationTerm();
+  const locationsLabel = locationsTerm();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const allLocationsLabel = `All ${locationsLabel}`;
   const createPeriod = useCreatePayrollPeriod();
 
   // Use selected period if viewing history, otherwise use active period
