@@ -121,7 +121,7 @@ export default function Warnings() {
               {t("warnings.title", "Warnings & Notes")}
             </h1>
             <p className="text-muted-foreground">
-              {t("warnings.description", "Track employee warnings and coaching notes")}
+              {t("warnings.descriptionWithTerminology", `Track ${employeesLabelLower} warnings and coaching notes`)}
             </p>
           </div>
           <Button onClick={() => setIsCreateOpen(true)}>
