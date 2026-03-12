@@ -15,6 +15,8 @@ export interface ModuleDefinition {
   color: string;
   /** Group for UI organisation */
   category: 'core' | 'operations' | 'communication' | 'analytics';
+  /** If true, this module is auto-activated when government_ops is enabled */
+  governmentDefault?: boolean;
 }
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
@@ -27,6 +29,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: MapPin,
     color: 'text-blue-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'staff_performance',
@@ -36,6 +39,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Users,
     color: 'text-green-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'equipment_management',
@@ -45,6 +49,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Settings,
     color: 'text-purple-500',
     category: 'core',
+    governmentDefault: true,
   },
   {
     code: 'workforce',
@@ -54,6 +59,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Briefcase,
     color: 'text-indigo-500',
     category: 'core',
+    governmentDefault: true,
   },
 
   // ── Operations ────────────────────────────────────
@@ -65,6 +71,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: ClipboardList,
     color: 'text-cyan-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'wastage',
@@ -101,6 +108,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: AlertTriangle,
     color: 'text-red-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'inventory',
@@ -119,6 +127,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: FileText,
     color: 'text-slate-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'scouts',
@@ -148,6 +157,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Bell,
     color: 'text-orange-500',
     category: 'communication',
+    governmentDefault: true,
   },
   {
     code: 'whatsapp_messaging',
@@ -168,6 +178,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: BarChart3,
     color: 'text-pink-500',
     category: 'analytics',
+    governmentDefault: true,
   },
   {
     code: 'insights',
@@ -177,6 +188,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Lightbulb,
     color: 'text-yellow-500',
     category: 'analytics',
+    governmentDefault: true,
   },
   {
     code: 'integrations',
@@ -215,3 +227,8 @@ export const CATEGORY_LABELS: Record<ModuleDefinition['category'], string> = {
   communication: 'Communication',
   analytics: 'Analytics & Insights',
 };
+
+/** Module codes that should auto-activate when government_ops is enabled */
+export const GOVERNMENT_DEFAULT_MODULES: string[] = MODULE_REGISTRY
+  .filter((m) => m.governmentDefault)
+  .map((m) => m.code);

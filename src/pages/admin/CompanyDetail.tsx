@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Building2, Users, ClipboardCheck, Briefcase, Calendar, Package, UserCog } from "lucide-react";
 import { format } from "date-fns";
-import { MODULE_REGISTRY, CATEGORY_LABELS } from "@/config/moduleRegistry";
+import { MODULE_REGISTRY, CATEGORY_LABELS, GOVERNMENT_DEFAULT_MODULES } from "@/config/moduleRegistry";
 import { toast } from "sonner";
 import { useCompanyOverview } from "./company-detail/useCompanyOverview";
 import { CompanyActivityOverview } from "./company-detail/CompanyActivityOverview";
@@ -94,15 +94,31 @@ export default function CompanyDetail() {
     const newState = !isModuleActive(code);
 
     try {
-      const { error } = await supabase
-        .from('company_modules')
-        .upsert(
-          { company_id: id, module_name: code, is_active: newState },
-          { onConflict: 'company_id,module_name' }
-        );
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
-      toast.success(`${displayName} ${newState ? 'enabled' : 'disabled'}`);
+      // When enabling government_ops, also bulk-enable all government default modules
+      if (code === 'government_ops' && newState) {
+        const modulesToEnable = [...new Set([code, ...GOVERNMENT_DEFAULT_MODULES])];
+        const rows = modulesToEnable.map((m) => ({
+          company_id: id,
+          module_name: m,
+          is_active: true,
+        }));
+        const { error } = await supabase
+          .from('company_modules')
+          .upsert(rows, { onConflict: 'company_id,module_name' });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
+        toast.success(`${displayName} enabled with all companion modules`);
+      } else {
+        const { error } = await supabase
+          .from('company_modules')
+          .upsert(
+            { company_id: id, module_name: code, is_active: newState },
+            { onConflict: 'company_id,module_name' }
+          );
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['admin-company-modules', id] });
+        toast.success(`${displayName} ${newState ? 'enabled' : 'disabled'}`);
+      }
     } catch (error) {
       console.error('Error toggling module:', error);
       toast.error('Failed to update module');

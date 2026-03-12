@@ -93,19 +93,32 @@ export const useToggleCompanyModule = () => {
       isEnabled: boolean;
     }) => {
       if (isEnabled) {
-        // Enable module
-        const { error } = await supabase
-          .from("company_modules")
-          .upsert(
-            {
-              company_id: companyId,
-              module_name: moduleCode,
-              is_active: true,
-            },
-            { onConflict: 'company_id,module_name' }
-          );
-
-        if (error) throw error;
+        // When enabling government_ops, also enable all government default modules
+        if (moduleCode === 'government_ops') {
+          const { GOVERNMENT_DEFAULT_MODULES } = await import('@/config/moduleRegistry');
+          const modulesToEnable = [...new Set([moduleCode, ...GOVERNMENT_DEFAULT_MODULES])];
+          const rows = modulesToEnable.map((m) => ({
+            company_id: companyId,
+            module_name: m,
+            is_active: true,
+          }));
+          const { error } = await supabase
+            .from("company_modules")
+            .upsert(rows, { onConflict: 'company_id,module_name' });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("company_modules")
+            .upsert(
+              {
+                company_id: companyId,
+                module_name: moduleCode,
+                is_active: true,
+              },
+              { onConflict: 'company_id,module_name' }
+            );
+          if (error) throw error;
+        }
       } else {
         // Disable module
         const { error } = await supabase
