@@ -37,6 +37,64 @@ const Audits = () => {
   const [showDrafts, setShowDrafts] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { audit, audits: auditsTerm, employee, location } = useTerminology();
+  const { data: industry } = useCompanyIndustry();
+
+  const auditLabel = audit();
+  const auditsLabel = auditsTerm();
+  const employeeLabel = employee();
+  const locationLabel = location();
+  const auditsLabelLower = auditsLabel.toLowerCase();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const isGovernment = industry?.slug === "government";
+
+  const auditsSubItems = useMemo(() => {
+    const items = [
+      {
+        title: `${locationLabel} ${auditLabel}`,
+        url: "/audits",
+        icon: MapPin,
+        description: `${locationLabel} ${auditsLabelLower}`,
+        isCurrent: true,
+      },
+      {
+        title: `${employeeLabel} ${auditLabel}`,
+        url: "/staff-audits/all",
+        icon: Users,
+        description: `${employeeLabel} ${auditsLabelLower}`,
+      },
+      {
+        title: "Mystery Shopper",
+        url: "/audits/mystery-shopper",
+        icon: UserSearch,
+        description: "Mystery visits",
+      },
+      {
+        title: "Templates",
+        url: "/audits/templates",
+        icon: Library,
+        description: `${auditLabel} templates`,
+      },
+      {
+        title: "Calendar",
+        url: "/audits-calendar",
+        icon: Calendar,
+        description: `${auditLabel} calendar`,
+      },
+      {
+        title: "Schedules",
+        url: "/recurring-schedules",
+        icon: CalendarClock,
+        description: `Recurring ${auditsLabelLower}`,
+      },
+      { title: "Photo Gallery", url: "/photos", icon: Image, description: "All photos" },
+    ];
+
+    return isGovernment
+      ? items.filter((item) => item.url !== "/audits/mystery-shopper")
+      : items;
+  }, [auditLabel, auditsLabelLower, employeeLabel, isGovernment, locationLabel]);
 
   // Fetch template fields for fallback score calculation
   const templateIds = useMemo(() => {
