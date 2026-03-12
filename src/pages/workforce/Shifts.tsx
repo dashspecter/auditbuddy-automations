@@ -165,9 +165,9 @@ const Shifts = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('workforce.shifts.title')}</h1>
+          <h1 className="text-3xl font-bold">{`${shiftLabel} Scheduling`}</h1>
           <p className="text-muted-foreground mt-1">
-            {t('workforce.shifts.subtitle')}
+            {`Create and manage ${shiftsLabel.toLowerCase()} for your ${employeesLabel.toLowerCase()}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
