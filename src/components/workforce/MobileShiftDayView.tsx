@@ -355,7 +355,7 @@ export const MobileShiftDayView = ({ onShiftClick }: MobileShiftDayViewProps) =>
                       onClick={() => handleAddShift(day)}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      Add Shift
+                      {`Add ${shiftLabel}`}
                     </Button>
                   </>
                 )}
