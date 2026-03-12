@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApprovalRequests, useApproveOrReject, ApprovalRequest } from "@/hooks/useApprovals";
-import { CheckCircle2, XCircle, Clock, Loader2, FileText, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Loader2, FileText, ArrowRight, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ApprovalQueue() {
@@ -112,9 +113,21 @@ export default function ApprovalQueue() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Approval Queue</h1>
-        <p className="text-muted-foreground">Review and process pending approval requests.</p>
+      <div className="flex items-center gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Approval Queue</h1>
+          <p className="text-muted-foreground">Review and process pending approval requests.</p>
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-1" />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[280px]">
+              <p className="text-xs">Requests flow through multi-step workflows (e.g., Clerk → Department Head → Mayor). Each step must be approved before the request advances. You'll only see items awaiting your decision.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <Tabs defaultValue="pending">

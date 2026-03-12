@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Landmark } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { RefreshCw, Landmark, HelpCircle } from "lucide-react";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { DepartmentHealthGrid } from "./DepartmentHealthGrid";
 import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
@@ -14,6 +15,7 @@ import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { subWeeks } from "date-fns";
 import { useLabels } from "@/hooks/useLabels";
 import { useTranslation } from "react-i18next";
@@ -44,10 +46,22 @@ export const ExecutiveDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-primary" />
-            Executive Overview
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Landmark className="h-6 w-6 text-primary" />
+              Executive Overview
+            </h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[280px]">
+                  <p className="text-xs">This dashboard provides a real-time summary of your institution's performance across all departments — including inspections, tasks, attendance, and pending approvals.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <p className="text-muted-foreground">
             {label("company", "Institution")} performance at a glance
           </p>
