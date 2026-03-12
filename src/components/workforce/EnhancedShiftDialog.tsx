@@ -819,7 +819,7 @@ export const EnhancedShiftDialog = ({
 
           {/* Shift Type */}
           <div className="space-y-2">
-            <Label>{t('workforce.components.shiftDialog.shiftType', 'Shift Type')}</Label>
+            <Label>{t_.shift()} {t('workforce.components.shiftDialog.type', 'Type')}</Label>
             <Select
               value={formData.shift_type}
               onValueChange={(value) =>
