@@ -145,10 +145,10 @@ const Payroll = () => {
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <MapPin className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t('workforce.attendance.allLocations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('workforce.attendance.allLocations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
