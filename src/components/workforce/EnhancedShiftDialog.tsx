@@ -642,7 +642,7 @@ export const EnhancedShiftDialog = ({
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>
-            {shift ? t('workforce.components.enhancedShiftDialog.editShift') : t('workforce.components.enhancedShiftDialog.createShift')}
+            {shift ? `${t('workforce.components.enhancedShiftDialog.editShift', `Edit ${t_.shift()}`)}` : `${t('workforce.components.enhancedShiftDialog.createShift', `Create ${t_.shift()}`)}`}
           </DialogTitle>
         </DialogHeader>
 
