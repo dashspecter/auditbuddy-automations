@@ -171,10 +171,10 @@ export function WarningDialog({
         <div className="space-y-4 py-4">
           {/* Employee */}
           <div className="space-y-2">
-            <Label htmlFor="employee">{t("warnings.employee", "Employee")} *</Label>
+            <Label htmlFor="employee">{t("warnings.employeeLabel", employeeLabel)} *</Label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder={t("warnings.selectEmployee", "Select employee")} />
+                <SelectValue placeholder={t("warnings.selectEmployeeLabel", `Select ${employeeLabelLower}`)} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((emp) => (
