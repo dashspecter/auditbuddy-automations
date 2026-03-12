@@ -626,7 +626,7 @@ const StaffAuditNew = () => {
                   disabled={createStaffAudit.isPending}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {createStaffAudit.isPending ? 'Submitting...' : 'Submit Audit'}
+                  {createStaffAudit.isPending ? 'Submitting...' : `Submit ${auditLabel}`}
                 </Button>
                 <Button 
                   type="button" 
