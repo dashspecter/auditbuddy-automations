@@ -157,6 +157,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Bell,
     color: 'text-orange-500',
     category: 'communication',
+    governmentDefault: true,
   },
   {
     code: 'whatsapp_messaging',
