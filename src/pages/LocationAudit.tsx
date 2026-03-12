@@ -1157,7 +1157,7 @@ const LocationAudit = () => {
                                              (template?.template_locations && template.template_locations.length === 1);
                   return hasSpecificLocation && (
                     <p className="text-xs text-muted-foreground">
-                      This template is assigned to a specific location
+                      {`This template is assigned to a specific ${locationLabelLower}`}
                     </p>
                   );
                 })()}
