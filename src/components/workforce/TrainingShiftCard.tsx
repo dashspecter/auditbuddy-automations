@@ -57,7 +57,7 @@ export const TrainingShiftCard = ({ shift, compact = false }: TrainingShiftCardP
             </div>
             <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
               <Users className="h-2.5 w-2.5" />
-              {traineeCount} trainee{traineeCount !== 1 ? 's' : ''}
+              {traineeCount} {traineeCount === 1 ? employeeLabelLower : employeesLabelLower}
             </div>
           </div>
         </SheetTrigger>

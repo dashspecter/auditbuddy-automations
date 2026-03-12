@@ -124,7 +124,7 @@ const TrainingAssignmentDetail = () => {
   const handleSubmitEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignment || !currentEmployee) {
-      alert("You must be an employee to submit evaluations");
+      alert(`You must be a ${employeeLabelLower} to submit evaluations`);
       return;
     }
     
