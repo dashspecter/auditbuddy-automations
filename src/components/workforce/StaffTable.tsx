@@ -334,7 +334,7 @@ export const StaffTable = () => {
                   <TableRow>
                     <TableHead>{t('workforce.components.staffTable.name')}</TableHead>
                     <TableHead>{t('workforce.components.staffTable.role')}</TableHead>
-                    <TableHead className="hidden sm:table-cell">{t('workforce.components.staffTable.location')}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{term.location()}</TableHead>
                     <TableHead>{t('workforce.components.staffTable.status')}</TableHead>
                     <TableHead className="hidden md:table-cell">{t('workforce.components.staffTable.contract')}</TableHead>
                     <TableHead className="hidden lg:table-cell">{t('workforce.components.staffTable.contact')}</TableHead>
