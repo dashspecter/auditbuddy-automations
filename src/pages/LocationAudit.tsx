@@ -1072,14 +1072,14 @@ const LocationAudit = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-                Location Standard Checker
+                {`${locationLabel} Standard Checker`}
                 {currentDraftId && (
                   <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-normal text-muted-foreground block sm:inline mt-1 sm:mt-0">
                     (Editing Draft)
                   </span>
                 )}
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">Complete the location audit form</p>
+              <p className="text-sm sm:text-base text-muted-foreground">{`Complete the ${locationLabelLower} ${auditLabel.toLowerCase()} form`}</p>
             </div>
             {selectedTemplate && (
               <Button
