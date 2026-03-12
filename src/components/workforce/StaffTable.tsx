@@ -15,6 +15,7 @@ import { ResetPasswordDialog } from "@/components/ResetPasswordDialog";
 import { GenerateContractDialog } from "@/components/GenerateContractDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileCard, MobileCardHeader, MobileCardRow } from "@/components/ui/responsive-table";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface CursorState {
   val: string;
