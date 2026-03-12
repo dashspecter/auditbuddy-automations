@@ -243,8 +243,10 @@ const Audits = () => {
         <div className="flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Audits</h1>
-                <p className="text-muted-foreground mt-1">View and manage all location and staff audits</p>
+                <h1 className="text-3xl font-bold text-foreground">{auditsLabel}</h1>
+                <p className="text-muted-foreground mt-1">
+                  {`View and manage all ${locationLabelLower} and ${employeeLabelLower} ${auditsLabelLower}`}
+                </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 {isMobile ? (
@@ -271,13 +273,13 @@ const Audits = () => {
                   </DropdownMenu>
                 )}
                 <Button
-                  variant="default" 
-                  className="gap-2 w-full sm:w-auto" 
+                  variant="default"
+                  className="gap-2 w-full sm:w-auto"
                   data-tour="new-audit-button"
                   onClick={() => navigate('/location-audit')}
                 >
                   <Plus className="h-4 w-4" />
-                  New Audit
+                  {`New ${auditLabel}`}
                 </Button>
               </div>
             </div>
