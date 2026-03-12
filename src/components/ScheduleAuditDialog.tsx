@@ -319,13 +319,13 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                 control={form.control}
                 name="location_id"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
+                    <FormItem>
+                      <FormLabel>{locationLabel}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Select ${locationLabelLower}`} />
+                          </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {locations?.map((location) => (
