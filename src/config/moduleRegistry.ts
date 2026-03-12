@@ -108,6 +108,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: AlertTriangle,
     color: 'text-red-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'inventory',
