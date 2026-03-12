@@ -46,6 +46,15 @@ const StaffAuditNew = () => {
   const scheduledId = searchParams.get('scheduled');
   const { user } = useAuth();
   const createStaffAudit = useCreateStaffAudit();
+  const { employee, employees, location, audit } = useTerminology();
+  const employeeLabel = employee();
+  const employeesLabel = employees();
+  const locationLabel = location();
+  const auditLabel = audit();
+  const employeeLabelLower = employeeLabel.toLowerCase();
+  const locationLabelLower = locationLabel.toLowerCase();
+  const employeesLabelLower = employeesLabel.toLowerCase();
+  const auditLabelLower = auditLabel.toLowerCase();
   
   const [formData, setFormData] = useState({
     location_id: "",
