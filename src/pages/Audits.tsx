@@ -44,6 +44,7 @@ const Audits = () => {
   const auditsLabel = auditsTerm();
   const employeeLabel = employee();
   const locationLabel = location();
+  const auditLabelLower = auditLabel.toLowerCase();
   const auditsLabelLower = auditsLabel.toLowerCase();
   const employeeLabelLower = employeeLabel.toLowerCase();
   const locationLabelLower = locationLabel.toLowerCase();
