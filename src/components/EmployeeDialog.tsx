@@ -356,7 +356,7 @@ export const EmployeeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{employee ? "Edit Employee" : "Add Employee"}</DialogTitle>
+          <DialogTitle>{employee ? `Edit ${term.employee()}` : `Add ${term.employee()}`}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
