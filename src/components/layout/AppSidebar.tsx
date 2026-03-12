@@ -22,6 +22,7 @@ import { AIGuideChat } from "@/components/AIGuideChat";
 import { useTranslation } from "react-i18next";
 import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 import { useLabels } from "@/hooks/useLabels";
+import { useTerminology } from "@/hooks/useTerminology";
 
 // Role-based access configuration
 // Manager: workforce (staff, shifts, attendance, sales, performance), audits/templates, equipment, notifications, tests, view reports/insights
