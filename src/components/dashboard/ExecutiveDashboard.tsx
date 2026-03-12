@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Landmark } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { RefreshCw, Landmark, HelpCircle } from "lucide-react";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { DepartmentHealthGrid } from "./DepartmentHealthGrid";
 import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
