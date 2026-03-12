@@ -489,19 +489,19 @@ const StaffAuditNew = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="employee">Employee *</Label>
+                  <Label htmlFor="employee">{employeeLabel} *</Label>
                   <Select
                     value={formData.employee_id}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}
                     disabled={isScheduledMode || !formData.location_id || formData.location_id === "__all__"}
                   >
                     <SelectTrigger id="employee">
-                      <SelectValue placeholder="Select employee" />
+                      <SelectValue placeholder={`Select ${employeeLabelLower}`} />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       {activeEmployees.length === 0 ? (
                         <div className="p-2 text-sm text-muted-foreground">
-                          No active employees found for this location
+                          {`No active ${employeesLabelLower} found for this ${locationLabelLower}`}
                         </div>
                       ) : (
                         activeEmployees.map((employee) => (
@@ -514,7 +514,7 @@ const StaffAuditNew = () => {
                   </Select>
                   {!formData.location_id || formData.location_id === "__all__" ? (
                     <p className="text-sm text-muted-foreground">
-                      Please select a location first
+                      {`Please select a ${locationLabelLower} first`}
                     </p>
                   ) : null}
                 </div>
