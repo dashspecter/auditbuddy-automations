@@ -382,7 +382,7 @@ const Training = () => {
                 <p className="text-muted-foreground">{t('training.noAssignments', 'No training assignments yet')}</p>
                 <Button className="mt-4" onClick={() => navigate('/workforce/training/assignments/new')}>
                   <Plus className="mr-2 h-4 w-4" />
-                  {t('training.assignFirst', 'Assign first trainee')}
+                  {t('training.assignFirstEmployee', `Assign first ${employeeLabelLower}`)}
                 </Button>
               </CardContent>
             </Card>
