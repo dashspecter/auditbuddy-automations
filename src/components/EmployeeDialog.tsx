@@ -806,7 +806,7 @@ export const EmployeeDialog = ({
                     <Input
                       id="newUserPassword"
                       type="password"
-                      placeholder="Enter password for employee login"
+                      placeholder={`Enter password for ${term.employee().toLowerCase()} login`}
                       value={formData.newUserPassword || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
                       className="mt-1"
