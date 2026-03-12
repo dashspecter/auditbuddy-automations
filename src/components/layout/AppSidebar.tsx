@@ -879,14 +879,15 @@ export function AppSidebar() {
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20"
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && <span>{t(item.titleKey)}</span>}
+                        {!isCollapsed && <span>{resolveLabel(item)}</span>}
                       </NavLink>
                     </TooltipTrigger>
-                    {isCollapsed && (
-                      <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                        {t(item.titleKey)}
-                      </TooltipContent>
-                    )}
+                    <TooltipContent side="right" className="bg-popover text-popover-foreground border max-w-[220px]">
+                      <p className="font-medium text-xs">{resolveLabel(item)}</p>
+                      {(item as any).description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{(item as any).description}</p>
+                      )}
+                    </TooltipContent>
                   </Tooltip>
                 ))}
               </nav>
