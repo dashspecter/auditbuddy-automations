@@ -369,7 +369,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
                 className="w-full mt-4"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Another Audit
+                {`Add Another ${auditLabel}`}
               </Button>
             </ScrollArea>
 
