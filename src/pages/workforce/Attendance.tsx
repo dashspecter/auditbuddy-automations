@@ -111,7 +111,9 @@ const Attendance = () => {
         <div className="text-center text-muted-foreground py-12">
           <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>{t('workforce.attendance.noLogs')}</p>
-          <p className="text-sm mt-2">{t('workforce.attendance.logsWillAppear')}</p>
+          <p className="text-sm mt-2">
+            {t('workforce.attendance.logsWillAppear', `${employeesLabel} attendance logs will appear here`) }
+          </p>
         </div>
       );
     }
@@ -120,9 +122,9 @@ const Attendance = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t('workforce.attendance.employee')}</TableHead>
+            <TableHead>{employeeLabel}</TableHead>
             <TableHead>{t('workforce.attendance.role')}</TableHead>
-            <TableHead>{t('workforce.attendance.location')}</TableHead>
+            <TableHead>{locationLabel}</TableHead>
             <TableHead>{t('workforce.attendance.clockIn')}</TableHead>
             <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
             <TableHead>{t('workforce.attendance.duration')}</TableHead>
