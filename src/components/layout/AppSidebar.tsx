@@ -693,36 +693,45 @@ export function AppSidebar() {
               </div>
             )}
             <nav className="space-y-0.5">
-              {navigationItems.filter(shouldShowItem).map((item) => (
+              {filteredNavigationItems.filter(shouldShowItem).map((item) => (
                 <div key={item.titleKey}>
                   {item.subItems && !isCollapsed ? (
                     <Collapsible
                       open={expandedGroups[item.titleKey] ?? false}
                       onOpenChange={() => toggleGroup(item.titleKey)}
                     >
-                      <CollapsibleTrigger className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                        transition-all duration-200 ease-out group
-                        ${isParentActive(item) 
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20' 
-                          : 'text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground'}
-                      `}>
-                        <div className={`p-1.5 rounded-lg transition-colors duration-200 ${
-                          isParentActive(item) 
-                            ? 'bg-white/20' 
-                            : 'bg-sidebar-muted group-hover:bg-sidebar-border'
-                        }`}>
-                          <item.icon className="h-4 w-4 flex-shrink-0" />
-                        </div>
-                        <span className="flex-1 text-left">{t(item.titleKey)}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.titleKey] ? 'rotate-180' : ''}`} />
-                      </CollapsibleTrigger>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CollapsibleTrigger className={`
+                            w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                            transition-all duration-200 ease-out group
+                            ${isParentActive(item) 
+                              ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm shadow-primary/20' 
+                              : 'text-sidebar-foreground/80 hover:bg-sidebar-muted hover:text-sidebar-foreground'}
+                          `}>
+                            <div className={`p-1.5 rounded-lg transition-colors duration-200 ${
+                              isParentActive(item) 
+                                ? 'bg-white/20' 
+                                : 'bg-sidebar-muted group-hover:bg-sidebar-border'
+                            }`}>
+                              <item.icon className="h-4 w-4 flex-shrink-0" />
+                            </div>
+                            <span className="flex-1 text-left">{resolveLabel(item)}</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ease-out opacity-60 ${expandedGroups[item.titleKey] ? 'rotate-180' : ''}`} />
+                          </CollapsibleTrigger>
+                        </TooltipTrigger>
+                        {(item as any).description && (
+                          <TooltipContent side="right" className="bg-popover text-popover-foreground border max-w-[220px]">
+                            <p className="text-xs">{(item as any).description}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
                       <CollapsibleContent className="mt-1 ml-[22px] pl-4 border-l border-sidebar-border/60 space-y-0.5 overflow-hidden">
                         {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                           subItem.nestedItems ? (
                             <Collapsible key={subItem.url}>
                               <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted group">
-                                <span>{t(subItem.titleKey)}</span>
+                                <span>{resolveLabel(subItem)}</span>
                                 <ChevronRight className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                               </CollapsibleTrigger>
                               <CollapsibleContent className="ml-3 pl-3 border-l border-sidebar-border/40 space-y-0.5 mt-1">
@@ -757,7 +766,7 @@ export function AppSidebar() {
                                     : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted'
                                 }`}
                               >
-                                {t(subItem.titleKey)}
+                                {resolveLabel(subItem)}
                               </button>
                             ) : (
                               <NavLink
@@ -766,7 +775,7 @@ export function AppSidebar() {
                                 className="block px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted"
                                 activeClassName="text-primary font-medium bg-primary/10"
                               >
-                                {t(subItem.titleKey)}
+                                {resolveLabel(subItem)}
                               </NavLink>
                             )
                           )
@@ -790,7 +799,10 @@ export function AppSidebar() {
                         </button>
                       </PopoverTrigger>
                       <PopoverContent side="right" align="start" className="w-48 p-2 bg-popover border shadow-lg">
-                        <div className="font-medium text-sm mb-2 px-2 text-foreground">{t(item.titleKey)}</div>
+                        <div className="font-medium text-sm mb-1 px-2 text-foreground">{resolveLabel(item)}</div>
+                        {(item as any).description && (
+                          <p className="text-xs text-muted-foreground px-2 mb-2">{(item as any).description}</p>
+                        )}
                         <div className="space-y-0.5">
                           {item.subItems.filter(shouldShowSubItem).map((subItem: any) => (
                             // For wastage sub-items, use onClick to pass state.from for proper back navigation
@@ -804,7 +816,7 @@ export function AppSidebar() {
                                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                                 }`}
                               >
-                                {t(subItem.titleKey)}
+                                {resolveLabel(subItem)}
                               </button>
                             ) : (
                               <NavLink
@@ -813,7 +825,7 @@ export function AppSidebar() {
                                 className="block px-2 py-1.5 text-[13px] rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
                                 activeClassName="text-primary font-medium bg-primary/10"
                               >
-                                {t(subItem.titleKey)}
+                                {resolveLabel(subItem)}
                               </NavLink>
                             )
                           ))}
@@ -833,14 +845,15 @@ export function AppSidebar() {
                           <div className={`p-1.5 rounded-lg transition-colors duration-200 bg-sidebar-muted group-hover:bg-sidebar-border ${isActive(item.url) ? 'bg-white/20' : ''}`}>
                             <item.icon className="h-4 w-4 flex-shrink-0" />
                           </div>
-                          {!isCollapsed && <span>{t(item.titleKey)}</span>}
+                          {!isCollapsed && <span>{resolveLabel(item)}</span>}
                         </NavLink>
                       </TooltipTrigger>
-                      {isCollapsed && (
-                        <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                          {t(item.titleKey)}
-                        </TooltipContent>
-                      )}
+                      <TooltipContent side="right" className="bg-popover text-popover-foreground border max-w-[220px]">
+                        <p className="font-medium text-xs">{resolveLabel(item)}</p>
+                        {(item as any).description && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{(item as any).description}</p>
+                        )}
+                      </TooltipContent>
                     </Tooltip>
                   )}
                 </div>
