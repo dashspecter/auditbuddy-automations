@@ -133,7 +133,7 @@ const Training = () => {
             {t('training.title', 'Training')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {t('training.description', 'Manage training modules and staff onboarding')}
+            {t('training.descriptionWithTerminology', `Manage training modules and ${employeesLabelLower} onboarding`)}
           </p>
         </div>
         <div className="flex gap-2">

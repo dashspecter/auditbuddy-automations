@@ -106,9 +106,9 @@ const TrainingAssignmentNew = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('training.assignTrainee', 'Assign Trainee')}</h1>
+          <h1 className="text-2xl font-bold">{t('training.assignEmployee', `Assign ${employeeLabel}`)}</h1>
           <p className="text-muted-foreground">
-            {t('training.assignDescription', 'Assign a training module to a staff member')}
+            {t('training.assignDescriptionEmployee', `Assign a training module to a ${employeeLabelLower}`)}
           </p>
         </div>
       </div>
