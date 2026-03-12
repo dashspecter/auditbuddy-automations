@@ -127,6 +127,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: FileText,
     color: 'text-slate-500',
     category: 'operations',
+    governmentDefault: true,
   },
   {
     code: 'scouts',
