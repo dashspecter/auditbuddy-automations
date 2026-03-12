@@ -188,6 +188,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Lightbulb,
     color: 'text-yellow-500',
     category: 'analytics',
+    governmentDefault: true,
   },
   {
     code: 'integrations',
