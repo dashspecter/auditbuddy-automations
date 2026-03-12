@@ -161,9 +161,9 @@ export function PendingApprovalsDialog({
                         <div className="space-y-1">
                           <div className="font-medium">{assignment.employees?.full_name}</div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="outline">Employee: {assignment.employees?.role}</Badge>
+                            <Badge variant="outline">{`${employeeLabel}: ${assignment.employees?.role}`}</Badge>
                             <span>→</span>
-                            <Badge variant="outline">Shift: {assignment.shifts?.role}</Badge>
+                            <Badge variant="outline">{`${shiftLabel}: ${assignment.shifts?.role}`}</Badge>
                           </div>
                         </div>
                       </div>
