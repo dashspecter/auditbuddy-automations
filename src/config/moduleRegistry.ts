@@ -59,6 +59,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Briefcase,
     color: 'text-indigo-500',
     category: 'core',
+    governmentDefault: true,
   },
 
   // ── Operations ────────────────────────────────────
