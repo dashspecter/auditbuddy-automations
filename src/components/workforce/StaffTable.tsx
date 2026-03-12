@@ -320,7 +320,7 @@ export const StaffTable = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">{t('workforce.components.staffTable.loadingStaff')}</div>
+        <div className="text-center py-8 text-muted-foreground">{`Loading ${term.employees().toLowerCase()}...`}</div>
       ) : filteredStaff && filteredStaff.length > 0 ? (
         <>
           {isMobile ? (
