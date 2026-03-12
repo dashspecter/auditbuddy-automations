@@ -315,7 +315,7 @@ export default function PayrollBatches() {
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{enhancedDetails.length || selectedBatch.summary_json.employee_count || 0}</p>
-                    <p className="text-xs text-muted-foreground">{t('workforce.payrollBatches.employees')}</p>
+                    <p className="text-xs text-muted-foreground">{employeesLabel}</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -350,7 +350,7 @@ export default function PayrollBatches() {
                 </Card>
               </div>
 
-              <h4 className="font-medium mt-4">{t('workforce.payrollBatches.employeeBreakdown')}</h4>
+              <h4 className="font-medium mt-4">{`${employeesLabel} Breakdown`}</h4>
 
               {detailsLoading ? (
                 <div className="space-y-2">
@@ -364,7 +364,7 @@ export default function PayrollBatches() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[140px]">{t('workforce.payrollBatches.employee')}</TableHead>
+                          <TableHead className="min-w-[140px]">{employeeLabel}</TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
