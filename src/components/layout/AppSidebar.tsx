@@ -51,21 +51,25 @@ const navigationItems = [
   // 1. Home
   { 
     titleKey: "nav.home", 
+    labelKey: null,
     url: "/dashboard", 
     icon: Home,
-    module: null
+    module: null,
+    description: "Executive overview dashboard with key performance indicators",
   },
   // 2. Workforce
   { 
     titleKey: "nav.workforce", 
+    labelKey: "employees",
     url: "/workforce", 
     icon: Users,
     module: "workforce",
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'manage_shifts' as CompanyPermission,
+    description: "Manage staff, duty rosters, attendance, payroll, and training",
     subItems: [
-      { titleKey: "nav.staff", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
-      { titleKey: "nav.shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
+      { titleKey: "nav.staff", labelKey: "employees", url: "/workforce/staff", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
+      { titleKey: "nav.shifts", labelKey: "shifts", url: "/workforce/shifts", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_shifts' as CompanyPermission },
       { titleKey: "nav.training", url: "/workforce/training", allowedRoles: ['admin', 'manager', 'hr'], companyPermission: 'manage_employees' as CompanyPermission },
       { titleKey: "nav.warnings", url: "/workforce/warnings", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_employees' as CompanyPermission },
       { titleKey: "nav.timeOff", url: "/workforce/time-off", allowedRoles: ['admin', 'hr'] },
@@ -94,13 +98,15 @@ const navigationItems = [
   // 3. Audits
   { 
     titleKey: "nav.audits", 
+    labelKey: "audits",
     url: "/audits", 
     icon: ClipboardCheck,
     module: "location_audits",
     allowedRoles: ['admin', 'manager', 'hr', 'checker'],
     companyPermission: 'manage_audits' as CompanyPermission,
+    description: "Schedule and conduct inspections with compliance scoring",
     subItems: [
-      { titleKey: "nav.locationAudits", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.locationAudits", labelKey: "locations", url: "/audits", allowedRoles: ['admin', 'manager', 'hr', 'checker'], companyPermission: 'manage_audits' as CompanyPermission },
       { 
         titleKey: "nav.employeeAudits", 
         url: "/staff-audits/all", 
@@ -141,15 +147,17 @@ const navigationItems = [
           { titleKey: "nav.library", url: "/admin/template-library" },
         ]
       },
-      { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
+      { titleKey: "nav.mysteryShopper", url: "/audits/mystery-shopper", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission, hideForGovernment: true },
     ]
   },
   // 4. Tasks
   { 
     titleKey: "nav.tasks", 
+    labelKey: null,
     url: "/tasks", 
     icon: ListTodo,
     module: null,
+    description: "Track operational tasks, assignments, and deadlines",
     subItems: [
       { titleKey: "nav.allTasks", url: "/tasks" },
       { titleKey: "nav.calendar", url: "/tasks/calendar" },
@@ -159,11 +167,13 @@ const navigationItems = [
   // 5. Notifications
   { 
     titleKey: "nav.notifications", 
+    labelKey: null,
     url: "/notifications", 
     icon: Bell,
     module: "notifications",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_notifications' as CompanyPermission,
+    description: "Send alerts and announcements to your team",
     subItems: [
       { titleKey: "nav.sendNotifications", url: "/notifications" },
       { titleKey: "nav.notificationTemplates", url: "/notification-templates" },
@@ -175,11 +185,14 @@ const navigationItems = [
   // 6. Wastage
   { 
     titleKey: "nav.wastage", 
+    labelKey: null,
     url: "/admin/waste/entries", 
     icon: Trash2,
     module: "wastage",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'view_reports' as CompanyPermission,
+    description: "Track and report material wastage and losses",
+    hideForGovernment: true,
     subItems: [
       { titleKey: "nav.wasteAdd", url: "/admin/waste/add", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.wasteEntries", url: "/admin/waste/entries", allowedRoles: ['admin', 'manager'] },
@@ -191,11 +204,13 @@ const navigationItems = [
   // 7. QR Forms
   { 
     titleKey: "nav.qrForms", 
+    labelKey: null,
     url: "/admin/qr-forms/templates", 
     icon: QrCode,
     module: "qr_forms",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
+    description: "Create QR-linked forms for quick field data collection",
     subItems: [
       { titleKey: "nav.formTemplates", url: "/admin/qr-forms/templates", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
       { titleKey: "nav.formAssignments", url: "/admin/qr-forms/assignments", allowedRoles: ['admin', 'manager'], companyPermission: 'manage_audits' as CompanyPermission },
@@ -205,18 +220,22 @@ const navigationItems = [
   // 8. Inventory
   { 
     titleKey: "nav.inventory", 
+    labelKey: null,
     url: "/inventory", 
     icon: Package,
-    module: "inventory"
+    module: "inventory",
+    description: "Track stock levels, orders, and inventory movements",
   },
   // 9. Documents
   { 
     titleKey: "nav.documents", 
+    labelKey: null,
     url: "/documents", 
     icon: FileText,
     module: "documents",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'view_reports' as CompanyPermission,
+    description: "Centralized document storage with version control",
     subItems: [
       { titleKey: "nav.allDocuments", url: "/documents" },
     ]
@@ -224,24 +243,28 @@ const navigationItems = [
   // 10. Locations
   { 
     titleKey: "nav.locations", 
+    labelKey: "locations",
     url: "/admin/locations", 
     icon: MapPin,
     module: null,
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_locations' as CompanyPermission,
+    description: "Manage your sites, branches, and departments",
     subItems: [
       { titleKey: "nav.locationsGeneral", url: "/admin/locations" },
-      { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.sales", url: "/admin/locations/sales", allowedRoles: ['admin', 'manager'], hideForGovernment: true },
     ]
   },
   // 11. Equipment
   { 
     titleKey: "nav.equipment", 
+    labelKey: "equipment",
     url: "/equipment", 
     icon: Wrench,
     module: "equipment_management",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
+    description: "Manage assets, maintenance schedules, and QR tracking",
     subItems: [
       { titleKey: "nav.allEquipment", url: "/equipment" },
       { titleKey: "nav.maintenanceCalendar", url: "/maintenance-calendar" },
@@ -252,10 +275,12 @@ const navigationItems = [
   // 12. CMMS
   { 
     titleKey: "nav.cmms", 
+    labelKey: null,
     url: "/cmms", 
     icon: Cog,
     module: "cmms",
     allowedRoles: ['admin', 'manager'],
+    description: "Computerized maintenance management for asset upkeep",
     subItems: [
       { titleKey: "nav.overview", url: "/cmms/overview" },
       { titleKey: "nav.dashboard", url: "/cmms" },
@@ -273,11 +298,13 @@ const navigationItems = [
   // 13. Reports
   { 
     titleKey: "nav.reports", 
+    labelKey: null,
     url: "/reports", 
     icon: BarChart,
     module: "reports",
     allowedRoles: ['admin', 'manager', 'hr'],
     companyPermission: 'view_reports' as CompanyPermission,
+    description: "Performance analytics, compliance trends, and insights",
     subItems: [
       { titleKey: "nav.locationPerformance", url: "/reports?tab=location", companyPermission: 'view_reports' as CompanyPermission },
       { titleKey: "nav.complianceDossier", url: "/compliance-dossier", allowedRoles: ['admin', 'manager'], companyPermission: 'view_reports' as CompanyPermission },
@@ -292,11 +319,13 @@ const navigationItems = [
   // 14. Operations
   { 
     titleKey: "nav.operations", 
+    labelKey: null,
     url: "/operations/daily", 
     icon: Settings2,
     module: "operations",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
+    description: "Daily operational workflows and SLA management",
     subItems: [
       { titleKey: "nav.dailyOps", url: "/operations/daily" },
       { titleKey: "nav.maintenanceTasks", url: "/operations/maintenance" },
@@ -307,11 +336,13 @@ const navigationItems = [
   // 14b. Corrective Actions (CAPA)
   {
     titleKey: "nav.correctiveActions",
+    labelKey: null,
     url: "/corrective-actions",
     icon: ShieldAlert,
     module: "corrective_actions",
     allowedRoles: ['admin', 'manager'],
     companyPermission: 'manage_audits' as CompanyPermission,
+    description: "Track and resolve non-conformances from inspections",
     subItems: [
       { titleKey: "nav.allCAs", url: "/corrective-actions", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.caRules", url: "/corrective-actions/rules", allowedRoles: ['admin'] },
@@ -320,18 +351,22 @@ const navigationItems = [
   // 15. Integrations
   {
     titleKey: "nav.integrations", 
+    labelKey: null,
     url: "/integrations", 
     icon: Plug,
     module: "integrations",
-    allowedRoles: ['admin']
+    allowedRoles: ['admin'],
+    description: "Connect third-party services and APIs",
   },
   // 15b. WhatsApp Messaging
   {
     titleKey: "nav.whatsapp",
+    labelKey: null,
     url: "/whatsapp-templates",
     icon: MessageSquare,
     module: "whatsapp_messaging",
     allowedRoles: ['admin', 'manager'],
+    description: "Automated WhatsApp messaging, templates, and broadcasts",
     subItems: [
       { titleKey: "nav.whatsappTemplates", url: "/whatsapp-templates" },
       { titleKey: "nav.whatsappRules", url: "/whatsapp-rules" },
@@ -342,18 +377,23 @@ const navigationItems = [
   // 16. Template Marketplace
   { 
     titleKey: "nav.templateMarketplace", 
+    labelKey: null,
     url: "/marketplace", 
     icon: Store,
     module: null,
-    allowedRoles: ['admin', 'manager', 'hr', 'checker']
+    allowedRoles: ['admin', 'manager', 'hr', 'checker'],
+    description: "Browse and install ready-made audit templates",
+    hideForGovernment: true,
   },
   // 17. Approvals (Government Operations)
   {
     titleKey: "nav.approvals",
+    labelKey: null,
     url: "/approvals",
     icon: Landmark,
     module: "government_ops",
     allowedRoles: ['admin', 'manager'],
+    description: "Multi-step approval workflows for institutional governance",
     subItems: [
       { titleKey: "nav.approvalQueue", url: "/approvals" },
       { titleKey: "nav.approvalWorkflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
