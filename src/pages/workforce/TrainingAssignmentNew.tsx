@@ -184,16 +184,16 @@ const TrainingAssignmentNew = () => {
               </div>
 
               <div>
-                <Label>{t('common.location', 'Location')}</Label>
+                <Label>{t('common.locationLabel', locationLabel)}</Label>
                 <Select
                   value={formData.location_id}
                   onValueChange={(v) => setFormData({ ...formData, location_id: v })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t('common.selectLocation', 'Select location (optional)')} />
+                    <SelectValue placeholder={t('common.selectLocationLabel', `Select ${locationLabelLower} (optional)`)} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__any__">Any location</SelectItem>
+                    <SelectItem value="__any__">{t('common.anyLocationLabel', `Any ${locationLabelLower}`)}</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name}

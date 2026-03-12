@@ -175,7 +175,7 @@ const Training = () => {
                       id="category"
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      placeholder="e.g., Kitchen, Service"
+                      placeholder={t('training.categoryExample', `e.g., ${locationLabel}, Compliance`)}
                     />
                   </div>
                   <div>
