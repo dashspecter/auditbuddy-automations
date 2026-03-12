@@ -131,11 +131,23 @@ export default function ApprovalWorkflows() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Approval Workflows</h1>
-          <p className="text-muted-foreground">
-            Define multi-step approval processes for your institution.
-          </p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Approval Workflows</h1>
+            <p className="text-muted-foreground">
+              Define multi-step approval processes for your institution.
+            </p>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-1" />
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[300px]">
+                <p className="text-xs">Workflows define sequential approval steps. For example: a purchase request might need Clerk → Department Head → Mayor approval. Each step specifies who must sign off before the request advances.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
