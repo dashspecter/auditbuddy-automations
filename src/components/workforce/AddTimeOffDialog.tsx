@@ -11,6 +11,7 @@ import { CalendarIcon, Palmtree } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCreateTimeOffRequest } from "@/hooks/useTimeOffRequests";
+import { useTerminology } from "@/hooks/useTerminology";
 import { toast } from "sonner";
 
 interface AddTimeOffDialogProps {

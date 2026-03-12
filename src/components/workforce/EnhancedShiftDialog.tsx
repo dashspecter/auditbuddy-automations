@@ -35,6 +35,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useCreateShiftAssignment } from "@/hooks/useShiftAssignments";
 import { useLocationOperatingSchedules } from "@/hooks/useLocationOperatingSchedules";
 import { useShiftPresets } from "@/hooks/useShiftPresets";
+import { useTerminology } from "@/hooks/useTerminology";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
