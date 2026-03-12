@@ -836,8 +836,8 @@ const Payroll = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Location</TableHead>
+                      <TableHead>{employeeLabel}</TableHead>
+                      <TableHead>{locationLabel}</TableHead>
                       <TableHead>Scheduled</TableHead>
                       <TableHead>Actual</TableHead>
                       <TableHead>Status</TableHead>

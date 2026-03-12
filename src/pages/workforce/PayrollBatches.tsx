@@ -542,7 +542,7 @@ export default function PayrollBatches() {
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">Other locations:</p>
+                                    <p className="font-medium">{`Other ${locationsLabelLower}:`}</p>
                                     {emp.extra_location_details.map((d, i) => (
                                       <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")} — {d.location_name}</p>
                                     ))}
