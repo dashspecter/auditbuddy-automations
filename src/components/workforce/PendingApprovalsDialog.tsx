@@ -18,6 +18,7 @@ import {
   SCHEDULE_CHANGE_REASON_CODES
 } from "@/hooks/useScheduleGovernance";
 import { Separator } from "@/components/ui/separator";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface PendingApprovalsDialogProps {
   open: boolean;
@@ -32,6 +33,14 @@ export function PendingApprovalsDialog({
   filterPeriodId,
   filterLocationId 
 }: PendingApprovalsDialogProps) {
+  const {
+    employee: employeeTerm,
+    shifts: shiftsTerm,
+    shift: shiftTerm,
+  } = useTerminology();
+  const employeeLabel = employeeTerm();
+  const shiftsLabel = shiftsTerm();
+  const shiftLabel = shiftTerm();
   const [activeTab, setActiveTab] = useState("shift-assignments");
   
   // Original shift assignment approvals
