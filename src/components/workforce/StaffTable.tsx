@@ -261,7 +261,7 @@ export const StaffTable = () => {
                 <SelectValue placeholder={t('workforce.components.staffTable.location')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('workforce.components.staffTable.allLocations')}</SelectItem>
+                <SelectItem value="all">{`All ${term.locations()}`}</SelectItem>
                 {locations?.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
