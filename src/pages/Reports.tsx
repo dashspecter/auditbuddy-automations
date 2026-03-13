@@ -548,7 +548,7 @@ const Reports = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Total Audits</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Total {auditsLabel}</h4>
               <p className="text-3xl font-bold text-foreground">{overallStats.totalAudits}</p>
             </Card>
             
