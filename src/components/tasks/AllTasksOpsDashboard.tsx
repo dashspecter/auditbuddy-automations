@@ -495,13 +495,13 @@ export const AllTasksOpsDashboard = ({
 
             {/* Location Filter */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t('common.location')}</label>
+              <label className="text-xs font-medium text-muted-foreground">{locationLabel}</label>
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder={t('common.allLocations')} />
+                  <SelectValue placeholder={`All ${locationsLabel}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('common.allLocations')}</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations.map(loc => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}

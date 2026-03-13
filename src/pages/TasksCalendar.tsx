@@ -306,11 +306,11 @@ const TasksCalendar = () => {
               popup
               tooltipAccessor={(event) => {
                 const task = event.resource;
-                return `${task.title}\nPriority: ${task.priority}\nStatus: ${task.status}${
-                  task.assigned_employee
-                    ? `\nAssigned to: ${task.assigned_employee.full_name}`
-                    : ""
-                }`;
+                 return `${task.title}\nPriority: ${task.priority}\nStatus: ${task.status}${
+                   task.assigned_employee
+                     ? `\nAssigned to ${employeeLabel.toLowerCase()}: ${task.assigned_employee.full_name}`
+                     : ""
+                 }`;
               }}
             />
           </div>
