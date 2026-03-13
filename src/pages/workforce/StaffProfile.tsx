@@ -209,7 +209,7 @@ const StaffProfile = () => {
         <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>Staff Information</CardTitle>
+              <CardTitle>{employeeLabel} Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
