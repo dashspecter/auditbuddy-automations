@@ -23,8 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const StaffShiftPool = () => {
+  const term = useTerminology();
+  const shiftsLabel = term.shifts();
+  const shiftLabel = term.shift();
+  const locationLabel = term.location();
   const { user } = useAuth();
   const [employee, setEmployee] = useState<any>(null);
   const [openShifts, setOpenShifts] = useState<any[]>([]);
