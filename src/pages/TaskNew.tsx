@@ -693,7 +693,7 @@ const TaskNew = () => {
                 <div className="space-y-1.5">
                   <Label>Instructions for staff</Label>
                   <Textarea
-                    placeholder="e.g. Photo must include the thermometer display and location ID sticker"
+                    placeholder={`e.g. Photo must include the thermometer display and ${locationLabel.toLowerCase()} ID sticker`}
                     rows={2}
                     value={evidenceInstructions}
                     onChange={(e) => setEvidenceInstructions(e.target.value)}
