@@ -365,7 +365,7 @@ const TaskNew = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
+                      <SelectValue placeholder={`Select ${employeeLabel.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
