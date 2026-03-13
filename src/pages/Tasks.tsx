@@ -694,10 +694,10 @@ const Tasks = () => {
           <User className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t('tasks.allEmployees', 'All Employees')} />
+              <SelectValue placeholder={allEmployeesLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('tasks.allEmployees', 'All Employees')}</SelectItem>
+              <SelectItem value="all">{allEmployeesLabel}</SelectItem>
               {employees.map((emp) => (
                 <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
               ))}
