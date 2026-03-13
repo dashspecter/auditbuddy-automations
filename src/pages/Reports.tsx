@@ -565,7 +565,7 @@ const Reports = () => {
                   : 0}%
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {overallStats.compliant} of {overallStats.totalAudits} audits
+                {overallStats.compliant} of {overallStats.totalAudits} {auditsLabel.toLowerCase()}
               </p>
             </Card>
           </div>
