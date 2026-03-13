@@ -507,7 +507,7 @@ const EmployeePerformance = () => {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Staff</p>
+                <p className="text-sm text-muted-foreground">Total {employeesLabel}</p>
                 <p className="text-2xl font-bold">{allScores.length}</p>
               </div>
             </div>
