@@ -489,7 +489,7 @@ const TaskNew = () => {
                   onValueChange={(ids) =>
                     setFormData((prev) => ({ ...prev, location_ids: ids }))
                   }
-                  placeholder="Select locations"
+                  placeholder={`Select ${locationsLabel.toLowerCase()}`}
                 />
                 <p className="text-xs text-muted-foreground">
                   Task will appear at all selected locations
