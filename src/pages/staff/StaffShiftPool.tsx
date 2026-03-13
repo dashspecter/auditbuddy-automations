@@ -220,7 +220,7 @@ const StaffShiftPool = () => {
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">Available Shifts</h1>
+          <h1 className="text-xl font-bold mb-3">Available {shiftsLabel}</h1>
           <div className="flex gap-2">
             <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
               <DialogTrigger asChild>
