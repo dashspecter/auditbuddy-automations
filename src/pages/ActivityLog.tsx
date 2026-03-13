@@ -13,26 +13,9 @@ import {
   Plus, Pencil, Trash2, User, Clock
 } from "lucide-react";
 import { format } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
-const TABLE_LABELS: Record<string, string> = {
-  shifts: "Shifts",
-  schedule_periods: "Schedule Periods",
-  schedule_change_requests: "Change Requests",
-  employees: "Employees",
-  attendance_logs: "Attendance",
-  time_off_requests: "Time Off",
-  company_users: "Company Users",
-  workforce_policies: "Workforce Policies",
-  workforce_exceptions: "Workforce Exceptions",
-  location_audits: "Audits",
-  tasks: "Tasks",
-  locations: "Locations",
-  inventory_items: "Inventory",
-  waste_entries: "Waste",
-  equipment: "Equipment",
-  cmms_work_orders: "Work Orders",
-  company_role_permissions: "Permissions",
-};
+// Note: TABLE_LABELS uses a hook-based approach below to be terminology-aware
 
 const ACTION_CONFIG = {
   INSERT: { icon: Plus, label: "Created", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" },
