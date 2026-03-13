@@ -214,10 +214,10 @@ const TasksCalendar = () => {
               <label className="text-sm font-medium">Filter by {employeeLabel}</label>
               <Select value={filterEmployee} onValueChange={setFilterEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Employees" />
+                  <SelectValue placeholder={`All ${employeesLabel}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{`All ${employeesLabel}`}</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.full_name}
