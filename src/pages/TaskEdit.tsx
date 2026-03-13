@@ -522,8 +522,8 @@ const TaskEdit = () => {
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
                           {isIndividual 
-                            ? "Each employee with the selected role will need to complete this task individually"
-                            : "The task is shared - any employee can complete it for everyone"
+                            ? `Each ${employeeLabel.toLowerCase()} with the selected role will need to complete this task individually`
+                            : `The task is shared - any ${employeeLabel.toLowerCase()} can complete it for everyone`
                           }
                         </p>
                       </div>
