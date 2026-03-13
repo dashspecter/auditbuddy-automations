@@ -352,7 +352,7 @@ const TaskNew = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                        <p className="text-sm">All employees with this role can complete</p>
+                        <p className="text-sm">All {employeesLabel.toLowerCase()} with this role can complete</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
