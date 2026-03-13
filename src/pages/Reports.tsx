@@ -673,7 +673,7 @@ const Reports = () => {
           {/* Location Performance Trend Line Chart */}
           {reportData.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Location Performance Trend</h3>
+              <h3 className="text-lg font-semibold mb-4">{locationLabel} Performance Trend</h3>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={reportData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
