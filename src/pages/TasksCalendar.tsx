@@ -191,7 +191,7 @@ const TasksCalendar = () => {
           <div>
             <h1 className="text-3xl font-bold">Tasks Calendar</h1>
             <p className="text-muted-foreground mt-1">
-              View tasks by date, employee, or role
+              View tasks by date, {employeeLabel.toLowerCase()}, or role
             </p>
           </div>
         </div>
