@@ -555,7 +555,7 @@ const EmployeePerformance = () => {
                   {allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {allScores.filter(s => (s.warning_count || 0) > 0).length} employees
+                  {allScores.filter(s => (s.warning_count || 0) > 0).length} {employeesLabel.toLowerCase()}
                 </p>
               </div>
             </div>
