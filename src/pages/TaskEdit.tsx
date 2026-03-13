@@ -424,7 +424,7 @@ const TaskEdit = () => {
                           </Label>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="max-w-xs">Tasks assigned to a role will be visible to all employees with that role who have an active shift at the task's location.</p>
+                          <p className="max-w-xs">Tasks assigned to a role will be visible to all {employeesLabel.toLowerCase()} with that role who have an active shift at the task's {locationLabel.toLowerCase()}.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
