@@ -709,7 +709,7 @@ const Reports = () => {
           {/* Location Comparison Pie Chart */}
           {reportData.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Total Audits by Location</h3>
+              <h3 className="text-lg font-semibold mb-4">Total {auditsLabel} by {locationLabel}</h3>
               <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
