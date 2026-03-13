@@ -457,9 +457,9 @@ const EmployeePerformance = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Employee Performance</h1>
+          <h1 className="text-2xl font-bold">{employeeLabel} Performance</h1>
           <p className="text-muted-foreground">
-            Track and compare employee performance scores
+            Track and compare {employeesLabel.toLowerCase()} performance scores
           </p>
         </div>
         
