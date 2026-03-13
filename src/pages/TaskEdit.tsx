@@ -535,7 +535,7 @@ const TaskEdit = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  Locations
+                  {locationsLabel}
                 </Label>
                 <LocationMultiSelector
                   value={formData.location_ids}

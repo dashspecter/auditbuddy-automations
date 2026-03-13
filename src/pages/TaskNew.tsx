@@ -716,7 +716,7 @@ const TaskNew = () => {
                   <div>
                     <Label className="font-medium">Notify via WhatsApp</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Send assignment, reminder &amp; overdue alerts to assigned employees
+                      Send assignment, reminder &amp; overdue alerts to assigned {employeesLabel.toLowerCase()}
                     </p>
                     <p className="text-xs text-amber-600 mt-1">
                       Tip: Use selectively for critical tasks (start/mid/end of shift) to avoid notification fatigue and daily message limits.
