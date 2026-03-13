@@ -241,8 +241,8 @@ const StaffShiftPool = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="my-location">My Location Only</SelectItem>
-                        <SelectItem value="all">All Locations</SelectItem>
+                        <SelectItem value="my-location">My {locationLabel} Only</SelectItem>
+                        <SelectItem value="all">All {term.locations()}</SelectItem>
                         {locations.map((loc) => (
                           <SelectItem key={loc.id} value={loc.id}>
                             {loc.name}
