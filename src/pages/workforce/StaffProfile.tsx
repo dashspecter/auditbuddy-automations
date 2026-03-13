@@ -83,7 +83,7 @@ const StaffProfile = () => {
   }, [memberAttendance]);
 
   if (!member) {
-    return <div className="text-center py-12">Staff member not found.</div>;
+    return <div className="text-center py-12">{employeeLabel} not found.</div>;
   }
 
   const initials = member.full_name
