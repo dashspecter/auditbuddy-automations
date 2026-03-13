@@ -1,7 +1,9 @@
 import { BadgeManagement } from "@/components/workforce/BadgeManagement";
 import { Settings2 } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const BadgeSettings = () => {
+  const term = useTerminology();
   return (
     <div className="space-y-6">
       <div>
@@ -10,7 +12,7 @@ const BadgeSettings = () => {
           Badge Settings
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage performance badge thresholds, toggle badges on or off, and create custom rewards.
+          Manage {term.employee().toLowerCase()} performance badge thresholds, toggle badges on or off, and create custom rewards.
         </p>
       </div>
       <BadgeManagement />

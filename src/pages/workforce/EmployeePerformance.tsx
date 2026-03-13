@@ -35,6 +35,7 @@ import {
   calculateAverageEffectiveScore,
   EffectiveEmployeeScore 
 } from "@/lib/effectiveScore";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -112,6 +113,10 @@ function EmployeeBadgesRow({ employee, badgeConfigs }: { employee: EffectiveEmpl
 
 const EmployeePerformance = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
+  const employeesLabel = term.employees();
+  const employeeLabel = term.employee();
+  const locationsLabel = term.locations();
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("month");
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
@@ -452,9 +457,9 @@ const EmployeePerformance = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Employee Performance</h1>
+          <h1 className="text-2xl font-bold">{employeeLabel} Performance</h1>
           <p className="text-muted-foreground">
-            Track and compare employee performance scores
+            Track and compare {employeesLabel.toLowerCase()} performance scores
           </p>
         </div>
         
@@ -475,7 +480,7 @@ const EmployeePerformance = () => {
               <SelectValue placeholder="All locations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="all">All {locationsLabel}</SelectItem>
               {locations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -502,7 +507,7 @@ const EmployeePerformance = () => {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Staff</p>
+                <p className="text-sm text-muted-foreground">Total {employeesLabel}</p>
                 <p className="text-2xl font-bold">{allScores.length}</p>
               </div>
             </div>
@@ -550,7 +555,7 @@ const EmployeePerformance = () => {
                   {allScores.reduce((sum, s) => sum + (s.warning_count || 0), 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {allScores.filter(s => (s.warning_count || 0) > 0).length} employees
+                  {allScores.filter(s => (s.warning_count || 0) > 0).length} {employeesLabel.toLowerCase()}
                 </p>
               </div>
             </div>
@@ -574,8 +579,8 @@ const EmployeePerformance = () => {
 
       <Tabs defaultValue="leaderboard" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="leaderboard">Company Leaderboard</TabsTrigger>
-          <TabsTrigger value="by-location">By Location</TabsTrigger>
+          <TabsTrigger value="leaderboard">{term.company()} Leaderboard</TabsTrigger>
+          <TabsTrigger value="by-location">By {term.location()}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leaderboard">
@@ -646,7 +651,7 @@ const EmployeePerformance = () => {
                         {locationData.location_name}
                       </CardTitle>
                       <CardDescription>
-                        {locationData.employees.length} employees •{" "}
+                        {locationData.employees.length} {employeesLabel.toLowerCase()} •{" "}
                         Avg score:{" "}
                         {locationAvg !== null ? Math.round(locationAvg) : '—'}
                       </CardDescription>

@@ -19,8 +19,12 @@ import { ScoreHistoryChart } from "@/components/staff/ScoreHistoryChart";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Mail, Phone, Calendar, DollarSign, MapPin, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { format, startOfMonth, endOfMonth, differenceInHours, differenceInMinutes } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const StaffProfile = () => {
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const shiftLabel = term.shift();
   const { id } = useParams<{ id: string }>();
   const { data: staff } = useEmployees();
   const { data: events } = useStaffEvents(id);
@@ -79,7 +83,7 @@ const StaffProfile = () => {
   }, [memberAttendance]);
 
   if (!member) {
-    return <div className="text-center py-12">Staff member not found.</div>;
+    return <div className="text-center py-12">{employeeLabel} not found.</div>;
   }
 
   const initials = member.full_name
@@ -182,7 +186,7 @@ const StaffProfile = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Last Shift</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Last {shiftLabel}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -205,7 +209,7 @@ const StaffProfile = () => {
         <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>Staff Information</CardTitle>
+              <CardTitle>{employeeLabel} Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

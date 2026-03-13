@@ -43,6 +43,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTranslation } from "react-i18next";
+import { useTerminology } from "@/hooks/useTerminology";
 
 // Wrapper component to fetch sections for the breakdown
 const SectionScoreBreakdownWrapper = ({ 
@@ -99,6 +100,11 @@ const COMPLIANCE_THRESHOLD = 80; // Scores >= 80 are compliant
 
 const Reports = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
+  const employeeLabel = term.employee();
+  const auditsLabel = term.audits();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'employee' ? 'employee' : 'location';
   
@@ -320,8 +326,8 @@ const Reports = () => {
   };
 
   const reportSubItems = [
-    { title: "Location", url: "/reports?tab=location", icon: MapPin, description: "Location performance" },
-    { title: "Employee", url: "/reports?tab=employee", icon: Clock, description: "Employee performance" },
+    { title: locationLabel, url: "/reports?tab=location", icon: MapPin, description: `${locationLabel} performance` },
+    { title: employeeLabel, url: "/reports?tab=employee", icon: Clock, description: `${employeeLabel} performance` },
     { title: "Vouchers", url: "/audits/vouchers", icon: FileSpreadsheet, description: "Manage vouchers" },
   ];
 
@@ -491,7 +497,7 @@ const Reports = () => {
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Location Summary</h3>
+            <h3 className="text-lg font-semibold mb-4">{locationLabel} Summary</h3>
             {reportData.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No audit data available</p>
@@ -501,8 +507,8 @@ const Reports = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[150px]">Location</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">Total Audits</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[150px]">{locationLabel}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">Total {auditsLabel}</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Avg Score</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Compliant</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Non-Compliant</th>
@@ -543,7 +549,7 @@ const Reports = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-6">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Total Audits</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Total {auditsLabel}</h4>
               <p className="text-3xl font-bold text-foreground">{overallStats.totalAudits}</p>
             </Card>
             
@@ -560,7 +566,7 @@ const Reports = () => {
                   : 0}%
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {overallStats.compliant} of {overallStats.totalAudits} audits
+                {overallStats.compliant} of {overallStats.totalAudits} {auditsLabel.toLowerCase()}
               </p>
             </Card>
           </div>
@@ -668,7 +674,7 @@ const Reports = () => {
           {/* Location Performance Trend Line Chart */}
           {reportData.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Location Performance Trend</h3>
+              <h3 className="text-lg font-semibold mb-4">{locationLabel} Performance Trend</h3>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={reportData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -704,7 +710,7 @@ const Reports = () => {
           {/* Location Comparison Pie Chart */}
           {reportData.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Total Audits by Location</h3>
+              <h3 className="text-lg font-semibold mb-4">Total {auditsLabel} by {locationLabel}</h3>
               <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
@@ -811,8 +817,8 @@ const Reports = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>All Staff Performance Records</CardTitle>
-                  <CardDescription>Complete history of all staff performance audits</CardDescription>
+                    <CardTitle>All {employeeLabel} Performance Records</CardTitle>
+                   <CardDescription>Complete history of all {employeeLabel.toLowerCase()} performance {auditsLabel.toLowerCase()}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoadingStaffAudits ? (
@@ -820,15 +826,15 @@ const Reports = () => {
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     </div>
                   ) : !staffAudits || staffAudits.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No staff performance records found.</p>
+                    <p className="text-center text-muted-foreground py-8">No {employeeLabel.toLowerCase()} performance records found.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Employee</TableHead>
+                            <TableHead>{employeeLabel}</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Location</TableHead>
+                            <TableHead>{locationLabel}</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Score</TableHead>
                             <TableHead>Notes</TableHead>

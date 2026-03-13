@@ -23,8 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const StaffShiftPool = () => {
+  const term = useTerminology();
+  const shiftsLabel = term.shifts();
+  const shiftLabel = term.shift();
+  const locationLabel = term.location();
   const { user } = useAuth();
   const [employee, setEmployee] = useState<any>(null);
   const [openShifts, setOpenShifts] = useState<any[]>([]);
@@ -215,7 +220,7 @@ const StaffShiftPool = () => {
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 pt-safe">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold mb-3">Available Shifts</h1>
+          <h1 className="text-xl font-bold mb-3">Available {shiftsLabel}</h1>
           <div className="flex gap-2">
             <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
               <DialogTrigger asChild>
@@ -226,7 +231,7 @@ const StaffShiftPool = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Filter Shifts</DialogTitle>
+                  <DialogTitle>Filter {shiftsLabel}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
@@ -236,8 +241,8 @@ const StaffShiftPool = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="my-location">My Location Only</SelectItem>
-                        <SelectItem value="all">All Locations</SelectItem>
+                        <SelectItem value="my-location">My {locationLabel} Only</SelectItem>
+                        <SelectItem value="all">All {term.locations()}</SelectItem>
                         {locations.map((loc) => (
                           <SelectItem key={loc.id} value={loc.id}>
                             {loc.name}
@@ -266,7 +271,7 @@ const StaffShiftPool = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Badge variant="secondary">{openShifts.length} shifts available</Badge>
+            <Badge variant="secondary">{openShifts.length} {shiftsLabel.toLowerCase()} available</Badge>
           </div>
         </div>
       </div>
@@ -276,7 +281,7 @@ const StaffShiftPool = () => {
         {openShifts.length === 0 ? (
           <Card className="p-8 text-center">
             <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No open shifts available right now</p>
+            <p className="text-muted-foreground">No open {shiftsLabel.toLowerCase()} available right now</p>
             <p className="text-sm text-muted-foreground mt-1">Check back later for new opportunities</p>
           </Card>
         ) : (
@@ -315,7 +320,7 @@ const StaffShiftPool = () => {
                 className="w-full touch-target"
                 onClick={() => claimShift(shift.id)}
               >
-                Claim Shift
+                Claim {shiftLabel}
               </Button>
             </Card>
           ))

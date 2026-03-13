@@ -8,10 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 export const ManagerAuditStats = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const term = useTerminology();
+  const auditLabel = term.audit();
+  const auditsLabel = term.audits();
 
   const { data: auditStats, isLoading } = useQuery({
     queryKey: ["manager-audit-stats"],
@@ -19,7 +23,6 @@ export const ManagerAuditStats = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get manager's company
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
@@ -28,7 +31,6 @@ export const ManagerAuditStats = () => {
 
       if (!empData) return null;
 
-      // Get completed audits this month
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -39,7 +41,6 @@ export const ManagerAuditStats = () => {
         .eq("status", "completed")
         .gte("updated_at", startOfMonth.toISOString());
 
-      // Get overdue audits
       const now = new Date().toISOString();
       const { count: overdueCount } = await supabase
         .from("scheduled_audits")
@@ -47,13 +48,11 @@ export const ManagerAuditStats = () => {
         .lt("scheduled_for", now)
         .eq("status", "pending");
 
-      // Get pending review audits
       const { count: pendingCount } = await supabase
         .from("location_audits")
         .select("*", { count: "exact", head: true })
         .eq("status", "pending");
 
-      // Get draft audits
       const { data: draftAudits } = await supabase
         .from("location_audits")
         .select(`
@@ -67,7 +66,6 @@ export const ManagerAuditStats = () => {
         .order("created_at", { ascending: false })
         .limit(3);
 
-      // Calculate average score
       const { data: recentAudits } = await supabase
         .from("location_audits")
         .select("overall_score")
@@ -106,7 +104,6 @@ export const ManagerAuditStats = () => {
 
   return (
     <div className="space-y-3">
-      {/* Pending Reviews Alert */}
       {hasPending && (
         <Card className="bg-warning/10 border-warning/30 p-3">
           <div className="flex items-center gap-3">
@@ -114,7 +111,7 @@ export const ManagerAuditStats = () => {
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm">Pending Reviews</h3>
               <p className="text-xs text-muted-foreground truncate">
-                {auditStats.pending} audit{auditStats.pending !== 1 ? 's' : ''} waiting
+                {auditStats.pending} {auditStats.pending !== 1 ? auditsLabel.toLowerCase() : auditLabel.toLowerCase()} waiting
               </p>
             </div>
             <Button size="sm" variant="outline" onClick={() => navigate("/audits?status=pending")}>
@@ -124,13 +121,12 @@ export const ManagerAuditStats = () => {
         </Card>
       )}
 
-      {/* Overdue Alert */}
       {hasOverdue && (
         <Card className="bg-destructive/10 border-destructive/30 p-3">
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm">Overdue Audits</h3>
+              <h3 className="font-semibold text-sm">Overdue {auditsLabel}</h3>
               <p className="text-xs text-muted-foreground truncate">
                 {auditStats.overdue} past deadline
               </p>
@@ -142,7 +138,6 @@ export const ManagerAuditStats = () => {
         </Card>
       )}
 
-      {/* Draft Audits */}
       {hasDrafts && (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <Card className="overflow-hidden">
@@ -150,7 +145,7 @@ export const ManagerAuditStats = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileEdit className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-sm">Draft Audits</span>
+                  <span className="font-semibold text-sm">Draft {auditsLabel}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{auditStats.drafts.length}</Badge>
@@ -167,7 +162,7 @@ export const ManagerAuditStats = () => {
                     onClick={() => navigate(`/audits/${draft.id}`)}
                   >
                     <div className="font-medium text-sm truncate">
-                      {draft.audit_templates?.name || "Unnamed audit"}
+                      {draft.audit_templates?.name || `Unnamed ${auditLabel.toLowerCase()}`}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {draft.locations?.name}
@@ -180,7 +175,6 @@ export const ManagerAuditStats = () => {
         </Collapsible>
       )}
 
-      {/* Compact Audit Stats */}
       <div className="grid grid-cols-3 gap-2">
         <Card 
           className="p-3 cursor-pointer hover:bg-accent/5 transition-colors"

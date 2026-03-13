@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTerminology } from "@/hooks/useTerminology";
 
 export const StaffBottomNav = () => {
   const navigate = useNavigate();
@@ -11,15 +12,14 @@ export const StaffBottomNav = () => {
   const { user } = useAuth();
   const { data: roleData } = useUserRole();
   const [isManager, setIsManager] = useState(false);
+  const term = useTerminology();
 
   useEffect(() => {
     const checkManagerRole = async () => {
       if (!user) return;
       
-      // Check platform roles
       const platformManager = roleData?.isManager || roleData?.isAdmin;
       
-      // Check company role
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
@@ -46,14 +46,14 @@ export const StaffBottomNav = () => {
     checkManagerRole();
   }, [user, roleData]);
 
-  // Checker role - focused on audits but still an employee
   const isChecker = roleData?.isChecker && !isManager;
 
-  // All users get the same staff nav - checkers just see audits content on the home page
+  const shiftLabel = term.shift();
+
   const staffNavItems = [
     { id: "home", path: "/staff", icon: Home, label: "Home" },
     { id: "schedule", path: "/staff/schedule", icon: Calendar, label: "Schedule" },
-    { id: "shifts", path: "/staff/shifts", icon: Repeat, label: "Shifts" },
+    { id: "shifts", path: "/staff/shifts", icon: Repeat, label: `${shiftLabel}s` },
     { id: "time-off", path: "/staff/time-off", icon: Umbrella, label: "Time Off" },
     { id: "profile", path: "/staff/profile", icon: User, label: "Profile" },
   ];

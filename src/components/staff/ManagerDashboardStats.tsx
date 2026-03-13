@@ -6,37 +6,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useTaskStats } from "@/hooks/useTasks";
+import { useTerminology } from "@/hooks/useTerminology";
 
 export const ManagerDashboardStats = () => {
   const navigate = useNavigate();
   const { data: taskStats } = useTaskStats();
+  const term = useTerminology();
+  const shiftsLabel = term.shifts();
+
   const { data: todayStaff, isLoading: staffLoading } = useQuery({
     queryKey: ["today-working-staff"],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
-      
       const { data, error } = await supabase
         .from("shift_assignments")
         .select(`
           id,
-          employees:staff_id (
-            full_name,
-            role,
-            avatar_url
-          ),
-          shifts!inner:shift_id (
-            shift_date,
-            start_time,
-            end_time,
-            role,
-            locations:location_id (
-              name
-            )
-          )
+          employees:staff_id (full_name, role, avatar_url),
+          shifts!inner:shift_id (shift_date, start_time, end_time, role, locations:location_id (name))
         `)
         .eq("approval_status", "approved")
         .eq("shifts.shift_date", today);
-      
       if (error) throw error;
       return data || [];
     },
@@ -48,7 +38,6 @@ export const ManagerDashboardStats = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
       
-      // Get manager's company
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id, location_id")
@@ -57,7 +46,6 @@ export const ManagerDashboardStats = () => {
       
       if (!empData) return null;
 
-      // Get total team members for manager's location only
       const { count: totalStaff } = await supabase
         .from("employees")
         .select("*", { count: 'exact', head: true })
@@ -65,7 +53,6 @@ export const ManagerDashboardStats = () => {
         .eq("location_id", empData.location_id)
         .eq("status", "active");
 
-      // Get upcoming shifts count for manager's location
       const today = new Date().toISOString().split('T')[0];
       const { count: upcomingShifts } = await supabase
         .from("shifts")
@@ -91,43 +78,29 @@ export const ManagerDashboardStats = () => {
 
   return (
     <div className="space-y-4">
-      {/* Team Stats Grid */}
       <div className="grid grid-cols-4 gap-3">
-        <Card 
-          className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/staff/team")}
-        >
+        <Card className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target" onClick={() => navigate("/staff/team")}>
           <Users className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{teamStats?.totalStaff || 0}</div>
           <div className="text-[10px] text-muted-foreground">Team Size</div>
         </Card>
-        <Card 
-          className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/staff/manager-schedule")}
-        >
+        <Card className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target" onClick={() => navigate("/staff/manager-schedule")}>
           <Clock className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{todayStaff?.length || 0}</div>
           <div className="text-[10px] text-muted-foreground">Working Today</div>
         </Card>
-        <Card 
-          className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/staff/manager-schedule")}
-        >
+        <Card className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target" onClick={() => navigate("/staff/manager-schedule")}>
           <Calendar className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{teamStats?.upcomingShifts || 0}</div>
           <div className="text-[10px] text-muted-foreground">Upcoming</div>
         </Card>
-        <Card 
-          className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target"
-          onClick={() => navigate("/staff/tasks")}
-        >
+        <Card className="p-3 cursor-pointer hover:bg-accent/5 transition-colors touch-target" onClick={() => navigate("/staff/tasks")}>
           <ListTodo className="h-4 w-4 text-primary mb-1" />
           <div className="text-xl font-bold">{taskStats?.pending || 0}</div>
           <div className="text-[10px] text-muted-foreground">Open Tasks</div>
         </Card>
       </div>
 
-      {/* Who's Working Today */}
       {todayStaff && todayStaff.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
@@ -147,17 +120,13 @@ export const ManagerDashboardStats = () => {
                   </div>
                 </div>
                 {assignment.shifts?.locations?.name && (
-                  <Badge variant="outline" className="text-[10px]">
-                    {assignment.shifts.locations.name}
-                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">{assignment.shifts.locations.name}</Badge>
                 )}
               </div>
             ))}
           </div>
           {todayStaff.length > 5 && (
-            <div className="text-xs text-center text-muted-foreground mt-2">
-              +{todayStaff.length - 5} more
-            </div>
+            <div className="text-xs text-center text-muted-foreground mt-2">+{todayStaff.length - 5} more</div>
           )}
         </Card>
       )}

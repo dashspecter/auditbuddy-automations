@@ -10,20 +10,23 @@ import { format, isToday, isTomorrow, isPast, parseISO, startOfWeek, endOfWeek }
 import { useTranslation } from "react-i18next";
 import { useAuditTemplateFields } from "@/hooks/useAuditTemplateFields";
 import { computeLocationAuditPercent } from "@/lib/locationAuditScoring";
+import { useTerminology } from "@/hooks/useTerminology";
 
 export const CheckerAuditsCard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const term = useTerminology();
+  const auditsLabel = term.audits();
+  const auditLabel = term.audit();
+  const locationLabel = term.location();
+  const employeeLabel = term.employee();
   
-  // Use same data source as calendar for scheduled audits
   const { data: scheduledAudits = [], isLoading: scheduledLoading } = useMyScheduledAudits();
-  // Use all audits for stats (completed, drafts)
   const { data: allMyAudits = [], isLoading: allLoading } = useMyAudits();
 
   const isLoading = scheduledLoading || allLoading;
 
-  // Stats from ALL audits (completed, drafts, etc.)
   const stats = useMemo(() => {
     const total = allMyAudits.length;
     const completed = allMyAudits.filter(
@@ -34,7 +37,6 @@ export const CheckerAuditsCard = () => {
     return { total, completed, drafts, scheduled };
   }, [allMyAudits, scheduledAudits]);
 
-  // Upcoming audits: scheduled audits that haven't been completed, sorted by scheduled_start
   const upcomingAudits = useMemo(() => {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -63,74 +65,41 @@ export const CheckerAuditsCard = () => {
     const status = audit.status?.toLowerCase() || "scheduled";
     const scheduledStart = audit.scheduled_start ? parseISO(audit.scheduled_start) : null;
     
-    // Check if overdue
     if (scheduledStart && isPast(scheduledStart) && status === "scheduled") {
-      return {
-        label: t("common.overdue", "Overdue"),
-        className: "bg-destructive/20 text-destructive border-destructive/30",
-        icon: AlertTriangle
-      };
+      return { label: t("common.overdue", "Overdue"), className: "bg-destructive/20 text-destructive border-destructive/30", icon: AlertTriangle };
     }
     
     switch (status) {
       case "compliant":
-        return {
-          label: t("common.compliant", "Compliant"),
-          className: "bg-success/20 text-success border-success/30",
-          icon: CheckCircle2
-        };
+        return { label: t("common.compliant", "Compliant"), className: "bg-success/20 text-success border-success/30", icon: CheckCircle2 };
       case "in_progress":
-        return {
-          label: t("common.inProgress", "In Progress"),
-          className: "bg-primary/20 text-primary border-primary/30",
-          icon: Clock
-        };
+        return { label: t("common.inProgress", "In Progress"), className: "bg-primary/20 text-primary border-primary/30", icon: Clock };
       case "scheduled":
-        return {
-          label: t("common.scheduled", "Scheduled"),
-          className: "bg-blue-500/20 text-blue-600 border-blue-500/30",
-          icon: Calendar
-        };
+        return { label: t("common.scheduled", "Scheduled"), className: "bg-blue-500/20 text-blue-600 border-blue-500/30", icon: Calendar };
       default:
-        return {
-          label: status || "scheduled",
-          className: "bg-muted text-muted-foreground border-border",
-          icon: Clock
-        };
+        return { label: status || "scheduled", className: "bg-muted text-muted-foreground border-border", icon: Clock };
     }
   };
 
   const formatScheduledDate = (audit: any) => {
     if (!audit.scheduled_start) return "";
     const date = parseISO(audit.scheduled_start);
-    
-    if (isToday(date)) {
-      return `${t("common.today", "Today")} ${format(date, "HH:mm")}`;
-    }
-    if (isTomorrow(date)) {
-      return `${t("common.tomorrow", "Tomorrow")} ${format(date, "HH:mm")}`;
-    }
+    if (isToday(date)) return `${t("common.today", "Today")} ${format(date, "HH:mm")}`;
+    if (isTomorrow(date)) return `${t("common.tomorrow", "Tomorrow")} ${format(date, "HH:mm")}`;
     return format(date, "MMM d, HH:mm");
-  };
-
-  const getScore = (audit: any) => {
-    const fields = audit.template_id ? fieldsByTemplateId?.[audit.template_id] : undefined;
-    const computed = computeLocationAuditPercent(fields, audit.custom_data);
-    return computed ?? audit.overall_score ?? null;
   };
 
   return (
     <div className="space-y-4">
-      {/* Create Audit Card */}
       <Card className="p-4 border-primary/20 bg-primary/5">
         <div className="flex items-center gap-3 mb-3">
           <div className="bg-primary/10 p-2 rounded-lg">
             <ClipboardCheck className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-sm">{t("staffHome.checker.audits", "Audits")}</h3>
+            <h3 className="font-semibold text-sm">{auditsLabel}</h3>
             <p className="text-xs text-muted-foreground">
-              {t("staffHome.checker.createAndManage", "Create and manage location audits")}
+              Create and manage {auditsLabel.toLowerCase()}
             </p>
           </div>
           <Badge variant="outline" className="text-xs">
@@ -138,7 +107,6 @@ export const CheckerAuditsCard = () => {
           </Badge>
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-background rounded-md p-2 text-center">
             <div className="text-lg font-bold text-blue-600">{stats.scheduled}</div>
@@ -166,8 +134,8 @@ export const CheckerAuditsCard = () => {
                 <MapPin className="h-4 w-4 text-primary" />
               </div>
               <div className="text-left">
-                <div className="font-medium text-sm">{t("staffHome.checker.locationAudit", "Location Audit")}</div>
-                <div className="text-xs text-muted-foreground">{t("staffHome.checker.locationAuditDesc", "Inspect facilities & compliance")}</div>
+                <div className="font-medium text-sm">{locationLabel} {auditLabel}</div>
+                <div className="text-xs text-muted-foreground">Inspect facilities & compliance</div>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -184,8 +152,8 @@ export const CheckerAuditsCard = () => {
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <div className="text-left">
-                <div className="font-medium text-sm">{t("staffHome.checker.employeeAudit", "Employee Audit")}</div>
-                <div className="text-xs text-muted-foreground">{t("staffHome.checker.employeeAuditDesc", "Evaluate staff performance")}</div>
+                <div className="font-medium text-sm">{employeeLabel} {auditLabel}</div>
+                <div className="text-xs text-muted-foreground">Evaluate performance</div>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -193,16 +161,10 @@ export const CheckerAuditsCard = () => {
         </div>
       </Card>
 
-      {/* Upcoming Scheduled Audits */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">{t("staffHome.checker.upcomingAudits", "Upcoming Audits")}</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => navigate("/staff/audits")}
-          >
+          <h3 className="font-semibold text-sm">Upcoming {auditsLabel}</h3>
+          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate("/staff/audits")}>
             {t("common.viewAll", "View All")} <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </div>
@@ -213,7 +175,7 @@ export const CheckerAuditsCard = () => {
           </div>
         ) : upcomingAudits.length === 0 ? (
           <div className="text-center py-4 text-sm text-muted-foreground">
-            {t("staffHome.checker.noAuditsThisWeek", "No audits scheduled this week")}
+            No {auditsLabel.toLowerCase()} scheduled this week
           </div>
         ) : (
           <div className="space-y-2">
@@ -232,16 +194,10 @@ export const CheckerAuditsCard = () => {
                       <p className="text-sm font-medium truncate">
                         {audit.locations?.name || audit.location || t("common.unknownLocation", "Unknown Location")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatScheduledDate(audit)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{formatScheduledDate(audit)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge variant="outline" className={`text-xs ${statusInfo.className}`}>
-                      {statusInfo.label}
-                    </Badge>
-                  </div>
+                  <Badge variant="outline" className={`text-xs ${statusInfo.className}`}>{statusInfo.label}</Badge>
                 </div>
               );
             })}
