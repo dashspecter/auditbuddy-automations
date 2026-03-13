@@ -515,7 +515,7 @@ const TaskEdit = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                                <p className="text-sm">Each employee must complete the task themselves</p>
+                                <p className="text-sm">Each {employeeLabel.toLowerCase()} must complete the task themselves</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
