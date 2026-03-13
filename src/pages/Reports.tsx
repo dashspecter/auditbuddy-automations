@@ -496,7 +496,7 @@ const Reports = () => {
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Location Summary</h3>
+            <h3 className="text-lg font-semibold mb-4">{locationLabel} Summary</h3>
             {reportData.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No audit data available</p>
