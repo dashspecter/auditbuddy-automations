@@ -19,8 +19,12 @@ import { ScoreHistoryChart } from "@/components/staff/ScoreHistoryChart";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Mail, Phone, Calendar, DollarSign, MapPin, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { format, startOfMonth, endOfMonth, differenceInHours, differenceInMinutes } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const StaffProfile = () => {
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const shiftLabel = term.shift();
   const { id } = useParams<{ id: string }>();
   const { data: staff } = useEmployees();
   const { data: events } = useStaffEvents(id);
