@@ -384,6 +384,7 @@ export const ByEmployeeTimeline = ({
   const term = useTerminology();
   const employeeLabel = term.employee();
   const employeesLabel = term.employees();
+  const locationLabel = term.location();
   const locationsLabel = term.locations();
 
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
