@@ -666,10 +666,10 @@ const Tasks = () => {
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t('common.allLocations', 'All Locations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('common.allLocations', 'All Locations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
               ))}
