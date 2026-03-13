@@ -389,7 +389,7 @@ const TaskEdit = () => {
                       className="flex-1"
                     >
                       <User className="h-4 w-4 mr-2" />
-                      Employee
+                      {employeeLabel}
                     </Button>
                   </div>
                 </div>

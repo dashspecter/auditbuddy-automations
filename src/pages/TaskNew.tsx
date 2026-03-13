@@ -326,7 +326,7 @@ const TaskNew = () => {
                           className="flex-1"
                         >
                           <User className="h-4 w-4 mr-1" />
-                          Employee
+                          {employeeLabel}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
