@@ -36,6 +36,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useScheduledEmployees, ScheduledEmployee } from "@/hooks/useScheduledEmployees";
 import { useShiftCoverage } from "@/hooks/useShiftCoverage";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { format, addDays, startOfDay, isSameDay } from "date-fns";
 import { 
   isTaskOverdue, 

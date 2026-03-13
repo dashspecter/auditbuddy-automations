@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TaskNew = () => {
   const navigate = useNavigate();

@@ -44,6 +44,7 @@ import {
 } from "@/lib/taskOccurrenceEngine";
 import { useUnifiedTasks } from "@/hooks/useUnifiedTasks";
 import { groupTasksByStatusShiftAware } from "@/lib/unifiedTaskPipeline";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",

@@ -33,6 +33,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
 import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TaskEdit = () => {
   const { id: rawId } = useParams<{ id: string }>();

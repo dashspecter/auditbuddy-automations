@@ -21,6 +21,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { addMonths, startOfDay, endOfDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { runPipelineForDateRange, ViewMode } from "@/lib/unifiedTaskPipeline";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const localizer = momentLocalizer(moment);
 
