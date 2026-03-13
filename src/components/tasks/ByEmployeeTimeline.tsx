@@ -561,7 +561,7 @@ export const ByEmployeeTimeline = ({
             <div className="flex items-center gap-3 ml-auto text-sm flex-wrap">
               <Badge variant="outline" className="gap-1">
                 <Users className="h-3 w-3" />
-                {totalEmployees} {t("workforce.employees.label")}
+                {totalEmployees} {employeesLabel}
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 {totalTasks} {t("tasks.title")}
