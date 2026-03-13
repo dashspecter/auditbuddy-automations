@@ -271,7 +271,7 @@ const StaffShiftPool = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Badge variant="secondary">{openShifts.length} shifts available</Badge>
+            <Badge variant="secondary">{openShifts.length} {shiftsLabel.toLowerCase()} available</Badge>
           </div>
         </div>
       </div>
