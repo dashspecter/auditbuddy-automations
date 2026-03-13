@@ -596,7 +596,7 @@ export const ByEmployeeTimeline = ({
           <CardContent className="py-12 text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium">
-              {t("tasks.noEmployeesScheduled", "No employees scheduled")}
+              {t("tasks.noEmployeesScheduled", `No ${employeesLabel.toLowerCase()} scheduled`)}
             </p>
             <p className="text-sm mt-1">
               {t(
