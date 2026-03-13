@@ -211,7 +211,7 @@ const TasksCalendar = () => {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
             <div className="space-y-2 min-w-[200px]">
-              <label className="text-sm font-medium">Filter by Employee</label>
+              <label className="text-sm font-medium">Filter by {employeeLabel}</label>
               <Select value={filterEmployee} onValueChange={setFilterEmployee}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Employees" />
