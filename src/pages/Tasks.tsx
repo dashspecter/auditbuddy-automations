@@ -720,7 +720,7 @@ const Tasks = () => {
         <EmptyState
           icon={ListTodo}
           title={t('tasks.noTasksYet')}
-          description={t('tasks.noTasksDescription')}
+          description={noTasksDescription}
           action={{
             label: t('tasks.createTask'),
             onClick: () => navigate("/tasks/new")
