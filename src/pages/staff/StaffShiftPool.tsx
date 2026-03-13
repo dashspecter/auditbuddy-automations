@@ -231,7 +231,7 @@ const StaffShiftPool = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Filter Shifts</DialogTitle>
+                  <DialogTitle>Filter {shiftsLabel}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
