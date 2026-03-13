@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TaskNew = () => {
   const navigate = useNavigate();
@@ -53,6 +54,11 @@ const TaskNew = () => {
   const [reviewRequired, setReviewRequired] = useState(false);
   const [evidenceInstructions, setEvidenceInstructions] = useState("");
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(false);
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -320,7 +326,7 @@ const TaskNew = () => {
                           className="flex-1"
                         >
                           <User className="h-4 w-4 mr-1" />
-                          Employee
+                          {employeeLabel}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
@@ -346,7 +352,7 @@ const TaskNew = () => {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                        <p className="text-sm">All employees with this role can complete</p>
+                        <p className="text-sm">All {employeesLabel.toLowerCase()} with this role can complete</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -359,7 +365,7 @@ const TaskNew = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
+                      <SelectValue placeholder={`Select ${employeeLabel.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -439,7 +445,7 @@ const TaskNew = () => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                            <p className="text-sm">Any employee can complete - done for everyone once completed</p>
+                            <p className="text-sm">Any {employeeLabel.toLowerCase()} can complete - done for everyone once completed</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -458,15 +464,15 @@ const TaskNew = () => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                            <p className="text-sm">Each employee must complete the task themselves</p>
+                            <p className="text-sm">Each {employeeLabel.toLowerCase()} must complete the task themselves</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       {isIndividual 
-                        ? "Each employee with the selected role(s) will need to complete this task individually"
-                        : "The task is shared - any employee can complete it for everyone"
+                        ? `Each ${employeeLabel.toLowerCase()} with the selected role(s) will need to complete this task individually`
+                        : `The task is shared - any ${employeeLabel.toLowerCase()} can complete it for everyone`
                       }
                     </p>
                   </div>
@@ -476,17 +482,17 @@ const TaskNew = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Locations
+                  {locationsLabel}
                 </Label>
                 <LocationMultiSelector
                   value={formData.location_ids}
                   onValueChange={(ids) =>
                     setFormData((prev) => ({ ...prev, location_ids: ids }))
                   }
-                  placeholder="Select locations"
+                  placeholder={`Select ${locationsLabel.toLowerCase()}`}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Task will appear at all selected locations
+                  Task will appear at all selected {locationsLabel.toLowerCase()}
                 </p>
               </div>
             </div>
@@ -687,7 +693,7 @@ const TaskNew = () => {
                 <div className="space-y-1.5">
                   <Label>Instructions for staff</Label>
                   <Textarea
-                    placeholder="e.g. Photo must include the thermometer display and location ID sticker"
+                    placeholder={`e.g. Photo must include the thermometer display and ${locationLabel.toLowerCase()} ID sticker`}
                     rows={2}
                     value={evidenceInstructions}
                     onChange={(e) => setEvidenceInstructions(e.target.value)}
@@ -710,7 +716,7 @@ const TaskNew = () => {
                   <div>
                     <Label className="font-medium">Notify via WhatsApp</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Send assignment, reminder &amp; overdue alerts to assigned employees
+                      Send assignment, reminder &amp; overdue alerts to assigned {employeesLabel.toLowerCase()}
                     </p>
                     <p className="text-xs text-amber-600 mt-1">
                       Tip: Use selectively for critical tasks (start/mid/end of shift) to avoid notification fatigue and daily message limits.

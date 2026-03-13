@@ -21,6 +21,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { addMonths, startOfDay, endOfDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { runPipelineForDateRange, ViewMode } from "@/lib/unifiedTaskPipeline";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const localizer = momentLocalizer(moment);
 
@@ -34,8 +35,9 @@ const TasksCalendar = () => {
   const [filterEmployee, setFilterEmployee] = useState<string>("all");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("execution");
-
-  // Define visible range (show 3 months forward for recurring tasks)
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
   const rangeStart = useMemo(() => startOfDay(addMonths(new Date(), -1)), []);
   const rangeEnd = useMemo(() => endOfDay(addMonths(new Date(), 3)), []);
 
@@ -189,7 +191,7 @@ const TasksCalendar = () => {
           <div>
             <h1 className="text-3xl font-bold">Tasks Calendar</h1>
             <p className="text-muted-foreground mt-1">
-              View tasks by date, employee, or role
+              View tasks by date, {employeeLabel.toLowerCase()}, or role
             </p>
           </div>
         </div>
@@ -209,13 +211,13 @@ const TasksCalendar = () => {
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
             <div className="space-y-2 min-w-[200px]">
-              <label className="text-sm font-medium">Filter by Employee</label>
+              <label className="text-sm font-medium">Filter by {employeeLabel}</label>
               <Select value={filterEmployee} onValueChange={setFilterEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Employees" />
+                  <SelectValue placeholder={`All ${employeesLabel}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{`All ${employeesLabel}`}</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.full_name}
@@ -304,11 +306,11 @@ const TasksCalendar = () => {
               popup
               tooltipAccessor={(event) => {
                 const task = event.resource;
-                return `${task.title}\nPriority: ${task.priority}\nStatus: ${task.status}${
-                  task.assigned_employee
-                    ? `\nAssigned to: ${task.assigned_employee.full_name}`
-                    : ""
-                }`;
+                 return `${task.title}\nPriority: ${task.priority}\nStatus: ${task.status}${
+                   task.assigned_employee
+                     ? `\nAssigned to ${employeeLabel.toLowerCase()}: ${task.assigned_employee.full_name}`
+                     : ""
+                 }`;
               }}
             />
           </div>

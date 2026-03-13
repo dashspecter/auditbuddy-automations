@@ -32,7 +32,7 @@ import {
 import { Task } from "@/hooks/useTasks";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployeeRoles } from "@/hooks/useEmployeeRoles";
-import { useEmployees } from "@/hooks/useEmployees";
+import { useTerminology } from "@/hooks/useTerminology";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, startOfWeek, endOfWeek, addWeeks, getDay, startOfDay, endOfDay, addDays } from "date-fns";
 import { 
@@ -249,10 +249,13 @@ export const AllTasksOpsDashboard = ({
   isLoading
 }: AllTasksOpsDashboardProps) => {
   const { t } = useTranslation();
-  
+  const term = useTerminology();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
+  const employeeLabel = term.employee();
+
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
-  const { data: employees = [] } = useEmployees();
 
   // State
   const [groupMode, setGroupMode] = useState<GroupMode>("location-day");
@@ -387,7 +390,7 @@ export const AllTasksOpsDashboard = ({
       
       for (const task of filteredTasks) {
         const roleId = task.assigned_role_id || "no-role";
-        const roleName = task.assigned_role?.name || (task.assigned_employee ? "Direct Assignment" : t('common.unassigned'));
+        const roleName = task.assigned_role?.name || (task.assigned_employee ? `Direct ${employeeLabel} Assignment` : t('common.unassigned'));
         
         if (!byRole[roleId]) {
           byRole[roleId] = { role: { id: roleId, name: roleName }, tasks: [] };
@@ -439,13 +442,13 @@ export const AllTasksOpsDashboard = ({
                   <SelectItem value="location-day">
                     <span className="flex items-center gap-2">
                       <MapPin className="h-3.5 w-3.5" />
-                      {t('common.location')} → {t('common.day')}
+                      {locationLabel} → {t('common.day')}
                     </span>
                   </SelectItem>
                   <SelectItem value="day-location">
                     <span className="flex items-center gap-2">
                       <Calendar className="h-3.5 w-3.5" />
-                      {t('common.day')} → {t('common.location')}
+                      {t('common.day')} → {locationLabel}
                     </span>
                   </SelectItem>
                   <SelectItem value="role">
@@ -492,13 +495,13 @@ export const AllTasksOpsDashboard = ({
 
             {/* Location Filter */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{t('common.location')}</label>
+              <label className="text-xs font-medium text-muted-foreground">{locationLabel}</label>
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder={t('common.allLocations')} />
+                  <SelectValue placeholder={`All ${locationsLabel}`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('common.allLocations')}</SelectItem>
+                  <SelectItem value="all">{`All ${locationsLabel}`}</SelectItem>
                   {locations.map(loc => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}

@@ -36,6 +36,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useScheduledEmployees, ScheduledEmployee } from "@/hooks/useScheduledEmployees";
 import { useShiftCoverage } from "@/hooks/useShiftCoverage";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useTerminology } from "@/hooks/useTerminology";
 import { format, addDays, startOfDay, isSameDay } from "date-fns";
 import { 
   isTaskOverdue, 
@@ -184,6 +185,8 @@ const EmployeeCard = ({
 }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(defaultOpen);
+  const term = useTerminology();
+  const locationLabelLower = term.location().toLowerCase();
 
   const completed = dayTasks.filter((tk) => tk.status === "completed").length;
   const overdue = dayTasks.filter((tk) => isTaskOverdue(tk)).length;
@@ -338,7 +341,7 @@ const EmployeeCard = ({
                   <AlertDescription className="text-amber-700 text-sm">
                     {t(
                       "tasks.noTasksAssignedHelper",
-                      "Check task templates, role assignments, and location coverage."
+                      `Check task templates, role assignments, and ${locationLabelLower} coverage.`
                     )}
                   </AlertDescription>
                 </Alert>
@@ -378,6 +381,11 @@ export const ByEmployeeTimeline = ({
   const { t } = useTranslation();
   const { company } = useCompanyContext();
   const { data: locations = [] } = useLocations();
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
 
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -539,7 +547,7 @@ export const ByEmployeeTimeline = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
-                    {t("common.allLocations")}
+                    {`All ${locationsLabel}`}
                   </SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>
@@ -554,7 +562,7 @@ export const ByEmployeeTimeline = ({
             <div className="flex items-center gap-3 ml-auto text-sm flex-wrap">
               <Badge variant="outline" className="gap-1">
                 <Users className="h-3 w-3" />
-                {totalEmployees} {t("workforce.employees.label")}
+                {totalEmployees} {employeesLabel}
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 {totalTasks} {t("tasks.title")}
@@ -589,12 +597,12 @@ export const ByEmployeeTimeline = ({
           <CardContent className="py-12 text-center text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium">
-              {t("tasks.noEmployeesScheduled", "No employees scheduled")}
+              {t("tasks.noEmployeesScheduled", `No ${employeesLabel.toLowerCase()} scheduled`)}
             </p>
             <p className="text-sm mt-1">
               {t(
                 "tasks.selectDifferentDateOrLocation",
-                "Try selecting a different date or location"
+                `Try selecting a different date or ${locationLabel.toLowerCase()}`
               )}
             </p>
           </CardContent>

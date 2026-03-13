@@ -33,6 +33,7 @@ import { useCompanyContext } from "@/contexts/CompanyContext";
 import { saveTaskEvidencePolicy } from "@/lib/saveTaskEvidencePolicy";
 import { InfoTooltip } from "@/components/correctiveActions/InfoTooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const TaskEdit = () => {
   const { id: rawId } = useParams<{ id: string }>();
@@ -57,6 +58,11 @@ const TaskEdit = () => {
   const [reviewRequired, setReviewRequired] = useState(false);
   const [evidenceInstructions, setEvidenceInstructions] = useState("");
   const [evidencePolicyId, setEvidencePolicyId] = useState<string | null>(null);
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
 
   const task = tasks.find(t => t.id === id);
 
@@ -383,20 +389,20 @@ const TaskEdit = () => {
                       className="flex-1"
                     >
                       <User className="h-4 w-4 mr-2" />
-                      Employee
+                      {employeeLabel}
                     </Button>
                   </div>
                 </div>
 
                 {assignmentType === 'employee' ? (
                   <div className="space-y-2">
-                    <Label htmlFor="assigned_to">Employee</Label>
+                    <Label htmlFor="assigned_to">{employeeLabel}</Label>
                     <Select
                       value={formData.assigned_to}
                       onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
+                        <SelectValue placeholder={`Select ${employeeLabel.toLowerCase()}`} />
                       </SelectTrigger>
                       <SelectContent>
                         {employees.map((emp) => (
@@ -418,7 +424,7 @@ const TaskEdit = () => {
                           </Label>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="max-w-xs">Tasks assigned to a role will be visible to all employees with that role who have an active shift at the task's location.</p>
+                          <p className="max-w-xs">Tasks assigned to a role will be visible to all {employeesLabel.toLowerCase()} with that role who have an active shift at the task's {locationLabel.toLowerCase()}.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -490,7 +496,7 @@ const TaskEdit = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                                <p className="text-sm">Any employee can complete - done for everyone once completed</p>
+                                <p className="text-sm">Any {employeeLabel.toLowerCase()} can complete - done for everyone once completed</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -509,15 +515,15 @@ const TaskEdit = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground">
-                                <p className="text-sm">Each employee must complete the task themselves</p>
+                                <p className="text-sm">Each {employeeLabel.toLowerCase()} must complete the task themselves</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
                           {isIndividual 
-                            ? "Each employee with the selected role will need to complete this task individually"
-                            : "The task is shared - any employee can complete it for everyone"
+                            ? `Each ${employeeLabel.toLowerCase()} with the selected role will need to complete this task individually`
+                            : `The task is shared - any ${employeeLabel.toLowerCase()} can complete it for everyone`
                           }
                         </p>
                       </div>
@@ -529,7 +535,7 @@ const TaskEdit = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  Locations
+                  {locationsLabel}
                 </Label>
                 <LocationMultiSelector
                   value={formData.location_ids}

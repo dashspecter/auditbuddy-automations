@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { useState } from "react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface LocationMultiSelectorProps {
   value: string[];
@@ -28,12 +29,16 @@ interface LocationMultiSelectorProps {
 export const LocationMultiSelector = ({
   value,
   onValueChange,
-  placeholder = "Select locations",
+  placeholder,
   disabled = false,
   id,
 }: LocationMultiSelectorProps) => {
   const { data: locations, isLoading } = useLocations();
   const [open, setOpen] = useState(false);
+  const term = useTerminology();
+  const locationLabel = term.location().toLowerCase();
+  const locationsLabel = term.locations().toLowerCase();
+  const resolvedPlaceholder = placeholder || `Select ${locationsLabel}`;
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />;
@@ -65,14 +70,16 @@ export const LocationMultiSelector = ({
             className="w-full justify-between"
             disabled={disabled}
           >
-            {value.length === 0 ? placeholder : `${value.length} location(s) selected`}
+            {value.length === 0
+              ? resolvedPlaceholder
+              : `${value.length} ${value.length === 1 ? locationLabel : locationsLabel} selected`}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
           <Command>
-            <CommandInput placeholder="Search locations..." />
-            <CommandEmpty>No location found.</CommandEmpty>
+            <CommandInput placeholder={`Search ${locationsLabel}...`} />
+            <CommandEmpty>{`No ${locationLabel} found.`}</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
               {locations?.map((location) => (
                 <CommandItem
@@ -93,7 +100,7 @@ export const LocationMultiSelector = ({
           </Command>
         </PopoverContent>
       </Popover>
-      
+
       {selectedLocations.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedLocations.map((location) => (

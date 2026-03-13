@@ -44,6 +44,7 @@ import {
 } from "@/lib/taskOccurrenceEngine";
 import { useUnifiedTasks } from "@/hooks/useUnifiedTasks";
 import { groupTasksByStatusShiftAware } from "@/lib/unifiedTaskPipeline";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -328,6 +329,15 @@ const Tasks = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationsLabel = term.locations();
+  const auditLabel = term.audit();
+  const allEmployeesLabel = `All ${employeesLabel}`;
+  const allLocationsLabel = `All ${locationsLabel}`;
+  const byEmployeeLabel = `By ${employeeLabel}`;
+  const noTasksDescription = `Start organizing your work by creating tasks. Tasks can be created manually or generated automatically from ${auditLabel.toLowerCase()} findings.`;
 
   // ── Evidence gate state ──
   const [evidenceGateTaskId, setEvidenceGateTaskId] = useState<string | null>(null);
@@ -656,10 +666,10 @@ const Tasks = () => {
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t('common.allLocations', 'All Locations')} />
+              <SelectValue placeholder={allLocationsLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('common.allLocations', 'All Locations')}</SelectItem>
+              <SelectItem value="all">{allLocationsLabel}</SelectItem>
               {locations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
               ))}
@@ -684,10 +694,10 @@ const Tasks = () => {
           <User className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t('tasks.allEmployees', 'All Employees')} />
+              <SelectValue placeholder={allEmployeesLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('tasks.allEmployees', 'All Employees')}</SelectItem>
+              <SelectItem value="all">{allEmployeesLabel}</SelectItem>
               {employees.map((emp) => (
                 <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
               ))}
@@ -710,7 +720,7 @@ const Tasks = () => {
         <EmptyState
           icon={ListTodo}
           title={t('tasks.noTasksYet')}
-          description={t('tasks.noTasksDescription')}
+          description={noTasksDescription}
           action={{
             label: t('tasks.createTask'),
             onClick: () => navigate("/tasks/new")
@@ -739,7 +749,7 @@ const Tasks = () => {
             <TabsTrigger value="completed">{t('tasks.completed')}</TabsTrigger>
             <TabsTrigger value="by-employee" className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
-              {t('tasks.byEmployee')}
+              {byEmployeeLabel}
             </TabsTrigger>
           </TabsList>
           
