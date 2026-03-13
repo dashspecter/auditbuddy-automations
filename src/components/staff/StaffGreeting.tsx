@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
+import { useTerminology } from "@/hooks/useTerminology";
 
 interface StaffGreetingProps {
   employeeName: string;
@@ -9,6 +10,9 @@ interface StaffGreetingProps {
 export const StaffGreeting = ({ employeeName, shiftsToday }: StaffGreetingProps) => {
   const [greeting, setGreeting] = useState("");
   const [currentDate, setCurrentDate] = useState("");
+  const term = useTerminology();
+  const shiftLabel = term.shift();
+  const shiftsLabel = term.shifts();
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -36,7 +40,7 @@ export const StaffGreeting = ({ employeeName, shiftsToday }: StaffGreetingProps)
         {greeting},<br />{employeeName.split(' ')[0]}.
       </h1>
       <p className="text-lg opacity-90">
-        You have {shiftsToday === 0 ? "no" : shiftsToday === 1 ? "one" : shiftsToday} shift{shiftsToday !== 1 ? "s" : ""} today.
+        You have {shiftsToday === 0 ? "no" : shiftsToday === 1 ? "one" : shiftsToday} {shiftsToday !== 1 ? shiftsLabel.toLowerCase() : shiftLabel.toLowerCase()} today.
       </p>
     </div>
   );

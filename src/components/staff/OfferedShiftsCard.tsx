@@ -5,10 +5,13 @@ import { HandHeart, ArrowRight, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { format, isPast, isToday } from "date-fns";
+import { format, isToday } from "date-fns";
+import { useTerminology } from "@/hooks/useTerminology";
 
 export const OfferedShiftsCard = () => {
   const navigate = useNavigate();
+  const term = useTerminology();
+  const shiftsLabel = term.shifts();
 
   const { data: offeredShifts = [], isLoading } = useQuery({
     queryKey: ["offered-shifts-manager"],
@@ -16,7 +19,6 @@ export const OfferedShiftsCard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get manager's company
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id, location_id")
@@ -25,7 +27,6 @@ export const OfferedShiftsCard = () => {
 
       if (!empData) return [];
 
-      // Get offered shifts (shifts that staff have put up for grabs)
       const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
@@ -33,20 +34,8 @@ export const OfferedShiftsCard = () => {
         .select(`
           id,
           notes,
-          employees:staff_id (
-            full_name,
-            role
-          ),
-          shifts:shift_id!inner (
-            id,
-            shift_date,
-            start_time,
-            end_time,
-            role,
-            locations:location_id (
-              name
-            )
-          )
+          employees:staff_id (full_name, role),
+          shifts:shift_id!inner (id, shift_date, start_time, end_time, role, locations:location_id (name))
         `)
         .eq("status", "offered")
         .gte("shifts.shift_date", today)
@@ -62,20 +51,14 @@ export const OfferedShiftsCard = () => {
     },
   });
 
-  if (isLoading) {
-    return null;
-  }
-
-  if (offeredShifts.length === 0) {
-    return null;
-  }
+  if (isLoading || offeredShifts.length === 0) return null;
 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <HandHeart className="h-4 w-4 text-amber-500" />
-          Offered Shifts
+          Offered {shiftsLabel}
         </h3>
         <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
           {offeredShifts.length}
@@ -91,9 +74,7 @@ export const OfferedShiftsCard = () => {
             <div 
               key={assignment.id} 
               className={`p-2 rounded-lg border text-sm ${
-                isShiftToday 
-                  ? "bg-amber-500/10 border-amber-500/30" 
-                  : "bg-muted/50 border-border"
+                isShiftToday ? "bg-amber-500/10 border-amber-500/30" : "bg-muted/50 border-border"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -103,24 +84,16 @@ export const OfferedShiftsCard = () => {
                     {format(shiftDate, "EEE, MMM d")} • {assignment.shifts.start_time.slice(0, 5)} - {assignment.shifts.end_time.slice(0, 5)}
                   </div>
                   <div className="flex items-center gap-1 mt-1">
-                    <Badge variant="outline" className="text-[10px] h-5">
-                      {assignment.shifts.role}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px] h-5">{assignment.shifts.role}</Badge>
                     {assignment.shifts.locations?.name && (
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {assignment.shifts.locations.name}
-                      </span>
+                      <span className="text-[10px] text-muted-foreground truncate">{assignment.shifts.locations.name}</span>
                     )}
                   </div>
                 </div>
-                {isShiftToday && (
-                  <Badge className="bg-amber-500 text-white text-[10px] shrink-0">Today</Badge>
-                )}
+                {isShiftToday && <Badge className="bg-amber-500 text-white text-[10px] shrink-0">Today</Badge>}
               </div>
               {assignment.notes && (
-                <p className="text-xs text-muted-foreground mt-1 italic truncate">
-                  "{assignment.notes}"
-                </p>
+                <p className="text-xs text-muted-foreground mt-1 italic truncate">"{assignment.notes}"</p>
               )}
             </div>
           );
@@ -128,18 +101,13 @@ export const OfferedShiftsCard = () => {
       </div>
 
       {offeredShifts.length > 3 && (
-        <Button 
-          variant="link" 
-          size="sm" 
-          className="w-full mt-2"
-          onClick={() => navigate("/staff/shift-pool")}
-        >
+        <Button variant="link" size="sm" className="w-full mt-2" onClick={() => navigate("/staff/shift-pool")}>
           View All ({offeredShifts.length}) <ArrowRight className="h-3 w-3 ml-1" />
         </Button>
       )}
       
       <p className="text-xs text-muted-foreground text-center mt-2">
-        Staff-offered shifts awaiting claim
+        Offered {shiftsLabel.toLowerCase()} awaiting claim
       </p>
     </Card>
   );
