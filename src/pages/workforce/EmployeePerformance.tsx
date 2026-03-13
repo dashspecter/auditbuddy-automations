@@ -113,6 +113,10 @@ function EmployeeBadgesRow({ employee, badgeConfigs }: { employee: EffectiveEmpl
 
 const EmployeePerformance = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
+  const employeesLabel = term.employees();
+  const employeeLabel = term.employee();
+  const locationsLabel = term.locations();
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("month");
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
