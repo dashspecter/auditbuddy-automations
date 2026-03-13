@@ -186,7 +186,7 @@ const StaffProfile = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Last Shift</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Last {shiftLabel}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
