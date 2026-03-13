@@ -816,8 +816,8 @@ const Reports = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>All Staff Performance Records</CardTitle>
-                  <CardDescription>Complete history of all staff performance audits</CardDescription>
+                    <CardTitle>All {employeeLabel} Performance Records</CardTitle>
+                   <CardDescription>Complete history of all {employeeLabel.toLowerCase()} performance {auditsLabel.toLowerCase()}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoadingStaffAudits ? (
