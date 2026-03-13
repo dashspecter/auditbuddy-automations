@@ -506,8 +506,8 @@ const Reports = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[150px]">Location</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">Total Audits</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[150px]">{locationLabel}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">Total {auditsLabel}</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Avg Score</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Compliant</th>
                       <th className="text-left py-3 px-4 font-semibold text-foreground">Non-Compliant</th>
