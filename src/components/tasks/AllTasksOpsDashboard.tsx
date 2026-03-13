@@ -442,13 +442,13 @@ export const AllTasksOpsDashboard = ({
                   <SelectItem value="location-day">
                     <span className="flex items-center gap-2">
                       <MapPin className="h-3.5 w-3.5" />
-                      {t('common.location')} → {t('common.day')}
+                      {locationLabel} → {t('common.day')}
                     </span>
                   </SelectItem>
                   <SelectItem value="day-location">
                     <span className="flex items-center gap-2">
                       <Calendar className="h-3.5 w-3.5" />
-                      {t('common.day')} → {t('common.location')}
+                      {t('common.day')} → {locationLabel}
                     </span>
                   </SelectItem>
                   <SelectItem value="role">
