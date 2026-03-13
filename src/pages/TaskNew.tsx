@@ -492,7 +492,7 @@ const TaskNew = () => {
                   placeholder={`Select ${locationsLabel.toLowerCase()}`}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Task will appear at all selected locations
+                  Task will appear at all selected {locationsLabel.toLowerCase()}
                 </p>
               </div>
             </div>
