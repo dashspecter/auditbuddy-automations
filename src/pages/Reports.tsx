@@ -99,6 +99,11 @@ const COMPLIANCE_THRESHOLD = 80; // Scores >= 80 are compliant
 
 const Reports = () => {
   const { t } = useTranslation();
+  const term = useTerminology();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
+  const employeeLabel = term.employee();
+  const auditsLabel = term.audits();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'employee' ? 'employee' : 'location';
   
