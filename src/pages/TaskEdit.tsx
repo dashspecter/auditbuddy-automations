@@ -396,7 +396,7 @@ const TaskEdit = () => {
 
                 {assignmentType === 'employee' ? (
                   <div className="space-y-2">
-                    <Label htmlFor="assigned_to">Employee</Label>
+                    <Label htmlFor="assigned_to">{employeeLabel}</Label>
                     <Select
                       value={formData.assigned_to}
                       onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
