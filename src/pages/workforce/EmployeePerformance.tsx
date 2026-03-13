@@ -579,8 +579,8 @@ const EmployeePerformance = () => {
 
       <Tabs defaultValue="leaderboard" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="leaderboard">Company Leaderboard</TabsTrigger>
-          <TabsTrigger value="by-location">By Location</TabsTrigger>
+          <TabsTrigger value="leaderboard">{term.company()} Leaderboard</TabsTrigger>
+          <TabsTrigger value="by-location">By {term.location()}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leaderboard">
