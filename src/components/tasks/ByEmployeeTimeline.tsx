@@ -546,7 +546,7 @@ export const ByEmployeeTimeline = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">
-                    {t("common.allLocations")}
+                    {`All ${locationsLabel}`}
                   </SelectItem>
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>
