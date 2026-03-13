@@ -1,64 +1,96 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
+Goal: do one comprehensive terminology sweep so Government Institution tenants stop seeing hospitality/default terms in remaining screens.
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+What I found in code (remaining high-impact gaps):
+1) Staff app + manager mobile surfaces still hardcoded:
+- src/components/staff/StaffBottomNav.tsx
+- src/components/staff/ManagerAuditsCard.tsx
+- src/components/staff/ManagerAuditStats.tsx
+- src/components/staff/ManagerDashboardStats.tsx
+- src/components/staff/ManagerApprovalsSection.tsx
+- src/components/staff/CheckerAuditsCard.tsx
+- src/components/staff/OfferedShiftsCard.tsx
+- src/components/staff/StaffGreeting.tsx
+- src/components/staff/WelcomeClockInDialog.tsx
+- src/components/staff/StaffNav.tsx (legacy but still hardcoded)
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+2) Staff pages with many static labels/fallbacks:
+- src/pages/staff/StaffSchedule.tsx
+- src/pages/staff/StaffShifts.tsx
+- src/pages/staff/StaffShiftPool.tsx
+- src/pages/staff/StaffTimeOff.tsx
+(and related wording in StaffHome flow)
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+3) Workforce performance/profile/admin surfaces still using Employee/Location/Shift literals:
+- src/pages/workforce/BadgeSettings.tsx
+- src/pages/workforce/EmployeePerformance.tsx
+- src/pages/workforce/StaffProfile.tsx
+- src/components/employee-dossier/WarningsSection.tsx
 
----
+4) Reporting/admin summary screens still static:
+- src/pages/Reports.tsx
+- src/pages/ActivityLog.tsx
+- src/pages/admin/company-detail/CompanyActivityOverview.tsx
+- src/components/dashboard/OpenCorrectiveActionsWidget.tsx
+- src/components/dashboard/ExecutiveDashboard.tsx (header text is still fixed)
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+Implementation plan:
+Phase 1 — Standardize terminology usage pattern
+- Apply useTerminology in all above files.
+- Replace hardcoded nouns with term functions:
+  - employee()/employees()
+  - location()/locations()
+  - shift()/shifts()
+  - audit()/audits()
+- Add reusable local helpers per file:
+  - employeeLabel, employeesLabel, employeeLabelLower
+  - locationLabel, locationsLabel
+  - shiftLabel, shiftsLabel
+  - auditLabel, auditsLabel
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+Phase 2 — Patch the full staff/manager mobile experience
+- Update nav labels, card titles, CTA text, empty states, filter labels, and toast messages in staff pages/components.
+- Ensure manager-specific cards (audits/approvals/stats) use dynamic terms (e.g., “Department Inspection”, “Civil Servant”, “Duty Roster”).
+- Keep role names (Admin/Manager/HR/Checker) untouched where they represent platform permissions, not domain nouns.
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+Phase 3 — Patch workforce analytics/profile/reporting/admin summaries
+- Replace remaining Employee/Location/Shift/Audit strings in performance/profile pages.
+- Update report tab labels, export headers, modal titles, and Activity Log table labels to terminology-aware versions.
+- Make dashboard labels in mixed widgets (like CA location rows) terminology-aware.
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+Phase 4 — i18n alignment (critical to prevent future misses)
+- For sentence-level text currently hardcoded in translation files, move to interpolation-friendly phrasing and inject dynamic terminology values from components.
+- Avoid relying on static translation key values for terminology nouns where tenant overrides are required.
+- Keep translations for non-terminology text unchanged.
 
----
+Technical details:
+- No backend/database changes needed.
+- No auth/permissions logic changes.
+- Pattern to use in affected components:
+  - import { useTerminology } from "@/hooks/useTerminology";
+  - const term = useTerminology();
+  - const employeeLabel = term.employee(); etc.
+- For mixed strings:
+  - Build runtime string with term labels (or pass labels as interpolation params).
+- Preserve existing government feature gating (hideForGovernment, module toggles) and only change wording.
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
-
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
-
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
-
----
-
-## Phase 4: Integration & Testing ✅ COMPLETE
-
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+Validation checklist after implementation:
+1) Staff side:
+- /staff
+- /staff/schedule
+- /staff/shifts
+- /staff/shift-pool
+- /staff/time-off
+2) Workforce/admin:
+- /workforce/badge-settings
+- /workforce/staff/:id
+- /reports (location + employee tabs)
+- /activity-log
+- admin company detail overview
+3) Dashboard widgets:
+- Executive/manager cards and popup labels
+4) Confirm expected government terms render consistently:
+- Civil Servant / Civil Servants
+- Department / Departments
+- Duty Roster / Duty Rosters
+- Inspection / Inspections
