@@ -281,7 +281,7 @@ const StaffShiftPool = () => {
         {openShifts.length === 0 ? (
           <Card className="p-8 text-center">
             <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No open shifts available right now</p>
+            <p className="text-muted-foreground">No open {shiftsLabel.toLowerCase()} available right now</p>
             <p className="text-sm text-muted-foreground mt-1">Check back later for new opportunities</p>
           </Card>
         ) : (
