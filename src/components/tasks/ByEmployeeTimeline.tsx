@@ -185,6 +185,8 @@ const EmployeeCard = ({
 }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(defaultOpen);
+  const term = useTerminology();
+  const locationLabelLower = term.location().toLowerCase();
 
   const completed = dayTasks.filter((tk) => tk.status === "completed").length;
   const overdue = dayTasks.filter((tk) => isTaskOverdue(tk)).length;
