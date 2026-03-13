@@ -390,7 +390,7 @@ export const AllTasksOpsDashboard = ({
       
       for (const task of filteredTasks) {
         const roleId = task.assigned_role_id || "no-role";
-        const roleName = task.assigned_role?.name || (task.assigned_employee ? "Direct Assignment" : t('common.unassigned'));
+        const roleName = task.assigned_role?.name || (task.assigned_employee ? `Direct ${employeeLabel} Assignment` : t('common.unassigned'));
         
         if (!byRole[roleId]) {
           byRole[roleId] = { role: { id: roleId, name: roleName }, tasks: [] };

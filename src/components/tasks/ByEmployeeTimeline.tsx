@@ -341,7 +341,7 @@ const EmployeeCard = ({
                   <AlertDescription className="text-amber-700 text-sm">
                     {t(
                       "tasks.noTasksAssignedHelper",
-                      "Check task templates, role assignments, and location coverage."
+                      `Check task templates, role assignments, and ${locationLabelLower} coverage.`
                     )}
                   </AlertDescription>
                 </Alert>
