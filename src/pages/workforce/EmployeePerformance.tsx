@@ -35,6 +35,7 @@ import {
   calculateAverageEffectiveScore,
   EffectiveEmployeeScore 
 } from "@/lib/effectiveScore";
+import { useTerminology } from "@/hooks/useTerminology";
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
