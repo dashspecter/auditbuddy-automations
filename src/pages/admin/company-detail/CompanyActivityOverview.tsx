@@ -14,12 +14,13 @@ export function CompanyActivityOverview({ overview }: Props) {
     .sort()
     .reverse()[0];
 
+  // Note: This is an admin view — uses static labels since it's cross-tenant
   const stats = [
     { label: "Locations", value: overview.locations_count, icon: MapPin, color: "text-blue-500" },
     { label: "Employees", value: overview.employees_count, icon: Users, color: "text-green-500" },
     { label: "Departments", value: overview.departments_count, icon: Building, color: "text-purple-500" },
     { label: "Tasks", value: `${overview.tasks_completed}/${overview.tasks_total}`, icon: ListChecks, color: "text-orange-500", sub: "completed" },
-    { label: "Audit Templates", value: overview.audit_templates_count, icon: ClipboardList, color: "text-cyan-500" },
+    { label: "Templates", value: overview.audit_templates_count, icon: ClipboardList, color: "text-cyan-500" },
     { label: "Audits Done", value: overview.audits_count, icon: ClipboardList, color: "text-teal-500" },
     { label: "Corrective Actions", value: overview.corrective_actions_count, icon: AlertTriangle, color: "text-yellow-500" },
     { label: "Shifts Created", value: overview.shifts_count, icon: Clock, color: "text-indigo-500" },

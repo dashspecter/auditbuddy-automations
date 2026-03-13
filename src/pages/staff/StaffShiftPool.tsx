@@ -320,7 +320,7 @@ const StaffShiftPool = () => {
                 className="w-full touch-target"
                 onClick={() => claimShift(shift.id)}
               >
-                Claim Shift
+                Claim {shiftLabel}
               </Button>
             </Card>
           ))

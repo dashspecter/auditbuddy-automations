@@ -63,7 +63,7 @@ export const ExecutiveDashboard = () => {
             </TooltipProvider>
           </div>
           <p className="text-muted-foreground">
-            {label("company", "Institution")} performance at a glance
+            {label("company", "Company")} performance at a glance
           </p>
         </div>
         <div className="flex items-center gap-3">

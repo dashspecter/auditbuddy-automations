@@ -831,9 +831,9 @@ const Reports = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Employee</TableHead>
+                            <TableHead>{employeeLabel}</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Location</TableHead>
+                            <TableHead>{locationLabel}</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Score</TableHead>
                             <TableHead>Notes</TableHead>

@@ -41,6 +41,26 @@ interface AuditLogEntry {
 
 const ActivityLog = () => {
   const { data: company } = useCompany();
+  const term = useTerminology();
+  const TABLE_LABELS: Record<string, string> = {
+    shifts: term.shifts(),
+    schedule_periods: "Schedule Periods",
+    schedule_change_requests: "Change Requests",
+    employees: term.employees(),
+    attendance_logs: "Attendance",
+    time_off_requests: "Time Off",
+    company_users: `${term.company()} Users`,
+    workforce_policies: "Workforce Policies",
+    workforce_exceptions: "Workforce Exceptions",
+    location_audits: term.audits(),
+    tasks: "Tasks",
+    locations: term.locations(),
+    inventory_items: "Inventory",
+    waste_entries: "Waste",
+    equipment: term.equipment(),
+    cmms_work_orders: "Work Orders",
+    company_role_permissions: "Permissions",
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [actionFilter, setActionFilter] = useState<string>("all");

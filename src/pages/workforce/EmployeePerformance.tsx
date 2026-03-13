@@ -651,7 +651,7 @@ const EmployeePerformance = () => {
                         {locationData.location_name}
                       </CardTitle>
                       <CardDescription>
-                        {locationData.employees.length} employees •{" "}
+                        {locationData.employees.length} {employeesLabel.toLowerCase()} •{" "}
                         Avg score:{" "}
                         {locationAvg !== null ? Math.round(locationAvg) : '—'}
                       </CardDescription>
