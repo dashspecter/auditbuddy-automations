@@ -402,7 +402,7 @@ const TaskEdit = () => {
                       onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
+                        <SelectValue placeholder={`Select ${employeeLabel.toLowerCase()}`} />
                       </SelectTrigger>
                       <SelectContent>
                         {employees.map((emp) => (
