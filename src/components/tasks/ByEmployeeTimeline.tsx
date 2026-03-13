@@ -601,7 +601,7 @@ export const ByEmployeeTimeline = ({
             <p className="text-sm mt-1">
               {t(
                 "tasks.selectDifferentDateOrLocation",
-                `Try selecting a different date or ${locationLabelLower}`
+                `Try selecting a different date or ${locationLabel.toLowerCase()}`
               )}
             </p>
           </CardContent>
