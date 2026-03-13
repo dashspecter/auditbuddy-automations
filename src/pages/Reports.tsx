@@ -320,8 +320,8 @@ const Reports = () => {
   };
 
   const reportSubItems = [
-    { title: "Location", url: "/reports?tab=location", icon: MapPin, description: "Location performance" },
-    { title: "Employee", url: "/reports?tab=employee", icon: Clock, description: "Employee performance" },
+    { title: locationLabel, url: "/reports?tab=location", icon: MapPin, description: `${locationLabel} performance` },
+    { title: employeeLabel, url: "/reports?tab=employee", icon: Clock, description: `${employeeLabel} performance` },
     { title: "Vouchers", url: "/audits/vouchers", icon: FileSpreadsheet, description: "Manage vouchers" },
   ];
 
