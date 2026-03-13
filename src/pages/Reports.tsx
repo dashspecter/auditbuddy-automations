@@ -825,7 +825,7 @@ const Reports = () => {
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     </div>
                   ) : !staffAudits || staffAudits.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No staff performance records found.</p>
+                    <p className="text-center text-muted-foreground py-8">No {employeeLabel.toLowerCase()} performance records found.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
