@@ -58,6 +58,11 @@ const TaskEdit = () => {
   const [reviewRequired, setReviewRequired] = useState(false);
   const [evidenceInstructions, setEvidenceInstructions] = useState("");
   const [evidencePolicyId, setEvidencePolicyId] = useState<string | null>(null);
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
 
   const task = tasks.find(t => t.id === id);
 

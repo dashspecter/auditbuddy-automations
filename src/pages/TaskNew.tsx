@@ -54,6 +54,11 @@ const TaskNew = () => {
   const [reviewRequired, setReviewRequired] = useState(false);
   const [evidenceInstructions, setEvidenceInstructions] = useState("");
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(false);
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
 
   const [formData, setFormData] = useState({
     title: "",

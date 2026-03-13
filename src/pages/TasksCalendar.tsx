@@ -35,8 +35,9 @@ const TasksCalendar = () => {
   const [filterEmployee, setFilterEmployee] = useState<string>("all");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("execution");
-
-  // Define visible range (show 3 months forward for recurring tasks)
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
   const rangeStart = useMemo(() => startOfDay(addMonths(new Date(), -1)), []);
   const rangeEnd = useMemo(() => endOfDay(addMonths(new Date(), 3)), []);
 

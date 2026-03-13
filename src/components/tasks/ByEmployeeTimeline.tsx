@@ -381,6 +381,10 @@ export const ByEmployeeTimeline = ({
   const { t } = useTranslation();
   const { company } = useCompanyContext();
   const { data: locations = [] } = useLocations();
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationsLabel = term.locations();
 
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
   const [locationFilter, setLocationFilter] = useState<string>("all");

@@ -249,10 +249,13 @@ export const AllTasksOpsDashboard = ({
   isLoading
 }: AllTasksOpsDashboardProps) => {
   const { t } = useTranslation();
-  
+  const term = useTerminology();
+  const locationLabel = term.location();
+  const locationsLabel = term.locations();
+  const employeeLabel = term.employee();
+
   const { data: locations = [] } = useLocations();
   const { data: roles = [] } = useEmployeeRoles();
-  const { data: employees = [] } = useEmployees();
 
   // State
   const [groupMode, setGroupMode] = useState<GroupMode>("location-day");

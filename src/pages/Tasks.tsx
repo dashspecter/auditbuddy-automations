@@ -329,6 +329,15 @@ const Tasks = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const term = useTerminology();
+  const employeeLabel = term.employee();
+  const employeesLabel = term.employees();
+  const locationsLabel = term.locations();
+  const auditLabel = term.audit();
+  const allEmployeesLabel = `All ${employeesLabel}`;
+  const allLocationsLabel = `All ${locationsLabel}`;
+  const byEmployeeLabel = `By ${employeeLabel}`;
+  const noTasksDescription = `Start organizing your work by creating tasks. Tasks can be created manually or generated automatically from ${auditLabel.toLowerCase()} findings.`;
 
   // ── Evidence gate state ──
   const [evidenceGateTaskId, setEvidenceGateTaskId] = useState<string | null>(null);
