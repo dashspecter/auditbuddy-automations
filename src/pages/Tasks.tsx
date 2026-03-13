@@ -749,7 +749,7 @@ const Tasks = () => {
             <TabsTrigger value="completed">{t('tasks.completed')}</TabsTrigger>
             <TabsTrigger value="by-employee" className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
-              {t('tasks.byEmployee')}
+              {byEmployeeLabel}
             </TabsTrigger>
           </TabsList>
           
