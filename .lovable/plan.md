@@ -1,52 +1,64 @@
+# City Hall Internal Operations — Implementation Progress
 
+## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-# Fix: `staff_audits` RLS error on StaffStaffAudit page
+### 1A. Database ✅
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
-## Root Cause
+### 1B. Onboarding RPC ✅
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
-The INSERT policy requires `auth.uid() = auditor_id`. The code sets `auditor_id: user.id` where `user` comes from the **cached** `useAuth()` React context. The RLS check uses `auth.uid()` from the **live JWT token**.
+### 1C. Frontend ✅
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
-If there's any desync between the cached context and the live JWT (e.g., a background token refresh that updated the JWT but the React state hasn't re-rendered yet, or a brief race condition), the values mismatch and RLS blocks the insert. This can happen quickly — it's not about session expiry, it's about a momentary cache-vs-token desync.
+---
 
-The existing `useCreateStaffAudit` hook already does this correctly — it calls `await supabase.auth.getUser()` fresh before inserting. The `StaffStaffAudit.tsx` page doesn't use that hook; it has its own inline insert that uses the cached value.
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-## Fix — 2 files, code only, no database changes
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-### `StaffStaffAudit.tsx` — `handleSubmit` function (~line 268-295)
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-Replace the cached `user.id` with a fresh `supabase.auth.getUser()` call:
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
-```typescript
-// Instead of using cached user.id from context:
-const { data: { user: freshUser } } = await supabase.auth.getUser();
-if (!freshUser) {
-  toast.error("Session expired. Please log in again.");
-  navigate("/auth");
-  return;
-}
+---
 
-// Use freshUser.id for auditor_id
-auditor_id: freshUser.id,
-```
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-Also add a console.log before the insert so if it ever fails again, we have diagnostic data.
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
-### `StaffPerformanceReview.tsx` — same pattern (~line 155-175)
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
 
-Apply the identical fix: fresh `getUser()` call before the `staff_audits` insert.
+---
 
-## What this changes
-- **StaffStaffAudit.tsx** — fresh auth check before insert (lines 268-295)
-- **StaffPerformanceReview.tsx** — same fix (lines 155-175)
+## Phase 4: Integration & Testing ✅ COMPLETE
 
-## What this does NOT change
-- No database/RLS policy changes
-- No changes to any other page or flow
-- No changes to the auth context, session handling, or any other insert operations
-- The `useCreateStaffAudit` hook is already correct and untouched
-
-## Risk: Zero
-- The fresh `getUser()` call is a lightweight API call that Supabase recommends for server-validated operations
-- If the user IS authenticated (normal case), behavior is identical — just uses a guaranteed-fresh ID
-- If the user somehow ISN'T authenticated, they get a clear redirect instead of a cryptic RLS error
-
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard

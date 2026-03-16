@@ -154,10 +154,18 @@ const StaffPerformanceReview = () => {
     setSubmitting(true);
 
     try {
+      // Fresh auth check to ensure auditor_id matches the live JWT token
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", freshUser.id)
         .single();
 
       if (!empData) {
@@ -167,6 +175,8 @@ const StaffPerformanceReview = () => {
 
       const overallScore = calculateOverallRating();
 
+      console.log("[PerformanceReview] Inserting staff_audit with auditor_id:", freshUser.id);
+
       // Create a staff audit with performance review data
       const { error } = await supabase
         .from("staff_audits")
@@ -174,7 +184,7 @@ const StaffPerformanceReview = () => {
           employee_id: formData.employee_id,
           location_id: formData.location_id,
           company_id: empData.company_id,
-          auditor_id: user.id,
+          auditor_id: freshUser.id,
           audit_date: new Date().toISOString().split('T')[0],
           score: overallScore,
           notes: `Performance Review\n\nStrengths: ${formData.strengths}\n\nAreas for Improvement: ${formData.areas_for_improvement}\n\nGoals: ${formData.goals}\n\nComments: ${formData.comments}`,
