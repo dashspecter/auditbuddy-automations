@@ -266,10 +266,18 @@ const StaffStaffAudit = () => {
     setSubmitting(true);
 
     try {
+      // Fresh auth check to ensure auditor_id matches the live JWT token
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", freshUser.id)
         .single();
 
       if (!empData) {
@@ -280,13 +288,15 @@ const StaffStaffAudit = () => {
       const { score, maxScore } = calculateScore();
       const percentScore = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
 
+      console.log("[StaffStaffAudit] Inserting staff_audit with auditor_id:", freshUser.id);
+
       const { error } = await supabase
         .from("staff_audits")
         .insert([{
           employee_id: formData.employee_id,
           location_id: formData.location_id,
           company_id: empData.company_id,
-          auditor_id: user.id,
+          auditor_id: freshUser.id,
           audit_date: formData.auditDate,
           score: percentScore,
           notes: formData.notes || null,
