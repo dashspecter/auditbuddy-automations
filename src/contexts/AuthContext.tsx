@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Handle automatic logout due to inactivity
   const handleInactivityLogout = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     toast({
       title: "Session Expired",
       description: "You have been logged out due to inactivity.",
