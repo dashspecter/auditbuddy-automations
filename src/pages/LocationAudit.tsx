@@ -1172,7 +1172,18 @@ const LocationAudit = () => {
                 <Label htmlFor="template" className="text-sm">Template *</Label>
                 <Select
                   value={selectedTemplateId}
-                  onValueChange={setSelectedTemplateId}
+                  onValueChange={(value) => {
+                    // If there's existing progress, show discard dialog
+                    if (currentDraftId && Object.keys(formData.customData).length > 0 && value !== selectedTemplateId) {
+                      setPendingChange({ type: 'template', value });
+                      setShowDiscardDialog(true);
+                    } else {
+                      setCurrentDraftId(null);
+                      setSelectedTemplateId(value);
+                      setFormData(prev => ({ ...prev, customData: {} }));
+                      setCurrentSectionIndex(0);
+                    }
+                  }}
                   required
                 >
                   <SelectTrigger id="template">
