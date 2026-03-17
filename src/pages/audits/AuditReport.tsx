@@ -218,7 +218,7 @@ const AuditReport = () => {
                     .map((s) => (
                       <li key={s.id} className="text-sm flex items-center justify-between">
                         <span>{s.name}</span>
-                        <Badge variant="outline" className="text-amber-600">
+                        <Badge variant="outline" className="text-destructive">
                           {s.totalFields - s.answeredFields} remaining
                         </Badge>
                       </li>
