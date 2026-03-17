@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,6 @@ import {
   Paperclip,
   FileText,
   X,
-  Image as ImageIcon,
   Download,
 } from "lucide-react";
 import { useUploadFieldPhoto, useUploadFieldAttachment, useDeleteFieldPhoto, useDeleteFieldAttachment, AuditFieldResponse } from "@/hooks/useAuditFieldResponses";
@@ -29,6 +27,8 @@ interface FieldResponseInputProps {
   sectionId: string;
   fieldResponse?: AuditFieldResponse;
   onObservationChange: (value: string) => void;
+  /** Must return a valid field_response ID. Called before upload if fieldResponse is missing. */
+  onEnsureFieldResponse?: () => Promise<string | null>;
   disabled?: boolean;
 }
 
@@ -38,12 +38,15 @@ export default function FieldResponseInput({
   sectionId,
   fieldResponse,
   onObservationChange,
+  onEnsureFieldResponse,
   disabled = false,
 }: FieldResponseInputProps) {
   const [observations, setObservations] = useState(fieldResponse?.observations || "");
   const [showObservations, setShowObservations] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [pendingAttachmentFile, setPendingAttachmentFile] = useState<File | null>(null);
 
   const uploadPhoto = useUploadFieldPhoto();
   const uploadAttachment = useUploadFieldAttachment();
@@ -55,65 +58,47 @@ export default function FieldResponseInput({
     onObservationChange(value);
   };
 
+  const getOrEnsureResponseId = async (): Promise<string | null> => {
+    if (fieldResponse?.id) return fieldResponse.id;
+    if (onEnsureFieldResponse) {
+      return onEnsureFieldResponse();
+    }
+    return null;
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // If no field response exists, create one first
-    if (!fieldResponse?.id) {
-      onObservationChange("");  // This will trigger creation of field response
-      // Wait a bit for the mutation to complete
-      setTimeout(() => {
-        if (photoInputRef.current) {
-          photoInputRef.current.click();
-        }
-      }, 500);
+    // Reset input immediately so the same file can be re-selected
+    if (photoInputRef.current) photoInputRef.current.value = "";
+
+    const responseId = await getOrEnsureResponseId();
+    if (!responseId) {
+      console.warn("[FieldResponseInput] Cannot upload photo — no field response ID available");
       return;
     }
 
-    uploadPhoto.mutate({
-      responseId: fieldResponse.id,
-      auditId,
-      file,
-    });
-
-    // Reset input
-    if (photoInputRef.current) {
-      photoInputRef.current.value = "";
-    }
+    uploadPhoto.mutate({ responseId, auditId, file });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // If no field response exists, create one first
-    if (!fieldResponse?.id) {
-      onObservationChange("");  // This will trigger creation of field response
-      // Wait a bit for the mutation to complete
-      setTimeout(() => {
-        if (fileInputRef.current) {
-          fileInputRef.current.click();
-        }
-      }, 500);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    const responseId = await getOrEnsureResponseId();
+    if (!responseId) {
+      console.warn("[FieldResponseInput] Cannot upload file — no field response ID available");
       return;
     }
 
-    uploadAttachment.mutate({
-      responseId: fieldResponse.id,
-      auditId,
-      file,
-    });
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    uploadAttachment.mutate({ responseId, auditId, file });
   };
 
   const photos = fieldResponse?.audit_field_photos || [];
   const attachments = fieldResponse?.audit_field_attachments || [];
-  const hasContent = observations || photos.length > 0 || attachments.length > 0;
 
   return (
     <div className="space-y-2">
