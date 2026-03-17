@@ -166,19 +166,21 @@ const LocationAudit = () => {
       // Auto-fill location if template has a specific location (either old or new structure)
       const template = templates.find(t => t.id === selectedTemplateId);
       if (template?.location_id) {
-        // Old structure: single location_id
         setFormData(prev => ({ ...prev, location_id: template.location_id || '' }));
       } else if (template?.template_locations && template.template_locations.length === 1) {
-        // New structure: single location in junction table
         setFormData(prev => ({ ...prev, location_id: template.template_locations?.[0]?.location_id || '' }));
       }
-      
-      // Auto-create draft if we don't have one and we're not loading an existing draft
-      if (!currentDraftId && !draftId && user) {
-        createInitialDraft();
-      }
+      // NOTE: Do NOT create draft here — wait until location is also set (see effect below)
     }
   }, [selectedTemplateId, templates]);
+
+  // Create server draft only when BOTH template AND location are set
+  useEffect(() => {
+    if (selectedTemplateId && formData.location_id && !currentDraftId && !draftId && user) {
+      console.log('[LocationAudit] Template + location ready, creating server draft');
+      createInitialDraft();
+    }
+  }, [selectedTemplateId, formData.location_id, currentDraftId, draftId, user]);
 
   const loadDraft = async (id: string) => {
     try {
