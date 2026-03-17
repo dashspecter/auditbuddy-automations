@@ -700,6 +700,13 @@ const LocationAudit = () => {
     }
 
     try {
+      // Refresh session before write to prevent RLS failures
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        toast.error("Your session has expired. Please log in again.");
+        return;
+      }
+
       // Get location name if location_id is provided
       let locationName = '';
       if (formData.location_id) {
