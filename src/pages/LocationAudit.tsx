@@ -658,6 +658,19 @@ const LocationAudit = () => {
                 observations,
               });
             }}
+            onEnsureFieldResponse={async () => {
+              if (fieldResponse?.id) return fieldResponse.id;
+              try {
+                const result = await saveFieldResponse.mutateAsync({
+                  auditId: currentDraftId,
+                  fieldId: field.id,
+                  sectionId,
+                  responseValue: formData.customData[field.id] || null,
+                  observations: "",
+                });
+                return result?.id || null;
+              } catch { return null; }
+            }}
           />
         )}
       </div>
