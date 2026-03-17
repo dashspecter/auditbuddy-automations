@@ -1,64 +1,79 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Plan: Bulletproof Audit Module — Zero Data Loss Guarantee
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## Problems found
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+After a full audit of every write path, here are the remaining vulnerabilities that can cause data loss or RLS errors during a multi-hour audit session:
 
----
+### Critical: No session refresh before writes
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+| Write path | File | Has `refreshSession()`? |
+|---|---|---|
+| `LocationAudit.handleSubmit` → `performSubmit()` | `src/pages/LocationAudit.tsx` | **NO** |
+| `LocationAudit.handleSaveDraft` | `src/pages/LocationAudit.tsx` | **NO** |
+| `LocationAudit.createInitialDraft` | `src/pages/LocationAudit.tsx` | **NO** |
+| `useUpdateAudit` | `src/hooks/useAuditsNew.ts` | **NO** |
+| `useCompleteAudit` | `src/hooks/useAuditsNew.ts` | **NO** |
+| `useCreateAudit` | `src/hooks/useAuditsNew.ts` | **NO** |
+| `useDeleteFieldPhoto` | `src/hooks/useAuditFieldResponses.ts` | **NO** |
+| `useDeleteFieldAttachment` | `src/hooks/useAuditFieldResponses.ts` | **NO** |
+| `useSaveFieldResponse` | `src/hooks/useAuditFieldResponses.ts` | ✅ |
+| `useSaveSectionResponse` | `src/hooks/useAuditSectionResponses.ts` | ✅ |
+| `useUploadFieldPhoto` | `src/hooks/useAuditFieldResponses.ts` | ✅ |
+| `useUploadFieldAttachment` | `src/hooks/useAuditFieldResponses.ts` | ✅ |
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+### Medium: No retry on transient failure
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+Every field save in the LocationAudit page fires `saveFieldResponse.mutate()` with no retry. If the network blips during a 2-hour audit, that single field value is silently lost. The mutation has `retry: 0` by default (TanStack Query mutation default).
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+### Medium: `useSaveFieldResponse` has no offline queue
 
----
+When offline, clicking YES/NO fires the mutation, it fails, shows an error toast, and the value is lost from the server. The local `formData.customData` state has it, but the `audit_field_responses` row does not. If the user closes the tab, the IndexedDB draft has the `customData` but not the server-side field responses.
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+### Low: `PerformAudit.tsx` completion has no session guard
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+`useCompleteAudit` and `useUpdateAudit` (used in `PerformAudit.tsx`) have zero session refresh. After hours of work, completing the audit will fail with an RLS error.
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+## Fixes
 
----
+### 1. Add session refresh to ALL remaining write hooks (`useAuditsNew.ts`)
 
-## Phase 4: Integration & Testing ✅ COMPLETE
+Add `refreshSession()` + `getUser()` guard to `useCreateAudit`, `useUpdateAudit`, and `useCompleteAudit` mutations — same pattern as the field response hooks.
 
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+### 2. Add session refresh to `LocationAudit.tsx` submission
+
+Add `refreshSession()` at the top of `performSubmit()`, `handleSaveDraft()`, and `createInitialDraft()`.
+
+### 3. Add session refresh to delete mutations (`useAuditFieldResponses.ts`)
+
+Add the guard to `useDeleteFieldPhoto` and `useDeleteFieldAttachment`.
+
+### 4. Add automatic retry to all field-save mutations
+
+Configure TanStack Query mutation `retry: 2` with `retryDelay: 1000` on `useSaveFieldResponse`, `useSaveSectionResponse`, `useUploadFieldPhoto`, and `useUploadFieldAttachment`. This handles transient network failures transparently.
+
+### 5. Add offline-aware save queue for field responses
+
+In `LocationAudit.tsx` `handleFieldChange`, wrap the `saveFieldResponse.mutate()` call: if `!navigator.onLine`, skip the server write silently (the value is already in `formData.customData` and will be persisted to IndexedDB by the draft hook). When the app comes back online, trigger a bulk re-save of all `customData` fields. Use the existing `useAppVisibility` hook's `onVisible` callback to trigger this.
+
+### 6. Add a visible "last saved" indicator
+
+Show a small timestamp ("Last saved: 2 min ago") at the top of the LocationAudit form so users have confidence their data is persisting. Use the draft's `savedAt` timestamp.
+
+## Files changed
+
+| File | Change |
+|------|--------|
+| `src/hooks/useAuditsNew.ts` | Add `refreshSession()` guard to all 3 mutations, add `retry: 2` |
+| `src/hooks/useAuditFieldResponses.ts` | Add `refreshSession()` to delete mutations, add `retry: 2` to save/upload mutations |
+| `src/hooks/useAuditSectionResponses.ts` | Add `retry: 2` to save mutation |
+| `src/pages/LocationAudit.tsx` | Add `refreshSession()` to `performSubmit`, `handleSaveDraft`, `createInitialDraft`; add offline-aware field save; add "last saved" indicator; add online-resume bulk re-save |
+| `src/pages/audits/PerformAudit.tsx` | No changes needed (already uses hooks that will be fixed) |
+
+## What does NOT change
+- No database or RLS policy changes
+- No changes to the draft storage system (IndexedDB/localStorage) — it already works correctly
+- No changes to auth context or routing
+- No changes to the template builder or report pages
+
