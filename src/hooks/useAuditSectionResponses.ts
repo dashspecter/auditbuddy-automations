@@ -57,7 +57,7 @@ export const useSaveSectionResponse = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("audit_section_responses")
         .upsert({
           audit_id: auditId,
@@ -67,12 +67,10 @@ export const useSaveSectionResponse = () => {
           created_by: user.id,
         }, {
           onConflict: "audit_id,section_id"
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
-      return data;
+      return { audit_id: auditId };
     },
     retry: 2,
     retryDelay: 1000,
