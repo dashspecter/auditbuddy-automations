@@ -49,6 +49,9 @@ export const useSaveSectionResponse = () => {
       followUpNeeded: boolean;
       followUpNotes?: string;
     }) => {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -73,9 +76,12 @@ export const useSaveSectionResponse = () => {
       queryClient.invalidateQueries({ queryKey: ["audit_section_responses", data.audit_id] });
     },
     onError: (error: Error) => {
+      const message = error.message?.includes("row-level security")
+        ? "Your session has expired. Please log in again."
+        : error.message;
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },

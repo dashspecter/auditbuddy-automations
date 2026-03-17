@@ -80,6 +80,9 @@ export const useSaveFieldResponse = () => {
       responseValue: any;
       observations?: string;
     }) => {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -105,9 +108,12 @@ export const useSaveFieldResponse = () => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", data.audit_id] });
     },
     onError: (error: Error) => {
+      const message = error.message?.includes("row-level security")
+        ? "Your session has expired. Please log in again."
+        : error.message;
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
@@ -131,6 +137,9 @@ export const useUploadFieldPhoto = () => {
       file: File;
       caption?: string;
     }) => {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -173,9 +182,12 @@ export const useUploadFieldPhoto = () => {
       });
     },
     onError: (error: Error) => {
+      const message = error.message?.includes("row-level security")
+        ? "Your session has expired. Please log in again."
+        : error.message;
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
@@ -197,6 +209,9 @@ export const useUploadFieldAttachment = () => {
       auditId: string;
       file: File;
     }) => {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -240,9 +255,12 @@ export const useUploadFieldAttachment = () => {
       });
     },
     onError: (error: Error) => {
+      const message = error.message?.includes("row-level security")
+        ? "Your session has expired. Please log in again."
+        : error.message;
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
