@@ -344,6 +344,8 @@ const LocationAudit = () => {
     }
   };
 
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData({
       ...formData,
@@ -360,15 +362,52 @@ const LocationAudit = () => {
       );
       
       if (section) {
+        // Skip server write when offline — the value is in formData.customData
+        // and will be persisted via the draft hook (IndexedDB). On reconnect,
+        // the bulk re-save (below) will push everything to the server.
+        if (!navigator.onLine) {
+          console.log('[LocationAudit] Offline — skipping server write for field', fieldId);
+          return;
+        }
+
         saveFieldResponse.mutate({
           auditId: currentDraftId,
           fieldId,
           sectionId: section.id,
           responseValue: value,
+        }, {
+          onSuccess: () => setLastSavedAt(new Date()),
         });
       }
     }
   };
+
+  // When coming back online, bulk re-save all field responses to the server
+  const handleOnlineResume = useCallback(() => {
+    if (!currentDraftId || !selectedTemplate || !formData.customData) return;
+    
+    console.log('[LocationAudit] Online resume — bulk re-saving field responses');
+    
+    for (const section of selectedTemplate.sections) {
+      for (const field of section.fields) {
+        const value = formData.customData[field.id];
+        if (value !== undefined && value !== null && value !== '') {
+          saveFieldResponse.mutate({
+            auditId: currentDraftId,
+            fieldId: field.id,
+            sectionId: section.id,
+            responseValue: value,
+          });
+        }
+      }
+    }
+  }, [currentDraftId, selectedTemplate, formData.customData, saveFieldResponse]);
+
+  // Listen for online event to trigger bulk re-save
+  useEffect(() => {
+    window.addEventListener('online', handleOnlineResume);
+    return () => window.removeEventListener('online', handleOnlineResume);
+  }, [handleOnlineResume]);
 
   const handleNextSection = () => {
     if (selectedTemplate && currentSectionIndex < selectedTemplate.sections.length - 1) {
