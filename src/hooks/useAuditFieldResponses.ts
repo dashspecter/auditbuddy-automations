@@ -182,9 +182,12 @@ export const useUploadFieldPhoto = () => {
       });
     },
     onError: (error: Error) => {
+      const message = error.message?.includes("row-level security")
+        ? "Your session has expired. Please log in again."
+        : error.message;
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
