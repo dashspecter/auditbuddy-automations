@@ -342,7 +342,7 @@ const StaffLocationAudit = () => {
         template_id: selectedTemplateId,
         location_id: formData.location_id,
         location: locationName,
-        user_id: user.id,
+        user_id: freshUser.id,
         company_id: empData.company_id,
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
