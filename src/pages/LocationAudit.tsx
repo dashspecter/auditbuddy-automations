@@ -665,7 +665,10 @@ const LocationAudit = () => {
   };
 
   const createInitialDraft = async () => {
-    if (!user || !selectedTemplateId) return;
+    if (!user || !selectedTemplateId || !formData.location_id) {
+      console.log('[LocationAudit] createInitialDraft skipped — missing template or location');
+      return;
+    }
 
     try {
       // Refresh session before write to prevent RLS failures
