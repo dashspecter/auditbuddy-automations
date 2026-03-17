@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.ai-fill-contract]
 verify_jwt = false
+
+[functions.generate-site-visit-report]
+verify_jwt = false
