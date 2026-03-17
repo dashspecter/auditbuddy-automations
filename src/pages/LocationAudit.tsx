@@ -1137,6 +1137,11 @@ const LocationAudit = () => {
                 )}
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">{`Complete the ${locationLabelLower} ${auditLabel.toLowerCase()} form`}</p>
+              {lastSavedAt && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last saved: {lastSavedAt.toLocaleTimeString()}
+                </p>
+              )}
             </div>
             {selectedTemplate && (
               <Button
