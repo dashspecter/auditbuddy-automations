@@ -310,10 +310,25 @@ const StaffLocationAudit = () => {
     }
 
     try {
+      // Force token refresh to ensure JWT is valid
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !session) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", freshUser.id)
         .single();
 
       if (!empData) {
@@ -327,7 +342,7 @@ const StaffLocationAudit = () => {
         template_id: selectedTemplateId,
         location_id: formData.location_id,
         location: locationName,
-        user_id: user.id,
+        user_id: freshUser.id,
         company_id: empData.company_id,
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
@@ -356,9 +371,14 @@ const StaffLocationAudit = () => {
         setCurrentDraftId(data.id);
         toast.success("Draft created");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving draft:", error);
-      toast.error("Failed to save draft");
+      if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+      } else {
+        toast.error("Failed to save draft");
+      }
     }
   };
 
@@ -455,10 +475,25 @@ const StaffLocationAudit = () => {
     };
 
     const attemptSubmit = async () => {
+      // Force token refresh to ensure JWT is valid
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !session) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", freshUser.id)
         .single();
 
       if (!empData) {
@@ -479,7 +514,7 @@ const StaffLocationAudit = () => {
         template_id: selectedTemplateId,
         location_id: formData.location_id,
         location: locationName,
-        user_id: user.id,
+        user_id: freshUser.id,
         company_id: empData.company_id,
         audit_date: formData.auditDate,
         time_start: formData.timeStart || null,
@@ -531,6 +566,9 @@ const StaffLocationAudit = () => {
             { duration: 5000 }
           );
         }
+      } else if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
       } else {
         console.error("Error submitting audit:", error);
         toast.error("Failed to submit audit", { duration: 5000 });

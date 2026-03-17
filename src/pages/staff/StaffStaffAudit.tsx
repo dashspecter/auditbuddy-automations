@@ -266,7 +266,14 @@ const StaffStaffAudit = () => {
     setSubmitting(true);
 
     try {
-      // Fresh auth check to ensure auditor_id matches the live JWT token
+      // Force token refresh to ensure JWT is valid
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !session) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: { user: freshUser } } = await supabase.auth.getUser();
       if (!freshUser) {
         toast.error("Session expired. Please log in again.");
@@ -308,9 +315,14 @@ const StaffStaffAudit = () => {
 
       toast.success("Staff audit submitted successfully!");
       navigate("/staff");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting audit:", error);
-      toast.error("Failed to submit audit");
+      if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+      } else {
+        toast.error("Failed to submit audit");
+      }
     } finally {
       setSubmitting(false);
     }

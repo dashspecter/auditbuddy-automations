@@ -1,82 +1,64 @@
+# City Hall Internal Operations — Implementation Progress
 
+## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-# Implementation Plan: Session Refresh Guard for All Audit Submissions
+### 1A. Database ✅
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
-## Summary
-Add `refreshSession()` before every database write to `staff_audits` and `location_audits`, detect RLS errors with clear messaging, and backfill null `company_id` on old records.
+### 1B. Onboarding RPC ✅
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
-## Changes
+### 1C. Frontend ✅
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
-### 1. `src/hooks/useStaffAudits.ts` (useCreateStaffAudit hook)
-- Add `supabase.auth.refreshSession()` before `getUser()` in the mutation
-- If refresh fails, throw `"SESSION_EXPIRED"` error
-- In `onError`, detect `SESSION_EXPIRED` or `row-level security` and show "Your session has expired" message
+---
 
-### 2. `src/pages/staff/StaffStaffAudit.tsx` (handleSubmit)
-- Add `refreshSession()` call before the existing `getUser()` call (~line 268)
-- If refresh fails, redirect to `/auth`
-- In catch block, detect `row-level security` error and redirect to `/auth` with clear message
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-### 3. `src/pages/staff/StaffPerformanceReview.tsx` (handleSubmit)
-- Same pattern: add `refreshSession()` before `getUser()` (~line 156)
-- Same RLS error detection in catch block
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-### 4. `src/pages/staff/StaffLocationAudit.tsx` — TWO functions
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-**saveDraft (~line 306):**
-- Add `refreshSession()` + `getUser()` guard at the start
-- Replace `user.id` with `freshUser.id` in the payload and employee query
-- Add RLS error detection in catch block
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
-**attemptSubmit (~line 457):**
-- Add `refreshSession()` + `getUser()` guard at the start
-- Replace `user.id` with `freshUser.id` in the payload and employee query
-- Add RLS error detection in the outer catch block (~line 519)
+---
 
-### 5. Data repair — backfill null `company_id`
-Run via insert tool:
-```sql
-UPDATE public.staff_audits sa
-SET company_id = e.company_id
-FROM public.employees e
-WHERE sa.employee_id = e.id
-  AND sa.company_id IS NULL
-  AND e.company_id IS NOT NULL;
-```
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-## Pattern applied to all 5 paths
-```typescript
-// Force token refresh to ensure JWT is valid
-const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-if (refreshError || !session) {
-  toast.error("Your session has expired. Please log in again.");
-  navigate("/auth");
-  return;
-}
-const { data: { user: freshUser } } = await supabase.auth.getUser();
-if (!freshUser) {
-  toast.error("Session expired. Please log in again.");
-  navigate("/auth");
-  return;
-}
-// Use freshUser.id for auditor_id / user_id
-```
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
-And in every catch block:
-```typescript
-} catch (error: any) {
-  if (error?.message?.includes("row-level security")) {
-    toast.error("Your session has expired. Please log in again.");
-    navigate("/auth");
-  } else {
-    // existing error handling
-  }
-}
-```
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
 
-## What does NOT change
-- No database schema or RLS policy changes
-- No changes to AuthContext, ProtectedRoute, or session timeout
-- No changes to any other pages or components
-- No changes to edge functions or triggers
+---
 
+## Phase 4: Integration & Testing ✅ COMPLETE
+
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
