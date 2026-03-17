@@ -315,9 +315,14 @@ const StaffStaffAudit = () => {
 
       toast.success("Staff audit submitted successfully!");
       navigate("/staff");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting audit:", error);
-      toast.error("Failed to submit audit");
+      if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+      } else {
+        toast.error("Failed to submit audit");
+      }
     } finally {
       setSubmitting(false);
     }

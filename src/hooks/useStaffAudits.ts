@@ -52,8 +52,14 @@ export const useCreateStaffAudit = () => {
   
   return useMutation({
     mutationFn: async (audit: Omit<StaffAudit, "id" | "created_at" | "updated_at" | "auditor_id">) => {
+      // Force token refresh to ensure JWT is valid
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !session) {
+        throw new Error("SESSION_EXPIRED");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error("SESSION_EXPIRED");
       
       const { data, error } = await supabase
         .from("staff_audits")
@@ -69,7 +75,11 @@ export const useCreateStaffAudit = () => {
       toast.success("Staff audit submitted successfully");
     },
     onError: (error) => {
-      toast.error("Failed to submit audit: " + error.message);
+      if (error.message === "SESSION_EXPIRED" || error.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+      } else {
+        toast.error("Failed to submit audit: " + error.message);
+      }
     },
   });
 };

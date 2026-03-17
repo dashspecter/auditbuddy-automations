@@ -211,9 +211,14 @@ const StaffPerformanceReview = () => {
 
       toast.success("Performance review submitted successfully!");
       navigate("/staff");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting review:", error);
-      toast.error("Failed to submit performance review");
+      if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+      } else {
+        toast.error("Failed to submit performance review");
+      }
     } finally {
       setSubmitting(false);
     }

@@ -566,6 +566,9 @@ const StaffLocationAudit = () => {
             { duration: 5000 }
           );
         }
+      } else if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
       } else {
         console.error("Error submitting audit:", error);
         toast.error("Failed to submit audit", { duration: 5000 });
