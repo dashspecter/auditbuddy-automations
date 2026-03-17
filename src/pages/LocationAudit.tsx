@@ -952,6 +952,10 @@ const LocationAudit = () => {
     };
 
     const performSubmit = async () => {
+      // Refresh session before write to prevent RLS failures after hours of use
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       let locationName = '';
       if (formData.location_id) {
         const { data: locationData } = await supabase
