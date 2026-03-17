@@ -13,6 +13,8 @@ export interface AuditSectionResponse {
   updated_at: string;
 }
 
+const SESSION_EXPIRED_MSG = "Your session has expired. Please log in again.";
+
 // Get section responses for an audit
 export const useAuditSectionResponses = (auditId: string | undefined) => {
   return useQuery({
@@ -50,7 +52,7 @@ export const useSaveSectionResponse = () => {
       followUpNotes?: string;
     }) => {
       const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+      if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -72,12 +74,14 @@ export const useSaveSectionResponse = () => {
       if (error) throw error;
       return data;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["audit_section_responses", data.audit_id] });
     },
     onError: (error: Error) => {
       const message = error.message?.includes("row-level security")
-        ? "Your session has expired. Please log in again."
+        ? SESSION_EXPIRED_MSG
         : error.message;
       toast({
         title: "Error",

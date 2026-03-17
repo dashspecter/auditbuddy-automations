@@ -37,6 +37,20 @@ export interface AuditFieldAttachment {
   created_by: string;
 }
 
+const SESSION_EXPIRED_MSG = "Your session has expired. Please log in again.";
+
+async function refreshAndGetUser() {
+  const { error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return user;
+}
+
+function isRlsError(error: Error): boolean {
+  return !!error.message?.includes("row-level security");
+}
+
 // Get field responses for an audit
 export const useAuditFieldResponses = (auditId: string | undefined) => {
   return useQuery({
@@ -80,11 +94,7 @@ export const useSaveFieldResponse = () => {
       responseValue: any;
       observations?: string;
     }) => {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw new Error("Your session has expired. Please log in again.");
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await refreshAndGetUser();
 
       const { data, error } = await supabase
         .from("audit_field_responses")
@@ -104,16 +114,15 @@ export const useSaveFieldResponse = () => {
       if (error) throw error;
       return data;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", data.audit_id] });
     },
     onError: (error: Error) => {
-      const message = error.message?.includes("row-level security")
-        ? "Your session has expired. Please log in again."
-        : error.message;
       toast({
         title: "Error",
-        description: message,
+        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
         variant: "destructive",
       });
     },
@@ -137,13 +146,8 @@ export const useUploadFieldPhoto = () => {
       file: File;
       caption?: string;
     }) => {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+      const user = await refreshAndGetUser();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Upload to storage
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/${responseId}/${Date.now()}.${fileExt}`;
 
@@ -153,12 +157,10 @@ export const useUploadFieldPhoto = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("audit-field-attachments")
         .getPublicUrl(filePath);
 
-      // Save to database
       const { data, error } = await supabase
         .from("audit_field_photos")
         .insert({
@@ -174,6 +176,8 @@ export const useUploadFieldPhoto = () => {
       if (error) throw error;
       return { data, auditId };
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: ({ auditId }) => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", auditId] });
       toast({
@@ -182,12 +186,9 @@ export const useUploadFieldPhoto = () => {
       });
     },
     onError: (error: Error) => {
-      const message = error.message?.includes("row-level security")
-        ? "Your session has expired. Please log in again."
-        : error.message;
       toast({
         title: "Error",
-        description: message,
+        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
         variant: "destructive",
       });
     },
@@ -209,14 +210,8 @@ export const useUploadFieldAttachment = () => {
       auditId: string;
       file: File;
     }) => {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+      const user = await refreshAndGetUser();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Upload to storage
-      const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/${responseId}/${Date.now()}_${file.name}`;
 
       const { error: uploadError } = await supabase.storage
@@ -225,12 +220,10 @@ export const useUploadFieldAttachment = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("audit-field-attachments")
         .getPublicUrl(filePath);
 
-      // Save to database
       const { data, error } = await supabase
         .from("audit_field_attachments")
         .insert({
@@ -247,6 +240,8 @@ export const useUploadFieldAttachment = () => {
       if (error) throw error;
       return { data, auditId };
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: ({ auditId }) => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", auditId] });
       toast({
@@ -255,12 +250,9 @@ export const useUploadFieldAttachment = () => {
       });
     },
     onError: (error: Error) => {
-      const message = error.message?.includes("row-level security")
-        ? "Your session has expired. Please log in again."
-        : error.message;
       toast({
         title: "Error",
-        description: message,
+        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
         variant: "destructive",
       });
     },
@@ -274,6 +266,8 @@ export const useDeleteFieldPhoto = () => {
 
   return useMutation({
     mutationFn: async ({ photoId, auditId }: { photoId: string; auditId: string }) => {
+      await refreshAndGetUser();
+
       const { error } = await supabase
         .from("audit_field_photos")
         .delete()
@@ -282,6 +276,8 @@ export const useDeleteFieldPhoto = () => {
       if (error) throw error;
       return auditId;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: (auditId) => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", auditId] });
       toast({
@@ -292,7 +288,7 @@ export const useDeleteFieldPhoto = () => {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
         variant: "destructive",
       });
     },
@@ -306,6 +302,8 @@ export const useDeleteFieldAttachment = () => {
 
   return useMutation({
     mutationFn: async ({ attachmentId, auditId }: { attachmentId: string; auditId: string }) => {
+      await refreshAndGetUser();
+
       const { error } = await supabase
         .from("audit_field_attachments")
         .delete()
@@ -314,6 +312,8 @@ export const useDeleteFieldAttachment = () => {
       if (error) throw error;
       return auditId;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: (auditId) => {
       queryClient.invalidateQueries({ queryKey: ["audit_field_responses", auditId] });
       toast({
@@ -324,7 +324,7 @@ export const useDeleteFieldAttachment = () => {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
         variant: "destructive",
       });
     },
