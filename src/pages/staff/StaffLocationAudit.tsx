@@ -371,9 +371,14 @@ const StaffLocationAudit = () => {
         setCurrentDraftId(data.id);
         toast.success("Draft created");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving draft:", error);
-      toast.error("Failed to save draft");
+      if (error?.message?.includes("row-level security")) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+      } else {
+        toast.error("Failed to save draft");
+      }
     }
   };
 
