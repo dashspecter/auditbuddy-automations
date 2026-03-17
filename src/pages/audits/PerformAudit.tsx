@@ -8,6 +8,7 @@ import { useAuditSections } from "@/hooks/useAuditSections";
 import { useAuditFields } from "@/hooks/useAuditFields";
 import { useAuditFieldResponses, useSaveFieldResponse } from "@/hooks/useAuditFieldResponses";
 import FieldResponseInput from "@/components/audit/FieldResponseInput";
+import CollaboratorBar from "@/components/audit/CollaboratorBar";
 import { ChevronLeft, ChevronRight, CheckCircle, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EvidenceCaptureModal } from "@/components/evidence/EvidenceCaptureModal";
@@ -15,10 +16,13 @@ import { EvidencePacketViewer } from "@/components/evidence/EvidencePacketViewer
 import { EvidenceStatusBadge } from "@/components/evidence/EvidenceStatusBadge";
 import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePackets";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PerformAudit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showEvidenceViewer, setShowEvidenceViewer] = useState(false);
@@ -41,12 +45,37 @@ const PerformAudit = () => {
   // Evidence policy for this audit template
   const { data: evidencePolicy, isLoading: policyLoading } = useEvidencePolicy("audit_template", audit?.template_id);
   const { data: evidencePackets = [] } = useEvidencePackets("audit_item", id ?? "");
-  // Only count submitted/approved packets as "valid" — rejected packets must be resubmitted
   const hasExistingEvidence = evidencePackets.some(
     (p) => p.status === "submitted" || p.status === "approved"
   );
   const latestPacket = evidencePackets[0] ?? null;
   const policyReady = !policyLoading;
+
+  // Realtime subscription for collaborative editing
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`audit-responses-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "audit_field_responses",
+          filter: `audit_id=eq.${id}`,
+        },
+        (payload) => {
+          // Another user saved a response — refresh our data
+          queryClient.invalidateQueries({ queryKey: ["audit_field_responses", id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -89,10 +118,7 @@ const PerformAudit = () => {
 
   const handleComplete = async () => {
     if (!id) return;
-    // Guard: don't allow completion while the policy is still being fetched
-    // This prevents the race condition where users complete before the gate loads
     if (policyLoading) return;
-    // Gate: if evidence required and no proof captured yet, open modal first
     if (evidencePolicy?.evidence_required && !hasExistingEvidence) {
       setShowEvidenceModal(true);
       return;
@@ -131,6 +157,9 @@ const PerformAudit = () => {
             Section {currentSectionIndex + 1} of {totalSections}
           </p>
         </div>
+
+        {/* Collaborator presence bar */}
+        <CollaboratorBar auditId={id!} />
 
         <Card>
           <CardHeader>
@@ -171,7 +200,6 @@ const PerformAudit = () => {
             <span className="text-sm font-medium">Proof of Work</span>
           <div className="flex items-center gap-2">
               <EvidenceStatusBadge status={latestPacket ? latestPacket.status : "none"} />
-              {/* View proof button — opens viewer with review/redact controls for managers */}
               {latestPacket && (
                 <button
                   type="button"
@@ -182,7 +210,6 @@ const PerformAudit = () => {
                   <Camera className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               )}
-              {/* Resubmit button when proof was rejected */}
               {latestPacket?.status === "rejected" && (
                 <button
                   type="button"
@@ -224,7 +251,7 @@ const PerformAudit = () => {
         </div>
       </div>
 
-      {/* Evidence capture modal — gates audit completion */}
+      {/* Evidence capture modal */}
       {showEvidenceModal && id && (
         <EvidenceCaptureModal
           open={showEvidenceModal}
@@ -240,7 +267,7 @@ const PerformAudit = () => {
         />
       )}
 
-      {/* Evidence packet viewer — managers can review/approve/redact audit proof */}
+      {/* Evidence packet viewer */}
       {id && (
         <EvidencePacketViewer
           open={showEvidenceViewer}
