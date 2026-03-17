@@ -166,19 +166,21 @@ const LocationAudit = () => {
       // Auto-fill location if template has a specific location (either old or new structure)
       const template = templates.find(t => t.id === selectedTemplateId);
       if (template?.location_id) {
-        // Old structure: single location_id
         setFormData(prev => ({ ...prev, location_id: template.location_id || '' }));
       } else if (template?.template_locations && template.template_locations.length === 1) {
-        // New structure: single location in junction table
         setFormData(prev => ({ ...prev, location_id: template.template_locations?.[0]?.location_id || '' }));
       }
-      
-      // Auto-create draft if we don't have one and we're not loading an existing draft
-      if (!currentDraftId && !draftId && user) {
-        createInitialDraft();
-      }
+      // NOTE: Do NOT create draft here — wait until location is also set (see effect below)
     }
   }, [selectedTemplateId, templates]);
+
+  // Create server draft only when BOTH template AND location are set
+  useEffect(() => {
+    if (selectedTemplateId && formData.location_id && !currentDraftId && !draftId && user) {
+      console.log('[LocationAudit] Template + location ready, creating server draft');
+      createInitialDraft();
+    }
+  }, [selectedTemplateId, formData.location_id, currentDraftId, draftId, user]);
 
   const loadDraft = async (id: string) => {
     try {
@@ -663,7 +665,10 @@ const LocationAudit = () => {
   };
 
   const createInitialDraft = async () => {
-    if (!user || !selectedTemplateId) return;
+    if (!user || !selectedTemplateId || !formData.location_id) {
+      console.log('[LocationAudit] createInitialDraft skipped — missing template or location');
+      return;
+    }
 
     try {
       // Refresh session before write to prevent RLS failures
@@ -1167,7 +1172,18 @@ const LocationAudit = () => {
                 <Label htmlFor="template" className="text-sm">Template *</Label>
                 <Select
                   value={selectedTemplateId}
-                  onValueChange={setSelectedTemplateId}
+                  onValueChange={(value) => {
+                    // If there's existing progress, show discard dialog
+                    if (currentDraftId && Object.keys(formData.customData).length > 0 && value !== selectedTemplateId) {
+                      setPendingChange({ type: 'template', value });
+                      setShowDiscardDialog(true);
+                    } else {
+                      setCurrentDraftId(null);
+                      setSelectedTemplateId(value);
+                      setFormData(prev => ({ ...prev, customData: {} }));
+                      setCurrentSectionIndex(0);
+                    }
+                  }}
                   required
                 >
                   <SelectTrigger id="template">
@@ -1191,7 +1207,17 @@ const LocationAudit = () => {
                 <LocationSelector
                   id="location"
                   value={formData.location_id}
-                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                  onValueChange={(value) => {
+                    // If there's existing progress, show discard dialog
+                    if (currentDraftId && Object.keys(formData.customData).length > 0 && value !== formData.location_id) {
+                      setPendingChange({ type: 'location', value });
+                      setShowDiscardDialog(true);
+                    } else {
+                      setCurrentDraftId(null);
+                      setFormData(prev => ({ ...prev, location_id: value, customData: {} }));
+                      setCurrentSectionIndex(0);
+                    }
+                  }}
                   placeholder={`Select ${locationLabelLower}`}
                   disabled={(() => {
                     // Disable if this is a scheduled audit
@@ -1262,7 +1288,15 @@ const LocationAudit = () => {
           </Card>
 
           {/* Dynamic Sections from Template */}
-          {selectedTemplate && (
+          {selectedTemplate && !formData.location_id && (
+            <Card className="p-6 text-center">
+              <p className="text-muted-foreground font-medium">
+                ⚠️ Please select a {locationLabelLower} above to start completing the checklist.
+              </p>
+            </Card>
+          )}
+
+          {selectedTemplate && formData.location_id && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {/* Mobile Score Preview - Sticky at top */}
@@ -1514,6 +1548,7 @@ const LocationAudit = () => {
                       await clearAuditDraft(oldKey);
                     }
                     resetDraftState();
+                    setCurrentDraftId(null); // Force new server draft creation
                     
                     // Apply the change
                     if (pendingChange.type === 'template') {

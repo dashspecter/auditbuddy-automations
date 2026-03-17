@@ -57,7 +57,7 @@ export const useSaveSectionResponse = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("audit_section_responses")
         .upsert({
           audit_id: auditId,
@@ -67,12 +67,10 @@ export const useSaveSectionResponse = () => {
           created_by: user.id,
         }, {
           onConflict: "audit_id,section_id"
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
-      return data;
+      return { audit_id: auditId };
     },
     retry: 2,
     retryDelay: 1000,
@@ -80,9 +78,11 @@ export const useSaveSectionResponse = () => {
       queryClient.invalidateQueries({ queryKey: ["audit_section_responses", data.audit_id] });
     },
     onError: (error: Error) => {
-      const message = error.message?.includes("row-level security")
+      const message = error.message === SESSION_EXPIRED_MSG
         ? SESSION_EXPIRED_MSG
-        : error.message;
+        : error.message?.includes("row-level security") || error.message?.includes("location_not_set")
+          ? "Draft not ready — please ensure a location is selected before saving."
+          : error.message;
       toast({
         title: "Error",
         description: message,
