@@ -101,7 +101,7 @@ export const useSaveFieldResponse = () => {
     }) => {
       const user = await refreshAndGetUser();
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("audit_field_responses")
         .upsert({
           audit_id: auditId,
@@ -112,12 +112,10 @@ export const useSaveFieldResponse = () => {
           created_by: user.id,
         }, {
           onConflict: "audit_id,field_id"
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
-      return data;
+      return { audit_id: auditId };
     },
     retry: 2,
     retryDelay: 1000,
