@@ -255,7 +255,7 @@ export const useUploadFieldAttachment = () => {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: isRlsError(error) ? SESSION_EXPIRED_MSG : error.message,
+        description: classifyError(error),
         variant: "destructive",
       });
     },
