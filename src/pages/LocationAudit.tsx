@@ -627,6 +627,13 @@ const LocationAudit = () => {
     if (!user || !selectedTemplateId) return;
 
     try {
+      // Refresh session before write to prevent RLS failures
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('[LocationAudit] Session refresh failed in createInitialDraft:', refreshError);
+        return;
+      }
+
       const { data: companyUser } = await supabase
         .from('company_users')
         .select('company_id')
