@@ -38,6 +38,7 @@ export interface AuditFieldAttachment {
 }
 
 const SESSION_EXPIRED_MSG = "Your session has expired. Please log in again.";
+const DRAFT_NOT_READY_MSG = "Draft not ready — please ensure a location is selected before saving.";
 
 async function refreshAndGetUser() {
   const { error: refreshError } = await supabase.auth.refreshSession();
@@ -47,8 +48,12 @@ async function refreshAndGetUser() {
   return user;
 }
 
-function isRlsError(error: Error): boolean {
-  return !!error.message?.includes("row-level security");
+function classifyError(error: Error): string {
+  if (error.message === SESSION_EXPIRED_MSG) return SESSION_EXPIRED_MSG;
+  if (error.message?.includes("row-level security") || error.message?.includes("location_not_set")) {
+    return DRAFT_NOT_READY_MSG;
+  }
+  return error.message;
 }
 
 // Get field responses for an audit
