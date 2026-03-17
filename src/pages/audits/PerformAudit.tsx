@@ -187,6 +187,19 @@ const PerformAudit = () => {
                     sectionId={currentSection.id}
                     fieldResponse={fieldResponse}
                     onObservationChange={(value) => handleObservationChange(field.id, value)}
+                    onEnsureFieldResponse={async () => {
+                      if (fieldResponse?.id) return fieldResponse.id;
+                      try {
+                        const result = await saveFieldResponse.mutateAsync({
+                          auditId: id!,
+                          fieldId: field.id,
+                          sectionId: currentSection.id,
+                          responseValue: null,
+                          observations: "",
+                        });
+                        return result?.id || null;
+                      } catch { return null; }
+                    }}
                   />
                 </div>
               );
