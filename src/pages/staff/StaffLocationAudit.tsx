@@ -310,10 +310,25 @@ const StaffLocationAudit = () => {
     }
 
     try {
+      // Force token refresh to ensure JWT is valid
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !session) {
+        toast.error("Your session has expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (!freshUser) {
+        toast.error("Session expired. Please log in again.");
+        navigate("/auth");
+        return;
+      }
+
       const { data: empData } = await supabase
         .from("employees")
         .select("company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", freshUser.id)
         .single();
 
       if (!empData) {
