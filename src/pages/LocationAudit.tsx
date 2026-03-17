@@ -1540,6 +1540,7 @@ const LocationAudit = () => {
                       await clearAuditDraft(oldKey);
                     }
                     resetDraftState();
+                    setCurrentDraftId(null); // Force new server draft creation
                     
                     // Apply the change
                     if (pendingChange.type === 'template') {
