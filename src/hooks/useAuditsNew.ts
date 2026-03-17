@@ -73,13 +73,29 @@ export const useAuditNew = (auditId?: string) => {
   });
 };
 
+const SESSION_EXPIRED_MSG = "Your session has expired. Please log in again.";
+
+async function refreshAndGetUser() {
+  const { error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return user;
+}
+
+function handleMutationError(error: Error) {
+  const message = error.message?.includes("row-level security")
+    ? SESSION_EXPIRED_MSG
+    : error.message;
+  toast.error("Failed: " + message);
+}
+
 export const useCreateAudit = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (audit: Omit<Audit, "id" | "created_at" | "company_id">) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await refreshAndGetUser();
       
       const { data: companyUser } = await supabase
         .from('company_users')
@@ -98,13 +114,13 @@ export const useCreateAudit = () => {
       if (error) throw error;
       return data;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits-new"] });
       toast.success("Audit created successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to create audit: " + error.message);
-    },
+    onError: handleMutationError,
   });
 };
 
@@ -113,6 +129,8 @@ export const useUpdateAudit = () => {
   
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Audit> & { id: string }) => {
+      await refreshAndGetUser();
+      
       const { data, error } = await supabase
         .from("audits")
         .update(updates)
@@ -123,14 +141,14 @@ export const useUpdateAudit = () => {
       if (error) throw error;
       return data;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits-new"] });
       queryClient.invalidateQueries({ queryKey: ["audit-new"] });
       toast.success("Audit updated successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to update audit: " + error.message);
-    },
+    onError: handleMutationError,
   });
 };
 
@@ -139,6 +157,8 @@ export const useCompleteAudit = () => {
   
   return useMutation({
     mutationFn: async ({ auditId, totalScore }: { auditId: string; totalScore: number }) => {
+      await refreshAndGetUser();
+      
       const { data, error } = await supabase
         .from("audits")
         .update({
@@ -153,13 +173,13 @@ export const useCompleteAudit = () => {
       if (error) throw error;
       return data;
     },
+    retry: 2,
+    retryDelay: 1000,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits-new"] });
       queryClient.invalidateQueries({ queryKey: ["audit-new"] });
       toast.success("Audit completed successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to complete audit: " + error.message);
-    },
+    onError: handleMutationError,
   });
 };
