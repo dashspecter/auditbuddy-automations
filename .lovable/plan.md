@@ -1,64 +1,73 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Root Cause Found: Missing `company_id` in `useCreateStaffAudit` hook
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## The real problem
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+The session refresh guard is working correctly — Vlad's session IS valid. The RLS failure happens **after** the INSERT succeeds, when the `.select().single()` runs.
 
----
+Here's the chain:
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+1. `useCreateStaffAudit` hook inserts into `staff_audits` with `auditor_id: user.id` but **no `company_id`**
+2. The INSERT policy (`auth.uid() = auditor_id`) passes — row is created with `company_id = NULL`
+3. The `.select().single()` then tries to read back the row
+4. The SELECT policy requires `company_id = get_user_company_id(auth.uid())` — but `NULL ≠ uuid`, so it evaluates to FALSE
+5. RLS blocks the SELECT → error: "new row violates row-level security policy"
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+This affects the **manager-facing** audit page (`StaffAuditNew.tsx` at `/staff-audits/new`), which calls `useCreateStaffAudit`. The staff mobile page (`StaffStaffAudit.tsx`) works fine because it includes `company_id` and doesn't use `.select()`.
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+The screenshot confirms this: two error toasts appear — one from the hook's `onError` ("Your session has expired") and one from `StaffAuditNew.tsx`'s catch block (the raw RLS message). This double-toast only happens in the `StaffAuditNew` flow.
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+## Why the session guard didn't fix it
 
----
+The session IS valid. `refreshSession()` succeeds. `getUser()` returns the correct user. `auth.uid()` is populated. The INSERT itself passes. It's the **post-insert SELECT** that fails because of the missing `company_id`.
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+## Fixes needed
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+### 1. `src/hooks/useStaffAudits.ts` — add `company_id` lookup
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+Before the insert, query the employee's `company_id` (same pattern used in `StaffStaffAudit.tsx`):
 
----
+```typescript
+const { data: empData } = await supabase
+  .from("employees")
+  .select("company_id")
+  .eq("user_id", user.id)
+  .single();
 
-## Phase 4: Integration & Testing ✅ COMPLETE
+if (!empData) throw new Error("Employee record not found");
 
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+const { data, error } = await supabase
+  .from("staff_audits")
+  .insert({ ...audit, auditor_id: user.id, company_id: empData.company_id })
+  .select()
+  .single();
+```
+
+### 2. `src/pages/StaffAuditNew.tsx` — fix double toast
+
+The `handleSubmit` catch block shows the raw error message even though the hook's `onError` already shows a user-friendly toast. Remove the redundant `toast.error(error.message)`:
+
+```typescript
+} catch (error: any) {
+  console.error('Error submitting audit:', error);
+  // Don't show raw error - the hook's onError already handles it
+}
+```
+
+### 3. `src/contexts/AuthContext.tsx` — fix `handleInactivityLogout`
+
+Currently uses `supabase.auth.signOut()` without `scope: 'local'`. If the server session is already expired, this can throw a 403. Change to match the resilient pattern:
+
+```typescript
+const handleInactivityLogout = async () => {
+  await supabase.auth.signOut({ scope: 'local' });
+  // ...
+};
+```
+
+## What does NOT change
+- No database schema or RLS policy changes needed
+- No changes to `StaffStaffAudit.tsx`, `StaffLocationAudit.tsx`, or `StaffPerformanceReview.tsx` (those work correctly)
+- The session refresh guard stays in place (still valuable for edge cases)
+
