@@ -1288,7 +1288,15 @@ const LocationAudit = () => {
           </Card>
 
           {/* Dynamic Sections from Template */}
-          {selectedTemplate && (
+          {selectedTemplate && !formData.location_id && (
+            <Card className="p-6 text-center">
+              <p className="text-muted-foreground font-medium">
+                ⚠️ Please select a {locationLabelLower} above to start completing the checklist.
+              </p>
+            </Card>
+          )}
+
+          {selectedTemplate && formData.location_id && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {/* Mobile Score Preview - Sticky at top */}

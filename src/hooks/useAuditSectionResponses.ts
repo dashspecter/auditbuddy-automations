@@ -78,9 +78,11 @@ export const useSaveSectionResponse = () => {
       queryClient.invalidateQueries({ queryKey: ["audit_section_responses", data.audit_id] });
     },
     onError: (error: Error) => {
-      const message = error.message?.includes("row-level security")
+      const message = error.message === SESSION_EXPIRED_MSG
         ? SESSION_EXPIRED_MSG
-        : error.message;
+        : error.message?.includes("row-level security") || error.message?.includes("location_not_set")
+          ? "Draft not ready — please ensure a location is selected before saving."
+          : error.message;
       toast({
         title: "Error",
         description: message,
