@@ -204,9 +204,9 @@ const AuditReport = () => {
 
           {/* Sections needing attention */}
           {sectionStats.filter((s) => s.pct < 100).length > 0 && (
-            <Card className="border-amber-200 dark:border-amber-800">
+            <Card className="border-destructive/30">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                <CardTitle className="text-lg flex items-center gap-2 text-destructive">
                   <AlertCircle className="h-5 w-5" />
                   Needs Attention
                 </CardTitle>
