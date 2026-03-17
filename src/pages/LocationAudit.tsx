@@ -1207,7 +1207,17 @@ const LocationAudit = () => {
                 <LocationSelector
                   id="location"
                   value={formData.location_id}
-                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                  onValueChange={(value) => {
+                    // If there's existing progress, show discard dialog
+                    if (currentDraftId && Object.keys(formData.customData).length > 0 && value !== formData.location_id) {
+                      setPendingChange({ type: 'location', value });
+                      setShowDiscardDialog(true);
+                    } else {
+                      setCurrentDraftId(null);
+                      setFormData(prev => ({ ...prev, location_id: value, customData: {} }));
+                      setCurrentSectionIndex(0);
+                    }
+                  }}
                   placeholder={`Select ${locationLabelLower}`}
                   disabled={(() => {
                     // Disable if this is a scheduled audit
