@@ -60,10 +60,19 @@ export const useCreateStaffAudit = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("SESSION_EXPIRED");
+
+      // Resolve company_id so the inserted row passes SELECT RLS
+      const { data: empData } = await supabase
+        .from("employees")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!empData?.company_id) throw new Error("Employee record not found for current user");
       
       const { data, error } = await supabase
         .from("staff_audits")
-        .insert({ ...audit, auditor_id: user.id })
+        .insert({ ...audit, auditor_id: user.id, company_id: empData.company_id })
         .select()
         .single();
       

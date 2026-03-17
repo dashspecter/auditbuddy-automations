@@ -293,7 +293,7 @@ const StaffAuditNew = () => {
       navigate('/staff-audits');
     } catch (error: any) {
       console.error('Error submitting audit:', error);
-      toast.error(error.message || 'Failed to submit audit');
+      // Hook's onError already shows a user-friendly toast — don't double-toast
     }
   };
 
