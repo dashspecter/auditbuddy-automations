@@ -1,64 +1,47 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Fix: Audit Photo/File Upload — Bucket Missing + Double-Click Bug
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## Problem 1: "Bucket not found"
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+The code uploads to `supabase.storage.from("audit-field-attachments")` but this bucket does not exist. Existing buckets are: `documents`, `equipment-documents`, `evidence`, `public-assets`, `scout-evidence`, `waste-photos`. None match.
 
----
+**Fix**: Create the `audit-field-attachments` storage bucket via SQL migration, with RLS policies scoped to the authenticated user's folder path.
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+## Problem 2: Double-click required to open file picker
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+In `FieldResponseInput.tsx` lines 63-78, when `fieldResponse?.id` is missing, the first click calls `onObservationChange("")` to trigger a field response creation, then uses `setTimeout(500ms)` to re-click the input. This is fragile — the mutation may not finish in 500ms, or the re-click may be blocked by the browser.
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+**Fix**: Restructure the upload flow so the field response is created first (awaited), and only then is the file uploaded. This eliminates the double-click issue entirely. The `handlePhotoUpload` and `handleFileUpload` functions should:
+1. If no `fieldResponse?.id`, await the parent to create one (expose a callback or use an `onEnsureResponse` prop)
+2. Once the response ID is available, proceed with the upload
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+A simpler approach: make the parent (`LocationAudit.tsx` or the section renderer) always create the field response row as soon as the field is rendered or interacted with, so `fieldResponse?.id` is always available by the time "Add Photo" is clicked.
 
----
+## Changes
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+| File | Change |
+|------|--------|
+| New SQL migration | Create `audit-field-attachments` bucket (public), add INSERT/SELECT/DELETE RLS policies for authenticated users on their own folder |
+| `src/components/audit/FieldResponseInput.tsx` | Remove the `setTimeout` hack; add an `onEnsureFieldResponse` callback prop that returns a promise resolving to the response ID; use it before uploading |
+| `src/pages/LocationAudit.tsx` (or parent renderer) | Pass `onEnsureFieldResponse` that calls `saveFieldResponse.mutateAsync` and returns the new ID |
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+## Bucket design
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('audit-field-attachments', 'audit-field-attachments', true);
 
----
+-- RLS: authenticated users can upload to their own folder
+CREATE POLICY "Users can upload audit files" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'audit-field-attachments' AND (storage.foldername(name))[1] = auth.uid()::text);
 
-## Phase 4: Integration & Testing ✅ COMPLETE
+CREATE POLICY "Users can view audit files" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (bucket_id = 'audit-field-attachments');
 
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+CREATE POLICY "Users can delete own audit files" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'audit-field-attachments' AND (storage.foldername(name))[1] = auth.uid()::text);
+```
+
