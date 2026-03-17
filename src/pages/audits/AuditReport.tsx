@@ -173,7 +173,7 @@ const AuditReport = () => {
                   </div>
                   <Progress
                     value={section.pct}
-                    className={`h-2 ${section.pct === 100 ? "[&>div]:bg-green-500" : section.pct > 0 ? "[&>div]:bg-amber-500" : ""}`}
+                    className={`h-2 ${section.pct === 100 ? "[&>div]:bg-primary" : section.pct > 0 ? "[&>div]:bg-accent" : ""}`}
                   />
                 </div>
               ))}
