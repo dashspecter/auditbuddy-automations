@@ -80,6 +80,9 @@ export const useSaveFieldResponse = () => {
       responseValue: any;
       observations?: string;
     }) => {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Your session has expired. Please log in again.");
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
