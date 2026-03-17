@@ -89,7 +89,7 @@ const AuditReport = () => {
     const profile = (contributors || []).find((c: any) => c.id === uid);
     const count = (responses || []).filter((r) => r.created_by === uid && r.response_value !== null).length;
     const name = profile
-      ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.email
+      ? profile.full_name || profile.email || uid.substring(0, 8)
       : uid.substring(0, 8);
     return { userId: uid, name, count };
   });
