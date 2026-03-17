@@ -1,64 +1,33 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Fix: RLS Error on `audit_field_responses` — Same Root Cause, Different Table
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## What's happening
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+The error in the screenshot says: **"new row violates row-level security policy for table audit_field_responses"**. This is the **location audit flow** (`/location-audit` page), not the staff audit flow we fixed earlier. When the user clicks YES/NO on a checklist field, the `useSaveFieldResponse` hook fires an upsert into `audit_field_responses`.
 
----
+The INSERT RLS policy on `audit_field_responses` requires:
+1. `auth.uid() = created_by` — the hook sets this correctly
+2. `location_audits.user_id = auth.uid() OR location_audits.assigned_user_id = auth.uid()` — this EXISTS check fails when the session token is stale
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+**Why it wasn't fixed before:** The previous session-refresh fix was only applied to `staff_audits`, `StaffStaffAudit`, `StaffPerformanceReview`, and `StaffLocationAudit` flows. The shared hooks `useSaveFieldResponse` and `useSaveSectionResponse` (used by the location audit page) were never updated with the refresh guard.
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+## Fixes
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+### 1. `src/hooks/useAuditFieldResponses.ts` — `useSaveFieldResponse` mutation
+Add `refreshSession()` before `getUser()` in the mutation. If refresh fails, throw a clear error. Same pattern as the staff audit fix.
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+### 2. `src/hooks/useAuditFieldResponses.ts` — `useUploadFieldPhoto` and `useUploadFieldAttachment` mutations
+Same fix: add `refreshSession()` guard before `getUser()`.
 
----
+### 3. `src/hooks/useAuditSectionResponses.ts` — `useSaveSectionResponse` mutation
+Same fix: add `refreshSession()` guard before `getUser()`. This hook has the identical pattern and the same RLS policy structure.
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+### 4. Error handling improvement
+In the `onError` handlers of all four mutations, detect `row-level security` in the error message and show "Your session has expired. Please log in again." instead of the raw RLS error.
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+## What does NOT change
+- No database or RLS policy changes
+- No changes to `LocationAudit.tsx`, `PerformAudit.tsx`, or any page components
+- No changes to auth context or routing
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
-
----
-
-## Phase 4: Integration & Testing ✅ COMPLETE
-
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
