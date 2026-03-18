@@ -82,8 +82,8 @@ const Attendance = () => {
     locationFilter, monthStart, monthEnd
   );
   const { data: customLogs = [], isLoading: customLoading } = useAttendanceLogs(
-    activeTab === "custom" ? locationFilter : "__disabled__",
-    activeTab === "custom" ? customStart : undefined,
+    locationFilter, 
+    activeTab === "custom" ? customStart : undefined, 
     activeTab === "custom" ? customEnd : undefined
   );
 
