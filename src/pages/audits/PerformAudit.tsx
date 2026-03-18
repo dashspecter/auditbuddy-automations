@@ -52,6 +52,13 @@ const PerformAudit = () => {
   const latestPacket = evidencePackets[0] ?? null;
   const policyReady = !policyLoading;
 
+  // Suppress inactivity logout while performing audit
+  const { setSuppressInactivityLogout } = useAuth();
+  useEffect(() => {
+    setSuppressInactivityLogout(true);
+    return () => setSuppressInactivityLogout(false);
+  }, [setSuppressInactivityLogout]);
+
   // Realtime subscription for collaborative editing
   useEffect(() => {
     if (!id) return;
