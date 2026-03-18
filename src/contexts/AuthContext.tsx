@@ -17,8 +17,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Session timeout: 30 minutes of inactivity
-const SESSION_TIMEOUT = 30 * 60 * 1000;
+// Session timeout: 4 hours of inactivity (supports long audits up to 2h+)
+const SESSION_TIMEOUT = 4 * 60 * 60 * 1000;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
