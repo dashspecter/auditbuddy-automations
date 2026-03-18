@@ -76,11 +76,15 @@ export const useAuditNew = (auditId?: string) => {
 const SESSION_EXPIRED_MSG = "Your session has expired. Please log in again.";
 
 async function refreshAndGetUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) return user;
+
   const { error: refreshError } = await supabase.auth.refreshSession();
   if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  return user;
+
+  const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+  if (!refreshedUser) throw new Error("Not authenticated");
+  return refreshedUser;
 }
 
 function handleMutationError(error: Error) {

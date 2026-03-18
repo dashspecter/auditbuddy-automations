@@ -210,7 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // If we have a session but no refresh token, force logout
         if (session && !session.refresh_token) {
           logDebug('auth', 'Invalid session detected - no refresh token');
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           setSession(null);
           setUser(null);
           setLoading(false);
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         logDebug('auth', 'Session validation error', error);
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setSession(null);
         setUser(null);
         setLoading(false);
@@ -281,7 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Validate session has required tokens
       if (session && !session.refresh_token) {
         logDebug('auth', 'Invalid session - missing refresh token');
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setSession(null);
         setUser(null);
         setLoading(false);

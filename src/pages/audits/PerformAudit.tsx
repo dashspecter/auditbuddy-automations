@@ -18,6 +18,7 @@ import { useEvidencePolicy, useEvidencePackets } from "@/hooks/useEvidencePacket
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PerformAudit = () => {
   const { id } = useParams();
@@ -50,6 +51,13 @@ const PerformAudit = () => {
   );
   const latestPacket = evidencePackets[0] ?? null;
   const policyReady = !policyLoading;
+
+  // Suppress inactivity logout while performing audit
+  const { setSuppressInactivityLogout } = useAuth();
+  useEffect(() => {
+    setSuppressInactivityLogout(true);
+    return () => setSuppressInactivityLogout(false);
+  }, [setSuppressInactivityLogout]);
 
   // Realtime subscription for collaborative editing
   useEffect(() => {

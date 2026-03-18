@@ -51,11 +51,15 @@ export const useSaveSectionResponse = () => {
       followUpNeeded: boolean;
       followUpNotes?: string;
     }) => {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
-
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      let activeUser = user;
+      if (!activeUser) {
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
+        const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+        if (!refreshedUser) throw new Error("Not authenticated");
+        activeUser = refreshedUser;
+      }
 
       const { error } = await supabase
         .from("audit_section_responses")
@@ -64,7 +68,7 @@ export const useSaveSectionResponse = () => {
           section_id: sectionId,
           follow_up_needed: followUpNeeded,
           follow_up_notes: followUpNotes || null,
-          created_by: user.id,
+          created_by: activeUser.id,
         }, {
           onConflict: "audit_id,section_id"
         });
