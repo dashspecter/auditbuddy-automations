@@ -130,6 +130,7 @@ const Attendance = () => {
             <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
             <TableHead>{t('workforce.attendance.duration')}</TableHead>
             <TableHead>{t('workforce.attendance.status')}</TableHead>
+            <TableHead className="w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
