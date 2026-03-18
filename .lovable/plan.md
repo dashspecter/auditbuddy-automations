@@ -1,64 +1,52 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Plan: Fix P2 — Role Guard on Manual Checkout Button + Performance-Bounded Logs Query
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## Point 1: Hide manual checkout button from non-authorized roles
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+**Current problem**: The edit (manual checkout) button on line 175 of `Attendance.tsx` is visible to everyone. Only managers, admins, and HR should see it.
 
----
+**Fix**: Import `useCan` hook and check `can('update', 'attendance')` (or equivalent resource). Wrap the edit button in a conditional that only renders when the user has permission.
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+Concretely:
+- Import `useCan` from `@/hooks/useCan`
+- Call `const { can } = useCan()` at the top of the component
+- Wrap the edit button: `{can('update', 'attendance').allowed && (!log.check_out_at || log.auto_clocked_out) && ( <Button ... /> )}`
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+If `attendance` is not a recognized resource in the `useCan` system, we fall back to checking `useUserRole` for `isAdmin || isManager || isHR`. I'll verify the resource list in `useCan.ts` first during implementation.
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
-
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+**File**: `src/pages/workforce/Attendance.tsx`
 
 ---
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+## Point 2: Bounded attendance logs query + custom date interval
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+**Current problem**: Line 64 calls `useAttendanceLogs(locationFilter)` with NO date filter — fetches the entire history, then filters client-side for week/month tabs. This gets slower as data grows.
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+**Fix**: Replace the unbounded `allLogs` query with server-side date filtering per tab, plus add a "Custom" tab with a date range picker.
+
+Changes:
+
+### `src/pages/workforce/Attendance.tsx`
+- Remove the single unbounded `allLogs` query
+- Each tab fetches its own date-bounded data using `useAttendanceLogs(locationFilter, startDate, endDate)`
+- Add a 4th tab "Custom" with two date pickers (start/end) using the Shadcn Popover+Calendar pattern
+- Default custom range: last 7 days
+- The week and month tabs pass their computed start/end dates directly to the hook (server-side filtering)
+- Remove the client-side `weekLogs` and `monthLogs` `useMemo` filters since the server now handles it
+
+### `src/hooks/useAttendanceLogs.ts`
+- The hook already supports `date` and `endDate` parameters — no changes needed here
+
+**Result**: Each tab only fetches exactly the data it needs. The "Custom" tab gives users flexibility for any date range.
 
 ---
 
-## Phase 4: Integration & Testing ✅ COMPLETE
+## Summary of changes
 
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+| File | What changes |
+|------|-------------|
+| `src/pages/workforce/Attendance.tsx` | Add `useCan` role check on edit button; replace unbounded query with per-tab server-side queries; add "Custom" date range tab |
+
+No database or backend changes needed.
+
