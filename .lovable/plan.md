@@ -1,64 +1,66 @@
-# City Hall Internal Operations — Implementation Progress
 
-## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-### 1A. Database ✅
-- Created `company_label_overrides` table with RLS
-- Inserted "Government / Public Administration" industry (slug: `government`)
-- Linked all 18 modules to the government industry
+# Fix: Session Killed by Global signOut in Auth Handler
 
-### 1B. Onboarding RPC ✅
-- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
+## Root Cause (why it happens after just 2 minutes)
 
-### 1C. Frontend ✅
-- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
-- Landmark icon in onboarding, Terminology nav item + route
+`AuthContext.tsx` has **3 places** where `supabase.auth.signOut()` is called **without** `scope: 'local'`:
 
----
+1. **Line 213** — inside `onAuthStateChange`: if a token refresh event produces a session without `refresh_token` (which Supabase JS v2 can do in edge cases), this fires `signOut()` globally → **revokes the server-side refresh token**
+2. **Line 274** — inside `getSession()` error handler: same global signOut
+3. **Line 284** — inside `getSession()` missing-refresh-token handler: same
 
-## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
+Once ANY of these fire, the server token is dead. Then when `useAuditFieldResponses` tries to save (calling `refreshAndGetUser()` → `refreshSession()`), it fails → "Your session has expired."
 
-### 2A. Database Tables ✅
-- `approval_workflows` — multi-step workflow definitions with jsonb steps
-- `approval_requests` — requests linked to workflows with status tracking
-- `approval_decisions` — immutable audit trail of approve/reject decisions
-- All tables with strict company-scoped RLS
+**This is a race condition that can trigger within seconds of page load**, not just after inactivity.
 
-### 2B. Module Registration ✅
-- `government_ops` added to moduleRegistry (Landmark icon, operations category)
-- Added to all pricing tiers in pricingTiers.ts
-- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
+## Secondary Issue
 
-### 2C. Approval UI ✅
-- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
-- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
-- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
-- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
-- Routes added to App.tsx
+`PerformAudit.tsx` (the page used for "Site Visit Checklist") was never given `setSuppressInactivityLogout`. The previous fix only added it to `StaffLocationAudit.tsx`.
 
----
+## Fixes
 
-## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
+### Fix 1: AuthContext.tsx — Use `scope: 'local'` everywhere
 
-### 3A. New Components ✅
-- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
-- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
-- `ActivityFeedWidget` — recent activity_logs timeline
-- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
+Change all 3 bare `signOut()` calls to `signOut({ scope: 'local' })`:
 
-### 3B. Conditional Dashboard Routing ✅
-- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+- **Line 213**: `await supabase.auth.signOut({ scope: 'local' })` — inside onAuthStateChange
+- **Line 274**: `await supabase.auth.signOut({ scope: 'local' })` — inside getSession error handler  
+- **Line 284**: `await supabase.auth.signOut({ scope: 'local' })` — inside getSession missing-token handler
 
----
+This prevents the global server-side token revocation cascade. If the session is truly invalid, the local cleanup is sufficient — subsequent API calls will fail naturally and the user gets redirected.
 
-## Phase 4: Integration & Testing ✅ COMPLETE
+### Fix 2: PerformAudit.tsx — Add session suppression
 
-### Verified
-- Build passes cleanly with no TypeScript errors
-- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
-- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
-- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
-- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
-- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
-- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
-- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
+Import `useAuth` and call `setSuppressInactivityLogout(true)` while the audit is active. This matches what was already done for `StaffLocationAudit.tsx`.
+
+### Fix 3: Make `refreshAndGetUser()` more resilient
+
+In `useAuditFieldResponses.ts` and `useAuditSectionResponses.ts`, change `refreshAndGetUser()` to try `getUser()` first, and only call `refreshSession()` if needed. This avoids unnecessary token churn:
+
+```typescript
+async function refreshAndGetUser() {
+  // Try existing session first
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) return user;
+  
+  // Only refresh if no user found
+  const { error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw new Error(SESSION_EXPIRED_MSG);
+  
+  const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+  if (!refreshedUser) throw new Error("Not authenticated");
+  return refreshedUser;
+}
+```
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/contexts/AuthContext.tsx` | Add `scope: 'local'` to 3 bare `signOut()` calls (lines 213, 274, 284) |
+| `src/pages/audits/PerformAudit.tsx` | Add `setSuppressInactivityLogout(true)` while audit is active |
+| `src/hooks/useAuditFieldResponses.ts` | Make `refreshAndGetUser()` try `getUser()` first |
+| `src/hooks/useAuditSectionResponses.ts` | Same resilient pattern for its `refreshSession` call |
+| `src/hooks/useAuditsNew.ts` | Same resilient pattern |
+
