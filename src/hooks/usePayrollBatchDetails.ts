@@ -226,7 +226,8 @@ export function usePayrollBatchDetails(
         const missingDates: string[] = [];
         const absentDetails: Array<{ date: string; reason_code: string }> = [];
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
-        const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
+        const earlyDepartureDetails: Array<{ date: string; reason: string; minutes_early: number }> = [];
+        const partialDetails: Array<{ date: string; scheduled_hours: number; actual_hours: number; late_minutes: number; early_minutes: number; reason: string }> = [];
         const partialDates: string[] = [];
         const halfShiftDates: string[] = [];
         const extraHalfDates: string[] = [];
