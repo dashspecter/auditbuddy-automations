@@ -171,6 +171,19 @@ const Attendance = () => {
                   </Badge>
                 )}
               </TableCell>
+              <TableCell>
+                {(!log.check_out_at || log.auto_clocked_out) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="Manual check-out"
+                    onClick={() => setManualCheckoutLog(log)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
