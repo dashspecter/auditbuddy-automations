@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin, User, MoreHorizontal, Edit } from "lucide-react";
+import { Clock, QrCode, Calendar as CalendarIcon, Tablet, Settings, AlertTriangle, CheckCircle2, MapPin, User, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
 import { KioskManagementDialog } from "@/components/workforce/KioskManagementDialog";
@@ -12,7 +12,8 @@ import { useAttendanceLogs } from "@/hooks/useAttendanceLogs";
 import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useTerminology } from "@/hooks/useTerminology";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes } from "date-fns";
+import { useCan } from "@/hooks/useCan";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes, subDays } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { ManualCheckoutDialog } from "@/components/workforce/ManualCheckoutDialog";
+
 const Attendance = () => {
   const { t } = useTranslation();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -36,9 +41,14 @@ const Attendance = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
   const [manualCheckoutLog, setManualCheckoutLog] = useState<any>(null);
+  const [customStartDate, setCustomStartDate] = useState<Date>(subDays(new Date(), 7));
+  const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
 
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees();
+  const { can } = useCan();
+  const canUpdateAttendance = can('update', 'attendance').allowed;
+
   const {
     employee: employeeTerm,
     employees: employeesTerm,
@@ -58,10 +68,24 @@ const Attendance = () => {
   const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+  const customStart = format(customStartDate, 'yyyy-MM-dd');
+  const customEnd = format(customEndDate, 'yyyy-MM-dd');
 
   const locationFilter = selectedLocationId === "all" ? undefined : selectedLocationId;
+
+  // Server-side date-bounded queries per tab
   const { data: todayLogs = [], isLoading: todayLoading } = useAttendanceLogs(locationFilter, today);
-  const { data: allLogs = [] } = useAttendanceLogs(locationFilter);
+  const { data: weekLogs = [], isLoading: weekLoading } = useAttendanceLogs(
+    locationFilter, weekStart, weekEnd
+  );
+  const { data: monthLogs = [], isLoading: monthLoading } = useAttendanceLogs(
+    locationFilter, monthStart, monthEnd
+  );
+  const { data: customLogs = [], isLoading: customLoading } = useAttendanceLogs(
+    locationFilter, 
+    activeTab === "custom" ? customStart : undefined, 
+    activeTab === "custom" ? customEnd : undefined
+  );
 
   // Filter logs by employee
   const filterByEmployee = (logs: typeof todayLogs) => {
@@ -69,22 +93,12 @@ const Attendance = () => {
     return logs.filter(log => log.staff_id === selectedEmployeeId);
   };
 
-  // Filter logs by date range
-  const weekLogs = useMemo(() => 
-    filterByEmployee(allLogs.filter(log => {
-      const logDate = log.check_in_at.split('T')[0];
-      return logDate >= weekStart && logDate <= weekEnd;
-    })), [allLogs, weekStart, weekEnd, selectedEmployeeId]);
-
-  const monthLogs = useMemo(() => 
-    filterByEmployee(allLogs.filter(log => {
-      const logDate = log.check_in_at.split('T')[0];
-      return logDate >= monthStart && logDate <= monthEnd;
-    })), [allLogs, monthStart, monthEnd, selectedEmployeeId]);
-
   const filteredTodayLogs = useMemo(() => filterByEmployee(todayLogs), [todayLogs, selectedEmployeeId]);
+  const filteredWeekLogs = useMemo(() => filterByEmployee(weekLogs), [weekLogs, selectedEmployeeId]);
+  const filteredMonthLogs = useMemo(() => filterByEmployee(monthLogs), [monthLogs, selectedEmployeeId]);
+  const filteredCustomLogs = useMemo(() => filterByEmployee(customLogs), [customLogs, selectedEmployeeId]);
 
-  // Stats calculations
+  // Stats calculations (always from today)
   const checkedInToday = filteredTodayLogs.length;
   const lateCheckIns = filteredTodayLogs.filter(log => log.is_late).length;
   
@@ -130,7 +144,7 @@ const Attendance = () => {
             <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
             <TableHead>{t('workforce.attendance.duration')}</TableHead>
             <TableHead>{t('workforce.attendance.status')}</TableHead>
-            <TableHead className="w-10"></TableHead>
+            {canUpdateAttendance && <TableHead className="w-10"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -171,24 +185,33 @@ const Attendance = () => {
                   </Badge>
                 )}
               </TableCell>
-              <TableCell>
-                {(!log.check_out_at || log.auto_clocked_out) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    title="Manual check-out"
-                    onClick={() => setManualCheckoutLog(log)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                )}
-              </TableCell>
+              {canUpdateAttendance && (
+                <TableCell>
+                  {(!log.check_out_at || log.auto_clocked_out) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Manual check-out"
+                      onClick={() => setManualCheckoutLog(log)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
     );
+  };
+
+  const renderLoadingOrTable = (logs: typeof todayLogs, isLoading: boolean) => {
+    if (isLoading) {
+      return <div className="text-center py-8">{t('common.loading')}</div>;
+    }
+    return renderAttendanceTable(logs);
   };
 
   return (
@@ -299,6 +322,7 @@ const Attendance = () => {
           <TabsTrigger value="today">{t('workforce.attendance.today')}</TabsTrigger>
           <TabsTrigger value="week">{t('workforce.attendance.thisWeek')}</TabsTrigger>
           <TabsTrigger value="month">{t('workforce.attendance.thisMonth')}</TabsTrigger>
+          <TabsTrigger value="custom">Custom</TabsTrigger>
         </TabsList>
         <TabsContent value="today">
           <Card>
@@ -307,11 +331,7 @@ const Attendance = () => {
               <CardDescription>{t('workforce.attendance.realTimeStatus')} {format(new Date(), 'MMMM d, yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {todayLoading ? (
-                <div className="text-center py-8">{t('common.loading')}</div>
-              ) : (
-                renderAttendanceTable(filteredTodayLogs)
-              )}
+              {renderLoadingOrTable(filteredTodayLogs, todayLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -322,7 +342,7 @@ const Attendance = () => {
               <CardDescription>{format(new Date(weekStart), 'MMM d')} - {format(new Date(weekEnd), 'MMM d, yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {renderAttendanceTable(weekLogs)}
+              {renderLoadingOrTable(filteredWeekLogs, weekLoading)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -333,7 +353,63 @@ const Attendance = () => {
               <CardDescription>{format(new Date(), 'MMMM yyyy')}</CardDescription>
             </CardHeader>
             <CardContent>
-              {renderAttendanceTable(monthLogs)}
+              {renderLoadingOrTable(filteredMonthLogs, monthLoading)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="custom">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Custom Range</CardTitle>
+                  <CardDescription>
+                    {format(customStartDate, 'MMM d, yyyy')} — {format(customEndDate, 'MMM d, yyyy')}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customStartDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(customStartDate, 'MMM d, yyyy')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customStartDate}
+                        onSelect={(d) => d && setCustomStartDate(d)}
+                        disabled={(d) => d > customEndDate || d > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-muted-foreground">→</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal", !customEndDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(customEndDate, 'MMM d, yyyy')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={customEndDate}
+                        onSelect={(d) => d && setCustomEndDate(d)}
+                        disabled={(d) => d < customStartDate || d > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {renderLoadingOrTable(filteredCustomLogs, customLoading)}
             </CardContent>
           </Card>
         </TabsContent>
