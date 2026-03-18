@@ -131,9 +131,18 @@ const StaffLocationAudit = () => {
     };
   }, [selectedTemplateId, formData.location_id, setSuppressInactivityLogout]);
 
+  // Suppress inactivity logout while an audit is actively being filled out
+  useEffect(() => {
+    if (selectedTemplateId && formData.location_id) {
+      setSuppressInactivityLogout(true);
+    }
+    return () => {
+      setSuppressInactivityLogout(false);
+    };
+  }, [selectedTemplateId, formData.location_id, setSuppressInactivityLogout]);
+
   useEffect(() => {
     const initializeData = async () => {
-      if (!user) return;
       setLoading(true);
 
       try {
