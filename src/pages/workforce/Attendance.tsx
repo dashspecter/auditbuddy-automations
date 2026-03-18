@@ -338,6 +338,12 @@ const Attendance = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ManualCheckoutDialog
+        open={!!manualCheckoutLog}
+        onOpenChange={(open) => { if (!open) setManualCheckoutLog(null); }}
+        log={manualCheckoutLog}
+      />
     </div>
   );
 };
