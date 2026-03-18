@@ -15,6 +15,7 @@ export interface PayrollEmployeeDetail {
   // Partial shifts (actual < 75% of scheduled)
   partial_count: number;
   partial_dates: string[];
+  partial_details: Array<{ date: string; scheduled_hours: number; actual_hours: number; late_minutes: number; early_minutes: number; reason: string }>;
   // Half shifts (intentionally scheduled as half)
   half_shift_count: number;
   half_shift_dates: string[];
@@ -42,7 +43,7 @@ export interface PayrollEmployeeDetail {
   extra_location_details: Array<{ date: string; location_name: string }>;
   // Early departures
   early_departure_days: number;
-  early_departure_details: Array<{ date: string; reason: string }>;
+  early_departure_details: Array<{ date: string; reason: string; minutes_early: number }>;
   // Anomalies count (for existing badge)
   anomalies: string[];
 }
@@ -225,7 +226,8 @@ export function usePayrollBatchDetails(
         const missingDates: string[] = [];
         const absentDetails: Array<{ date: string; reason_code: string }> = [];
         const extraLocationDetails: Array<{ date: string; location_name: string }> = [];
-        const earlyDepartureDetails: Array<{ date: string; reason: string }> = [];
+        const earlyDepartureDetails: Array<{ date: string; reason: string; minutes_early: number }> = [];
+        const partialDetails: Array<{ date: string; scheduled_hours: number; actual_hours: number; late_minutes: number; early_minutes: number; reason: string }> = [];
         const partialDates: string[] = [];
         const halfShiftDates: string[] = [];
         const extraHalfDates: string[] = [];
@@ -265,6 +267,20 @@ export function usePayrollBatchDetails(
 
             if (isPartial) {
               partialDates.push(shift.date);
+              // Correlate with late + early departure
+              const dayLateMinutes = (attLog?.is_late && !excusedLateAttendanceIds.has(attLog!.id)) ? (attLog!.late_minutes || 0) : 0;
+              const shiftEndMs = endTime.getTime();
+              const checkOutMs = new Date(attLog!.check_out_at!).getTime();
+              const earlyMinutes = Math.max(0, Math.round((shiftEndMs - checkOutMs) / 60000));
+              const reason = (attLog as any)?.early_departure_reason || '';
+              partialDetails.push({
+                date: shift.date,
+                scheduled_hours: Math.round(scheduledHours * 10) / 10,
+                actual_hours: Math.round(actualHours * 10) / 10,
+                late_minutes: dayLateMinutes,
+                early_minutes: earlyMinutes,
+                reason,
+              });
               anomalies.push(`Partial shift on ${shift.date} (${actualHours.toFixed(1)}h / ${scheduledHours.toFixed(1)}h)`);
             }
 
@@ -288,9 +304,12 @@ export function usePayrollBatchDetails(
               extraLocationDetails.push({ date: shift.date, location_name: shift.location_name });
             }
 
-            // Early departures
+            // Early departures with minutes calculation
             if (attLog && (attLog as any).early_departure_reason) {
-              earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason });
+              const shiftEndMs = endTime.getTime();
+              const checkOutMs = new Date(attLog.check_out_at!).getTime();
+              const minutesEarly = Math.max(0, Math.round((shiftEndMs - checkOutMs) / 60000));
+              earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason, minutes_early: minutesEarly });
             }
 
             // Late tracking — skip excused lates
@@ -359,6 +378,7 @@ export function usePayrollBatchDetails(
           overtime_hours: Math.round(overtimeHours * 10) / 10,
           partial_count: partialDates.length,
           partial_dates: partialDates.sort(),
+          partial_details: partialDetails.sort((a, b) => a.date.localeCompare(b.date)),
           half_shift_count: halfShiftDates.length,
           half_shift_dates: halfShiftDates.sort(),
           extra_half_count: extraHalfDates.length,

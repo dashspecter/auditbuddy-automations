@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin, User } from "lucide-react";
+import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin, User, MoreHorizontal, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
 import { KioskManagementDialog } from "@/components/workforce/KioskManagementDialog";
@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { ManualCheckoutDialog } from "@/components/workforce/ManualCheckoutDialog";
 const Attendance = () => {
   const { t } = useTranslation();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -35,6 +35,7 @@ const Attendance = () => {
   const [activeTab, setActiveTab] = useState("today");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
+  const [manualCheckoutLog, setManualCheckoutLog] = useState<any>(null);
 
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees();
@@ -129,6 +130,7 @@ const Attendance = () => {
             <TableHead>{t('workforce.attendance.clockOut')}</TableHead>
             <TableHead>{t('workforce.attendance.duration')}</TableHead>
             <TableHead>{t('workforce.attendance.status')}</TableHead>
+            <TableHead className="w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -167,6 +169,19 @@ const Attendance = () => {
                     <Clock className="h-3 w-3" />
                     {t('workforce.attendance.working')}
                   </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {(!log.check_out_at || log.auto_clocked_out) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title="Manual check-out"
+                    onClick={() => setManualCheckoutLog(log)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 )}
               </TableCell>
             </TableRow>
@@ -323,6 +338,12 @@ const Attendance = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ManualCheckoutDialog
+        open={!!manualCheckoutLog}
+        onOpenChange={(open) => { if (!open) setManualCheckoutLog(null); }}
+        log={manualCheckoutLog}
+      />
     </div>
   );
 };

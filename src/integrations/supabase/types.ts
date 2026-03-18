@@ -797,6 +797,7 @@ export type Database = {
           device_info: Json | null
           early_departure_reason: string | null
           expected_clock_in: string | null
+          hours_short: number | null
           id: string
           is_late: boolean | null
           late_minutes: number | null
@@ -816,6 +817,7 @@ export type Database = {
           device_info?: Json | null
           early_departure_reason?: string | null
           expected_clock_in?: string | null
+          hours_short?: number | null
           id?: string
           is_late?: boolean | null
           late_minutes?: number | null
@@ -835,6 +837,7 @@ export type Database = {
           device_info?: Json | null
           early_departure_reason?: string | null
           expected_clock_in?: string | null
+          hours_short?: number | null
           id?: string
           is_late?: boolean | null
           late_minutes?: number | null

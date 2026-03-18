@@ -69,6 +69,7 @@ const StaffScanAttendance = () => {
   const [earlyDepartureLogId, setEarlyDepartureLogId] = useState<string | null>(null);
   const [earlyDepartureReason, setEarlyDepartureReason] = useState("");
   const [submittingReason, setSubmittingReason] = useState(false);
+  const [earlyDepartureIsMandatory, setEarlyDepartureIsMandatory] = useState(false);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
     time: Date;
@@ -431,25 +432,41 @@ const StaffScanAttendance = () => {
         
         toast.success("Checked out successfully!");
 
-        // Check if early departure: fetch the linked shift's end_time
+        // Check if early departure & calculate hours_short
         try {
           const { data: logWithShift } = await supabase
             .from("attendance_logs")
-            .select("shift_id, shifts(end_time, shift_date)")
+            .select("shift_id, check_in_at, shifts(end_time, start_time, shift_date)")
             .eq("id", openLog.id)
             .maybeSingle();
           
           if (logWithShift?.shift_id && logWithShift.shifts) {
             const shiftData = logWithShift.shifts as any;
-            const shiftEndStr = `${shiftData.shift_date}T${shiftData.end_time}`;
-            const shiftEnd = new Date(shiftEndStr);
-            const now = new Date();
-            const minutesEarly = (shiftEnd.getTime() - now.getTime()) / 60000;
+            const shiftStartTime = new Date(`${shiftData.shift_date}T${shiftData.start_time}`);
+            let shiftEndTime = new Date(`${shiftData.shift_date}T${shiftData.end_time}`);
+            if (shiftEndTime <= shiftStartTime) shiftEndTime = new Date(shiftEndTime.getTime() + 86400000);
+            const scheduledHours = (shiftEndTime.getTime() - shiftStartTime.getTime()) / 3600000;
             
-            if (minutesEarly >= 30) {
-              console.log(`Early departure detected: ${Math.round(minutesEarly)} minutes early`);
+            const actualHours = (new Date(checkOutTime).getTime() - new Date(logWithShift.check_in_at).getTime()) / 3600000;
+            const hoursShort = Math.max(0, Math.round((scheduledHours - actualHours) * 10) / 10);
+            
+            // Store hours_short on the attendance log
+            if (hoursShort > 0) {
+              await supabase
+                .from("attendance_logs")
+                .update({ hours_short: hoursShort } as any)
+                .eq("id", openLog.id);
+            }
+            
+            const now = new Date();
+            const minutesEarly = (shiftEndTime.getTime() - now.getTime()) / 60000;
+            const isPartial = actualHours < scheduledHours * 0.75;
+            
+            if (minutesEarly >= 30 || isPartial) {
+              console.log(`Early departure detected: ${Math.round(minutesEarly)} minutes early, partial: ${isPartial}`);
               setEarlyDepartureLogId(openLog.id);
               setEarlyDepartureReason("");
+              setEarlyDepartureIsMandatory(isPartial);
               setShowEarlyDepartureDialog(true);
             }
           }
@@ -722,17 +739,23 @@ const StaffScanAttendance = () => {
       
       {/* Early Departure Reason Dialog */}
       <Dialog open={showEarlyDepartureDialog} onOpenChange={(open) => {
-        if (!open) {
+        if (!open && !earlyDepartureIsMandatory) {
           setShowEarlyDepartureDialog(false);
           setEarlyDepartureLogId(null);
           setEarlyDepartureReason("");
+          setEarlyDepartureIsMandatory(false);
         }
       }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onPointerDownOutside={earlyDepartureIsMandatory ? (e) => e.preventDefault() : undefined}>
           <DialogHeader>
-            <DialogTitle>Leaving early?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {earlyDepartureIsMandatory && <AlertTriangle className="h-5 w-5 text-destructive" />}
+              Leaving early?
+            </DialogTitle>
             <DialogDescription>
-              Let your manager know why (optional)
+              {earlyDepartureIsMandatory 
+                ? "You worked less than 75% of your scheduled shift. A reason is required."
+                : "Let your manager know why (optional)"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -756,17 +779,20 @@ const StaffScanAttendance = () => {
               className="min-h-[60px]"
             />
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => {
-                  setShowEarlyDepartureDialog(false);
-                  setEarlyDepartureLogId(null);
-                  setEarlyDepartureReason("");
-                }}
-              >
-                Skip
-              </Button>
+              {!earlyDepartureIsMandatory && (
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowEarlyDepartureDialog(false);
+                    setEarlyDepartureLogId(null);
+                    setEarlyDepartureReason("");
+                    setEarlyDepartureIsMandatory(false);
+                  }}
+                >
+                  Skip
+                </Button>
+              )}
               <Button
                 className="flex-1"
                 disabled={!earlyDepartureReason.trim() || submittingReason}
@@ -786,6 +812,7 @@ const StaffScanAttendance = () => {
                     setShowEarlyDepartureDialog(false);
                     setEarlyDepartureLogId(null);
                     setEarlyDepartureReason("");
+                    setEarlyDepartureIsMandatory(false);
                   }
                 }}
               >
