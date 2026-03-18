@@ -359,7 +359,7 @@ const App = () => {
                       <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_notifications"><RecurringNotifications /></ManagerRoute>} />
                       <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAuditLogs /></ManagerRoute>} />
                       <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAnalytics /></ManagerRoute>} />
-                      <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+                      <Route path="/admin/debug" element={<PlatformAdminRoute><DebugInfo /></PlatformAdminRoute>} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/photos" element={<ManagerRoute requiredPermission="manage_audits"><PhotoGalleryPage /></ManagerRoute>} />
