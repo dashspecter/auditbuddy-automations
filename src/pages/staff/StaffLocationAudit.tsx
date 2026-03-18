@@ -74,6 +74,7 @@ const StaffLocationAudit = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingChange, setPendingChange] = useState<{ type: 'template' | 'location'; value: string } | null>(null);
+  const restoredFromDraftRef = useRef(false);
   
   const [formData, setFormData] = useState({
     location_id: "",
