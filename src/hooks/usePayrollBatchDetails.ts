@@ -304,9 +304,12 @@ export function usePayrollBatchDetails(
               extraLocationDetails.push({ date: shift.date, location_name: shift.location_name });
             }
 
-            // Early departures
+            // Early departures with minutes calculation
             if (attLog && (attLog as any).early_departure_reason) {
-              earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason });
+              const shiftEndMs = endTime.getTime();
+              const checkOutMs = new Date(attLog.check_out_at!).getTime();
+              const minutesEarly = Math.max(0, Math.round((shiftEndMs - checkOutMs) / 60000));
+              earlyDepartureDetails.push({ date: shift.date, reason: (attLog as any).early_departure_reason, minutes_early: minutesEarly });
             }
 
             // Late tracking — skip excused lates
