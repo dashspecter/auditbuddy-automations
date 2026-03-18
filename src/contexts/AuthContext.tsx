@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         logDebug('auth', 'Session validation error', error);
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setSession(null);
         setUser(null);
         setLoading(false);
