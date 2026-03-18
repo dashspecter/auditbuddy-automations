@@ -43,6 +43,14 @@ export function ManualCheckoutDialog({ open, onOpenChange, log }: ManualCheckout
       const checkInDate = log.check_in_at.split("T")[0];
       const checkOutAt = new Date(`${checkInDate}T${checkoutTime}`).toISOString();
 
+      // Validate checkout is after checkin
+      if (new Date(checkOutAt) <= new Date(log.check_in_at)) {
+        throw new Error("Check-out time must be after check-in time");
+      }
+      if (new Date(checkOutAt) > new Date()) {
+        throw new Error("Check-out time cannot be in the future");
+      }
+
       // Calculate hours_short if shift exists
       let hoursShort: number | null = null;
       if (log.shift_id) {
