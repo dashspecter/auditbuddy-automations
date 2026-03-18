@@ -89,6 +89,9 @@ const StaffLocationAudit = () => {
   const handleDraftRestore = useCallback((draft: AuditDraft) => {
     console.log('[StaffLocationAudit] Restoring draft:', draft.key);
     
+    // Mark that we're restoring from draft so template load doesn't reset section index
+    restoredFromDraftRef.current = true;
+    
     // Restore template selection if we have one in the draft
     if (draft.templateId && draft.templateId !== 'none') {
       setSelectedTemplateId(draft.templateId);
