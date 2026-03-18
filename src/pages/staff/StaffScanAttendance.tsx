@@ -739,17 +739,23 @@ const StaffScanAttendance = () => {
       
       {/* Early Departure Reason Dialog */}
       <Dialog open={showEarlyDepartureDialog} onOpenChange={(open) => {
-        if (!open) {
+        if (!open && !earlyDepartureIsMandatory) {
           setShowEarlyDepartureDialog(false);
           setEarlyDepartureLogId(null);
           setEarlyDepartureReason("");
+          setEarlyDepartureIsMandatory(false);
         }
       }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onPointerDownOutside={earlyDepartureIsMandatory ? (e) => e.preventDefault() : undefined}>
           <DialogHeader>
-            <DialogTitle>Leaving early?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {earlyDepartureIsMandatory && <AlertTriangle className="h-5 w-5 text-destructive" />}
+              Leaving early?
+            </DialogTitle>
             <DialogDescription>
-              Let your manager know why (optional)
+              {earlyDepartureIsMandatory 
+                ? "You worked less than 75% of your scheduled shift. A reason is required."
+                : "Let your manager know why (optional)"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -773,17 +779,20 @@ const StaffScanAttendance = () => {
               className="min-h-[60px]"
             />
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => {
-                  setShowEarlyDepartureDialog(false);
-                  setEarlyDepartureLogId(null);
-                  setEarlyDepartureReason("");
-                }}
-              >
-                Skip
-              </Button>
+              {!earlyDepartureIsMandatory && (
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowEarlyDepartureDialog(false);
+                    setEarlyDepartureLogId(null);
+                    setEarlyDepartureReason("");
+                    setEarlyDepartureIsMandatory(false);
+                  }}
+                >
+                  Skip
+                </Button>
+              )}
               <Button
                 className="flex-1"
                 disabled={!earlyDepartureReason.trim() || submittingReason}
@@ -803,6 +812,7 @@ const StaffScanAttendance = () => {
                     setShowEarlyDepartureDialog(false);
                     setEarlyDepartureLogId(null);
                     setEarlyDepartureReason("");
+                    setEarlyDepartureIsMandatory(false);
                   }
                 }}
               >

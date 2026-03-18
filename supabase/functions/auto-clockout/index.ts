@@ -2,12 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 /**
  * Convert a local date+time string in a given IANA timezone to a UTC Date.
- * e.g. localToUtc('2026-02-24', '18:00:00', 'Europe/Bucharest')
  */
 function localToUtc(dateStr: string, timeStr: string, tz: string): Date {
-  // Build a date in UTC, then figure out the offset for that timezone
   const naiveUtc = new Date(`${dateStr}T${timeStr}Z`)
-  // Get what that UTC instant looks like in the target timezone
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -18,9 +15,7 @@ function localToUtc(dateStr: string, timeStr: string, tz: string): Date {
     formatter.formatToParts(naiveUtc).map(p => [p.type, p.value])
   )
   const localAtUtc = new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`)
-  // The offset is the difference between what UTC shows and what local shows
   const offsetMs = localAtUtc.getTime() - naiveUtc.getTime()
-  // Subtract offset to get the true UTC time
   return new Date(naiveUtc.getTime() - offsetMs)
 }
 
@@ -34,17 +29,12 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Validate cron secret to prevent unauthorized access
-  // Check header first, then body for flexibility
   let cronSecret = req.headers.get('x-cron-secret')
-  
   if (!cronSecret) {
     try {
       const body = await req.clone().json()
       cronSecret = body.cron_secret
-    } catch {
-      // No body or invalid JSON
-    }
+    } catch { /* No body */ }
   }
   
   if (cronSecret !== Deno.env.get('CRON_SECRET')) {
@@ -62,7 +52,6 @@ Deno.serve(async (req) => {
 
     console.log('Starting auto clock-out check...')
 
-    // Get all companies with their auto_clockout_delay_minutes
     const { data: companies, error: companiesError } = await supabase
       .from('companies')
       .select('id, auto_clockout_delay_minutes')
@@ -73,13 +62,11 @@ Deno.serve(async (req) => {
     }
 
     let totalAutoClocked = 0
+    let totalAlerts = 0
 
     for (const company of companies || []) {
       const delayMinutes = company.auto_clockout_delay_minutes || 30
-      
-      // Find attendance logs where:
-      // 1. check_out_at is null (not clocked out)
-      // 2. The shift has ended + delay minutes ago
+
       const { data: logs, error: logsError } = await supabase
         .from('attendance_logs')
         .select(`
@@ -89,8 +76,10 @@ Deno.serve(async (req) => {
           check_in_at,
           shifts!inner(
             shift_date,
+            start_time,
             end_time,
-            company_id
+            company_id,
+            location_id
           )
         `)
         .is('check_out_at', null)
@@ -105,20 +94,29 @@ Deno.serve(async (req) => {
         const shift = (log as any).shifts
         if (!shift) continue
 
-        // Convert shift end time from Europe/Bucharest local to UTC
         const shiftEndUtc = localToUtc(shift.shift_date, shift.end_time, 'Europe/Bucharest')
         const autoClockoutTime = new Date(shiftEndUtc.getTime() + delayMinutes * 60 * 1000)
         const now = new Date()
 
         if (now > autoClockoutTime) {
-          // Auto clock out at shift end time + delay
           const clockOutTime = autoClockoutTime.toISOString()
-          
+
+          // Calculate hours_short: scheduled - actual
+          const shiftStartUtc = localToUtc(shift.shift_date, shift.start_time, 'Europe/Bucharest')
+          let scheduledMs = shiftEndUtc.getTime() - shiftStartUtc.getTime()
+          if (scheduledMs <= 0) scheduledMs += 86400000 // overnight shift
+          const scheduledHours = scheduledMs / 3600000
+
+          const checkInTime = new Date(log.check_in_at)
+          const actualHours = (autoClockoutTime.getTime() - checkInTime.getTime()) / 3600000
+          const hoursShort = Math.max(0, Math.round((scheduledHours - actualHours) * 10) / 10)
+
           const { error: updateError } = await supabase
             .from('attendance_logs')
             .update({ 
               check_out_at: clockOutTime,
               auto_clocked_out: true,
+              hours_short: hoursShort > 0 ? hoursShort : null,
               notes: `Auto clocked out ${delayMinutes} minutes after shift end`
             })
             .eq('id', log.id)
@@ -128,17 +126,52 @@ Deno.serve(async (req) => {
           } else {
             console.log(`Auto clocked out attendance log ${log.id}`)
             totalAutoClocked++
+
+            // Fetch employee name for alert message
+            const { data: empData } = await supabase
+              .from('employees')
+              .select('full_name')
+              .eq('id', log.staff_id)
+              .single()
+
+            const { data: locData } = await supabase
+              .from('locations')
+              .select('name')
+              .eq('id', shift.location_id)
+              .single()
+
+            const empName = empData?.full_name || 'Unknown employee'
+            const locName = locData?.name || 'Unknown location'
+
+            // Create "missing checkout" alert
+            const { error: alertError } = await supabase
+              .from('alerts')
+              .insert({
+                company_id: company.id,
+                location_id: shift.location_id,
+                type: 'warning',
+                source: 'missing_checkout',
+                title: `Shift without check-out — to be verified`,
+                description: `${empName} did not check out for their shift at ${locName} on ${shift.shift_date}. Auto clocked out after ${delayMinutes} min delay.`,
+                resolved: false,
+              })
+
+            if (alertError) {
+              console.error(`Error creating alert for log ${log.id}:`, alertError)
+            } else {
+              totalAlerts++
+            }
           }
         }
       }
     }
 
-    console.log(`Auto clock-out complete. ${totalAutoClocked} logs updated.`)
+    console.log(`Auto clock-out complete. ${totalAutoClocked} logs updated, ${totalAlerts} alerts created.`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Auto clocked out ${totalAutoClocked} attendance logs` 
+        message: `Auto clocked out ${totalAutoClocked} attendance logs, created ${totalAlerts} alerts` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
