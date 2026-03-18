@@ -267,6 +267,20 @@ export function usePayrollBatchDetails(
 
             if (isPartial) {
               partialDates.push(shift.date);
+              // Correlate with late + early departure
+              const dayLateMinutes = (attLog?.is_late && !excusedLateAttendanceIds.has(attLog!.id)) ? (attLog!.late_minutes || 0) : 0;
+              const shiftEndMs = endTime.getTime();
+              const checkOutMs = new Date(attLog!.check_out_at!).getTime();
+              const earlyMinutes = Math.max(0, Math.round((shiftEndMs - checkOutMs) / 60000));
+              const reason = (attLog as any)?.early_departure_reason || '';
+              partialDetails.push({
+                date: shift.date,
+                scheduled_hours: Math.round(scheduledHours * 10) / 10,
+                actual_hours: Math.round(actualHours * 10) / 10,
+                late_minutes: dayLateMinutes,
+                early_minutes: earlyMinutes,
+                reason,
+              });
               anomalies.push(`Partial shift on ${shift.date} (${actualHours.toFixed(1)}h / ${scheduledHours.toFixed(1)}h)`);
             }
 
