@@ -68,7 +68,7 @@ export const useSaveSectionResponse = () => {
           section_id: sectionId,
           follow_up_needed: followUpNeeded,
           follow_up_notes: followUpNotes || null,
-          created_by: user.id,
+          created_by: activeUser.id,
         }, {
           onConflict: "audit_id,section_id"
         });
