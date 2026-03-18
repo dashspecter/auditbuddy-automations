@@ -57,7 +57,7 @@ interface ManagerLocation {
 
 const StaffLocationAudit = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setSuppressInactivityLogout } = useAuth();
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
   const templateIdFromUrl = searchParams.get('template');
