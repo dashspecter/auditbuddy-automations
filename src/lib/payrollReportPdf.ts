@@ -135,13 +135,23 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     let locY = 55;
     locY = addSectionTitle(doc, `${locName} — ${locEmployees.length} employee${locEmployees.length !== 1 ? 's' : ''}`, locY);
 
-    const rows = locEmployees.map(emp => [
+    const rows = locEmployees.map(emp => {
+      // Format partial shifts with hours breakdown
+      let partialStr = '0';
+      if (emp.partial_count > 0 && emp.partial_details && emp.partial_details.length > 0) {
+        const items = emp.partial_details.map(p => 
+          `${format(parseISO(p.date), 'MMM d')}: ${p.actual_hours}h/${p.scheduled_hours}h`
+        );
+        partialStr = `${emp.partial_count} (${items.join('; ')})`;
+      } else if (emp.partial_count > 0) {
+        partialStr = `${emp.partial_count} (${formatDateList(emp.partial_dates)})`;
+      }
+
+      return [
       emp.employee_name,
       emp.role,
       emp.days_worked,
-      emp.partial_count > 0
-        ? `${emp.partial_count} (${formatDateList(emp.partial_dates)})`
-        : '0',
+      partialStr,
       (emp.half_shift_count || 0) > 0
         ? `${emp.half_shift_count} (${formatDateList(emp.half_shift_dates || [])})`
         : '0',
