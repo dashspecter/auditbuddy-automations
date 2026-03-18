@@ -431,25 +431,41 @@ const StaffScanAttendance = () => {
         
         toast.success("Checked out successfully!");
 
-        // Check if early departure: fetch the linked shift's end_time
+        // Check if early departure & calculate hours_short
         try {
           const { data: logWithShift } = await supabase
             .from("attendance_logs")
-            .select("shift_id, shifts(end_time, shift_date)")
+            .select("shift_id, check_in_at, shifts(end_time, start_time, shift_date)")
             .eq("id", openLog.id)
             .maybeSingle();
           
           if (logWithShift?.shift_id && logWithShift.shifts) {
             const shiftData = logWithShift.shifts as any;
-            const shiftEndStr = `${shiftData.shift_date}T${shiftData.end_time}`;
-            const shiftEnd = new Date(shiftEndStr);
-            const now = new Date();
-            const minutesEarly = (shiftEnd.getTime() - now.getTime()) / 60000;
+            const shiftStartTime = new Date(`${shiftData.shift_date}T${shiftData.start_time}`);
+            let shiftEndTime = new Date(`${shiftData.shift_date}T${shiftData.end_time}`);
+            if (shiftEndTime <= shiftStartTime) shiftEndTime = new Date(shiftEndTime.getTime() + 86400000);
+            const scheduledHours = (shiftEndTime.getTime() - shiftStartTime.getTime()) / 3600000;
             
-            if (minutesEarly >= 30) {
-              console.log(`Early departure detected: ${Math.round(minutesEarly)} minutes early`);
+            const actualHours = (new Date(checkOutTime).getTime() - new Date(logWithShift.check_in_at).getTime()) / 3600000;
+            const hoursShort = Math.max(0, Math.round((scheduledHours - actualHours) * 10) / 10);
+            
+            // Store hours_short on the attendance log
+            if (hoursShort > 0) {
+              await supabase
+                .from("attendance_logs")
+                .update({ hours_short: hoursShort } as any)
+                .eq("id", openLog.id);
+            }
+            
+            const now = new Date();
+            const minutesEarly = (shiftEndTime.getTime() - now.getTime()) / 60000;
+            const isPartial = actualHours < scheduledHours * 0.75;
+            
+            if (minutesEarly >= 30 || isPartial) {
+              console.log(`Early departure detected: ${Math.round(minutesEarly)} minutes early, partial: ${isPartial}`);
               setEarlyDepartureLogId(openLog.id);
               setEarlyDepartureReason("");
+              setEarlyDepartureIsMandatory(isPartial);
               setShowEarlyDepartureDialog(true);
             }
           }
