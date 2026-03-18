@@ -174,7 +174,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       formatMissingCol(emp.missing_no_reason, emp.missing_no_reason_dates),
       `${emp.regular_hours}`,
       `${emp.overtime_hours}`,
-    ]);
+    ]; });
 
     // Location subtotals
     const sub = locEmployees.reduce(
