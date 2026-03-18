@@ -28,9 +28,14 @@ function formatMissingCol(count: number, dates: string[]): string {
   return `${count} (${formatDateList(dates)})`;
 }
 
-function formatEarlyDepCol(details: Array<{ date: string; reason: string }>): string {
+function formatEarlyDepCol(details: Array<{ date: string; reason: string; minutes_early: number }>): string {
   if (details.length === 0) return '0';
-  const items = details.map(d => `${format(parseISO(d.date), 'MMM d')}: ${d.reason}`);
+  const items = details.map(d => {
+    const hrs = Math.floor(d.minutes_early / 60);
+    const mins = d.minutes_early % 60;
+    const timeStr = hrs > 0 ? `${hrs}h${mins > 0 ? `${mins}m` : ''}` : `${mins}m`;
+    return `${format(parseISO(d.date), 'MMM d')}: ${timeStr} early — ${d.reason}`;
+  });
   return `${details.length} (${items.join('; ')})`;
 }
 
