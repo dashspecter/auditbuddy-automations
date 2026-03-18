@@ -276,7 +276,12 @@ const StaffLocationAudit = () => {
         ...templateData,
         sections,
       });
-      setCurrentSectionIndex(0);
+      // Only reset section index if NOT restoring from a draft
+      if (restoredFromDraftRef.current) {
+        restoredFromDraftRef.current = false; // consume the flag
+      } else {
+        setCurrentSectionIndex(0);
+      }
     };
 
     loadTemplateDetails();
