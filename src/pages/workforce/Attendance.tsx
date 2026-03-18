@@ -35,6 +35,7 @@ const Attendance = () => {
   const [activeTab, setActiveTab] = useState("today");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
+  const [manualCheckoutLog, setManualCheckoutLog] = useState<any>(null);
 
   const { data: locations = [] } = useLocations();
   const { data: employees = [] } = useEmployees();
