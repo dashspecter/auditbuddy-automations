@@ -15,6 +15,7 @@ export interface PayrollEmployeeDetail {
   // Partial shifts (actual < 75% of scheduled)
   partial_count: number;
   partial_dates: string[];
+  partial_details: Array<{ date: string; scheduled_hours: number; actual_hours: number; late_minutes: number; early_minutes: number; reason: string }>;
   // Half shifts (intentionally scheduled as half)
   half_shift_count: number;
   half_shift_dates: string[];
@@ -42,7 +43,7 @@ export interface PayrollEmployeeDetail {
   extra_location_details: Array<{ date: string; location_name: string }>;
   // Early departures
   early_departure_days: number;
-  early_departure_details: Array<{ date: string; reason: string }>;
+  early_departure_details: Array<{ date: string; reason: string; minutes_early: number }>;
   // Anomalies count (for existing badge)
   anomalies: string[];
 }
