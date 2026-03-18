@@ -149,10 +149,11 @@ Deno.serve(async (req) => {
               .insert({
                 company_id: company.id,
                 location_id: shift.location_id,
-                type: 'warning',
+                severity: 'warning',
+                category: 'attendance',
                 source: 'missing_checkout',
                 title: `Shift without check-out — to be verified`,
-                description: `${empName} did not check out for their shift at ${locName} on ${shift.shift_date}. Auto clocked out after ${delayMinutes} min delay.`,
+                message: `${empName} did not check out for their shift at ${locName} on ${shift.shift_date}. Auto clocked out after ${delayMinutes} min delay.`,
                 resolved: false,
               })
 
