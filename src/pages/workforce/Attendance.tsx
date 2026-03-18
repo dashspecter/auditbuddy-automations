@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin, User } from "lucide-react";
+import { Clock, QrCode, Calendar, Tablet, Settings, AlertTriangle, CheckCircle2, XCircle, MapPin, User, MoreHorizontal, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttendanceQRDialog } from "@/components/workforce/AttendanceQRDialog";
 import { KioskManagementDialog } from "@/components/workforce/KioskManagementDialog";
