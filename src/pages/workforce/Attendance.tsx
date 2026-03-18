@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { ManualCheckoutDialog } from "@/components/workforce/ManualCheckoutDialog";
 const Attendance = () => {
   const { t } = useTranslation();
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
