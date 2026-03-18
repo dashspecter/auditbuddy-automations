@@ -351,15 +351,15 @@ const App = () => {
                       <Route path="/admin/locations" element={<AdminRoute><LocationsManagement /></AdminRoute>} />
                       <Route path="/admin/locations/sales" element={<ManagerRoute requiredPermission="manage_employees"><SalesManagement /></ManagerRoute>} />
                       <Route path="/admin/employees" element={<ManagerRoute requiredPermission="manage_employees"><EmployeeManagement /></ManagerRoute>} />
-                      <Route path="/admin/platform" element={<AdminRoute><PlatformAdmin /></AdminRoute>} />
-                      <Route path="/admin/companies/:id" element={<AdminRoute><CompanyDetail /></AdminRoute>} />
+                      <Route path="/admin/platform" element={<PlatformAdminRoute><PlatformAdmin /></PlatformAdminRoute>} />
+                      <Route path="/admin/companies/:id" element={<PlatformAdminRoute><CompanyDetail /></PlatformAdminRoute>} />
                       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                       <Route path="/notifications" element={<ManagerRoute requiredPermission="view_reports"><Notifications /></ManagerRoute>} />
                       <Route path="/notification-templates" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationTemplates /></ManagerRoute>} />
                       <Route path="/recurring-notifications" element={<ManagerRoute requiredPermission="manage_notifications"><RecurringNotifications /></ManagerRoute>} />
                       <Route path="/notification-audit-logs" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAuditLogs /></ManagerRoute>} />
                       <Route path="/notification-analytics" element={<ManagerRoute requiredPermission="manage_notifications"><NotificationAnalytics /></ManagerRoute>} />
-                      <Route path="/admin/debug" element={<AdminRoute><DebugInfo /></AdminRoute>} />
+                      <Route path="/admin/debug" element={<PlatformAdminRoute><DebugInfo /></PlatformAdminRoute>} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/photos" element={<ManagerRoute requiredPermission="manage_audits"><PhotoGalleryPage /></ManagerRoute>} />
