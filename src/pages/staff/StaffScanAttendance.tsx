@@ -69,6 +69,7 @@ const StaffScanAttendance = () => {
   const [earlyDepartureLogId, setEarlyDepartureLogId] = useState<string | null>(null);
   const [earlyDepartureReason, setEarlyDepartureReason] = useState("");
   const [submittingReason, setSubmittingReason] = useState(false);
+  const [earlyDepartureIsMandatory, setEarlyDepartureIsMandatory] = useState(false);
   const [lastAction, setLastAction] = useState<{
     type: "checkin" | "checkout";
     time: Date;
