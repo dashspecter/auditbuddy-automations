@@ -12,6 +12,7 @@ interface AuthContextType {
   isStaff: boolean | null;
   staffCheckComplete: boolean;
   signOut: () => Promise<void>;
+  setSuppressInactivityLogout: (suppress: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
