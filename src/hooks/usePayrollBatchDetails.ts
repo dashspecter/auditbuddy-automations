@@ -378,6 +378,7 @@ export function usePayrollBatchDetails(
           overtime_hours: Math.round(overtimeHours * 10) / 10,
           partial_count: partialDates.length,
           partial_dates: partialDates.sort(),
+          partial_details: partialDetails.sort((a, b) => a.date.localeCompare(b.date)),
           half_shift_count: halfShiftDates.length,
           half_shift_dates: halfShiftDates.sort(),
           extra_half_count: extraHalfDates.length,
