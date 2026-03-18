@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -12,12 +12,13 @@ interface AuthContextType {
   isStaff: boolean | null;
   staffCheckComplete: boolean;
   signOut: () => Promise<void>;
+  setSuppressInactivityLogout: (suppress: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Session timeout: 30 minutes of inactivity
-const SESSION_TIMEOUT = 30 * 60 * 1000;
+// Session timeout: 4 hours of inactivity (supports long audits up to 2h+)
+const SESSION_TIMEOUT = 4 * 60 * 60 * 1000;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -30,6 +31,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const lastActivityRef = useRef<number>(Date.now());
+  const suppressInactivityLogoutRef = useRef(false);
+
+  const setSuppressInactivityLogout = useCallback((suppress: boolean) => {
+    suppressInactivityLogoutRef.current = suppress;
+    logDebug('auth', `Inactivity logout ${suppress ? 'suppressed' : 'enabled'}`);
+    // If re-enabling, restart the timer from now
+    if (!suppress && user) {
+      resetInactivityTimer();
+    }
+  }, [user]);
+
+  // Handle automatic logout due to inactivity
+  const handleInactivityLogout = async () => {
+    // Never auto-logout if suppressed (e.g. during a long audit)
+    if (suppressInactivityLogoutRef.current) {
+      logDebug('auth', 'Inactivity logout suppressed, resetting timer');
+      resetInactivityTimer();
+      return;
+    }
+    await supabase.auth.signOut({ scope: 'local' });
+    toast({
+      title: "Session Expired",
+      description: "You have been logged out due to inactivity.",
+      variant: "destructive",
+    });
+    navigate('/auth');
+  };
 
   // Reset inactivity timer
   const resetInactivityTimer = () => {
@@ -46,18 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Handle automatic logout due to inactivity
-  const handleInactivityLogout = async () => {
-    await supabase.auth.signOut({ scope: 'local' });
-    toast({
-      title: "Session Expired",
-      description: "You have been logged out due to inactivity.",
-      variant: "destructive",
-    });
-    navigate('/auth');
-  };
-
-  // Track user activity
+  // Track user activity + handle iOS frozen-timer recovery
   useEffect(() => {
     if (!user) return;
 
@@ -67,10 +84,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       resetInactivityTimer();
     };
 
+    // When tab/app becomes visible again (e.g. phone unlocked, tab switched back),
+    // treat it as activity. This prevents iOS frozen timers from firing immediately.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        logDebug('auth', 'Page became visible, resetting inactivity timer');
+        resetInactivityTimer();
+      }
+    };
+
     // Set up activity listeners
     events.forEach(event => {
       window.addEventListener(event, handleActivity);
     });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Start the initial timer
     resetInactivityTimer();
@@ -79,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       events.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -289,7 +317,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isStaff, staffCheckComplete, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isStaff, staffCheckComplete, signOut, setSuppressInactivityLogout }}>
       {children}
     </AuthContext.Provider>
   );

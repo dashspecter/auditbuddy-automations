@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Save, ChevronLeft, ChevronRight, Check, X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,7 @@ interface ManagerLocation {
 
 const StaffLocationAudit = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setSuppressInactivityLogout } = useAuth();
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draft');
   const templateIdFromUrl = searchParams.get('template');
@@ -74,6 +74,7 @@ const StaffLocationAudit = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingChange, setPendingChange] = useState<{ type: 'template' | 'location'; value: string } | null>(null);
+  const restoredFromDraftRef = useRef(false);
   
   const [formData, setFormData] = useState({
     location_id: "",
@@ -87,6 +88,9 @@ const StaffLocationAudit = () => {
   // Draft restoration handler - restores template, location, form data, and section
   const handleDraftRestore = useCallback((draft: AuditDraft) => {
     console.log('[StaffLocationAudit] Restoring draft:', draft.key);
+    
+    // Mark that we're restoring from draft so template load doesn't reset section index
+    restoredFromDraftRef.current = true;
     
     // Restore template selection if we have one in the draft
     if (draft.templateId && draft.templateId !== 'none') {
@@ -117,9 +121,28 @@ const StaffLocationAudit = () => {
     enabled: !draftId, // Enable always unless loading from URL params
   });
 
+  // Suppress inactivity logout while an audit is actively being filled out
+  useEffect(() => {
+    if (selectedTemplateId && formData.location_id) {
+      setSuppressInactivityLogout(true);
+    }
+    return () => {
+      setSuppressInactivityLogout(false);
+    };
+  }, [selectedTemplateId, formData.location_id, setSuppressInactivityLogout]);
+
+  // Suppress inactivity logout while an audit is actively being filled out
+  useEffect(() => {
+    if (selectedTemplateId && formData.location_id) {
+      setSuppressInactivityLogout(true);
+    }
+    return () => {
+      setSuppressInactivityLogout(false);
+    };
+  }, [selectedTemplateId, formData.location_id, setSuppressInactivityLogout]);
+
   useEffect(() => {
     const initializeData = async () => {
-      if (!user) return;
       setLoading(true);
 
       try {
@@ -272,7 +295,12 @@ const StaffLocationAudit = () => {
         ...templateData,
         sections,
       });
-      setCurrentSectionIndex(0);
+      // Only reset section index if NOT restoring from a draft
+      if (restoredFromDraftRef.current) {
+        restoredFromDraftRef.current = false; // consume the flag
+      } else {
+        setCurrentSectionIndex(0);
+      }
     };
 
     loadTemplateDetails();
