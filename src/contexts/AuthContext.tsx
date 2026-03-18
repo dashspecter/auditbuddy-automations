@@ -281,7 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Validate session has required tokens
       if (session && !session.refresh_token) {
         logDebug('auth', 'Invalid session - missing refresh token');
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setSession(null);
         setUser(null);
         setLoading(false);
