@@ -14,6 +14,16 @@ export interface ClockedInEmployee {
   checkInAt: string;
 }
 
+export interface ClockedOutEmployee {
+  id: string;
+  staffName: string;
+  role: string;
+  locationName: string;
+  locationId: string;
+  checkInAt: string;
+  checkOutAt: string;
+}
+
 export interface ScheduledEmployee {
   staffId: string;
   staffName: string;
