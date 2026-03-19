@@ -1,51 +1,64 @@
+# City Hall Internal Operations — Implementation Progress
 
+## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-# Dashboard KPI Cards — Verification Report
+### 1A. Database ✅
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
-## Verification Results (Mar 12–19, 2026)
+### 1B. Onboarding RPC ✅
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
-| Card | Displayed | DB Actual | Correct? | Notes |
-|------|-----------|-----------|----------|-------|
-| **Audit Score** | 97% | 97% (avg of 14 scored audits) | YES | Correct |
-| **Task Completion** | 14% / 73 overdue | 14% (12/85) / 73 overdue | YES | Correct, but see issue below |
-| **Workforce Score** | 0% / 0 employees | ERROR — RPC crashes | NO | RPC references `test_attempts` table that doesn't exist |
-| **Open CAs** | 0 | 0 | YES | Correct |
-| **Training** | N/A | 0 assignments | YES | Correct |
-| **Attendance** | 89% | 89% (50/56) | YES | Correct |
+### 1C. Frontend ✅
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
-## Issues Found
+---
 
-### Issue 1 (CRITICAL): Workforce Score RPC still broken — `test_attempts` table doesn't exist
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-The previous migration fixed 3 column names in the `task_completions` query, but there's another error: the function references `test_attempts` (line 335) which doesn't exist. The actual table is `test_submissions`.
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-Additionally, the column mappings differ:
-- RPC uses `te.employee_id` — `test_submissions` has `employee_id` (correct)
-- RPC uses `te.passed` — `test_submissions` has `passed` (correct)
-- RPC uses `te.score` — `test_submissions` has `score` (correct)
-- RPC uses `te.completed_at` — `test_submissions` has `completed_at` (correct)
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-So the only fix needed is: `FROM test_attempts te` → `FROM test_submissions te`
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
-### Issue 2 (DESIGN): Task Completion ignores the date filter
+---
 
-`useTaskStats()` fetches ALL tasks for the company with no date filtering. The dashboard date picker (Mar 12–19) has no effect on this card. The 14% rate and 73 overdue reflect all-time data, not the selected week.
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-The other cards (Audit Score, Workforce Score, Attendance) all respect the date range. Tasks is the odd one out.
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
-## Fix Plan
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
 
-### Fix 1: Patch RPC — replace `test_attempts` with `test_submissions`
+---
 
-Single database migration to `CREATE OR REPLACE FUNCTION` with the table name corrected on line 335. This will make the Workforce Score card functional.
+## Phase 4: Integration & Testing ✅ COMPLETE
 
-### Fix 2: Make Task Completion date-aware (optional, separate scope)
-
-Pass `dateFrom`/`dateTo` into `useTaskStats` and filter tasks by `created_at` or `due_at` within the range. This would make the Task card consistent with the other five cards. However, this changes existing behavior and should be confirmed as desired.
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| Database migration | Replace `test_attempts` with `test_submissions` in the RPC |
-
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
