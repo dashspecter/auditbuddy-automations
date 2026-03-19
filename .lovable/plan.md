@@ -1,40 +1,64 @@
+# City Hall Internal Operations — Implementation Progress
 
+## Phase 1: Foundation (Industry + Terminology) ✅ COMPLETE
 
-# Fix: Workforce Score Still Shows 0% — Missing `performance_reviews` Table
+### 1A. Database ✅
+- Created `company_label_overrides` table with RLS
+- Inserted "Government / Public Administration" industry (slug: `government`)
+- Linked all 18 modules to the government industry
 
-## Findings
+### 1B. Onboarding RPC ✅
+- Updated `create_company_onboarding` to auto-seed 8 label overrides for government
 
-### Workforce Score (0% / 0 employees) — BROKEN
-The RPC `calculate_location_performance_scores` crashes at line 340 because it queries `performance_reviews`, a table that **does not exist** in the database. This is the third stale reference in the same function (after `task_completions` columns and `test_attempts`). Every call returns an error, so the hook gets an empty array → 0%.
+### 1C. Frontend ✅
+- `useLabels` hook, `useCompanyIndustry` hook, TerminologySettings page
+- Landmark icon in onboarding, Terminology nav item + route
 
-The fix: since the `performance_reviews` feature hasn't been built yet, wrap that query in an exception handler so it gracefully returns 0 reviews instead of crashing the entire function.
+---
 
-### Open CAs (0) — CORRECT
-The database has 24 corrective actions, **all with status "closed"**. Zero are "open" or "in_progress". The card showing 0 is accurate.
+## Phase 2: Multi-Step Approval Engine ✅ COMPLETE
 
-## Fix
+### 2A. Database Tables ✅
+- `approval_workflows` — multi-step workflow definitions with jsonb steps
+- `approval_requests` — requests linked to workflows with status tracking
+- `approval_decisions` — immutable audit trail of approve/reject decisions
+- All tables with strict company-scoped RLS
 
-**Single database migration** to update the RPC: wrap the `performance_reviews` query (lines 340-344) in a `BEGIN...EXCEPTION` block that catches the missing table error and defaults to 0 reviews / 0 score. This makes the function resilient without needing to create the table.
+### 2B. Module Registration ✅
+- `government_ops` added to moduleRegistry (Landmark icon, operations category)
+- Added to all pricing tiers in pricingTiers.ts
+- Inserted into `modules` table (INDUSTRY_SPECIFIC) + linked to government industry
 
-```sql
--- Inside the function, replace lines 340-344 with:
-BEGIN
-  SELECT COUNT(*), COALESCE(AVG(pr.overall_score), 0)
-  INTO v_reviews_count, v_avg_review_score
-  FROM performance_reviews pr
-  WHERE pr.employee_id = v_emp.id
-    AND pr.review_date >= p_start_date AND pr.review_date <= p_end_date;
-EXCEPTION WHEN undefined_table THEN
-  v_reviews_count := 0;
-  v_avg_review_score := 0;
-END;
-```
+### 2C. Approval UI ✅
+- `src/hooks/useApprovals.ts` — full CRUD hooks (workflows, requests, decisions)
+- `src/pages/ApprovalQueue.tsx` — pending/completed tabs, inline approve/reject
+- `src/pages/settings/ApprovalWorkflows.tsx` — CRUD with step builder
+- Nav items in AppSidebar + navigationConfig gated by `government_ops` module
+- Routes added to App.tsx
 
-Similarly, wrap the `warnings` query (lines 402-406) in the same pattern as a preventive measure.
+---
 
-### Files to Change
+## Phase 3: Executive (Mayor) Dashboard ✅ COMPLETE
 
-| File | Change |
-|------|--------|
-| Database migration | `CREATE OR REPLACE FUNCTION calculate_location_performance_scores` with exception handlers for missing tables |
+### 3A. New Components ✅
+- `DepartmentHealthGrid` — per-location KPI cards (audit score, task %, open CAs, staff count) with color coding
+- `PendingApprovalsWidget` — inline approve/reject for pending approval requests
+- `ActivityFeedWidget` — recent activity_logs timeline
+- `ExecutiveDashboard` — composes all above + existing widgets (CrossModuleStatsRow, TasksWidget, etc.)
 
+### 3B. Conditional Dashboard Routing ✅
+- AdminDashboard checks `useCompanyIndustry()` slug; renders ExecutiveDashboard for `government`
+
+---
+
+## Phase 4: Integration & Testing ✅ COMPLETE
+
+### Verified
+- Build passes cleanly with no TypeScript errors
+- Onboarding: `Landmark` icon mapped to `government` slug, `create_company_onboarding` RPC seeds 8 label overrides
+- Terminology: `/settings/terminology` route protected by `CompanyAdminRoute`, `useLabels` hook cached 10min
+- Approvals: `government_ops` module registered in moduleRegistry, pricingTiers (all tiers), navigationConfig, AppSidebar
+- Routes: `/approvals`, `/settings/approval-workflows`, `/settings/terminology` all wired in App.tsx
+- Executive Dashboard: `AdminDashboard` conditionally renders `ExecutiveDashboard` for `government` industry slug
+- RLS: All 4 new tables (`company_label_overrides`, `approval_workflows`, `approval_requests`, `approval_decisions`) have company-scoped policies
+- Non-government companies: zero impact — no new nav items, no label changes, standard AdminDashboard
