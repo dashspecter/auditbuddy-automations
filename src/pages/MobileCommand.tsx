@@ -13,6 +13,7 @@ const MobileCommand = () => {
   const navigate = useNavigate();
   const {
     clockedIn,
+    clockedOut,
     scheduledToday,
     scheduledAudits,
     completedAudits,
@@ -40,8 +41,9 @@ const MobileCommand = () => {
 
           <LiveWorkforceSection
             data={clockedIn.data}
+            clockedOut={clockedOut.data}
             scheduled={scheduledToday.data}
-            isLoading={clockedIn.isLoading || scheduledToday.isLoading}
+            isLoading={clockedIn.isLoading || clockedOut.isLoading || scheduledToday.isLoading}
           />
 
           <TodayAuditsSection
