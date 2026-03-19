@@ -541,6 +541,7 @@ export function useMobileCommandData() {
   const queryClient = useQueryClient();
 
   const clockedIn = useClockedIn(companyId);
+  const clockedOut = useClockedOut(companyId);
   const scheduledToday = useScheduledToday(companyId);
   const scheduledAudits = useTodayScheduledAudits(companyId);
   const completedAudits = useTodayCompletedAudits(companyId);
@@ -550,6 +551,7 @@ export function useMobileCommandData() {
   const refetchAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['command-clocked-in'] }),
+      queryClient.invalidateQueries({ queryKey: ['command-clocked-out'] }),
       queryClient.invalidateQueries({ queryKey: ['command-scheduled-today'] }),
       queryClient.invalidateQueries({ queryKey: ['command-scheduled-audits'] }),
       queryClient.invalidateQueries({ queryKey: ['command-completed-audits'] }),
@@ -560,6 +562,7 @@ export function useMobileCommandData() {
 
   return {
     clockedIn,
+    clockedOut,
     scheduledToday,
     scheduledAudits,
     completedAudits,
