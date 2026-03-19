@@ -250,11 +250,23 @@ function useTodayScheduledAudits(companyId: string | undefined) {
       const userIds = [...new Set((data ?? []).map((r: any) => r.assigned_to).filter(Boolean))];
       let profileMap: Record<string, string> = {};
 
-      // 2. Recurring audit schedules
+      // 2. Recurring audit schedules — filter by company via locations join
       const { data: recurringData } = await supabase
         .from('recurring_audit_schedules')
-        .select('id, start_date, start_time, recurrence_pattern, day_of_week, day_of_month, end_date, is_active, location_id, template_id, assigned_user_id, audit_templates(name), locations(name)')
-        .eq('is_active', true);
+        .select('id, start_date, start_time, recurrence_pattern, day_of_week, day_of_month, end_date, is_active, location_id, template_id, assigned_user_id, audit_templates(name), locations!inner(name, company_id)')
+        .eq('is_active', true)
+        .eq('locations.company_id', companyId!);
+
+      // 3. Get today's completed/in-progress audits to deduplicate
+      const { data: todayAudits } = await supabase
+        .from('location_audits')
+        .select('template_id, location_id')
+        .eq('company_id', companyId!)
+        .eq('audit_date', today);
+
+      const completedKeys = new Set(
+        (todayAudits ?? []).map((a: any) => `${a.template_id}__${a.location_id}`)
+      );
 
       const todayDate = new Date(today + 'T00:00:00');
       const recurringItems: ScheduledAuditItem[] = [];
@@ -262,12 +274,16 @@ function useTodayScheduledAudits(companyId: string | undefined) {
       for (const schedule of (recurringData ?? []) as any[]) {
         if (!doesRecurringScheduleFallOnDate(schedule, todayDate)) continue;
 
+        // Skip if a matching audit already exists for today
+        const dedupeKey = `${schedule.template_id}__${schedule.location_id}`;
+        if (completedKeys.has(dedupeKey)) continue;
+
         const scheduledFor = `${today}T${schedule.start_time || '12:00:00'}`;
         recurringItems.push({
           id: `recurring-${schedule.id}`,
           templateName: schedule.audit_templates?.name ?? 'Audit',
           locationName: schedule.locations?.name ?? 'Unknown',
-          assignedTo: '', // resolved below
+          assignedTo: '',
           scheduledFor,
         });
 
