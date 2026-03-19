@@ -112,6 +112,34 @@ function useClockedIn(companyId: string | undefined) {
   });
 }
 
+function useClockedOut(companyId: string | undefined) {
+  return useQuery({
+    queryKey: ['command-clocked-out', companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<ClockedOutEmployee[]> => {
+      const todayStart = startOfDay(new Date()).toISOString();
+
+      const { data, error } = await supabase
+        .from('attendance_logs')
+        .select('id, staff_id, check_in_at, check_out_at, employees!attendance_logs_staff_id_fkey(full_name, role), locations!attendance_logs_location_id_fkey(name, id)')
+        .not('check_out_at', 'is', null)
+        .gte('check_in_at', todayStart);
+
+      if (error) throw error;
+
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        staffName: row.employees?.full_name ?? 'Unknown',
+        role: row.employees?.role ?? '',
+        locationName: row.locations?.name ?? 'Unknown',
+        locationId: row.locations?.id ?? '',
+        checkInAt: row.check_in_at,
+        checkOutAt: row.check_out_at,
+      }));
+    },
+  });
+}
+
 function useScheduledToday(companyId: string | undefined) {
   const today = format(new Date(), 'yyyy-MM-dd');
 
