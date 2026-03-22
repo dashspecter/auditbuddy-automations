@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert,
+  Cog, Trash2, History, ShieldCheck, ShieldAlert,
   MessageSquare, Languages, Landmark
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
