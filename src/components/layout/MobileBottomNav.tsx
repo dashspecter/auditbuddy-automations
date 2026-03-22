@@ -62,7 +62,7 @@ export function MobileBottomNav() {
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border safe-area-pb">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around h-16">
           {mainNavItems.map((item) => {
             const Icon = item.icon;

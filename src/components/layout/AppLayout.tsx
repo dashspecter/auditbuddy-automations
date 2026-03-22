@@ -5,6 +5,7 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -22,7 +23,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <OfflineIndicator />
         <AppTopBar />
         
-        <main className="flex-1 overflow-auto p-3 md:p-4">
+        <main className={cn("flex-1 overflow-auto p-3 md:p-4", isMobile && "pb-20")}>
           <Breadcrumbs />
           <div className="mt-3 md:mt-4">
             {children}
