@@ -41,6 +41,7 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
   execute_audit_template_creation: "medium",
   execute_shift_creation: "medium",
   reassign_corrective_action: "high",
+  execute_ca_reassignment: "high",
 };
 
 // ─── Helpers ────────────────────────────────────────────────
