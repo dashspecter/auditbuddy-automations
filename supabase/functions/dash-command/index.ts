@@ -235,6 +235,87 @@ const tools = [
       },
     },
   },
+  // --- FILE: Parse uploaded file ---
+  {
+    type: "function",
+    function: {
+      name: "parse_uploaded_file",
+      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it (e.g., create an audit template from a PDF, onboard an employee from an ID scan, import a schedule from a spreadsheet).",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "The signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          intent: { type: "string", enum: ["id_scan", "audit_template", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file" },
+        },
+        required: ["file_url", "file_name", "intent"],
+      },
+    },
+  },
+  // --- DRAFT: Create employee draft ---
+  {
+    type: "function",
+    function: {
+      name: "create_employee_draft",
+      description: "Create an employee draft from extracted data (e.g., from an ID scan). Returns a preview for user approval before creating the actual employee record.",
+      parameters: {
+        type: "object",
+        properties: {
+          full_name: { type: "string", description: "Employee full name" },
+          cnp: { type: "string", description: "Romanian CNP (personal numeric code)" },
+          date_of_birth: { type: "string", description: "Date of birth YYYY-MM-DD" },
+          id_series: { type: "string", description: "ID card series" },
+          id_number: { type: "string", description: "ID card number" },
+          address: { type: "string", description: "Address from ID" },
+          location_name: { type: "string", description: "Target location name" },
+          role: { type: "string", description: "Job role/position" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+        },
+        required: ["full_name"],
+      },
+    },
+  },
+  // --- DRAFT: Create audit template draft ---
+  {
+    type: "function",
+    function: {
+      name: "create_audit_template_draft",
+      description: "Create an audit template draft from extracted PDF content. Returns a structured preview with sections and fields for user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Name for the audit template" },
+          description: { type: "string", description: "Template description" },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                fields: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      field_type: { type: "string", enum: ["yes_no", "rating", "text", "number", "checkbox", "photo"] },
+                      is_required: { type: "boolean" },
+                    },
+                    required: ["name", "field_type"],
+                  },
+                },
+              },
+              required: ["name", "fields"],
+            },
+            description: "Template sections with fields",
+          },
+          recurrence: { type: "string", enum: ["daily", "weekly", "monthly", "none"], description: "Suggested recurrence" },
+          target_locations: { type: "string", enum: ["all", "specific"], description: "Which locations to assign to" },
+        },
+        required: ["template_name", "sections"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
@@ -410,6 +491,159 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       return { total_incomplete: (data ?? []).length, overdue_count: overdue.length, gaps: (data ?? []).map((a: any) => ({ employee: a.employees?.full_name, module: a.training_modules?.title, status: a.status, due_date: a.due_date, location: a.employees?.locations?.name })) };
     }
 
+    case "parse_uploaded_file": {
+      const { file_url, file_name, intent } = args;
+      if (!file_url) return { error: "No file URL provided" };
+
+      try {
+        if (intent === "id_scan") {
+          // Call existing scan-id-document edge function
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+          const scanResp = await fetch(`${SUPABASE_URL}/functions/v1/scan-id-document`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+            body: JSON.stringify({ imageUrl: file_url }),
+          });
+
+          if (!scanResp.ok) {
+            return { error: "Failed to scan ID document. Please ensure the image is clear and readable." };
+          }
+
+          const scanResult = await scanResp.json();
+          return {
+            type: "id_scan_result",
+            file_name,
+            extracted_data: scanResult,
+            confidence: "medium",
+            next_step: "Review the extracted data and call create_employee_draft with the confirmed fields.",
+          };
+        }
+
+        if (intent === "audit_template") {
+          // Use Gemini vision to parse the PDF/image into audit structure
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+          const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
+                    { type: "image_url", image_url: { url: file_url } },
+                  ],
+                },
+              ],
+              stream: false,
+            }),
+          });
+
+          if (!parseResp.ok) {
+            return { error: "Failed to parse document for audit template extraction." };
+          }
+
+          const parseResult = await parseResp.json();
+          const content = parseResult.choices?.[0]?.message?.content || "";
+
+          // Try to parse JSON from the response
+          let templateData: any = null;
+          try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) templateData = JSON.parse(jsonMatch[0]);
+          } catch {
+            return { raw_extraction: content, error: "Could not parse structured data from document. The raw extraction is provided for manual review." };
+          }
+
+          return {
+            type: "audit_template_extraction",
+            file_name,
+            extracted_template: templateData,
+            confidence: "medium",
+            next_step: "Review the extracted template structure and call create_audit_template_draft to finalize.",
+          };
+        }
+
+        // General document parse
+        return {
+          type: "general_parse",
+          file_name,
+          message: `File "${file_name}" received. Please specify what you'd like to do with it: create an audit template, onboard an employee from ID, or import a schedule.`,
+        };
+      } catch (err: any) {
+        return { error: `File processing failed: ${err.message}` };
+      }
+    }
+
+    case "create_employee_draft": {
+      // Resolve location if name provided
+      let locationId = null;
+      if (args.location_name) {
+        const { data: locData } = await sb.from("locations").select("id, name").ilike("name", `%${args.location_name}%`).limit(1);
+        if (locData?.[0]) locationId = locData[0].id;
+      }
+
+      const draft = {
+        full_name: args.full_name,
+        cnp: args.cnp || null,
+        date_of_birth: args.date_of_birth || null,
+        id_series: args.id_series || null,
+        id_number: args.id_number || null,
+        address: args.address || null,
+        location_id: locationId,
+        location_name: args.location_name || null,
+        role: args.role || null,
+        start_date: args.start_date || null,
+        status: "draft",
+      };
+
+      // Check for required fields
+      const missing: string[] = [];
+      if (!draft.full_name) missing.push("full_name");
+      if (!draft.location_name && !draft.location_id) missing.push("location (which location?)");
+      if (!draft.role) missing.push("role/position");
+
+      return {
+        type: "employee_draft",
+        draft,
+        missing_fields: missing,
+        requires_approval: true,
+        risk_level: "medium",
+        message: missing.length > 0
+          ? `Draft created but missing: ${missing.join(", ")}. Please provide these to proceed.`
+          : `Employee draft ready for "${draft.full_name}" at ${draft.location_name || "unspecified location"} as ${draft.role || "unspecified role"}. Please confirm to create.`,
+      };
+    }
+
+    case "create_audit_template_draft": {
+      const sectionCount = args.sections?.length || 0;
+      const fieldCount = args.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
+
+      return {
+        type: "audit_template_draft",
+        draft: {
+          name: args.template_name,
+          description: args.description || null,
+          sections: args.sections,
+          recurrence: args.recurrence || "none",
+          target_locations: args.target_locations || "all",
+        },
+        summary: {
+          sections: sectionCount,
+          total_fields: fieldCount,
+          recurrence: args.recurrence || "none",
+          target: args.target_locations || "all locations",
+        },
+        requires_approval: true,
+        risk_level: "medium",
+        message: `Audit template "${args.template_name}" draft ready with ${sectionCount} sections and ${fieldCount} fields. Recurrence: ${args.recurrence || "none"}. Please confirm to create.`,
+      };
+    }
+
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -432,8 +666,8 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Locations**: ${ctx.locations.length > 0 ? ctx.locations.join(", ") : "Not loaded"}
 - **Timezone**: Europe/Bucharest
 
-## Your Capabilities (Phase 1 — Read Only)
-You can retrieve and analyze data across modules:
+## Your Capabilities
+### Read & Analyze (all modules)
 - **Locations**: Search, overview, cross-module summaries
 - **Audits**: Results, scores, comparisons between locations
 - **Workforce**: Employee search, attendance exceptions
@@ -443,6 +677,21 @@ You can retrieve and analyze data across modules:
 - **Documents**: Expiring documents
 - **Training**: Gaps and overdue assignments
 
+### File Processing (Phase 2)
+- **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
+- **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft
+- **General Document**: Parse uploaded files for content extraction
+
+### Draft Creation (Phase 2)
+- **Employee Draft**: Create a draft employee record from extracted or provided data. Requires user approval.
+- **Audit Template Draft**: Create a draft audit template with sections and fields. Requires user approval.
+
+When creating drafts:
+1. Always show the user a clear summary of what will be created
+2. List any missing required fields
+3. Wait for explicit approval before indicating the draft is ready
+4. Clearly state the risk level and what will be affected
+
 ## Response Guidelines
 1. Use **markdown** formatting for readability (headers, bold, lists, tables).
 2. Always state the **date range** and **scope** of your analysis.
@@ -451,10 +700,11 @@ You can retrieve and analyze data across modules:
 5. If a module is not active for this company, inform the user.
 6. Keep responses concise but thorough. Prefer structured data over prose.
 7. When multiple data points are available, summarize first, then detail.
+8. When a user attaches a file, detect the intent (ID scan, audit template, schedule) and use the appropriate tool.
+9. For file processing, always show extracted data clearly and ask for confirmation before creating drafts.
 
 ## What You Cannot Do Yet
-- You cannot create, update, or delete records (coming in future phases).
-- You cannot upload or process files yet.
+- You cannot finalize/save draft records to the database yet (approval execution coming soon).
 - You cannot access other companies' data.
 - If asked to do something outside your capabilities, explain what you CAN do instead.`;
 }

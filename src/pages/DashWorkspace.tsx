@@ -5,7 +5,6 @@ import { useDashChat } from "@/hooks/useDashChat";
 import { DashMessageList } from "@/components/dash/DashMessageList";
 import { DashInput } from "@/components/dash/DashInput";
 import { DashScopeBar } from "@/components/dash/DashScopeBar";
-import { useUserRole } from "@/hooks/useUserRole";
 import { Trash2 } from "lucide-react";
 
 const SUGGESTED = [
@@ -20,6 +19,10 @@ const SUGGESTED = [
 export default function DashWorkspace() {
   const navigate = useNavigate();
   const { messages, isLoading, sendMessage, clearChat, cancelStream } = useDashChat();
+
+  const handleSend = (text: string) => {
+    sendMessage(text);
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
@@ -50,11 +53,11 @@ export default function DashWorkspace() {
       </div>
 
       {/* Chat area */}
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={sendMessage} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} />
 
       {/* Input */}
       <div className="pt-3 border-t border-border/40 mt-auto">
-        <DashInput onSend={sendMessage} isLoading={isLoading} onCancel={cancelStream} placeholder="Ask Dash about your operations..." />
+        <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} placeholder="Ask Dash about your operations..." />
       </div>
     </div>
   );

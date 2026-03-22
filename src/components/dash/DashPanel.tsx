@@ -46,6 +46,10 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const role = roleData?.isAdmin ? "admin" : roleData?.isManager ? "manager" : "staff";
   const suggested = SUGGESTED_BY_ROLE[role] || SUGGESTED_BY_ROLE.staff;
 
+  const handleSend = (text: string) => {
+    sendMessage(text);
+  };
+
   const chatContent = (
     <div className="flex flex-col h-full gap-2">
       <div className="flex items-center justify-between">
@@ -63,8 +67,8 @@ export function DashPanel({ trigger }: DashPanelProps) {
           )}
         </div>
       </div>
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={sendMessage} />
-      <DashInput onSend={sendMessage} isLoading={isLoading} onCancel={cancelStream} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} />
+      <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
     </div>
   );
 
