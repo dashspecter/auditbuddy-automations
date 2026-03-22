@@ -85,14 +85,17 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = () => {
-    if ((!input.trim() && attachedFiles.length === 0) || isLoading) return;
+  const MAX_LENGTH = 2000;
 
+  const handleSubmit = () => {
+    if ((!input.trim() && attachedFiles.length === 0) || isLoading || uploading) return;
+
+    const trimmed = input.trim().substring(0, MAX_LENGTH);
     const fileContext = attachedFiles.length > 0
       ? `\n\n[Attached files: ${attachedFiles.map(f => f.name).join(", ")}]\n[File URLs: ${attachedFiles.map(f => f.url).join(", ")}]`
       : "";
 
-    onSend(input.trim() + fileContext, attachedFiles.map(f => f.url));
+    onSend(trimmed + fileContext, attachedFiles.map(f => f.url));
     setInput("");
     setAttachedFiles([]);
   };
