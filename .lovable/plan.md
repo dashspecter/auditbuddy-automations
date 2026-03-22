@@ -1,76 +1,78 @@
 
 
-# Next Phase: QA Fixes + Phase 2 (Draft-Based Creation)
+# Phase 6 — Observability, Hardening & Deeper Automation
 
-## Step 1 — Apply QA Blockers (must do first)
+## What We're Building
 
-| Fix | What |
-|-----|------|
-| Documents RLS | Replace open SELECT policy with `company_id = get_user_company_id(auth.uid())` |
-| Edge fn `.single()` | Change to `.maybeSingle()` + `order("created_at")` + `.limit(1)` in `dash-command/index.ts` |
-| Route protection | Wrap `/dash` in `ManagerRoute` in `App.tsx` |
-| Module gating | Add `TOOL_MODULE_MAP` check at top of `executeTool` in edge function |
+Six improvements to make Dash production-ready: session title generation, error recovery, production hardening, conversation export, idle session archival, and an admin observability dashboard.
 
-## Step 2 — Session Persistence
+---
 
-- On assistant response completion, upsert conversation to `dash_sessions`
-- On DashPanel/DashWorkspace mount, load last active session
-- Add "New conversation" button to clear and start fresh
-- Add session list/history in DashPanel sidebar
+## Step 1 — Session Title Auto-Generation
+**Current**: Session titles use first 100 chars of the first message (line 1689 of edge function).
+**Change**: After the LLM response is generated, extract a short 5-8 word title from the first user message using a simple heuristic (first sentence, trimmed). No extra LLM call needed — just smarter truncation.
+- **File**: `supabase/functions/dash-command/index.ts` — improve title generation at line ~1689
 
-## Step 3 — Structured Event Cards
+## Step 2 — Error Recovery & Retry
+- Wrap each tool execution in `executeTool` with try/catch, return `{ error, recoverable }` on failure
+- Add system prompt instruction: "If a tool returns an error, explain the failure clearly and suggest the user retry"
+- Add "Retry" button in `DashMessageList.tsx` when last message contains `⚠️`
+- Add `retryLast()` method to `useDashChat.ts` that resends the last user message
+- **Files**: `supabase/functions/dash-command/index.ts`, `src/components/dash/DashMessageList.tsx`, `src/hooks/useDashChat.ts`
 
-- Emit structured SSE events from edge function (source_card, data_table, clarification)
-- Parse structured events in `useDashChat.ts` and attach to messages as `structured` array
-- Build and render: `SourceCard.tsx`, `DataTableCard.tsx`, `ClarificationCard.tsx`
-- Wire into `DashMessageList.tsx` to render cards inline with markdown
+## Step 3 — Production Hardening
+- **Rate limiting**: Add per-user 30 msg/hour counter in edge function using `dash_action_log` count check
+- **Input sanitization**: Strip `<system>`, `<|im_start|>`, and similar injection markers from file-extracted content before LLM
+- **Max message length**: Cap at 2000 chars in `DashInput.tsx` with character counter
+- **Concurrent guard**: Disable send button during file upload (already partially done, tighten)
+- **Files**: `supabase/functions/dash-command/index.ts`, `src/components/dash/DashInput.tsx`
 
-## Step 4 — File Upload Pipeline
+## Step 4 — Conversation Export
+- Add "Export" button in `DashWorkspace.tsx` header
+- Serialize messages to markdown format and trigger browser download as `.md` file
+- **File**: `src/pages/DashWorkspace.tsx`
 
-- Add file upload button to `DashInput.tsx` (images, PDFs, spreadsheets)
-- Upload to Supabase Storage bucket, pass signed URL to edge function
-- Add `parse_uploaded_file` tool that classifies file type and extracts content
-- Add `extract_id_document` tool wrapping existing `scan-id-document` edge function
-- Add `transform_pdf_to_template` tool for audit template extraction
+## Step 5 — Idle Session Archival
+- Database migration: create `archive_idle_dash_sessions()` function that sets `status = 'archived'` for sessions with `updated_at < NOW() - INTERVAL '4 hours'`
+- Set up pg_cron job to run every 30 minutes
+- `DashSessionHistory.tsx`: show archived sessions as read-only (no "Resume" button)
+- **Files**: Database migration, `src/components/dash/DashSessionHistory.tsx`
 
-## Step 5 — Draft-Based Creation Flows
+## Step 6 — Observability Dashboard
+- New page `src/pages/DashAnalytics.tsx` — admin-only route at `/dash/analytics`
+- Queries `dash_action_log` and `dash_sessions` for:
+  - Total sessions & messages (cards)
+  - Tool usage breakdown (list)
+  - Success/failure counts
+  - Top users by session count
+  - Per-module usage
+  - Write action approval rates
+- New component `src/components/dash/DashUsageStats.tsx` for stat cards
+- Add route in `App.tsx` wrapped in `AdminRoute`
+- **Files**: `src/pages/DashAnalytics.tsx` (new), `src/components/dash/DashUsageStats.tsx` (new), `src/App.tsx`
 
-- **Employee from ID**: Extract data → show draft card → ask missing fields → create on approval
-- **Audit template from PDF**: Parse sections/questions → show template draft card → configure scoring/recurrence → create on approval
-- Build `ActionPreviewCard.tsx` — shows draft summary with approve/reject buttons
-- Build `ApprovalCard.tsx` — structured confirmation with affected entities list
-- Wire approval flow: user confirms → edge function executes governed write → returns `ExecutionResultCard`
+---
 
-## Step 6 — Missing-Info Clarification Flow
-
-- When tool detects missing required fields, emit `clarification` structured event
-- UI renders inline question with option buttons or text input
-- User response feeds back into the tool-calling loop
-
-## Files to create/modify
+## Files Summary
 
 | File | Action |
 |------|--------|
-| Database migration | Fix `documents` RLS |
-| `supabase/functions/dash-command/index.ts` | Fix `.single()`, add module gating, add file tools, add write tools, emit structured events |
-| `src/App.tsx` | Wrap `/dash` in `ManagerRoute` |
-| `src/hooks/useDashChat.ts` | Session persistence, structured event parsing |
-| `src/components/dash/SourceCard.tsx` | New — entity reference chips |
-| `src/components/dash/DataTableCard.tsx` | New — inline data tables |
-| `src/components/dash/ActionPreviewCard.tsx` | New — draft preview with approve/reject |
-| `src/components/dash/ApprovalCard.tsx` | New — confirmation card |
-| `src/components/dash/ExecutionResultCard.tsx` | New — success/failure summary |
-| `src/components/dash/ClarificationCard.tsx` | New — inline question card |
-| `src/components/dash/DashInput.tsx` | Add file upload |
-| `src/components/dash/DashMessageList.tsx` | Render structured cards inline |
-| `src/components/dash/DashPanel.tsx` | Session history list |
+| `supabase/functions/dash-command/index.ts` | Better titles, error recovery in tools, rate limiting, input sanitization |
+| `src/hooks/useDashChat.ts` | Add `retryLast()` |
+| `src/components/dash/DashMessageList.tsx` | Retry button on error messages |
+| `src/components/dash/DashInput.tsx` | 2000 char limit + counter |
+| `src/pages/DashWorkspace.tsx` | Export button |
+| `src/components/dash/DashSessionHistory.tsx` | Archived session visual treatment |
+| `src/pages/DashAnalytics.tsx` | New — observability dashboard |
+| `src/components/dash/DashUsageStats.tsx` | New — stat cards |
+| `src/App.tsx` | Add `/dash/analytics` route |
+| Database migration | `archive_idle_dash_sessions()` function |
+| SQL insert (pg_cron) | Schedule archival job every 30 min |
 
-## Delivery order
-
-1. QA fixes (migration + edge fn + route) — ship immediately
-2. Session persistence — enables continuity
-3. Structured event cards — enables rich responses
-4. File upload pipeline — enables document ingestion
-5. Draft creation flows (employee + audit template) — the flagship Phase 2 deliverables
-6. Clarification flow — polishes the multi-step UX
+## Delivery Order
+1. Session title generation + error recovery + retry (reliability)
+2. Production hardening (security)
+3. Conversation export (user value)
+4. Idle archival (maintenance)
+5. Observability dashboard (admin insights)
 
