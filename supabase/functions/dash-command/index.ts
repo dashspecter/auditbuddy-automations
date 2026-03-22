@@ -1727,7 +1727,7 @@ serve(async (req) => {
             id: session_id,
             company_id: companyId,
             user_id: userId,
-            title: messages?.[0]?.content?.substring(0, 100) || "Dash conversation",
+            title: generateSmartTitle(messages?.[0]?.content),
             messages_json: [...messages, { role: "assistant", content: finalContent }],
             status: "active",
             updated_at: new Date().toISOString(),
