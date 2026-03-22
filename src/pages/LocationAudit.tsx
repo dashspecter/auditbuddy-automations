@@ -1541,9 +1541,13 @@ const LocationAudit = () => {
 
           {/* Submit Button */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-safe mb-8">
-            <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId}>
-              <Save className="h-4 w-4" />
-              Submit Audit
+            <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId || isSubmitting}>
+              {isSubmitting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSubmitting ? "Submitting…" : "Submit Audit"}
             </Button>
             <Button 
               type="button" 
