@@ -213,6 +213,7 @@ import ScoutsPayouts from "./pages/scouts/ScoutsPayouts";
 import ScoutsRoster from "./pages/scouts/ScoutsRoster";
 import InstallApp from "./pages/InstallApp";
 import DashWorkspace from "./pages/DashWorkspace";
+import DashAnalytics from "./pages/DashAnalytics";
 import ScoutsAnalytics from "./pages/scouts/ScoutsAnalytics";
 import CompanyDetail from "./pages/admin/CompanyDetail";
 const queryClient = new QueryClient({
@@ -329,6 +330,7 @@ const App = () => {
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />
                       <Route path="/dash" element={<ManagerRoute><AppLayout><DashWorkspace /></AppLayout></ManagerRoute>} />
+                      <Route path="/dash/analytics" element={<AdminRoute><AppLayout><DashAnalytics /></AppLayout></AdminRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                       <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
                       <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />

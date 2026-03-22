@@ -55,6 +55,34 @@ async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE
   return { fromUtc: data[0].from_utc, toUtc: data[0].to_utc };
 }
 
+function generateSmartTitle(firstMessage: string): string {
+  if (!firstMessage) return "Dash conversation";
+  // Take the first sentence or first 60 chars, whichever is shorter
+  const cleaned = firstMessage.replace(/\n/g, " ").trim();
+  const sentenceEnd = cleaned.search(/[.!?]/);
+  let title = sentenceEnd > 10 && sentenceEnd < 80 ? cleaned.substring(0, sentenceEnd) : cleaned.substring(0, 60);
+  // Trim to last full word
+  if (title.length >= 60) {
+    const lastSpace = title.lastIndexOf(" ");
+    if (lastSpace > 30) title = title.substring(0, lastSpace);
+    title += "…";
+  }
+  return title || "Dash conversation";
+}
+
+function sanitizeInput(text: string): string {
+  // Strip potential prompt injection markers
+  return text
+    .replace(/<\|im_start\|>/gi, "")
+    .replace(/<\|im_end\|>/gi, "")
+    .replace(/<system>/gi, "")
+    .replace(/<\/system>/gi, "")
+    .replace(/\[INST\]/gi, "")
+    .replace(/\[\/INST\]/gi, "")
+    .replace(/<\|assistant\|>/gi, "")
+    .replace(/<\|user\|>/gi, "");
+}
+
 // ─── Structured Event Helpers ───────────────────────────────
 function makeStructuredEvent(type: string, data: any): string {
   return JSON.stringify({ type: "structured_event", event_type: type, data });
@@ -579,9 +607,22 @@ async function executeTool(
   // Module gating check
   const requiredModule = TOOL_MODULE_MAP[name];
   if (requiredModule && !activeModules.includes(requiredModule)) {
-    return { error: `The "${requiredModule}" module is not active for your company. Please enable it in Billing & Modules.` };
+    return { error: `The "${requiredModule}" module is not active for your company. Please enable it in Billing & Modules.`, recoverable: false };
   }
 
+  try {
+    return await executeToolInner(sb, sbService, name, args, companyId, userId, role, activeModules, structuredEvents);
+  } catch (err: any) {
+    console.error(`[Dash] Tool "${name}" error:`, err);
+    return { error: `Tool "${name}" failed: ${err.message || "Unknown error"}. You may retry this request.`, recoverable: true };
+  }
+}
+
+async function executeToolInner(
+  sb: any, sbService: any, name: string, args: any,
+  companyId: string, userId: string, role: string, activeModules: string[],
+  structuredEvents: string[]
+): Promise<any> {
   switch (name) {
     // ────────── READ TOOLS (unchanged) ──────────
     case "search_locations": {
@@ -1528,6 +1569,7 @@ You can now create AND execute records in the platform:
 8. For write actions, always show a clear summary before and after execution.
 9. After executing a write, report the result clearly (success/failure/partial).
 10. At the start of conversations, silently check user preferences and org memory to personalize responses.
+11. If a tool returns an error with "recoverable: true", explain the failure clearly to the user and suggest they retry. Do NOT silently swallow tool errors.
 
 ## What You Cannot Do
 - Access other companies' data
@@ -1596,8 +1638,27 @@ serve(async (req) => {
 
     console.log(`[Dash] User=${userId} Company=${companyId} Role=${displayRole} Modules=${activeModules.length}`);
 
+    // ─── Rate Limiting: 30 messages/hour ───
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: recentCount } = await sbService
+      .from("dash_action_log")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", oneHourAgo);
+    if ((recentCount ?? 0) >= 30) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. You can send up to 30 messages per hour. Please wait a few minutes." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // ─── Input Sanitization ───
+    const sanitizedMessages = messages.map((m: any) => ({
+      ...m,
+      content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
+    }));
+
     const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames });
-    let conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
+    let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 
     const maxIterations = 8;
     let iteration = 0;
@@ -1686,7 +1747,7 @@ serve(async (req) => {
             id: session_id,
             company_id: companyId,
             user_id: userId,
-            title: messages?.[0]?.content?.substring(0, 100) || "Dash conversation",
+            title: generateSmartTitle(messages?.[0]?.content),
             messages_json: [...messages, { role: "assistant", content: finalContent }],
             status: "active",
             updated_at: new Date().toISOString(),

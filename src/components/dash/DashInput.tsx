@@ -85,14 +85,17 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = () => {
-    if ((!input.trim() && attachedFiles.length === 0) || isLoading) return;
+  const MAX_LENGTH = 2000;
 
+  const handleSubmit = () => {
+    if ((!input.trim() && attachedFiles.length === 0) || isLoading || uploading) return;
+
+    const trimmed = input.trim().substring(0, MAX_LENGTH);
     const fileContext = attachedFiles.length > 0
       ? `\n\n[Attached files: ${attachedFiles.map(f => f.name).join(", ")}]\n[File URLs: ${attachedFiles.map(f => f.url).join(", ")}]`
       : "";
 
-    onSend(input.trim() + fileContext, attachedFiles.map(f => f.url));
+    onSend(trimmed + fileContext, attachedFiles.map(f => f.url));
     setInput("");
     setAttachedFiles([]);
   };
@@ -152,7 +155,10 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
           <textarea
             ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              const val = e.target.value;
+              if (val.length <= MAX_LENGTH) setInput(val);
+            }}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             placeholder={placeholder ?? "Ask Dash anything about your operations..."}
@@ -165,6 +171,11 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
               t.style.height = Math.min(t.scrollHeight, 120) + "px";
             }}
           />
+          {input.length > MAX_LENGTH * 0.8 && (
+            <span className={`absolute bottom-1 right-2 text-[10px] ${input.length >= MAX_LENGTH ? "text-destructive" : "text-muted-foreground"}`}>
+              {input.length}/{MAX_LENGTH}
+            </span>
+          )}
         </div>
 
         {isLoading ? (

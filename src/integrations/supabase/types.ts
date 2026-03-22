@@ -11974,6 +11974,7 @@ export type Database = {
         Args: { assignment_id: string }
         Returns: Json
       }
+      archive_idle_dash_sessions: { Args: never; Returns: number }
       calculate_location_audit_score: {
         Args: { audit_id: string }
         Returns: number
