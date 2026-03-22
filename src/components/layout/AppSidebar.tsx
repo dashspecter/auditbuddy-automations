@@ -4,7 +4,7 @@ import {
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
-  MessageCircleQuestion, Cog, Trash2, History, ShieldCheck, ShieldAlert,
+  Cog, Trash2, History, ShieldCheck, ShieldAlert,
   MessageSquare, Languages, Landmark
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -18,7 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useEffect, useCallback, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AIGuideChat } from "@/components/AIGuideChat";
+import { DashPanel } from "@/components/dash/DashPanel";
 import { useTranslation } from "react-i18next";
 import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 import { useLabels } from "@/hooks/useLabels";
@@ -923,20 +923,20 @@ export function AppSidebar() {
           )}
         </div>
 
-        {/* AI Guide at bottom */}
+        {/* Dash Command Center at bottom */}
         <div className="px-3 py-3 border-t border-sidebar-border/40">
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
-                <AIGuideChat
+                <DashPanel
                   trigger={
                     <button
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out bg-primary/10 text-primary hover:bg-primary/20 group ${isCollapsed ? 'justify-center' : ''}`}
                     >
                       <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors duration-200">
-                        <MessageCircleQuestion className="h-4 w-4 flex-shrink-0" />
+                        <Bot className="h-4 w-4 flex-shrink-0" />
                       </div>
-                      {!isCollapsed && <span>{t('nav.aiGuide')}</span>}
+                      {!isCollapsed && <span>Dash</span>}
                     </button>
                   }
                 />
@@ -944,7 +944,7 @@ export function AppSidebar() {
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right" className="bg-popover text-popover-foreground border">
-                {t('nav.aiGuide')}
+                Dash Command Center
               </TooltipContent>
             )}
           </Tooltip>
