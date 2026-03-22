@@ -16,6 +16,7 @@ interface DashMessageListProps {
   isLoading: boolean;
   suggestedQuestions: string[];
   onSuggestedClick: (q: string) => void;
+  onRetry?: () => void;
 }
 
 function StructuredEventRenderer({ event, onSuggestedClick }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void }) {
