@@ -438,6 +438,136 @@ const tools = [
       },
     },
   },
+  // --- MEMORY: User preferences ---
+  {
+    type: "function",
+    function: {
+      name: "save_user_preference",
+      description: "Save a user preference (e.g., preferred report format, default time window, favorite locations). Use when the user says 'remember that...', 'always use...', 'my default is...'.",
+      parameters: {
+        type: "object",
+        properties: {
+          preference_key: { type: "string", description: "Key name: 'report_format', 'default_time_window', 'favorite_locations', 'preferred_language', or custom key" },
+          preference_value: { type: "object", description: "The preference value as a JSON object" },
+        },
+        required: ["preference_key", "preference_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_user_preferences",
+      description: "Get all saved user preferences. Use to personalize responses (e.g., default date ranges, report format).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  // --- MEMORY: Organization memory ---
+  {
+    type: "function",
+    function: {
+      name: "save_org_memory",
+      description: "Save organization-level knowledge (terminology, standard processes, notes). Use when the user says 'we call X as Y', 'our standard process is...', 'note that...'.",
+      parameters: {
+        type: "object",
+        properties: {
+          memory_type: { type: "string", enum: ["terminology", "process", "standard", "note"], description: "Type of memory" },
+          memory_key: { type: "string", description: "Short key identifier" },
+          content: { type: "object", description: "The memory content as JSON" },
+        },
+        required: ["memory_type", "memory_key", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_org_memory",
+      description: "Retrieve organization memory entries. Use to understand company-specific terminology and processes.",
+      parameters: {
+        type: "object",
+        properties: {
+          memory_type: { type: "string", enum: ["terminology", "process", "standard", "note"], description: "Filter by type" },
+        },
+      },
+    },
+  },
+  // --- WORKFLOW: Save/list workflows ---
+  {
+    type: "function",
+    function: {
+      name: "save_workflow",
+      description: "Save the current conversation as a reusable workflow shortcut. Use when user says 'save this as a workflow', 'remember this report', 'make this a shortcut'.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Short name for the workflow" },
+          description: { type: "string", description: "What this workflow does" },
+          prompt: { type: "string", description: "The prompt that triggers this workflow" },
+          is_shared: { type: "boolean", description: "Whether other company users can see this workflow" },
+        },
+        required: ["name", "prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_saved_workflows",
+      description: "List all saved workflow shortcuts for the user.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  // --- FILE: Spreadsheet to schedule import ---
+  {
+    type: "function",
+    function: {
+      name: "transform_spreadsheet_to_schedule",
+      description: "Parse an uploaded spreadsheet (CSV/Excel) and extract schedule data (shifts, assignments). Use when user uploads a spreadsheet intending to import a schedule.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+        },
+        required: ["file_url", "file_name"],
+      },
+    },
+  },
+  // --- FILE: SOP to training module ---
+  {
+    type: "function",
+    function: {
+      name: "transform_sop_to_training",
+      description: "Parse an uploaded SOP/procedure document and extract it as a training module draft with sections, key points, and quiz questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          module_name: { type: "string", description: "Name for the training module" },
+        },
+        required: ["file_url", "file_name"],
+      },
+    },
+  },
+  // --- FILE: Compliance doc to recurring audit ---
+  {
+    type: "function",
+    function: {
+      name: "transform_compliance_doc_to_audit",
+      description: "Parse an uploaded compliance/regulation document and suggest a recurring audit template that covers its requirements.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          regulation_name: { type: "string", description: "Name of the regulation/standard" },
+        },
+        required: ["file_url", "file_name"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
