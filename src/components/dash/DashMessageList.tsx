@@ -1,8 +1,9 @@
 import { useRef, useEffect, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Sparkles, Loader2 } from "lucide-react";
+import { Bot, User, Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashMessage, DashStructuredEvent } from "@/hooks/useDashChat";
+import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { SourceCard } from "./SourceCard";
 import { DataTableCard } from "./DataTableCard";
