@@ -103,7 +103,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSug
 ));
 MessageBubble.displayName = "MessageBubble";
 
-export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick }: DashMessageListProps) {
+export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry }: DashMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -111,6 +111,9 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const lastMsg = messages[messages.length - 1];
+  const showRetry = !isLoading && lastMsg?.role === "assistant" && lastMsg.content.startsWith("⚠️") && onRetry;
 
   return (
     <ScrollArea className="flex-1" ref={scrollRef}>
@@ -145,6 +148,15 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
           </div>
         ) : (
           messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} />)
+        )}
+
+        {showRetry && (
+          <div className="flex justify-center">
+            <Button variant="outline" size="sm" onClick={onRetry} className="gap-1.5 text-xs">
+              <RotateCcw className="h-3 w-3" />
+              Retry last message
+            </Button>
+          </div>
         )}
 
         {isLoading && messages[messages.length - 1]?.role === "user" && (

@@ -35,7 +35,7 @@ export function DashSessionHistory({ currentSessionId, onSelectSession, onNewSes
         .from("dash_sessions")
         .select("id, title, updated_at, status")
         .eq("user_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "archived"])
         .order("updated_at", { ascending: false })
         .limit(20);
 
