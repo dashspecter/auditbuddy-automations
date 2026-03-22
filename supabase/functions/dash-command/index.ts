@@ -235,6 +235,87 @@ const tools = [
       },
     },
   },
+  // --- FILE: Parse uploaded file ---
+  {
+    type: "function",
+    function: {
+      name: "parse_uploaded_file",
+      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it (e.g., create an audit template from a PDF, onboard an employee from an ID scan, import a schedule from a spreadsheet).",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "The signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          intent: { type: "string", enum: ["id_scan", "audit_template", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file" },
+        },
+        required: ["file_url", "file_name", "intent"],
+      },
+    },
+  },
+  // --- DRAFT: Create employee draft ---
+  {
+    type: "function",
+    function: {
+      name: "create_employee_draft",
+      description: "Create an employee draft from extracted data (e.g., from an ID scan). Returns a preview for user approval before creating the actual employee record.",
+      parameters: {
+        type: "object",
+        properties: {
+          full_name: { type: "string", description: "Employee full name" },
+          cnp: { type: "string", description: "Romanian CNP (personal numeric code)" },
+          date_of_birth: { type: "string", description: "Date of birth YYYY-MM-DD" },
+          id_series: { type: "string", description: "ID card series" },
+          id_number: { type: "string", description: "ID card number" },
+          address: { type: "string", description: "Address from ID" },
+          location_name: { type: "string", description: "Target location name" },
+          role: { type: "string", description: "Job role/position" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+        },
+        required: ["full_name"],
+      },
+    },
+  },
+  // --- DRAFT: Create audit template draft ---
+  {
+    type: "function",
+    function: {
+      name: "create_audit_template_draft",
+      description: "Create an audit template draft from extracted PDF content. Returns a structured preview with sections and fields for user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Name for the audit template" },
+          description: { type: "string", description: "Template description" },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                fields: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      field_type: { type: "string", enum: ["yes_no", "rating", "text", "number", "checkbox", "photo"] },
+                      is_required: { type: "boolean" },
+                    },
+                    required: ["name", "field_type"],
+                  },
+                },
+              },
+              required: ["name", "fields"],
+            },
+            description: "Template sections with fields",
+          },
+          recurrence: { type: "string", enum: ["daily", "weekly", "monthly", "none"], description: "Suggested recurrence" },
+          target_locations: { type: "string", enum: ["all", "specific"], description: "Which locations to assign to" },
+        },
+        required: ["template_name", "sections"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
