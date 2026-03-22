@@ -1106,6 +1106,7 @@ const LocationAudit = () => {
       fireAuditCAPARules(auditId);
     };
 
+    setIsSubmitting(true);
     try {
       await performSubmit();
     } catch (error: any) {
@@ -1144,6 +1145,8 @@ const LocationAudit = () => {
         
         toast.error(errorMessage, { duration: 5000 });
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
