@@ -1,55 +1,96 @@
 
 
-# Phase 6 — Observability, Hardening & Deeper Automation
+# Phase B — Platform QA & Polish Pass
 
 ## What We're Building
 
-Six improvements to make Dash production-ready: session title generation, error recovery, production hardening, conversation export, idle session archival, and an admin observability dashboard.
+Production hardening across the full platform: code-splitting for performance, mobile responsiveness fixes, consistent error boundaries, and database index optimization. This is not Dash-specific — it covers the entire application.
 
 ---
 
-## Step 1 — Session Title Auto-Generation
-**Current**: Session titles use first 100 chars of the first message (line 1689 of edge function).
-**Change**: After the LLM response is generated, extract a short 5-8 word title from the first user message using a simple heuristic (first sentence, trimmed). No extra LLM call needed — just smarter truncation.
-- **File**: `supabase/functions/dash-command/index.ts` — improve title generation at line ~1689
+## Step 1 — Code Splitting (Critical Performance Win)
 
-## Step 2 — Error Recovery & Retry
-- Wrap each tool execution in `executeTool` with try/catch, return `{ error, recoverable }` on failure
-- Add system prompt instruction: "If a tool returns an error, explain the failure clearly and suggest the user retry"
-- Add "Retry" button in `DashMessageList.tsx` when last message contains `⚠️`
-- Add `retryLast()` method to `useDashChat.ts` that resends the last user message
-- **Files**: `supabase/functions/dash-command/index.ts`, `src/components/dash/DashMessageList.tsx`, `src/hooks/useDashChat.ts`
+**Problem**: `App.tsx` eagerly imports 130+ page components. Every user downloads the entire app on first load regardless of which page they visit.
 
-## Step 3 — Production Hardening
-- **Rate limiting**: Add per-user 30 msg/hour counter in edge function using `dash_action_log` count check
-- **Input sanitization**: Strip `<system>`, `<|im_start|>`, and similar injection markers from file-extracted content before LLM
-- **Max message length**: Cap at 2000 chars in `DashInput.tsx` with character counter
-- **Concurrent guard**: Disable send button during file upload (already partially done, tighten)
-- **Files**: `supabase/functions/dash-command/index.ts`, `src/components/dash/DashInput.tsx`
+**Fix**: Convert all page imports to `React.lazy()` with a shared `Suspense` fallback.
 
-## Step 4 — Conversation Export
-- Add "Export" button in `DashWorkspace.tsx` header
-- Serialize messages to markdown format and trigger browser download as `.md` file
-- **File**: `src/pages/DashWorkspace.tsx`
+- Create `src/components/LazyLoadFallback.tsx` — a simple centered spinner
+- Replace all `import X from "./pages/X"` with `const X = React.lazy(() => import("./pages/X"))`
+- Wrap the inner `<Routes>` block in `<Suspense fallback={<LazyLoadFallback />}>`
+- Group related modules into natural chunks (CMMS, Scouts, Staff, Workforce, Waste, WhatsApp, Operations)
 
-## Step 5 — Idle Session Archival
-- Database migration: create `archive_idle_dash_sessions()` function that sets `status = 'archived'` for sessions with `updated_at < NOW() - INTERVAL '4 hours'`
-- Set up pg_cron job to run every 30 minutes
-- `DashSessionHistory.tsx`: show archived sessions as read-only (no "Resume" button)
-- **Files**: Database migration, `src/components/dash/DashSessionHistory.tsx`
+**Expected impact**: Initial bundle reduced by ~60-70%. Each page loads on-demand.
 
-## Step 6 — Observability Dashboard
-- New page `src/pages/DashAnalytics.tsx` — admin-only route at `/dash/analytics`
-- Queries `dash_action_log` and `dash_sessions` for:
-  - Total sessions & messages (cards)
-  - Tool usage breakdown (list)
-  - Success/failure counts
-  - Top users by session count
-  - Per-module usage
-  - Write action approval rates
-- New component `src/components/dash/DashUsageStats.tsx` for stat cards
-- Add route in `App.tsx` wrapped in `AdminRoute`
-- **Files**: `src/pages/DashAnalytics.tsx` (new), `src/components/dash/DashUsageStats.tsx` (new), `src/App.tsx`
+**File**: `src/App.tsx`, `src/components/LazyLoadFallback.tsx` (new)
+
+---
+
+## Step 2 — Consistent Error Boundaries Per Route Group
+
+**Problem**: Only one top-level `ErrorBoundary` exists. A crash in any page takes down the entire app.
+
+**Fix**: Add granular error boundaries around route groups.
+
+- Create `src/components/RouteErrorBoundary.tsx` — lightweight version with "Go back" + "Reload" buttons, scoped to the content area (not full-page takeover)
+- Wrap each lazy-loaded page in `<RouteErrorBoundary>` inside `App.tsx`
+- Keeps the existing top-level `ErrorBoundary` as ultimate fallback
+
+**File**: `src/components/RouteErrorBoundary.tsx` (new), `src/App.tsx`
+
+---
+
+## Step 3 — Mobile Responsiveness Fixes
+
+**Problem**: Several pages use hardcoded widths, overflow issues, or don't account for the mobile bottom nav's height.
+
+**Fixes**:
+- Add `pb-20` (bottom padding) to `AppLayout.tsx` main content area when `isMobile` to prevent content hiding behind the 64px bottom nav
+- Fix `MobileBottomNav.tsx` — add `safe-area-inset-bottom` padding for notched phones
+- Audit the `AppTopBar.tsx` for overflow on small screens (truncate title, hide non-essential buttons)
+
+**Files**: `src/components/layout/AppLayout.tsx`, `src/components/layout/MobileBottomNav.tsx`, `src/components/layout/AppTopBar.tsx`
+
+---
+
+## Step 4 — Database Index Optimization
+
+**Problem**: High-traffic queries on `employees`, `audits`, `equipment`, `attendance_logs`, and `dash_action_log` lack composite indexes for common filter patterns.
+
+**Fix**: Single migration adding indexes for the most common query patterns:
+
+```sql
+-- Attendance (filtered by company + date constantly)
+CREATE INDEX IF NOT EXISTS idx_attendance_logs_company_date 
+  ON attendance_logs(company_id, clock_in_time DESC);
+
+-- Employees (filtered by company + location)
+CREATE INDEX IF NOT EXISTS idx_employees_company_location 
+  ON employees(company_id, location_id) WHERE deleted_at IS NULL;
+
+-- Audits (filtered by company + status + date)
+CREATE INDEX IF NOT EXISTS idx_audits_company_status 
+  ON audits(company_id, status, created_at DESC);
+
+-- Dash action log (analytics queries)
+CREATE INDEX IF NOT EXISTS idx_dash_action_log_company_created 
+  ON dash_action_log(company_id, created_at DESC);
+
+-- Dash sessions (user lookup)
+CREATE INDEX IF NOT EXISTS idx_dash_sessions_user 
+  ON dash_sessions(user_id, updated_at DESC);
+```
+
+**File**: Database migration
+
+---
+
+## Step 5 — Duplicate Route Cleanup
+
+**Problem**: `App.tsx` has duplicate route definitions (e.g., `/workforce/payroll-batches`, `/workforce/attendance-alerts`, `/workforce/scheduling-insights` appear twice at lines 407-412 and 519-521).
+
+**Fix**: Remove the duplicate entries at lines 519-521.
+
+**File**: `src/App.tsx`
 
 ---
 
@@ -57,22 +98,19 @@ Six improvements to make Dash production-ready: session title generation, error 
 
 | File | Action |
 |------|--------|
-| `supabase/functions/dash-command/index.ts` | Better titles, error recovery in tools, rate limiting, input sanitization |
-| `src/hooks/useDashChat.ts` | Add `retryLast()` |
-| `src/components/dash/DashMessageList.tsx` | Retry button on error messages |
-| `src/components/dash/DashInput.tsx` | 2000 char limit + counter |
-| `src/pages/DashWorkspace.tsx` | Export button |
-| `src/components/dash/DashSessionHistory.tsx` | Archived session visual treatment |
-| `src/pages/DashAnalytics.tsx` | New — observability dashboard |
-| `src/components/dash/DashUsageStats.tsx` | New — stat cards |
-| `src/App.tsx` | Add `/dash/analytics` route |
-| Database migration | `archive_idle_dash_sessions()` function |
-| SQL insert (pg_cron) | Schedule archival job every 30 min |
+| `src/App.tsx` | Lazy imports, Suspense wrapper, remove duplicate routes |
+| `src/components/LazyLoadFallback.tsx` | New — loading spinner for lazy routes |
+| `src/components/RouteErrorBoundary.tsx` | New — per-route error boundary |
+| `src/components/layout/AppLayout.tsx` | Mobile bottom padding fix |
+| `src/components/layout/MobileBottomNav.tsx` | Safe area inset |
+| `src/components/layout/AppTopBar.tsx` | Mobile overflow fixes |
+| Database migration | Composite indexes for high-traffic tables |
 
 ## Delivery Order
-1. Session title generation + error recovery + retry (reliability)
-2. Production hardening (security)
-3. Conversation export (user value)
-4. Idle archival (maintenance)
-5. Observability dashboard (admin insights)
+
+1. Code splitting + lazy loading (biggest performance win)
+2. Duplicate route cleanup (quick fix, ships with step 1)
+3. Mobile responsiveness fixes (UX)
+4. Route-level error boundaries (resilience)
+5. Database indexes (query performance)
 
