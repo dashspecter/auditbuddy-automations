@@ -924,7 +924,11 @@ const LocationAudit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     console.log('Submit button clicked, starting submission...');
+    
+    // Flush any pending debounced field saves
+    flushPendingFieldSaves();
     
     if (!user) {
       toast.error('You must be logged in to submit an audit');
