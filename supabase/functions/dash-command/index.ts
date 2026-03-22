@@ -1264,6 +1264,183 @@ async function executeTool(
       };
     }
 
+    // ────────── MEMORY TOOLS ──────────
+    case "save_user_preference": {
+      const { error } = await sbService.from("dash_user_preferences").upsert({
+        company_id: companyId,
+        user_id: userId,
+        preference_key: args.preference_key,
+        preference_value: args.preference_value,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "company_id,user_id,preference_key" });
+      if (error) return { error: error.message };
+      return { saved: true, key: args.preference_key, message: `Preference "${args.preference_key}" saved.` };
+    }
+
+    case "get_user_preferences": {
+      const { data, error } = await sb.from("dash_user_preferences")
+        .select("preference_key, preference_value, updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+      if (error) return { error: error.message };
+      const prefs: Record<string, any> = {};
+      for (const p of data ?? []) prefs[p.preference_key] = p.preference_value;
+      return { preferences: prefs, count: (data ?? []).length };
+    }
+
+    case "save_org_memory": {
+      const { error } = await sbService.from("dash_org_memory").upsert({
+        company_id: companyId,
+        memory_type: args.memory_type,
+        memory_key: args.memory_key,
+        content_json: args.content,
+        created_by: userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "company_id,memory_type,memory_key" });
+      if (error) return { error: error.message };
+      return { saved: true, type: args.memory_type, key: args.memory_key, message: `Organization memory "${args.memory_key}" saved.` };
+    }
+
+    case "get_org_memory": {
+      let q = sb.from("dash_org_memory")
+        .select("memory_type, memory_key, content_json, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(50);
+      if (args.memory_type) q = q.eq("memory_type", args.memory_type);
+      const { data, error } = await q;
+      if (error) return { error: error.message };
+      return { memories: data ?? [], count: (data ?? []).length };
+    }
+
+    // ────────── WORKFLOW TOOLS ──────────
+    case "save_workflow": {
+      const { data, error } = await sbService.from("dash_saved_workflows").insert({
+        company_id: companyId,
+        user_id: userId,
+        name: args.name,
+        description: args.description || null,
+        workflow_json: { prompt: args.prompt },
+        is_shared: args.is_shared || false,
+      }).select("id, name").single();
+      if (error) return { error: error.message };
+      return { saved: true, workflow_id: data.id, name: data.name, message: `Workflow "${data.name}" saved. It will appear as a shortcut in your Dash sidebar.` };
+    }
+
+    case "list_saved_workflows": {
+      const { data, error } = await sb.from("dash_saved_workflows")
+        .select("id, name, description, workflow_json, is_shared, created_at")
+        .or(`user_id.eq.${userId},is_shared.eq.true`)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) return { error: error.message };
+      return { workflows: data ?? [], count: (data ?? []).length };
+    }
+
+    // ────────── FILE TRANSFORMATION TOOLS ──────────
+    case "transform_spreadsheet_to_schedule": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this spreadsheet and extract schedule/shift data. Return a JSON object with: { shifts: [{ role: string, date: "YYYY-MM-DD", start_time: "HH:MM", end_time: "HH:MM", location_name?: string, employee_name?: string, min_staff?: number }], warnings: string[] }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse spreadsheet." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return { type: "schedule_extraction", file_name: args.file_name, ...parsed, next_step: "Review shifts and create each using create_shift_draft." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse structured schedule data." };
+      } catch (err: any) {
+        return { error: `Schedule extraction failed: ${err.message}` };
+      }
+    }
+
+    case "transform_sop_to_training": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this SOP/procedure document and extract it as a training module. Return a JSON object with: { module_name: string, description: string, sections: [{ title: string, key_points: string[], duration_minutes: number }], quiz_questions: [{ question: string, options: string[], correct_answer_index: number }], estimated_total_duration_minutes: number }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse SOP document." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (args.module_name) parsed.module_name = args.module_name;
+            return { type: "training_module_extraction", file_name: args.file_name, ...parsed, next_step: "Review the training module structure. This is a draft — the training module creation tool will be available in a future update." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse training module structure." };
+      } catch (err: any) {
+        return { error: `SOP extraction failed: ${err.message}` };
+      }
+    }
+
+    case "transform_compliance_doc_to_audit": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse compliance document." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (args.regulation_name) parsed.regulation_reference = args.regulation_name;
+            return { type: "compliance_audit_extraction", file_name: args.file_name, ...parsed, next_step: "Review the suggested audit template and call create_audit_template_draft to finalize." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse compliance audit structure." };
+      } catch (err: any) {
+        return { error: `Compliance doc extraction failed: ${err.message}` };
+      }
+    }
+
     default:
       return { error: `Unknown tool: ${name}` };
   }
