@@ -44,15 +44,22 @@ export default function SectionFollowUpInput({
     }
   };
 
+  const debouncedNoteSave = useDebouncedSave(
+    useCallback((noteValue: string) => {
+      onFollowUpChange(true, noteValue);
+    }, [onFollowUpChange]),
+    800
+  );
+
   const handleNotesChange = (value: string) => {
     isUserEditingRef.current = true;
     setNotes(value);
-    onFollowUpChange(needed, value);
+    debouncedNoteSave(value);
     
     // Reset the editing flag after a short delay
     setTimeout(() => {
       isUserEditingRef.current = false;
-    }, 1000);
+    }, 1500);
   };
 
   return (
