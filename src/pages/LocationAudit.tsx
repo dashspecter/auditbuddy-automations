@@ -347,6 +347,16 @@ const LocationAudit = () => {
   };
 
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Debounce timer for text/number/date field saves
+  const fieldSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Flush all pending debounced field saves (call before submit)
+  const flushPendingFieldSaves = useCallback(() => {
+    Object.values(fieldSaveTimers.current).forEach(clearTimeout);
+    fieldSaveTimers.current = {};
+  }, []);
 
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData({
@@ -364,22 +374,36 @@ const LocationAudit = () => {
       );
       
       if (section) {
-        // Skip server write when offline — the value is in formData.customData
-        // and will be persisted via the draft hook (IndexedDB). On reconnect,
-        // the bulk re-save (below) will push everything to the server.
         if (!navigator.onLine) {
           console.log('[LocationAudit] Offline — skipping server write for field', fieldId);
           return;
         }
 
-        saveFieldResponse.mutate({
-          auditId: currentDraftId,
-          fieldId,
-          sectionId: section.id,
-          responseValue: value,
-        }, {
-          onSuccess: () => setLastSavedAt(new Date()),
-        });
+        const field = section.fields.find(f => f.id === fieldId);
+        const isTextLike = field && (field.field_type === 'text' || field.field_type === 'number' || field.field_type === 'date');
+
+        const doSave = () => {
+          saveFieldResponse.mutate({
+            auditId: currentDraftId,
+            fieldId,
+            sectionId: section.id,
+            responseValue: value,
+          }, {
+            onSuccess: () => setLastSavedAt(new Date()),
+          });
+        };
+
+        // Debounce text-like fields to avoid hammering the DB on every keystroke
+        if (isTextLike) {
+          if (fieldSaveTimers.current[fieldId]) clearTimeout(fieldSaveTimers.current[fieldId]);
+          fieldSaveTimers.current[fieldId] = setTimeout(() => {
+            delete fieldSaveTimers.current[fieldId];
+            doSave();
+          }, 800);
+        } else {
+          // yes/no, rating, checkbox — save immediately (single tap)
+          doSave();
+        }
       }
     }
   };
