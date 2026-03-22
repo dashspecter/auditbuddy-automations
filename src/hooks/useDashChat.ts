@@ -175,10 +175,16 @@ export function useDashChat() {
     setSessionId(generateSessionId());
   }, []);
 
+  const loadSession = useCallback((newSessionId: string, msgs: DashMessage[]) => {
+    setSessionId(newSessionId);
+    setMessages(msgs);
+    setError(null);
+  }, []);
+
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
     setIsLoading(false);
   }, []);
 
-  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId };
+  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId, loadSession };
 }

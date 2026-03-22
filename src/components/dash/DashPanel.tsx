@@ -8,6 +8,8 @@ import { useDashChat } from "@/hooks/useDashChat";
 import { DashMessageList } from "./DashMessageList";
 import { DashInput } from "./DashInput";
 import { DashScopeBar } from "./DashScopeBar";
+import { DashSessionHistory } from "./DashSessionHistory";
+import { DashSavedWorkflows } from "./DashSavedWorkflows";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 
@@ -41,7 +43,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
   const [open, setOpen] = useState(false);
-  const { messages, isLoading, sendMessage, clearChat, cancelStream } = useDashChat();
+  const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
   const role = roleData?.isAdmin ? "admin" : roleData?.isManager ? "manager" : "staff";
   const suggested = SUGGESTED_BY_ROLE[role] || SUGGESTED_BY_ROLE.staff;
@@ -67,6 +69,17 @@ export function DashPanel({ trigger }: DashPanelProps) {
           )}
         </div>
       </div>
+
+      {/* Session history */}
+      <DashSessionHistory
+        currentSessionId={sessionId}
+        onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
+        onNewSession={clearChat}
+      />
+
+      {/* Saved workflows */}
+      <DashSavedWorkflows onRunWorkflow={handleSend} />
+
       <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} />
       <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
     </div>

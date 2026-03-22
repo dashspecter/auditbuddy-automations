@@ -5,6 +5,8 @@ import { useDashChat } from "@/hooks/useDashChat";
 import { DashMessageList } from "@/components/dash/DashMessageList";
 import { DashInput } from "@/components/dash/DashInput";
 import { DashScopeBar } from "@/components/dash/DashScopeBar";
+import { DashSessionHistory } from "@/components/dash/DashSessionHistory";
+import { DashSavedWorkflows } from "@/components/dash/DashSavedWorkflows";
 import { Trash2 } from "lucide-react";
 
 const SUGGESTED = [
@@ -18,7 +20,7 @@ const SUGGESTED = [
 
 export default function DashWorkspace() {
   const navigate = useNavigate();
-  const { messages, isLoading, sendMessage, clearChat, cancelStream } = useDashChat();
+  const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
   const handleSend = (text: string) => {
     sendMessage(text);
@@ -50,6 +52,16 @@ export default function DashWorkspace() {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Session history + Saved workflows */}
+      <div className="space-y-2 mb-3">
+        <DashSessionHistory
+          currentSessionId={sessionId}
+          onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
+          onNewSession={clearChat}
+        />
+        <DashSavedWorkflows onRunWorkflow={handleSend} />
       </div>
 
       {/* Chat area */}

@@ -26,6 +26,9 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   reassign_corrective_action: "corrective_actions",
   create_shift_draft: "workforce",
   execute_shift_creation: "workforce",
+  transform_spreadsheet_to_schedule: "workforce",
+  transform_sop_to_training: "workforce",
+  transform_compliance_doc_to_audit: "audits",
 };
 
 // ─── Risk classification ────────────────────────────────────
@@ -432,6 +435,136 @@ const tools = [
           max_staff: { type: "number", description: "Maximum staff" },
         },
         required: ["role", "shift_date", "start_time", "end_time"],
+      },
+    },
+  },
+  // --- MEMORY: User preferences ---
+  {
+    type: "function",
+    function: {
+      name: "save_user_preference",
+      description: "Save a user preference (e.g., preferred report format, default time window, favorite locations). Use when the user says 'remember that...', 'always use...', 'my default is...'.",
+      parameters: {
+        type: "object",
+        properties: {
+          preference_key: { type: "string", description: "Key name: 'report_format', 'default_time_window', 'favorite_locations', 'preferred_language', or custom key" },
+          preference_value: { type: "object", description: "The preference value as a JSON object" },
+        },
+        required: ["preference_key", "preference_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_user_preferences",
+      description: "Get all saved user preferences. Use to personalize responses (e.g., default date ranges, report format).",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  // --- MEMORY: Organization memory ---
+  {
+    type: "function",
+    function: {
+      name: "save_org_memory",
+      description: "Save organization-level knowledge (terminology, standard processes, notes). Use when the user says 'we call X as Y', 'our standard process is...', 'note that...'.",
+      parameters: {
+        type: "object",
+        properties: {
+          memory_type: { type: "string", enum: ["terminology", "process", "standard", "note"], description: "Type of memory" },
+          memory_key: { type: "string", description: "Short key identifier" },
+          content: { type: "object", description: "The memory content as JSON" },
+        },
+        required: ["memory_type", "memory_key", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_org_memory",
+      description: "Retrieve organization memory entries. Use to understand company-specific terminology and processes.",
+      parameters: {
+        type: "object",
+        properties: {
+          memory_type: { type: "string", enum: ["terminology", "process", "standard", "note"], description: "Filter by type" },
+        },
+      },
+    },
+  },
+  // --- WORKFLOW: Save/list workflows ---
+  {
+    type: "function",
+    function: {
+      name: "save_workflow",
+      description: "Save the current conversation as a reusable workflow shortcut. Use when user says 'save this as a workflow', 'remember this report', 'make this a shortcut'.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Short name for the workflow" },
+          description: { type: "string", description: "What this workflow does" },
+          prompt: { type: "string", description: "The prompt that triggers this workflow" },
+          is_shared: { type: "boolean", description: "Whether other company users can see this workflow" },
+        },
+        required: ["name", "prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_saved_workflows",
+      description: "List all saved workflow shortcuts for the user.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  // --- FILE: Spreadsheet to schedule import ---
+  {
+    type: "function",
+    function: {
+      name: "transform_spreadsheet_to_schedule",
+      description: "Parse an uploaded spreadsheet (CSV/Excel) and extract schedule data (shifts, assignments). Use when user uploads a spreadsheet intending to import a schedule.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+        },
+        required: ["file_url", "file_name"],
+      },
+    },
+  },
+  // --- FILE: SOP to training module ---
+  {
+    type: "function",
+    function: {
+      name: "transform_sop_to_training",
+      description: "Parse an uploaded SOP/procedure document and extract it as a training module draft with sections, key points, and quiz questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          module_name: { type: "string", description: "Name for the training module" },
+        },
+        required: ["file_url", "file_name"],
+      },
+    },
+  },
+  // --- FILE: Compliance doc to recurring audit ---
+  {
+    type: "function",
+    function: {
+      name: "transform_compliance_doc_to_audit",
+      description: "Parse an uploaded compliance/regulation document and suggest a recurring audit template that covers its requirements.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_url: { type: "string", description: "Signed URL of the uploaded file" },
+          file_name: { type: "string", description: "Original filename" },
+          regulation_name: { type: "string", description: "Name of the regulation/standard" },
+        },
+        required: ["file_url", "file_name"],
       },
     },
   },
@@ -1131,6 +1264,183 @@ async function executeTool(
       };
     }
 
+    // ────────── MEMORY TOOLS ──────────
+    case "save_user_preference": {
+      const { error } = await sbService.from("dash_user_preferences").upsert({
+        company_id: companyId,
+        user_id: userId,
+        preference_key: args.preference_key,
+        preference_value: args.preference_value,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "company_id,user_id,preference_key" });
+      if (error) return { error: error.message };
+      return { saved: true, key: args.preference_key, message: `Preference "${args.preference_key}" saved.` };
+    }
+
+    case "get_user_preferences": {
+      const { data, error } = await sb.from("dash_user_preferences")
+        .select("preference_key, preference_value, updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+      if (error) return { error: error.message };
+      const prefs: Record<string, any> = {};
+      for (const p of data ?? []) prefs[p.preference_key] = p.preference_value;
+      return { preferences: prefs, count: (data ?? []).length };
+    }
+
+    case "save_org_memory": {
+      const { error } = await sbService.from("dash_org_memory").upsert({
+        company_id: companyId,
+        memory_type: args.memory_type,
+        memory_key: args.memory_key,
+        content_json: args.content,
+        created_by: userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "company_id,memory_type,memory_key" });
+      if (error) return { error: error.message };
+      return { saved: true, type: args.memory_type, key: args.memory_key, message: `Organization memory "${args.memory_key}" saved.` };
+    }
+
+    case "get_org_memory": {
+      let q = sb.from("dash_org_memory")
+        .select("memory_type, memory_key, content_json, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(50);
+      if (args.memory_type) q = q.eq("memory_type", args.memory_type);
+      const { data, error } = await q;
+      if (error) return { error: error.message };
+      return { memories: data ?? [], count: (data ?? []).length };
+    }
+
+    // ────────── WORKFLOW TOOLS ──────────
+    case "save_workflow": {
+      const { data, error } = await sbService.from("dash_saved_workflows").insert({
+        company_id: companyId,
+        user_id: userId,
+        name: args.name,
+        description: args.description || null,
+        workflow_json: { prompt: args.prompt },
+        is_shared: args.is_shared || false,
+      }).select("id, name").single();
+      if (error) return { error: error.message };
+      return { saved: true, workflow_id: data.id, name: data.name, message: `Workflow "${data.name}" saved. It will appear as a shortcut in your Dash sidebar.` };
+    }
+
+    case "list_saved_workflows": {
+      const { data, error } = await sb.from("dash_saved_workflows")
+        .select("id, name, description, workflow_json, is_shared, created_at")
+        .or(`user_id.eq.${userId},is_shared.eq.true`)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) return { error: error.message };
+      return { workflows: data ?? [], count: (data ?? []).length };
+    }
+
+    // ────────── FILE TRANSFORMATION TOOLS ──────────
+    case "transform_spreadsheet_to_schedule": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this spreadsheet and extract schedule/shift data. Return a JSON object with: { shifts: [{ role: string, date: "YYYY-MM-DD", start_time: "HH:MM", end_time: "HH:MM", location_name?: string, employee_name?: string, min_staff?: number }], warnings: string[] }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse spreadsheet." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return { type: "schedule_extraction", file_name: args.file_name, ...parsed, next_step: "Review shifts and create each using create_shift_draft." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse structured schedule data." };
+      } catch (err: any) {
+        return { error: `Schedule extraction failed: ${err.message}` };
+      }
+    }
+
+    case "transform_sop_to_training": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this SOP/procedure document and extract it as a training module. Return a JSON object with: { module_name: string, description: string, sections: [{ title: string, key_points: string[], duration_minutes: number }], quiz_questions: [{ question: string, options: string[], correct_answer_index: number }], estimated_total_duration_minutes: number }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse SOP document." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (args.module_name) parsed.module_name = args.module_name;
+            return { type: "training_module_extraction", file_name: args.file_name, ...parsed, next_step: "Review the training module structure. This is a draft — the training module creation tool will be available in a future update." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse training module structure." };
+      } catch (err: any) {
+        return { error: `SOP extraction failed: ${err.message}` };
+      }
+    }
+
+    case "transform_compliance_doc_to_audit": {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+      try {
+        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
+                { type: "image_url", image_url: { url: args.file_url } },
+              ],
+            }],
+            stream: false,
+          }),
+        });
+        if (!resp.ok) return { error: "Failed to parse compliance document." };
+        const result = await resp.json();
+        const content = result.choices?.[0]?.message?.content || "";
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (args.regulation_name) parsed.regulation_reference = args.regulation_name;
+            return { type: "compliance_audit_extraction", file_name: args.file_name, ...parsed, next_step: "Review the suggested audit template and call create_audit_template_draft to finalize." };
+          }
+        } catch {}
+        return { raw_extraction: content, error: "Could not parse compliance audit structure." };
+      } catch (err: any) {
+        return { error: `Compliance doc extraction failed: ${err.message}` };
+      }
+    }
+
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -1197,6 +1507,16 @@ You can now create AND execute records in the platform:
 - NEVER skip the approval step for write operations
 - If the user says "approve" or "confirm" or "yes" in response to a draft, execute the corresponding action using the pending_action_id
 
+### Memory & Personalization
+- **User Preferences**: Save/recall user preferences (report format, default date ranges, favorite locations) using \`save_user_preference\` and \`get_user_preferences\`. Check preferences at the start of complex queries to personalize output.
+- **Organization Memory**: Save/recall company-specific terminology and processes using \`save_org_memory\` and \`get_org_memory\`. When the user says "we call X as Y" or "our standard is...", save it.
+- **Saved Workflows**: Save reusable prompt shortcuts using \`save_workflow\`. When user says "save this as a shortcut" or "remember this report", save the prompt.
+
+### File Transformations (Extended)
+- **Spreadsheet → Schedule**: Use \`transform_spreadsheet_to_schedule\` to parse CSV/Excel into shift drafts
+- **SOP → Training Module**: Use \`transform_sop_to_training\` to convert procedure documents into training content
+- **Compliance Doc → Audit Template**: Use \`transform_compliance_doc_to_audit\` to generate recurring audit templates from regulations
+
 ## Response Guidelines
 1. Use **markdown** formatting for readability.
 2. Always state the **date range** and **scope** of your analysis.
@@ -1207,6 +1527,7 @@ You can now create AND execute records in the platform:
 7. When a user attaches a file, detect the intent and use the appropriate tool.
 8. For write actions, always show a clear summary before and after execution.
 9. After executing a write, report the result clearly (success/failure/partial).
+10. At the start of conversations, silently check user preferences and org memory to personalize responses.
 
 ## What You Cannot Do
 - Access other companies' data
