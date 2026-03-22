@@ -1637,8 +1637,27 @@ serve(async (req) => {
 
     console.log(`[Dash] User=${userId} Company=${companyId} Role=${displayRole} Modules=${activeModules.length}`);
 
+    // ─── Rate Limiting: 30 messages/hour ───
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: recentCount } = await sbService
+      .from("dash_action_log")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", oneHourAgo);
+    if ((recentCount ?? 0) >= 30) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. You can send up to 30 messages per hour. Please wait a few minutes." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // ─── Input Sanitization ───
+    const sanitizedMessages = messages.map((m: any) => ({
+      ...m,
+      content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
+    }));
+
     const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames });
-    let conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
+    let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 
     const maxIterations = 8;
     let iteration = 0;
