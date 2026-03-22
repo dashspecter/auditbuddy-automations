@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,9 +54,14 @@ export default function FieldResponseInput({
   const deletePhoto = useDeleteFieldPhoto();
   const deleteAttachment = useDeleteFieldAttachment();
 
+  const debouncedObservationSave = useDebouncedSave(
+    useCallback((value: string) => onObservationChange(value), [onObservationChange]),
+    800
+  );
+
   const handleObservationChange = (value: string) => {
     setObservations(value);
-    onObservationChange(value);
+    debouncedObservationSave(value);
   };
 
   const getOrEnsureResponseId = async (): Promise<string | null> => {

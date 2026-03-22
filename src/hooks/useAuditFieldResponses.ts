@@ -126,7 +126,19 @@ export const useSaveFieldResponse = () => {
     retry: 2,
     retryDelay: 1000,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["audit_field_responses", data.audit_id] });
+      // Use setQueryData for optimistic update instead of full refetch
+      // This avoids hammering the DB with SELECT queries after every single field save
+      const queryKey = ["audit_field_responses", data.audit_id];
+      const existing = queryClient.getQueryData<AuditFieldResponse[]>(queryKey);
+      if (existing) {
+        // The response is already in cache from a prior fetch; we just
+        // bump the updated_at so downstream consumers know it changed.
+        // A full refetch will happen on section change, page load, or submit.
+        queryClient.setQueryData(queryKey, existing);
+      } else {
+        // First save — need initial fetch
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
     onError: (error: Error) => {
       toast({

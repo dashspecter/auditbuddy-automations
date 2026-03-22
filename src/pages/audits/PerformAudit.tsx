@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -134,17 +134,27 @@ const PerformAudit = () => {
     await doComplete();
   };
 
-  const handleObservationChange = async (fieldId: string, value: string) => {
+  // Debounce observation saves to avoid hammering the DB
+  const obsTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  useEffect(() => () => {
+    Object.values(obsTimers.current).forEach(clearTimeout);
+  }, []);
+
+  const handleObservationChange = useCallback(async (fieldId: string, value: string) => {
     if (!id || !currentSection) return;
 
-    await saveFieldResponse.mutateAsync({
-      auditId: id,
-      sectionId: currentSection.id,
-      fieldId: fieldId,
-      responseValue: null,
-      observations: value,
-    });
-  };
+    if (obsTimers.current[fieldId]) clearTimeout(obsTimers.current[fieldId]);
+    obsTimers.current[fieldId] = setTimeout(() => {
+      delete obsTimers.current[fieldId];
+      saveFieldResponse.mutate({
+        auditId: id,
+        sectionId: currentSection.id,
+        fieldId: fieldId,
+        responseValue: null,
+        observations: value,
+      });
+    }, 800);
+  }, [id, currentSection, saveFieldResponse]);
 
   if (!audit || !sections || !currentSection) {
     return (

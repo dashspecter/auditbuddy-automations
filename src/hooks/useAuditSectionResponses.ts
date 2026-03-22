@@ -79,7 +79,12 @@ export const useSaveSectionResponse = () => {
     retry: 2,
     retryDelay: 1000,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["audit_section_responses", data.audit_id] });
+      // Skip aggressive refetch — data is kept in local state
+      const queryKey = ["audit_section_responses", data.audit_id];
+      const existing = queryClient.getQueryData(queryKey);
+      if (!existing) {
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
     onError: (error: Error) => {
       const message = error.message === SESSION_EXPIRED_MSG

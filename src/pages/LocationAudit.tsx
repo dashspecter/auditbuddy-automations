@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { useSwipeable } from "react-swipeable";
@@ -347,6 +347,16 @@ const LocationAudit = () => {
   };
 
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Debounce timer for text/number/date field saves
+  const fieldSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Flush all pending debounced field saves (call before submit)
+  const flushPendingFieldSaves = useCallback(() => {
+    Object.values(fieldSaveTimers.current).forEach(clearTimeout);
+    fieldSaveTimers.current = {};
+  }, []);
 
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData({
@@ -364,22 +374,36 @@ const LocationAudit = () => {
       );
       
       if (section) {
-        // Skip server write when offline — the value is in formData.customData
-        // and will be persisted via the draft hook (IndexedDB). On reconnect,
-        // the bulk re-save (below) will push everything to the server.
         if (!navigator.onLine) {
           console.log('[LocationAudit] Offline — skipping server write for field', fieldId);
           return;
         }
 
-        saveFieldResponse.mutate({
-          auditId: currentDraftId,
-          fieldId,
-          sectionId: section.id,
-          responseValue: value,
-        }, {
-          onSuccess: () => setLastSavedAt(new Date()),
-        });
+        const field = section.fields.find(f => f.id === fieldId);
+        const isTextLike = field && (field.field_type === 'text' || field.field_type === 'number' || field.field_type === 'date');
+
+        const doSave = () => {
+          saveFieldResponse.mutate({
+            auditId: currentDraftId,
+            fieldId,
+            sectionId: section.id,
+            responseValue: value,
+          }, {
+            onSuccess: () => setLastSavedAt(new Date()),
+          });
+        };
+
+        // Debounce text-like fields to avoid hammering the DB on every keystroke
+        if (isTextLike) {
+          if (fieldSaveTimers.current[fieldId]) clearTimeout(fieldSaveTimers.current[fieldId]);
+          fieldSaveTimers.current[fieldId] = setTimeout(() => {
+            delete fieldSaveTimers.current[fieldId];
+            doSave();
+          }, 800);
+        } else {
+          // yes/no, rating, checkbox — save immediately (single tap)
+          doSave();
+        }
       }
     }
   };
@@ -900,7 +924,11 @@ const LocationAudit = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     console.log('Submit button clicked, starting submission...');
+    
+    // Flush any pending debounced field saves
+    flushPendingFieldSaves();
     
     if (!user) {
       toast.error('You must be logged in to submit an audit');
@@ -1078,6 +1106,7 @@ const LocationAudit = () => {
       fireAuditCAPARules(auditId);
     };
 
+    setIsSubmitting(true);
     try {
       await performSubmit();
     } catch (error: any) {
@@ -1116,6 +1145,8 @@ const LocationAudit = () => {
         
         toast.error(errorMessage, { duration: 5000 });
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1510,9 +1541,13 @@ const LocationAudit = () => {
 
           {/* Submit Button */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-safe mb-8">
-            <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId}>
-              <Save className="h-4 w-4" />
-              Submit Audit
+            <Button type="submit" className="gap-2 min-h-[48px] w-full sm:w-auto" disabled={!selectedTemplateId || isSubmitting}>
+              {isSubmitting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSubmitting ? "Submitting…" : "Submit Audit"}
             </Button>
             <Button 
               type="button" 

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,15 +44,22 @@ export default function SectionFollowUpInput({
     }
   };
 
+  const debouncedNoteSave = useDebouncedSave(
+    useCallback((noteValue: string) => {
+      onFollowUpChange(true, noteValue);
+    }, [onFollowUpChange]),
+    800
+  );
+
   const handleNotesChange = (value: string) => {
     isUserEditingRef.current = true;
     setNotes(value);
-    onFollowUpChange(needed, value);
+    debouncedNoteSave(value);
     
     // Reset the editing flag after a short delay
     setTimeout(() => {
       isUserEditingRef.current = false;
-    }, 1000);
+    }, 1500);
   };
 
   return (
