@@ -10,6 +10,19 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_ROWS = 200;
 
+// ─── Module Gating Map ─────────────────────────────────────
+const TOOL_MODULE_MAP: Record<string, string> = {
+  get_audit_results: "audits",
+  compare_location_performance: "audits",
+  get_open_corrective_actions: "corrective_actions",
+  get_task_completion_summary: "tasks",
+  get_attendance_exceptions: "workforce",
+  get_work_order_status: "cmms",
+  get_document_expiries: "documents",
+  get_training_gaps: "workforce",
+  search_employees: "workforce",
+};
+
 // ─── Helpers ────────────────────────────────────────────────
 function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
   const items = data ?? [];
@@ -21,6 +34,11 @@ async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
   if (error || !data?.[0]) return null;
   return { fromUtc: data[0].from_utc, toUtc: data[0].to_utc };
+}
+
+// ─── Structured Event Helpers ───────────────────────────────
+function makeStructuredEvent(type: string, data: any): string {
+  return JSON.stringify({ type: "structured_event", event_type: type, data });
 }
 
 // ─── Tool Definitions ───────────────────────────────────────
@@ -220,7 +238,13 @@ const tools = [
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
-async function executeTool(sb: any, name: string, args: any, companyId: string, role: string): Promise<any> {
+async function executeTool(sb: any, name: string, args: any, companyId: string, role: string, activeModules: string[]): Promise<any> {
+  // Module gating check
+  const requiredModule = TOOL_MODULE_MAP[name];
+  if (requiredModule && !activeModules.includes(requiredModule)) {
+    return { error: `The "${requiredModule}" module is not active for your company. Please enable it in Billing & Modules.` };
+  }
+
   switch (name) {
     case "search_locations": {
       const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
@@ -238,7 +262,6 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
     }
 
     case "get_location_overview": {
-      // Resolve location
       let locationId = args.location_id;
       let locationName = args.location_name;
       if (!locationId && locationName) {
@@ -248,7 +271,6 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       }
       if (!locationId) return { error: "Please provide a location name or ID" };
 
-      // Parallel queries
       const [empRes, auditRes, caRes, taskRes] = await Promise.all([
         sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
         sb.from("location_audits").select("overall_score").eq("location_id", locationId).eq("status", "completed").order("completed_at", { ascending: false }).limit(1),
@@ -268,7 +290,6 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       const ur = await utcRange(sb, args.from, args.to);
       const locationFilter = args.location_id;
 
-      // Audits
       let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("created_at", ur?.fromUtc ?? args.from).lt("created_at", ur?.toUtc ?? args.to);
       if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
       const { data: audits } = await auditQ.limit(200);
@@ -276,12 +297,10 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       const completedAudits = (audits ?? []).filter((a: any) => a.status === "completed");
       const avgScore = completedAudits.length > 0 ? Math.round(completedAudits.reduce((s: number, a: any) => s + (a.overall_score ?? 0), 0) / completedAudits.length) : null;
 
-      // CAs
       let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").in("status", ["open", "in_progress"]);
       if (locationFilter) caQ = caQ.eq("location_id", locationFilter);
       const { data: cas } = await caQ.limit(200);
 
-      // Attendance exceptions
       let attQ = sb.from("attendance_logs").select("id, is_late, late_minutes, auto_clocked_out, check_out_at");
       if (ur) attQ = attQ.gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc);
       if (locationFilter) attQ = attQ.eq("location_id", locationFilter);
@@ -290,7 +309,6 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       const lateCount = (attLogs ?? []).filter((l: any) => l.is_late).length;
       const noCheckout = (attLogs ?? []).filter((l: any) => !l.check_out_at && !l.auto_clocked_out).length;
 
-      // Work orders
       let woQ = sb.from("cmms_work_orders").select("id, status, priority");
       if (locationFilter) woQ = woQ.eq("location_id", locationFilter);
       const { data: wos } = await woQ.in("status", ["open", "in_progress"]).limit(200);
@@ -459,9 +477,7 @@ serve(async (req) => {
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Auth client (respects RLS)
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
-    // Service client (for action logging — bypasses RLS)
     const sbService = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const token = authHeader.replace("Bearer ", "");
@@ -471,8 +487,13 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    // Resolve company + role
-    const { data: cuData, error: cuError } = await sb.from("company_users").select("company_id, company_role").eq("user_id", userId).single();
+    // Resolve company + role — FIX: use maybeSingle + order for multi-company users
+    const { data: cuData, error: cuError } = await sb.from("company_users")
+      .select("company_id, company_role")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (cuError || !cuData) {
       return new Response(JSON.stringify({ error: "User not in any company" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -535,14 +556,14 @@ serve(async (req) => {
 
       const msg = choice.message;
 
-      // Tool calls
+      // Tool calls — pass activeModules for module gating
       if (msg.tool_calls?.length) {
         conversationMessages.push(msg);
         for (const tc of msg.tool_calls) {
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
           toolsUsed.push(tc.function.name);
-          const toolResult = await executeTool(sb, tc.function.name, args, companyId, displayRole);
+          const toolResult = await executeTool(sb, tc.function.name, args, companyId, displayRole, activeModules);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
         }
         continue;
@@ -577,6 +598,23 @@ serve(async (req) => {
         });
       } catch (logErr) {
         console.error("Failed to log Dash action:", logErr);
+      }
+
+      // Save/update session
+      if (session_id) {
+        try {
+          await sbService.from("dash_sessions").upsert({
+            id: session_id,
+            company_id: companyId,
+            user_id: userId,
+            title: messages?.[0]?.content?.substring(0, 100) || "Dash conversation",
+            messages_json: [...messages, { role: "assistant", content: finalContent }],
+            status: "active",
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "id" });
+        } catch (sessErr) {
+          console.error("Failed to save session:", sessErr);
+        }
       }
 
       // Stream response as SSE

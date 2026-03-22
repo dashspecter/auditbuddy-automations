@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type DashMessage = {
   role: "user" | "assistant";
@@ -15,11 +16,56 @@ export type DashStructuredEvent = {
 
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
 
+function generateSessionId() {
+  return crypto.randomUUID();
+}
+
 export function useDashChat() {
   const [messages, setMessages] = useState<DashMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string>(generateSessionId);
   const abortRef = useRef<AbortController | null>(null);
+  const { user } = useAuth();
+
+  // Load last active session on mount
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const loadLastSession = async () => {
+      try {
+        const { data } = await supabase
+          .from("dash_sessions")
+          .select("id, messages_json")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (cancelled || !data?.messages_json) return;
+
+        const msgs = (data.messages_json as any[])
+          .filter((m: any) => m.role === "user" || m.role === "assistant")
+          .map((m: any) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            timestamp: new Date(),
+          }));
+
+        if (msgs.length > 0) {
+          setSessionId(data.id);
+          setMessages(msgs);
+        }
+      } catch {
+        // Silently fail — fresh session is fine
+      }
+    };
+
+    loadLastSession();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -33,7 +79,6 @@ export function useDashChat() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("You must be logged in");
 
-      // Build message history for context
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
 
       abortRef.current = new AbortController();
@@ -44,7 +89,7 @@ export function useDashChat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, session_id: sessionId }),
         signal: abortRef.current.signal,
       });
 
@@ -104,11 +149,12 @@ export function useDashChat() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, sessionId]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
     setError(null);
+    setSessionId(generateSessionId());
   }, []);
 
   const cancelStream = useCallback(() => {
@@ -116,5 +162,5 @@ export function useDashChat() {
     setIsLoading(false);
   }, []);
 
-  return { messages, isLoading, error, sendMessage, clearChat, cancelStream };
+  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId };
 }
