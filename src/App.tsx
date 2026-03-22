@@ -212,6 +212,7 @@ import ScoutsJobDetail from "./pages/scouts/ScoutsJobDetail";
 import ScoutsPayouts from "./pages/scouts/ScoutsPayouts";
 import ScoutsRoster from "./pages/scouts/ScoutsRoster";
 import InstallApp from "./pages/InstallApp";
+import DashWorkspace from "./pages/DashWorkspace";
 import ScoutsAnalytics from "./pages/scouts/ScoutsAnalytics";
 import CompanyDetail from "./pages/admin/CompanyDetail";
 const queryClient = new QueryClient({
