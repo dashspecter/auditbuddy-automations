@@ -54,9 +54,14 @@ export default function FieldResponseInput({
   const deletePhoto = useDeleteFieldPhoto();
   const deleteAttachment = useDeleteFieldAttachment();
 
+  const debouncedObservationSave = useDebouncedSave(
+    useCallback((value: string) => onObservationChange(value), [onObservationChange]),
+    800
+  );
+
   const handleObservationChange = (value: string) => {
     setObservations(value);
-    onObservationChange(value);
+    debouncedObservationSave(value);
   };
 
   const getOrEnsureResponseId = async (): Promise<string | null> => {
