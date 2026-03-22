@@ -607,9 +607,22 @@ async function executeTool(
   // Module gating check
   const requiredModule = TOOL_MODULE_MAP[name];
   if (requiredModule && !activeModules.includes(requiredModule)) {
-    return { error: `The "${requiredModule}" module is not active for your company. Please enable it in Billing & Modules.` };
+    return { error: `The "${requiredModule}" module is not active for your company. Please enable it in Billing & Modules.`, recoverable: false };
   }
 
+  try {
+    return await executeToolInner(sb, sbService, name, args, companyId, userId, role, activeModules, structuredEvents);
+  } catch (err: any) {
+    console.error(`[Dash] Tool "${name}" error:`, err);
+    return { error: `Tool "${name}" failed: ${err.message || "Unknown error"}. You may retry this request.`, recoverable: true };
+  }
+}
+
+async function executeToolInner(
+  sb: any, sbService: any, name: string, args: any,
+  companyId: string, userId: string, role: string, activeModules: string[],
+  structuredEvents: string[]
+): Promise<any> {
   switch (name) {
     // ────────── READ TOOLS (unchanged) ──────────
     case "search_locations": {
