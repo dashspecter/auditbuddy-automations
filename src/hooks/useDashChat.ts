@@ -104,6 +104,7 @@ export function useDashChat() {
       const decoder = new TextDecoder();
       let buffer = "";
       let assistantContent = "";
+      const structuredEvents: DashStructuredEvent[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -123,15 +124,32 @@ export function useDashChat() {
 
           try {
             const parsed = JSON.parse(jsonStr);
+
+            // Handle structured events
+            if (parsed.type === "structured_event") {
+              structuredEvents.push({
+                type: parsed.event_type,
+                data: parsed.data,
+              });
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
+              });
+              continue;
+            }
+
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantContent += content;
               setMessages(prev => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
                 }
-                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
               });
             }
           } catch {
