@@ -1,96 +1,86 @@
 
 
-# Phase B — Platform QA & Polish Pass
+# Fix All QA Issues — P0, P1 & P2
 
-## What We're Building
+## Issues to Fix
 
-Production hardening across the full platform: code-splitting for performance, mobile responsiveness fixes, consistent error boundaries, and database index optimization. This is not Dash-specific — it covers the entire application.
-
----
-
-## Step 1 — Code Splitting (Critical Performance Win)
-
-**Problem**: `App.tsx` eagerly imports 130+ page components. Every user downloads the entire app on first load regardless of which page they visit.
-
-**Fix**: Convert all page imports to `React.lazy()` with a shared `Suspense` fallback.
-
-- Create `src/components/LazyLoadFallback.tsx` — a simple centered spinner
-- Replace all `import X from "./pages/X"` with `const X = React.lazy(() => import("./pages/X"))`
-- Wrap the inner `<Routes>` block in `<Suspense fallback={<LazyLoadFallback />}>`
-- Group related modules into natural chunks (CMMS, Scouts, Staff, Workforce, Waste, WhatsApp, Operations)
-
-**Expected impact**: Initial bundle reduced by ~60-70%. Each page loads on-demand.
-
-**File**: `src/App.tsx`, `src/components/LazyLoadFallback.tsx` (new)
+**P0-1**: `reassign_corrective_action` executes immediately, bypassing approval gate
+**P0-2**: `execute_shift_creation` has no implementation in executeTool switch
+**P1-3**: `dash_org_memory.memory_type` CHECK constraint mismatch with tool values
+**P1-4**: `dash_saved_workflows` missing `is_shared` column
+**P2-5**: `dash_saved_workflows` missing SELECT policy for shared workflows
+**P2-6**: `DashPanel` accessible to staff roles (no role guard)
 
 ---
 
-## Step 2 — Consistent Error Boundaries Per Route Group
+## Step 1 — Fix P0-1: CA Reassignment Approval Gate
 
-**Problem**: Only one top-level `ErrorBoundary` exists. A crash in any page takes down the entire app.
+**File**: `supabase/functions/dash-command/index.ts` (lines 1220-1306)
 
-**Fix**: Add granular error boundaries around route groups.
+Replace the current `reassign_corrective_action` case so it ONLY creates a pending action and returns an `action_preview` card — NO immediate UPDATE. Then add a new `execute_ca_reassignment` case (after line 1218) that:
+1. Validates pending action exists, is `pending`, and belongs to same company
+2. Executes the UPDATE on `corrective_actions`
+3. Updates pending action status
+4. Logs to `dash_action_log`
+5. Pushes `execution_result` structured event
 
-- Create `src/components/RouteErrorBoundary.tsx` — lightweight version with "Go back" + "Reload" buttons, scoped to the content area (not full-page takeover)
-- Wrap each lazy-loaded page in `<RouteErrorBoundary>` inside `App.tsx`
-- Keeps the existing top-level `ErrorBoundary` as ultimate fallback
-
-**File**: `src/components/RouteErrorBoundary.tsx` (new), `src/App.tsx`
-
----
-
-## Step 3 — Mobile Responsiveness Fixes
-
-**Problem**: Several pages use hardcoded widths, overflow issues, or don't account for the mobile bottom nav's height.
-
-**Fixes**:
-- Add `pb-20` (bottom padding) to `AppLayout.tsx` main content area when `isMobile` to prevent content hiding behind the 64px bottom nav
-- Fix `MobileBottomNav.tsx` — add `safe-area-inset-bottom` padding for notched phones
-- Audit the `AppTopBar.tsx` for overflow on small screens (truncate title, hide non-essential buttons)
-
-**Files**: `src/components/layout/AppLayout.tsx`, `src/components/layout/MobileBottomNav.tsx`, `src/components/layout/AppTopBar.tsx`
+Also register `execute_ca_reassignment` in `TOOL_MODULE_MAP` (line 26) and `ACTION_RISK` (line 42).
 
 ---
 
-## Step 4 — Database Index Optimization
+## Step 2 — Fix P0-2: Add `execute_shift_creation` Handler
 
-**Problem**: High-traffic queries on `employees`, `audits`, `equipment`, `attendance_logs`, and `dash_action_log` lack composite indexes for common filter patterns.
+**File**: `supabase/functions/dash-command/index.ts` (before line 1220, after the audit template case)
 
-**Fix**: Single migration adding indexes for the most common query patterns:
+Add `case "execute_shift_creation"` following the same pattern as `execute_employee_creation`:
+1. Validate pending action (status, company)
+2. Read draft from `preview_json`
+3. Insert into `shifts` table with `sbService`
+4. Update pending action status
+5. Log to `dash_action_log`
+6. Push `execution_result` event
+
+---
+
+## Step 3 — Fix P1-3 & P1-4: Database Schema Fixes
+
+**Database migration** with:
 
 ```sql
--- Attendance (filtered by company + date constantly)
-CREATE INDEX IF NOT EXISTS idx_attendance_logs_company_date 
-  ON attendance_logs(company_id, clock_in_time DESC);
+-- P1-3: Fix memory_type CHECK to include both old and new enum values
+ALTER TABLE public.dash_org_memory DROP CONSTRAINT IF EXISTS dash_org_memory_memory_type_check;
+ALTER TABLE public.dash_org_memory ADD CONSTRAINT dash_org_memory_memory_type_check 
+  CHECK (memory_type IN ('vocabulary','process','convention','shortcut','terminology','standard','note'));
 
--- Employees (filtered by company + location)
-CREATE INDEX IF NOT EXISTS idx_employees_company_location 
-  ON employees(company_id, location_id) WHERE deleted_at IS NULL;
-
--- Audits (filtered by company + status + date)
-CREATE INDEX IF NOT EXISTS idx_audits_company_status 
-  ON audits(company_id, status, created_at DESC);
-
--- Dash action log (analytics queries)
-CREATE INDEX IF NOT EXISTS idx_dash_action_log_company_created 
-  ON dash_action_log(company_id, created_at DESC);
-
--- Dash sessions (user lookup)
-CREATE INDEX IF NOT EXISTS idx_dash_sessions_user 
-  ON dash_sessions(user_id, updated_at DESC);
+-- P1-4: Add is_shared column
+ALTER TABLE public.dash_saved_workflows 
+  ADD COLUMN IF NOT EXISTS is_shared BOOLEAN NOT NULL DEFAULT false;
 ```
-
-**File**: Database migration
 
 ---
 
-## Step 5 — Duplicate Route Cleanup
+## Step 4 — Fix P2-5: Shared Workflows SELECT Policy
 
-**Problem**: `App.tsx` has duplicate route definitions (e.g., `/workforce/payroll-batches`, `/workforce/attendance-alerts`, `/workforce/scheduling-insights` appear twice at lines 407-412 and 519-521).
+Same migration as Step 3:
 
-**Fix**: Remove the duplicate entries at lines 519-521.
+```sql
+CREATE POLICY "Company members can view shared workflows" 
+  ON public.dash_saved_workflows FOR SELECT TO authenticated
+  USING (company_id = public.get_user_company_id(auth.uid()) AND is_shared = true);
+```
 
-**File**: `src/App.tsx`
+---
+
+## Step 5 — Fix P2-6: DashPanel Role Guard
+
+**File**: `src/components/dash/DashPanel.tsx` (line 41-49)
+
+Add early return after roleData check:
+```typescript
+if (!roleData?.isAdmin && !roleData?.isManager) return null;
+```
+
+This prevents staff from accessing the Dash sidebar panel.
 
 ---
 
@@ -98,19 +88,12 @@ CREATE INDEX IF NOT EXISTS idx_dash_sessions_user
 
 | File | Action |
 |------|--------|
-| `src/App.tsx` | Lazy imports, Suspense wrapper, remove duplicate routes |
-| `src/components/LazyLoadFallback.tsx` | New — loading spinner for lazy routes |
-| `src/components/RouteErrorBoundary.tsx` | New — per-route error boundary |
-| `src/components/layout/AppLayout.tsx` | Mobile bottom padding fix |
-| `src/components/layout/MobileBottomNav.tsx` | Safe area inset |
-| `src/components/layout/AppTopBar.tsx` | Mobile overflow fixes |
-| Database migration | Composite indexes for high-traffic tables |
+| `supabase/functions/dash-command/index.ts` | Fix CA reassignment (draft-only), add `execute_ca_reassignment`, add `execute_shift_creation` |
+| `src/components/dash/DashPanel.tsx` | Add role guard |
+| Database migration | Fix CHECK constraint, add `is_shared` column, add shared workflows SELECT policy |
 
 ## Delivery Order
-
-1. Code splitting + lazy loading (biggest performance win)
-2. Duplicate route cleanup (quick fix, ships with step 1)
-3. Mobile responsiveness fixes (UX)
-4. Route-level error boundaries (resilience)
-5. Database indexes (query performance)
+1. Database migration (schema fixes — P1-3, P1-4, P2-5)
+2. Edge function fixes (P0-1, P0-2)
+3. DashPanel role guard (P2-6)
 
