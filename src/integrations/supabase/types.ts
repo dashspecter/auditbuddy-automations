@@ -3460,6 +3460,290 @@ export type Database = {
           },
         ]
       }
+      dash_action_log: {
+        Row: {
+          action_name: string
+          action_type: string
+          approval_status: string | null
+          company_id: string
+          created_at: string
+          entities_affected: Json | null
+          id: string
+          modules_touched: string[] | null
+          request_json: Json
+          result_json: Json | null
+          risk_level: string
+          session_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_name: string
+          action_type: string
+          approval_status?: string | null
+          company_id: string
+          created_at?: string
+          entities_affected?: Json | null
+          id?: string
+          modules_touched?: string[] | null
+          request_json?: Json
+          result_json?: Json | null
+          risk_level?: string
+          session_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_name?: string
+          action_type?: string
+          approval_status?: string | null
+          company_id?: string
+          created_at?: string
+          entities_affected?: Json | null
+          id?: string
+          modules_touched?: string[] | null
+          request_json?: Json
+          result_json?: Json | null
+          risk_level?: string
+          session_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_action_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dash_action_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dash_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dash_org_memory: {
+        Row: {
+          company_id: string
+          content_json: Json
+          created_at: string
+          created_by: string
+          id: string
+          memory_key: string
+          memory_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content_json?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          memory_key: string
+          memory_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content_json?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          memory_key?: string
+          memory_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_org_memory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dash_pending_actions: {
+        Row: {
+          action_name: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string
+          id: string
+          preview_json: Json
+          risk_level: string
+          session_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_name: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          preview_json?: Json
+          risk_level?: string
+          session_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_name?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          preview_json?: Json
+          risk_level?: string
+          session_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_pending_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dash_pending_actions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "dash_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dash_saved_workflows: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          workflow_json: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+          workflow_json?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          workflow_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_saved_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dash_sessions: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          messages_json: Json
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          messages_json?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          messages_json?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dash_user_preferences: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          preference_key: string
+          preference_value: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          preference_key: string
+          preference_value?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          preference_key?: string
+          preference_value?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dash_user_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_requests: {
         Row: {
           company: string
