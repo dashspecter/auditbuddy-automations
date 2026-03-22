@@ -88,27 +88,34 @@ export function DashSessionHistory({ currentSessionId, onSelectSession, onNewSes
           <p className="text-xs text-muted-foreground text-center py-3">No previous conversations</p>
         ) : (
           <div className="space-y-0.5">
-            {sessions.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => handleSelect(s)}
-                className={cn(
-                  "w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors",
-                  s.id === currentSessionId
-                    ? "bg-primary/10 border border-primary/20"
-                    : "hover:bg-muted/60"
-                )}
-              >
-                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{s.title || "Untitled"}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" />
-                    {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {sessions.map((s) => {
+              const isArchived = s.status === "archived";
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => !isArchived && handleSelect(s)}
+                  disabled={isArchived}
+                  className={cn(
+                    "w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-left transition-colors",
+                    isArchived
+                      ? "opacity-50 cursor-not-allowed"
+                      : s.id === currentSessionId
+                        ? "bg-primary/10 border border-primary/20"
+                        : "hover:bg-muted/60"
+                  )}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{s.title || "Untitled"}</p>
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
+                      {isArchived && <span className="text-[9px] text-muted-foreground/60 ml-1">(archived)</span>}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </ScrollArea>
