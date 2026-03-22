@@ -155,7 +155,10 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
           <textarea
             ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              const val = e.target.value;
+              if (val.length <= MAX_LENGTH) setInput(val);
+            }}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             placeholder={placeholder ?? "Ask Dash anything about your operations..."}
@@ -168,6 +171,11 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
               t.style.height = Math.min(t.scrollHeight, 120) + "px";
             }}
           />
+          {input.length > MAX_LENGTH * 0.8 && (
+            <span className={`absolute bottom-1 right-2 text-[10px] ${input.length >= MAX_LENGTH ? "text-destructive" : "text-muted-foreground"}`}>
+              {input.length}/{MAX_LENGTH}
+            </span>
+          )}
         </div>
 
         {isLoading ? (

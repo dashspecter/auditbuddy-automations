@@ -330,6 +330,7 @@ const App = () => {
                       <Route path="/pricing" element={<CompanyOwnerRoute><PricingPlans /></CompanyOwnerRoute>} />
                       <Route path="/command" element={<ProtectedRoute><MobileCommand /></ProtectedRoute>} />
                       <Route path="/dash" element={<ManagerRoute><AppLayout><DashWorkspace /></AppLayout></ManagerRoute>} />
+                      <Route path="/dash/analytics" element={<AdminRoute><AppLayout><DashAnalytics /></AppLayout></AdminRoute>} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                       <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
                       <Route path="/audits/:id" element={<ProtectedRoute><AuditDetail /></ProtectedRoute>} />

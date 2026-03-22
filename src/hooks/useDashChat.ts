@@ -186,5 +186,20 @@ export function useDashChat() {
     setIsLoading(false);
   }, []);
 
-  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId, loadSession };
+  const retryLast = useCallback(() => {
+    const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+    if (!lastUserMsg) return;
+    // Remove the error message (last assistant) and resend
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && last.content.startsWith("⚠️")) {
+        return prev.slice(0, -1);
+      }
+      return prev;
+    });
+    // Small delay to let state settle, then resend
+    setTimeout(() => sendMessage(lastUserMsg.content), 50);
+  }, [messages, sendMessage]);
+
+  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId, loadSession, retryLast };
 }
