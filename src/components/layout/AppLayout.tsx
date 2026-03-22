@@ -22,7 +22,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <OfflineIndicator />
         <AppTopBar />
         
-        <main className="flex-1 overflow-auto p-3 md:p-4">
+        <main className={cn("flex-1 overflow-auto p-3 md:p-4", isMobile && "pb-20")}>
           <Breadcrumbs />
           <div className="mt-3 md:mt-4">
             {children}
