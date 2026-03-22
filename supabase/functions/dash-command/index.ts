@@ -21,6 +21,22 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
   search_employees: "workforce",
+  execute_employee_creation: "workforce",
+  execute_audit_template_creation: "audits",
+  reassign_corrective_action: "corrective_actions",
+  create_shift_draft: "workforce",
+  execute_shift_creation: "workforce",
+};
+
+// ─── Risk classification ────────────────────────────────────
+const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
+  create_employee_draft: "medium",
+  create_audit_template_draft: "medium",
+  create_shift_draft: "medium",
+  execute_employee_creation: "medium",
+  execute_audit_template_creation: "medium",
+  execute_shift_creation: "medium",
+  reassign_corrective_action: "high",
 };
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -240,7 +256,7 @@ const tools = [
     type: "function",
     function: {
       name: "parse_uploaded_file",
-      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it (e.g., create an audit template from a PDF, onboard an employee from an ID scan, import a schedule from a spreadsheet).",
+      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it.",
       parameters: {
         type: "object",
         properties: {
@@ -316,10 +332,117 @@ const tools = [
       },
     },
   },
+  // --- WRITE: Execute approved employee creation ---
+  {
+    type: "function",
+    function: {
+      name: "execute_employee_creation",
+      description: "Execute the creation of an employee record after user has approved the draft. Only call this when the user explicitly approves/confirms the employee draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the approval" },
+          full_name: { type: "string" },
+          cnp: { type: "string" },
+          date_of_birth: { type: "string" },
+          id_series: { type: "string" },
+          id_number: { type: "string" },
+          address: { type: "string" },
+          location_id: { type: "string" },
+          role: { type: "string" },
+          start_date: { type: "string" },
+          phone: { type: "string" },
+          email: { type: "string" },
+        },
+        required: ["full_name", "location_id", "role"],
+      },
+    },
+  },
+  // --- WRITE: Execute approved audit template creation ---
+  {
+    type: "function",
+    function: {
+      name: "execute_audit_template_creation",
+      description: "Execute the creation of an audit template after user has approved the draft. Only call this when the user explicitly approves/confirms the template draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the approval" },
+          template_name: { type: "string" },
+          description: { type: "string" },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                fields: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      field_type: { type: "string" },
+                      is_required: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        required: ["template_name", "sections"],
+      },
+    },
+  },
+  // --- WRITE: Reassign corrective action ---
+  {
+    type: "function",
+    function: {
+      name: "reassign_corrective_action",
+      description: "Reassign a corrective action to a different user. Requires explicit user confirmation for high-risk changes.",
+      parameters: {
+        type: "object",
+        properties: {
+          corrective_action_id: { type: "string", description: "The CA ID to reassign" },
+          new_assigned_to: { type: "string", description: "New assignee user ID" },
+          new_assigned_name: { type: "string", description: "Name of new assignee (for confirmation)" },
+          reason: { type: "string", description: "Reason for reassignment" },
+        },
+        required: ["corrective_action_id", "new_assigned_to"],
+      },
+    },
+  },
+  // --- DRAFT: Create shift draft ---
+  {
+    type: "function",
+    function: {
+      name: "create_shift_draft",
+      description: "Create a shift draft for user approval before creating. Shows preview of the shift.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string" },
+          location_id: { type: "string" },
+          role: { type: "string", description: "Role/position for the shift" },
+          shift_date: { type: "string", description: "Date YYYY-MM-DD" },
+          start_time: { type: "string", description: "Start time HH:MM" },
+          end_time: { type: "string", description: "End time HH:MM" },
+          min_staff: { type: "number", description: "Minimum staff needed" },
+          max_staff: { type: "number", description: "Maximum staff" },
+        },
+        required: ["role", "shift_date", "start_time", "end_time"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
-async function executeTool(sb: any, name: string, args: any, companyId: string, role: string, activeModules: string[]): Promise<any> {
+async function executeTool(
+  sb: any, sbService: any, name: string, args: any, 
+  companyId: string, userId: string, role: string, activeModules: string[],
+  structuredEvents: string[]
+): Promise<any> {
   // Module gating check
   const requiredModule = TOOL_MODULE_MAP[name];
   if (requiredModule && !activeModules.includes(requiredModule)) {
@@ -327,6 +450,7 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
   }
 
   switch (name) {
+    // ────────── READ TOOLS (unchanged) ──────────
     case "search_locations": {
       const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
       if (error) return { error: error.message };
@@ -491,96 +615,63 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       return { total_incomplete: (data ?? []).length, overdue_count: overdue.length, gaps: (data ?? []).map((a: any) => ({ employee: a.employees?.full_name, module: a.training_modules?.title, status: a.status, due_date: a.due_date, location: a.employees?.locations?.name })) };
     }
 
+    // ────────── FILE TOOLS ──────────
     case "parse_uploaded_file": {
       const { file_url, file_name, intent } = args;
       if (!file_url) return { error: "No file URL provided" };
 
       try {
         if (intent === "id_scan") {
-          // Call existing scan-id-document edge function
           const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-
           const scanResp = await fetch(`${SUPABASE_URL}/functions/v1/scan-id-document`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
             body: JSON.stringify({ imageUrl: file_url }),
           });
-
-          if (!scanResp.ok) {
-            return { error: "Failed to scan ID document. Please ensure the image is clear and readable." };
-          }
-
+          if (!scanResp.ok) return { error: "Failed to scan ID document. Please ensure the image is clear and readable." };
           const scanResult = await scanResp.json();
-          return {
-            type: "id_scan_result",
-            file_name,
-            extracted_data: scanResult,
-            confidence: "medium",
-            next_step: "Review the extracted data and call create_employee_draft with the confirmed fields.",
-          };
+          return { type: "id_scan_result", file_name, extracted_data: scanResult, confidence: "medium", next_step: "Review the extracted data and call create_employee_draft with the confirmed fields." };
         }
 
         if (intent === "audit_template") {
-          // Use Gemini vision to parse the PDF/image into audit structure
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-
           const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
-                    { type: "image_url", image_url: { url: file_url } },
-                  ],
-                },
-              ],
+              messages: [{
+                role: "user",
+                content: [
+                  { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
+                  { type: "image_url", image_url: { url: file_url } },
+                ],
+              }],
               stream: false,
             }),
           });
-
-          if (!parseResp.ok) {
-            return { error: "Failed to parse document for audit template extraction." };
-          }
-
+          if (!parseResp.ok) return { error: "Failed to parse document for audit template extraction." };
           const parseResult = await parseResp.json();
           const content = parseResult.choices?.[0]?.message?.content || "";
-
-          // Try to parse JSON from the response
           let templateData: any = null;
           try {
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) templateData = JSON.parse(jsonMatch[0]);
           } catch {
-            return { raw_extraction: content, error: "Could not parse structured data from document. The raw extraction is provided for manual review." };
+            return { raw_extraction: content, error: "Could not parse structured data from document." };
           }
-
-          return {
-            type: "audit_template_extraction",
-            file_name,
-            extracted_template: templateData,
-            confidence: "medium",
-            next_step: "Review the extracted template structure and call create_audit_template_draft to finalize.",
-          };
+          return { type: "audit_template_extraction", file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
         }
 
-        // General document parse
-        return {
-          type: "general_parse",
-          file_name,
-          message: `File "${file_name}" received. Please specify what you'd like to do with it: create an audit template, onboard an employee from ID, or import a schedule.`,
-        };
+        return { type: "general_parse", file_name, message: `File "${file_name}" received. Please specify what you'd like to do with it.` };
       } catch (err: any) {
         return { error: `File processing failed: ${err.message}` };
       }
     }
 
+    // ────────── DRAFT TOOLS ──────────
     case "create_employee_draft": {
-      // Resolve location if name provided
       let locationId = null;
       if (args.location_name) {
         const { data: locData } = await sb.from("locations").select("id, name").ilike("name", `%${args.location_name}%`).limit(1);
@@ -598,24 +689,54 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
         location_name: args.location_name || null,
         role: args.role || null,
         start_date: args.start_date || null,
-        status: "draft",
+        phone: args.phone || null,
+        email: args.email || null,
       };
 
-      // Check for required fields
       const missing: string[] = [];
       if (!draft.full_name) missing.push("full_name");
       if (!draft.location_name && !draft.location_id) missing.push("location (which location?)");
       if (!draft.role) missing.push("role/position");
 
+      // Store pending action in database
+      let pendingActionId: string | null = null;
+      if (missing.length === 0) {
+        const { data: paData } = await sbService.from("dash_pending_actions").insert({
+          company_id: companyId,
+          user_id: userId,
+          action_name: "create_employee",
+          action_type: "write",
+          risk_level: "medium",
+          preview_json: draft,
+          status: "pending",
+        }).select("id").single();
+        pendingActionId = paData?.id || null;
+      }
+
+      // Emit structured action preview event
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Create Employee",
+        summary: missing.length > 0
+          ? `Draft for "${draft.full_name}" — missing: ${missing.join(", ")}`
+          : `Create "${draft.full_name}" at ${draft.location_name || "location"} as ${draft.role}`,
+        risk: "medium",
+        affected: [draft.full_name, draft.location_name, draft.role].filter(Boolean),
+        pending_action_id: pendingActionId,
+        draft,
+        missing_fields: missing,
+        can_approve: missing.length === 0,
+      }));
+
       return {
         type: "employee_draft",
         draft,
         missing_fields: missing,
+        pending_action_id: pendingActionId,
         requires_approval: true,
         risk_level: "medium",
         message: missing.length > 0
           ? `Draft created but missing: ${missing.join(", ")}. Please provide these to proceed.`
-          : `Employee draft ready for "${draft.full_name}" at ${draft.location_name || "unspecified location"} as ${draft.role || "unspecified role"}. Please confirm to create.`,
+          : `Employee draft ready for "${draft.full_name}". A pending action has been created (ID: ${pendingActionId}). The user can approve to execute.`,
       };
     }
 
@@ -623,24 +744,390 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       const sectionCount = args.sections?.length || 0;
       const fieldCount = args.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
 
+      const draft = {
+        name: args.template_name,
+        description: args.description || null,
+        sections: args.sections,
+        recurrence: args.recurrence || "none",
+        target_locations: args.target_locations || "all",
+      };
+
+      // Store pending action
+      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_name: "create_audit_template",
+        action_type: "write",
+        risk_level: "medium",
+        preview_json: draft,
+        status: "pending",
+      }).select("id").single();
+      const pendingActionId = paData?.id || null;
+
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Create Audit Template",
+        summary: `"${args.template_name}" with ${sectionCount} sections, ${fieldCount} fields. Recurrence: ${args.recurrence || "none"}`,
+        risk: "medium",
+        affected: [`${sectionCount} sections`, `${fieldCount} fields`, args.recurrence || "no recurrence"],
+        pending_action_id: pendingActionId,
+        draft,
+        can_approve: true,
+      }));
+
       return {
         type: "audit_template_draft",
-        draft: {
-          name: args.template_name,
-          description: args.description || null,
-          sections: args.sections,
-          recurrence: args.recurrence || "none",
-          target_locations: args.target_locations || "all",
-        },
-        summary: {
-          sections: sectionCount,
-          total_fields: fieldCount,
-          recurrence: args.recurrence || "none",
-          target: args.target_locations || "all locations",
-        },
+        draft,
+        pending_action_id: pendingActionId,
+        summary: { sections: sectionCount, total_fields: fieldCount, recurrence: args.recurrence || "none", target: args.target_locations || "all locations" },
         requires_approval: true,
         risk_level: "medium",
-        message: `Audit template "${args.template_name}" draft ready with ${sectionCount} sections and ${fieldCount} fields. Recurrence: ${args.recurrence || "none"}. Please confirm to create.`,
+        message: `Audit template "${args.template_name}" draft ready (ID: ${pendingActionId}). User can approve to create.`,
+      };
+    }
+
+    case "create_shift_draft": {
+      let locationId = args.location_id;
+      let locationName = args.location_name;
+      if (!locationId && locationName) {
+        const { data } = await sb.from("locations").select("id, name").ilike("name", `%${locationName}%`).limit(1);
+        if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
+      }
+
+      const draft = {
+        location_id: locationId,
+        location_name: locationName || null,
+        role: args.role,
+        shift_date: args.shift_date,
+        start_time: args.start_time,
+        end_time: args.end_time,
+        min_staff: args.min_staff || 1,
+        max_staff: args.max_staff || 1,
+      };
+
+      const missing: string[] = [];
+      if (!locationId) missing.push("location");
+      if (!draft.role) missing.push("role");
+      if (!draft.shift_date) missing.push("shift_date");
+
+      let pendingActionId: string | null = null;
+      if (missing.length === 0) {
+        const { data: paData } = await sbService.from("dash_pending_actions").insert({
+          company_id: companyId,
+          user_id: userId,
+          action_name: "create_shift",
+          action_type: "write",
+          risk_level: "medium",
+          preview_json: draft,
+          status: "pending",
+        }).select("id").single();
+        pendingActionId = paData?.id || null;
+      }
+
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Create Shift",
+        summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}`,
+        risk: "medium",
+        affected: [locationName, draft.role, draft.shift_date].filter(Boolean),
+        pending_action_id: pendingActionId,
+        draft,
+        missing_fields: missing,
+        can_approve: missing.length === 0,
+      }));
+
+      return {
+        type: "shift_draft",
+        draft,
+        missing_fields: missing,
+        pending_action_id: pendingActionId,
+        requires_approval: true,
+        risk_level: "medium",
+        message: missing.length > 0
+          ? `Shift draft missing: ${missing.join(", ")}.`
+          : `Shift draft ready. User can approve to create.`,
+      };
+    }
+
+    // ────────── WRITE/EXECUTE TOOLS ──────────
+    case "execute_employee_creation": {
+      // Validate pending action
+      if (args.pending_action_id) {
+        const { data: pa } = await sbService.from("dash_pending_actions")
+          .select("id, status, company_id")
+          .eq("id", args.pending_action_id)
+          .maybeSingle();
+        if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+        if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+      }
+
+      // Create employee
+      const { data: empData, error: empError } = await sbService.from("employees").insert({
+        company_id: companyId,
+        full_name: args.full_name,
+        role: args.role || "staff",
+        location_id: args.location_id,
+        status: "active",
+        start_date: args.start_date || null,
+        phone: args.phone || null,
+        email: args.email || null,
+        cnp: args.cnp || null,
+        date_of_birth: args.date_of_birth || null,
+        id_series: args.id_series || null,
+        id_number: args.id_number || null,
+        address: args.address || null,
+      }).select("id, full_name").single();
+
+      if (empError) {
+        // Update pending action as failed
+        if (args.pending_action_id) {
+          await sbService.from("dash_pending_actions")
+            .update({ status: "failed", execution_result: { error: empError.message }, updated_at: new Date().toISOString() })
+            .eq("id", args.pending_action_id);
+        }
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "error",
+          title: "Employee Creation Failed",
+          summary: empError.message,
+          errors: [empError.message],
+        }));
+        return { error: `Failed to create employee: ${empError.message}` };
+      }
+
+      // Update pending action as executed
+      if (args.pending_action_id) {
+        await sbService.from("dash_pending_actions")
+          .update({
+            status: "executed",
+            approved_at: new Date().toISOString(),
+            approved_by: userId,
+            execution_result: { employee_id: empData.id, employee_name: empData.full_name },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", args.pending_action_id);
+      }
+
+      // Log action
+      await sbService.from("dash_action_log").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_type: "write",
+        action_name: "create_employee",
+        risk_level: "medium",
+        request_json: args,
+        result_json: { employee_id: empData.id },
+        status: "success",
+        approval_status: "approved",
+        entities_affected: [empData.id],
+        modules_touched: ["workforce"],
+      });
+
+      structuredEvents.push(makeStructuredEvent("execution_result", {
+        status: "success",
+        title: "Employee Created",
+        summary: `${empData.full_name} has been created successfully.`,
+        changes: [`Employee "${empData.full_name}" created (ID: ${empData.id})`],
+      }));
+
+      return {
+        type: "employee_created",
+        employee_id: empData.id,
+        employee_name: empData.full_name,
+        message: `Employee "${empData.full_name}" created successfully.`,
+      };
+    }
+
+    case "execute_audit_template_creation": {
+      if (args.pending_action_id) {
+        const { data: pa } = await sbService.from("dash_pending_actions")
+          .select("id, status, company_id")
+          .eq("id", args.pending_action_id)
+          .maybeSingle();
+        if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+        if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+      }
+
+      // Create template
+      const { data: tmplData, error: tmplError } = await sbService.from("audit_templates").insert({
+        company_id: companyId,
+        name: args.template_name,
+        description: args.description || null,
+        template_type: "location_audit",
+        is_active: false, // Start as inactive draft
+        is_global: false,
+        created_by: userId,
+      }).select("id, name").single();
+
+      if (tmplError) {
+        if (args.pending_action_id) {
+          await sbService.from("dash_pending_actions")
+            .update({ status: "failed", execution_result: { error: tmplError.message }, updated_at: new Date().toISOString() })
+            .eq("id", args.pending_action_id);
+        }
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "error",
+          title: "Template Creation Failed",
+          summary: tmplError.message,
+          errors: [tmplError.message],
+        }));
+        return { error: `Failed to create template: ${tmplError.message}` };
+      }
+
+      // Create sections and fields
+      let sectionErrors: string[] = [];
+      for (let si = 0; si < (args.sections || []).length; si++) {
+        const sec = args.sections[si];
+        const { data: secData, error: secError } = await sbService.from("audit_sections").insert({
+          template_id: tmplData.id,
+          name: sec.name,
+          display_order: si + 1,
+        }).select("id").single();
+
+        if (secError) {
+          sectionErrors.push(`Section "${sec.name}": ${secError.message}`);
+          continue;
+        }
+
+        for (let fi = 0; fi < (sec.fields || []).length; fi++) {
+          const fld = sec.fields[fi];
+          await sbService.from("audit_fields").insert({
+            section_id: secData.id,
+            name: fld.name,
+            field_type: fld.field_type || "yes_no",
+            is_required: fld.is_required ?? true,
+            display_order: fi + 1,
+          });
+        }
+      }
+
+      if (args.pending_action_id) {
+        await sbService.from("dash_pending_actions")
+          .update({
+            status: "executed",
+            approved_at: new Date().toISOString(),
+            approved_by: userId,
+            execution_result: { template_id: tmplData.id, template_name: tmplData.name, section_errors: sectionErrors },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", args.pending_action_id);
+      }
+
+      await sbService.from("dash_action_log").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_type: "write",
+        action_name: "create_audit_template",
+        risk_level: "medium",
+        request_json: args,
+        result_json: { template_id: tmplData.id },
+        status: "success",
+        approval_status: "approved",
+        entities_affected: [tmplData.id],
+        modules_touched: ["audits"],
+      });
+
+      const resultStatus = sectionErrors.length > 0 ? "partial" : "success";
+      structuredEvents.push(makeStructuredEvent("execution_result", {
+        status: resultStatus,
+        title: resultStatus === "success" ? "Audit Template Created" : "Template Created with Warnings",
+        summary: `Template "${tmplData.name}" created (inactive/draft). ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added successfully."}`,
+        changes: [`Template "${tmplData.name}" created`, `${args.sections?.length || 0} sections added`],
+        errors: sectionErrors.length > 0 ? sectionErrors : undefined,
+      }));
+
+      return {
+        type: "audit_template_created",
+        template_id: tmplData.id,
+        template_name: tmplData.name,
+        section_errors: sectionErrors,
+        message: `Audit template "${tmplData.name}" created as inactive draft. ${sectionErrors.length > 0 ? `${sectionErrors.length} issues with sections.` : "Ready to activate in Audit Templates."}`,
+      };
+    }
+
+    case "reassign_corrective_action": {
+      // Validate CA exists and belongs to company
+      const { data: caData, error: caError } = await sb.from("corrective_actions")
+        .select("id, title, assigned_to, location_id, locations(name), company_id")
+        .eq("id", args.corrective_action_id)
+        .maybeSingle();
+
+      if (caError || !caData) return { error: "Corrective action not found." };
+      if (caData.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+
+      // Create pending action for high-risk reassignment
+      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_name: "reassign_corrective_action",
+        action_type: "write",
+        risk_level: "high",
+        preview_json: {
+          ca_id: caData.id,
+          ca_title: caData.title,
+          old_assigned_to: caData.assigned_to,
+          new_assigned_to: args.new_assigned_to,
+          new_assigned_name: args.new_assigned_name,
+          reason: args.reason,
+        },
+        status: "pending",
+      }).select("id").single();
+
+      // Execute the reassignment
+      const { error: updateError } = await sbService.from("corrective_actions")
+        .update({ assigned_to: args.new_assigned_to, updated_at: new Date().toISOString() })
+        .eq("id", args.corrective_action_id)
+        .eq("company_id", companyId);
+
+      if (updateError) {
+        await sbService.from("dash_pending_actions")
+          .update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() })
+          .eq("id", paData?.id);
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "error",
+          title: "Reassignment Failed",
+          summary: updateError.message,
+          errors: [updateError.message],
+        }));
+        return { error: `Reassignment failed: ${updateError.message}` };
+      }
+
+      await sbService.from("dash_pending_actions")
+        .update({
+          status: "executed",
+          approved_at: new Date().toISOString(),
+          approved_by: userId,
+          execution_result: { success: true },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", paData?.id);
+
+      await sbService.from("dash_action_log").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_type: "write",
+        action_name: "reassign_corrective_action",
+        risk_level: "high",
+        request_json: args,
+        result_json: { ca_id: caData.id, new_assigned_to: args.new_assigned_to },
+        status: "success",
+        approval_status: "approved",
+        entities_affected: [caData.id],
+        modules_touched: ["corrective_actions"],
+      });
+
+      structuredEvents.push(makeStructuredEvent("execution_result", {
+        status: "success",
+        title: "Corrective Action Reassigned",
+        summary: `"${caData.title}" reassigned to ${args.new_assigned_name || args.new_assigned_to}.`,
+        changes: [`CA "${caData.title}" reassigned`, `New assignee: ${args.new_assigned_name || args.new_assigned_to}`],
+      }));
+
+      return {
+        type: "ca_reassigned",
+        ca_id: caData.id,
+        ca_title: caData.title,
+        new_assigned_to: args.new_assigned_to,
+        message: `Corrective action "${caData.title}" reassigned successfully.`,
       };
     }
 
@@ -667,6 +1154,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Timezone**: Europe/Bucharest
 
 ## Your Capabilities
+
 ### Read & Analyze (all modules)
 - **Locations**: Search, overview, cross-module summaries
 - **Audits**: Results, scores, comparisons between locations
@@ -677,36 +1165,54 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Documents**: Expiring documents
 - **Training**: Gaps and overdue assignments
 
-### File Processing (Phase 2)
+### File Processing
 - **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
 - **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft
-- **General Document**: Parse uploaded files for content extraction
 
-### Draft Creation (Phase 2)
-- **Employee Draft**: Create a draft employee record from extracted or provided data. Requires user approval.
-- **Audit Template Draft**: Create a draft audit template with sections and fields. Requires user approval.
+### Draft & Execute (APPROVAL-GATED WRITES)
+You can now create AND execute records in the platform:
 
-When creating drafts:
-1. Always show the user a clear summary of what will be created
-2. List any missing required fields
-3. Wait for explicit approval before indicating the draft is ready
-4. Clearly state the risk level and what will be affected
+**Employee Creation Flow:**
+1. Use \`create_employee_draft\` to prepare the draft and show preview
+2. Wait for the user to say "approve", "confirm", "yes", "go ahead", or similar
+3. ONLY THEN call \`execute_employee_creation\` with the pending_action_id and draft data
+4. Never execute without explicit user confirmation
+
+**Audit Template Creation Flow:**
+1. Use \`create_audit_template_draft\` to prepare the draft
+2. Wait for user approval
+3. Call \`execute_audit_template_creation\` with the pending_action_id
+
+**Corrective Action Reassignment:**
+- Use \`reassign_corrective_action\` when user explicitly asks to reassign
+- This is a HIGH RISK action — clearly explain what will change before executing
+
+**Shift Creation Flow:**
+1. Use \`create_shift_draft\` to prepare and show preview
+2. Wait for user approval before creating
+
+### Approval Rules
+- MEDIUM risk: User must confirm with clear affirmative response
+- HIGH risk: Show detailed impact summary, list affected entities, then confirm
+- NEVER skip the approval step for write operations
+- If the user says "approve" or "confirm" or "yes" in response to a draft, execute the corresponding action using the pending_action_id
 
 ## Response Guidelines
-1. Use **markdown** formatting for readability (headers, bold, lists, tables).
+1. Use **markdown** formatting for readability.
 2. Always state the **date range** and **scope** of your analysis.
 3. When comparing, use tables for clarity.
 4. Provide **actionable recommendations** when appropriate.
-5. If a module is not active for this company, inform the user.
-6. Keep responses concise but thorough. Prefer structured data over prose.
-7. When multiple data points are available, summarize first, then detail.
-8. When a user attaches a file, detect the intent (ID scan, audit template, schedule) and use the appropriate tool.
-9. For file processing, always show extracted data clearly and ask for confirmation before creating drafts.
+5. If a module is not active, inform the user.
+6. Keep responses concise but thorough.
+7. When a user attaches a file, detect the intent and use the appropriate tool.
+8. For write actions, always show a clear summary before and after execution.
+9. After executing a write, report the result clearly (success/failure/partial).
 
-## What You Cannot Do Yet
-- You cannot finalize/save draft records to the database yet (approval execution coming soon).
-- You cannot access other companies' data.
-- If asked to do something outside your capabilities, explain what you CAN do instead.`;
+## What You Cannot Do
+- Access other companies' data
+- Skip approval for write operations
+- Execute bulk destructive operations
+- Modify permissions or roles`;
 }
 
 // ─── Main Handler ───────────────────────────────────────────
@@ -737,7 +1243,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    // Resolve company + role — FIX: use maybeSingle + order for multi-company users
+    // Resolve company + role
     const { data: cuData, error: cuError } = await sb.from("company_users")
       .select("company_id, company_role")
       .eq("user_id", userId)
@@ -772,9 +1278,10 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames });
     let conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
 
-    const maxIterations = 6;
+    const maxIterations = 8;
     let iteration = 0;
     const toolsUsed: string[] = [];
+    const allStructuredEvents: string[] = [];
 
     while (iteration < maxIterations) {
       iteration++;
@@ -793,8 +1300,8 @@ serve(async (req) => {
 
       if (!response.ok) {
         const status = response.status;
-        if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (status === 402) return new Response(JSON.stringify({ error: "AI credits depleted. Please add credits." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (status === 402) return new Response(JSON.stringify({ error: "AI credits depleted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         const txt = await response.text();
         console.error("AI gateway error:", status, txt);
         return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -806,38 +1313,39 @@ serve(async (req) => {
 
       const msg = choice.message;
 
-      // Tool calls — pass activeModules for module gating
+      // Tool calls
       if (msg.tool_calls?.length) {
         conversationMessages.push(msg);
         for (const tc of msg.tool_calls) {
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
           toolsUsed.push(tc.function.name);
-          const toolResult = await executeTool(sb, tc.function.name, args, companyId, displayRole, activeModules);
+          const toolResult = await executeTool(sb, sbService, tc.function.name, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
         }
         continue;
       }
 
-      // Final text response — stream it
+      // Final text response — stream it with structured events
       const finalContent = msg.content || "";
 
       // Log action
       try {
+        const actionType = toolsUsed.some(t => t.startsWith("execute_") || t === "reassign_corrective_action") ? "write" : "read";
         await sbService.from("dash_action_log").insert({
           company_id: companyId,
           user_id: userId,
           session_id: session_id || null,
-          action_type: "read",
-          action_name: "chat_response",
-          risk_level: "low",
+          action_type: actionType,
+          action_name: actionType === "write" ? toolsUsed.find(t => t.startsWith("execute_") || t === "reassign_corrective_action") || "chat_response" : "chat_response",
+          risk_level: actionType === "write" ? "medium" : "low",
           request_json: { question: messages?.[messages.length - 1]?.content?.substring(0, 500) },
           result_json: { answer_preview: finalContent.substring(0, 500), tools_used: toolsUsed },
           status: "success",
-          approval_status: "not_required",
+          approval_status: actionType === "write" ? "approved" : "not_required",
           modules_touched: [...new Set(toolsUsed.map(t => {
             if (t.includes("audit")) return "audits";
-            if (t.includes("employee") || t.includes("attendance")) return "workforce";
+            if (t.includes("employee") || t.includes("attendance") || t.includes("shift")) return "workforce";
             if (t.includes("task")) return "tasks";
             if (t.includes("corrective")) return "corrective_actions";
             if (t.includes("work_order")) return "cmms";
@@ -867,10 +1375,16 @@ serve(async (req) => {
         }
       }
 
-      // Stream response as SSE
+      // Stream response as SSE with structured events
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
+          // First emit structured events
+          for (const evt of allStructuredEvents) {
+            controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+          }
+
+          // Then stream text
           const chunkSize = 30;
           let pos = 0;
           const sendChunks = () => {
