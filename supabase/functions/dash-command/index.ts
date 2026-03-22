@@ -24,6 +24,7 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_employee_creation: "workforce",
   execute_audit_template_creation: "audits",
   reassign_corrective_action: "corrective_actions",
+  execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
