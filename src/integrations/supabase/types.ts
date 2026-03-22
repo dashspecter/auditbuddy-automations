@@ -3570,41 +3570,56 @@ export type Database = {
       dash_pending_actions: {
         Row: {
           action_name: string
+          action_type: string
           approved_at: string | null
           approved_by: string | null
           company_id: string
           created_at: string
+          execution_result: Json | null
           id: string
           preview_json: Json
+          rejected_at: string | null
+          rejected_by: string | null
           risk_level: string
           session_id: string | null
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           action_name: string
+          action_type?: string
           approved_at?: string | null
           approved_by?: string | null
           company_id: string
           created_at?: string
+          execution_result?: Json | null
           id?: string
           preview_json?: Json
+          rejected_at?: string | null
+          rejected_by?: string | null
           risk_level?: string
           session_id?: string | null
           status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           action_name?: string
+          action_type?: string
           approved_at?: string | null
           approved_by?: string | null
           company_id?: string
           created_at?: string
+          execution_result?: Json | null
           id?: string
           preview_json?: Json
+          rejected_at?: string | null
+          rejected_by?: string | null
           risk_level?: string
           session_id?: string | null
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [

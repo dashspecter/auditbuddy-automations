@@ -26,7 +26,25 @@ function StructuredEventRenderer({ event, onSuggestedClick }: { event: DashStruc
     case "clarification":
       return <ClarificationCard question={event.data.question} options={event.data.options} onSelect={(answer) => onSuggestedClick(answer)} />;
     case "action_preview":
-      return <ActionPreviewCard action={event.data.action} summary={event.data.summary} risk={event.data.risk || "medium"} affected={event.data.affected} />;
+      return (
+        <ActionPreviewCard
+          action={event.data.action}
+          summary={event.data.summary}
+          risk={event.data.risk || "medium"}
+          affected={event.data.affected}
+          pending_action_id={event.data.pending_action_id}
+          can_approve={event.data.can_approve}
+          missing_fields={event.data.missing_fields}
+          draft={event.data.draft}
+          onApprove={(pendingActionId, draft) => {
+            // Send approval message that Dash will interpret
+            onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+          }}
+          onReject={(pendingActionId) => {
+            onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+          }}
+        />
+      );
     case "execution_result":
       return <ExecutionResultCard status={event.data.status} title={event.data.title} summary={event.data.summary} changes={event.data.changes} errors={event.data.errors} />;
     default:
@@ -104,7 +122,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
               <div>
                 <h3 className="font-semibold text-foreground text-sm">Dash Command Center</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Your operational intelligence layer. Ask about audits, workforce, tasks, maintenance, corrective actions, and more — across all your locations.
+                  Your operational intelligence layer. Ask about audits, workforce, tasks, maintenance, corrective actions, and more — across all your locations. You can also create employees, audit templates, and manage corrective actions through governed approval flows.
                 </p>
               </div>
             </div>
