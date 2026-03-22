@@ -24,6 +24,7 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_employee_creation: "workforce",
   execute_audit_template_creation: "audits",
   reassign_corrective_action: "corrective_actions",
+  execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
@@ -40,6 +41,7 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
   execute_audit_template_creation: "medium",
   execute_shift_creation: "medium",
   reassign_corrective_action: "high",
+  execute_ca_reassignment: "high",
 };
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -1218,6 +1220,7 @@ async function executeToolInner(
     }
 
     case "reassign_corrective_action": {
+      // P0-1 FIX: Draft-only — NO immediate execution
       // Validate CA exists and belongs to company
       const { data: caData, error: caError } = await sb.from("corrective_actions")
         .select("id, title, assigned_to, location_id, locations(name), company_id")
@@ -1227,7 +1230,17 @@ async function executeToolInner(
       if (caError || !caData) return { error: "Corrective action not found." };
       if (caData.company_id !== companyId) return { error: "Cross-tenant action rejected." };
 
-      // Create pending action for high-risk reassignment
+      // Resolve new assignee name
+      let newAssigneeName = args.new_assigned_name || "Unknown";
+      if (!args.new_assigned_name && args.new_assigned_to) {
+        const { data: empLookup } = await sb.from("employees")
+          .select("full_name")
+          .eq("id", args.new_assigned_to)
+          .maybeSingle();
+        if (empLookup) newAssigneeName = empLookup.full_name;
+      }
+
+      // Create pending action — user must approve before execution
       const { data: paData } = await sbService.from("dash_pending_actions").insert({
         company_id: companyId,
         user_id: userId,
@@ -1239,22 +1252,59 @@ async function executeToolInner(
           ca_title: caData.title,
           old_assigned_to: caData.assigned_to,
           new_assigned_to: args.new_assigned_to,
-          new_assigned_name: args.new_assigned_name,
+          new_assigned_name: newAssigneeName,
           reason: args.reason,
         },
         status: "pending",
       }).select("id").single();
 
-      // Execute the reassignment
+      // Push action_preview card — user sees this and must click Approve
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        pending_action_id: paData?.id,
+        action_name: "reassign_corrective_action",
+        risk_level: "high",
+        title: `Reassign CA: "${caData.title}"`,
+        description: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
+        preview: {
+          ca_id: caData.id,
+          ca_title: caData.title,
+          new_assigned_to: args.new_assigned_to,
+          new_assigned_name: newAssigneeName,
+          reason: args.reason,
+        },
+      }));
+
+      return {
+        type: "action_preview",
+        pending_action_id: paData?.id,
+        message: `CA reassignment draft created. Please review and approve to proceed.`,
+      };
+    }
+
+    case "execute_ca_reassignment": {
+      // P0-1: Execute only after user approval
+      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+
+      const { data: pa } = await sbService.from("dash_pending_actions")
+        .select("id, status, company_id, preview_json")
+        .eq("id", args.pending_action_id)
+        .maybeSingle();
+
+      if (!pa) return { error: "Pending action not found." };
+      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+      const preview = pa.preview_json as any;
+
       const { error: updateError } = await sbService.from("corrective_actions")
-        .update({ assigned_to: args.new_assigned_to, updated_at: new Date().toISOString() })
-        .eq("id", args.corrective_action_id)
+        .update({ assigned_to: preview.new_assigned_to, updated_at: new Date().toISOString() })
+        .eq("id", preview.ca_id)
         .eq("company_id", companyId);
 
       if (updateError) {
         await sbService.from("dash_pending_actions")
           .update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() })
-          .eq("id", paData?.id);
+          .eq("id", pa.id);
 
         structuredEvents.push(makeStructuredEvent("execution_result", {
           status: "error",
@@ -1273,7 +1323,7 @@ async function executeToolInner(
           execution_result: { success: true },
           updated_at: new Date().toISOString(),
         })
-        .eq("id", paData?.id);
+        .eq("id", pa.id);
 
       await sbService.from("dash_action_log").insert({
         company_id: companyId,
@@ -1281,27 +1331,106 @@ async function executeToolInner(
         action_type: "write",
         action_name: "reassign_corrective_action",
         risk_level: "high",
-        request_json: args,
-        result_json: { ca_id: caData.id, new_assigned_to: args.new_assigned_to },
+        request_json: preview,
+        result_json: { ca_id: preview.ca_id, new_assigned_to: preview.new_assigned_to },
         status: "success",
         approval_status: "approved",
-        entities_affected: [caData.id],
+        entities_affected: [preview.ca_id],
         modules_touched: ["corrective_actions"],
       });
 
       structuredEvents.push(makeStructuredEvent("execution_result", {
         status: "success",
         title: "Corrective Action Reassigned",
-        summary: `"${caData.title}" reassigned to ${args.new_assigned_name || args.new_assigned_to}.`,
-        changes: [`CA "${caData.title}" reassigned`, `New assignee: ${args.new_assigned_name || args.new_assigned_to}`],
+        summary: `"${preview.ca_title}" reassigned to ${preview.new_assigned_name || preview.new_assigned_to}.`,
+        changes: [`CA "${preview.ca_title}" reassigned`, `New assignee: ${preview.new_assigned_name || preview.new_assigned_to}`],
       }));
 
       return {
         type: "ca_reassigned",
-        ca_id: caData.id,
-        ca_title: caData.title,
-        new_assigned_to: args.new_assigned_to,
-        message: `Corrective action "${caData.title}" reassigned successfully.`,
+        ca_id: preview.ca_id,
+        ca_title: preview.ca_title,
+        new_assigned_to: preview.new_assigned_to,
+        message: `Corrective action "${preview.ca_title}" reassigned successfully.`,
+      };
+    }
+
+    case "execute_shift_creation": {
+      // P0-2: Execute shift creation after user approval
+      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+
+      const { data: pa } = await sbService.from("dash_pending_actions")
+        .select("id, status, company_id, preview_json")
+        .eq("id", args.pending_action_id)
+        .maybeSingle();
+
+      if (!pa) return { error: "Pending action not found." };
+      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+      const draft = pa.preview_json as any;
+
+      const { data: shiftData, error: shiftError } = await sbService.from("shifts").insert({
+        company_id: companyId,
+        location_id: draft.location_id,
+        employee_id: draft.employee_id,
+        shift_date: draft.shift_date,
+        start_time: draft.start_time,
+        end_time: draft.end_time,
+        shift_type: draft.shift_type || "normal",
+        notes: draft.notes || null,
+        created_by: userId,
+      }).select("id, shift_date, start_time, end_time").single();
+
+      if (shiftError) {
+        await sbService.from("dash_pending_actions")
+          .update({ status: "failed", execution_result: { error: shiftError.message }, updated_at: new Date().toISOString() })
+          .eq("id", pa.id);
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "error",
+          title: "Shift Creation Failed",
+          summary: shiftError.message,
+          errors: [shiftError.message],
+        }));
+        return { error: `Failed to create shift: ${shiftError.message}` };
+      }
+
+      await sbService.from("dash_pending_actions")
+        .update({
+          status: "executed",
+          approved_at: new Date().toISOString(),
+          approved_by: userId,
+          execution_result: { shift_id: shiftData.id },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", pa.id);
+
+      await sbService.from("dash_action_log").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_type: "write",
+        action_name: "create_shift",
+        risk_level: "medium",
+        request_json: draft,
+        result_json: { shift_id: shiftData.id },
+        status: "success",
+        approval_status: "approved",
+        entities_affected: [shiftData.id],
+        modules_touched: ["workforce"],
+      });
+
+      structuredEvents.push(makeStructuredEvent("execution_result", {
+        status: "success",
+        title: "Shift Created",
+        summary: `Shift on ${shiftData.shift_date} (${shiftData.start_time}–${shiftData.end_time}) created successfully.`,
+        changes: [`Shift created for ${draft.shift_date}`, `Time: ${draft.start_time}–${draft.end_time}`],
+      }));
+
+      return {
+        type: "shift_created",
+        shift_id: shiftData.id,
+        message: `Shift created successfully for ${shiftData.shift_date}.`,
       };
     }
 

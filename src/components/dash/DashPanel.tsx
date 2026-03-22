@@ -41,9 +41,13 @@ const SUGGESTED_BY_ROLE: Record<string, string[]> = {
 export function DashPanel({ trigger }: DashPanelProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { data: roleData } = useUserRole();
+  const { data: roleData, isLoading: roleLoading } = useUserRole();
   const [open, setOpen] = useState(false);
   const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
+
+  // P2-6: Role guard — only admin and manager can access Dash
+  if (roleLoading) return null;
+  if (!roleData?.isAdmin && !roleData?.isManager) return null;
 
   const role = roleData?.isAdmin ? "admin" : roleData?.isManager ? "manager" : "staff";
   const suggested = SUGGESTED_BY_ROLE[role] || SUGGESTED_BY_ROLE.staff;
