@@ -18,7 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useEffect, useCallback, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AIGuideChat } from "@/components/AIGuideChat";
+import { DashPanel } from "@/components/dash/DashPanel";
 import { useTranslation } from "react-i18next";
 import { useCompanyIndustry } from "@/hooks/useCompanyIndustry";
 import { useLabels } from "@/hooks/useLabels";
