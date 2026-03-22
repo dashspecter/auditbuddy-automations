@@ -55,6 +55,34 @@ async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE
   return { fromUtc: data[0].from_utc, toUtc: data[0].to_utc };
 }
 
+function generateSmartTitle(firstMessage: string): string {
+  if (!firstMessage) return "Dash conversation";
+  // Take the first sentence or first 60 chars, whichever is shorter
+  const cleaned = firstMessage.replace(/\n/g, " ").trim();
+  const sentenceEnd = cleaned.search(/[.!?]/);
+  let title = sentenceEnd > 10 && sentenceEnd < 80 ? cleaned.substring(0, sentenceEnd) : cleaned.substring(0, 60);
+  // Trim to last full word
+  if (title.length >= 60) {
+    const lastSpace = title.lastIndexOf(" ");
+    if (lastSpace > 30) title = title.substring(0, lastSpace);
+    title += "…";
+  }
+  return title || "Dash conversation";
+}
+
+function sanitizeInput(text: string): string {
+  // Strip potential prompt injection markers
+  return text
+    .replace(/<\|im_start\|>/gi, "")
+    .replace(/<\|im_end\|>/gi, "")
+    .replace(/<system>/gi, "")
+    .replace(/<\/system>/gi, "")
+    .replace(/\[INST\]/gi, "")
+    .replace(/\[\/INST\]/gi, "")
+    .replace(/<\|assistant\|>/gi, "")
+    .replace(/<\|user\|>/gi, "");
+}
+
 // ─── Structured Event Helpers ───────────────────────────────
 function makeStructuredEvent(type: string, data: any): string {
   return JSON.stringify({ type: "structured_event", event_type: type, data });
