@@ -491,6 +491,159 @@ async function executeTool(sb: any, name: string, args: any, companyId: string, 
       return { total_incomplete: (data ?? []).length, overdue_count: overdue.length, gaps: (data ?? []).map((a: any) => ({ employee: a.employees?.full_name, module: a.training_modules?.title, status: a.status, due_date: a.due_date, location: a.employees?.locations?.name })) };
     }
 
+    case "parse_uploaded_file": {
+      const { file_url, file_name, intent } = args;
+      if (!file_url) return { error: "No file URL provided" };
+
+      try {
+        if (intent === "id_scan") {
+          // Call existing scan-id-document edge function
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+          const scanResp = await fetch(`${SUPABASE_URL}/functions/v1/scan-id-document`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+            body: JSON.stringify({ imageUrl: file_url }),
+          });
+
+          if (!scanResp.ok) {
+            return { error: "Failed to scan ID document. Please ensure the image is clear and readable." };
+          }
+
+          const scanResult = await scanResp.json();
+          return {
+            type: "id_scan_result",
+            file_name,
+            extracted_data: scanResult,
+            confidence: "medium",
+            next_step: "Review the extracted data and call create_employee_draft with the confirmed fields.",
+          };
+        }
+
+        if (intent === "audit_template") {
+          // Use Gemini vision to parse the PDF/image into audit structure
+          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+          const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
+                    { type: "image_url", image_url: { url: file_url } },
+                  ],
+                },
+              ],
+              stream: false,
+            }),
+          });
+
+          if (!parseResp.ok) {
+            return { error: "Failed to parse document for audit template extraction." };
+          }
+
+          const parseResult = await parseResp.json();
+          const content = parseResult.choices?.[0]?.message?.content || "";
+
+          // Try to parse JSON from the response
+          let templateData: any = null;
+          try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) templateData = JSON.parse(jsonMatch[0]);
+          } catch {
+            return { raw_extraction: content, error: "Could not parse structured data from document. The raw extraction is provided for manual review." };
+          }
+
+          return {
+            type: "audit_template_extraction",
+            file_name,
+            extracted_template: templateData,
+            confidence: "medium",
+            next_step: "Review the extracted template structure and call create_audit_template_draft to finalize.",
+          };
+        }
+
+        // General document parse
+        return {
+          type: "general_parse",
+          file_name,
+          message: `File "${file_name}" received. Please specify what you'd like to do with it: create an audit template, onboard an employee from ID, or import a schedule.`,
+        };
+      } catch (err: any) {
+        return { error: `File processing failed: ${err.message}` };
+      }
+    }
+
+    case "create_employee_draft": {
+      // Resolve location if name provided
+      let locationId = null;
+      if (args.location_name) {
+        const { data: locData } = await sb.from("locations").select("id, name").ilike("name", `%${args.location_name}%`).limit(1);
+        if (locData?.[0]) locationId = locData[0].id;
+      }
+
+      const draft = {
+        full_name: args.full_name,
+        cnp: args.cnp || null,
+        date_of_birth: args.date_of_birth || null,
+        id_series: args.id_series || null,
+        id_number: args.id_number || null,
+        address: args.address || null,
+        location_id: locationId,
+        location_name: args.location_name || null,
+        role: args.role || null,
+        start_date: args.start_date || null,
+        status: "draft",
+      };
+
+      // Check for required fields
+      const missing: string[] = [];
+      if (!draft.full_name) missing.push("full_name");
+      if (!draft.location_name && !draft.location_id) missing.push("location (which location?)");
+      if (!draft.role) missing.push("role/position");
+
+      return {
+        type: "employee_draft",
+        draft,
+        missing_fields: missing,
+        requires_approval: true,
+        risk_level: "medium",
+        message: missing.length > 0
+          ? `Draft created but missing: ${missing.join(", ")}. Please provide these to proceed.`
+          : `Employee draft ready for "${draft.full_name}" at ${draft.location_name || "unspecified location"} as ${draft.role || "unspecified role"}. Please confirm to create.`,
+      };
+    }
+
+    case "create_audit_template_draft": {
+      const sectionCount = args.sections?.length || 0;
+      const fieldCount = args.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
+
+      return {
+        type: "audit_template_draft",
+        draft: {
+          name: args.template_name,
+          description: args.description || null,
+          sections: args.sections,
+          recurrence: args.recurrence || "none",
+          target_locations: args.target_locations || "all",
+        },
+        summary: {
+          sections: sectionCount,
+          total_fields: fieldCount,
+          recurrence: args.recurrence || "none",
+          target: args.target_locations || "all locations",
+        },
+        requires_approval: true,
+        risk_level: "medium",
+        message: `Audit template "${args.template_name}" draft ready with ${sectionCount} sections and ${fieldCount} fields. Recurrence: ${args.recurrence || "none"}. Please confirm to create.`,
+      };
+    }
+
     default:
       return { error: `Unknown tool: ${name}` };
   }
