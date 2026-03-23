@@ -117,7 +117,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
 ));
 MessageBubble.displayName = "MessageBubble";
 
-export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry }: DashMessageListProps) {
+export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval }: DashMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
