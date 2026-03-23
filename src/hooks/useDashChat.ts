@@ -330,7 +330,9 @@ export function useDashChat() {
           .update({ status: "expired", updated_at: new Date().toISOString() })
           .eq("user_id", user.id)
           .eq("status", "pending");
-      } catch {}
+      } catch (e) {
+        console.error("[Dash] Failed to clear chat session:", e);
+      }
     }
     setMessages([]);
     setError(null);
