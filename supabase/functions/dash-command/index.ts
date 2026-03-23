@@ -1005,25 +1005,81 @@ async function executeToolInner(
       let employeeId = args.employee_id || null;
       let employeeName = args.employee_name || null;
       if (employeeName && !employeeId) {
+        // Try exact ilike match first
         const { data: empData } = await sb.from("employees")
           .select("id, full_name")
           .eq("company_id", companyId)
           .ilike("full_name", `%${employeeName}%`)
-          .limit(1);
-        if (empData?.[0]) {
+          .limit(5);
+        
+        if (empData && empData.length === 1) {
           employeeId = empData[0].id;
           employeeName = empData[0].full_name;
-        } else {
-          // Block: employee not found
+        } else if (empData && empData.length > 1) {
+          // Multiple matches — ask for clarification
+          const candidates = empData.map((e: any) => e.full_name);
+          structuredEvents.push(makeStructuredEvent("clarification", {
+            question: `Multiple employees match "${args.employee_name}". Which one did you mean?`,
+            options: candidates,
+          }));
           return {
             action: "Create Shift",
-            summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+            summary: `Multiple employees match "${args.employee_name}". Please select one.`,
             risk: "medium",
             can_approve: false,
             missing_fields: ["employee"],
             requires_approval: true,
-            message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+            message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.`,
           };
+        } else {
+          // No match — try token-reversed match (e.g., "Alex Grecea" → search "Grecea" then "Alex")
+          const tokens = employeeName.trim().split(/\s+/);
+          let found = false;
+          if (tokens.length >= 2) {
+            // Try each token individually
+            for (const token of tokens) {
+              if (token.length < 2) continue;
+              const { data: tokenData } = await sb.from("employees")
+                .select("id, full_name")
+                .eq("company_id", companyId)
+                .ilike("full_name", `%${token}%`)
+                .limit(5);
+              if (tokenData && tokenData.length === 1) {
+                employeeId = tokenData[0].id;
+                employeeName = tokenData[0].full_name;
+                found = true;
+                break;
+              } else if (tokenData && tokenData.length > 1) {
+                // Multiple partial matches — clarify
+                const candidates = tokenData.map((e: any) => e.full_name);
+                structuredEvents.push(makeStructuredEvent("clarification", {
+                  question: `No exact match for "${args.employee_name}". Did you mean one of these?`,
+                  options: candidates,
+                }));
+                return {
+                  action: "Create Shift",
+                  summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`,
+                  risk: "medium",
+                  can_approve: false,
+                  missing_fields: ["employee"],
+                  requires_approval: true,
+                  message: `Found possible matches for "${args.employee_name}". Please clarify.`,
+                };
+              }
+            }
+          }
+          if (!found) {
+            // Block: employee not found
+            return {
+              action: "Create Shift",
+              summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+              risk: "medium",
+              can_approve: false,
+              missing_fields: ["employee"],
+              requires_approval: true,
+              message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+            };
+          }
         }
       }
 
