@@ -1519,7 +1519,7 @@ async function executeToolInner(
         template_id: tmplData.id,
         template_name: tmplData.name,
         section_errors: sectionErrors,
-        message: `Audit template "${tmplData.name}" created as inactive draft. ${sectionErrors.length > 0 ? `${sectionErrors.length} issues with sections.` : "Ready to activate in Audit Templates."}`,
+        message: `Audit template "${tmplData.name}" created successfully! ${sectionErrors.length > 0 ? `${sectionErrors.length} issues with sections.` : "You can find it in Audit Templates."}`,
       };
     }
 
