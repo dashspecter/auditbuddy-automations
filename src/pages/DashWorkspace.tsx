@@ -91,7 +91,7 @@ export default function DashWorkspace() {
       </div>
 
       {/* Chat area */}
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} onRetry={retryLast} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
 
       {/* Input */}
       <div className="pt-3 border-t border-border/40 mt-auto">
