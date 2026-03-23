@@ -909,6 +909,15 @@ async function executeToolInner(
 
         if (intent === "audit_template") {
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+          // Download file server-side and send as base64 inline data
+          let fileContent: { base64: string; mimeType: string };
+          try {
+            fileContent = await downloadFileAsBase64(sbService, file_url);
+          } catch (dlErr: any) {
+            console.error("File download failed:", dlErr);
+            return { error: "Could not access the uploaded file. Please try re-uploading." };
+          }
+
           const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -918,13 +927,17 @@ async function executeToolInner(
                 role: "user",
                 content: [
                   { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
-                  { type: "image_url", image_url: { url: file_url } },
+                  { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
                 ],
               }],
               stream: false,
             }),
           });
-          if (!parseResp.ok) return { error: "Failed to parse document for audit template extraction." };
+          if (!parseResp.ok) {
+            const errText = await parseResp.text();
+            console.error("AI parse error:", parseResp.status, errText);
+            return { error: "Failed to parse document for audit template extraction." };
+          }
           const parseResult = await parseResp.json();
           const content = parseResult.choices?.[0]?.message?.content || "";
           let templateData: any = null;
