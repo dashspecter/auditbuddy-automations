@@ -2189,6 +2189,11 @@ serve(async (req) => {
       // Final text response — stream it with structured events
       let finalContent = msg.content || "";
 
+      // ─── Guard: never send empty bubbles ───
+      if (!finalContent.trim() && allStructuredEvents.length === 0) {
+        finalContent = "I'm ready to help — could you clarify what you'd like me to do next?";
+      }
+
       // ─── FALLBACK: Model refused to call tool when file was attached ───
       const lastUserMsg = messages?.[messages.length - 1]?.content || "";
       const hasFileAttachment = typeof lastUserMsg === "string" && lastUserMsg.includes("[File URLs:");
