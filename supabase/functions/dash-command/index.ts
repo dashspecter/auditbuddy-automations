@@ -1811,7 +1811,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, session_id } = await req.json();
+    const { messages, session_id, direct_approval } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -1847,6 +1847,80 @@ serve(async (req) => {
     const platformRoles = (roleRows ?? []).map((r: any) => r.role);
     const displayRole = platformRoles.includes("admin") ? "admin" : platformRoles.includes("manager") ? "manager" : companyRole;
 
+    // ─── DIRECT APPROVAL PATH (bypasses LLM) ───
+    if (direct_approval?.pending_action_id && direct_approval?.action === "approve") {
+      const allStructuredEvents: string[] = [];
+      const toolName = direct_approval.execute_tool || "execute_shift_creation";
+      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, [], allStructuredEvents);
+      
+      // Log action
+      try {
+        await sbService.from("dash_action_log").insert({
+          company_id: companyId, user_id: userId, session_id: session_id || null,
+          action_type: "write", action_name: toolName, risk_level: "medium",
+          request_json: { pending_action_id: direct_approval.pending_action_id, direct_approval: true },
+          result_json: toolResult, status: toolResult.error ? "error" : "success",
+          approval_status: "approved", modules_touched: ["workforce"],
+        });
+      } catch {}
+
+      // Save session with approval result
+      if (session_id && messages) {
+        const resultText = toolResult.error
+          ? `⚠️ ${toolResult.error}`
+          : `✅ ${toolResult.message || "Action executed successfully."}`;
+        try {
+          await sbService.from("dash_sessions").upsert({
+            id: session_id, company_id: companyId, user_id: userId,
+            title: generateSmartTitle(messages?.[0]?.content),
+            messages_json: [...messages, { role: "assistant", content: resultText }],
+            status: "active", updated_at: new Date().toISOString(),
+          }, { onConflict: "id" });
+        } catch {}
+      }
+
+      // Stream result as SSE
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const evt of allStructuredEvents) {
+            controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+          }
+          const resultText = toolResult.error
+            ? `⚠️ ${toolResult.error}`
+            : `✅ ${toolResult.message || "Action executed successfully."}`;
+          const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: resultText }, finish_reason: null }] };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    }
+
+    // ─── DIRECT REJECTION PATH ───
+    if (direct_approval?.pending_action_id && direct_approval?.action === "reject") {
+      await sbService.from("dash_pending_actions")
+        .update({ status: "rejected", updated_at: new Date().toISOString() })
+        .eq("id", direct_approval.pending_action_id)
+        .eq("company_id", companyId);
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          const evt = makeStructuredEvent("execution_result", { status: "info", title: "Action Rejected", summary: "The action has been rejected and will not be executed." });
+          controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+          const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: "Action rejected." }, finish_reason: null }] };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    }
+
     // Get company name
     const { data: companyData } = await sb.from("companies").select("name").eq("id", companyId).single();
     const companyName = companyData?.name ?? "Unknown";
@@ -1880,9 +1954,10 @@ serve(async (req) => {
       content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
     }));
 
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long' });
+    // Use Europe/Bucharest timezone for "today" resolution
+    const nowBucharest = new Date().toLocaleString('en-CA', { timeZone: DEFAULT_TIMEZONE }).split(',')[0];
+    const today = nowBucharest; // YYYY-MM-DD in local tz
+    const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: DEFAULT_TIMEZONE });
     const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames, today, todayLabel });
     let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 

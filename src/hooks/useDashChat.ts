@@ -300,5 +300,5 @@ export function useDashChat() {
     setTimeout(() => sendMessage(lastUserMsg.content), 50);
   }, [messages, sendMessage]);
 
-  return { messages, isLoading, error, sendMessage, clearChat, cancelStream, sessionId, loadSession, retryLast };
+  return { messages, isLoading, error, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast };
 }
