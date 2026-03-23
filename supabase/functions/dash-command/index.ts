@@ -51,6 +51,71 @@ function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
   return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
 }
 
+/**
+ * Downloads a file from Supabase Storage and returns it as base64 with its MIME type.
+ * Handles signed URLs, public URLs, and direct storage paths.
+ */
+async function downloadFileAsBase64(
+  sbService: any,
+  fileUrl: string
+): Promise<{ base64: string; mimeType: string }> {
+  // Determine MIME type from URL/extension
+  const urlPath = fileUrl.split("?")[0].toLowerCase();
+  let mimeType = "application/octet-stream";
+  if (urlPath.endsWith(".pdf")) mimeType = "application/pdf";
+  else if (urlPath.endsWith(".png")) mimeType = "image/png";
+  else if (urlPath.endsWith(".jpg") || urlPath.endsWith(".jpeg")) mimeType = "image/jpeg";
+  else if (urlPath.endsWith(".gif")) mimeType = "image/gif";
+  else if (urlPath.endsWith(".webp")) mimeType = "image/webp";
+  else if (urlPath.endsWith(".csv")) mimeType = "text/csv";
+  else if (urlPath.endsWith(".xlsx") || urlPath.endsWith(".xls")) mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  // Try to parse as Supabase Storage URL and download via SDK
+  const storageMarker = "/storage/v1/object/";
+  if (fileUrl.includes(storageMarker)) {
+    const urlParts = fileUrl.split(storageMarker);
+    if (urlParts.length >= 2) {
+      let bucketAndPath = urlParts[1].split("?")[0];
+      // Remove "public/" or "sign/" prefix
+      if (bucketAndPath.startsWith("public/")) bucketAndPath = bucketAndPath.substring(7);
+      else if (bucketAndPath.startsWith("sign/")) bucketAndPath = bucketAndPath.substring(5);
+
+      const segments = bucketAndPath.split("/");
+      const bucket = segments[0];
+      const path = decodeURIComponent(segments.slice(1).join("/"));
+
+      console.log(`downloadFileAsBase64: bucket=${bucket}, path=${path}`);
+
+      const { data, error } = await sbService.storage.from(bucket).download(path);
+      if (error) {
+        console.error("Storage download error:", error);
+        throw new Error(`Could not download file from storage: ${error.message}`);
+      }
+
+      const arrayBuffer = await data.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      return { base64, mimeType };
+    }
+  }
+
+  // Fallback: direct HTTP fetch for external URLs
+  console.log(`downloadFileAsBase64: fetching external URL`);
+  const resp = await fetch(fileUrl);
+  if (!resp.ok) throw new Error(`Failed to fetch file: HTTP ${resp.status}`);
+  const arrayBuffer = await resp.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const base64 = btoa(binary);
+  // Try to get content-type from response
+  const ct = resp.headers.get("content-type");
+  if (ct) mimeType = ct.split(";")[0].trim();
+  return { base64, mimeType };
+}
+
 async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE) {
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
   if (error || !data?.[0]) return null;
@@ -844,6 +909,15 @@ async function executeToolInner(
 
         if (intent === "audit_template") {
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+          // Download file server-side and send as base64 inline data
+          let fileContent: { base64: string; mimeType: string };
+          try {
+            fileContent = await downloadFileAsBase64(sbService, file_url);
+          } catch (dlErr: any) {
+            console.error("File download failed:", dlErr);
+            return { error: "Could not access the uploaded file. Please try re-uploading." };
+          }
+
           const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -853,13 +927,17 @@ async function executeToolInner(
                 role: "user",
                 content: [
                   { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
-                  { type: "image_url", image_url: { url: file_url } },
+                  { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
                 ],
               }],
               stream: false,
             }),
           });
-          if (!parseResp.ok) return { error: "Failed to parse document for audit template extraction." };
+          if (!parseResp.ok) {
+            const errText = await parseResp.text();
+            console.error("AI parse error:", parseResp.status, errText);
+            return { error: "Failed to parse document for audit template extraction." };
+          }
           const parseResult = await parseResp.json();
           const content = parseResult.choices?.[0]?.message?.content || "";
           let templateData: any = null;
@@ -1695,6 +1773,14 @@ async function executeToolInner(
     case "transform_sop_to_training": {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
       try {
+        let fileContent: { base64: string; mimeType: string };
+        try {
+          fileContent = await downloadFileAsBase64(sbService, args.file_url);
+        } catch (dlErr: any) {
+          console.error("File download failed:", dlErr);
+          return { error: "Could not access the uploaded file. Please try re-uploading." };
+        }
+
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -1704,13 +1790,17 @@ async function executeToolInner(
               role: "user",
               content: [
                 { type: "text", text: `Analyze this SOP/procedure document and extract it as a training module. Return a JSON object with: { module_name: string, description: string, sections: [{ title: string, key_points: string[], duration_minutes: number }], quiz_questions: [{ question: string, options: string[], correct_answer_index: number }], estimated_total_duration_minutes: number }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: args.file_url } },
+                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
               ],
             }],
             stream: false,
           }),
         });
-        if (!resp.ok) return { error: "Failed to parse SOP document." };
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("AI parse error:", resp.status, errText);
+          return { error: "Failed to parse SOP document." };
+        }
         const result = await resp.json();
         const content = result.choices?.[0]?.message?.content || "";
         try {
@@ -1730,6 +1820,14 @@ async function executeToolInner(
     case "transform_compliance_doc_to_audit": {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
       try {
+        let fileContent: { base64: string; mimeType: string };
+        try {
+          fileContent = await downloadFileAsBase64(sbService, args.file_url);
+        } catch (dlErr: any) {
+          console.error("File download failed:", dlErr);
+          return { error: "Could not access the uploaded file. Please try re-uploading." };
+        }
+
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -1739,13 +1837,17 @@ async function executeToolInner(
               role: "user",
               content: [
                 { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: args.file_url } },
+                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
               ],
             }],
             stream: false,
           }),
         });
-        if (!resp.ok) return { error: "Failed to parse compliance document." };
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("AI parse error:", resp.status, errText);
+          return { error: "Failed to parse compliance document." };
+        }
         const result = await resp.json();
         const content = result.choices?.[0]?.message?.content || "";
         try {
