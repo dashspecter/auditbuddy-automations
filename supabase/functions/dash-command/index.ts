@@ -941,7 +941,7 @@ async function executeToolInner(
 
     // ────────── FILE TOOLS ──────────
     case "parse_uploaded_file": {
-      const { file_url, file_name, intent } = args;
+      const { file_url, file_name, intent, requested_template_name } = args;
       if (!file_url) return { error: "No file URL provided" };
 
       try {
