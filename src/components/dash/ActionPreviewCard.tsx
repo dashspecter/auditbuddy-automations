@@ -18,16 +18,23 @@ interface ActionPreviewCardProps {
   can_approve?: boolean;
   missing_fields?: string[];
   draft?: any;
+  resolved_status?: string; // from session reconciliation: "approved" | "rejected" | "expired" | "executed"
   onApprove?: (pendingActionId: string) => void;
   onReject?: (pendingActionId: string) => void;
 }
 
 export function ActionPreviewCard({
   action, summary, risk, affected, pending_action_id,
-  can_approve = false, missing_fields, draft,
+  can_approve = false, missing_fields, draft, resolved_status,
   onApprove, onReject,
 }: ActionPreviewCardProps) {
-  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">("pending");
+  // Map resolved DB status to card display status
+  const initialStatus = resolved_status === "approved" || resolved_status === "executed"
+    ? "approved" as const
+    : resolved_status === "rejected" ? "rejected" as const
+    : resolved_status === "expired" ? "rejected" as const
+    : "pending" as const;
+  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">(initialStatus);
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
@@ -103,6 +110,15 @@ export function ActionPreviewCard({
         <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Executing...
+        </div>
+      )}
+
+      {status === "approved" && (
+        <div className="flex items-center gap-2 pt-1">
+          <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 gap-1">
+            <Check className="h-3 w-3" />
+            Approved & Executed
+          </Badge>
         </div>
       )}
 

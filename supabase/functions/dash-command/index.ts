@@ -979,21 +979,37 @@ async function executeToolInner(
           // Use data URI format for the AI gateway
           const fileDataUri = `data:${fileContent.mimeType};base64,${fileContent.base64}`;
 
-          const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{
-                role: "user",
-                content: [
-                  { type: "text", text: extractionPrompt },
-                  { type: "image_url", image_url: { url: fileDataUri } },
-                ],
-              }],
-              stream: false,
-            }),
-          });
+          // AbortController with 60s timeout to prevent stalling on large files
+          const parseAbort = new AbortController();
+          const parseTimeout = setTimeout(() => parseAbort.abort(), 60_000);
+          let parseResp: Response;
+          try {
+            parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [{
+                  role: "user",
+                  content: [
+                    { type: "text", text: extractionPrompt },
+                    { type: "image_url", image_url: { url: fileDataUri } },
+                  ],
+                }],
+                stream: false,
+              }),
+              signal: parseAbort.signal,
+            });
+          } catch (fetchErr: any) {
+            clearTimeout(parseTimeout);
+            if (fetchErr.name === "AbortError") {
+              console.error("[parse_uploaded_file] AI parsing timed out after 60s");
+              return { error: "Document parsing timed out. The file may be too large or complex. Please try a smaller file or split the document." };
+            }
+            throw fetchErr;
+          } finally {
+            clearTimeout(parseTimeout);
+          }
           if (!parseResp.ok) {
             const errText = await parseResp.text();
             console.error("[parse_uploaded_file] AI parse error:", parseResp.status, errText);
@@ -2440,6 +2456,20 @@ serve(async (req) => {
     return new Response(errStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   } catch (error) {
     console.error("Dash command error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Return error as SSE stream so frontend can parse it consistently (not raw JSON)
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
+    const encoder = new TextEncoder();
+    const errStream = new ReadableStream({
+      start(controller) {
+        const errEvt = JSON.stringify({ type: "structured_event", event_type: "execution_result", data: { status: "error", title: "Request Failed", summary: errMsg } });
+        controller.enqueue(encoder.encode(`data: ${errEvt}\n\n`));
+        const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: `⚠️ ${errMsg}` }, finish_reason: null }] };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(errStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   }
 });

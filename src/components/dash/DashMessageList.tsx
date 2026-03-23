@@ -40,6 +40,7 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
           can_approve={event.data.can_approve}
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
+          resolved_status={event.data.resolved_status}
           onApprove={(pendingActionId) => {
             // Server-authoritative: no executeTool hint needed, backend resolves from pending action
             if (onDirectApproval) {

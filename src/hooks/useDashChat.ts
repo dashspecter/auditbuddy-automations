@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashAttachment } from "@/components/dash/DashInput";
@@ -81,11 +81,51 @@ export function useDashChat() {
           }));
 
         if (msgs.length > 0) {
+          // Reconcile pending action statuses so stale cards don't show Approve
+          const pendingActionIds: string[] = [];
+          msgs.forEach(m => m.structured?.forEach((s: any) => {
+            if (s.type === "action_preview" && s.data?.pending_action_id) {
+              pendingActionIds.push(s.data.pending_action_id);
+            }
+          }));
+
+          let statusMap: Record<string, string> = {};
+          if (pendingActionIds.length > 0) {
+            try {
+              const { data: paRows } = await supabase
+                .from("dash_pending_actions")
+                .select("id, status")
+                .in("id", pendingActionIds);
+              if (paRows) {
+                statusMap = Object.fromEntries(paRows.map((r: any) => [r.id, r.status]));
+              }
+            } catch (e) {
+              console.error("[Dash] Failed to reconcile pending action statuses:", e);
+            }
+          }
+
+          // Update structured events with resolved status
+          const reconciledMsgs = msgs.map(m => {
+            if (!m.structured) return m;
+            return {
+              ...m,
+              structured: m.structured.map((s: any) => {
+                if (s.type === "action_preview" && s.data?.pending_action_id) {
+                  const dbStatus = statusMap[s.data.pending_action_id];
+                  if (dbStatus && dbStatus !== "pending") {
+                    return { ...s, data: { ...s.data, resolved_status: dbStatus } };
+                  }
+                }
+                return s;
+              }),
+            };
+          });
+
           setSessionId(data.id);
-          setMessages(msgs);
+          setMessages(reconciledMsgs);
         }
-      } catch {
-        // Silently fail — fresh session is fine
+      } catch (e) {
+        console.error("[Dash] Failed to load last session:", e);
       }
     };
 
@@ -290,7 +330,9 @@ export function useDashChat() {
           .update({ status: "expired", updated_at: new Date().toISOString() })
           .eq("user_id", user.id)
           .eq("status", "pending");
-      } catch {}
+      } catch (e) {
+        console.error("[Dash] Failed to clear chat session:", e);
+      }
     }
     setMessages([]);
     setError(null);
