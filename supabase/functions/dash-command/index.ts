@@ -2143,7 +2143,32 @@ serve(async (req) => {
       }
 
       // Final text response — stream it with structured events
-      const finalContent = msg.content || "";
+      let finalContent = msg.content || "";
+
+      // ─── FALLBACK: Model refused to call tool when file was attached ───
+      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
+      const hasFileAttachment = typeof lastUserMsg === "string" && lastUserMsg.includes("[File URLs:");
+      const looksLikeRefusal = /unable to parse|cannot (create|parse|process|read|extract)|can't (create|parse|process|read)|don't have the ability|not able to/i.test(finalContent);
+      if (hasFileAttachment && looksLikeRefusal && toolsUsed.length === 0) {
+        console.log("[Dash] FALLBACK: Model refused file processing, forcing parse_uploaded_file");
+        // Extract file URL and name from the user message
+        const urlMatch = lastUserMsg.match(/\[File URLs:\s*(https?:\/\/[^\s\]]+)/);
+        const nameMatch = lastUserMsg.match(/\[Attached:\s*([^\]]+)\]/);
+        if (urlMatch) {
+          const fileUrl = urlMatch[1];
+          const fileName = nameMatch?.[1] || "uploaded_file";
+          const intent = /compliance|regulation/i.test(lastUserMsg) ? "compliance_audit" : "audit_template";
+          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          if (!fallbackResult.error) {
+            // Feed result back through the model for formatting
+            conversationMessages.push(msg);
+            conversationMessages.push({ role: "user", content: `[System: The file was successfully parsed. Here is the extracted data: ${JSON.stringify(fallbackResult).substring(0, 3000)}. Present this to the user as a structured audit template preview.]` });
+            continue; // Loop back through the LLM
+          } else {
+            finalContent = `⚠️ ${fallbackResult.error}`;
+          }
+        }
+      }
 
       // Log action
       try {
