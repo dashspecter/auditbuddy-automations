@@ -478,6 +478,8 @@ const tools = [
           end_time: { type: "string", description: "End time HH:MM" },
           min_staff: { type: "number", description: "Minimum staff needed" },
           max_staff: { type: "number", description: "Maximum staff" },
+          employee_name: { type: "string", description: "Full name of the employee to assign to this shift" },
+          employee_id: { type: "string", description: "Employee ID to assign (if known)" },
         },
         required: ["role", "shift_date", "start_time", "end_time"],
       },
