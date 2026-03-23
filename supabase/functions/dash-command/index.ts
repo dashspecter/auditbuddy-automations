@@ -1050,9 +1050,9 @@ async function executeToolInner(
 
       structuredEvents.push(makeStructuredEvent("action_preview", {
         action: "Create Shift",
-        summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}`,
+        summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}${employeeName ? ` → ${employeeName}` : ""}`,
         risk: "medium",
-        affected: [locationName, draft.role, draft.shift_date].filter(Boolean),
+        affected: [locationName, draft.role, draft.shift_date, employeeName].filter(Boolean),
         pending_action_id: pendingActionId,
         draft,
         missing_fields: missing,
