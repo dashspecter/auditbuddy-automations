@@ -1749,7 +1749,7 @@ You can now create AND execute records in the platform:
 3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
-1. Use \`create_shift_draft\` to prepare and show preview
+1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them.
 2. Wait for user approval
 3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
