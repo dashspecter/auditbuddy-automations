@@ -1,5 +1,4 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DataTableCardProps {
   columns: string[];
