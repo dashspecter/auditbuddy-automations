@@ -109,7 +109,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
         <>
           {msg.structured
             .filter(e => e.type !== "source_card")
-            .map((e, i) => <StructuredEventRenderer key={`ev-${i}`} event={e} onSuggestedClick={onSuggestedClick} />)}
+            .map((e, i) => <StructuredEventRenderer key={`ev-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
         </>
       )}
     </div>
