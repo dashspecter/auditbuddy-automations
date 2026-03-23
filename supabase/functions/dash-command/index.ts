@@ -876,14 +876,14 @@ async function executeToolInner(
 
     case "get_open_corrective_actions": {
       const limit = Math.min(args.limit || 50, MAX_TOOL_ROWS);
-      let q = sb.from("corrective_actions").select("id, title, severity, status, due_date, created_at, location_id, locations(name), assigned_to")
+      let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), assigned_to")
         .in("status", ["open", "in_progress"]).order("created_at", { ascending: false }).limit(limit);
       if (args.location_id) q = q.eq("location_id", args.location_id);
       if (args.severity) q = q.eq("severity", args.severity);
       const { data, error } = await q;
       if (error) return { error: error.message };
       const c = cap(data, limit);
-      return { ...c, corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_date: ca.due_date, location: ca.locations?.name, assigned_to: ca.assigned_to })) };
+      return { ...c, corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.assigned_to })) };
     }
 
     case "get_task_completion_summary": {
@@ -2028,31 +2028,37 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool (execute_employee_creation, execute_audit_template_creation, execute_shift_creation, execute_ca_reassignment) in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
-2. Wait for the user to say "approve", "confirm", "yes", "go ahead", or similar
-3. ONLY THEN call \`execute_employee_creation\` with the pending_action_id and draft data
-4. Never execute without explicit user confirmation
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for the user to say "approve", "confirm", "yes", "go ahead", or similar in a NEW message
+4. ONLY THEN call \`execute_employee_creation\` with the pending_action_id and draft data
 
 **Audit Template Creation Flow:**
 1. Use \`create_audit_template_draft\` to prepare the draft
-2. Wait for user approval
-3. Call \`execute_audit_template_creation\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval in a NEW message
+4. Call \`execute_audit_template_creation\` with the pending_action_id
 
 **Corrective Action Reassignment:**
 1. Use \`reassign_corrective_action\` to create a draft showing impact
-2. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
-3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
+4. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
 1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them.
-2. Wait for user approval
-3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval in a NEW message
+4. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
 - HIGH risk: Show detailed impact summary, list affected entities, then confirm
 - NEVER skip the approval step for write operations
+- NEVER call a draft tool and its corresponding execute tool in the same turn — this is FORBIDDEN
 - If the user says "approve" or "confirm" or "yes" in response to a draft, execute the corresponding action using the pending_action_id
 
 ### Memory & Personalization
@@ -2315,12 +2321,28 @@ serve(async (req) => {
       // Tool calls
       if (msg.tool_calls?.length) {
         conversationMessages.push(msg);
+        let draftCalled = false;
         for (const tc of msg.tool_calls) {
+          const toolName = tc.function.name;
+          // Guard: if a draft tool was already called in this batch, skip execute tools
+          if (draftCalled && (toolName.startsWith("execute_") || toolName === "execute_ca_reassignment")) {
+            console.warn(`[Dash] Blocked same-turn execute after draft: ${toolName}`);
+            conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ skipped: true, reason: "Waiting for user approval before executing." }) });
+            continue;
+          }
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
-          toolsUsed.push(tc.function.name);
-          const toolResult = await executeTool(sb, sbService, tc.function.name, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          toolsUsed.push(toolName);
+          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+          // Mark if a draft tool was called — block further execute tools in this batch
+          if (toolName.endsWith("_draft") || toolName === "reassign_corrective_action") {
+            draftCalled = true;
+          }
+        }
+        // If a draft was called, force the LLM to stop and present the draft
+        if (draftCalled) {
+          conversationMessages.push({ role: "system", content: "A draft was created. STOP calling tools now. Present the draft preview to the user and wait for their approval in the next message." });
         }
         continue;
       }
