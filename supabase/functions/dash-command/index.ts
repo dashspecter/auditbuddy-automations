@@ -2267,16 +2267,7 @@ serve(async (req) => {
           result_json: { answer_preview: finalContent.substring(0, 500), tools_used: toolsUsed },
           status: "success",
           approval_status: actionType === "write" ? "approved" : "not_required",
-          modules_touched: [...new Set(toolsUsed.map(t => {
-            if (t.includes("audit")) return "audits";
-            if (t.includes("employee") || t.includes("attendance") || t.includes("shift")) return "workforce";
-            if (t.includes("task")) return "tasks";
-            if (t.includes("corrective")) return "corrective_actions";
-            if (t.includes("work_order")) return "cmms";
-            if (t.includes("document")) return "documents";
-            if (t.includes("training")) return "training";
-            return "general";
-          }))],
+          modules_touched: [...new Set(toolsUsed.map(t => resolveCanonicalModule(t)))],
         });
       } catch (logErr) {
         console.error("Failed to log Dash action:", logErr);
