@@ -2321,12 +2321,28 @@ serve(async (req) => {
       // Tool calls
       if (msg.tool_calls?.length) {
         conversationMessages.push(msg);
+        let draftCalled = false;
         for (const tc of msg.tool_calls) {
+          const toolName = tc.function.name;
+          // Guard: if a draft tool was already called in this batch, skip execute tools
+          if (draftCalled && (toolName.startsWith("execute_") || toolName === "execute_ca_reassignment")) {
+            console.warn(`[Dash] Blocked same-turn execute after draft: ${toolName}`);
+            conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ skipped: true, reason: "Waiting for user approval before executing." }) });
+            continue;
+          }
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
-          toolsUsed.push(tc.function.name);
-          const toolResult = await executeTool(sb, sbService, tc.function.name, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          toolsUsed.push(toolName);
+          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
+          // Mark if a draft tool was called — block further execute tools in this batch
+          if (toolName.endsWith("_draft") || toolName === "reassign_corrective_action") {
+            draftCalled = true;
+          }
+        }
+        // If a draft was called, force the LLM to stop and present the draft
+        if (draftCalled) {
+          conversationMessages.push({ role: "system", content: "A draft was created. STOP calling tools now. Present the draft preview to the user and wait for their approval in the next message." });
         }
         continue;
       }
