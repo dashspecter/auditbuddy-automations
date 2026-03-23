@@ -1905,9 +1905,17 @@ serve(async (req) => {
 
     // ─── DIRECT APPROVAL PATH (bypasses LLM) ───
     if (direct_approval?.pending_action_id && direct_approval?.action === "approve") {
+      // Load active modules (required for gating check)
+      const { data: modulesData } = await sb
+        .from("company_modules")
+        .select("module_name")
+        .eq("company_id", companyId)
+        .eq("is_active", true);
+      const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
+
       const allStructuredEvents: string[] = [];
       const toolName = direct_approval.execute_tool || "execute_shift_creation";
-      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, [], allStructuredEvents);
+      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, activeModules, allStructuredEvents);
       
       // Log action
       try {
