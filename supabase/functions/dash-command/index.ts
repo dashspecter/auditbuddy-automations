@@ -2130,7 +2130,7 @@ serve(async (req) => {
           const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
           hydratedArgs = { ...hydratedArgs, ...draftArgs };
         }
-      } catch {}
+      } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
       const allStructuredEvents: string[] = [];
       const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
