@@ -446,6 +446,21 @@ const tools = [
       },
     },
   },
+  // --- EXECUTE: CA reassignment after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_ca_reassignment",
+      description: "Execute corrective action reassignment after user approves. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the reassignment draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- DRAFT: Create shift draft ---
   {
     type: "function",
@@ -465,6 +480,21 @@ const tools = [
           max_staff: { type: "number", description: "Maximum staff" },
         },
         required: ["role", "shift_date", "start_time", "end_time"],
+      },
+    },
+  },
+  // --- EXECUTE: Shift creation after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_shift_creation",
+      description: "Execute shift creation after user approves the draft. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the shift draft" },
+        },
+        required: ["pending_action_id"],
       },
     },
   },
@@ -1373,11 +1403,12 @@ async function executeToolInner(
       const { data: shiftData, error: shiftError } = await sbService.from("shifts").insert({
         company_id: companyId,
         location_id: draft.location_id,
-        employee_id: draft.employee_id,
+        role: draft.role,
         shift_date: draft.shift_date,
         start_time: draft.start_time,
         end_time: draft.end_time,
-        shift_type: draft.shift_type || "normal",
+        required_count: draft.min_staff || 1,
+        shift_type: draft.shift_type || "regular",
         notes: draft.notes || null,
         created_by: userId,
       }).select("id, shift_date, start_time, end_time").single();
@@ -1664,12 +1695,14 @@ You can now create AND execute records in the platform:
 3. Call \`execute_audit_template_creation\` with the pending_action_id
 
 **Corrective Action Reassignment:**
-- Use \`reassign_corrective_action\` when user explicitly asks to reassign
-- This is a HIGH RISK action — clearly explain what will change before executing
+1. Use \`reassign_corrective_action\` to create a draft showing impact
+2. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
+3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
 1. Use \`create_shift_draft\` to prepare and show preview
-2. Wait for user approval before creating
+2. Wait for user approval
+3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
