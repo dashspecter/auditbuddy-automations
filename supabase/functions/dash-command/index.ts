@@ -1711,6 +1711,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **User Role**: ${ctx.role}
 - **Active Modules**: ${ctx.modules.length > 0 ? ctx.modules.join(", ") : "None detected"}
 - **Locations**: ${ctx.locations.length > 0 ? ctx.locations.join(", ") : "Not loaded"}
+- **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
 
 ## Your Capabilities
