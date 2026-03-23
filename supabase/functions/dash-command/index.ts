@@ -1400,21 +1400,38 @@ async function executeToolInner(
     }
 
     case "execute_audit_template_creation": {
+      // Self-hydrate from pending action if args are missing
+      let templateName = args.template_name;
+      let templateDescription = args.description;
+      let templateSections = args.sections;
+
       if (args.pending_action_id) {
         const { data: pa } = await sbService.from("dash_pending_actions")
-          .select("id, status, company_id")
+          .select("id, status, company_id, preview_json")
           .eq("id", args.pending_action_id)
           .maybeSingle();
         if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
         if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+        // Hydrate from preview_json if direct args are missing
+        if (pa?.preview_json && (!templateName || !templateSections)) {
+          const preview = pa.preview_json as any;
+          templateName = templateName || preview.name || preview.template_name;
+          templateDescription = templateDescription || preview.description;
+          templateSections = templateSections || preview.sections;
+        }
+      }
+
+      if (!templateName) {
+        return { error: "Template name is required but was not provided." };
       }
 
       // Create template
       const { data: tmplData, error: tmplError } = await sbService.from("audit_templates").insert({
         company_id: companyId,
-        name: args.template_name,
-        description: args.description || null,
-        template_type: "location_audit",
+        name: templateName,
+        description: templateDescription || null,
+        template_type: "location",
         is_active: false, // Start as inactive draft
         is_global: false,
         created_by: userId,
