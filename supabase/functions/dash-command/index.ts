@@ -1337,8 +1337,20 @@ async function executeToolInner(
 
     // ────────── WRITE/EXECUTE TOOLS ──────────
     case "execute_employee_creation": {
-      // Validate pending action
-      if (args.pending_action_id) {
+      // Self-hydrate from pending action if args are missing critical fields
+      if (args.pending_action_id && !args.full_name) {
+        const { data: pa } = await sbService.from("dash_pending_actions")
+          .select("id, status, company_id, preview_json")
+          .eq("id", args.pending_action_id)
+          .maybeSingle();
+        if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+        if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+        if (pa?.preview_json) {
+          const preview = pa.preview_json as any;
+          args = { ...args, ...hydrateArgsFromDraft("create_employee", preview) };
+        }
+      } else if (args.pending_action_id) {
+        // Validate pending action even if args are present
         const { data: pa } = await sbService.from("dash_pending_actions")
           .select("id, status, company_id")
           .eq("id", args.pending_action_id)
