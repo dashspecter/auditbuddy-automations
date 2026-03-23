@@ -1880,7 +1880,10 @@ serve(async (req) => {
       content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
     }));
 
-    const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames });
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames, today, todayLabel });
     let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 
     const maxIterations = 8;
