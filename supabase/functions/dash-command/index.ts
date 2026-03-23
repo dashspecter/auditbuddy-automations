@@ -1773,6 +1773,14 @@ async function executeToolInner(
     case "transform_sop_to_training": {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
       try {
+        let fileContent: { base64: string; mimeType: string };
+        try {
+          fileContent = await downloadFileAsBase64(sbService, args.file_url);
+        } catch (dlErr: any) {
+          console.error("File download failed:", dlErr);
+          return { error: "Could not access the uploaded file. Please try re-uploading." };
+        }
+
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -1782,13 +1790,17 @@ async function executeToolInner(
               role: "user",
               content: [
                 { type: "text", text: `Analyze this SOP/procedure document and extract it as a training module. Return a JSON object with: { module_name: string, description: string, sections: [{ title: string, key_points: string[], duration_minutes: number }], quiz_questions: [{ question: string, options: string[], correct_answer_index: number }], estimated_total_duration_minutes: number }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: args.file_url } },
+                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
               ],
             }],
             stream: false,
           }),
         });
-        if (!resp.ok) return { error: "Failed to parse SOP document." };
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("AI parse error:", resp.status, errText);
+          return { error: "Failed to parse SOP document." };
+        }
         const result = await resp.json();
         const content = result.choices?.[0]?.message?.content || "";
         try {
