@@ -1,55 +1,58 @@
 
-Fix goal: make Dash visually robust and modern on desktop, and stop hidden upload transport data from leaking into the chat transcript.
 
-What’s actually wrong
-1. This is not just a CSS issue. `DashInput` currently appends `[Attached files: ...]` and `[File URLs: ...]` directly into the user message text, so the UI is rendering raw signed URLs by design.
-2. `DashWorkspace`/`useDashChat` only pass a single text string, so transport payload and display copy are coupled.
-3. `DashMessageList` renders raw markdown without aggressive long-string wrapping, so signed URLs and technical error text overflow the bubble.
-4. The desktop shell is still cramped: history/workflows sit above the transcript, so the actual readable chat column is narrower than it should be.
-5. Some assistant error copy still exposes internal tool names, which looks broken even when it technically fits.
+# Fix: Dash Command Center Text Overflow — Final Root Cause Analysis
 
-Implementation plan
-1. Separate display content from transport content
-- Update the Dash message shape to support clean visible text plus optional attachments metadata.
-- Change `DashInput` to send structured attachment info instead of stuffing file URLs into the visible prompt.
-- Keep the backend request compatible by generating hidden transport text only at send time, while storing/rendering only the clean prompt in chat/history.
+## Why previous fixes didn't work
 
-2. Sanitize existing and future transcript rendering
-- Add a display sanitizer in `useDashChat` / session-history loading so older sessions with `[File URLs: ...]` are cleaned before rendering.
-- Preserve attachment metadata in `messages_json` so reload/history restore still shows proper file chips instead of raw URLs.
+The CSS applied to the markdown prose container (line 122) is correct. The problem is that **the overflow is not coming from markdown text** — it's coming from three other sources that were never addressed:
 
-3. Rebuild the message layout for overflow safety
-- In `DashMessageList`, constrain bubble width consistently and align assistant/user bubbles cleanly.
-- Add `break-words` / `overflow-wrap:anywhere` behavior for markdown paragraphs, links, code/pre blocks, tables, and any plain text fallback.
-- Render attachments as compact chips/cards above the user text.
-- Style long technical outputs so they wrap inside the card instead of escaping the container.
+### Root Cause 1: DataTableCard uses `whitespace-nowrap` with no horizontal scroll
+`DataTableCard.tsx` lines 25 and 35 use `whitespace-nowrap` on all table header and body cells. The `ScrollArea` wrapping the table only constrains height (`max-h-[300px]`), not width. A table with many columns or long cell values pushes the entire bubble wider than the container.
 
-4. Improve the desktop Dash shell
-- Refactor `DashWorkspace` into a wider desktop layout: side rail for History + Saved Workflows, main column for transcript + composer.
-- Use a larger max width, proper `min-w-0` / `min-h-0` handling, and sticky header/composer so the conversation area stays readable and stable.
-- Keep the current stacked behavior for smaller breakpoints.
+### Root Cause 2: Structured event cards sit outside the overflow-protected zone
+In `DashMessageList.tsx`, the markdown content at line 122 has `overflow-hidden` and word-break styles. But the structured event cards (lines 127-132 — tables, action previews, execution results, clarifications) render **outside** that protected zone, in a bare fragment (`<>...</>`) with no overflow constraint.
 
-5. Clean up user-facing error language
-- In the backend function, normalize file-processing failures so users never see internal tool names or orchestration wording.
-- Fix the attachment fallback parsing mismatch (`[Attached files: ...]` vs current fallback regex) so the recovery path is actually reliable if raw transport text still appears.
+### Root Cause 3: Radix ScrollArea Viewport doesn't constrain width
+The `ScrollArea` component's Viewport (`scroll-area.tsx` line 11) has `w-full` but no `min-w-0`. In a flex layout, this means the viewport can grow beyond its parent instead of constraining its children. This is a known Radix ScrollArea issue in flex containers.
 
-Files to update
-- `src/components/dash/DashInput.tsx`
-- `src/hooks/useDashChat.ts`
-- `src/components/dash/DashMessageList.tsx`
-- `src/pages/DashWorkspace.tsx`
-- `src/components/dash/DashSessionHistory.tsx`
-- `supabase/functions/dash-command/index.ts`
+## Implementation
 
-Technical details
-- No database migration should be needed; the existing session JSON can store richer message objects.
-- I’ll make the frontend backward-compatible so old saved sessions render cleanly even before users start new conversations.
-- The visual fix will address both causes of the screenshot:
-  - true overflow/wrapping bugs
-  - raw transport metadata being displayed as chat content
+### 1. Fix DataTableCard — add horizontal scroll
+- Replace the `ScrollArea` with a proper `div` that has both `overflow-x-auto` and `max-h-[300px] overflow-y-auto`
+- Or keep ScrollArea but wrap the Table in a `div` with `overflow-x-auto` and `w-full`
+- This lets wide tables scroll horizontally inside the card instead of pushing the bubble
 
-Acceptance checks
-- Upload a PDF and send a Dash message: the bubble shows only the prompt + file chip, never a signed URL.
-- Long filenames, long URLs, and long assistant errors stay inside the card.
-- History reload/open still renders attachments and approval cards cleanly.
-- Desktop Dash feels wider and more balanced, with readable spacing and no text escaping its container.
+### 2. Wrap structured events in an overflow-safe container
+- In `DashMessageList.tsx`, wrap the post-text structured events (lines 127-132) in a `div` with `overflow-hidden min-w-0 w-full`
+- Same for the pre-text source cards (lines 114-118)
+
+### 3. Fix ScrollArea Viewport for flex contexts
+- In `scroll-area.tsx`, add `min-w-0` to the Viewport className so it respects flex parent constraints
+- This is the upstream fix that prevents the entire chat scroll area from expanding
+
+### 4. Add overflow-hidden to all card components
+- `ActionPreviewCard.tsx` root div (line 47): add `overflow-hidden`
+- `ExecutionResultCard.tsx` root div (line 23): add `overflow-hidden`
+- `ClarificationCard.tsx` root div (line 12): add `overflow-hidden`
+- Each card should be a self-contained box that never escapes its parent
+
+## Files to change
+
+| File | Change |
+|------|--------|
+| `src/components/dash/DataTableCard.tsx` | Add `overflow-x-auto` wrapper around the table |
+| `src/components/dash/DashMessageList.tsx` | Wrap structured event sections in overflow-safe container |
+| `src/components/ui/scroll-area.tsx` | Add `min-w-0` to Viewport for flex compatibility |
+| `src/components/dash/ActionPreviewCard.tsx` | Add `overflow-hidden` to root |
+| `src/components/dash/ExecutionResultCard.tsx` | Add `overflow-hidden` to root |
+| `src/components/dash/ClarificationCard.tsx` | Add `overflow-hidden` to root |
+
+## Why this is the final fix
+
+Previous attempts targeted the markdown prose container, which was already correct. The actual overflow sources are:
+1. A table component that explicitly prevents wrapping with no horizontal scroll
+2. Structured cards rendered outside any overflow boundary
+3. A ScrollArea viewport that doesn't respect flex constraints
+
+These are three distinct, verifiable bugs with clear mechanical fixes. No amount of `break-words` on the prose container will fix a `whitespace-nowrap` table or an unconstrained flex child.
+
