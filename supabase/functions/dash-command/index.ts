@@ -1534,7 +1534,7 @@ async function executeToolInner(
       structuredEvents.push(makeStructuredEvent("execution_result", {
         status: resultStatus,
         title: resultStatus === "success" ? "Audit Template Created" : "Template Created with Warnings",
-        summary: `Template "${tmplData.name}" created (inactive/draft). ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added successfully."}`,
+        summary: `Template "${tmplData.name}" created successfully. ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added. You can find it in Audit Templates."}`,
         changes: [`Template "${tmplData.name}" created`, `${(templateSections || []).length} sections added`],
         errors: sectionErrors.length > 0 ? sectionErrors : undefined,
       }));
