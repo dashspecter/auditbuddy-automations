@@ -1,97 +1,83 @@
 
 
-# Fix: Dash-Created Shifts Not Appearing in Grid — End-to-End
+# Fix: Dash-Created Shifts Not Visible in Schedule
 
-## Root Causes (3 issues)
+## Investigation Summary
 
-### Issue 1 — Shift created as unpublished (CRITICAL)
-The `execute_shift_creation` handler does NOT set `is_published`. The `shifts` table defaults `is_published` to `false`. The scheduling grid (`EnhancedShiftWeekView`, line 477) filters: `if (!shift.is_published) return false` — so unpublished shifts are invisible in the Location view.
+I verified the actual shift record in the database (`977bbc0e-...`):
+- `shift_date: 2024-07-30` (WRONG — today is 2026-03-23)
+- `is_published: false` (should be `true` per user preference)
+- `status: draft` (should be `published`)
+- No `shift_assignment` row exists (employee was never linked)
+- "Alex Grecea" does NOT exist in the employees table (no match found)
 
-**Fix**: Set `is_published: true` in the shift INSERT inside `execute_shift_creation`.
+Despite the previous code fix adding `is_published: true` and assignment logic, the deployed function apparently ran with the old code for this shift. Additionally, the system prompt does NOT include the current date, so the LLM used "July 30, 2024" (hallucinated).
 
-### Issue 2 — No shift_assignment created (CRITICAL for Employee view)
-When a user says "add Alex to the schedule," the employee identity is lost because `create_shift_draft` has no `employee_name`/`employee_id` parameter. Even if the shift were published, it would show as "Unassigned" in the Location view and would be completely invisible in the Employee view (which only shows shifts with `shift_assignments` matching `staff_id`).
+## Root Causes (4 issues)
 
-**Fix (3 parts)**:
-1. Add `employee_name` and `employee_id` as optional params to `create_shift_draft` tool definition
-2. In the `create_shift_draft` handler, resolve `employee_name` → `employee_id` via the `employees` table and include both in `preview_json`
-3. In `execute_shift_creation`, after inserting the shift, if `draft.employee_id` exists, insert a `shift_assignment` row with `approval_status: 'approved'`
+### Issue 1 — No current date in system prompt (CRITICAL)
+`buildSystemPrompt()` does not include today's date. The LLM has no way to know what "today" means, so it hallucinated `2024-07-30`. Every shift created via "today" will have the wrong date.
 
-### Issue 3 — `staff_needed` vs `required_count` mismatch (MINOR, UI)
-Line 1349 of `EnhancedShiftWeekView.tsx` references `shift.staff_needed` which doesn't exist on the table — the column is `required_count`. This causes the badge to always show `/1` regardless of actual value. This is a pre-existing UI bug, not caused by the Dash fix, but worth correcting.
+### Issue 2 — Employee name validation missing (CRITICAL)
+When `employee_name` is provided but no match is found in the employees table, the handler silently continues with `employee_id: null`. The user selected "Block and ask" — the draft should fail with a `missing_fields` error when the employee cannot be resolved.
 
-**Fix**: Change `shift.staff_needed` → `shift.required_count` on line 1349.
+### Issue 3 — Shift should be published immediately (per user preference)
+The previous fix already sets `is_published: true` in `execute_shift_creation`. This is confirmed correct. However, the `status` column default is `'draft'` and must be explicitly set to `'published'` — which the fix also does. This was already addressed but the deployed version for the user's test may not have had it. Will verify the current code is correct (it is).
 
----
+### Issue 4 — `assigned_by` column is NOT NULL but could fail
+The `shift_assignments` table has `assigned_by uuid NOT NULL`. The execute handler sets `assigned_by: userId`. This is correct.
 
-## Detailed Changes
+## Changes
 
-### File 1: `supabase/functions/dash-command/index.ts`
+### File: `supabase/functions/dash-command/index.ts`
 
-**A) Update `create_shift_draft` tool definition (around line 470)**
-Add two optional parameters:
+**A) Add current date to system prompt (line ~1714)**
+
+Add a `- **Today**: 2026-03-23 (Monday)` line to the Current Context section. Use `new Date().toLocaleDateString()` dynamically.
+
+Update `buildSystemPrompt` signature to accept `today: string` and inject it.
+
+**B) Block draft when employee not found (lines ~1007-1017)**
+
+Currently:
 ```typescript
-employee_name: { type: "string", description: "Name of employee to assign to this shift" },
-employee_id: { type: "string", description: "Employee ID to assign" },
+if (employeeName && !employeeId) {
+  const { data: empData } = await sb.from("employees")...
+  if (empData?.[0]) { employeeId = empData[0].id; employeeName = empData[0].full_name; }
+}
 ```
 
-**B) Update `create_shift_draft` handler (around line 994)**
-After location resolution, add employee resolution:
-- If `employee_name` provided but no `employee_id`, query `employees` table by name within company
-- Store `employee_id` and `employee_name` in the draft object and `preview_json`
+Change to: if `employee_name` was provided but the query returns no match, add `"employee"` to `missing_fields` and set `can_approve: false`. Include a message like `"Employee '${args.employee_name}' not found in this company."`.
 
-**C) Update `execute_shift_creation` handler (around line 1403)**
-1. Add `is_published: true` to the shift INSERT
-2. After successful shift insert, if `draft.employee_id` exists:
-   ```typescript
-   await sbService.from("shift_assignments").insert({
-     shift_id: shiftData.id,
-     staff_id: draft.employee_id,
-     approval_status: "approved",
-   });
-   ```
-3. Include employee info in the success response and structured event
+**C) Pass today's date when building the system prompt (line ~1871)**
 
-**D) Update system prompt (around line 1702)**
-Add note that when user mentions a specific person, the LLM should include `employee_name` in the `create_shift_draft` call.
-
-### File 2: `src/components/workforce/EnhancedShiftWeekView.tsx`
-
-**Line 1349**: Change `shift.staff_needed || 1` → `shift.required_count || 1`
-
----
-
-## End-to-End Flow After Fix
-
-```text
-User: "Add Alex Grecea to Amzei schedule tomorrow, Chef, 09:00-17:00"
-  → LLM calls create_shift_draft(role="Chef", location_name="Amzei",
-      employee_name="Alex Grecea", shift_date="2026-03-24", ...)
-  → Handler resolves location + employee by name
-  → Draft stored in dash_pending_actions with employee_id in preview_json
-  → Action preview card shown to user
-  → User says "yes"
-  → LLM calls execute_shift_creation(pending_action_id=...)
-  → Handler:
-    1. INSERT into shifts (is_published: true) → shift_id
-    2. INSERT into shift_assignments (shift_id, staff_id, approved)
-    3. Mark pending action as executed
-    4. Log to dash_action_log
-  → Shift appears in grid under Alex's row AND in Location view
-  → Realtime subscription triggers refresh for other users
+```typescript
+const today = new Date().toISOString().slice(0, 10);
+const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+const systemPrompt = buildSystemPrompt({
+  role: displayRole, companyName, modules: activeModules,
+  locations: locationNames, today, todayLabel
+});
 ```
 
-## Edge Cases Covered
+### Redeploy
 
-- **No employee mentioned**: Shift created as unassigned, visible in Location view with "Unassigned" label
-- **Employee name not found**: Draft returns error with missing_fields including employee
-- **Employee already has shift at same time**: Shift still created (conflict detection is handled by the UI dialog, not Dash — consistent with existing behavior)
-- **Staff view**: Employee sees the shift on their StaffHome page via `shift_assignments` query
+Redeploy `dash-command` edge function.
+
+## Expected Behavior After Fix
+
+1. User says "add Alex Grecea to the schedule today in Amzei"
+2. Dash resolves "today" correctly as `2026-03-23` (from system prompt context)
+3. Dash searches for "Alex Grecea" → no match found
+4. Draft returns `missing_fields: ["employee"]` with message "Employee 'Alex Grecea' not found"
+5. ActionPreviewCard shows "Missing required fields: employee" with Approve button disabled
+6. Dash asks user to clarify or pick from existing employees
+7. Once correct employee is selected and approved, shift is created with `is_published: true`, `status: 'published'`, and a `shift_assignment` row
+8. Shift appears immediately in the scheduling grid
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/dash-command/index.ts` | Add employee params, resolve employee, set is_published, create shift_assignment |
-| `src/components/workforce/EnhancedShiftWeekView.tsx` | Fix `staff_needed` → `required_count` |
+| `supabase/functions/dash-command/index.ts` | Add today's date to system prompt, block draft when employee not found |
 
