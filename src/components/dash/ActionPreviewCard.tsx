@@ -25,10 +25,16 @@ interface ActionPreviewCardProps {
 
 export function ActionPreviewCard({
   action, summary, risk, affected, pending_action_id,
-  can_approve = false, missing_fields, draft,
+  can_approve = false, missing_fields, draft, resolved_status,
   onApprove, onReject,
 }: ActionPreviewCardProps) {
-  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">("pending");
+  // Map resolved DB status to card display status
+  const initialStatus = resolved_status === "approved" || resolved_status === "executed"
+    ? "approved" as const
+    : resolved_status === "rejected" ? "rejected" as const
+    : resolved_status === "expired" ? "rejected" as const
+    : "pending" as const;
+  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">(initialStatus);
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 

@@ -979,21 +979,37 @@ async function executeToolInner(
           // Use data URI format for the AI gateway
           const fileDataUri = `data:${fileContent.mimeType};base64,${fileContent.base64}`;
 
-          const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{
-                role: "user",
-                content: [
-                  { type: "text", text: extractionPrompt },
-                  { type: "image_url", image_url: { url: fileDataUri } },
-                ],
-              }],
-              stream: false,
-            }),
-          });
+          // AbortController with 60s timeout to prevent stalling on large files
+          const parseAbort = new AbortController();
+          const parseTimeout = setTimeout(() => parseAbort.abort(), 60_000);
+          let parseResp: Response;
+          try {
+            parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [{
+                  role: "user",
+                  content: [
+                    { type: "text", text: extractionPrompt },
+                    { type: "image_url", image_url: { url: fileDataUri } },
+                  ],
+                }],
+                stream: false,
+              }),
+              signal: parseAbort.signal,
+            });
+          } catch (fetchErr: any) {
+            clearTimeout(parseTimeout);
+            if (fetchErr.name === "AbortError") {
+              console.error("[parse_uploaded_file] AI parsing timed out after 60s");
+              return { error: "Document parsing timed out. The file may be too large or complex. Please try a smaller file or split the document." };
+            }
+            throw fetchErr;
+          } finally {
+            clearTimeout(parseTimeout);
+          }
           if (!parseResp.ok) {
             const errText = await parseResp.text();
             console.error("[parse_uploaded_file] AI parse error:", parseResp.status, errText);
