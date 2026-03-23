@@ -2152,14 +2152,18 @@ serve(async (req) => {
         const resultText = toolResult.error
           ? `⚠️ ${toolResult.error}`
           : `✅ ${toolResult.message || "Action executed successfully."}`;
+        // Include structured events so execution result cards survive session reload
+        const structuredForSave = allStructuredEvents.map((evtStr: string) => {
+          try { const parsed = JSON.parse(evtStr); return { event_type: parsed.event_type, data: parsed.data }; } catch { return null; }
+        }).filter(Boolean);
         try {
           await sbService.from("dash_sessions").upsert({
             id: session_id, company_id: companyId, user_id: userId,
             title: generateSmartTitle(messages?.[0]?.content),
-            messages_json: [...messages, { role: "assistant", content: resultText }],
+            messages_json: [...messages, { role: "assistant", content: resultText, structured: structuredForSave }],
             status: "active", updated_at: new Date().toISOString(),
           }, { onConflict: "id" });
-        } catch {}
+        } catch (e) { console.error("[Dash] Failed to save session after approval:", e); }
       }
 
       // Stream result as SSE
