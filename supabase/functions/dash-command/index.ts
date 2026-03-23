@@ -478,6 +478,8 @@ const tools = [
           end_time: { type: "string", description: "End time HH:MM" },
           min_staff: { type: "number", description: "Minimum staff needed" },
           max_staff: { type: "number", description: "Maximum staff" },
+          employee_name: { type: "string", description: "Full name of the employee to assign to this shift" },
+          employee_id: { type: "string", description: "Employee ID to assign (if known)" },
         },
         required: ["role", "shift_date", "start_time", "end_time"],
       },
@@ -999,6 +1001,21 @@ async function executeToolInner(
         if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
       }
 
+      // Resolve employee by name if provided
+      let employeeId = args.employee_id || null;
+      let employeeName = args.employee_name || null;
+      if (employeeName && !employeeId) {
+        const { data: empData } = await sb.from("employees")
+          .select("id, full_name")
+          .eq("company_id", companyId)
+          .ilike("full_name", `%${employeeName}%`)
+          .limit(1);
+        if (empData?.[0]) {
+          employeeId = empData[0].id;
+          employeeName = empData[0].full_name;
+        }
+      }
+
       const draft = {
         location_id: locationId,
         location_name: locationName || null,
@@ -1008,6 +1025,8 @@ async function executeToolInner(
         end_time: args.end_time,
         min_staff: args.min_staff || 1,
         max_staff: args.max_staff || 1,
+        employee_id: employeeId,
+        employee_name: employeeName,
       };
 
       const missing: string[] = [];
@@ -1031,9 +1050,9 @@ async function executeToolInner(
 
       structuredEvents.push(makeStructuredEvent("action_preview", {
         action: "Create Shift",
-        summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}`,
+        summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}${employeeName ? ` → ${employeeName}` : ""}`,
         risk: "medium",
-        affected: [locationName, draft.role, draft.shift_date].filter(Boolean),
+        affected: [locationName, draft.role, draft.shift_date, employeeName].filter(Boolean),
         pending_action_id: pendingActionId,
         draft,
         missing_fields: missing,
@@ -1411,6 +1430,8 @@ async function executeToolInner(
         shift_type: draft.shift_type || "regular",
         notes: draft.notes || null,
         created_by: userId,
+        is_published: true,
+        status: "published",
       }).select("id, shift_date, start_time, end_time").single();
 
       if (shiftError) {
@@ -1427,12 +1448,31 @@ async function executeToolInner(
         return { error: `Failed to create shift: ${shiftError.message}` };
       }
 
+      // Create shift_assignment if employee was specified in the draft
+      let assignmentCreated = false;
+      let assignedEmployeeName = draft.employee_name || null;
+      if (draft.employee_id) {
+        const { error: assignError } = await sbService.from("shift_assignments").insert({
+          shift_id: shiftData.id,
+          staff_id: draft.employee_id,
+          assigned_by: userId,
+          status: "assigned",
+          approval_status: "approved",
+          approved_at: new Date().toISOString(),
+        });
+        if (assignError) {
+          console.error("Failed to create shift assignment:", assignError.message);
+        } else {
+          assignmentCreated = true;
+        }
+      }
+
       await sbService.from("dash_pending_actions")
         .update({
           status: "executed",
           approved_at: new Date().toISOString(),
           approved_by: userId,
-          execution_result: { shift_id: shiftData.id },
+          execution_result: { shift_id: shiftData.id, assignment_created: assignmentCreated },
           updated_at: new Date().toISOString(),
         })
         .eq("id", pa.id);
@@ -1444,24 +1484,33 @@ async function executeToolInner(
         action_name: "create_shift",
         risk_level: "medium",
         request_json: draft,
-        result_json: { shift_id: shiftData.id },
+        result_json: { shift_id: shiftData.id, assignment_created: assignmentCreated, employee_id: draft.employee_id },
         status: "success",
         approval_status: "approved",
         entities_affected: [shiftData.id],
         modules_touched: ["workforce"],
       });
 
+      const assignmentMsg = assignmentCreated && assignedEmployeeName
+        ? ` and assigned to ${assignedEmployeeName}`
+        : assignmentCreated ? " and assigned to employee" : "";
+
       structuredEvents.push(makeStructuredEvent("execution_result", {
         status: "success",
         title: "Shift Created",
-        summary: `Shift on ${shiftData.shift_date} (${shiftData.start_time}–${shiftData.end_time}) created successfully.`,
-        changes: [`Shift created for ${draft.shift_date}`, `Time: ${draft.start_time}–${draft.end_time}`],
+        summary: `Shift on ${shiftData.shift_date} (${shiftData.start_time}–${shiftData.end_time}) created${assignmentMsg}.`,
+        changes: [
+          `Shift created for ${draft.shift_date}`,
+          `Time: ${draft.start_time}–${draft.end_time}`,
+          ...(assignmentCreated ? [`Assigned to ${assignedEmployeeName || draft.employee_id}`] : []),
+        ],
       }));
 
       return {
         type: "shift_created",
         shift_id: shiftData.id,
-        message: `Shift created successfully for ${shiftData.shift_date}.`,
+        assignment_created: assignmentCreated,
+        message: `Shift created successfully for ${shiftData.shift_date}${assignmentMsg}.`,
       };
     }
 
@@ -1700,7 +1749,7 @@ You can now create AND execute records in the platform:
 3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
-1. Use \`create_shift_draft\` to prepare and show preview
+1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them.
 2. Wait for user approval
 3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 

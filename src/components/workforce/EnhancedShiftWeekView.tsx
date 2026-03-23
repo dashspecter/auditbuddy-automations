@@ -1346,7 +1346,7 @@ export const EnhancedShiftWeekView = () => {
                                 </Badge>
                               )}
                               <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                                {assignedCount}/{shift.staff_needed || 1}
+                                {assignedCount}/{shift.required_count || 1}
                               </Badge>
                             </div>
                           </div>
