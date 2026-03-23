@@ -1454,8 +1454,8 @@ async function executeToolInner(
 
       // Create sections and fields
       let sectionErrors: string[] = [];
-      for (let si = 0; si < (args.sections || []).length; si++) {
-        const sec = args.sections[si];
+      for (let si = 0; si < (templateSections || []).length; si++) {
+        const sec = templateSections[si];
         const { data: secData, error: secError } = await sbService.from("audit_sections").insert({
           template_id: tmplData.id,
           name: sec.name,
