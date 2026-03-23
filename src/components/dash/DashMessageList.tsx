@@ -95,7 +95,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
         <div className="flex flex-wrap gap-1.5">
           {msg.structured
             .filter(e => e.type === "source_card")
-            .map((e, i) => <StructuredEventRenderer key={`src-${i}`} event={e} onSuggestedClick={onSuggestedClick} />)}
+            .map((e, i) => <StructuredEventRenderer key={`src-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
         </div>
       )}
 
