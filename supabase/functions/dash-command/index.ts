@@ -353,13 +353,14 @@ const tools = [
     type: "function",
     function: {
       name: "parse_uploaded_file",
-      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it.",
+      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. CRITICAL: When the user uploads ANY file (PDF, image, etc.) and asks to create an audit template, create an audit, or anything audit-related, you MUST call this tool with intent='audit_template'. For compliance/regulation documents, use intent='compliance_audit'. NEVER respond with text saying you cannot parse a file — ALWAYS call this tool instead.",
       parameters: {
         type: "object",
         properties: {
-          file_url: { type: "string", description: "The signed URL of the uploaded file" },
+          file_url: { type: "string", description: "The signed URL of the uploaded file. Extract this from the [File URLs: ...] section in the user message." },
           file_name: { type: "string", description: "Original filename" },
-          intent: { type: "string", enum: ["id_scan", "audit_template", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file" },
+          intent: { type: "string", enum: ["id_scan", "audit_template", "compliance_audit", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file. Use 'audit_template' for any audit template creation from a document. Use 'compliance_audit' for compliance/regulation documents." },
+          regulation_name: { type: "string", description: "Name of the regulation/standard (only for compliance_audit intent)" },
         },
         required: ["file_url", "file_name", "intent"],
       },

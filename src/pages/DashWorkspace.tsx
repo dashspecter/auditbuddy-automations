@@ -47,7 +47,7 @@ export default function DashWorkspace() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between py-3 border-b border-border/40 mb-3">
         <div className="flex items-center gap-3">
