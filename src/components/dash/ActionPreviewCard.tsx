@@ -18,7 +18,7 @@ interface ActionPreviewCardProps {
   can_approve?: boolean;
   missing_fields?: string[];
   draft?: any;
-  onApprove?: (pendingActionId: string, draft: any) => void;
+  onApprove?: (pendingActionId: string) => void;
   onReject?: (pendingActionId: string) => void;
 }
 
@@ -27,16 +27,14 @@ export function ActionPreviewCard({
   can_approve = false, missing_fields, draft,
   onApprove, onReject,
 }: ActionPreviewCardProps) {
-  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected">("pending");
+  const [status, setStatus] = useState<"pending" | "approving" | "rejected">("pending");
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
   const handleApprove = () => {
     if (!pending_action_id || !onApprove) return;
     setStatus("approving");
-    onApprove(pending_action_id, draft);
-    // Status will stay "approving" until a new execution_result card appears
-    setTimeout(() => setStatus("approved"), 2000);
+    onApprove(pending_action_id);
   };
 
   const handleReject = () => {
@@ -101,15 +99,6 @@ export function ActionPreviewCard({
         <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Executing...
-        </div>
-      )}
-
-      {status === "approved" && (
-        <div className="flex items-center gap-2 pt-1">
-          <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 gap-1">
-            <Check className="h-3 w-3" />
-            Approved & Executed
-          </Badge>
         </div>
       )}
 
