@@ -36,7 +36,7 @@ function exportConversation(messages: { role: string; content: string }[]) {
 
 export default function DashWorkspace() {
   const navigate = useNavigate();
-  const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
+  const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
 
   const handleSend = (text: string) => {
     sendMessage(text);
