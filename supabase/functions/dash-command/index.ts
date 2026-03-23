@@ -1459,7 +1459,7 @@ async function executeToolInner(
         status: "success",
         approval_status: "approved",
         entities_affected: [tmplData.id],
-        modules_touched: ["audits"],
+        modules_touched: ["location_audits"],
       });
 
       const resultStatus = sectionErrors.length > 0 ? "partial" : "success";
