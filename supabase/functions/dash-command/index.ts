@@ -1430,6 +1430,8 @@ async function executeToolInner(
         shift_type: draft.shift_type || "regular",
         notes: draft.notes || null,
         created_by: userId,
+        is_published: true,
+        status: "published",
       }).select("id, shift_date, start_time, end_time").single();
 
       if (shiftError) {
@@ -1446,12 +1448,31 @@ async function executeToolInner(
         return { error: `Failed to create shift: ${shiftError.message}` };
       }
 
+      // Create shift_assignment if employee was specified in the draft
+      let assignmentCreated = false;
+      let assignedEmployeeName = draft.employee_name || null;
+      if (draft.employee_id) {
+        const { error: assignError } = await sbService.from("shift_assignments").insert({
+          shift_id: shiftData.id,
+          staff_id: draft.employee_id,
+          assigned_by: userId,
+          status: "assigned",
+          approval_status: "approved",
+          approved_at: new Date().toISOString(),
+        });
+        if (assignError) {
+          console.error("Failed to create shift assignment:", assignError.message);
+        } else {
+          assignmentCreated = true;
+        }
+      }
+
       await sbService.from("dash_pending_actions")
         .update({
           status: "executed",
           approved_at: new Date().toISOString(),
           approved_by: userId,
-          execution_result: { shift_id: shiftData.id },
+          execution_result: { shift_id: shiftData.id, assignment_created: assignmentCreated },
           updated_at: new Date().toISOString(),
         })
         .eq("id", pa.id);
@@ -1463,24 +1484,33 @@ async function executeToolInner(
         action_name: "create_shift",
         risk_level: "medium",
         request_json: draft,
-        result_json: { shift_id: shiftData.id },
+        result_json: { shift_id: shiftData.id, assignment_created: assignmentCreated, employee_id: draft.employee_id },
         status: "success",
         approval_status: "approved",
         entities_affected: [shiftData.id],
         modules_touched: ["workforce"],
       });
 
+      const assignmentMsg = assignmentCreated && assignedEmployeeName
+        ? ` and assigned to ${assignedEmployeeName}`
+        : assignmentCreated ? " and assigned to employee" : "";
+
       structuredEvents.push(makeStructuredEvent("execution_result", {
         status: "success",
         title: "Shift Created",
-        summary: `Shift on ${shiftData.shift_date} (${shiftData.start_time}–${shiftData.end_time}) created successfully.`,
-        changes: [`Shift created for ${draft.shift_date}`, `Time: ${draft.start_time}–${draft.end_time}`],
+        summary: `Shift on ${shiftData.shift_date} (${shiftData.start_time}–${shiftData.end_time}) created${assignmentMsg}.`,
+        changes: [
+          `Shift created for ${draft.shift_date}`,
+          `Time: ${draft.start_time}–${draft.end_time}`,
+          ...(assignmentCreated ? [`Assigned to ${assignedEmployeeName || draft.employee_id}`] : []),
+        ],
       }));
 
       return {
         type: "shift_created",
         shift_id: shiftData.id,
-        message: `Shift created successfully for ${shiftData.shift_date}.`,
+        assignment_created: assignmentCreated,
+        message: `Shift created successfully for ${shiftData.shift_date}${assignmentMsg}.`,
       };
     }
 
