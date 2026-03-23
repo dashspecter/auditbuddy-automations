@@ -1,50 +1,31 @@
 
+# Dash Shift Creation — Full Fix (Completed)
 
-# Fix: "workforce module is not active" Error on Direct Approval
+## What was fixed
 
-## Root Cause
+### 1. Server-side date resolution (dash-command edge function)
+- `create_shift_draft` now resolves "today"/"tomorrow" server-side using Europe/Bucharest timezone
+- Dates >1 year in the past are automatically overridden to today with a console warning
+- Location resolution now scoped to `company_id` and handles multiple matches with clarification
 
-The direct approval path (line 1907-1910) in `dash-command/index.ts` passes an **empty array `[]`** for `activeModules` when calling `executeTool`. The module gating check on line 642-644 then sees that `"workforce"` is not in `[]` and blocks execution with the error message.
+### 2. Structured event persistence
+- Session messages now save structured events (action_preview, clarification, execution_result) alongside text
+- `useDashChat.ts` and `DashSessionHistory.tsx` restore structured events on session reload/history select
+- Approval cards survive page refresh and history navigation
 
-The normal LLM path correctly loads active modules from the database (line 1985-1986), but the direct approval shortcut added in the previous fix skips that step entirely.
+### 3. Session lifecycle cleanup
+- `clearChat` now archives the current session and expires pending actions instead of leaving them active
+- Prevents stale context contamination across new conversations
 
-## Fix
+### 4. Data repair
+- Fixed shift `3de979a0` from 2024-07-30 → 2026-03-23 (now visible in schedule)
+- Deleted stale draft shift `977bbc0e`
+- Expired 2 stale pending actions
+- Archived 3 poisoned sessions
 
-### File: `supabase/functions/dash-command/index.ts`
-
-**In the direct approval path (around line 1907)**, load the company's active modules from the database before calling `executeTool`:
-
-```typescript
-// ─── DIRECT APPROVAL PATH (bypasses LLM) ───
-if (direct_approval?.pending_action_id && direct_approval?.action === "approve") {
-  // Load active modules (required for gating check)
-  const { data: modulesData } = await sb
-    .from("company_modules")
-    .select("module_name")
-    .eq("company_id", companyId)
-    .eq("is_active", true);
-  const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
-
-  const allStructuredEvents: string[] = [];
-  const toolName = direct_approval.execute_tool || "execute_shift_creation";
-  const toolResult = await executeTool(
-    sb, sbService, toolName,
-    { pending_action_id: direct_approval.pending_action_id },
-    companyId, userId, displayRole, activeModules, allStructuredEvents
-  );
-  // ... rest unchanged
-}
-```
-
-That is the only change needed. The empty `[]` on line 1910 is why every direct approval fails the module gate.
-
-## Secondary Note
-
-The `execute_tool` default on line 1909 (`|| "execute_shift_creation"`) is fragile — if a non-shift pending action (e.g., employee creation) is approved, it would call the wrong executor. But this is a separate concern; for now it works because only shift creation uses direct approval. Worth noting for future hardening.
-
-## Files Changed
-
+## Files changed
 | File | Change |
 |------|--------|
-| `supabase/functions/dash-command/index.ts` | Load `activeModules` from DB before `executeTool` in the direct approval path |
-
+| `supabase/functions/dash-command/index.ts` | Server-side date resolution, structured event persistence in sessions |
+| `src/hooks/useDashChat.ts` | Restore structured events on load, archive session on clear |
+| `src/components/dash/DashSessionHistory.tsx` | Restore structured events on history select |
