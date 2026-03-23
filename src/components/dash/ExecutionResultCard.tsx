@@ -1,22 +1,26 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
 
 interface ExecutionResultCardProps {
-  status: "success" | "failure" | "partial";
+  status: string;
   title: string;
   summary: string;
   changes?: string[];
   errors?: string[];
 }
 
-const STATUS_CONFIG = {
-  success: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/40", badge: "bg-green-100 text-green-700" },
-  failure: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40", badge: "bg-red-100 text-red-700" },
-  partial: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40", badge: "bg-amber-100 text-amber-700" },
+const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; badge: string; label: string }> = {
+  success: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/40", badge: "bg-green-100 text-green-700", label: "Completed" },
+  failure: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40", badge: "bg-red-100 text-red-700", label: "Failed" },
+  error: { icon: XCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40", badge: "bg-red-100 text-red-700", label: "Error" },
+  partial: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40", badge: "bg-amber-100 text-amber-700", label: "Partial" },
+  info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/40", badge: "bg-blue-100 text-blue-700", label: "Info" },
 };
 
+const FALLBACK_CONFIG = { icon: Info, color: "text-muted-foreground", bg: "bg-muted/30 border-border", badge: "bg-muted text-muted-foreground", label: "Result" };
+
 export function ExecutionResultCard({ status, title, summary, changes, errors }: ExecutionResultCardProps) {
-  const cfg = STATUS_CONFIG[status];
+  const cfg = STATUS_CONFIG[status] || FALLBACK_CONFIG;
   const Icon = cfg.icon;
 
   return (
@@ -27,7 +31,7 @@ export function ExecutionResultCard({ status, title, summary, changes, errors }:
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold text-foreground">{title}</p>
             <Badge className={`text-[10px] ${cfg.badge}`}>
-              {status === "success" ? "Completed" : status === "failure" ? "Failed" : "Partial"}
+              {cfg.label}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">{summary}</p>

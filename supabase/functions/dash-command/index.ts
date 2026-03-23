@@ -35,8 +35,34 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_shift: "execute_shift_creation",
   create_employee: "execute_employee_creation",
   create_audit_template: "execute_audit_template_creation",
+  reassign_corrective_action: "execute_ca_reassignment",
   reassign_ca: "execute_ca_reassignment",
 };
+
+/** Hydrate execution args from pending action's preview_json based on action_name */
+function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<string, any> {
+  if (!previewJson) return {};
+  switch (actionName) {
+    case "create_audit_template":
+      return {
+        template_name: previewJson.name || previewJson.template_name,
+        description: previewJson.description || null,
+        sections: previewJson.sections || [],
+      };
+    case "create_employee":
+      return {
+        full_name: previewJson.full_name,
+        email: previewJson.email,
+        phone: previewJson.phone,
+        role: previewJson.role,
+        department_id: previewJson.department_id,
+        location_id: previewJson.location_id,
+        ...(previewJson.hire_date && { hire_date: previewJson.hire_date }),
+      };
+    default:
+      return {};
+  }
+}
 
 /** Resolve the canonical module code for logging purposes */
 function resolveCanonicalModule(toolName: string): string {
@@ -1374,21 +1400,38 @@ async function executeToolInner(
     }
 
     case "execute_audit_template_creation": {
+      // Self-hydrate from pending action if args are missing
+      let templateName = args.template_name;
+      let templateDescription = args.description;
+      let templateSections = args.sections;
+
       if (args.pending_action_id) {
         const { data: pa } = await sbService.from("dash_pending_actions")
-          .select("id, status, company_id")
+          .select("id, status, company_id, preview_json")
           .eq("id", args.pending_action_id)
           .maybeSingle();
         if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
         if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+        // Hydrate from preview_json if direct args are missing
+        if (pa?.preview_json && (!templateName || !templateSections)) {
+          const preview = pa.preview_json as any;
+          templateName = templateName || preview.name || preview.template_name;
+          templateDescription = templateDescription || preview.description;
+          templateSections = templateSections || preview.sections;
+        }
+      }
+
+      if (!templateName) {
+        return { error: "Template name is required but was not provided." };
       }
 
       // Create template
       const { data: tmplData, error: tmplError } = await sbService.from("audit_templates").insert({
         company_id: companyId,
-        name: args.template_name,
-        description: args.description || null,
-        template_type: "location_audit",
+        name: templateName,
+        description: templateDescription || null,
+        template_type: "location",
         is_active: false, // Start as inactive draft
         is_global: false,
         created_by: userId,
@@ -1411,8 +1454,8 @@ async function executeToolInner(
 
       // Create sections and fields
       let sectionErrors: string[] = [];
-      for (let si = 0; si < (args.sections || []).length; si++) {
-        const sec = args.sections[si];
+      for (let si = 0; si < (templateSections || []).length; si++) {
+        const sec = templateSections[si];
         const { data: secData, error: secError } = await sbService.from("audit_sections").insert({
           template_id: tmplData.id,
           name: sec.name,
@@ -1467,7 +1510,7 @@ async function executeToolInner(
         status: resultStatus,
         title: resultStatus === "success" ? "Audit Template Created" : "Template Created with Warnings",
         summary: `Template "${tmplData.name}" created (inactive/draft). ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added successfully."}`,
-        changes: [`Template "${tmplData.name}" created`, `${args.sections?.length || 0} sections added`],
+        changes: [`Template "${tmplData.name}" created`, `${(templateSections || []).length} sections added`],
         errors: sectionErrors.length > 0 ? sectionErrors : undefined,
       }));
 
@@ -2043,22 +2086,28 @@ serve(async (req) => {
         .eq("is_active", true);
       const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
 
-      // Server-authoritative: resolve execute tool from pending action, not frontend
+      // Server-authoritative: resolve execute tool + hydrate args from pending action
       let toolName = direct_approval.execute_tool || "execute_shift_creation";
+      let hydratedArgs: Record<string, any> = { pending_action_id: direct_approval.pending_action_id };
       try {
         const { data: pendingAction } = await sbService
           .from("dash_pending_actions")
-          .select("action_name")
+          .select("action_name, preview_json")
           .eq("id", direct_approval.pending_action_id)
           .eq("company_id", companyId)
           .maybeSingle();
         if (pendingAction?.action_name && ACTION_EXECUTE_MAP[pendingAction.action_name]) {
           toolName = ACTION_EXECUTE_MAP[pendingAction.action_name];
         }
+        // Hydrate execution args from draft preview_json
+        if (pendingAction?.action_name && pendingAction?.preview_json) {
+          const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
+          hydratedArgs = { ...hydratedArgs, ...draftArgs };
+        }
       } catch {}
 
       const allStructuredEvents: string[] = [];
-      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
       
       // Log action with canonical module
       const canonicalModule = resolveCanonicalModule(toolName);
