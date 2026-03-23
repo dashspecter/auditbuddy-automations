@@ -84,7 +84,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
       {/* Saved workflows */}
       <DashSavedWorkflows onRunWorkflow={handleSend} />
 
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} onDirectApproval={sendDirectApproval} />
       <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
     </div>
   );
