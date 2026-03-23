@@ -2043,18 +2043,32 @@ serve(async (req) => {
         .eq("is_active", true);
       const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
 
+      // Server-authoritative: resolve execute tool from pending action, not frontend
+      let toolName = direct_approval.execute_tool || "execute_shift_creation";
+      try {
+        const { data: pendingAction } = await sbService
+          .from("dash_pending_actions")
+          .select("action_name")
+          .eq("id", direct_approval.pending_action_id)
+          .eq("company_id", companyId)
+          .maybeSingle();
+        if (pendingAction?.action_name && ACTION_EXECUTE_MAP[pendingAction.action_name]) {
+          toolName = ACTION_EXECUTE_MAP[pendingAction.action_name];
+        }
+      } catch {}
+
       const allStructuredEvents: string[] = [];
-      const toolName = direct_approval.execute_tool || "execute_shift_creation";
       const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, activeModules, allStructuredEvents);
       
-      // Log action
+      // Log action with canonical module
+      const canonicalModule = resolveCanonicalModule(toolName);
       try {
         await sbService.from("dash_action_log").insert({
           company_id: companyId, user_id: userId, session_id: session_id || null,
           action_type: "write", action_name: toolName, risk_level: "medium",
           request_json: { pending_action_id: direct_approval.pending_action_id, direct_approval: true },
           result_json: toolResult, status: toolResult.error ? "error" : "success",
-          approval_status: "approved", modules_touched: ["workforce"],
+          approval_status: "approved", modules_touched: [canonicalModule],
         });
       } catch {}
 
