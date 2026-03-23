@@ -1995,6 +1995,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft. Use \`parse_uploaded_file\` with intent \`audit_template\`.
 - **Compliance Audit from PDF**: Parse compliance/regulation documents → create recurring audit template. Use \`parse_uploaded_file\` with intent \`compliance_audit\`.
 - **CRITICAL FILE RULE**: When the user message contains \`[File URLs:\`, you MUST call \`parse_uploaded_file\` with the file URL. NEVER respond with text saying you cannot parse or process a file. ALWAYS use the tool.
+- **NAME OVERRIDE RULE**: When the user specifies a custom name for the audit template (e.g. "name it X", "call it Y", "with the name Z"), you MUST pass it as \`requested_template_name\` to \`parse_uploaded_file\`. This overrides the AI-extracted title.
 
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
