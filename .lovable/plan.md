@@ -1,56 +1,55 @@
 
+Fix goal: make Dash visually robust and modern on desktop, and stop hidden upload transport data from leaking into the chat transcript.
 
-# Fix: PDF Audit Template Creation + Dash Width
+What’s actually wrong
+1. This is not just a CSS issue. `DashInput` currently appends `[Attached files: ...]` and `[File URLs: ...]` directly into the user message text, so the UI is rendering raw signed URLs by design.
+2. `DashWorkspace`/`useDashChat` only pass a single text string, so transport payload and display copy are coupled.
+3. `DashMessageList` renders raw markdown without aggressive long-string wrapping, so signed URLs and technical error text overflow the bubble.
+4. The desktop shell is still cramped: history/workflows sit above the transcript, so the actual readable chat column is narrower than it should be.
+5. Some assistant error copy still exposes internal tool names, which looks broken even when it technically fits.
 
-## Two Issues
+Implementation plan
+1. Separate display content from transport content
+- Update the Dash message shape to support clean visible text plus optional attachments metadata.
+- Change `DashInput` to send structured attachment info instead of stuffing file URLs into the visible prompt.
+- Keep the backend request compatible by generating hidden transport text only at send time, while storing/rendering only the clean prompt in chat/history.
 
-### Issue 1: PDF parsing — model doesn't call the right tool (or any tool at all)
+2. Sanitize existing and future transcript rendering
+- Add a display sanitizer in `useDashChat` / session-history loading so older sessions with `[File URLs: ...]` are cleaned before rendering.
+- Preserve attachment metadata in `messages_json` so reload/history restore still shows proper file chips instead of raw URLs.
 
-**Root cause**: Tool confusion + model deciding not to call tools.
+3. Rebuild the message layout for overflow safety
+- In `DashMessageList`, constrain bubble width consistently and align assistant/user bubbles cleanly.
+- Add `break-words` / `overflow-wrap:anywhere` behavior for markdown paragraphs, links, code/pre blocks, tables, and any plain text fallback.
+- Render attachments as compact chips/cards above the user text.
+- Style long technical outputs so they wrap inside the card instead of escaping the container.
 
-The system prompt describes two overlapping tools for "create audit from PDF":
-- `parse_uploaded_file` with `intent: "audit_template"` — the correct path
-- `transform_compliance_doc_to_audit` — a separate compliance-specific tool
+4. Improve the desktop Dash shell
+- Refactor `DashWorkspace` into a wider desktop layout: side rail for History + Saved Workflows, main column for transcript + composer.
+- Use a larger max width, proper `min-w-0` / `min-h-0` handling, and sticky header/composer so the conversation area stays readable and stable.
+- Keep the current stacked behavior for smaller breakpoints.
 
-The model gets confused between them and sometimes responds with text ("I cannot create an audit directly...") WITHOUT calling either tool.
+5. Clean up user-facing error language
+- In the backend function, normalize file-processing failures so users never see internal tool names or orchestration wording.
+- Fix the attachment fallback parsing mismatch (`[Attached files: ...]` vs current fallback regex) so the recovery path is actually reliable if raw transport text still appears.
 
-Additionally, the user's message embeds file URLs as plain text in the content. The model must extract the URL and pass it as a tool argument — but it sometimes fails to do this, especially when confused about which tool to use.
+Files to update
+- `src/components/dash/DashInput.tsx`
+- `src/hooks/useDashChat.ts`
+- `src/components/dash/DashMessageList.tsx`
+- `src/pages/DashWorkspace.tsx`
+- `src/components/dash/DashSessionHistory.tsx`
+- `supabase/functions/dash-command/index.ts`
 
-**Fix — Consolidate and clarify tool routing:**
+Technical details
+- No database migration should be needed; the existing session JSON can store richer message objects.
+- I’ll make the frontend backward-compatible so old saved sessions render cleanly even before users start new conversations.
+- The visual fix will address both causes of the screenshot:
+  - true overflow/wrapping bugs
+  - raw transport metadata being displayed as chat content
 
-1. **Remove `transform_compliance_doc_to_audit` as a separate tool** — merge its capability into `parse_uploaded_file` with a new intent value (`"compliance_audit"`). This eliminates the overlapping tools that confuse the model.
-
-2. **Update the system prompt** to clearly state: "When a user uploads a PDF and asks for an audit template, ALWAYS use `parse_uploaded_file` with intent `audit_template`. Do NOT respond without calling a tool when a file is attached."
-
-3. **Add a server-side fallback**: If the model's first response contains text about "unable to parse" or "cannot create" AND the user message contains `[File URLs:`, intercept and force a `parse_uploaded_file` call instead of returning the model's excuse text.
-
-4. **Add more logging** in `downloadFileAsBase64` and `parse_uploaded_file` so we can see exactly where failures happen.
-
-5. **Handle the Gemini base64 PDF content type correctly**: The Lovable AI gateway proxies to Gemini. Gemini 2.5 Flash supports PDFs as inline data, but the content part format needs to use `inline_data` structure, not `image_url`. Currently the code sends:
-```json
-{ "type": "image_url", "image_url": { "url": "data:application/pdf;base64,..." } }
-```
-This may not work reliably with all gateway configurations. We should also try the `inline_data` format as a fallback, or switch entirely to it.
-
-### Issue 2: Dash Command Center width too narrow
-
-**Root cause**: `max-w-3xl` (768px) on the main container and `mr-4` on assistant message bubbles make text truncate.
-
-**Fix**:
-- Change `max-w-3xl` to `max-w-5xl` on the main container in `DashWorkspace.tsx`
-- Remove `mr-4` from assistant message bubbles in `DashMessageList.tsx`
-- Ensure user message bubbles also have reasonable width (`ml-8` instead of `ml-10`)
-
-## Files to change
-
-| File | Change |
-|------|--------|
-| `supabase/functions/dash-command/index.ts` | Consolidate `transform_compliance_doc_to_audit` into `parse_uploaded_file`; update system prompt to be unambiguous about file handling; add server-side fallback for failed file tool routing; add logging |
-| `src/pages/DashWorkspace.tsx` | Change `max-w-3xl` to `max-w-5xl` |
-| `src/components/dash/DashMessageList.tsx` | Remove `mr-4` from assistant bubbles; reduce `ml-10` to `ml-8` for user bubbles |
-
-## Expected result
-- PDF upload + "create audit" → model always calls `parse_uploaded_file` with correct intent
-- PDF is downloaded server-side, sent as base64 to Gemini, structured template extracted
-- Dash chat area is wider so all text is visible without truncation
-
+Acceptance checks
+- Upload a PDF and send a Dash message: the bubble shows only the prompt + file chip, never a signed URL.
+- Long filenames, long URLs, and long assistant errors stay inside the card.
+- History reload/open still renders attachments and approval cards cleanly.
+- Desktop Dash feels wider and more balanced, with readable spacing and no text escaping its container.
