@@ -948,8 +948,52 @@ async function executeToolInner(
           if (isCompliance && args.regulation_name) {
             templateData.regulation_reference = args.regulation_name;
           }
+
+          // ─── Auto-create pending action for audit intents (merge extraction + draft) ───
+          const templateName = templateData.template_name || templateData.name || file_name.replace(/\.[^.]+$/, "");
+          const sectionCount = templateData.sections?.length || 0;
+          const fieldCount = templateData.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
+
+          const draft = {
+            name: templateName,
+            description: templateData.description || null,
+            sections: templateData.sections || [],
+            recurrence: templateData.suggested_recurrence || "none",
+            target_locations: "all",
+            regulation_reference: templateData.regulation_reference || null,
+          };
+
+          const { data: paData } = await sbService.from("dash_pending_actions").insert({
+            company_id: companyId,
+            user_id: userId,
+            action_name: "create_audit_template",
+            action_type: "write",
+            risk_level: "medium",
+            preview_json: draft,
+            status: "pending",
+          }).select("id").single();
+          const pendingActionId = paData?.id || null;
+
+          structuredEvents.push(makeStructuredEvent("action_preview", {
+            action: "Create Audit Template",
+            summary: `"${templateName}" with ${sectionCount} sections, ${fieldCount} fields. Extracted from "${file_name}".`,
+            risk: "medium",
+            affected: [`${sectionCount} sections`, `${fieldCount} fields`, draft.recurrence === "none" ? "no recurrence" : draft.recurrence],
+            pending_action_id: pendingActionId,
+            draft,
+            can_approve: true,
+          }));
+
           const resultType = isCompliance ? "compliance_audit_extraction" : "audit_template_extraction";
-          return { type: resultType, file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
+          return {
+            type: resultType,
+            file_name,
+            extracted_template: templateData,
+            pending_action_id: pendingActionId,
+            requires_approval: true,
+            risk_level: "medium",
+            message: `Audit template "${templateName}" extracted and draft created (${sectionCount} sections, ${fieldCount} fields). The user can approve to finalize.`,
+          };
         }
 
         return { type: "general_parse", file_name, message: `File "${file_name}" received. Please specify what you'd like to do with it.` };
