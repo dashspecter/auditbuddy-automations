@@ -10,19 +10,18 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_ROWS = 200;
 
-// ─── Module Gating Map ─────────────────────────────────────
+// ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
-  get_audit_results: "audits",
-  compare_location_performance: "audits",
+  get_audit_results: "location_audits",
+  compare_location_performance: "location_audits",
   get_open_corrective_actions: "corrective_actions",
-  get_task_completion_summary: "tasks",
   get_attendance_exceptions: "workforce",
   get_work_order_status: "cmms",
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
   search_employees: "workforce",
   execute_employee_creation: "workforce",
-  execute_audit_template_creation: "audits",
+  execute_audit_template_creation: "location_audits",
   reassign_corrective_action: "corrective_actions",
   execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
@@ -30,6 +29,24 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
 };
+
+// ─── Action-name to execute-tool resolver (server-authoritative) ───
+const ACTION_EXECUTE_MAP: Record<string, string> = {
+  create_shift: "execute_shift_creation",
+  create_employee: "execute_employee_creation",
+  create_audit_template: "execute_audit_template_creation",
+  reassign_ca: "execute_ca_reassignment",
+};
+
+/** Resolve the canonical module code for logging purposes */
+function resolveCanonicalModule(toolName: string): string {
+  if (toolName.includes("audit")) return "location_audits";
+  if (toolName.includes("employee") || toolName.includes("attendance") || toolName.includes("shift") || toolName.includes("training")) return "workforce";
+  if (toolName.includes("corrective") || toolName.includes("ca_")) return "corrective_actions";
+  if (toolName.includes("work_order")) return "cmms";
+  if (toolName.includes("document")) return "documents";
+  return "general";
+}
 
 // ─── Risk classification ────────────────────────────────────
 const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
