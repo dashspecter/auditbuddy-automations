@@ -1904,7 +1904,7 @@ You can now create AND execute records in the platform:
 ### File Transformations (Extended)
 - **Spreadsheet → Schedule**: Use \`transform_spreadsheet_to_schedule\` to parse CSV/Excel into shift drafts
 - **SOP → Training Module**: Use \`transform_sop_to_training\` to convert procedure documents into training content
-- **Compliance Doc → Audit Template**: Use \`transform_compliance_doc_to_audit\` to generate recurring audit templates from regulations
+- **Compliance Doc → Audit Template**: Use \`parse_uploaded_file\` with intent \`compliance_audit\` (do NOT use \`transform_compliance_doc_to_audit\` — it is deprecated)
 
 ## Response Guidelines
 1. Use **markdown** formatting for readability.
