@@ -1013,6 +1013,17 @@ async function executeToolInner(
         if (empData?.[0]) {
           employeeId = empData[0].id;
           employeeName = empData[0].full_name;
+        } else {
+          // Block: employee not found
+          return {
+            action: "Create Shift",
+            summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+            risk: "medium",
+            can_approve: false,
+            missing_fields: ["employee"],
+            requires_approval: true,
+            message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+          };
         }
       }
 
@@ -1697,7 +1708,7 @@ async function executeToolInner(
 }
 
 // ─── System Prompt Builder ──────────────────────────────────
-function buildSystemPrompt(ctx: { role: string; companyName: string; modules: string[]; locations: string[] }): string {
+function buildSystemPrompt(ctx: { role: string; companyName: string; modules: string[]; locations: string[]; today: string; todayLabel: string }): string {
   return `You are **Dash**, the operational command center of Dashspect — a multi-tenant platform for compliance, workforce, and operations management.
 
 ## Your Identity
@@ -1711,6 +1722,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **User Role**: ${ctx.role}
 - **Active Modules**: ${ctx.modules.length > 0 ? ctx.modules.join(", ") : "None detected"}
 - **Locations**: ${ctx.locations.length > 0 ? ctx.locations.join(", ") : "Not loaded"}
+- **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
 
 ## Your Capabilities
@@ -1868,7 +1880,10 @@ serve(async (req) => {
       content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
     }));
 
-    const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames });
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames, today, todayLabel });
     let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 
     const maxIterations = 8;
