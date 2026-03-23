@@ -883,7 +883,7 @@ async function executeToolInner(
       const { data, error } = await q;
       if (error) return { error: error.message };
       const c = cap(data, limit);
-      return { ...c, corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_date: ca.due_date, location: ca.locations?.name, assigned_to: ca.assigned_to })) };
+      return { ...c, corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.assigned_to })) };
     }
 
     case "get_task_completion_summary": {
