@@ -1510,7 +1510,7 @@ async function executeToolInner(
         status: resultStatus,
         title: resultStatus === "success" ? "Audit Template Created" : "Template Created with Warnings",
         summary: `Template "${tmplData.name}" created (inactive/draft). ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added successfully."}`,
-        changes: [`Template "${tmplData.name}" created`, `${args.sections?.length || 0} sections added`],
+        changes: [`Template "${tmplData.name}" created`, `${(templateSections || []).length} sections added`],
         errors: sectionErrors.length > 0 ? sectionErrors : undefined,
       }));
 
