@@ -20,7 +20,7 @@ export function ExecutionResultCard({ status, title, summary, changes, errors }:
   const Icon = cfg.icon;
 
   return (
-    <div className={`rounded-xl border p-4 my-2 space-y-2 ${cfg.bg}`}>
+    <div className={`rounded-xl border p-4 my-2 space-y-2 overflow-hidden ${cfg.bg}`}>
       <div className="flex items-start gap-2">
         <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${cfg.color}`} />
         <div className="flex-1 min-w-0">

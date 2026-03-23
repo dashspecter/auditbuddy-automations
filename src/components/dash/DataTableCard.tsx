@@ -1,5 +1,4 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DataTableCardProps {
   columns: string[];
@@ -17,7 +16,7 @@ export function DataTableCard({ columns, rows, title }: DataTableCardProps) {
           <p className="text-xs font-medium text-muted-foreground">{title}</p>
         </div>
       )}
-      <ScrollArea className="max-h-[300px]">
+      <div className="max-h-[300px] overflow-y-auto overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -40,7 +39,7 @@ export function DataTableCard({ columns, rows, title }: DataTableCardProps) {
             ))}
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ interface ClarificationCardProps {
 
 export function ClarificationCard({ question, options, onSelect }: ClarificationCardProps) {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800/40 p-3 my-2">
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800/40 p-3 my-2 overflow-hidden">
       <div className="flex items-start gap-2">
         <HelpCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
         <div className="flex-1 space-y-2">

@@ -44,7 +44,7 @@ export function ActionPreviewCard({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 my-2 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 my-2 space-y-3 overflow-hidden">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">{action}</p>
