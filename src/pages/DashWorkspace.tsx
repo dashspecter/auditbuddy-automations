@@ -36,7 +36,7 @@ function exportConversation(messages: { role: string; content: string }[]) {
 
 export default function DashWorkspace() {
   const navigate = useNavigate();
-  const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
+  const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
 
   const handleSend = (text: string) => {
     sendMessage(text);
@@ -91,7 +91,7 @@ export default function DashWorkspace() {
       </div>
 
       {/* Chat area */}
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} onRetry={retryLast} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
 
       {/* Input */}
       <div className="pt-3 border-t border-border/40 mt-auto">

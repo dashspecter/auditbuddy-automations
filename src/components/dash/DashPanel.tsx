@@ -43,7 +43,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const navigate = useNavigate();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
   const [open, setOpen] = useState(false);
-  const { messages, isLoading, sendMessage, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
+  const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
   // P2-6: Role guard — only admin and manager can access Dash
   if (roleLoading) return null;
@@ -84,7 +84,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
       {/* Saved workflows */}
       <DashSavedWorkflows onRunWorkflow={handleSend} />
 
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} />
+      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} onDirectApproval={sendDirectApproval} />
       <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
     </div>
   );

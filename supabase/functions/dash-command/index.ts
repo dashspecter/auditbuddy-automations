@@ -1005,25 +1005,81 @@ async function executeToolInner(
       let employeeId = args.employee_id || null;
       let employeeName = args.employee_name || null;
       if (employeeName && !employeeId) {
+        // Try exact ilike match first
         const { data: empData } = await sb.from("employees")
           .select("id, full_name")
           .eq("company_id", companyId)
           .ilike("full_name", `%${employeeName}%`)
-          .limit(1);
-        if (empData?.[0]) {
+          .limit(5);
+        
+        if (empData && empData.length === 1) {
           employeeId = empData[0].id;
           employeeName = empData[0].full_name;
-        } else {
-          // Block: employee not found
+        } else if (empData && empData.length > 1) {
+          // Multiple matches — ask for clarification
+          const candidates = empData.map((e: any) => e.full_name);
+          structuredEvents.push(makeStructuredEvent("clarification", {
+            question: `Multiple employees match "${args.employee_name}". Which one did you mean?`,
+            options: candidates,
+          }));
           return {
             action: "Create Shift",
-            summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+            summary: `Multiple employees match "${args.employee_name}". Please select one.`,
             risk: "medium",
             can_approve: false,
             missing_fields: ["employee"],
             requires_approval: true,
-            message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+            message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.`,
           };
+        } else {
+          // No match — try token-reversed match (e.g., "Alex Grecea" → search "Grecea" then "Alex")
+          const tokens = employeeName.trim().split(/\s+/);
+          let found = false;
+          if (tokens.length >= 2) {
+            // Try each token individually
+            for (const token of tokens) {
+              if (token.length < 2) continue;
+              const { data: tokenData } = await sb.from("employees")
+                .select("id, full_name")
+                .eq("company_id", companyId)
+                .ilike("full_name", `%${token}%`)
+                .limit(5);
+              if (tokenData && tokenData.length === 1) {
+                employeeId = tokenData[0].id;
+                employeeName = tokenData[0].full_name;
+                found = true;
+                break;
+              } else if (tokenData && tokenData.length > 1) {
+                // Multiple partial matches — clarify
+                const candidates = tokenData.map((e: any) => e.full_name);
+                structuredEvents.push(makeStructuredEvent("clarification", {
+                  question: `No exact match for "${args.employee_name}". Did you mean one of these?`,
+                  options: candidates,
+                }));
+                return {
+                  action: "Create Shift",
+                  summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`,
+                  risk: "medium",
+                  can_approve: false,
+                  missing_fields: ["employee"],
+                  requires_approval: true,
+                  message: `Found possible matches for "${args.employee_name}". Please clarify.`,
+                };
+              }
+            }
+          }
+          if (!found) {
+            // Block: employee not found
+            return {
+              action: "Create Shift",
+              summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+              risk: "medium",
+              can_approve: false,
+              missing_fields: ["employee"],
+              requires_approval: true,
+              message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+            };
+          }
         }
       }
 
@@ -1811,7 +1867,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, session_id } = await req.json();
+    const { messages, session_id, direct_approval } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -1847,6 +1903,80 @@ serve(async (req) => {
     const platformRoles = (roleRows ?? []).map((r: any) => r.role);
     const displayRole = platformRoles.includes("admin") ? "admin" : platformRoles.includes("manager") ? "manager" : companyRole;
 
+    // ─── DIRECT APPROVAL PATH (bypasses LLM) ───
+    if (direct_approval?.pending_action_id && direct_approval?.action === "approve") {
+      const allStructuredEvents: string[] = [];
+      const toolName = direct_approval.execute_tool || "execute_shift_creation";
+      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, [], allStructuredEvents);
+      
+      // Log action
+      try {
+        await sbService.from("dash_action_log").insert({
+          company_id: companyId, user_id: userId, session_id: session_id || null,
+          action_type: "write", action_name: toolName, risk_level: "medium",
+          request_json: { pending_action_id: direct_approval.pending_action_id, direct_approval: true },
+          result_json: toolResult, status: toolResult.error ? "error" : "success",
+          approval_status: "approved", modules_touched: ["workforce"],
+        });
+      } catch {}
+
+      // Save session with approval result
+      if (session_id && messages) {
+        const resultText = toolResult.error
+          ? `⚠️ ${toolResult.error}`
+          : `✅ ${toolResult.message || "Action executed successfully."}`;
+        try {
+          await sbService.from("dash_sessions").upsert({
+            id: session_id, company_id: companyId, user_id: userId,
+            title: generateSmartTitle(messages?.[0]?.content),
+            messages_json: [...messages, { role: "assistant", content: resultText }],
+            status: "active", updated_at: new Date().toISOString(),
+          }, { onConflict: "id" });
+        } catch {}
+      }
+
+      // Stream result as SSE
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const evt of allStructuredEvents) {
+            controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+          }
+          const resultText = toolResult.error
+            ? `⚠️ ${toolResult.error}`
+            : `✅ ${toolResult.message || "Action executed successfully."}`;
+          const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: resultText }, finish_reason: null }] };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    }
+
+    // ─── DIRECT REJECTION PATH ───
+    if (direct_approval?.pending_action_id && direct_approval?.action === "reject") {
+      await sbService.from("dash_pending_actions")
+        .update({ status: "rejected", updated_at: new Date().toISOString() })
+        .eq("id", direct_approval.pending_action_id)
+        .eq("company_id", companyId);
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          const evt = makeStructuredEvent("execution_result", { status: "info", title: "Action Rejected", summary: "The action has been rejected and will not be executed." });
+          controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+          const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: "Action rejected." }, finish_reason: null }] };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    }
+
     // Get company name
     const { data: companyData } = await sb.from("companies").select("name").eq("id", companyId).single();
     const companyName = companyData?.name ?? "Unknown";
@@ -1880,9 +2010,10 @@ serve(async (req) => {
       content: typeof m.content === "string" ? sanitizeInput(m.content) : m.content,
     }));
 
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long' });
+    // Use Europe/Bucharest timezone for "today" resolution
+    const nowBucharest = new Date().toLocaleString('en-CA', { timeZone: DEFAULT_TIMEZONE }).split(',')[0];
+    const today = nowBucharest; // YYYY-MM-DD in local tz
+    const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: DEFAULT_TIMEZONE });
     const systemPrompt = buildSystemPrompt({ role: displayRole, companyName, modules: activeModules, locations: locationNames, today, todayLabel });
     let conversationMessages = [{ role: "system", content: systemPrompt }, ...sanitizedMessages];
 

@@ -17,9 +17,10 @@ interface DashMessageListProps {
   suggestedQuestions: string[];
   onSuggestedClick: (q: string) => void;
   onRetry?: () => void;
+  onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void;
 }
 
-function StructuredEventRenderer({ event, onSuggestedClick }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void }) {
+function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) {
   switch (event.type) {
     case "source_card":
       return <SourceCard module={event.data.module} entity={event.data.entity} id={event.data.id} label={event.data.label} />;
@@ -38,12 +39,26 @@ function StructuredEventRenderer({ event, onSuggestedClick }: { event: DashStruc
           can_approve={event.data.can_approve}
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
-          onApprove={(pendingActionId, draft) => {
-            // Send approval message that Dash will interpret
-            onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+          onApprove={(pendingActionId) => {
+            // Determine which execute tool to call based on the action name
+            const actionName = event.data.action?.toLowerCase() || "";
+            let executeTool = "execute_shift_creation";
+            if (actionName.includes("employee")) executeTool = "execute_employee_creation";
+            else if (actionName.includes("audit") || actionName.includes("template")) executeTool = "execute_audit_template_creation";
+            else if (actionName.includes("reassign") || actionName.includes("corrective")) executeTool = "execute_ca_reassignment";
+            
+            if (onDirectApproval) {
+              onDirectApproval(pendingActionId, "approve", executeTool);
+            } else {
+              onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+            }
           }}
           onReject={(pendingActionId) => {
-            onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+            if (onDirectApproval) {
+              onDirectApproval(pendingActionId, "reject");
+            } else {
+              onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+            }
           }}
         />
       );
@@ -53,8 +68,7 @@ function StructuredEventRenderer({ event, onSuggestedClick }: { event: DashStruc
       return null;
   }
 }
-
-const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSuggestedClick: (q: string) => void }) => (
+const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: DashMessage; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) => (
   <div
     className={cn(
       "flex gap-3 p-3 rounded-xl transition-all",
@@ -81,7 +95,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSug
         <div className="flex flex-wrap gap-1.5">
           {msg.structured
             .filter(e => e.type === "source_card")
-            .map((e, i) => <StructuredEventRenderer key={`src-${i}`} event={e} onSuggestedClick={onSuggestedClick} />)}
+            .map((e, i) => <StructuredEventRenderer key={`src-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
         </div>
       )}
 
@@ -95,7 +109,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSug
         <>
           {msg.structured
             .filter(e => e.type !== "source_card")
-            .map((e, i) => <StructuredEventRenderer key={`ev-${i}`} event={e} onSuggestedClick={onSuggestedClick} />)}
+            .map((e, i) => <StructuredEventRenderer key={`ev-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
         </>
       )}
     </div>
@@ -103,7 +117,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSug
 ));
 MessageBubble.displayName = "MessageBubble";
 
-export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry }: DashMessageListProps) {
+export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval }: DashMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -147,7 +161,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} />)
+          messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)
         )}
 
         {showRetry && (
