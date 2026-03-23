@@ -14,6 +14,15 @@ interface Session {
   status: string;
 }
 
+/** Strip legacy transport markers from message content for display */
+function sanitizeDisplayContent(content: string): string {
+  return content
+    .replace(/\n?\n?\[Attached files?:\s*[^\]]*\]/gi, "")
+    .replace(/\n?\[File URLs?:\s*[^\]]*\]/gi, "")
+    .replace(/\n?\[Attached:\s*[^\]]*\]/gi, "")
+    .trim();
+}
+
 interface DashSessionHistoryProps {
   currentSessionId: string;
   onSelectSession: (sessionId: string, messages: any[]) => void;
@@ -63,12 +72,13 @@ export function DashSessionHistory({ currentSessionId, onSelectSession, onNewSes
         .filter((m: any) => m.role === "user" || m.role === "assistant")
         .map((m: any) => ({
           role: m.role as "user" | "assistant",
-          content: m.content,
+          content: sanitizeDisplayContent(m.content),
           timestamp: new Date(),
           structured: m.structured ? (m.structured as any[]).map((s: any) => ({
             type: s.event_type || s.type,
             data: s.data,
           })) : undefined,
+          attachments: m.attachments || undefined,
         }));
       onSelectSession(session.id, msgs);
     }
@@ -83,7 +93,7 @@ export function DashSessionHistory({ currentSessionId, onSelectSession, onNewSes
         </Button>
       </div>
 
-      <ScrollArea className="max-h-[200px]">
+      <ScrollArea className="max-h-[200px] lg:max-h-none">
         {loading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

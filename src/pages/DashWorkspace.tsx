@@ -38,8 +38,8 @@ export default function DashWorkspace() {
   const navigate = useNavigate();
   const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
 
-  const handleSend = (text: string) => {
-    sendMessage(text);
+  const handleSend = (text: string, attachments?: import("@/components/dash/DashInput").DashAttachment[]) => {
+    sendMessage(text, attachments);
   };
 
   const handleExport = useCallback(() => {
@@ -47,9 +47,9 @@ export default function DashWorkspace() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-7xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between py-3 border-b border-border/40 mb-3">
+      <div className="flex items-center justify-between py-3 border-b border-border/40 mb-3 shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="h-4 w-4" />
@@ -80,22 +80,38 @@ export default function DashWorkspace() {
         </div>
       </div>
 
-      {/* Session history + Saved workflows */}
-      <div className="space-y-2 mb-3">
-        <DashSessionHistory
-          currentSessionId={sessionId}
-          onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
-          onNewSession={clearChat}
-        />
-        <DashSavedWorkflows onRunWorkflow={handleSend} />
-      </div>
+      {/* Desktop: side rail + main chat | Mobile: stacked */}
+      <div className="flex flex-1 min-h-0 gap-4">
+        {/* Side rail — hidden on mobile, visible on lg+ */}
+        <aside className="hidden lg:flex flex-col w-64 shrink-0 space-y-4 overflow-y-auto pr-2">
+          <DashSessionHistory
+            currentSessionId={sessionId}
+            onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
+            onNewSession={clearChat}
+          />
+          <DashSavedWorkflows onRunWorkflow={(prompt) => handleSend(prompt)} />
+        </aside>
 
-      {/* Chat area */}
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={handleSend} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
+        {/* Main chat column */}
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Mobile-only stacked history/workflows */}
+          <div className="lg:hidden space-y-2 mb-3 shrink-0">
+            <DashSessionHistory
+              currentSessionId={sessionId}
+              onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
+              onNewSession={clearChat}
+            />
+            <DashSavedWorkflows onRunWorkflow={(prompt) => handleSend(prompt)} />
+          </div>
 
-      {/* Input */}
-      <div className="pt-3 border-t border-border/40 mt-auto">
-        <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} placeholder="Ask Dash about your operations..." />
+          {/* Chat area */}
+          <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={(q) => handleSend(q)} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
+
+          {/* Input */}
+          <div className="pt-3 border-t border-border/40 mt-auto shrink-0">
+            <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} placeholder="Ask Dash about your operations..." />
+          </div>
+        </div>
       </div>
     </div>
   );
