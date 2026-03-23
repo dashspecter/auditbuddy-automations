@@ -1820,6 +1820,14 @@ async function executeToolInner(
     case "transform_compliance_doc_to_audit": {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
       try {
+        let fileContent: { base64: string; mimeType: string };
+        try {
+          fileContent = await downloadFileAsBase64(sbService, args.file_url);
+        } catch (dlErr: any) {
+          console.error("File download failed:", dlErr);
+          return { error: "Could not access the uploaded file. Please try re-uploading." };
+        }
+
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -1829,13 +1837,17 @@ async function executeToolInner(
               role: "user",
               content: [
                 { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: args.file_url } },
+                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
               ],
             }],
             stream: false,
           }),
         });
-        if (!resp.ok) return { error: "Failed to parse compliance document." };
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("AI parse error:", resp.status, errText);
+          return { error: "Failed to parse compliance document." };
+        }
         const result = await resp.json();
         const content = result.choices?.[0]?.message?.content || "";
         try {
