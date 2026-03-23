@@ -52,6 +52,10 @@ export function useDashChat() {
             role: m.role as "user" | "assistant",
             content: m.content,
             timestamp: new Date(),
+            structured: m.structured ? (m.structured as any[]).map((s: any) => ({
+              type: s.event_type || s.type,
+              data: s.data,
+            })) : undefined,
           }));
 
         if (msgs.length > 0) {
