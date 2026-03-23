@@ -1,43 +1,42 @@
 
+Root cause verified: this is not an isolated audits bug. Dash is still using legacy, non-canonical module codes in the backend. In `supabase/functions/dash-command/index.ts`, `TOOL_MODULE_MAP` gates audit tools with `"audits"` and task tools with `"tasks"`, but the real activated company module codes are things like `location_audits`, `workforce`, `cmms`, etc. I also verified this company already has `location_audits` active, and there is no `audits` module row at all. That is why Dash shows a false warning even though audits are enabled.
 
-# Rethink: Chat-First Layout for Both Dash Views
+There is a second architectural issue too: the approval flow is still shift-centric. The direct approval path defaults to `execute_shift_creation`, the frontend guesses execute tools from button labels, and the backend logs `modules_touched: ["workforce"]` in the approval path. So earlier shift fixes did not generalize.
 
-## Current Problem
+Implementation plan
 
-**DashPanel (dialog view — screenshot 1):** History and Saved Workflows are stacked above the chat, consuming ~200px of vertical space in a 680px dialog. The chat area is cramped before the user even starts.
+1. Canonicalize module resolution in one backend helper
+- Add a single resolver in `supabase/functions/dash-command/index.ts` that maps Dash concepts/tools to real company module codes.
+- Normalize:
+  - audit tools/actions -> `location_audits`
+  - task tools -> either no module gate or a deliberate canonical mapping based on current app rules
+  - keep valid codes like `workforce`, `documents`, `cmms`, `corrective_actions` as-is
+- Replace raw `TOOL_MODULE_MAP[name]` checks with this helper everywhere.
 
-**DashWorkspace (expanded — screenshot 2):** The side rail (w-64 = 256px) is always visible and takes significant horizontal space. The chat — the primary interaction — is pushed right and feels secondary.
+2. Make approval execution server-authoritative
+- Stop relying on the frontend’s label-based heuristic to decide which execute tool to run.
+- In the direct approval path, resolve the execute tool from `dash_pending_actions.action_name` on the backend (`create_shift` -> `execute_shift_creation`, `create_audit_template` -> `execute_audit_template_creation`, etc.).
+- Remove the shift-default assumption so audits, employees, corrective actions, and future flows all use the same pattern.
 
-Both views violate the core principle: **the chat IS the product; everything else is secondary navigation.**
+3. Fix audit flows before approval is even shown
+- Apply the canonical module check to audit entry points too:
+  - `parse_uploaded_file` when intent is audit/compliance
+  - `create_audit_template_draft`
+- This prevents false audit warnings for enabled companies, and also prevents truly disabled companies from getting a misleading approval card that later fails on approval.
 
-## Design
+4. Clean up logging and approval-state consistency
+- Replace fake/hardcoded module logging (`"audits"`, `"tasks"`, always `["workforce"]`) with canonical module values from the new helper.
+- Reconcile the approval card state so a failed approval does not remain stuck on “Executing...”.
+- Keep pending action state coherent when execution is blocked, instead of leaving a misleading pending card created under the wrong module assumption.
 
-### DashPanel (dialog/sheet view)
-- Remove inline History and Saved Workflows sections entirely from the chat content area
-- Add a small "History" icon button in the header bar (next to Clear and Maximize)
-- Clicking it opens a dropdown/popover showing recent sessions — not embedded in the main flow
-- Saved Workflows becomes a slash-command or a small menu in the input bar
-- Result: 100% of the dialog body is chat + input
+Files to update
+- `supabase/functions/dash-command/index.ts`
+- `src/components/dash/DashMessageList.tsx`
+- `src/components/dash/ActionPreviewCard.tsx`
+- `src/hooks/useDashChat.ts` (if needed for approval failure state propagation)
 
-### DashWorkspace (expanded /dash view)
-- History sidebar is **collapsed by default** — just a thin icon strip or hidden entirely
-- Add a toggle button (e.g., sidebar icon) in the header to show/hide the side rail
-- When visible, the side rail overlays or pushes the chat (using a state toggle)
-- On mobile, history stays behind a sheet/drawer trigger
-- Result: chat gets the full width on first load; history is one click away
-
-## Files to change
-
-| File | Change |
-|------|--------|
-| `src/components/dash/DashPanel.tsx` | Remove inline History/Workflows; add History icon button with Popover; move Workflows to input area or remove |
-| `src/pages/DashWorkspace.tsx` | Make side rail collapsible (hidden by default); add toggle button in header; persist preference optionally |
-| `src/components/dash/DashInput.tsx` | Optionally add a workflows menu trigger (slash icon or bookmark icon) |
-
-## Technical details
-
-- Side rail toggle: `useState<boolean>(false)` — `sidebarOpen` controls visibility
-- DashPanel history: Use `Popover` from shadcn wrapping `DashSessionHistory` — positioned from a header icon button
-- No database changes needed
-- Saved Workflows in DashPanel can be moved to a small popover attached to the input area, or simply removed from the panel view (it's always available in the expanded workspace)
-
+Acceptance checks
+- An audit template approval no longer shows `The "audits" module is not active` when `location_audits` is enabled.
+- Dash approvals work consistently across audits, shifts, employees, and corrective actions without shift-specific fallbacks.
+- Dash no longer logs or gates against nonexistent module codes like `audits` or `tasks`.
+- If a module is truly unavailable, Dash blocks it at the correct step with an accurate message before creating a broken approval flow.
