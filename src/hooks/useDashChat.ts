@@ -52,6 +52,10 @@ export function useDashChat() {
             role: m.role as "user" | "assistant",
             content: m.content,
             timestamp: new Date(),
+            structured: m.structured ? (m.structured as any[]).map((s: any) => ({
+              type: s.event_type || s.type,
+              data: s.data,
+            })) : undefined,
           }));
 
         if (msgs.length > 0) {
@@ -268,11 +272,25 @@ export function useDashChat() {
     }
   }, [messages, isLoading, sessionId]);
 
-  const clearChat = useCallback(() => {
+  const clearChat = useCallback(async () => {
+    // Archive the current session so stale context is not reloaded
+    if (user && sessionId) {
+      try {
+        await supabase.from("dash_sessions")
+          .update({ status: "archived", updated_at: new Date().toISOString() })
+          .eq("id", sessionId)
+          .eq("user_id", user.id);
+        // Expire any pending actions tied to this session
+        await supabase.from("dash_pending_actions")
+          .update({ status: "expired", updated_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("status", "pending");
+      } catch {}
+    }
     setMessages([]);
     setError(null);
     setSessionId(generateSessionId());
-  }, []);
+  }, [user, sessionId]);
 
   const loadSession = useCallback((newSessionId: string, msgs: DashMessage[]) => {
     setSessionId(newSessionId);

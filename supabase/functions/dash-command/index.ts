@@ -997,8 +997,40 @@ async function executeToolInner(
       let locationId = args.location_id;
       let locationName = args.location_name;
       if (!locationId && locationName) {
-        const { data } = await sb.from("locations").select("id, name").ilike("name", `%${locationName}%`).limit(1);
-        if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
+        const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(5);
+        if (data?.length === 1) { locationId = data[0].id; locationName = data[0].name; }
+        else if (data && data.length > 1) {
+          const candidates = data.map((l: any) => l.name);
+          structuredEvents.push(makeStructuredEvent("clarification", {
+            question: `Multiple locations match "${locationName}". Which one?`,
+            options: candidates,
+          }));
+          return { action: "Create Shift", summary: `Multiple locations match "${locationName}". Please select.`, risk: "medium", can_approve: false, missing_fields: ["location"], requires_approval: true, message: `Found ${data.length} locations matching "${locationName}". Please clarify.` };
+        }
+      }
+
+      // ─── Server-side date resolution (Europe/Bucharest) ───
+      const nowBucharest = new Date().toLocaleString("en-CA", { timeZone: "Europe/Bucharest" }).split(",")[0]; // YYYY-MM-DD
+      let resolvedDate = args.shift_date;
+      if (!resolvedDate || resolvedDate === "today") {
+        resolvedDate = nowBucharest;
+      } else if (resolvedDate === "tomorrow") {
+        const tom = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Bucharest" }));
+        tom.setDate(tom.getDate() + 1);
+        resolvedDate = tom.toISOString().split("T")[0];
+      } else {
+        // Guard: reject dates more than 1 year in the past (stale context protection)
+        const parsed = new Date(resolvedDate);
+        const now = new Date();
+        if (!isNaN(parsed.getTime())) {
+          const diffMs = now.getTime() - parsed.getTime();
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          if (diffDays > 365) {
+            // Stale date detected — override to today
+            console.warn(`[Dash] Stale shift_date "${resolvedDate}" detected (${Math.round(diffDays)} days old), overriding to today: ${nowBucharest}`);
+            resolvedDate = nowBucharest;
+          }
+        }
       }
 
       // Resolve employee by name if provided
@@ -1016,27 +1048,17 @@ async function executeToolInner(
           employeeId = empData[0].id;
           employeeName = empData[0].full_name;
         } else if (empData && empData.length > 1) {
-          // Multiple matches — ask for clarification
           const candidates = empData.map((e: any) => e.full_name);
           structuredEvents.push(makeStructuredEvent("clarification", {
             question: `Multiple employees match "${args.employee_name}". Which one did you mean?`,
             options: candidates,
           }));
-          return {
-            action: "Create Shift",
-            summary: `Multiple employees match "${args.employee_name}". Please select one.`,
-            risk: "medium",
-            can_approve: false,
-            missing_fields: ["employee"],
-            requires_approval: true,
-            message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.`,
-          };
+          return { action: "Create Shift", summary: `Multiple employees match "${args.employee_name}". Please select one.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.` };
         } else {
-          // No match — try token-reversed match (e.g., "Alex Grecea" → search "Grecea" then "Alex")
+          // No match — try token-reversed match
           const tokens = employeeName.trim().split(/\s+/);
           let found = false;
           if (tokens.length >= 2) {
-            // Try each token individually
             for (const token of tokens) {
               if (token.length < 2) continue;
               const { data: tokenData } = await sb.from("employees")
@@ -1050,35 +1072,17 @@ async function executeToolInner(
                 found = true;
                 break;
               } else if (tokenData && tokenData.length > 1) {
-                // Multiple partial matches — clarify
                 const candidates = tokenData.map((e: any) => e.full_name);
                 structuredEvents.push(makeStructuredEvent("clarification", {
                   question: `No exact match for "${args.employee_name}". Did you mean one of these?`,
                   options: candidates,
                 }));
-                return {
-                  action: "Create Shift",
-                  summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`,
-                  risk: "medium",
-                  can_approve: false,
-                  missing_fields: ["employee"],
-                  requires_approval: true,
-                  message: `Found possible matches for "${args.employee_name}". Please clarify.`,
-                };
+                return { action: "Create Shift", summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found possible matches for "${args.employee_name}". Please clarify.` };
               }
             }
           }
           if (!found) {
-            // Block: employee not found
-            return {
-              action: "Create Shift",
-              summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
-              risk: "medium",
-              can_approve: false,
-              missing_fields: ["employee"],
-              requires_approval: true,
-              message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
-            };
+            return { action: "Create Shift", summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.` };
           }
         }
       }
@@ -1087,7 +1091,7 @@ async function executeToolInner(
         location_id: locationId,
         location_name: locationName || null,
         role: args.role,
-        shift_date: args.shift_date,
+        shift_date: resolvedDate,
         start_time: args.start_time,
         end_time: args.end_time,
         min_staff: args.min_staff || 1,
@@ -2105,15 +2109,25 @@ serve(async (req) => {
         console.error("Failed to log Dash action:", logErr);
       }
 
-      // Save/update session
+      // Save/update session (include structured events for persistence)
       if (session_id) {
         try {
+          // Parse structured events into JSON for persistence
+          const parsedStructuredEvents = allStructuredEvents.map((evt: string) => {
+            try { return JSON.parse(evt); } catch { return null; }
+          }).filter(Boolean);
+
+          const assistantMsg: any = { role: "assistant", content: finalContent };
+          if (parsedStructuredEvents.length > 0) {
+            assistantMsg.structured = parsedStructuredEvents;
+          }
+
           await sbService.from("dash_sessions").upsert({
             id: session_id,
             company_id: companyId,
             user_id: userId,
             title: generateSmartTitle(messages?.[0]?.content),
-            messages_json: [...messages, { role: "assistant", content: finalContent }],
+            messages_json: [...messages, assistantMsg],
             status: "active",
             updated_at: new Date().toISOString(),
           }, { onConflict: "id" });
