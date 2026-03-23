@@ -446,6 +446,21 @@ const tools = [
       },
     },
   },
+  // --- EXECUTE: CA reassignment after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_ca_reassignment",
+      description: "Execute corrective action reassignment after user approves. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the reassignment draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- DRAFT: Create shift draft ---
   {
     type: "function",
