@@ -1695,12 +1695,14 @@ You can now create AND execute records in the platform:
 3. Call \`execute_audit_template_creation\` with the pending_action_id
 
 **Corrective Action Reassignment:**
-- Use \`reassign_corrective_action\` when user explicitly asks to reassign
-- This is a HIGH RISK action — clearly explain what will change before executing
+1. Use \`reassign_corrective_action\` to create a draft showing impact
+2. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
+3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
 1. Use \`create_shift_draft\` to prepare and show preview
-2. Wait for user approval before creating
+2. Wait for user approval
+3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
