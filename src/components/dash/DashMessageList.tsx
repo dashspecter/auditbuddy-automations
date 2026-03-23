@@ -73,8 +73,8 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
     className={cn(
       "flex gap-3 p-3 rounded-xl transition-all",
       msg.role === "user"
-        ? "bg-muted/60 ml-10"
-        : "bg-primary/[0.04] border border-primary/10 mr-4"
+        ? "bg-muted/60 ml-8"
+        : "bg-primary/[0.04] border border-primary/10"
     )}
   >
     <div

@@ -29,7 +29,6 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
-  transform_compliance_doc_to_audit: "audits",
 };
 
 // ─── Risk classification ────────────────────────────────────
@@ -354,13 +353,14 @@ const tools = [
     type: "function",
     function: {
       name: "parse_uploaded_file",
-      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. Use when the user has attached a file and wants to process it.",
+      description: "Parse an uploaded file (PDF, image, spreadsheet) to extract structured content. CRITICAL: When the user uploads ANY file (PDF, image, etc.) and asks to create an audit template, create an audit, or anything audit-related, you MUST call this tool with intent='audit_template'. For compliance/regulation documents, use intent='compliance_audit'. NEVER respond with text saying you cannot parse a file — ALWAYS call this tool instead.",
       parameters: {
         type: "object",
         properties: {
-          file_url: { type: "string", description: "The signed URL of the uploaded file" },
+          file_url: { type: "string", description: "The signed URL of the uploaded file. Extract this from the [File URLs: ...] section in the user message." },
           file_name: { type: "string", description: "Original filename" },
-          intent: { type: "string", enum: ["id_scan", "audit_template", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file" },
+          intent: { type: "string", enum: ["id_scan", "audit_template", "compliance_audit", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file. Use 'audit_template' for any audit template creation from a document. Use 'compliance_audit' for compliance/regulation documents." },
+          regulation_name: { type: "string", description: "Name of the regulation/standard (only for compliance_audit intent)" },
         },
         required: ["file_url", "file_name", "intent"],
       },
@@ -678,23 +678,6 @@ const tools = [
       },
     },
   },
-  // --- FILE: Compliance doc to recurring audit ---
-  {
-    type: "function",
-    function: {
-      name: "transform_compliance_doc_to_audit",
-      description: "Parse an uploaded compliance/regulation document and suggest a recurring audit template that covers its requirements.",
-      parameters: {
-        type: "object",
-        properties: {
-          file_url: { type: "string", description: "Signed URL of the uploaded file" },
-          file_name: { type: "string", description: "Original filename" },
-          regulation_name: { type: "string", description: "Name of the regulation/standard" },
-        },
-        required: ["file_url", "file_name"],
-      },
-    },
-  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
@@ -907,16 +890,26 @@ async function executeToolInner(
           return { type: "id_scan_result", file_name, extracted_data: scanResult, confidence: "medium", next_step: "Review the extracted data and call create_employee_draft with the confirmed fields." };
         }
 
-        if (intent === "audit_template") {
+        if (intent === "audit_template" || intent === "compliance_audit") {
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
           // Download file server-side and send as base64 inline data
           let fileContent: { base64: string; mimeType: string };
           try {
+            console.log(`[parse_uploaded_file] Downloading file: ${file_url}`);
             fileContent = await downloadFileAsBase64(sbService, file_url);
+            console.log(`[parse_uploaded_file] Downloaded OK, mimeType=${fileContent.mimeType}, base64 length=${fileContent.base64.length}`);
           } catch (dlErr: any) {
-            console.error("File download failed:", dlErr);
+            console.error("[parse_uploaded_file] File download failed:", dlErr);
             return { error: "Could not access the uploaded file. Please try re-uploading." };
           }
+
+          const isCompliance = intent === "compliance_audit";
+          const extractionPrompt = isCompliance
+            ? `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.`
+            : `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.`;
+
+          // Use data URI format for the AI gateway
+          const fileDataUri = `data:${fileContent.mimeType};base64,${fileContent.base64}`;
 
           const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -926,8 +919,8 @@ async function executeToolInner(
               messages: [{
                 role: "user",
                 content: [
-                  { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
-                  { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
+                  { type: "text", text: extractionPrompt },
+                  { type: "image_url", image_url: { url: fileDataUri } },
                 ],
               }],
               stream: false,
@@ -935,19 +928,28 @@ async function executeToolInner(
           });
           if (!parseResp.ok) {
             const errText = await parseResp.text();
-            console.error("AI parse error:", parseResp.status, errText);
-            return { error: "Failed to parse document for audit template extraction." };
+            console.error("[parse_uploaded_file] AI parse error:", parseResp.status, errText);
+            return { error: `Failed to parse document (status ${parseResp.status}). The AI service could not process this file format. Please try a different file or re-upload.` };
           }
           const parseResult = await parseResp.json();
           const content = parseResult.choices?.[0]?.message?.content || "";
+          console.log(`[parse_uploaded_file] AI response length: ${content.length}`);
           let templateData: any = null;
           try {
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) templateData = JSON.parse(jsonMatch[0]);
-          } catch {
-            return { raw_extraction: content, error: "Could not parse structured data from document." };
+          } catch (parseErr) {
+            console.error("[parse_uploaded_file] JSON parse error:", parseErr);
+            return { raw_extraction: content.substring(0, 2000), error: "Could not parse structured data from document. Raw text extracted." };
           }
-          return { type: "audit_template_extraction", file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
+          if (!templateData) {
+            return { raw_extraction: content.substring(0, 2000), error: "No structured template found in document. Raw text extracted." };
+          }
+          if (isCompliance && args.regulation_name) {
+            templateData.regulation_reference = args.regulation_name;
+          }
+          const resultType = isCompliance ? "compliance_audit_extraction" : "audit_template_extraction";
+          return { type: resultType, file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
         }
 
         return { type: "general_parse", file_name, message: `File "${file_name}" received. Please specify what you'd like to do with it.` };
@@ -1817,51 +1819,10 @@ async function executeToolInner(
       }
     }
 
+    // transform_compliance_doc_to_audit is now handled by parse_uploaded_file with intent="compliance_audit"
     case "transform_compliance_doc_to_audit": {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-      try {
-        let fileContent: { base64: string; mimeType: string };
-        try {
-          fileContent = await downloadFileAsBase64(sbService, args.file_url);
-        } catch (dlErr: any) {
-          console.error("File download failed:", dlErr);
-          return { error: "Could not access the uploaded file. Please try re-uploading." };
-        }
-
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
-              ],
-            }],
-            stream: false,
-          }),
-        });
-        if (!resp.ok) {
-          const errText = await resp.text();
-          console.error("AI parse error:", resp.status, errText);
-          return { error: "Failed to parse compliance document." };
-        }
-        const result = await resp.json();
-        const content = result.choices?.[0]?.message?.content || "";
-        try {
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (args.regulation_name) parsed.regulation_reference = args.regulation_name;
-            return { type: "compliance_audit_extraction", file_name: args.file_name, ...parsed, next_step: "Review the suggested audit template and call create_audit_template_draft to finalize." };
-          }
-        } catch {}
-        return { raw_extraction: content, error: "Could not parse compliance audit structure." };
-      } catch (err: any) {
-        return { error: `Compliance doc extraction failed: ${err.message}` };
-      }
+      // Redirect to parse_uploaded_file logic
+      return await executeToolInner(sb, sbService, "parse_uploaded_file", { ...args, intent: "compliance_audit" }, companyId, userId, role, activeModules, structuredEvents);
     }
 
     default:
@@ -1901,7 +1862,9 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 
 ### File Processing
 - **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
-- **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft
+- **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft. Use \`parse_uploaded_file\` with intent \`audit_template\`.
+- **Compliance Audit from PDF**: Parse compliance/regulation documents → create recurring audit template. Use \`parse_uploaded_file\` with intent \`compliance_audit\`.
+- **CRITICAL FILE RULE**: When the user message contains \`[File URLs:\`, you MUST call \`parse_uploaded_file\` with the file URL. NEVER respond with text saying you cannot parse or process a file. ALWAYS use the tool.
 
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
@@ -1941,7 +1904,7 @@ You can now create AND execute records in the platform:
 ### File Transformations (Extended)
 - **Spreadsheet → Schedule**: Use \`transform_spreadsheet_to_schedule\` to parse CSV/Excel into shift drafts
 - **SOP → Training Module**: Use \`transform_sop_to_training\` to convert procedure documents into training content
-- **Compliance Doc → Audit Template**: Use \`transform_compliance_doc_to_audit\` to generate recurring audit templates from regulations
+- **Compliance Doc → Audit Template**: Use \`parse_uploaded_file\` with intent \`compliance_audit\` (do NOT use \`transform_compliance_doc_to_audit\` — it is deprecated)
 
 ## Response Guidelines
 1. Use **markdown** formatting for readability.
@@ -2180,7 +2143,32 @@ serve(async (req) => {
       }
 
       // Final text response — stream it with structured events
-      const finalContent = msg.content || "";
+      let finalContent = msg.content || "";
+
+      // ─── FALLBACK: Model refused to call tool when file was attached ───
+      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
+      const hasFileAttachment = typeof lastUserMsg === "string" && lastUserMsg.includes("[File URLs:");
+      const looksLikeRefusal = /unable to parse|cannot (create|parse|process|read|extract)|can't (create|parse|process|read)|don't have the ability|not able to/i.test(finalContent);
+      if (hasFileAttachment && looksLikeRefusal && toolsUsed.length === 0) {
+        console.log("[Dash] FALLBACK: Model refused file processing, forcing parse_uploaded_file");
+        // Extract file URL and name from the user message
+        const urlMatch = lastUserMsg.match(/\[File URLs:\s*(https?:\/\/[^\s\]]+)/);
+        const nameMatch = lastUserMsg.match(/\[Attached:\s*([^\]]+)\]/);
+        if (urlMatch) {
+          const fileUrl = urlMatch[1];
+          const fileName = nameMatch?.[1] || "uploaded_file";
+          const intent = /compliance|regulation/i.test(lastUserMsg) ? "compliance_audit" : "audit_template";
+          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          if (!fallbackResult.error) {
+            // Feed result back through the model for formatting
+            conversationMessages.push(msg);
+            conversationMessages.push({ role: "user", content: `[System: The file was successfully parsed. Here is the extracted data: ${JSON.stringify(fallbackResult).substring(0, 3000)}. Present this to the user as a structured audit template preview.]` });
+            continue; // Loop back through the LLM
+          } else {
+            finalContent = `⚠️ ${fallbackResult.error}`;
+          }
+        }
+      }
 
       // Log action
       try {
