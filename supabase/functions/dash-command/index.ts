@@ -1403,11 +1403,12 @@ async function executeToolInner(
       const { data: shiftData, error: shiftError } = await sbService.from("shifts").insert({
         company_id: companyId,
         location_id: draft.location_id,
-        employee_id: draft.employee_id,
+        role: draft.role,
         shift_date: draft.shift_date,
         start_time: draft.start_time,
         end_time: draft.end_time,
-        shift_type: draft.shift_type || "normal",
+        required_count: draft.min_staff || 1,
+        shift_type: draft.shift_type || "regular",
         notes: draft.notes || null,
         created_by: userId,
       }).select("id, shift_date, start_time, end_time").single();
