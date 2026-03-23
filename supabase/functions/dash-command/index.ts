@@ -678,23 +678,6 @@ const tools = [
       },
     },
   },
-  // --- FILE: Compliance doc to recurring audit ---
-  {
-    type: "function",
-    function: {
-      name: "transform_compliance_doc_to_audit",
-      description: "Parse an uploaded compliance/regulation document and suggest a recurring audit template that covers its requirements.",
-      parameters: {
-        type: "object",
-        properties: {
-          file_url: { type: "string", description: "Signed URL of the uploaded file" },
-          file_name: { type: "string", description: "Original filename" },
-          regulation_name: { type: "string", description: "Name of the regulation/standard" },
-        },
-        required: ["file_url", "file_name"],
-      },
-    },
-  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
