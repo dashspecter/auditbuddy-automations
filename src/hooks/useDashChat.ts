@@ -17,6 +17,7 @@ export type DashStructuredEvent = {
 };
 
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
+const STREAM_TIMEOUT_MS = 90_000; // 90 seconds without data → abort
 
 function generateSessionId() {
   return crypto.randomUUID();
@@ -45,6 +46,7 @@ export function useDashChat() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string>(generateSessionId);
   const abortRef = useRef<AbortController | null>(null);
+  const streamStartedRef = useRef(false);
   const { user } = useAuth();
 
   // Load last active session on mount
@@ -98,51 +100,77 @@ export function useDashChat() {
     let assistantContent = "";
     const structuredEvents: DashStructuredEvent[] = existingStructuredEvents ? [...existingStructuredEvents] : [];
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+    // Timeout watchdog: abort if no data for STREAM_TIMEOUT_MS
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const resetTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.warn("[Dash] Stream timeout — no data for", STREAM_TIMEOUT_MS, "ms");
+        try { reader.cancel("Stream timeout"); } catch {}
+      }, STREAM_TIMEOUT_MS);
+    };
+    resetTimeout();
 
-      let nlIdx: number;
-      while ((nlIdx = buffer.indexOf("\n")) !== -1) {
-        let line = buffer.slice(0, nlIdx);
-        buffer = buffer.slice(nlIdx + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        resetTimeout();
+        buffer += decoder.decode(value, { stream: true });
 
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") break;
+        let nlIdx: number;
+        while ((nlIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, nlIdx);
+          buffer = buffer.slice(nlIdx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          if (parsed.type === "structured_event") {
-            structuredEvents.push({ type: parsed.event_type, data: parsed.data });
-            setMessages(prev => {
-              const last = prev[prev.length - 1];
-              if (last?.role === "assistant") {
-                return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
-              }
-              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
-            });
-            continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "structured_event") {
+              structuredEvents.push({ type: parsed.event_type, data: parsed.data });
+              streamStartedRef.current = true;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
+              });
+              continue;
+            }
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              streamStartedRef.current = true;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
+                }
+                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
+              });
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
           }
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (content) {
-            assistantContent += content;
-            setMessages(prev => {
-              const last = prev[prev.length - 1];
-              if (last?.role === "assistant") {
-                return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
-              }
-              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
-            });
-          }
-        } catch {
-          buffer = line + "\n" + buffer;
-          break;
         }
       }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+
+    // R2: Guard against empty response — no text and no structured events
+    if (!assistantContent && structuredEvents.length === 0) {
+      setMessages(prev => [
+        ...prev,
+        { role: "assistant", content: "⚠️ No response received. The request may have timed out. Please try again.", timestamp: new Date() },
+      ]);
     }
   };
 
@@ -150,6 +178,7 @@ export function useDashChat() {
     if (isLoading) return;
     setError(null);
     setIsLoading(true);
+    streamStartedRef.current = false;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -197,6 +226,7 @@ export function useDashChat() {
   const sendMessage = useCallback(async (text: string, attachments?: DashAttachment[]) => {
     if (!text.trim() || isLoading) return;
     setError(null);
+    streamStartedRef.current = false;
 
     // Store only clean display text + attachments metadata in the UI message
     const userMsg: DashMessage = {
@@ -276,6 +306,16 @@ export function useDashChat() {
   const cancelStream = useCallback(() => {
     abortRef.current?.abort();
     setIsLoading(false);
+    // R3: If no assistant message was started, add a cancellation message
+    if (!streamStartedRef.current) {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "user") {
+          return [...prev, { role: "assistant", content: "Request cancelled.", timestamp: new Date() }];
+        }
+        return prev;
+      });
+    }
   }, []);
 
   const retryLast = useCallback(() => {

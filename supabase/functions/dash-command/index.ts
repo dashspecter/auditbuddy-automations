@@ -52,12 +52,36 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
     case "create_employee":
       return {
         full_name: previewJson.full_name,
-        email: previewJson.email,
-        phone: previewJson.phone,
-        role: previewJson.role,
-        department_id: previewJson.department_id,
+        email: previewJson.email || null,
+        phone: previewJson.phone || null,
+        role: previewJson.role || "staff",
+        department_id: previewJson.department_id || null,
         location_id: previewJson.location_id,
-        ...(previewJson.hire_date && { hire_date: previewJson.hire_date }),
+        cnp: previewJson.cnp || null,
+        date_of_birth: previewJson.date_of_birth || null,
+        id_series: previewJson.id_series || null,
+        id_number: previewJson.id_number || null,
+        address: previewJson.address || null,
+        start_date: previewJson.start_date || null,
+      };
+    case "create_shift":
+      return {
+        location_id: previewJson.location_id,
+        role: previewJson.role,
+        shift_date: previewJson.shift_date,
+        start_time: previewJson.start_time,
+        end_time: previewJson.end_time,
+        min_staff: previewJson.min_staff || 1,
+        shift_type: previewJson.shift_type || "regular",
+        notes: previewJson.notes || null,
+      };
+    case "reassign_corrective_action":
+    case "reassign_ca":
+      return {
+        ca_id: previewJson.ca_id,
+        new_assigned_to: previewJson.new_assigned_to,
+        new_assigned_name: previewJson.new_assigned_name,
+        reason: previewJson.reason,
       };
     default:
       return {};
@@ -404,6 +428,7 @@ const tools = [
           file_name: { type: "string", description: "Original filename" },
           intent: { type: "string", enum: ["id_scan", "audit_template", "compliance_audit", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file. Use 'audit_template' for any audit template creation from a document. Use 'compliance_audit' for compliance/regulation documents." },
           regulation_name: { type: "string", description: "Name of the regulation/standard (only for compliance_audit intent)" },
+          requested_template_name: { type: "string", description: "If the user explicitly specified a name for the audit template (e.g. 'name it TEST_Dash'), pass that exact name here. It will override the AI-extracted title." },
         },
         required: ["file_url", "file_name", "intent"],
       },
@@ -916,7 +941,7 @@ async function executeToolInner(
 
     // ────────── FILE TOOLS ──────────
     case "parse_uploaded_file": {
-      const { file_url, file_name, intent } = args;
+      const { file_url, file_name, intent, requested_template_name } = args;
       if (!file_url) return { error: "No file URL provided" };
 
       try {
@@ -993,7 +1018,7 @@ async function executeToolInner(
           }
 
           // ─── Auto-create pending action for audit intents (merge extraction + draft) ───
-          const templateName = templateData.template_name || templateData.name || file_name.replace(/\.[^.]+$/, "");
+          const templateName = requested_template_name || templateData.template_name || templateData.name || file_name.replace(/\.[^.]+$/, "");
           const sectionCount = templateData.sections?.length || 0;
           const fieldCount = templateData.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
 
@@ -1312,8 +1337,20 @@ async function executeToolInner(
 
     // ────────── WRITE/EXECUTE TOOLS ──────────
     case "execute_employee_creation": {
-      // Validate pending action
-      if (args.pending_action_id) {
+      // Self-hydrate from pending action if args are missing critical fields
+      if (args.pending_action_id && !args.full_name) {
+        const { data: pa } = await sbService.from("dash_pending_actions")
+          .select("id, status, company_id, preview_json")
+          .eq("id", args.pending_action_id)
+          .maybeSingle();
+        if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+        if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+        if (pa?.preview_json) {
+          const preview = pa.preview_json as any;
+          args = { ...args, ...hydrateArgsFromDraft("create_employee", preview) };
+        }
+      } else if (args.pending_action_id) {
+        // Validate pending action even if args are present
         const { data: pa } = await sbService.from("dash_pending_actions")
           .select("id, status, company_id")
           .eq("id", args.pending_action_id)
@@ -1509,7 +1546,7 @@ async function executeToolInner(
       structuredEvents.push(makeStructuredEvent("execution_result", {
         status: resultStatus,
         title: resultStatus === "success" ? "Audit Template Created" : "Template Created with Warnings",
-        summary: `Template "${tmplData.name}" created (inactive/draft). ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added successfully."}`,
+        summary: `Template "${tmplData.name}" created successfully. ${sectionErrors.length > 0 ? `${sectionErrors.length} section errors.` : "All sections and fields added. You can find it in Audit Templates."}`,
         changes: [`Template "${tmplData.name}" created`, `${(templateSections || []).length} sections added`],
         errors: sectionErrors.length > 0 ? sectionErrors : undefined,
       }));
@@ -1564,12 +1601,13 @@ async function executeToolInner(
 
       // Push action_preview card — user sees this and must click Approve
       structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: `Reassign CA: "${caData.title}"`,
+        summary: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
+        risk: "high",
+        affected: [caData.title, newAssigneeName].filter(Boolean),
         pending_action_id: paData?.id,
-        action_name: "reassign_corrective_action",
-        risk_level: "high",
-        title: `Reassign CA: "${caData.title}"`,
-        description: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
-        preview: {
+        can_approve: true,
+        draft: {
           ca_id: caData.id,
           ca_title: caData.title,
           new_assigned_to: args.new_assigned_to,
@@ -1969,6 +2007,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft. Use \`parse_uploaded_file\` with intent \`audit_template\`.
 - **Compliance Audit from PDF**: Parse compliance/regulation documents → create recurring audit template. Use \`parse_uploaded_file\` with intent \`compliance_audit\`.
 - **CRITICAL FILE RULE**: When the user message contains \`[File URLs:\`, you MUST call \`parse_uploaded_file\` with the file URL. NEVER respond with text saying you cannot parse or process a file. ALWAYS use the tool.
+- **NAME OVERRIDE RULE**: When the user specifies a custom name for the audit template (e.g. "name it X", "call it Y", "with the name Z"), you MUST pass it as \`requested_template_name\` to \`parse_uploaded_file\`. This overrides the AI-extracted title.
 
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
@@ -2104,7 +2143,7 @@ serve(async (req) => {
           const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
           hydratedArgs = { ...hydratedArgs, ...draftArgs };
         }
-      } catch {}
+      } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
       const allStructuredEvents: string[] = [];
       const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
@@ -2119,21 +2158,25 @@ serve(async (req) => {
           result_json: toolResult, status: toolResult.error ? "error" : "success",
           approval_status: "approved", modules_touched: [canonicalModule],
         });
-      } catch {}
+      } catch (e) { console.error("[Dash] Failed to log direct approval action:", e); }
 
       // Save session with approval result
       if (session_id && messages) {
         const resultText = toolResult.error
           ? `⚠️ ${toolResult.error}`
           : `✅ ${toolResult.message || "Action executed successfully."}`;
+        // Include structured events so execution result cards survive session reload
+        const structuredForSave = allStructuredEvents.map((evtStr: string) => {
+          try { const parsed = JSON.parse(evtStr); return { event_type: parsed.event_type, data: parsed.data }; } catch { return null; }
+        }).filter(Boolean);
         try {
           await sbService.from("dash_sessions").upsert({
             id: session_id, company_id: companyId, user_id: userId,
             title: generateSmartTitle(messages?.[0]?.content),
-            messages_json: [...messages, { role: "assistant", content: resultText }],
+            messages_json: [...messages, { role: "assistant", content: resultText, structured: structuredForSave }],
             status: "active", updated_at: new Date().toISOString(),
           }, { onConflict: "id" });
-        } catch {}
+        } catch (e) { console.error("[Dash] Failed to save session after approval:", e); }
       }
 
       // Stream result as SSE
@@ -2381,7 +2424,20 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
     }
 
-    return new Response(JSON.stringify({ error: "Max iterations exceeded" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Return max-iterations as SSE stream so frontend can parse it consistently
+    const encoder = new TextEncoder();
+    const errStream = new ReadableStream({
+      start(controller) {
+        const errEvt = JSON.stringify({ type: "structured_event", event_type: "execution_result", data: { status: "error", title: "Processing Limit Reached", summary: "The request required too many steps to complete. Please try a simpler request or break it into smaller parts." } });
+        controller.enqueue(encoder.encode(`data: ${errEvt}\n\n`));
+        const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: "⚠️ Request exceeded processing limits. Please try again with a simpler request." }, finish_reason: null }] };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(errStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   } catch (error) {
     console.error("Dash command error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Shield, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 const RISK_CONFIG = {
   low: { color: "bg-green-500/10 text-green-700 border-green-200", icon: Shield, label: "Low Risk" },
@@ -27,28 +27,32 @@ export function ActionPreviewCard({
   can_approve = false, missing_fields, draft,
   onApprove, onReject,
 }: ActionPreviewCardProps) {
-  const [status, setStatus] = useState<"pending" | "approving" | "rejected">("pending");
+  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">("pending");
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
-  const handleApprove = () => {
-    if (!pending_action_id || !onApprove) return;
+  const handleApprove = useCallback(() => {
+    if (!pending_action_id || !onApprove || status !== "pending") return;
     setStatus("approving");
-    onApprove(pending_action_id);
-  };
+    try {
+      onApprove(pending_action_id);
+    } catch {
+      setStatus("failed");
+    }
+  }, [pending_action_id, onApprove, status]);
 
-  const handleReject = () => {
-    if (!pending_action_id || !onReject) return;
+  const handleReject = useCallback(() => {
+    if (!pending_action_id || !onReject || status !== "pending") return;
     setStatus("rejected");
     onReject(pending_action_id);
-  };
+  }, [pending_action_id, onReject, status]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 my-2 space-y-3 overflow-hidden">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">{action}</p>
-          <p className="text-xs text-muted-foreground">{summary}</p>
+          <p className="text-sm font-semibold text-foreground">{action || "Action Preview"}</p>
+          <p className="text-xs text-muted-foreground">{summary || "Review and approve this action."}</p>
         </div>
         <Badge variant="outline" className={`shrink-0 gap-1 ${riskInfo.color}`}>
           <RiskIcon className="h-3 w-3" />
@@ -108,6 +112,18 @@ export function ActionPreviewCard({
             <X className="h-3 w-3" />
             Rejected
           </Badge>
+        </div>
+      )}
+
+      {status === "failed" && (
+        <div className="flex items-center gap-2 pt-1">
+          <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Failed — check result below
+          </Badge>
+          <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setStatus("pending")}>
+            Retry
+          </Button>
         </div>
       )}
     </div>
