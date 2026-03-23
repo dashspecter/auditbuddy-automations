@@ -29,7 +29,6 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
-  transform_compliance_doc_to_audit: "audits",
 };
 
 // ─── Risk classification ────────────────────────────────────
