@@ -161,7 +161,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} />)
+          messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)
         )}
 
         {showRetry && (
