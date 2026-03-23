@@ -2145,7 +2145,7 @@ serve(async (req) => {
           result_json: toolResult, status: toolResult.error ? "error" : "success",
           approval_status: "approved", modules_touched: [canonicalModule],
         });
-      } catch {}
+      } catch (e) { console.error("[Dash] Failed to log direct approval action:", e); }
 
       // Save session with approval result
       if (session_id && messages) {
