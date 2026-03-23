@@ -1862,7 +1862,9 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 
 ### File Processing
 - **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
-- **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft
+- **Audit Template from PDF**: Parse PDF/image documents → create structured audit template draft. Use \`parse_uploaded_file\` with intent \`audit_template\`.
+- **Compliance Audit from PDF**: Parse compliance/regulation documents → create recurring audit template. Use \`parse_uploaded_file\` with intent \`compliance_audit\`.
+- **CRITICAL FILE RULE**: When the user message contains \`[File URLs:\`, you MUST call \`parse_uploaded_file\` with the file URL. NEVER respond with text saying you cannot parse or process a file. ALWAYS use the tool.
 
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
