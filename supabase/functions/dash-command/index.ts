@@ -890,16 +890,26 @@ async function executeToolInner(
           return { type: "id_scan_result", file_name, extracted_data: scanResult, confidence: "medium", next_step: "Review the extracted data and call create_employee_draft with the confirmed fields." };
         }
 
-        if (intent === "audit_template") {
+        if (intent === "audit_template" || intent === "compliance_audit") {
           const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
           // Download file server-side and send as base64 inline data
           let fileContent: { base64: string; mimeType: string };
           try {
+            console.log(`[parse_uploaded_file] Downloading file: ${file_url}`);
             fileContent = await downloadFileAsBase64(sbService, file_url);
+            console.log(`[parse_uploaded_file] Downloaded OK, mimeType=${fileContent.mimeType}, base64 length=${fileContent.base64.length}`);
           } catch (dlErr: any) {
-            console.error("File download failed:", dlErr);
+            console.error("[parse_uploaded_file] File download failed:", dlErr);
             return { error: "Could not access the uploaded file. Please try re-uploading." };
           }
+
+          const isCompliance = intent === "compliance_audit";
+          const extractionPrompt = isCompliance
+            ? `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.`
+            : `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.`;
+
+          // Use data URI format for the AI gateway
+          const fileDataUri = `data:${fileContent.mimeType};base64,${fileContent.base64}`;
 
           const parseResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -909,8 +919,8 @@ async function executeToolInner(
               messages: [{
                 role: "user",
                 content: [
-                  { type: "text", text: `Analyze this document and extract it as a structured audit template. Return a JSON object with: template_name (string), description (string), sections (array of { name: string, fields: array of { name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean } }). Only return valid JSON, no markdown fences.` },
-                  { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
+                  { type: "text", text: extractionPrompt },
+                  { type: "image_url", image_url: { url: fileDataUri } },
                 ],
               }],
               stream: false,
@@ -918,19 +928,28 @@ async function executeToolInner(
           });
           if (!parseResp.ok) {
             const errText = await parseResp.text();
-            console.error("AI parse error:", parseResp.status, errText);
-            return { error: "Failed to parse document for audit template extraction." };
+            console.error("[parse_uploaded_file] AI parse error:", parseResp.status, errText);
+            return { error: `Failed to parse document (status ${parseResp.status}). The AI service could not process this file format. Please try a different file or re-upload.` };
           }
           const parseResult = await parseResp.json();
           const content = parseResult.choices?.[0]?.message?.content || "";
+          console.log(`[parse_uploaded_file] AI response length: ${content.length}`);
           let templateData: any = null;
           try {
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) templateData = JSON.parse(jsonMatch[0]);
-          } catch {
-            return { raw_extraction: content, error: "Could not parse structured data from document." };
+          } catch (parseErr) {
+            console.error("[parse_uploaded_file] JSON parse error:", parseErr);
+            return { raw_extraction: content.substring(0, 2000), error: "Could not parse structured data from document. Raw text extracted." };
           }
-          return { type: "audit_template_extraction", file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
+          if (!templateData) {
+            return { raw_extraction: content.substring(0, 2000), error: "No structured template found in document. Raw text extracted." };
+          }
+          if (isCompliance && args.regulation_name) {
+            templateData.regulation_reference = args.regulation_name;
+          }
+          const resultType = isCompliance ? "compliance_audit_extraction" : "audit_template_extraction";
+          return { type: resultType, file_name, extracted_template: templateData, confidence: "medium", next_step: "Review the extracted template structure and call create_audit_template_draft to finalize." };
         }
 
         return { type: "general_parse", file_name, message: `File "${file_name}" received. Please specify what you'd like to do with it.` };
