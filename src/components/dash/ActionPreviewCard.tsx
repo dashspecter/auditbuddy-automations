@@ -18,6 +18,7 @@ interface ActionPreviewCardProps {
   can_approve?: boolean;
   missing_fields?: string[];
   draft?: any;
+  resolved_status?: string; // from session reconciliation: "approved" | "rejected" | "expired" | "executed"
   onApprove?: (pendingActionId: string) => void;
   onReject?: (pendingActionId: string) => void;
 }
