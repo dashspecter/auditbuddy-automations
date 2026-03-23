@@ -1819,51 +1819,10 @@ async function executeToolInner(
       }
     }
 
+    // transform_compliance_doc_to_audit is now handled by parse_uploaded_file with intent="compliance_audit"
     case "transform_compliance_doc_to_audit": {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-      try {
-        let fileContent: { base64: string; mimeType: string };
-        try {
-          fileContent = await downloadFileAsBase64(sbService, args.file_url);
-        } catch (dlErr: any) {
-          console.error("File download failed:", dlErr);
-          return { error: "Could not access the uploaded file. Please try re-uploading." };
-        }
-
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: `Analyze this compliance/regulation document and create a recurring audit template that covers its requirements. Return a JSON object with: { template_name: string, description: string, regulation_reference: string, suggested_recurrence: "daily"|"weekly"|"monthly", sections: [{ name: string, fields: [{ name: string, field_type: "yes_no"|"rating"|"text"|"number"|"checkbox"|"photo", is_required: boolean, regulation_clause?: string }] }] }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
-              ],
-            }],
-            stream: false,
-          }),
-        });
-        if (!resp.ok) {
-          const errText = await resp.text();
-          console.error("AI parse error:", resp.status, errText);
-          return { error: "Failed to parse compliance document." };
-        }
-        const result = await resp.json();
-        const content = result.choices?.[0]?.message?.content || "";
-        try {
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (args.regulation_name) parsed.regulation_reference = args.regulation_name;
-            return { type: "compliance_audit_extraction", file_name: args.file_name, ...parsed, next_step: "Review the suggested audit template and call create_audit_template_draft to finalize." };
-          }
-        } catch {}
-        return { raw_extraction: content, error: "Could not parse compliance audit structure." };
-      } catch (err: any) {
-        return { error: `Compliance doc extraction failed: ${err.message}` };
-      }
+      // Redirect to parse_uploaded_file logic
+      return await executeToolInner(sb, sbService, "parse_uploaded_file", { ...args, intent: "compliance_audit" }, companyId, userId, role, activeModules, structuredEvents);
     }
 
     default:
