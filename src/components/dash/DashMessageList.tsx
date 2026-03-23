@@ -111,7 +111,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
 
       {/* Structured events before text */}
       {msg.structured && msg.structured.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 overflow-hidden min-w-0 w-full">
           {msg.structured
             .filter(e => e.type === "source_card")
             .map((e, i) => <StructuredEventRenderer key={`src-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
@@ -125,11 +125,11 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
 
       {/* Structured events after text (tables, actions, results, clarifications) */}
       {msg.structured && msg.structured.length > 0 && (
-        <>
+        <div className="overflow-hidden min-w-0 w-full space-y-2">
           {msg.structured
             .filter(e => e.type !== "source_card")
             .map((e, i) => <StructuredEventRenderer key={`ev-${i}`} event={e} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
-        </>
+        </div>
       )}
     </div>
   </div>
