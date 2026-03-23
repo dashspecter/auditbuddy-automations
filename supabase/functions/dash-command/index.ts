@@ -52,12 +52,36 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
     case "create_employee":
       return {
         full_name: previewJson.full_name,
-        email: previewJson.email,
-        phone: previewJson.phone,
-        role: previewJson.role,
-        department_id: previewJson.department_id,
+        email: previewJson.email || null,
+        phone: previewJson.phone || null,
+        role: previewJson.role || "staff",
+        department_id: previewJson.department_id || null,
         location_id: previewJson.location_id,
-        ...(previewJson.hire_date && { hire_date: previewJson.hire_date }),
+        cnp: previewJson.cnp || null,
+        date_of_birth: previewJson.date_of_birth || null,
+        id_series: previewJson.id_series || null,
+        id_number: previewJson.id_number || null,
+        address: previewJson.address || null,
+        start_date: previewJson.start_date || null,
+      };
+    case "create_shift":
+      return {
+        location_id: previewJson.location_id,
+        role: previewJson.role,
+        shift_date: previewJson.shift_date,
+        start_time: previewJson.start_time,
+        end_time: previewJson.end_time,
+        min_staff: previewJson.min_staff || 1,
+        shift_type: previewJson.shift_type || "regular",
+        notes: previewJson.notes || null,
+      };
+    case "reassign_corrective_action":
+    case "reassign_ca":
+      return {
+        ca_id: previewJson.ca_id,
+        new_assigned_to: previewJson.new_assigned_to,
+        new_assigned_name: previewJson.new_assigned_name,
+        reason: previewJson.reason,
       };
     default:
       return {};
