@@ -391,8 +391,8 @@ const App = () => {
                         
                         {/* Dash */}
                         <Route path="/command" element={<ProtectedRoute><RouteErrorBoundary><MobileCommand /></RouteErrorBoundary></ProtectedRoute>} />
-                        <Route path="/dash" element={<ManagerRoute><AppLayout><RouteErrorBoundary><DashWorkspace /></RouteErrorBoundary></AppLayout></ManagerRoute>} />
-                        <Route path="/dash/analytics" element={<AdminRoute><AppLayout><RouteErrorBoundary><DashAnalytics /></RouteErrorBoundary></AppLayout></AdminRoute>} />
+                        <Route path="/dash" element={<ManagerRoute><RouteErrorBoundary><DashWorkspace /></RouteErrorBoundary></ManagerRoute>} />
+                        <Route path="/dash/analytics" element={<AdminRoute><RouteErrorBoundary><DashAnalytics /></RouteErrorBoundary></AdminRoute>} />
                         
                         {/* Dashboard & Audits */}
                         <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary><Dashboard /></RouteErrorBoundary></ProtectedRoute>} />
