@@ -2028,31 +2028,37 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool (execute_employee_creation, execute_audit_template_creation, execute_shift_creation, execute_ca_reassignment) in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
-2. Wait for the user to say "approve", "confirm", "yes", "go ahead", or similar
-3. ONLY THEN call \`execute_employee_creation\` with the pending_action_id and draft data
-4. Never execute without explicit user confirmation
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for the user to say "approve", "confirm", "yes", "go ahead", or similar in a NEW message
+4. ONLY THEN call \`execute_employee_creation\` with the pending_action_id and draft data
 
 **Audit Template Creation Flow:**
 1. Use \`create_audit_template_draft\` to prepare the draft
-2. Wait for user approval
-3. Call \`execute_audit_template_creation\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval in a NEW message
+4. Call \`execute_audit_template_creation\` with the pending_action_id
 
 **Corrective Action Reassignment:**
 1. Use \`reassign_corrective_action\` to create a draft showing impact
-2. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
-3. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval — this is a HIGH RISK action, clearly explain what will change
+4. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
 1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them.
-2. Wait for user approval
-3. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
+2. STOP — do not call any more tools. Present the draft to the user.
+3. Wait for user approval in a NEW message
+4. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
 - HIGH risk: Show detailed impact summary, list affected entities, then confirm
 - NEVER skip the approval step for write operations
+- NEVER call a draft tool and its corresponding execute tool in the same turn — this is FORBIDDEN
 - If the user says "approve" or "confirm" or "yes" in response to a draft, execute the corresponding action using the pending_action_id
 
 ### Memory & Personalization
