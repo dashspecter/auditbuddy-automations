@@ -1,105 +1,97 @@
 
 
-# Fix Dash Shift & CA Execution — 3 Issues
+# Fix: Dash-Created Shifts Not Appearing in Grid — End-to-End
 
-## What's Wrong
+## Root Causes (3 issues)
 
-1. **Missing tool definitions**: `execute_shift_creation` and `execute_ca_reassignment` have backend handlers but NO tool definitions in the tools array. The LLM cannot call tools it doesn't know exist.
-2. **Wrong columns in shift INSERT**: Handler inserts `employee_id` (doesn't exist on `shifts` table) and misses `role` (required, NOT NULL).
-3. **System prompt incomplete**: Shift and CA reassignment instructions don't mention the execute tools by name.
+### Issue 1 — Shift created as unpublished (CRITICAL)
+The `execute_shift_creation` handler does NOT set `is_published`. The `shifts` table defaults `is_published` to `false`. The scheduling grid (`EnhancedShiftWeekView`, line 477) filters: `if (!shift.is_published) return false` — so unpublished shifts are invisible in the Location view.
 
-## Fix 1 — Add `execute_shift_creation` tool definition
+**Fix**: Set `is_published: true` in the shift INSERT inside `execute_shift_creation`.
 
-**File**: `supabase/functions/dash-command/index.ts` (after line 469, after `create_shift_draft`)
+### Issue 2 — No shift_assignment created (CRITICAL for Employee view)
+When a user says "add Alex to the schedule," the employee identity is lost because `create_shift_draft` has no `employee_name`/`employee_id` parameter. Even if the shift were published, it would show as "Unassigned" in the Location view and would be completely invisible in the Employee view (which only shows shifts with `shift_assignments` matching `staff_id`).
 
-Add a new tool definition:
+**Fix (3 parts)**:
+1. Add `employee_name` and `employee_id` as optional params to `create_shift_draft` tool definition
+2. In the `create_shift_draft` handler, resolve `employee_name` → `employee_id` via the `employees` table and include both in `preview_json`
+3. In `execute_shift_creation`, after inserting the shift, if `draft.employee_id` exists, insert a `shift_assignment` row with `approval_status: 'approved'`
+
+### Issue 3 — `staff_needed` vs `required_count` mismatch (MINOR, UI)
+Line 1349 of `EnhancedShiftWeekView.tsx` references `shift.staff_needed` which doesn't exist on the table — the column is `required_count`. This causes the badge to always show `/1` regardless of actual value. This is a pre-existing UI bug, not caused by the Dash fix, but worth correcting.
+
+**Fix**: Change `shift.staff_needed` → `shift.required_count` on line 1349.
+
+---
+
+## Detailed Changes
+
+### File 1: `supabase/functions/dash-command/index.ts`
+
+**A) Update `create_shift_draft` tool definition (around line 470)**
+Add two optional parameters:
 ```typescript
-{
-  type: "function",
-  function: {
-    name: "execute_shift_creation",
-    description: "Execute shift creation after user approves the draft. Only call after explicit user confirmation.",
-    parameters: {
-      type: "object",
-      properties: {
-        pending_action_id: { type: "string", description: "The pending action ID from the shift draft" },
-      },
-      required: ["pending_action_id"],
-    },
-  },
-},
+employee_name: { type: "string", description: "Name of employee to assign to this shift" },
+employee_id: { type: "string", description: "Employee ID to assign" },
 ```
 
-## Fix 2 — Add `execute_ca_reassignment` tool definition
+**B) Update `create_shift_draft` handler (around line 994)**
+After location resolution, add employee resolution:
+- If `employee_name` provided but no `employee_id`, query `employees` table by name within company
+- Store `employee_id` and `employee_name` in the draft object and `preview_json`
 
-**File**: `supabase/functions/dash-command/index.ts` (after line 448, after `reassign_corrective_action`)
+**C) Update `execute_shift_creation` handler (around line 1403)**
+1. Add `is_published: true` to the shift INSERT
+2. After successful shift insert, if `draft.employee_id` exists:
+   ```typescript
+   await sbService.from("shift_assignments").insert({
+     shift_id: shiftData.id,
+     staff_id: draft.employee_id,
+     approval_status: "approved",
+   });
+   ```
+3. Include employee info in the success response and structured event
 
-Add a new tool definition:
-```typescript
-{
-  type: "function",
-  function: {
-    name: "execute_ca_reassignment",
-    description: "Execute corrective action reassignment after user approves. Only call after explicit confirmation.",
-    parameters: {
-      type: "object",
-      properties: {
-        pending_action_id: { type: "string", description: "The pending action ID from the reassignment draft" },
-      },
-      required: ["pending_action_id"],
-    },
-  },
-},
+**D) Update system prompt (around line 1702)**
+Add note that when user mentions a specific person, the LLM should include `employee_name` in the `create_shift_draft` call.
+
+### File 2: `src/components/workforce/EnhancedShiftWeekView.tsx`
+
+**Line 1349**: Change `shift.staff_needed || 1` → `shift.required_count || 1`
+
+---
+
+## End-to-End Flow After Fix
+
+```text
+User: "Add Alex Grecea to Amzei schedule tomorrow, Chef, 09:00-17:00"
+  → LLM calls create_shift_draft(role="Chef", location_name="Amzei",
+      employee_name="Alex Grecea", shift_date="2026-03-24", ...)
+  → Handler resolves location + employee by name
+  → Draft stored in dash_pending_actions with employee_id in preview_json
+  → Action preview card shown to user
+  → User says "yes"
+  → LLM calls execute_shift_creation(pending_action_id=...)
+  → Handler:
+    1. INSERT into shifts (is_published: true) → shift_id
+    2. INSERT into shift_assignments (shift_id, staff_id, approved)
+    3. Mark pending action as executed
+    4. Log to dash_action_log
+  → Shift appears in grid under Alex's row AND in Location view
+  → Realtime subscription triggers refresh for other users
 ```
 
-## Fix 3 — Correct shift INSERT columns
+## Edge Cases Covered
 
-**File**: `supabase/functions/dash-command/index.ts` (lines 1373-1383)
-
-Replace the INSERT with correct `shifts` table columns:
-```typescript
-const { data: shiftData, error: shiftError } = await sbService.from("shifts").insert({
-  company_id: companyId,
-  location_id: draft.location_id,
-  role: draft.role,
-  shift_date: draft.shift_date,
-  start_time: draft.start_time,
-  end_time: draft.end_time,
-  required_count: draft.min_staff || 1,
-  shift_type: draft.shift_type || "regular",
-  notes: draft.notes || null,
-  created_by: userId,
-}).select("id, shift_date, start_time, end_time").single();
-```
-
-## Fix 4 — Update system prompt instructions
-
-**File**: `supabase/functions/dash-command/index.ts` (lines 1666-1672)
-
-Update CA reassignment and shift creation instructions to reference execute tools:
-
-**CA Reassignment** (line 1666-1668):
-```
-**Corrective Action Reassignment:**
-1. Use `reassign_corrective_action` to create a draft showing impact
-2. Wait for user approval
-3. Call `execute_ca_reassignment` with the pending_action_id
-```
-
-**Shift Creation** (line 1670-1672):
-```
-**Shift Creation Flow:**
-1. Use `create_shift_draft` to prepare and show preview
-2. Wait for user approval
-3. Call `execute_shift_creation` with the pending_action_id
-```
+- **No employee mentioned**: Shift created as unassigned, visible in Location view with "Unassigned" label
+- **Employee name not found**: Draft returns error with missing_fields including employee
+- **Employee already has shift at same time**: Shift still created (conflict detection is handled by the UI dialog, not Dash — consistent with existing behavior)
+- **Staff view**: Employee sees the shift on their StaffHome page via `shift_assignments` query
 
 ## Files Changed
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/dash-command/index.ts` | Add 2 tool definitions, fix shift INSERT columns, update system prompt |
-
-## Delivery
-Single edit + redeploy of `dash-command` edge function.
+| File | Change |
+|------|--------|
+| `supabase/functions/dash-command/index.ts` | Add employee params, resolve employee, set is_published, create shift_assignment |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | Fix `staff_needed` → `required_count` |
 
