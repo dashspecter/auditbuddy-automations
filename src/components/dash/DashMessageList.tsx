@@ -41,14 +41,9 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
           onApprove={(pendingActionId) => {
-            const actionName = event.data.action?.toLowerCase() || "";
-            let executeTool = "execute_shift_creation";
-            if (actionName.includes("employee")) executeTool = "execute_employee_creation";
-            else if (actionName.includes("audit") || actionName.includes("template")) executeTool = "execute_audit_template_creation";
-            else if (actionName.includes("reassign") || actionName.includes("corrective")) executeTool = "execute_ca_reassignment";
-            
+            // Server-authoritative: no executeTool hint needed, backend resolves from pending action
             if (onDirectApproval) {
-              onDirectApproval(pendingActionId, "approve", executeTool);
+              onDirectApproval(pendingActionId, "approve");
             } else {
               onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
             }

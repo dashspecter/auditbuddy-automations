@@ -10,19 +10,18 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_ROWS = 200;
 
-// ─── Module Gating Map ─────────────────────────────────────
+// ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
-  get_audit_results: "audits",
-  compare_location_performance: "audits",
+  get_audit_results: "location_audits",
+  compare_location_performance: "location_audits",
   get_open_corrective_actions: "corrective_actions",
-  get_task_completion_summary: "tasks",
   get_attendance_exceptions: "workforce",
   get_work_order_status: "cmms",
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
   search_employees: "workforce",
   execute_employee_creation: "workforce",
-  execute_audit_template_creation: "audits",
+  execute_audit_template_creation: "location_audits",
   reassign_corrective_action: "corrective_actions",
   execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
@@ -30,6 +29,24 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
 };
+
+// ─── Action-name to execute-tool resolver (server-authoritative) ───
+const ACTION_EXECUTE_MAP: Record<string, string> = {
+  create_shift: "execute_shift_creation",
+  create_employee: "execute_employee_creation",
+  create_audit_template: "execute_audit_template_creation",
+  reassign_ca: "execute_ca_reassignment",
+};
+
+/** Resolve the canonical module code for logging purposes */
+function resolveCanonicalModule(toolName: string): string {
+  if (toolName.includes("audit")) return "location_audits";
+  if (toolName.includes("employee") || toolName.includes("attendance") || toolName.includes("shift") || toolName.includes("training")) return "workforce";
+  if (toolName.includes("corrective") || toolName.includes("ca_")) return "corrective_actions";
+  if (toolName.includes("work_order")) return "cmms";
+  if (toolName.includes("document")) return "documents";
+  return "general";
+}
 
 // ─── Risk classification ────────────────────────────────────
 const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
@@ -1442,7 +1459,7 @@ async function executeToolInner(
         status: "success",
         approval_status: "approved",
         entities_affected: [tmplData.id],
-        modules_touched: ["audits"],
+        modules_touched: ["location_audits"],
       });
 
       const resultStatus = sectionErrors.length > 0 ? "partial" : "success";
@@ -2026,18 +2043,32 @@ serve(async (req) => {
         .eq("is_active", true);
       const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
 
+      // Server-authoritative: resolve execute tool from pending action, not frontend
+      let toolName = direct_approval.execute_tool || "execute_shift_creation";
+      try {
+        const { data: pendingAction } = await sbService
+          .from("dash_pending_actions")
+          .select("action_name")
+          .eq("id", direct_approval.pending_action_id)
+          .eq("company_id", companyId)
+          .maybeSingle();
+        if (pendingAction?.action_name && ACTION_EXECUTE_MAP[pendingAction.action_name]) {
+          toolName = ACTION_EXECUTE_MAP[pendingAction.action_name];
+        }
+      } catch {}
+
       const allStructuredEvents: string[] = [];
-      const toolName = direct_approval.execute_tool || "execute_shift_creation";
       const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, activeModules, allStructuredEvents);
       
-      // Log action
+      // Log action with canonical module
+      const canonicalModule = resolveCanonicalModule(toolName);
       try {
         await sbService.from("dash_action_log").insert({
           company_id: companyId, user_id: userId, session_id: session_id || null,
           action_type: "write", action_name: toolName, risk_level: "medium",
           request_json: { pending_action_id: direct_approval.pending_action_id, direct_approval: true },
           result_json: toolResult, status: toolResult.error ? "error" : "success",
-          approval_status: "approved", modules_touched: ["workforce"],
+          approval_status: "approved", modules_touched: [canonicalModule],
         });
       } catch {}
 
@@ -2236,16 +2267,7 @@ serve(async (req) => {
           result_json: { answer_preview: finalContent.substring(0, 500), tools_used: toolsUsed },
           status: "success",
           approval_status: actionType === "write" ? "approved" : "not_required",
-          modules_touched: [...new Set(toolsUsed.map(t => {
-            if (t.includes("audit")) return "audits";
-            if (t.includes("employee") || t.includes("attendance") || t.includes("shift")) return "workforce";
-            if (t.includes("task")) return "tasks";
-            if (t.includes("corrective")) return "corrective_actions";
-            if (t.includes("work_order")) return "cmms";
-            if (t.includes("document")) return "documents";
-            if (t.includes("training")) return "training";
-            return "general";
-          }))],
+          modules_touched: [...new Set(toolsUsed.map(t => resolveCanonicalModule(t)))],
         });
       } catch (logErr) {
         console.error("Failed to log Dash action:", logErr);
