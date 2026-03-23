@@ -1,50 +1,79 @@
 
+Problem confirmed: the schedule page is working, but Dash is still creating the shift on the wrong date.
 
-# Fix: "workforce module is not active" Error on Direct Approval
+What I verified
+- The schedule grid is querying the correct week (`2026-03-23` → `2026-03-29`) and loading data normally.
+- `workforce` is active for this company, realtime is subscribed, and the location is correct.
+- The latest Dash-created shift is:
+  - `3de979a0-b6d7-4f19-8697-de716c704440`
+  - `shift_date = 2024-07-30`
+  - `is_published = true`
+  - `status = published`
+  - assigned to `Grecea Alexandru`
+- Because it lives on `2024-07-30`, it will never appear in the current week schedule.
+- There is also an older broken draft shift:
+  - `977bbc0e-5791-44aa-b48c-a6730a1fff95`
+  - `shift_date = 2024-07-30`
+  - `is_published = false`
+  - `status = draft`
 
-## Root Cause
+Why this is still happening
+1. Dash still trusts the model’s `shift_date` blindly in `create_shift_draft`.
+2. The poisoned July 2024 context is still being reused through active sessions.
+3. `dash_sessions.messages_json` still stores only plain text, not structured approval state.
+4. `dash_pending_actions.session_id` is not being set, so stale drafts cannot be cleaned up per session.
+5. Multiple old sessions remain `active`, so bad context keeps coming back.
 
-The direct approval path (line 1907-1910) in `dash-command/index.ts` passes an **empty array `[]`** for `activeModules` when calling `executeTool`. The module gating check on line 642-644 then sees that `"workforce"` is not in `[]` and blocks execution with the error message.
+Implementation plan
+1. Fix date resolution at the backend
+- Update `supabase/functions/dash-command/index.ts` so shift dates are resolved server-side from the latest user request, not just trusted from the model.
+- Add hard handling for phrases like `today`, `tomorrow`, weekdays, and “this week” using `Europe/Bucharest`.
+- If the model sends a conflicting date, override it or block with clarification instead of creating the shift.
+- Add a guard that rejects suspicious stale dates for “today/tomorrow” requests.
 
-The normal LLM path correctly loads active modules from the database (line 1985-1986), but the direct approval shortcut added in the previous fix skips that step entirely.
+2. Pass real session context through the whole Dash flow
+- Extend the Dash tool execution path so `session_id` and latest user text are available inside `create_shift_draft`.
+- Save `session_id` into `dash_pending_actions` for all approval-gated actions, especially shifts.
 
-## Fix
+3. Persist structured Dash state properly
+- Save assistant structured events into `dash_sessions.messages_json` together with `content`.
+- Restore those structured events in:
+  - `src/hooks/useDashChat.ts`
+  - `src/components/dash/DashSessionHistory.tsx`
+- This keeps approval cards, `pending_action_id`, and clarification context alive after reload/history reopen.
 
-### File: `supabase/functions/dash-command/index.ts`
+4. Stop stale session contamination
+- Change `clearChat` / new conversation flow so the current session is archived instead of left active.
+- Expire or archive stale pending actions tied to that session.
+- Ensure auto-load only restores the latest valid active session, not old poisoned ones.
 
-**In the direct approval path (around line 1907)**, load the company's active modules from the database before calling `executeTool`:
+5. Prevent fake “draft created” responses
+- In `dash-command`, if the model says it drafted/created a shift but never actually called `create_shift_draft`, return a clarification/error response instead of misleading text.
+- This removes the “looks successful but nothing valid exists” path.
 
-```typescript
-// ─── DIRECT APPROVAL PATH (bypasses LLM) ───
-if (direct_approval?.pending_action_id && direct_approval?.action === "approve") {
-  // Load active modules (required for gating check)
-  const { data: modulesData } = await sb
-    .from("company_modules")
-    .select("module_name")
-    .eq("company_id", companyId)
-    .eq("is_active", true);
-  const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
+6. Repair current broken data
+- Clean up the bad records already created:
+  - archive/remove the stale draft `977bbc0e-5791-44aa-b48c-a6730a1fff95`
+  - repair or recreate the published/assigned wrong-date shift `3de979a0-b6d7-4f19-8697-de716c704440` onto the correct current date
+- Expire the two stale pending actions that are still `pending`
+- Archive the three currently active poisoned Dash sessions so new tests start clean
 
-  const allStructuredEvents: string[] = [];
-  const toolName = direct_approval.execute_tool || "execute_shift_creation";
-  const toolResult = await executeTool(
-    sb, sbService, toolName,
-    { pending_action_id: direct_approval.pending_action_id },
-    companyId, userId, displayRole, activeModules, allStructuredEvents
-  );
-  // ... rest unchanged
-}
-```
+7. End-to-end verification
+- Create shift with “today”
+- Create shift with “tomorrow”
+- Create shift after clarification (“Alex Grecea” → “Grecea Alexandru”)
+- Approve directly from the approval card
+- Reload Dash and confirm approval card still works
+- Reopen from History and confirm state is preserved
+- Confirm the shift appears in `/workforce/shifts` in the right week/location
+- Confirm employee assignment is present
+- Confirm no leftover ghost drafts/pending actions remain
 
-That is the only change needed. The empty `[]` on line 1910 is why every direct approval fails the module gate.
+Files involved
+- `supabase/functions/dash-command/index.ts`
+- `src/hooks/useDashChat.ts`
+- `src/components/dash/DashSessionHistory.tsx`
+- likely `src/components/dash/DashMessageList.tsx` / `ActionPreviewCard.tsx` for restored structured state
 
-## Secondary Note
-
-The `execute_tool` default on line 1909 (`|| "execute_shift_creation"`) is fragile — if a non-shift pending action (e.g., employee creation) is approved, it would call the wrong executor. But this is a separate concern; for now it works because only shift creation uses direct approval. Worth noting for future hardening.
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/dash-command/index.ts` | Load `activeModules` from DB before `executeTool` in the direct approval path |
-
+Technical note
+This is not a schedule-grid rendering bug, not an RLS bug, and not a realtime bug. The primary failure is upstream: Dash is still creating valid records on the wrong date, then the schedule correctly does not show them because they are outside the visible week.
