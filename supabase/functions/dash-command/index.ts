@@ -1013,6 +1013,17 @@ async function executeToolInner(
         if (empData?.[0]) {
           employeeId = empData[0].id;
           employeeName = empData[0].full_name;
+        } else {
+          // Block: employee not found
+          return {
+            action: "Create Shift",
+            summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`,
+            risk: "medium",
+            can_approve: false,
+            missing_fields: ["employee"],
+            requires_approval: true,
+            message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.`,
+          };
         }
       }
 
