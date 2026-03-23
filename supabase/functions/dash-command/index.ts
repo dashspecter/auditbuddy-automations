@@ -1018,7 +1018,7 @@ async function executeToolInner(
           }
 
           // ─── Auto-create pending action for audit intents (merge extraction + draft) ───
-          const templateName = templateData.template_name || templateData.name || file_name.replace(/\.[^.]+$/, "");
+          const templateName = requested_template_name || templateData.template_name || templateData.name || file_name.replace(/\.[^.]+$/, "");
           const sectionCount = templateData.sections?.length || 0;
           const fieldCount = templateData.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
 
