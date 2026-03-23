@@ -1697,7 +1697,7 @@ async function executeToolInner(
 }
 
 // ─── System Prompt Builder ──────────────────────────────────
-function buildSystemPrompt(ctx: { role: string; companyName: string; modules: string[]; locations: string[] }): string {
+function buildSystemPrompt(ctx: { role: string; companyName: string; modules: string[]; locations: string[]; today: string; todayLabel: string }): string {
   return `You are **Dash**, the operational command center of Dashspect — a multi-tenant platform for compliance, workforce, and operations management.
 
 ## Your Identity
