@@ -68,7 +68,7 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
       return null;
   }
 }
-const MessageBubble = memo(({ msg, onSuggestedClick }: { msg: DashMessage; onSuggestedClick: (q: string) => void }) => (
+const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: DashMessage; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) => (
   <div
     className={cn(
       "flex gap-3 p-3 rounded-xl transition-all",
