@@ -1001,6 +1001,21 @@ async function executeToolInner(
         if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
       }
 
+      // Resolve employee by name if provided
+      let employeeId = args.employee_id || null;
+      let employeeName = args.employee_name || null;
+      if (employeeName && !employeeId) {
+        const { data: empData } = await sb.from("employees")
+          .select("id, full_name")
+          .eq("company_id", companyId)
+          .ilike("full_name", `%${employeeName}%`)
+          .limit(1);
+        if (empData?.[0]) {
+          employeeId = empData[0].id;
+          employeeName = empData[0].full_name;
+        }
+      }
+
       const draft = {
         location_id: locationId,
         location_name: locationName || null,
@@ -1010,6 +1025,8 @@ async function executeToolInner(
         end_time: args.end_time,
         min_staff: args.min_staff || 1,
         max_staff: args.max_staff || 1,
+        employee_id: employeeId,
+        employee_name: employeeName,
       };
 
       const missing: string[] = [];
