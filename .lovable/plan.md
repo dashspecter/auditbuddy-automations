@@ -1,39 +1,53 @@
 
-# Dash Hardening — Phase 1 Complete
 
-## Fixes Applied
+# Phase 2: Dash Hardening — Remaining Risks
 
-### Backend (`supabase/functions/dash-command/index.ts`)
+## Problems to Fix
 
-| # | Fix | Status |
-|---|-----|--------|
-| C1 | Stale success message updated — now says "created successfully" | ✅ |
-| C2 | CA action_preview event shape normalized to standard `action`, `summary`, `risk`, `affected`, `pending_action_id`, `can_approve` | ✅ |
-| C3 | Employee execution self-hydrates from `preview_json` when called via direct approval with only `pending_action_id` | ✅ |
-| C4 | Direct approval session save now includes structured events for session reload | ✅ |
-| C5 | `hydrateArgsFromDraft` now covers `create_shift` and `reassign_corrective_action` cases | ✅ |
-| R4 | Max-iterations error now returns SSE stream instead of raw JSON | ✅ |
-| U1 | `requested_template_name` parameter added to `parse_uploaded_file` — user-specified names override AI-extracted titles | ✅ |
-| O2 | Silent `catch {}` blocks in direct approval path now log errors | ✅ |
+### 1. Session restore shows stale approval cards
+When reloading a session, `ActionPreviewCard` always initializes with `status: "pending"`. If the pending action was already executed/rejected/expired, the Approve button still appears. Users can click it, which fires a request that will fail (backend checks `pa.status !== "pending"`), but the UX is misleading.
 
-### Frontend (`src/hooks/useDashChat.ts`)
+**Fix:** On session restore, reconcile approval card state by checking `dash_pending_actions` status. Pass resolved status into `ActionPreviewCard` so already-executed actions show "Completed" and already-rejected ones show "Rejected" instead of Approve buttons.
 
-| # | Fix | Status |
-|---|-----|--------|
-| R1 | 90-second stream timeout watchdog — aborts reader if no data arrives | ✅ |
-| R2 | Empty-response guard — shows fallback message if stream ends with no content | ✅ |
-| R3 | `cancelStream` now adds "Request cancelled" message if no assistant response started | ✅ |
+### 2. Global error handler returns JSON, not SSE
+Line 2441-2443: the top-level `catch` returns `JSON.stringify({ error })` with `Content-Type: application/json`. Frontend expects SSE stream, so `resp.body` exists but SSE parsing fails silently — user sees infinite spinner or empty bubble.
 
-### Frontend (`src/components/dash/ActionPreviewCard.tsx`)
+**Fix:** Return errors as SSE streams (same pattern as max-iterations fix).
 
-| # | Fix | Status |
-|---|-----|--------|
-| S1 | Added `failed` state — card resets from "Executing..." on error, with Retry button | ✅ |
-| S3 | Duplicate click prevention — approve/reject only fires from `pending` state | ✅ |
+### 3. AI gateway errors (429, 402, 500) return JSON too
+Lines 2286-2290: rate limit, credit depletion, and AI unavailable errors all return raw JSON. Frontend handles 429/402 status codes before streaming, but 500 falls through to `processStream` which fails silently.
 
-## Phase 2 (Next Session)
+**Fix:** These already have status code checks in frontend (lines 263-267), but the 500 case is not handled. Add a generic non-ok check that catches it.
 
-- Session restore: reconcile pending action status from DB on load
-- File parsing timeout with AbortController  
-- Correlation IDs for debugging
-- Duplicate action log prevention
+### 4. File parsing has no timeout/AbortController
+`parse_uploaded_file` calls Gemini with `stream: false` and no timeout. Large PDFs can stall for 60-120 seconds, potentially hitting Deno's 150s limit. User sees "Analyzing..." with no progress.
+
+**Fix:** Add AbortController with 60-second timeout to the Gemini fetch call in `parse_uploaded_file`. On timeout, return a clear error message. Also emit a `structured_event` of type `execution_result` with status `error` so the user sees a card instead of nothing.
+
+### 5. No correlation IDs for debugging
+Requests, tool calls, pending actions, and executions have no shared trace ID, making production debugging nearly impossible.
+
+**Fix:** Generate a `requestId` (UUID) at the start of each request. Pass it through tool calls, log it in `dash_action_log`, `dash_pending_actions`, and console logs. Include it in error messages so support can trace failures.
+
+### 6. Silent `catch {}` blocks swallow errors
+Multiple empty catch blocks (session load, session save, clear chat) hide failures completely.
+
+**Fix:** Add `console.error` with context to all empty catch blocks.
+
+## File Changes
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/dash-command/index.ts` | (1) Global catch returns SSE instead of JSON. (2) Add 60s AbortController to file parsing Gemini call. (3) Generate `requestId` and thread through logs. (4) Add logging to silent catch blocks. |
+| `src/hooks/useDashChat.ts` | (1) On session restore, fetch pending action statuses and mark already-executed cards. (2) Add silent-catch logging. |
+| `src/components/dash/ActionPreviewCard.tsx` | (1) Accept `initialStatus` prop for restored sessions so already-executed actions don't show Approve. |
+| `src/components/dash/DashMessageList.tsx` | (1) Pass `initialStatus` from structured event data to ActionPreviewCard. |
+
+## Implementation Order
+
+1. Fix global catch → SSE (prevents infinite spinners on unexpected errors)
+2. Add file parsing timeout (prevents 150s stalls)
+3. Session restore reconciliation (prevents stale approval cards)
+4. Correlation IDs (debugging infrastructure)
+5. Silent catch cleanup (observability)
+
