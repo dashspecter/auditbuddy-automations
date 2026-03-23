@@ -1432,8 +1432,8 @@ async function executeToolInner(
         name: templateName,
         description: templateDescription || null,
         template_type: "location",
-        is_active: false, // Start as inactive draft
-        is_global: false,
+        is_active: true,
+        is_global: true,
         created_by: userId,
       }).select("id, name").single();
 
