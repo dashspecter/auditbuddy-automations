@@ -1589,12 +1589,13 @@ async function executeToolInner(
 
       // Push action_preview card — user sees this and must click Approve
       structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: `Reassign CA: "${caData.title}"`,
+        summary: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
+        risk: "high",
+        affected: [caData.title, newAssigneeName].filter(Boolean),
         pending_action_id: paData?.id,
-        action_name: "reassign_corrective_action",
-        risk_level: "high",
-        title: `Reassign CA: "${caData.title}"`,
-        description: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
-        preview: {
+        can_approve: true,
+        draft: {
           ca_id: caData.id,
           ca_title: caData.title,
           new_assigned_to: args.new_assigned_to,
