@@ -2152,20 +2152,23 @@ serve(async (req) => {
       if (hasFileAttachment && looksLikeRefusal && toolsUsed.length === 0) {
         console.log("[Dash] FALLBACK: Model refused file processing, forcing parse_uploaded_file");
         // Extract file URL and name from the user message
-        const urlMatch = lastUserMsg.match(/\[File URLs:\s*(https?:\/\/[^\s\]]+)/);
-        const nameMatch = lastUserMsg.match(/\[Attached:\s*([^\]]+)\]/);
+        const urlMatch = lastUserMsg.match(/\[File URLs?:\s*(https?:\/\/[^\s\],]+)/);
+        const nameMatch = lastUserMsg.match(/\[Attached files?:\s*([^\]]+)\]/);
         if (urlMatch) {
           const fileUrl = urlMatch[1];
-          const fileName = nameMatch?.[1] || "uploaded_file";
+          const fileName = nameMatch?.[1]?.split(",")[0]?.trim() || "uploaded_file";
           const intent = /compliance|regulation/i.test(lastUserMsg) ? "compliance_audit" : "audit_template";
           const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, displayRole, activeModules, allStructuredEvents);
           if (!fallbackResult.error) {
-            // Feed result back through the model for formatting
             conversationMessages.push(msg);
             conversationMessages.push({ role: "user", content: `[System: The file was successfully parsed. Here is the extracted data: ${JSON.stringify(fallbackResult).substring(0, 3000)}. Present this to the user as a structured audit template preview.]` });
-            continue; // Loop back through the LLM
+            continue;
           } else {
-            finalContent = `⚠️ ${fallbackResult.error}`;
+            // Normalize error: hide internal tool names
+            const cleanError = (fallbackResult.error as string)
+              .replace(/parse_uploaded_file|transform_compliance_doc_to_audit|executeTool|downloadFileAsBase64/gi, "document processor")
+              .replace(/Gemini|LLM|model/gi, "AI");
+            finalContent = `⚠️ Could not process the uploaded document. ${cleanError}. Please try re-uploading or using a different file format.`;
           }
         }
       }
