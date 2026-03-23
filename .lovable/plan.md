@@ -1,73 +1,56 @@
 
 
-# Fix: PDF Document Parsing Fails in Dash
+# Fix: PDF Audit Template Creation + Dash Width
 
-## Root Causes (3 issues)
+## Two Issues
 
-### Issue 1 — PDF sent as `image_url` to Gemini (PRIMARY)
-In `parse_uploaded_file` (line 856) and `transform_compliance_doc_to_audit` (line 1742), the file URL is sent as:
+### Issue 1: PDF parsing — model doesn't call the right tool (or any tool at all)
+
+**Root cause**: Tool confusion + model deciding not to call tools.
+
+The system prompt describes two overlapping tools for "create audit from PDF":
+- `parse_uploaded_file` with `intent: "audit_template"` — the correct path
+- `transform_compliance_doc_to_audit` — a separate compliance-specific tool
+
+The model gets confused between them and sometimes responds with text ("I cannot create an audit directly...") WITHOUT calling either tool.
+
+Additionally, the user's message embeds file URLs as plain text in the content. The model must extract the URL and pass it as a tool argument — but it sometimes fails to do this, especially when confused about which tool to use.
+
+**Fix — Consolidate and clarify tool routing:**
+
+1. **Remove `transform_compliance_doc_to_audit` as a separate tool** — merge its capability into `parse_uploaded_file` with a new intent value (`"compliance_audit"`). This eliminates the overlapping tools that confuse the model.
+
+2. **Update the system prompt** to clearly state: "When a user uploads a PDF and asks for an audit template, ALWAYS use `parse_uploaded_file` with intent `audit_template`. Do NOT respond without calling a tool when a file is attached."
+
+3. **Add a server-side fallback**: If the model's first response contains text about "unable to parse" or "cannot create" AND the user message contains `[File URLs:`, intercept and force a `parse_uploaded_file` call instead of returning the model's excuse text.
+
+4. **Add more logging** in `downloadFileAsBase64` and `parse_uploaded_file` so we can see exactly where failures happen.
+
+5. **Handle the Gemini base64 PDF content type correctly**: The Lovable AI gateway proxies to Gemini. Gemini 2.5 Flash supports PDFs as inline data, but the content part format needs to use `inline_data` structure, not `image_url`. Currently the code sends:
+```json
+{ "type": "image_url", "image_url": { "url": "data:application/pdf;base64,..." } }
 ```
-{ type: "image_url", image_url: { url: file_url } }
-```
-PDFs are **not images**. Gemini's `image_url` content type only accepts image formats (PNG, JPEG, GIF, WebP). A PDF URL here causes the API call to fail or return garbage, which then fails the JSON extraction — producing the "unable to parse" error the user sees.
+This may not work reliably with all gateway configurations. We should also try the `inline_data` format as a fallback, or switch entirely to it.
 
-### Issue 2 — Signed URLs may expire or be inaccessible
-The file URL from the screenshot is a **signed Supabase storage URL** (`/storage/v1/object/sign/...`). These URLs have an expiry token. When the edge function fetches the URL, it may have expired, or the AI gateway may not be able to access it at all.
+### Issue 2: Dash Command Center width too narrow
 
-### Issue 3 — `parse-document` edge function is a stub
-The existing `parse-document` function (line 68-72) just does `TextDecoder` on raw bytes — which produces garbage for PDFs. It even says: *"Document parsing requires additional processing."* It's never used by Dash anyway.
+**Root cause**: `max-w-3xl` (768px) on the main container and `mr-4` on assistant message bubbles make text truncate.
 
-## Solution
+**Fix**:
+- Change `max-w-3xl` to `max-w-5xl` on the main container in `DashWorkspace.tsx`
+- Remove `mr-4` from assistant message bubbles in `DashMessageList.tsx`
+- Ensure user message bubbles also have reasonable width (`ml-8` instead of `ml-10`)
 
-### A) Download PDF server-side, convert to base64, send to Gemini as inline data
-
-Instead of passing the URL to Gemini (which may not be accessible), the edge function should:
-1. Download the PDF from Supabase Storage using the service role key
-2. Convert to base64
-3. Send as inline content with `type: "file"` / proper MIME type to Gemini
-
-Gemini 2.5 Flash supports PDF files natively via inline data:
-```typescript
-{
-  type: "image_url",
-  image_url: {
-    url: `data:application/pdf;base64,${base64Content}`
-  }
-}
-```
-
-### B) Apply to all 3 places that process documents
-
-1. `parse_uploaded_file` with `intent === "audit_template"` (line 845-873)
-2. `transform_compliance_doc_to_audit` (line 1730-1762)
-3. `convert_sop_to_training` (if it exists with similar pattern)
-
-### C) Extract a shared helper function
-
-Create a `downloadFileAsBase64(supabaseClient, fileUrl)` helper at the top of `dash-command/index.ts` that:
-- Parses the storage URL (handles `/sign/`, `/public/`, and direct paths)
-- Downloads via Supabase Storage SDK using service role
-- Returns `{ base64: string, mimeType: string }`
-- Falls back to direct HTTP fetch for external URLs
-
-### D) Better error handling
-
-- If download fails: return a clear error "Could not access the uploaded file. Please try re-uploading."
-- If Gemini returns no parseable JSON: return the raw text extraction so the user can see what was found
-- Log the actual Gemini response status/error for debugging
-
-## File Changes
+## Files to change
 
 | File | Change |
 |------|--------|
-| `supabase/functions/dash-command/index.ts` | Add `downloadFileAsBase64` helper; update `parse_uploaded_file`, `transform_compliance_doc_to_audit`, and `convert_sop_to_training` to download PDF and send as base64 inline data instead of URL |
+| `supabase/functions/dash-command/index.ts` | Consolidate `transform_compliance_doc_to_audit` into `parse_uploaded_file`; update system prompt to be unambiguous about file handling; add server-side fallback for failed file tool routing; add logging |
+| `src/pages/DashWorkspace.tsx` | Change `max-w-3xl` to `max-w-5xl` |
+| `src/components/dash/DashMessageList.tsx` | Remove `mr-4` from assistant bubbles; reduce `ml-10` to `ml-8` for user bubbles |
 
-## Expected Behavior After Fix
-
-1. User attaches "LBFC FOH SOP.pdf" and says "create an audit from this"
-2. Dash downloads the PDF server-side from Supabase Storage
-3. Converts to base64 and sends to Gemini as inline PDF data
-4. Gemini reads the PDF content and extracts a structured audit template
-5. Dash presents an approval card with template name, sections, and fields
-6. User approves → template is created
+## Expected result
+- PDF upload + "create audit" → model always calls `parse_uploaded_file` with correct intent
+- PDF is downloaded server-side, sent as base64 to Gemini, structured template extracted
+- Dash chat area is wider so all text is visible without truncation
 
