@@ -35,8 +35,34 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_shift: "execute_shift_creation",
   create_employee: "execute_employee_creation",
   create_audit_template: "execute_audit_template_creation",
+  reassign_corrective_action: "execute_ca_reassignment",
   reassign_ca: "execute_ca_reassignment",
 };
+
+/** Hydrate execution args from pending action's preview_json based on action_name */
+function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<string, any> {
+  if (!previewJson) return {};
+  switch (actionName) {
+    case "create_audit_template":
+      return {
+        template_name: previewJson.name || previewJson.template_name,
+        description: previewJson.description || null,
+        sections: previewJson.sections || [],
+      };
+    case "create_employee":
+      return {
+        full_name: previewJson.full_name,
+        email: previewJson.email,
+        phone: previewJson.phone,
+        role: previewJson.role,
+        department_id: previewJson.department_id,
+        location_id: previewJson.location_id,
+        ...(previewJson.hire_date && { hire_date: previewJson.hire_date }),
+      };
+    default:
+      return {};
+  }
+}
 
 /** Resolve the canonical module code for logging purposes */
 function resolveCanonicalModule(toolName: string): string {
