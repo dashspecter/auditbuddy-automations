@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Bot, Trash2, Maximize2 } from "lucide-react";
+import { Bot, Trash2, Maximize2, History } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDashChat } from "@/hooks/useDashChat";
 import { DashMessageList } from "./DashMessageList";
 import { DashInput } from "./DashInput";
 import { DashScopeBar } from "./DashScopeBar";
 import { DashSessionHistory } from "./DashSessionHistory";
-import { DashSavedWorkflows } from "./DashSavedWorkflows";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 
@@ -43,6 +43,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const navigate = useNavigate();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
   // P2-6: Role guard — only admin and manager can access Dash
@@ -56,36 +57,46 @@ export function DashPanel({ trigger }: DashPanelProps) {
     sendMessage(text);
   };
 
+  const headerActions = (
+    <div className="flex items-center gap-1">
+      <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Session history">
+            <History className="h-3.5 w-3.5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-3">
+          <DashSessionHistory
+            currentSessionId={sessionId}
+            onSelectSession={(sid, msgs) => { loadSession(sid, msgs); setHistoryOpen(false); }}
+            onNewSession={() => { clearChat(); setHistoryOpen(false); }}
+          />
+        </PopoverContent>
+      </Popover>
+      {messages.length > 0 && (
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearChat} title="Clear chat">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      {!isMobile && (
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); navigate("/dash"); }} title="Full workspace">
+          <Maximize2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+
   const chatContent = (
-    <div className="flex flex-col h-full gap-2">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-2">
         <DashScopeBar />
-        <div className="flex items-center gap-1">
-          {messages.length > 0 && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearChat} title="Clear chat">
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {!isMobile && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); navigate("/dash"); }} title="Full workspace">
-              <Maximize2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
+        {headerActions}
       </div>
 
-      {/* Session history */}
-      <DashSessionHistory
-        currentSessionId={sessionId}
-        onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
-        onNewSession={clearChat}
-      />
-
-      {/* Saved workflows */}
-      <DashSavedWorkflows onRunWorkflow={handleSend} />
-
       <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} onDirectApproval={sendDirectApproval} />
-      <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
+      <div className="pt-2 mt-auto shrink-0">
+        <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
+      </div>
     </div>
   );
 

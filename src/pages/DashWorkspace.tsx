@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, Download } from "lucide-react";
+import { Bot, ArrowLeft, Download, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useDashChat } from "@/hooks/useDashChat";
@@ -8,7 +8,8 @@ import { DashScopeBar } from "@/components/dash/DashScopeBar";
 import { DashSessionHistory } from "@/components/dash/DashSessionHistory";
 import { DashSavedWorkflows } from "@/components/dash/DashSavedWorkflows";
 import { Trash2 } from "lucide-react";
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 const SUGGESTED = [
   "What are the biggest operational issues across all locations in the last 30 days?",
@@ -37,6 +38,7 @@ function exportConversation(messages: { role: string; content: string }[]) {
 export default function DashWorkspace() {
   const navigate = useNavigate();
   const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSend = (text: string, attachments?: import("@/components/dash/DashInput").DashAttachment[]) => {
     sendMessage(text, attachments);
@@ -65,6 +67,16 @@ export default function DashWorkspace() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(prev => !prev)}
+            className="gap-1.5 text-xs hidden lg:inline-flex"
+            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          >
+            {sidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+            {sidebarOpen ? "Hide" : "History"}
+          </Button>
           {messages.length > 0 && (
             <>
               <Button variant="ghost" size="sm" onClick={handleExport} className="gap-1.5 text-xs">
@@ -80,10 +92,15 @@ export default function DashWorkspace() {
         </div>
       </div>
 
-      {/* Desktop: side rail + main chat | Mobile: stacked */}
+      {/* Desktop: optional side rail + main chat | Mobile: chat only */}
       <div className="flex flex-1 min-h-0 gap-4">
-        {/* Side rail — hidden on mobile, visible on lg+ */}
-        <aside className="hidden lg:flex flex-col w-64 shrink-0 space-y-4 overflow-y-auto pr-2">
+        {/* Side rail — hidden by default, toggle on lg+ */}
+        <aside
+          className={cn(
+            "hidden lg:flex flex-col w-64 shrink-0 space-y-4 overflow-y-auto pr-2 transition-all duration-200",
+            !sidebarOpen && "lg:hidden"
+          )}
+        >
           <DashSessionHistory
             currentSessionId={sessionId}
             onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
@@ -94,16 +111,6 @@ export default function DashWorkspace() {
 
         {/* Main chat column */}
         <div className="flex flex-col flex-1 min-w-0">
-          {/* Mobile-only stacked history/workflows */}
-          <div className="lg:hidden space-y-2 mb-3 shrink-0">
-            <DashSessionHistory
-              currentSessionId={sessionId}
-              onSelectSession={(sid, msgs) => loadSession(sid, msgs)}
-              onNewSession={clearChat}
-            />
-            <DashSavedWorkflows onRunWorkflow={(prompt) => handleSend(prompt)} />
-          </div>
-
           {/* Chat area */}
           <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={(q) => handleSend(q)} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
 
