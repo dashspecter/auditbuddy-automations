@@ -2069,22 +2069,28 @@ serve(async (req) => {
         .eq("is_active", true);
       const activeModules = (modulesData ?? []).map((m: any) => m.module_name);
 
-      // Server-authoritative: resolve execute tool from pending action, not frontend
+      // Server-authoritative: resolve execute tool + hydrate args from pending action
       let toolName = direct_approval.execute_tool || "execute_shift_creation";
+      let hydratedArgs: Record<string, any> = { pending_action_id: direct_approval.pending_action_id };
       try {
         const { data: pendingAction } = await sbService
           .from("dash_pending_actions")
-          .select("action_name")
+          .select("action_name, preview_json")
           .eq("id", direct_approval.pending_action_id)
           .eq("company_id", companyId)
           .maybeSingle();
         if (pendingAction?.action_name && ACTION_EXECUTE_MAP[pendingAction.action_name]) {
           toolName = ACTION_EXECUTE_MAP[pendingAction.action_name];
         }
+        // Hydrate execution args from draft preview_json
+        if (pendingAction?.action_name && pendingAction?.preview_json) {
+          const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
+          hydratedArgs = { ...hydratedArgs, ...draftArgs };
+        }
       } catch {}
 
       const allStructuredEvents: string[] = [];
-      const toolResult = await executeTool(sb, sbService, toolName, { pending_action_id: direct_approval.pending_action_id }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
       
       // Log action with canonical module
       const canonicalModule = resolveCanonicalModule(toolName);
