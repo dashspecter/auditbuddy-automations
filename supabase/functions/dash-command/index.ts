@@ -428,6 +428,7 @@ const tools = [
           file_name: { type: "string", description: "Original filename" },
           intent: { type: "string", enum: ["id_scan", "audit_template", "compliance_audit", "schedule_import", "document_parse", "general"], description: "What the user wants to do with the file. Use 'audit_template' for any audit template creation from a document. Use 'compliance_audit' for compliance/regulation documents." },
           regulation_name: { type: "string", description: "Name of the regulation/standard (only for compliance_audit intent)" },
+          requested_template_name: { type: "string", description: "If the user explicitly specified a name for the audit template (e.g. 'name it TEST_Dash'), pass that exact name here. It will override the AI-extracted title." },
         },
         required: ["file_url", "file_name", "intent"],
       },
