@@ -113,6 +113,15 @@ export function ActionPreviewCard({
         </div>
       )}
 
+      {status === "approved" && (
+        <div className="flex items-center gap-2 pt-1">
+          <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 gap-1">
+            <Check className="h-3 w-3" />
+            Approved & Executed
+          </Badge>
+        </div>
+      )}
+
       {status === "rejected" && (
         <div className="flex items-center gap-2 pt-1">
           <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 gap-1">
