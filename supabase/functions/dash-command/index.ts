@@ -483,6 +483,21 @@ const tools = [
       },
     },
   },
+  // --- EXECUTE: Shift creation after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_shift_creation",
+      description: "Execute shift creation after user approves the draft. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the shift draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- MEMORY: User preferences ---
   {
     type: "function",
