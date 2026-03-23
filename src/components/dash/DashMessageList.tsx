@@ -1,8 +1,9 @@
 import { useRef, useEffect, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { Bot, User, Sparkles, Loader2, RotateCcw, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashMessage, DashStructuredEvent } from "@/hooks/useDashChat";
+import type { DashAttachment } from "@/components/dash/DashInput";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { SourceCard } from "./SourceCard";
@@ -40,7 +41,6 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
           onApprove={(pendingActionId) => {
-            // Determine which execute tool to call based on the action name
             const actionName = event.data.action?.toLowerCase() || "";
             let executeTool = "execute_shift_creation";
             if (actionName.includes("employee")) executeTool = "execute_employee_creation";
@@ -68,6 +68,20 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
       return null;
   }
 }
+
+function AttachmentChips({ attachments }: { attachments: DashAttachment[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-1.5">
+      {attachments.map((a, i) => (
+        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-xs text-primary">
+          <Paperclip className="h-3 w-3" />
+          <span className="truncate max-w-[160px]">{a.name}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: DashMessage; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) => (
   <div
     className={cn(
@@ -89,7 +103,12 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
         <Bot className="h-3.5 w-3.5 text-primary" />
       )}
     </div>
-    <div className="flex-1 min-w-0 space-y-2">
+    <div className="flex-1 min-w-0 space-y-2 overflow-hidden">
+      {/* Attachment chips for user messages */}
+      {msg.attachments && msg.attachments.length > 0 && (
+        <AttachmentChips attachments={msg.attachments} />
+      )}
+
       {/* Structured events before text */}
       {msg.structured && msg.structured.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -100,7 +119,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
       )}
 
       {/* Main markdown content */}
-      <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground prose-td:text-foreground prose-th:text-foreground/80 prose-th:font-semibold prose-table:text-xs">
+      <div className="text-sm leading-relaxed prose prose-sm max-w-none break-words overflow-hidden prose-headings:text-foreground prose-p:text-foreground prose-p:break-words prose-strong:text-foreground prose-li:text-foreground prose-td:text-foreground prose-th:text-foreground/80 prose-th:font-semibold prose-table:text-xs prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:break-all prose-a:break-all [&_*]:max-w-full" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>
         <ReactMarkdown>{msg.content}</ReactMarkdown>
       </div>
 
@@ -174,7 +193,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
         )}
 
         {isLoading && messages[messages.length - 1]?.role === "user" && (
-          <div className="flex gap-3 p-3 rounded-xl bg-primary/[0.04] border border-primary/10 mr-4">
+          <div className="flex gap-3 p-3 rounded-xl bg-primary/[0.04] border border-primary/10">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15">
               <Bot className="h-3.5 w-3.5 text-primary" />
             </div>

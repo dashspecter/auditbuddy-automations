@@ -1,12 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { DashAttachment } from "@/components/dash/DashInput";
 
 export type DashMessage = {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   structured?: DashStructuredEvent[];
+  attachments?: DashAttachment[];
 };
 
 export type DashStructuredEvent = {
@@ -18,6 +20,23 @@ const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command
 
 function generateSessionId() {
   return crypto.randomUUID();
+}
+
+/** Strip legacy transport markers from message content for display */
+function sanitizeDisplayContent(content: string): string {
+  return content
+    .replace(/\n?\n?\[Attached files?:\s*[^\]]*\]/gi, "")
+    .replace(/\n?\[File URLs?:\s*[^\]]*\]/gi, "")
+    .replace(/\n?\[Attached:\s*[^\]]*\]/gi, "")
+    .trim();
+}
+
+/** Build the backend transport text that includes file metadata */
+function buildTransportText(displayText: string, attachments?: DashAttachment[]): string {
+  if (!attachments || attachments.length === 0) return displayText;
+  const names = attachments.map(a => a.name).join(", ");
+  const urls = attachments.map(a => a.url).join(", ");
+  return `${displayText}\n\n[Attached files: ${names}]\n[File URLs: ${urls}]`;
 }
 
 export function useDashChat() {
@@ -50,12 +69,13 @@ export function useDashChat() {
           .filter((m: any) => m.role === "user" || m.role === "assistant")
           .map((m: any) => ({
             role: m.role as "user" | "assistant",
-            content: m.content,
+            content: sanitizeDisplayContent(m.content),
             timestamp: new Date(),
             structured: m.structured ? (m.structured as any[]).map((s: any) => ({
               type: s.event_type || s.type,
               data: s.data,
             })) : undefined,
+            attachments: m.attachments as DashAttachment[] | undefined,
           }));
 
         if (msgs.length > 0) {
@@ -71,6 +91,61 @@ export function useDashChat() {
     return () => { cancelled = true; };
   }, [user]);
 
+  const processStream = async (resp: Response, existingStructuredEvents?: DashStructuredEvent[]) => {
+    const reader = resp.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let assistantContent = "";
+    const structuredEvents: DashStructuredEvent[] = existingStructuredEvents ? [...existingStructuredEvents] : [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let nlIdx: number;
+      while ((nlIdx = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, nlIdx);
+        buffer = buffer.slice(nlIdx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.type === "structured_event") {
+            structuredEvents.push({ type: parsed.event_type, data: parsed.data });
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
+              }
+              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
+            });
+            continue;
+          }
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
+              }
+              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
+            });
+          }
+        } catch {
+          buffer = line + "\n" + buffer;
+          break;
+        }
+      }
+    }
+  };
+
   const sendDirectApproval = useCallback(async (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => {
     if (isLoading) return;
     setError(null);
@@ -80,7 +155,7 @@ export function useDashChat() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("You must be logged in");
 
-      const history = messages.map(m => ({ role: m.role, content: m.content }));
+      const history = messages.map(m => ({ role: m.role, content: buildTransportText(m.content, m.attachments) }));
 
       abortRef.current = new AbortController();
 
@@ -107,58 +182,7 @@ export function useDashChat() {
         throw new Error(errBody.error || "Failed to execute approval");
       }
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let assistantContent = "";
-      const structuredEvents: DashStructuredEvent[] = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let nlIdx: number;
-        while ((nlIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, nlIdx);
-          buffer = buffer.slice(nlIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.type === "structured_event") {
-              structuredEvents.push({ type: parsed.event_type, data: parsed.data });
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
-                }
-                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
-              });
-              continue;
-            }
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
-                }
-                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
-              });
-            }
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
+      await processStream(resp);
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Dash approval error:", err);
@@ -170,11 +194,17 @@ export function useDashChat() {
     }
   }, [messages, isLoading, sessionId]);
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (text: string, attachments?: DashAttachment[]) => {
     if (!text.trim() || isLoading) return;
     setError(null);
 
-    const userMsg: DashMessage = { role: "user", content: text.trim(), timestamp: new Date() };
+    // Store only clean display text + attachments metadata in the UI message
+    const userMsg: DashMessage = {
+      role: "user",
+      content: text.trim(),
+      timestamp: new Date(),
+      attachments,
+    };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
@@ -182,7 +212,11 @@ export function useDashChat() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("You must be logged in");
 
-      const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
+      // Build transport text with file URLs for the backend only
+      const history = [...messages, userMsg].map(m => ({
+        role: m.role,
+        content: buildTransportText(m.content, m.attachments),
+      }));
 
       abortRef.current = new AbortController();
 
@@ -203,64 +237,7 @@ export function useDashChat() {
         throw new Error(errBody.error || "Failed to connect to Dash");
       }
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let assistantContent = "";
-      const structuredEvents: DashStructuredEvent[] = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let nlIdx: number;
-        while ((nlIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, nlIdx);
-          buffer = buffer.slice(nlIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-
-            // Handle structured events
-            if (parsed.type === "structured_event") {
-              structuredEvents.push({
-                type: parsed.event_type,
-                data: parsed.data,
-              });
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, structured: [...structuredEvents] } : m);
-                }
-                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: [...structuredEvents] }];
-              });
-              continue;
-            }
-
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent, structured: structuredEvents.length > 0 ? [...structuredEvents] : m.structured } : m);
-                }
-                return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), structured: structuredEvents.length > 0 ? [...structuredEvents] : undefined }];
-              });
-            }
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
+      await processStream(resp);
     } catch (err: any) {
       if (err.name === "AbortError") return;
       console.error("Dash chat error:", err);
@@ -273,14 +250,12 @@ export function useDashChat() {
   }, [messages, isLoading, sessionId]);
 
   const clearChat = useCallback(async () => {
-    // Archive the current session so stale context is not reloaded
     if (user && sessionId) {
       try {
         await supabase.from("dash_sessions")
           .update({ status: "archived", updated_at: new Date().toISOString() })
           .eq("id", sessionId)
           .eq("user_id", user.id);
-        // Expire any pending actions tied to this session
         await supabase.from("dash_pending_actions")
           .update({ status: "expired", updated_at: new Date().toISOString() })
           .eq("user_id", user.id)
@@ -306,7 +281,6 @@ export function useDashChat() {
   const retryLast = useCallback(() => {
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
     if (!lastUserMsg) return;
-    // Remove the error message (last assistant) and resend
     setMessages(prev => {
       const last = prev[prev.length - 1];
       if (last?.role === "assistant" && last.content.startsWith("⚠️")) {
@@ -314,8 +288,7 @@ export function useDashChat() {
       }
       return prev;
     });
-    // Small delay to let state settle, then resend
-    setTimeout(() => sendMessage(lastUserMsg.content), 50);
+    setTimeout(() => sendMessage(lastUserMsg.content, lastUserMsg.attachments), 50);
   }, [messages, sendMessage]);
 
   return { messages, isLoading, error, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast };

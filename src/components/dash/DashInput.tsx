@@ -7,8 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
+export interface DashAttachment {
+  name: string;
+  url: string;
+}
+
 interface DashInputProps {
-  onSend: (text: string, fileUrls?: string[]) => void;
+  onSend: (text: string, attachments?: DashAttachment[]) => void;
   isLoading: boolean;
   onCancel?: () => void;
   placeholder?: string;
@@ -27,7 +32,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export function DashInput({ onSend, isLoading, onCancel, placeholder, className }: DashInputProps) {
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<{ name: string; url: string }[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<DashAttachment[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -44,7 +49,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     if (!files || !user || !company) return;
 
     setUploading(true);
-    const newFiles: { name: string; url: string }[] = [];
+    const newFiles: DashAttachment[] = [];
 
     for (const file of Array.from(files)) {
       if (!ALLOWED_TYPES.includes(file.type)) {
@@ -91,11 +96,8 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     if ((!input.trim() && attachedFiles.length === 0) || isLoading || uploading) return;
 
     const trimmed = input.trim().substring(0, MAX_LENGTH);
-    const fileContext = attachedFiles.length > 0
-      ? `\n\n[Attached files: ${attachedFiles.map(f => f.name).join(", ")}]\n[File URLs: ${attachedFiles.map(f => f.url).join(", ")}]`
-      : "";
-
-    onSend(trimmed + fileContext, attachedFiles.map(f => f.url));
+    // Pass attachments as structured data, NOT embedded in the text
+    onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined);
     setInput("");
     setAttachedFiles([]);
   };
