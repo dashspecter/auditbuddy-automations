@@ -2440,6 +2440,20 @@ serve(async (req) => {
     return new Response(errStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   } catch (error) {
     console.error("Dash command error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Return error as SSE stream so frontend can parse it consistently (not raw JSON)
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
+    const encoder = new TextEncoder();
+    const errStream = new ReadableStream({
+      start(controller) {
+        const errEvt = JSON.stringify({ type: "structured_event", event_type: "execution_result", data: { status: "error", title: "Request Failed", summary: errMsg } });
+        controller.enqueue(encoder.encode(`data: ${errEvt}\n\n`));
+        const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: `⚠️ ${errMsg}` }, finish_reason: null }] };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(errStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
   }
 });
