@@ -1,83 +1,103 @@
 
+Deep dive result: the schedule itself is not the primary bug. I verified the full chain and found the failure is upstream in Dash orchestration.
 
-# Fix: Dash-Created Shifts Not Visible in Schedule
+What I verified
+- The missing shift `977bbc0e-5791-44aa-b48c-a6730a1fff95` exists in the database as:
+  - `shift_date = 2024-07-30`
+  - `is_published = false`
+  - `status = draft`
+  - no `shift_assignments`
+- The schedule grid only shows shifts for the current visible week and filters location rows to published shifts, so this record can never appear in the current schedule.
+- Realtime is enabled for both `shifts` and `shift_assignments`, so this is not mainly a refresh problem.
+- The active Dash session still contains old hallucinated “July 30, 2024” assistant messages, so retries are being contaminated by stale history.
+- Recent Dash logs show multiple “I’ve drafted a shift…” responses with `tools_used = []`, meaning Dash sometimes only writes text and does not actually create a real draft/pending action.
 
-## Investigation Summary
+Root causes
+1. Non-deterministic draft creation  
+   Dash sometimes replies with a fake draft message without calling `create_shift_draft`.
 
-I verified the actual shift record in the database (`977bbc0e-...`):
-- `shift_date: 2024-07-30` (WRONG — today is 2026-03-23)
-- `is_published: false` (should be `true` per user preference)
-- `status: draft` (should be `published`)
-- No `shift_assignment` row exists (employee was never linked)
-- "Alex Grecea" does NOT exist in the employees table (no match found)
+2. Broken approval flow  
+   The Approve button sends natural-language text instead of executing directly.  
+   `useDashChat` only sends `role/content`, so `pending_action_id` is lost between turns.
 
-Despite the previous code fix adding `is_published: true` and assignment logic, the deployed function apparently ran with the old code for this shift. Additionally, the system prompt does NOT include the current date, so the LLM used "July 30, 2024" (hallucinated).
+3. Session/history loses structured state  
+   `dash_sessions.messages_json` stores only plain text, not structured approval metadata/cards. After reload/history select, approval context is gone.
 
-## Root Causes (4 issues)
+4. Stale poisoned session  
+   Even with newer prompt fixes, the current session keeps feeding “July 30, 2024” back into the model.
 
-### Issue 1 — No current date in system prompt (CRITICAL)
-`buildSystemPrompt()` does not include today's date. The LLM has no way to know what "today" means, so it hallucinated `2024-07-30`. Every shift created via "today" will have the wrong date.
+5. Employee resolution is not robust enough  
+   “Alex Grecea” does not exist. “Grecea Alexandru” does exist. Current resolution is not safe for missing/ambiguous names.
 
-### Issue 2 — Employee name validation missing (CRITICAL)
-When `employee_name` is provided but no match is found in the employees table, the handler silently continues with `employee_id: null`. The user selected "Block and ask" — the draft should fail with a `missing_fields` error when the employee cannot be resolved.
+6. Execution is not atomic enough  
+   Shift creation and assignment are separate operations, so partial success is possible.
 
-### Issue 3 — Shift should be published immediately (per user preference)
-The previous fix already sets `is_published: true` in `execute_shift_creation`. This is confirmed correct. However, the `status` column default is `'draft'` and must be explicitly set to `'published'` — which the fix also does. This was already addressed but the deployed version for the user's test may not have had it. Will verify the current code is correct (it is).
+Implementation plan
+1. Make approvals deterministic
+- Change the Dash approval UX so Approve executes by `pending_action_id` directly instead of sending free-text confirmation.
+- Add a backend approval path in `dash-command` that bypasses the model for approved pending actions.
 
-### Issue 4 — `assigned_by` column is NOT NULL but could fail
-The `shift_assignments` table has `assigned_by uuid NOT NULL`. The execute handler sets `assigned_by: userId`. This is correct.
+2. Persist structured Dash state
+- Save/load structured events in `dash_sessions.messages_json` alongside message text.
+- Preserve `pending_action_id`, action type, draft payload, and approval capability on reload and session history restore.
 
-## Changes
+3. Prevent fake drafts
+- Harden `dash-command` so it cannot say “I’ve drafted…” unless `create_shift_draft` actually ran.
+- If a write intent is detected and the model returns draft/create language without the required tool, force a retry or return clarification instead.
 
-### File: `supabase/functions/dash-command/index.ts`
+4. Fix date handling properly
+- Use timezone-safe “today” resolution for Europe/Bucharest instead of UTC slicing.
+- Stop relative dates from drifting around midnight or inheriting stale context.
 
-**A) Add current date to system prompt (line ~1714)**
+5. Strengthen employee/location resolution
+- Resolve location inside the current company only.
+- Resolve employee with a safer strategy:
+  - exact match first
+  - normalized token-order match second
+  - if no match: block and ask
+  - if multiple matches: clarification card with candidates
+- Do not silently pick the first fuzzy match.
 
-Add a `- **Today**: 2026-03-23 (Monday)` line to the Current Context section. Use `new Date().toLocaleDateString()` dynamically.
+6. Make shift execution atomic
+- Move “create published shift + optional approved assignment” into one transactional backend/database operation.
+- Return one canonical success payload with shift id, date, location, publish state, and assignment result.
 
-Update `buildSystemPrompt` signature to accept `today: string` and inject it.
+7. Repair the Dash UX
+- Keep ActionPreviewCard in loading state until a real execution result arrives.
+- Do not auto-flip to “Approved & Executed” after 2 seconds.
+- Show exact normalized date/location/employee in both preview and success states.
+- Add a direct “View in schedule” jump to the correct week/location.
 
-**B) Block draft when employee not found (lines ~1007-1017)**
+8. Recover broken existing data safely
+- Add a guarded recovery path for recent broken Dash-created shifts:
+  - repair date/status/publish only when intent is unambiguous
+  - create assignment only when employee is unambiguous
+  - otherwise mark invalid/failed instead of leaving ghost records
+- Archive/clear the current poisoned Dash session so new attempts start clean.
 
-Currently:
-```typescript
-if (employeeName && !employeeId) {
-  const { data: empData } = await sb.from("employees")...
-  if (empData?.[0]) { employeeId = empData[0].id; employeeName = empData[0].full_name; }
-}
-```
+Files likely involved
+- `supabase/functions/dash-command/index.ts`
+- `src/hooks/useDashChat.ts`
+- `src/components/dash/ActionPreviewCard.tsx`
+- `src/components/dash/DashSessionHistory.tsx`
+- likely one new migration/RPC for atomic shift creation
 
-Change to: if `employee_name` was provided but the query returns no match, add `"employee"` to `missing_fields` and set `can_approve: false`. Include a message like `"Employee '${args.employee_name}' not found in this company."`.
+End-to-end acceptance checks
+- Create shift from plain text
+- Create shift from Approve button
+- Reload `/dash`, then approve
+- Reopen from History, then approve
+- Missing employee
+- Ambiguous employee
+- Cross-location employee
+- Current week and future week
+- Manager schedule updates in real time
+- Employee sees assigned shift in staff schedule
+- No duplicate/stale pending actions after retries
 
-**C) Pass today's date when building the system prompt (line ~1871)**
+Expected outcome
+After this pass, Dash will either:
+- create a real persistent draft with a valid approval card, or
+- block with a clear clarification state.
 
-```typescript
-const today = new Date().toISOString().slice(0, 10);
-const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-const systemPrompt = buildSystemPrompt({
-  role: displayRole, companyName, modules: activeModules,
-  locations: locationNames, today, todayLabel
-});
-```
-
-### Redeploy
-
-Redeploy `dash-command` edge function.
-
-## Expected Behavior After Fix
-
-1. User says "add Alex Grecea to the schedule today in Amzei"
-2. Dash resolves "today" correctly as `2026-03-23` (from system prompt context)
-3. Dash searches for "Alex Grecea" → no match found
-4. Draft returns `missing_fields: ["employee"]` with message "Employee 'Alex Grecea' not found"
-5. ActionPreviewCard shows "Missing required fields: employee" with Approve button disabled
-6. Dash asks user to clarify or pick from existing employees
-7. Once correct employee is selected and approved, shift is created with `is_published: true`, `status: 'published'`, and a `shift_assignment` row
-8. Shift appears immediately in the scheduling grid
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/dash-command/index.ts` | Add today's date to system prompt, block draft when employee not found |
-
+Once approved, the shift will be published immediately, assigned when appropriate, and visible in both manager and employee scheduling views end-to-end.
