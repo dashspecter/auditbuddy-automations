@@ -2109,15 +2109,25 @@ serve(async (req) => {
         console.error("Failed to log Dash action:", logErr);
       }
 
-      // Save/update session
+      // Save/update session (include structured events for persistence)
       if (session_id) {
         try {
+          // Parse structured events into JSON for persistence
+          const parsedStructuredEvents = allStructuredEvents.map((evt: string) => {
+            try { return JSON.parse(evt); } catch { return null; }
+          }).filter(Boolean);
+
+          const assistantMsg: any = { role: "assistant", content: finalContent };
+          if (parsedStructuredEvents.length > 0) {
+            assistantMsg.structured = parsedStructuredEvents;
+          }
+
           await sbService.from("dash_sessions").upsert({
             id: session_id,
             company_id: companyId,
             user_id: userId,
             title: generateSmartTitle(messages?.[0]?.content),
-            messages_json: [...messages, { role: "assistant", content: finalContent }],
+            messages_json: [...messages, assistantMsg],
             status: "active",
             updated_at: new Date().toISOString(),
           }, { onConflict: "id" });
