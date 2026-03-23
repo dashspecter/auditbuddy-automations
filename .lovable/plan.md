@@ -1,53 +1,54 @@
 
 
-# Phase 2: Dash Hardening — Remaining Risks
+# Fix: Dash Correctness Issues Found in Live Testing
 
-## Problems to Fix
+## Issues Identified from Screenshots
 
-### 1. Session restore shows stale approval cards
-When reloading a session, `ActionPreviewCard` always initializes with `status: "pending"`. If the pending action was already executed/rejected/expired, the Approve button still appears. Users can click it, which fires a request that will fail (backend checks `pa.status !== "pending"`), but the UX is misleading.
+### Issue 1: `due_date` column error on corrective actions drill-down
+**Screenshot 1**: User asks "yes, please" to break down corrective actions. Dash returns: *"issue with accessing the due_date column"*.
 
-**Fix:** On session restore, reconcile approval card state by checking `dash_pending_actions` status. Pass resolved status into `ActionPreviewCard` so already-executed actions show "Completed" and already-rejected ones show "Rejected" instead of Approve buttons.
+**Root cause**: The `corrective_actions` table uses `due_at`, not `due_date`. The `get_open_corrective_actions` tool selects `due_date` (line 879) and maps it in the return (line 886). When the LLM tries to drill deeper and queries by severity, the same wrong column name causes a Postgres error.
 
-### 2. Global error handler returns JSON, not SSE
-Line 2441-2443: the top-level `catch` returns `JSON.stringify({ error })` with `Content-Type: application/json`. Frontend expects SSE stream, so `resp.body` exists but SSE parsing fails silently — user sees infinite spinner or empty bubble.
+**Fix**: In `index.ts` lines 879 and 886, change `due_date` to `due_at`.
 
-**Fix:** Return errors as SSE streams (same pattern as max-iterations fix).
+---
 
-### 3. AI gateway errors (429, 402, 500) return JSON too
-Lines 2286-2290: rate limit, credit depletion, and AI unavailable errors all return raw JSON. Frontend handles 429/402 status codes before streaming, but 500 falls through to `processStream` which fails silently.
+### Issue 2: Audit template created without approval card — user can't approve via button
+**Screenshot 2-3**: User asks "Create an audit template named TestDash with 3 sections: Safety, Cleanliness, Equipment". Dash responds with a text draft preview AND appends "✅ Audit template 'TestDash' created successfully!" in the same message — meaning the template was **created immediately without waiting for approval**.
 
-**Fix:** These already have status code checks in frontend (lines 263-267), but the 500 case is not handled. Add a generic non-ok check that catches it.
+Then user types "Confirm" and Dash doesn't know what to confirm because the template was already created inline.
 
-### 4. File parsing has no timeout/AbortController
-`parse_uploaded_file` calls Gemini with `stream: false` and no timeout. Large PDFs can stall for 60-120 seconds, potentially hitting Deno's 150s limit. User sees "Analyzing..." with no progress.
+**Root cause**: The LLM is calling `create_audit_template_draft` which correctly creates a pending action and emits an `action_preview` structured event. But the LLM then **also calls `execute_audit_template_creation` in the same tool-call iteration** — it doesn't wait for user approval. The action_preview card with the Approve button IS being emitted, but by the time streaming completes, execution has already happened. The card likely shows but the "✅ created successfully" text at the end of the message makes it look like everything happened automatically.
 
-**Fix:** Add AbortController with 60-second timeout to the Gemini fetch call in `parse_uploaded_file`. On timeout, return a clear error message. Also emit a `structured_event` of type `execution_result` with status `error` so the user sees a card instead of nothing.
+This is actually a **system prompt issue** — the LLM needs to be explicitly told: after calling a draft tool, STOP and wait. Do NOT call the execute tool in the same turn.
 
-### 5. No correlation IDs for debugging
-Requests, tool calls, pending actions, and executions have no shared trace ID, making production debugging nearly impossible.
+**Fix**: Strengthen the system prompt instructions to explicitly forbid calling execute tools in the same iteration as draft tools. Add a guard in the tool-call loop: if a draft tool was just called, skip any execute tool calls in the same iteration.
 
-**Fix:** Generate a `requestId` (UUID) at the start of each request. Pass it through tool calls, log it in `dash_action_log`, `dash_pending_actions`, and console logs. Include it in error messages so support can trace failures.
+---
 
-### 6. Silent `catch {}` blocks swallow errors
-Multiple empty catch blocks (session load, session save, clear chat) hide failures completely.
+### Issue 3: No approval card visible in the UI
+Looking at screenshots 2-3 more carefully, there's no `ActionPreviewCard` rendered. The structured event was emitted but the content text includes "Please confirm if you'd like to create this audit template. ✅ Audit template "TestDash" created successfully!" — this means both the draft AND execute happened in one turn. The action_preview card may have been emitted but immediately followed by execution_result, and since both are in the same message, the card's pending_action_id already resolves to "approved" status.
 
-**Fix:** Add `console.error` with context to all empty catch blocks.
+**Fix**: The backend tool loop guard is the real fix. After any `_draft` tool call, force-break the tool iteration loop so the LLM cannot call execute in the same turn.
+
+---
 
 ## File Changes
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/dash-command/index.ts` | (1) Global catch returns SSE instead of JSON. (2) Add 60s AbortController to file parsing Gemini call. (3) Generate `requestId` and thread through logs. (4) Add logging to silent catch blocks. |
-| `src/hooks/useDashChat.ts` | (1) On session restore, fetch pending action statuses and mark already-executed cards. (2) Add silent-catch logging. |
-| `src/components/dash/ActionPreviewCard.tsx` | (1) Accept `initialStatus` prop for restored sessions so already-executed actions don't show Approve. |
-| `src/components/dash/DashMessageList.tsx` | (1) Pass `initialStatus` from structured event data to ActionPreviewCard. |
+| `supabase/functions/dash-command/index.ts` | (1) Fix `due_date` → `due_at` in `get_open_corrective_actions`. (2) Add guard in tool-call loop: if a `_draft` tool was called, break the loop to prevent same-turn execution. (3) Strengthen system prompt to explicitly forbid same-turn draft+execute. |
 
-## Implementation Order
+## Implementation Details
 
-1. Fix global catch → SSE (prevents infinite spinners on unexpected errors)
-2. Add file parsing timeout (prevents 150s stalls)
-3. Session restore reconciliation (prevents stale approval cards)
-4. Correlation IDs (debugging infrastructure)
-5. Silent catch cleanup (observability)
+### Change 1: Column name fix (lines 879, 886)
+```
+due_date → due_at
+```
+
+### Change 2: Draft-breaks-loop guard
+In the tool-call iteration loop, after processing tool results, check if any tool name ends with `_draft`. If so, append a system message telling the LLM to stop and present the draft, then break the inner loop.
+
+### Change 3: System prompt reinforcement
+Add explicit instruction: "CRITICAL: After calling any draft tool (create_audit_template_draft, create_employee_draft, create_shift_draft, reassign_corrective_action), you MUST stop tool calling and present the draft to the user. Do NOT call any execute tool in the same turn. Wait for user approval via the approval card."
 
