@@ -10,6 +10,10 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_ROWS = 200;
 
+// ─── Shared Audit Completion Semantics ───
+// Aligns with src/lib/auditHelpers.ts COMPLETED_STATUSES
+const AUDIT_FINISHED_STATUSES = ["completed", "compliant", "non-compliant", "non_compliant"];
+
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
   get_audit_results: "location_audits",
@@ -293,15 +297,15 @@ const tools = [
     type: "function",
     function: {
       name: "compare_location_performance",
-      description: "Compare audit performance across locations for a date range.",
+      description: "Compare audit performance across locations for a date range. If location_ids is omitted, compares ALL active company locations.",
       parameters: {
         type: "object",
         properties: {
-          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare" },
+          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare. If omitted, all active company locations are compared." },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
         },
-        required: ["location_ids", "from", "to"],
+        required: ["from", "to"],
       },
     },
   },
@@ -802,7 +806,7 @@ async function executeToolInner(
 
       const [empRes, auditRes, caRes, taskRes] = await Promise.all([
         sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
-        sb.from("location_audits").select("overall_score").eq("location_id", locationId).eq("status", "completed").order("completed_at", { ascending: false }).limit(1),
+        sb.from("location_audits").select("overall_score").eq("location_id", locationId).in("status", AUDIT_FINISHED_STATUSES).not("overall_score", "is", null).order("audit_date", { ascending: false }).limit(1),
         sb.from("corrective_actions").select("id", { count: "exact", head: true }).eq("location_id", locationId).in("status", ["open", "in_progress"]),
         sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId),
       ]);
@@ -819,12 +823,13 @@ async function executeToolInner(
       const ur = await utcRange(sb, args.from, args.to);
       const locationFilter = args.location_id;
 
-      let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("created_at", ur?.fromUtc ?? args.from).lt("created_at", ur?.toUtc ?? args.to);
+      let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("audit_date", args.from).lte("audit_date", args.to);
       if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
       const { data: audits } = await auditQ.limit(200);
 
-      const completedAudits = (audits ?? []).filter((a: any) => a.status === "completed");
-      const avgScore = completedAudits.length > 0 ? Math.round(completedAudits.reduce((s: number, a: any) => s + (a.overall_score ?? 0), 0) / completedAudits.length) : null;
+      const finishedAudits = (audits ?? []).filter((a: any) => AUDIT_FINISHED_STATUSES.includes(a.status));
+      const scoredAudits = finishedAudits.filter((a: any) => a.overall_score != null && a.overall_score > 0);
+      const avgScore = scoredAudits.length > 0 ? Math.round(scoredAudits.reduce((s: number, a: any) => s + a.overall_score, 0) / scoredAudits.length) : null;
 
       let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").in("status", ["open", "in_progress"]);
       if (locationFilter) caQ = caQ.eq("location_id", locationFilter);
@@ -845,7 +850,7 @@ async function executeToolInner(
       return {
         date_range: { from: args.from, to: args.to },
         location_id: locationFilter ?? "all",
-        audits: { total: (audits ?? []).length, completed: completedAudits.length, avg_score: avgScore },
+        audits: { total: (audits ?? []).length, finished: finishedAudits.length, scored: scoredAudits.length, avg_score: avgScore },
         corrective_actions: { open: (cas ?? []).filter((c: any) => c.status === "open").length, in_progress: (cas ?? []).filter((c: any) => c.status === "in_progress").length, by_severity: { critical: (cas ?? []).filter((c: any) => c.severity === "critical").length, high: (cas ?? []).filter((c: any) => c.severity === "high").length } },
         attendance: { total_logs: (attLogs ?? []).length, late_arrivals: lateCount, missing_checkouts: noCheckout },
         work_orders: { open: (wos ?? []).filter((w: any) => w.status === "open").length, in_progress: (wos ?? []).filter((w: any) => w.status === "in_progress").length },
@@ -854,24 +859,39 @@ async function executeToolInner(
 
     case "get_audit_results": {
       const limit = Math.min(args.limit || 20, MAX_TOOL_ROWS);
-      let q = sb.from("location_audits").select("id, overall_score, status, created_at, completed_at, location_id, locations(name), template_id, audit_templates(name)")
-        .eq("status", "completed").gte("created_at", args.from).lte("created_at", args.to + "T23:59:59Z").order("completed_at", { ascending: false }).limit(limit);
+      let q = sb.from("location_audits").select("id, overall_score, status, audit_date, location_id, locations(name), template_id, audit_templates(name)")
+        .in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
       if (args.location_id) q = q.eq("location_id", args.location_id);
       if (args.template_id) q = q.eq("template_id", args.template_id);
       const { data, error } = await q;
       if (error) return { error: error.message };
       const c = cap(data, limit);
-      return { ...c, audits: c.items.map((a: any) => ({ id: a.id, score: a.overall_score, location: a.locations?.name, template: a.audit_templates?.name, completed_at: a.completed_at })) };
+      return { ...c, audits: c.items.map((a: any) => ({ id: a.id, score: a.overall_score, status: a.status, audit_date: a.audit_date, location: a.locations?.name, template: a.audit_templates?.name })) };
     }
 
     case "compare_location_performance": {
-      const results: any[] = [];
-      for (const locId of args.location_ids ?? []) {
-        const { data } = await sb.from("location_audits").select("overall_score, locations(name)").eq("location_id", locId).eq("status", "completed").gte("created_at", args.from).lte("created_at", args.to + "T23:59:59Z");
-        const scores = (data ?? []).map((a: any) => a.overall_score).filter((s: any) => s != null);
-        results.push({ location_id: locId, location_name: data?.[0]?.locations?.name ?? locId, audit_count: scores.length, avg_score: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : null, min_score: scores.length > 0 ? Math.min(...scores) : null, max_score: scores.length > 0 ? Math.max(...scores) : null });
+      // Auto-load all active company locations if location_ids not provided
+      let locationIds: string[] = args.location_ids ?? [];
+      if (locationIds.length === 0) {
+        const { data: allLocs } = await sb.from("locations").select("id").eq("is_active", true).limit(100);
+        locationIds = (allLocs ?? []).map((l: any) => l.id);
       }
-      return { date_range: { from: args.from, to: args.to }, comparisons: results };
+      if (locationIds.length === 0) return { error: "No active locations found for your company." };
+
+      const results: any[] = [];
+      const noDataLocations: string[] = [];
+      for (const locId of locationIds) {
+        const { data } = await sb.from("location_audits").select("overall_score, locations(name)").eq("location_id", locId).in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to);
+        const scores = (data ?? []).map((a: any) => a.overall_score).filter((s: any) => s != null && s > 0);
+        const locName = data?.[0]?.locations?.name ?? locId;
+        if (scores.length === 0) {
+          noDataLocations.push(locName);
+        } else {
+          results.push({ location_id: locId, location_name: locName, audit_count: scores.length, avg_score: Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length), min_score: Math.min(...scores), max_score: Math.max(...scores) });
+        }
+      }
+      results.sort((a, b) => (b.avg_score ?? 0) - (a.avg_score ?? 0));
+      return { date_range: { from: args.from, to: args.to }, comparisons: results, locations_with_no_scored_audits: noDataLocations };
     }
 
     case "get_open_corrective_actions": {
