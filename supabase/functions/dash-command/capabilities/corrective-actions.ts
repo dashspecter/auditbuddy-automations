@@ -2,6 +2,7 @@
  * Corrective Actions Capability Module
  * Migrated from index.ts — all CA domain logic lives here.
  */
+import { MAX_TOOL_ROWS } from "../shared/constants.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 

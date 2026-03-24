@@ -3,6 +3,7 @@
  * Grouped smaller domains: Tasks, CMMS, Documents, Training.
  * Migrated from index.ts.
  */
+import { MAX_TOOL_ROWS } from "../shared/constants.ts";
 import { cap } from "../shared/utils.ts";
 
 

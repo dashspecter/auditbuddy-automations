@@ -2,7 +2,7 @@
  * Audits Capability Module
  * Migrated from index.ts — all audit domain logic lives here.
  */
-import { AUDIT_FINISHED_STATUSES } from "../shared/constants.ts";
+import { AUDIT_FINISHED_STATUSES, MAX_TOOL_ROWS } from "../shared/constants.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 
