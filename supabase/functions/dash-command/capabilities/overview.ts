@@ -68,7 +68,7 @@ export async function getCrossModuleSummary(
   const lateCount = (attLogs ?? []).filter((l: any) => l.is_late).length;
   const noCheckout = (attLogs ?? []).filter((l: any) => !l.check_out_at && !l.auto_clocked_out).length;
 
-  let woQ = sb.from("cmms_work_orders").select("id, status, priority");
+  let woQ = sb.from("cmms_work_orders").select("id, status, priority").eq("company_id", companyId);
   if (locationFilter) woQ = woQ.eq("location_id", locationFilter);
   const { data: wos } = await woQ.in("status", ["open", "in_progress"]).limit(200);
 
