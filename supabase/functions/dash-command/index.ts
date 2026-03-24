@@ -453,7 +453,7 @@ async function executeToolInner(
         can_approve: true,
       }));
 
-      return {
+      return resultToToolResponse(success({
         type: "time_off_draft",
         draft,
         days,
@@ -462,7 +462,7 @@ async function executeToolInner(
         requires_approval: true,
         risk_level: "medium",
         message: `Time-off draft created for ${args.employee_name || "employee"} (${days} days).${conflictWarning} Please approve to proceed.`,
-      };
+      }));
     }
 
     case "execute_time_off_request": {
