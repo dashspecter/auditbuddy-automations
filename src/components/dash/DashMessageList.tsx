@@ -6,6 +6,7 @@ import type { DashMessage, DashStructuredEvent } from "@/hooks/useDashChat";
 import type { DashAttachment } from "@/components/dash/DashInput";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { SourceCard } from "./SourceCard";
 import { DataTableCard } from "./DataTableCard";
 import { ClarificationCard } from "./ClarificationCard";
