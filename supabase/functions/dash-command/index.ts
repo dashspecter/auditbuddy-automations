@@ -850,7 +850,7 @@ async function executeToolInner(
       return {
         date_range: { from: args.from, to: args.to },
         location_id: locationFilter ?? "all",
-        audits: { total: (audits ?? []).length, completed: completedAudits.length, avg_score: avgScore },
+        audits: { total: (audits ?? []).length, finished: finishedAudits.length, scored: scoredAudits.length, avg_score: avgScore },
         corrective_actions: { open: (cas ?? []).filter((c: any) => c.status === "open").length, in_progress: (cas ?? []).filter((c: any) => c.status === "in_progress").length, by_severity: { critical: (cas ?? []).filter((c: any) => c.severity === "critical").length, high: (cas ?? []).filter((c: any) => c.severity === "high").length } },
         attendance: { total_logs: (attLogs ?? []).length, late_arrivals: lateCount, missing_checkouts: noCheckout },
         work_orders: { open: (wos ?? []).filter((w: any) => w.status === "open").length, in_progress: (wos ?? []).filter((w: any) => w.status === "in_progress").length },
