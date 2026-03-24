@@ -823,12 +823,13 @@ async function executeToolInner(
       const ur = await utcRange(sb, args.from, args.to);
       const locationFilter = args.location_id;
 
-      let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("created_at", ur?.fromUtc ?? args.from).lt("created_at", ur?.toUtc ?? args.to);
+      let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("audit_date", args.from).lte("audit_date", args.to);
       if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
       const { data: audits } = await auditQ.limit(200);
 
-      const completedAudits = (audits ?? []).filter((a: any) => a.status === "completed");
-      const avgScore = completedAudits.length > 0 ? Math.round(completedAudits.reduce((s: number, a: any) => s + (a.overall_score ?? 0), 0) / completedAudits.length) : null;
+      const finishedAudits = (audits ?? []).filter((a: any) => AUDIT_FINISHED_STATUSES.includes(a.status));
+      const scoredAudits = finishedAudits.filter((a: any) => a.overall_score != null && a.overall_score > 0);
+      const avgScore = scoredAudits.length > 0 ? Math.round(scoredAudits.reduce((s: number, a: any) => s + a.overall_score, 0) / scoredAudits.length) : null;
 
       let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").in("status", ["open", "in_progress"]);
       if (locationFilter) caQ = caQ.eq("location_id", locationFilter);
