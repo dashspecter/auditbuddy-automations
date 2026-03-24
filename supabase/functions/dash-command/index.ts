@@ -644,6 +644,20 @@ async function executeToolInner(
   }
 }
 
+// ─── Dynamic Capability Docs from Registry ──────────────────
+function generateCapabilityDocs(): string {
+  const sections: string[] = [];
+  for (const [domain, cap] of Object.entries(CAPABILITY_REGISTRY)) {
+    if (cap.maturity === "planned") continue;
+    const label = domain.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+    const tools = [...cap.reads, ...cap.actions];
+    const toolList = tools.length > 0 ? tools.map((t: string) => `\`${t}\``).join(", ") : "_no tools_";
+    const aliases = cap.aliases.slice(0, 6).join(", ");
+    sections.push(`- **${label}** (${cap.maturity}): ${toolList}\n  Aliases: ${aliases}`);
+  }
+  return sections.join("\n");
+}
+
 // ─── System Prompt Builder ──────────────────────────────────
 function buildSystemPrompt(ctx: { role: string; companyName: string; modules: string[]; locations: string[]; today: string; todayLabel: string }): string {
   return `You are **Dash**, the operational command center of Dashspect — a multi-tenant platform for compliance, workforce, and operations management.
