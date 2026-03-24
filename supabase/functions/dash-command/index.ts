@@ -175,70 +175,7 @@ function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
   return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
 }
 
-/**
- * Downloads a file from Supabase Storage and returns it as base64 with its MIME type.
- * Handles signed URLs, public URLs, and direct storage paths.
- */
-async function downloadFileAsBase64(
-  sbService: any,
-  fileUrl: string
-): Promise<{ base64: string; mimeType: string }> {
-  // Determine MIME type from URL/extension
-  const urlPath = fileUrl.split("?")[0].toLowerCase();
-  let mimeType = "application/octet-stream";
-  if (urlPath.endsWith(".pdf")) mimeType = "application/pdf";
-  else if (urlPath.endsWith(".png")) mimeType = "image/png";
-  else if (urlPath.endsWith(".jpg") || urlPath.endsWith(".jpeg")) mimeType = "image/jpeg";
-  else if (urlPath.endsWith(".gif")) mimeType = "image/gif";
-  else if (urlPath.endsWith(".webp")) mimeType = "image/webp";
-  else if (urlPath.endsWith(".csv")) mimeType = "text/csv";
-  else if (urlPath.endsWith(".xlsx") || urlPath.endsWith(".xls")) mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-  // Try to parse as Supabase Storage URL and download via SDK
-  const storageMarker = "/storage/v1/object/";
-  if (fileUrl.includes(storageMarker)) {
-    const urlParts = fileUrl.split(storageMarker);
-    if (urlParts.length >= 2) {
-      let bucketAndPath = urlParts[1].split("?")[0];
-      // Remove "public/" or "sign/" prefix
-      if (bucketAndPath.startsWith("public/")) bucketAndPath = bucketAndPath.substring(7);
-      else if (bucketAndPath.startsWith("sign/")) bucketAndPath = bucketAndPath.substring(5);
-
-      const segments = bucketAndPath.split("/");
-      const bucket = segments[0];
-      const path = decodeURIComponent(segments.slice(1).join("/"));
-
-      console.log(`downloadFileAsBase64: bucket=${bucket}, path=${path}`);
-
-      const { data, error } = await sbService.storage.from(bucket).download(path);
-      if (error) {
-        console.error("Storage download error:", error);
-        throw new Error(`Could not download file from storage: ${error.message}`);
-      }
-
-      const arrayBuffer = await data.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
-      return { base64, mimeType };
-    }
-  }
-
-  // Fallback: direct HTTP fetch for external URLs
-  console.log(`downloadFileAsBase64: fetching external URL`);
-  const resp = await fetch(fileUrl);
-  if (!resp.ok) throw new Error(`Failed to fetch file: HTTP ${resp.status}`);
-  const arrayBuffer = await resp.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  const base64 = btoa(binary);
-  // Try to get content-type from response
-  const ct = resp.headers.get("content-type");
-  if (ct) mimeType = ct.split(";")[0].trim();
-  return { base64, mimeType };
-}
+// downloadFileAsBase64 is now imported from capabilities/file-processing.ts as dlFileBase64
 
 async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE) {
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
