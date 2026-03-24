@@ -2,17 +2,9 @@
  * Workforce Capability Module
  * Migrated from index.ts — employees, shifts, attendance domain logic.
  */
-import { MAX_TOOL_ROWS, DEFAULT_TIMEZONE } from "../shared/constants.ts";
+import { DEFAULT_TIMEZONE } from "../shared/constants.ts";
+import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
-
-function makeStructuredEvent(type: string, data: any): string {
-  return JSON.stringify({ type: "structured_event", event_type: type, data });
-}
 
 // ─── Read Tools ───
 
